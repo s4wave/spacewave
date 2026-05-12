@@ -7,9 +7,13 @@ import (
 	"io"
 	"testing"
 
+	"github.com/aperturerobotics/starpc/srpc"
+	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -274,6 +278,202 @@ func TestGraphPathQueryResourceReturnsQuadsWithoutObjectKeys(t *testing.T) {
 		t.Fatalf("expected already drained terminal page, got done=%v quads=%d", page.GetDone(), len(page.GetQuads()))
 	}
 }
+
+func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	for _, key := range []string{"operation/a", "operation/b", "operation/c"} {
+		if _, err := tb.WorldState.CreateObject(ctx, key, nil); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	for _, edge := range [][2]string{
+		{"operation/a", "operation/c"},
+		{"operation/b", "operation/c"},
+	} {
+		if err := tb.WorldState.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(edge[0], "<operation-rel>", edge[1], "")); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	var records []resource_world.WorldStateOperationRecord
+	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+		records = append(records, record)
+	}))
+	subjFilter := world.NewGraphQuadWithKeys("operation/a", "<operation-rel>", "", "")
+	objFilter := world.NewGraphQuadWithKeys("", "<operation-rel>", "operation/c", "")
+	resp, err := resource.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
+		Filters: []*quad.Quad{
+			{Subject: subjFilter.GetSubject(), Predicate: subjFilter.GetPredicate()},
+			{Predicate: objFilter.GetPredicate(), Obj: objFilter.GetObj()},
+		},
+		LimitPerFilter: 10,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(resp.GetResults()) != 2 {
+		t.Fatalf("expected two result sets, got %d", len(resp.GetResults()))
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected one operation record, got %d", len(records))
+	}
+	record := records[0]
+	if record.Name != "LookupGraphQuadsBatch" {
+		t.Fatalf("record name = %q", record.Name)
+	}
+	if record.FilterCount != 2 || record.Limit != 10 {
+		t.Fatalf("unexpected request counts: %+v", record)
+	}
+	if record.ResultSetCount != 2 || record.ResultQuadCount != 3 {
+		t.Fatalf("unexpected result counts: %+v", record)
+	}
+	if record.Duration <= 0 {
+		t.Fatalf("expected positive duration, got %s", record.Duration)
+	}
+	if record.Error != "" {
+		t.Fatalf("unexpected error record: %+v", record)
+	}
+
+	records = nil
+	if _, err := resource.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
+		Filters:        []*quad.Quad{{Subject: subjFilter.GetSubject(), Predicate: subjFilter.GetPredicate()}},
+		LimitPerFilter: 0,
+	}); err == nil {
+		t.Fatal("expected zero limit to fail")
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected one error operation record, got %d", len(records))
+	}
+	record = records[0]
+	if record.Name != "LookupGraphQuadsBatch" || record.Error == "" {
+		t.Fatalf("unexpected error record: %+v", record)
+	}
+	if record.FilterCount != 1 || record.Limit != 0 || record.ResultQuadCount != 0 {
+		t.Fatalf("unexpected error counts: %+v", record)
+	}
+}
+
+func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	for _, key := range []string{"operation-path/a", "operation-path/b", "operation-path/c"} {
+		if _, err := tb.WorldState.CreateObject(ctx, key, nil); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	for _, edge := range [][2]string{
+		{"operation-path/a", "operation-path/b"},
+		{"operation-path/b", "operation-path/c"},
+	} {
+		if err := tb.WorldState.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(edge[0], "<operation-path-rel>", edge[1], "")); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	var records []resource_world.WorldStateOperationRecord
+	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+		records = append(records, record)
+	}))
+	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
+	resp, err := resource.QueryGraphPath(resource_server.WithResourceClientContext(ctx, resourceCtx), &s4wave_world.QueryGraphPathRequest{
+		StartKeys: []string{"operation-path/a"},
+		Steps: []*s4wave_world.GraphPathStep{
+			{
+				Direction: s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_OUT,
+				Predicate: "<operation-path-rel>",
+				Limit:     10,
+			},
+			{
+				Direction: s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_OUT,
+				Predicate: "<operation-path-rel>",
+				Limit:     10,
+			},
+		},
+		ResultLimit:  10,
+		IncludeQuads: true,
+		PageSize:     1,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if resp.GetResourceId() != 1 {
+		t.Fatalf("resource id = %d, want 1", resp.GetResourceId())
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected one operation record, got %d", len(records))
+	}
+	record := records[0]
+	if record.Name != "QueryGraphPath" {
+		t.Fatalf("record name = %q", record.Name)
+	}
+	if record.StartKeyCount != 1 || record.StepCount != 2 || record.Limit != 10 || record.PageSize != 1 {
+		t.Fatalf("unexpected request counts: %+v", record)
+	}
+	if record.ResultObjectCount != 1 || record.ResultQuadCount != 2 || !record.ResourceCreated {
+		t.Fatalf("unexpected result counts: %+v", record)
+	}
+	if record.Duration <= 0 {
+		t.Fatalf("expected positive duration, got %s", record.Duration)
+	}
+	if record.Error != "" {
+		t.Fatalf("unexpected error record: %+v", record)
+	}
+	resourceCtx.ReleaseResource(resp.GetResourceId())
+}
+
+type worldStateOperationResourceContext struct {
+	ctx      context.Context
+	nextID   uint32
+	releases map[uint32]func()
+}
+
+func (c *worldStateOperationResourceContext) Context() context.Context {
+	return c.ctx
+}
+
+func (c *worldStateOperationResourceContext) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
+	return c.AddResourceValue(mux, nil, releaseFn)
+}
+
+func (c *worldStateOperationResourceContext) AddResourceValue(_ srpc.Invoker, _ any, releaseFn func()) (uint32, error) {
+	c.nextID++
+	if c.releases == nil {
+		c.releases = make(map[uint32]func())
+	}
+	if releaseFn == nil {
+		releaseFn = func() {}
+	}
+	c.releases[c.nextID] = releaseFn
+	return c.nextID, nil
+}
+
+func (c *worldStateOperationResourceContext) ReleaseResource(resourceID uint32) bool {
+	releaseFn, ok := c.releases[resourceID]
+	if !ok {
+		return false
+	}
+	delete(c.releases, resourceID)
+	releaseFn()
+	return true
+}
+
+func (c *worldStateOperationResourceContext) GetResourceValue(uint32) (any, error) {
+	return nil, resource.ErrResourceNotFound
+}
+
+func (c *worldStateOperationResourceContext) GetAttachedResource(uint32) (srpc.Client, error) {
+	return nil, resource.ErrResourceNotFound
+}
+
+// _ is a type assertion
+var _ resource_server.ResourceClientContext = ((*worldStateOperationResourceContext)(nil))
 
 // TestWorldStateBasicOperations tests basic WorldState operations using the SDK.
 func TestWorldStateBasicOperations(t *testing.T) {

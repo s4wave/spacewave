@@ -2,6 +2,7 @@ package resource_world
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -23,13 +24,21 @@ type WorldStateResource struct {
 	mux      srpc.Invoker
 	ws       world.WorldState
 	lookupOp world.LookupOp
+
+	operationObserver WorldStateOperationObserver
 }
 
 // NewWorldStateResource creates a new WorldStateResource.
 //
 // lookupOp may be nil
-func NewWorldStateResource(le *logrus.Entry, b bus.Bus, ws world.WorldState, lookupOp world.LookupOp) *WorldStateResource {
-	return newWorldStateResource(le, b, ws, lookupOp, nil)
+func NewWorldStateResource(
+	le *logrus.Entry,
+	b bus.Bus,
+	ws world.WorldState,
+	lookupOp world.LookupOp,
+	opts ...WorldStateResourceOption,
+) *WorldStateResource {
+	return newWorldStateResource(le, b, ws, lookupOp, nil, opts...)
 }
 
 // NewEngineWorldStateResource creates a WorldStateResource with typed object access.
@@ -39,8 +48,9 @@ func NewEngineWorldStateResource(
 	ws world.WorldState,
 	lookupOp world.LookupOp,
 	engine world.Engine,
+	opts ...WorldStateResourceOption,
 ) *WorldStateResource {
-	return newWorldStateResource(le, b, ws, lookupOp, engine)
+	return newWorldStateResource(le, b, ws, lookupOp, engine, opts...)
 }
 
 func newWorldStateResource(
@@ -49,8 +59,14 @@ func newWorldStateResource(
 	ws world.WorldState,
 	lookupOp world.LookupOp,
 	engine world.Engine,
+	opts ...WorldStateResourceOption,
 ) *WorldStateResource {
 	wsResource := &WorldStateResource{le: le, b: b, ws: ws, lookupOp: lookupOp}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(wsResource)
+		}
+	}
 	register := []func(srpc.Mux) error{
 		func(mux srpc.Mux) error {
 			return s4wave_world.SRPCRegisterWorldStateResourceService(mux, wsResource)
@@ -275,24 +291,40 @@ func (r *WorldStateResource) LookupGraphQuads(ctx context.Context, req *s4wave_w
 
 // LookupGraphQuadsBatch searches for graph quads using bounded indexed filters.
 func (r *WorldStateResource) LookupGraphQuadsBatch(ctx context.Context, req *s4wave_world.LookupGraphQuadsBatchRequest) (*s4wave_world.LookupGraphQuadsBatchResponse, error) {
+	started := time.Now()
+	record := WorldStateOperationRecord{
+		Name:        "LookupGraphQuadsBatch",
+		FilterCount: len(req.GetFilters()),
+		Limit:       int(req.GetLimitPerFilter()),
+	}
+	var retErr error
+	defer func() {
+		r.observeOperation(record, started, retErr)
+	}()
+
 	if req.GetLimitPerFilter() == 0 {
-		return nil, errors.New("limit_per_filter must be non-zero")
+		retErr = errors.New("limit_per_filter must be non-zero")
+		return nil, retErr
 	}
 
 	results := make([]*s4wave_world.LookupGraphQuadsBatchResult, len(req.GetFilters()))
 	for i, f := range req.GetFilters() {
 		if err := validateBatchGraphFilter(f); err != nil {
-			return nil, err
+			retErr = err
+			return nil, retErr
 		}
 		filter := world.NewGraphQuad(f.GetSubject(), f.GetPredicate(), f.GetObj(), f.GetLabel())
 		quads, err := r.ws.LookupGraphQuads(ctx, filter, req.GetLimitPerFilter())
 		if err != nil {
-			return nil, err
+			retErr = err
+			return nil, retErr
 		}
+		record.ResultQuadCount += len(quads)
 		results[i] = &s4wave_world.LookupGraphQuadsBatchResult{
 			Quads: graphQuadsToProto(quads),
 		}
 	}
+	record.ResultSetCount = len(results)
 
 	return &s4wave_world.LookupGraphQuadsBatchResponse{Results: results}, nil
 }
@@ -358,20 +390,38 @@ func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4
 
 // QueryGraphPath creates a resource for a bounded graph path query.
 func (r *WorldStateResource) QueryGraphPath(ctx context.Context, req *s4wave_world.QueryGraphPathRequest) (*s4wave_world.QueryGraphPathResponse, error) {
+	started := time.Now()
+	record := WorldStateOperationRecord{
+		Name:          "QueryGraphPath",
+		StartKeyCount: len(req.GetStartKeys()),
+		StepCount:     len(req.GetSteps()),
+		Limit:         int(req.GetResultLimit()),
+		PageSize:      int(req.GetPageSize()),
+	}
+	var retErr error
+	defer func() {
+		r.observeOperation(record, started, retErr)
+	}()
+
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
-		return nil, err
+		retErr = err
+		return nil, retErr
 	}
 
 	query, err := graphPathQueryFromProto(req)
 	if err != nil {
-		return nil, err
+		retErr = err
+		return nil, retErr
 	}
 
 	result, err := r.ws.QueryGraphPath(ctx, query)
 	if err != nil {
-		return nil, err
+		retErr = err
+		return nil, retErr
 	}
+	record.ResultObjectCount = len(result.ObjectKeys)
+	record.ResultQuadCount = len(result.Quads)
 
 	queryResource := NewGraphPathQueryResource(r.le, r.b, result, req.GetPageSize())
 	id, err := resourceCtx.AddResource(queryResource.GetMux(), func() {
@@ -379,8 +429,10 @@ func (r *WorldStateResource) QueryGraphPath(ctx context.Context, req *s4wave_wor
 	})
 	if err != nil {
 		_, _ = queryResource.Close(ctx, &s4wave_world.CloseGraphPathQueryRequest{})
-		return nil, err
+		retErr = err
+		return nil, retErr
 	}
+	record.ResourceCreated = true
 
 	return &s4wave_world.QueryGraphPathResponse{ResourceId: id}, nil
 }
@@ -449,6 +501,17 @@ func validateBatchGraphFilter(f *quad.Quad) error {
 		return errors.New("batch graph filter subject or object must be set")
 	}
 	return nil
+}
+
+func (r *WorldStateResource) observeOperation(record WorldStateOperationRecord, started time.Time, err error) {
+	if r.operationObserver == nil {
+		return
+	}
+	record.Duration = time.Since(started)
+	if err != nil {
+		record.Error = err.Error()
+	}
+	r.operationObserver(record)
 }
 
 func graphPathQueryFromProto(req *s4wave_world.QueryGraphPathRequest) (*world.GraphPathQuery, error) {
