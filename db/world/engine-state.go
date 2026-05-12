@@ -166,6 +166,17 @@ func (e *engineWorldState) LookupGraphQuads(ctx context.Context, filter GraphQua
 	return quads, err
 }
 
+// LookupGraphQuadsBatch searches for graph quads for each filter in one read transaction.
+func (e *engineWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []GraphQuad, limitPerFilter uint32) ([][]GraphQuad, error) {
+	var results [][]GraphQuad
+	err := e.performOp(ctx, false, func(tx Tx) error {
+		var berr error
+		results, berr = tx.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
+		return berr
+	})
+	return results, err
+}
+
 // QueryGraphPath executes a bounded graph traversal.
 func (e *engineWorldState) QueryGraphPath(ctx context.Context, query *GraphPathQuery) (*GraphPathQueryResult, error) {
 	var result *GraphPathQueryResult

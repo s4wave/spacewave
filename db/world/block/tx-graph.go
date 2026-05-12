@@ -31,6 +31,17 @@ func (t *Tx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit
 	return t.state.LookupGraphQuads(ctx, filter, limit)
 }
 
+// LookupGraphQuadsBatch searches for graph quads for each filter in one locked read.
+func (t *Tx) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
+	return t.state.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
+}
+
 // QueryGraphPath executes a bounded graph traversal.
 func (t *Tx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	unlock, err := t.rmtx.Lock(ctx, false)

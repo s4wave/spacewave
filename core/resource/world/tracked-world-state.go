@@ -224,6 +224,14 @@ func (t *TrackedWorldState) LookupGraphQuads(ctx context.Context, filter world.G
 	return quads, err
 }
 
+func (t *TrackedWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	quads, err := t.ws.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
+	if err == nil {
+		t.trackQuadQuery()
+	}
+	return quads, err
+}
+
 func (t *TrackedWorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	result, err := t.ws.QueryGraphPath(ctx, query)
 	if err == nil {

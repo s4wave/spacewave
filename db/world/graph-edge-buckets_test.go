@@ -126,6 +126,18 @@ func (g *edgeBucketTestGraph) LookupGraphQuads(ctx context.Context, filter world
 	return out, nil
 }
 
+func (g *edgeBucketTestGraph) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	results := make([][]world.GraphQuad, len(filters))
+	for i, filter := range filters {
+		quads, err := g.LookupGraphQuads(ctx, filter, limitPerFilter)
+		if err != nil {
+			return nil, err
+		}
+		results[i] = quads
+	}
+	return results, nil
+}
+
 func (g *edgeBucketTestGraph) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	return nil, nil
 }

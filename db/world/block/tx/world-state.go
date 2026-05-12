@@ -311,6 +311,18 @@ func (w *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 	return w.world.LookupGraphQuads(ctx, filter, limit)
 }
 
+// LookupGraphQuadsBatch searches for graph quads for each filter in one locked read.
+func (w *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return nil, tx.ErrDiscarded
+	}
+
+	return w.world.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
+}
+
 // QueryGraphPath executes a bounded graph traversal.
 func (w *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	w.mtx.Lock()

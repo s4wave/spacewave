@@ -307,21 +307,25 @@ func (r *WorldStateResource) LookupGraphQuadsBatch(ctx context.Context, req *s4w
 		return nil, retErr
 	}
 
-	results := make([]*s4wave_world.LookupGraphQuadsBatchResult, len(req.GetFilters()))
+	filters := make([]world.GraphQuad, len(req.GetFilters()))
 	for i, f := range req.GetFilters() {
 		if err := validateBatchGraphFilter(f); err != nil {
 			retErr = err
 			return nil, retErr
 		}
-		filter := world.NewGraphQuad(f.GetSubject(), f.GetPredicate(), f.GetObj(), f.GetLabel())
-		quads, err := r.ws.LookupGraphQuads(ctx, filter, req.GetLimitPerFilter())
-		if err != nil {
-			retErr = err
-			return nil, retErr
-		}
-		record.ResultQuadCount += len(quads)
+		filters[i] = world.NewGraphQuad(f.GetSubject(), f.GetPredicate(), f.GetObj(), f.GetLabel())
+	}
+	quads, err := r.ws.LookupGraphQuadsBatch(ctx, filters, req.GetLimitPerFilter())
+	if err != nil {
+		retErr = err
+		return nil, retErr
+	}
+
+	results := make([]*s4wave_world.LookupGraphQuadsBatchResult, len(quads))
+	for i, resultQuads := range quads {
+		record.ResultQuadCount += len(resultQuads)
 		results[i] = &s4wave_world.LookupGraphQuadsBatchResult{
-			Quads: graphQuadsToProto(quads),
+			Quads: graphQuadsToProto(resultQuads),
 		}
 	}
 	record.ResultSetCount = len(results)

@@ -30,6 +30,27 @@ func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 		return nil, tx.ErrDiscarded
 	}
 
+	return t.lookupGraphQuads(ctx, filter, limit)
+}
+
+// LookupGraphQuadsBatch searches for graph quads for each filter in one graph read.
+func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	if t.discarded.Load() {
+		return nil, tx.ErrDiscarded
+	}
+
+	results := make([][]world.GraphQuad, len(filters))
+	for i, filter := range filters {
+		quads, err := t.lookupGraphQuads(ctx, filter, limitPerFilter)
+		if err != nil {
+			return nil, err
+		}
+		results[i] = quads
+	}
+	return results, nil
+}
+
+func (t *WorldState) lookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	// Treat nil filter as empty filter (matches all quads)
 	if filter == nil {
 		filter = world.NewGraphQuad("", "", "", "")

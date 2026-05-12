@@ -357,6 +357,40 @@ func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) 
 	}
 }
 
+func TestWorldStateResourceLookupGraphQuadsBatchUsesOwnerOperation(t *testing.T) {
+	ctx := context.Background()
+
+	graphQuad := world.NewGraphQuadWithKeys("owner-batch/a", "<owner-batch-rel>", "owner-batch/b", "")
+	ws := &worldStateOwnerBatchTestState{
+		results: [][]world.GraphQuad{{graphQuad}},
+	}
+	resource := resource_world.NewWorldStateResource(nil, nil, ws, nil)
+	resp, err := resource.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
+		Filters: []*quad.Quad{
+			{
+				Subject:   graphQuad.GetSubject(),
+				Predicate: graphQuad.GetPredicate(),
+			},
+		},
+		LimitPerFilter: 10,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if ws.lookupCalls != 0 {
+		t.Fatalf("expected resource to use owner batch operation, got %d primitive lookups", ws.lookupCalls)
+	}
+	if ws.batchCalls != 1 {
+		t.Fatalf("expected one owner batch call, got %d", ws.batchCalls)
+	}
+	if ws.limit != 10 || len(ws.filters) != 1 || ws.filters[0].GetSubject() != graphQuad.GetSubject() {
+		t.Fatalf("unexpected owner batch request: limit=%d filters=%#v", ws.limit, ws.filters)
+	}
+	if len(resp.GetResults()) != 1 || len(resp.GetResults()[0].GetQuads()) != 1 {
+		t.Fatalf("unexpected owner batch response: %#v", resp.GetResults())
+	}
+}
+
 func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
 	ctx := context.Background()
 
@@ -574,6 +608,28 @@ func (c *worldStateOperationResourceContext) GetAttachedResource(resourceID uint
 
 // _ is a type assertion
 var _ resource_server.ResourceClientContext = ((*worldStateOperationResourceContext)(nil))
+
+type worldStateOwnerBatchTestState struct {
+	world.WorldState
+
+	filters     []world.GraphQuad
+	limit       uint32
+	results     [][]world.GraphQuad
+	lookupCalls int
+	batchCalls  int
+}
+
+func (s *worldStateOwnerBatchTestState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	s.lookupCalls++
+	return nil, nil
+}
+
+func (s *worldStateOwnerBatchTestState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	s.batchCalls++
+	s.filters = filters
+	s.limit = limitPerFilter
+	return s.results, nil
+}
 
 // TestWorldStateBasicOperations tests basic WorldState operations using the SDK.
 func TestWorldStateBasicOperations(t *testing.T) {

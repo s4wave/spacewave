@@ -173,6 +173,11 @@ type WorldStateGraph interface {
 	// If limit is set, stops after finding that number of matching quads.
 	LookupGraphQuads(ctx context.Context, filter GraphQuad, limit uint32) ([]GraphQuad, error)
 
+	// LookupGraphQuadsBatch searches for graph quads for each filter in one
+	// World graph read operation. Each result set preserves the corresponding
+	// filter index and applies the limit independently.
+	LookupGraphQuadsBatch(ctx context.Context, filters []GraphQuad, limitPerFilter uint32) ([][]GraphQuad, error)
+
 	// QueryGraphPath executes a bounded graph traversal without exposing a Cayley handle.
 	QueryGraphPath(ctx context.Context, query *GraphPathQuery) (*GraphPathQueryResult, error)
 

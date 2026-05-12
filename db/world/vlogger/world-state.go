@@ -119,6 +119,21 @@ func (w *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 	return w.WorldState.LookupGraphQuads(ctx, filter, limit)
 }
 
+// LookupGraphQuadsBatch searches for graph quads for each filter in one graph read.
+func (w *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) (qs [][]world.GraphQuad, err error) {
+	defer func() {
+		var total int
+		for _, quads := range qs {
+			total += len(quads)
+		}
+		w.le.Debugf(
+			"LookupGraphQuadsBatch(filters=%d, limit=%d) => found(%d) err(%v)",
+			len(filters), limitPerFilter, total, err,
+		)
+	}()
+	return w.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
+}
+
 // SetGraphQuad sets a quad in the graph store.
 // Subject: must be an existing object IRI: <object-key>
 // Predicate: a predicate string, e.x. IRI: <ref>
