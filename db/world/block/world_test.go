@@ -134,6 +134,71 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 	checkMetadata(mds[3], "child-a", "type/a", "parent")
 }
 
+// TestWorldState_GetObjectRootRefsBatch checks batched root-ref lookup behavior.
+func TestWorldState_GetObjectRootRefsBatch(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	alphaRef := &bucket.ObjectRef{BucketId: "alpha-bucket"}
+	betaRef := &bucket.ObjectRef{BucketId: "beta-bucket"}
+	if _, err := ws.CreateObject(ctx, "alpha", alphaRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := ws.CreateObject(ctx, "beta", betaRef); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	refs, err := world.GetObjectRootRefsBatch(ctx, ws, []string{"beta", "missing", "alpha", "alpha"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(refs) != 4 {
+		t.Fatalf("expected 4 root ref results, got %d", len(refs))
+	}
+
+	checkRootRef := func(ref *world.ObjectRootRef, key string, exists bool, bucketID string) {
+		if ref.ObjectKey != key || ref.Exists != exists {
+			t.Fatalf("unexpected root ref metadata for %s: got key=%q exists=%v", key, ref.ObjectKey, ref.Exists)
+		}
+		if !exists {
+			if ref.RootRef != nil || ref.Rev != 0 {
+				t.Fatalf("expected missing object %s to have empty root ref metadata", key)
+			}
+			return
+		}
+		if ref.RootRef.GetBucketId() != bucketID || ref.Rev != 1 {
+			t.Fatalf(
+				"unexpected root ref for %s: got bucket=%q rev=%d",
+				key,
+				ref.RootRef.GetBucketId(),
+				ref.Rev,
+			)
+		}
+	}
+
+	checkRootRef(refs[0], "beta", true, "beta-bucket")
+	checkRootRef(refs[1], "missing", false, "")
+	checkRootRef(refs[2], "alpha", true, "alpha-bucket")
+	checkRootRef(refs[3], "alpha", true, "alpha-bucket")
+}
+
 func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
