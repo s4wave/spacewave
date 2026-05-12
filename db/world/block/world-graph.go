@@ -39,9 +39,10 @@ func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.
 		return nil, tx.ErrDiscarded
 	}
 
+	graphHd := world.NewCachedCayleyHandle(t.graphHd)
 	results := make([][]world.GraphQuad, len(filters))
 	for i, filter := range filters {
-		quads, err := t.lookupGraphQuads(ctx, filter, limitPerFilter)
+		quads, err := lookupGraphQuads(ctx, graphHd, filter, limitPerFilter)
 		if err != nil {
 			return nil, err
 		}
@@ -51,6 +52,10 @@ func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.
 }
 
 func (t *WorldState) lookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	return lookupGraphQuads(ctx, t.graphHd, filter, limit)
+}
+
+func lookupGraphQuads(ctx context.Context, h world.CayleyHandle, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	// Treat nil filter as empty filter (matches all quads)
 	if filter == nil {
 		filter = world.NewGraphQuad("", "", "", "")
@@ -62,7 +67,7 @@ func (t *WorldState) lookupGraphQuads(ctx context.Context, filter world.GraphQua
 	}
 
 	var quads []world.GraphQuad
-	err = world.FilterIterateQuads(ctx, t.graphHd, cq, func(q quad.Quad) error {
+	err = world.FilterIterateQuads(ctx, h, cq, func(q quad.Quad) error {
 		quads = append(quads, world.CayleyQuadToGraphQuad(q))
 		if limit != 0 && uint32(len(quads)) >= limit { //nolint:gosec
 			return io.EOF

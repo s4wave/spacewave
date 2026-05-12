@@ -98,6 +98,117 @@ func iterateQuadResults(ctx context.Context, h CayleyHandle, it iterator.Scanner
 	}
 }
 
+// NewCachedCayleyHandle wraps a Cayley handle with per-operation read caches.
+func NewCachedCayleyHandle(h CayleyHandle) CayleyHandle {
+	return &cachedCayleyHandle{
+		CayleyHandle:        h,
+		valueRefs:           make(map[string]graph.Ref),
+		valueRefFound:       make(map[string]bool),
+		quadIteratorSizes:   make(map[quadIteratorSizeKey]refs.Size),
+		quadIteratorErrors:  make(map[quadIteratorSizeKey]error),
+		quads:               make(map[any]quad.Quad),
+		quadErrors:          make(map[any]error),
+		quadDirections:      make(map[quadDirectionKey]graph.Ref),
+		quadDirectionErrors: make(map[quadDirectionKey]error),
+	}
+}
+
+type cachedCayleyHandle struct {
+	CayleyHandle
+
+	valueRefs           map[string]graph.Ref
+	valueRefFound       map[string]bool
+	quadIteratorSizes   map[quadIteratorSizeKey]refs.Size
+	quadIteratorErrors  map[quadIteratorSizeKey]error
+	quads               map[any]quad.Quad
+	quadErrors          map[any]error
+	quadDirections      map[quadDirectionKey]graph.Ref
+	quadDirectionErrors map[quadDirectionKey]error
+}
+
+type quadIteratorSizeKey struct {
+	dir quad.Direction
+	ref any
+}
+
+type quadDirectionKey struct {
+	ref any
+	dir quad.Direction
+}
+
+func (h *cachedCayleyHandle) ValueOf(ctx context.Context, val quad.Value) (graph.Ref, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	key := graphValueCacheKey(val)
+	if h.valueRefFound[key] {
+		return h.valueRefs[key], nil
+	}
+	ref, err := h.CayleyHandle.ValueOf(ctx, val)
+	if err != nil {
+		return nil, err
+	}
+	h.valueRefFound[key] = true
+	h.valueRefs[key] = ref
+	return ref, nil
+}
+
+func (h *cachedCayleyHandle) QuadIteratorSize(ctx context.Context, dir quad.Direction, ref graph.Ref) (refs.Size, error) {
+	if err := ctx.Err(); err != nil {
+		return refs.Size{}, err
+	}
+	key := quadIteratorSizeKey{dir: dir, ref: graphRefCacheKey(ref)}
+	if size, ok := h.quadIteratorSizes[key]; ok {
+		return size, h.quadIteratorErrors[key]
+	}
+	size, err := h.CayleyHandle.QuadIteratorSize(ctx, dir, ref)
+	h.quadIteratorSizes[key] = size
+	h.quadIteratorErrors[key] = err
+	return size, err
+}
+
+func (h *cachedCayleyHandle) Quad(ctx context.Context, ref graph.Ref) (quad.Quad, error) {
+	if err := ctx.Err(); err != nil {
+		return quad.Quad{}, err
+	}
+	key := graphRefCacheKey(ref)
+	if q, ok := h.quads[key]; ok {
+		return q, h.quadErrors[key]
+	}
+	q, err := h.CayleyHandle.Quad(ctx, ref)
+	h.quads[key] = q
+	h.quadErrors[key] = err
+	return q, err
+}
+
+func (h *cachedCayleyHandle) QuadDirection(ctx context.Context, ref graph.Ref, dir quad.Direction) (graph.Ref, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	key := quadDirectionKey{ref: graphRefCacheKey(ref), dir: dir}
+	if out, ok := h.quadDirections[key]; ok {
+		return out, h.quadDirectionErrors[key]
+	}
+	out, err := h.CayleyHandle.QuadDirection(ctx, ref, dir)
+	h.quadDirections[key] = out
+	h.quadDirectionErrors[key] = err
+	return out, err
+}
+
+func graphValueCacheKey(val quad.Value) string {
+	if val == nil {
+		return ""
+	}
+	return val.String()
+}
+
+func graphRefCacheKey(ref graph.Ref) any {
+	if ref == nil {
+		return nil
+	}
+	return ref.Key()
+}
+
 func selectQuadFilterIterator(ctx context.Context, h CayleyHandle, filter quad.Quad) (quad.Direction, graph.Ref, bool, error) {
 	var bestDir quad.Direction
 	var bestRef graph.Ref
