@@ -17,6 +17,7 @@ export interface TestDebugContext extends DebugContext {
   SpacewaveProvider: typeof import('../provider/spacewave/spacewave.js').SpacewaveProvider
   UNIXFS_OBJECT_KEY: string
   runSOPerfTest: typeof import('../../app/quickstart/perf-test.js').runSOPerfTest
+  runPostLoadSOPerfTest: typeof import('../../app/quickstart/perf-test.js').runPostLoadSOPerfTest
 }
 
 const GLOBAL_KEY = '__s4wave_debug'

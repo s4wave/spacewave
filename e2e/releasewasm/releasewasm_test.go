@@ -21,6 +21,8 @@ var testHarness *harness
 
 const browserWaitMS = 60000
 const quickstartContentReadyRecordMS = 60000
+const quickstartPostLoadSOOperationCount = 25
+const quickstartPostLoadSOWorkloadTimeoutMS = 120000
 
 // TIER: nightly
 func TestMain(m *testing.M) {
@@ -178,10 +180,11 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	if driveContentReadyError != "" {
 		t.Logf("quickstart content-ready not reached: %s", driveContentReadyError)
 	}
+	postLoadSOWorkload := runQuickstartPostLoadSOWorkload(t, page, driveContentReadyMs != nil)
 	logQuickstartTiming(t, page)
 	runtimeTrace := traceCapture.stop(t)
 
-	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError, runtimeTrace)
+	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError, runtimeTrace, postLoadSOWorkload)
 	if err != nil {
 		t.Fatalf("collect quickstart smoke artifact: %v", err)
 	}
@@ -204,9 +207,10 @@ func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstart
 	info := map[string]any{
 		"kind":                   "chromium-devtools-runtime-trace",
 		"captured":               false,
-		"captureWindow":          "before-page-goto-through-drive-content-ready",
+		"captureWindow":          "before-page-goto-through-post-load-so-workload",
 		"startupPerformanceGate": "frame-ready",
 		"seedCompletionGate":     "drive-content-ready",
+		"postLoadWorkloadGate":   "sequential-shared-object-operations",
 		"path":                   path,
 	}
 	c := &quickstartRuntimeTraceCapture{info: info}
@@ -246,7 +250,7 @@ func (c *quickstartRuntimeTraceCapture) stop(t *testing.T) map[string]any {
 		t.Fatal("expected non-empty quickstart runtime trace")
 	}
 	c.info["bytes"] = len(data)
-	c.info["stoppedAfter"] = "Drive content-ready"
+	c.info["stoppedAfter"] = "post-load SharedObject workload"
 	t.Logf("quickstart runtime trace written to %s (%d bytes)", c.info["path"], len(data))
 	return c.info
 }
@@ -395,6 +399,61 @@ func waitForQuickstartDriveContentReady(t *testing.T, page playwright.Page) (*in
 	return &driveContentReadyMs, ""
 }
 
+func runQuickstartPostLoadSOWorkload(t *testing.T, page playwright.Page, contentReady bool) map[string]any {
+	t.Helper()
+
+	if !contentReady {
+		return map[string]any{
+			"scenario":      "quickstart-post-load-shared-object-throughput",
+			"skipped":       true,
+			"skippedReason": "drive content-ready was not reached",
+		}
+	}
+
+	raw, err := page.Evaluate(`async (args) => {
+		const debug = globalThis.__s4wave_debug
+		if (!debug?.root) {
+			throw new Error('debug root is not initialized')
+		}
+		if (typeof debug.runPostLoadSOPerfTest !== 'function') {
+			throw new Error('runPostLoadSOPerfTest is not available')
+		}
+		const controller = new AbortController()
+		const timer = setTimeout(() => controller.abort(), args.timeoutMs)
+		try {
+			const result = await debug.runPostLoadSOPerfTest(
+				debug.root,
+				args.opCount,
+				controller.signal,
+			)
+			return JSON.parse(JSON.stringify({
+				...result,
+				skipped: false,
+				timeoutMs: args.timeoutMs,
+			}))
+		} finally {
+			clearTimeout(timer)
+		}
+	}`, map[string]any{
+		"opCount":   quickstartPostLoadSOOperationCount,
+		"timeoutMs": quickstartPostLoadSOWorkloadTimeoutMS,
+	})
+	if err != nil {
+		t.Fatalf("run post-load SharedObject workload: %v", err)
+	}
+	workload, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected post-load SharedObject workload result %T", raw)
+	}
+	if got, _ := workload["opCount"].(int); got != quickstartPostLoadSOOperationCount {
+		if gotFloat, _ := workload["opCount"].(float64); int(gotFloat) != quickstartPostLoadSOOperationCount {
+			t.Fatalf("post-load SharedObject workload accepted %v operations, want %d", workload["opCount"], quickstartPostLoadSOOperationCount)
+		}
+	}
+	t.Logf("post-load SharedObject workload: %#v", workload)
+	return workload
+}
+
 func browserNowMs(t *testing.T, page playwright.Page) int {
 	t.Helper()
 
@@ -421,6 +480,7 @@ func collectQuickstartSmokeArtifact(
 	driveContentReadyMs *int,
 	driveContentReadyError string,
 	runtimeTrace map[string]any,
+	postLoadSOWorkload map[string]any,
 ) ([]byte, error) {
 	var driveContentReadyArg any
 	if driveContentReadyMs != nil {
@@ -742,7 +802,7 @@ func collectQuickstartSmokeArtifact(
 				)
 			: null
 		const artifact = {
-			schemaVersion: 5,
+			schemaVersion: 6,
 			scenario: 'quickstart-drive-production-smoke',
 			collectedAt: new Date().toISOString(),
 			baseURL: args.baseURL,
@@ -810,6 +870,7 @@ func collectQuickstartSmokeArtifact(
 				timeline: readinessTimeline,
 			},
 			runtimeTrace: args.runtimeTrace,
+			postLoadSharedObjectWorkload: args.postLoadSOWorkload,
 			startupMarks,
 			missingStartupMarks: expectedStartupMarks.filter((label) => !labels.has(label)),
 			startupAttribution: {
@@ -832,6 +893,7 @@ func collectQuickstartSmokeArtifact(
 		"driveContentReadyMs":    driveContentReadyArg,
 		"driveContentReadyError": driveContentReadyError,
 		"runtimeTrace":           runtimeTrace,
+		"postLoadSOWorkload":     postLoadSOWorkload,
 		"release": map[string]any{
 			"generationId": desc.GenerationID,
 			"shellAssets": map[string]any{

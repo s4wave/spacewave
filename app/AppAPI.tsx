@@ -9,7 +9,10 @@ import {
   createQuickstartSetup,
 } from '@s4wave/app/quickstart/create.js'
 import { mountSpace } from '@s4wave/app/space/space.js'
-import { runSOPerfTest } from '@s4wave/app/quickstart/perf-test.js'
+import {
+  runPostLoadSOPerfTest,
+  runSOPerfTest,
+} from '@s4wave/app/quickstart/perf-test.js'
 import { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'
 import { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { MknodType } from '@s4wave/sdk/unixfs/index.js'
@@ -128,6 +131,7 @@ function AppAPIInner({
         SpacewaveProvider,
         UNIXFS_OBJECT_KEY,
         runSOPerfTest,
+        runPostLoadSOPerfTest,
       })
     }
   }, [resourceClient, rootResource.value])
