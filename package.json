@@ -63,6 +63,7 @@
     "codegen": "bun run gen",
     "diagnostic:react": "bun cmd/react-diagnostic-run.ts",
     "diagnostic:react:full-audit": "bun cmd/react-diagnostic-run.ts --full-audit",
+    "trace:quickstart:baseline": "bun scripts/tracetool-quickstart-baseline.ts",
     "shadcn:add": "bunx shadcn add",
     "gen": "bun run go:aptre -- generate",
     "gen:force": "bun run go:aptre -- generate --force",
