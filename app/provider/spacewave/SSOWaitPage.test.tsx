@@ -16,17 +16,21 @@ const mockLoginWithEntityKey = vi.hoisted(() => vi.fn())
 const mockUnwrapPemWithPin = vi.hoisted(() => vi.fn())
 const mockBytesToBase64 = vi.hoisted(() => vi.fn())
 const mockSetPendingSSOState = vi.hoisted(() => vi.fn())
+const mockRuntime = vi.hoisted(() => ({ isDesktop: true }))
+const mockParams = vi.hoisted(() => ({ provider: 'github' }))
 const mockRoot = vi.hoisted(() => ({
   lookupProvider: mockLookupProvider,
 }))
 
 vi.mock('@aptre/bldr', () => ({
-  isDesktop: true,
+  get isDesktop() {
+    return mockRuntime.isDesktop
+  },
 }))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => mockNavigate,
-  useParams: () => ({ provider: 'github' }),
+  useParams: () => mockParams,
 }))
 
 vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
@@ -104,6 +108,8 @@ describe('SSOWaitPage', () => {
     mockUnwrapPemWithPin.mockReset()
     mockBytesToBase64.mockReset()
     mockSetPendingSSOState.mockReset()
+    mockRuntime.isDesktop = true
+    mockParams.provider = 'github'
     mockBytesToBase64.mockReturnValue('wrapped-blob')
     mockLoginWithEntityKey.mockResolvedValue({
       sessionListEntry: { sessionIndex: 7 },
@@ -170,5 +176,22 @@ describe('SSOWaitPage', () => {
     await waitFor(() => {
       expect(mockLoginWithEntityKey).toHaveBeenCalledWith(pem)
     })
+  })
+
+  it('replaces the browser SSO wait route when redirecting to the provider', async () => {
+    mockRuntime.isDesktop = false
+    mockParams.provider = 'google'
+    const replace = vi
+      .spyOn(window.location, 'replace')
+      .mockImplementation(() => {})
+
+    render(<SSOWaitPage />)
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith(
+        'https://account.test/auth/sso/google?origin=http%3A%2F%2Flocalhost%3A3000',
+      )
+    })
+    expect(mockStartDesktopSSO).not.toHaveBeenCalled()
   })
 })

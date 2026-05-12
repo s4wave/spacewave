@@ -120,7 +120,7 @@ export function SSOWaitPage() {
     if (!ssoBaseUrl) return
     queueMicrotask(() => setState({ step: 'redirecting' }))
     const origin = encodeURIComponent(window.location.origin)
-    window.location.assign(`${ssoBaseUrl}/${provider}?origin=${origin}`)
+    window.location.replace(`${ssoBaseUrl}/${provider}?origin=${origin}`)
   }, [cloudProviderConfig, provider])
 
   const handleRetry = useCallback(() => {
