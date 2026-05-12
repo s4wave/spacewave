@@ -36,6 +36,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 		newForgeCommand(getBus),
 		newVmCommand(getBus),
 		newPluginCommand(getBus),
+		newDebugCommand(getBus),
 		newBifrostCommand(),
 		newHydraCommand(),
 

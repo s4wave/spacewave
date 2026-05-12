@@ -17,7 +17,9 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
+	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 	"github.com/sirupsen/logrus"
 )
 
@@ -148,6 +150,9 @@ func (c *Controller) serveOnce(
 		lis.Close()
 	})); err != nil {
 		return false, errors.Wrap(err, "register daemon control handler")
+	}
+	if err := s4wave_trace.SRPCRegisterTraceService(mux, trace_service.NewService()); err != nil {
+		return false, errors.Wrap(err, "register trace service")
 	}
 
 	go func() {

@@ -22,8 +22,10 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
+	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	db_world "github.com/s4wave/spacewave/db/world"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
 
 const daemonPluginHostObjectKey = "plugin-host"
@@ -167,6 +169,9 @@ func runServeCommand(
 		serveCancel()
 		lis.Close()
 	})); err != nil {
+		return err
+	}
+	if err := s4wave_trace.SRPCRegisterTraceService(mux, trace_service.NewService()); err != nil {
 		return err
 	}
 	go func() {
