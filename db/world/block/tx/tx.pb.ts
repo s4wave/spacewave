@@ -137,6 +137,12 @@ export interface TxApplyWorldOp {
    * @generated from field: bytes operation_body = 2;
    */
   operationBody?: Uint8Array
+  /**
+   * OpSender is the peer ID to apply the operation as.
+   *
+   * @generated from field: string op_sender = 3;
+   */
+  opSender?: string
 }
 
 // TxApplyWorldOp contains the message type declaration for TxApplyWorldOp.
@@ -145,6 +151,7 @@ export const TxApplyWorldOp: MessageType<TxApplyWorldOp> = createMessageType({
   fields: [
     { no: 1, name: 'operation_type_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 3, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -174,6 +181,12 @@ export interface TxApplyObjectOp {
    * @generated from field: string object_key = 3;
    */
   objectKey?: string
+  /**
+   * OpSender is the peer ID to apply the operation as.
+   *
+   * @generated from field: string op_sender = 4;
+   */
+  opSender?: string
 }
 
 // TxApplyObjectOp contains the message type declaration for TxApplyObjectOp.
@@ -183,6 +196,7 @@ export const TxApplyObjectOp: MessageType<TxApplyObjectOp> = createMessageType({
     { no: 1, name: 'operation_type_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
     { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

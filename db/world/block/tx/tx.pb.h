@@ -1069,6 +1069,7 @@ class TxApplyWorldOp final : public ::google::protobuf::Message
   enum : int {
     kOperationTypeIdFieldNumber = 1,
     kOperationBodyFieldNumber = 2,
+    kOpSenderFieldNumber = 3,
   };
   // string operation_type_id = 1;
   void clear_operation_type_id() ;
@@ -1100,12 +1101,27 @@ class TxApplyWorldOp final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_operation_body();
 
   public:
+  // string op_sender = 3;
+  void clear_op_sender() ;
+  const ::std::string& op_sender() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_op_sender(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_op_sender();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_op_sender();
+  void set_allocated_op_sender(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_op_sender() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_op_sender(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_op_sender();
+
+  public:
   // @@protoc_insertion_point(class_scope:world.block.tx.TxApplyWorldOp)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 55,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 64,
                                    2>
       _table_;
 
@@ -1128,6 +1144,7 @@ class TxApplyWorldOp final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr operation_type_id_;
     ::google::protobuf::internal::ArenaStringPtr operation_body_;
+    ::google::protobuf::internal::ArenaStringPtr op_sender_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1282,6 +1299,7 @@ class TxApplyObjectOp final : public ::google::protobuf::Message
     kOperationTypeIdFieldNumber = 1,
     kOperationBodyFieldNumber = 2,
     kObjectKeyFieldNumber = 3,
+    kOpSenderFieldNumber = 4,
   };
   // string operation_type_id = 1;
   void clear_operation_type_id() ;
@@ -1328,12 +1346,27 @@ class TxApplyObjectOp final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
 
   public:
+  // string op_sender = 4;
+  void clear_op_sender() ;
+  const ::std::string& op_sender() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_op_sender(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_op_sender();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_op_sender();
+  void set_allocated_op_sender(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_op_sender() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_op_sender(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_op_sender();
+
+  public:
   // @@protoc_insertion_point(class_scope:world.block.tx.TxApplyObjectOp)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 66,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 75,
                                    2>
       _table_;
 
@@ -1357,6 +1390,7 @@ class TxApplyObjectOp final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr operation_type_id_;
     ::google::protobuf::internal::ArenaStringPtr operation_body_;
     ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr op_sender_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -4077,6 +4111,71 @@ inline void TxApplyWorldOp::set_allocated_operation_body(::std::string* PROTOBUF
   // @@protoc_insertion_point(field_set_allocated:world.block.tx.TxApplyWorldOp.operation_body)
 }
 
+// string op_sender = 3;
+inline void TxApplyWorldOp::clear_op_sender() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.op_sender_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& TxApplyWorldOp::op_sender() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:world.block.tx.TxApplyWorldOp.op_sender)
+  return _internal_op_sender();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TxApplyWorldOp::set_op_sender(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.op_sender_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:world.block.tx.TxApplyWorldOp.op_sender)
+}
+inline ::std::string* PROTOBUF_NONNULL TxApplyWorldOp::mutable_op_sender()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_op_sender();
+  // @@protoc_insertion_point(field_mutable:world.block.tx.TxApplyWorldOp.op_sender)
+  return _s;
+}
+inline const ::std::string& TxApplyWorldOp::_internal_op_sender() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.op_sender_.Get();
+}
+inline void TxApplyWorldOp::_internal_set_op_sender(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.op_sender_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TxApplyWorldOp::_internal_mutable_op_sender() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.op_sender_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TxApplyWorldOp::release_op_sender() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:world.block.tx.TxApplyWorldOp.op_sender)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.op_sender_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.op_sender_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TxApplyWorldOp::set_allocated_op_sender(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.op_sender_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.op_sender_.IsDefault()) {
+    _impl_.op_sender_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:world.block.tx.TxApplyWorldOp.op_sender)
+}
+
 // -------------------------------------------------------------------
 
 // TxApplyObjectOp
@@ -4274,6 +4373,71 @@ inline void TxApplyObjectOp::set_allocated_object_key(::std::string* PROTOBUF_NU
     _impl_.object_key_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:world.block.tx.TxApplyObjectOp.object_key)
+}
+
+// string op_sender = 4;
+inline void TxApplyObjectOp::clear_op_sender() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.op_sender_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& TxApplyObjectOp::op_sender() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:world.block.tx.TxApplyObjectOp.op_sender)
+  return _internal_op_sender();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TxApplyObjectOp::set_op_sender(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.op_sender_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:world.block.tx.TxApplyObjectOp.op_sender)
+}
+inline ::std::string* PROTOBUF_NONNULL TxApplyObjectOp::mutable_op_sender()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_op_sender();
+  // @@protoc_insertion_point(field_mutable:world.block.tx.TxApplyObjectOp.op_sender)
+  return _s;
+}
+inline const ::std::string& TxApplyObjectOp::_internal_op_sender() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.op_sender_.Get();
+}
+inline void TxApplyObjectOp::_internal_set_op_sender(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.op_sender_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TxApplyObjectOp::_internal_mutable_op_sender() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.op_sender_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TxApplyObjectOp::release_op_sender() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:world.block.tx.TxApplyObjectOp.op_sender)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.op_sender_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.op_sender_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TxApplyObjectOp::set_allocated_op_sender(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.op_sender_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.op_sender_.IsDefault()) {
+    _impl_.op_sender_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:world.block.tx.TxApplyObjectOp.op_sender)
 }
 
 // -------------------------------------------------------------------

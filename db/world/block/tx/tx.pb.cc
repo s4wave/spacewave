@@ -141,6 +141,9 @@ inline constexpr TxApplyWorldOp::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         operation_body_(
             &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        op_sender_(
+            &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
@@ -173,6 +176,9 @@ inline constexpr TxApplyObjectOp::Impl_::Impl_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        op_sender_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
@@ -406,20 +412,24 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyWorldOp, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyWorldOp, _impl_.operation_type_id_),
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyWorldOp, _impl_.operation_body_),
-        0,
-        1,
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_._has_bits_),
-        6, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_.operation_type_id_),
-        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_.operation_body_),
-        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyWorldOp, _impl_.op_sender_),
         0,
         1,
         2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_.operation_type_id_),
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_.operation_body_),
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxApplyObjectOp, _impl_.op_sender_),
+        0,
+        1,
+        2,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxCreateObject, _impl_._has_bits_),
         5, // hasbit index offset
@@ -471,15 +481,15 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::world::block::tx::Tx)},
         {27, sizeof(::world::block::tx::TxBatch)},
         {32, sizeof(::world::block::tx::TxApplyWorldOp)},
-        {39, sizeof(::world::block::tx::TxApplyObjectOp)},
-        {48, sizeof(::world::block::tx::TxCreateObject)},
-        {55, sizeof(::world::block::tx::TxObjectSet)},
-        {62, sizeof(::world::block::tx::TxObjectIncRev)},
-        {67, sizeof(::world::block::tx::TxDeleteObject)},
-        {74, sizeof(::world::block::tx::TxRenameObject)},
-        {81, sizeof(::world::block::tx::TxSetGraphQuad)},
-        {86, sizeof(::world::block::tx::TxDeleteGraphQuad)},
-        {91, sizeof(::world::block::tx::TxGCSweep)},
+        {41, sizeof(::world::block::tx::TxApplyObjectOp)},
+        {52, sizeof(::world::block::tx::TxCreateObject)},
+        {59, sizeof(::world::block::tx::TxObjectSet)},
+        {66, sizeof(::world::block::tx::TxObjectIncRev)},
+        {71, sizeof(::world::block::tx::TxDeleteObject)},
+        {78, sizeof(::world::block::tx::TxRenameObject)},
+        {85, sizeof(::world::block::tx::TxSetGraphQuad)},
+        {90, sizeof(::world::block::tx::TxDeleteGraphQuad)},
+        {95, sizeof(::world::block::tx::TxGCSweep)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::tx::_Tx_default_instance_._instance,
@@ -519,29 +529,30 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fwo
     "x_batch\030\n \001(\0132\027.world.block.tx.TxBatch\022."
     "\n\013tx_gc_sweep\030\013 \001(\0132\031.world.block.tx.TxG"
     "CSweep\"*\n\007TxBatch\022\037\n\003txs\030\001 \003(\0132\022.world.b"
-    "lock.tx.Tx\"C\n\016TxApplyWorldOp\022\031\n\021operatio"
-    "n_type_id\030\001 \001(\t\022\026\n\016operation_body\030\002 \001(\014\""
-    "X\n\017TxApplyObjectOp\022\031\n\021operation_type_id\030"
-    "\001 \001(\t\022\026\n\016operation_body\030\002 \001(\014\022\022\n\nobject_"
-    "key\030\003 \001(\t\"I\n\016TxCreateObject\022\022\n\nobject_ke"
-    "y\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.bucket.Objec"
-    "tRef\"F\n\013TxObjectSet\022\022\n\nobject_key\030\001 \001(\t\022"
-    "#\n\010root_ref\030\002 \001(\0132\021.bucket.ObjectRef\"$\n\016"
-    "TxObjectIncRev\022\022\n\nobject_key\030\001 \001(\t\"\?\n\016Tx"
-    "DeleteObject\022\022\n\nobject_key\030\001 \001(\t\022\031\n\021fail"
-    "_if_not_found\030\002 \001(\010\"@\n\016TxRenameObject\022\026\n"
-    "\016old_object_key\030\001 \001(\t\022\026\n\016new_object_key\030"
-    "\002 \001(\t\"*\n\016TxSetGraphQuad\022\030\n\004quad\030\001 \001(\0132\n."
-    "quad.Quad\"-\n\021TxDeleteGraphQuad\022\030\n\004quad\030\001"
-    " \001(\0132\n.quad.Quad\"\013\n\tTxGCSweep*\263\002\n\006TxType"
-    "\022\022\n\016TxType_INVALID\020\000\022\031\n\025TxType_APPLY_WOR"
-    "LD_OP\020\001\022\032\n\026TxType_APPLY_OBJECT_OP\020\002\022\030\n\024T"
-    "xType_CREATE_OBJECT\020\003\022\025\n\021TxType_OBJECT_S"
-    "ET\020\004\022\031\n\025TxType_OBJECT_INC_REV\020\005\022\030\n\024TxTyp"
-    "e_DELETE_OBJECT\020\006\022\030\n\024TxType_RENAME_OBJEC"
-    "T\020\013\022\031\n\025TxType_SET_GRAPH_QUAD\020\007\022\034\n\030TxType"
-    "_DELETE_GRAPH_QUAD\020\010\022\020\n\014TxType_BATCH\020\t\022\023"
-    "\n\017TxType_GC_SWEEP\020\nb\006proto3"
+    "lock.tx.Tx\"V\n\016TxApplyWorldOp\022\031\n\021operatio"
+    "n_type_id\030\001 \001(\t\022\026\n\016operation_body\030\002 \001(\014\022"
+    "\021\n\top_sender\030\003 \001(\t\"k\n\017TxApplyObjectOp\022\031\n"
+    "\021operation_type_id\030\001 \001(\t\022\026\n\016operation_bo"
+    "dy\030\002 \001(\014\022\022\n\nobject_key\030\003 \001(\t\022\021\n\top_sende"
+    "r\030\004 \001(\t\"I\n\016TxCreateObject\022\022\n\nobject_key\030"
+    "\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.bucket.ObjectR"
+    "ef\"F\n\013TxObjectSet\022\022\n\nobject_key\030\001 \001(\t\022#\n"
+    "\010root_ref\030\002 \001(\0132\021.bucket.ObjectRef\"$\n\016Tx"
+    "ObjectIncRev\022\022\n\nobject_key\030\001 \001(\t\"\?\n\016TxDe"
+    "leteObject\022\022\n\nobject_key\030\001 \001(\t\022\031\n\021fail_i"
+    "f_not_found\030\002 \001(\010\"@\n\016TxRenameObject\022\026\n\016o"
+    "ld_object_key\030\001 \001(\t\022\026\n\016new_object_key\030\002 "
+    "\001(\t\"*\n\016TxSetGraphQuad\022\030\n\004quad\030\001 \001(\0132\n.qu"
+    "ad.Quad\"-\n\021TxDeleteGraphQuad\022\030\n\004quad\030\001 \001"
+    "(\0132\n.quad.Quad\"\013\n\tTxGCSweep*\263\002\n\006TxType\022\022"
+    "\n\016TxType_INVALID\020\000\022\031\n\025TxType_APPLY_WORLD"
+    "_OP\020\001\022\032\n\026TxType_APPLY_OBJECT_OP\020\002\022\030\n\024TxT"
+    "ype_CREATE_OBJECT\020\003\022\025\n\021TxType_OBJECT_SET"
+    "\020\004\022\031\n\025TxType_OBJECT_INC_REV\020\005\022\030\n\024TxType_"
+    "DELETE_OBJECT\020\006\022\030\n\024TxType_RENAME_OBJECT\020"
+    "\013\022\031\n\025TxType_SET_GRAPH_QUAD\020\007\022\034\n\030TxType_D"
+    "ELETE_GRAPH_QUAD\020\010\022\020\n\014TxType_BATCH\020\t\022\023\n\017"
+    "TxType_GC_SWEEP\020\nb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto_deps[2] = {
@@ -552,7 +563,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto = {
     false,
     false,
-    1787,
+    1825,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
     "github.com/s4wave/spacewave/db/world/block/tx/tx.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto_once,
@@ -1559,7 +1570,8 @@ PROTOBUF_NDEBUG_INLINE TxApplyWorldOp::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         operation_type_id_(arena, from.operation_type_id_),
-        operation_body_(arena, from.operation_body_) {}
+        operation_body_(arena, from.operation_body_),
+        op_sender_(arena, from.op_sender_) {}
 
 TxApplyWorldOp::TxApplyWorldOp(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1582,7 +1594,8 @@ PROTOBUF_NDEBUG_INLINE TxApplyWorldOp::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         operation_type_id_(arena),
-        operation_body_(arena) {}
+        operation_body_(arena),
+        op_sender_(arena) {}
 
 inline void TxApplyWorldOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -1600,6 +1613,7 @@ inline void TxApplyWorldOp::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.operation_type_id_.Destroy();
   this_._impl_.operation_body_.Destroy();
+  this_._impl_.op_sender_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -1646,16 +1660,16 @@ TxApplyWorldOp::GetClassData() const {
   return TxApplyWorldOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 55, 2>
+const ::_pbi::TcParseTable<2, 3, 0, 64, 2>
 TxApplyWorldOp::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TxApplyWorldOp, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     TxApplyWorldOp_class_data_.base(),
@@ -1665,14 +1679,19 @@ TxApplyWorldOp::_table_ = {
     ::_pbi::TcParser::GetTable<::world::block::tx::TxApplyWorldOp>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // bytes operation_body = 2;
-    {::_pbi::TcParser::FastBS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(TxApplyWorldOp, _impl_.operation_body_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string operation_type_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(TxApplyWorldOp, _impl_.operation_type_id_)}},
+    // bytes operation_body = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TxApplyWorldOp, _impl_.operation_body_)}},
+    // string op_sender = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TxApplyWorldOp, _impl_.op_sender_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1680,12 +1699,15 @@ TxApplyWorldOp::_table_ = {
     {PROTOBUF_FIELD_OFFSET(TxApplyWorldOp, _impl_.operation_type_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bytes operation_body = 2;
     {PROTOBUF_FIELD_OFFSET(TxApplyWorldOp, _impl_.operation_body_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // string op_sender = 3;
+    {PROTOBUF_FIELD_OFFSET(TxApplyWorldOp, _impl_.op_sender_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\35\21\0\0\0\0\0\0"
+    "\35\21\0\11\0\0\0\0"
     "world.block.tx.TxApplyWorldOp"
     "operation_type_id"
+    "op_sender"
   }},
 };
 PROTOBUF_NOINLINE void TxApplyWorldOp::Clear() {
@@ -1696,12 +1718,15 @@ PROTOBUF_NOINLINE void TxApplyWorldOp::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.operation_type_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.operation_body_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.op_sender_.ClearNonDefaultToEmpty();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1745,6 +1770,16 @@ PROTOBUF_NOINLINE void TxApplyWorldOp::Clear() {
     }
   }
 
+  // string op_sender = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_op_sender().empty()) {
+      const ::std::string& _s = this_._internal_op_sender();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "world.block.tx.TxApplyWorldOp.op_sender");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1770,7 +1805,7 @@ PROTOBUF_NOINLINE void TxApplyWorldOp::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // string operation_type_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_operation_type_id().empty()) {
@@ -1783,6 +1818,13 @@ PROTOBUF_NOINLINE void TxApplyWorldOp::Clear() {
       if (!this_._internal_operation_body().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
                                         this_._internal_operation_body());
+      }
+    }
+    // string op_sender = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_op_sender().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_op_sender());
       }
     }
   }
@@ -1804,7 +1846,7 @@ void TxApplyWorldOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_operation_type_id().empty()) {
         _this->_internal_set_operation_type_id(from._internal_operation_type_id());
@@ -1820,6 +1862,15 @@ void TxApplyWorldOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
       } else {
         if (_this->_impl_.operation_body_.IsDefault()) {
           _this->_internal_set_operation_body("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_op_sender().empty()) {
+        _this->_internal_set_op_sender(from._internal_op_sender());
+      } else {
+        if (_this->_impl_.op_sender_.IsDefault()) {
+          _this->_internal_set_op_sender("");
         }
       }
     }
@@ -1845,6 +1896,7 @@ void TxApplyWorldOp::InternalSwap(TxApplyWorldOp* PROTOBUF_RESTRICT PROTOBUF_NON
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.operation_type_id_, &other->_impl_.operation_type_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.operation_body_, &other->_impl_.operation_body_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.op_sender_, &other->_impl_.op_sender_, arena);
 }
 
 ::google::protobuf::Metadata TxApplyWorldOp::GetMetadata() const {
@@ -1877,7 +1929,8 @@ PROTOBUF_NDEBUG_INLINE TxApplyObjectOp::Impl_::Impl_(
         _cached_size_{0},
         operation_type_id_(arena, from.operation_type_id_),
         operation_body_(arena, from.operation_body_),
-        object_key_(arena, from.object_key_) {}
+        object_key_(arena, from.object_key_),
+        op_sender_(arena, from.op_sender_) {}
 
 TxApplyObjectOp::TxApplyObjectOp(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1901,7 +1954,8 @@ PROTOBUF_NDEBUG_INLINE TxApplyObjectOp::Impl_::Impl_(
       : _cached_size_{0},
         operation_type_id_(arena),
         operation_body_(arena),
-        object_key_(arena) {}
+        object_key_(arena),
+        op_sender_(arena) {}
 
 inline void TxApplyObjectOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -1920,6 +1974,7 @@ inline void TxApplyObjectOp::SharedDtor(MessageLite& self) {
   this_._impl_.operation_type_id_.Destroy();
   this_._impl_.operation_body_.Destroy();
   this_._impl_.object_key_.Destroy();
+  this_._impl_.op_sender_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -1966,16 +2021,16 @@ TxApplyObjectOp::GetClassData() const {
   return TxApplyObjectOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 0, 66, 2>
+const ::_pbi::TcParseTable<2, 4, 0, 75, 2>
 TxApplyObjectOp::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TxApplyObjectOp, _impl_._has_bits_),
     0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
+    4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
+    4294967280,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
+    4,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     TxApplyObjectOp_class_data_.base(),
@@ -1985,7 +2040,10 @@ TxApplyObjectOp::_table_ = {
     ::_pbi::TcParser::GetTable<::world::block::tx::TxApplyObjectOp>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // string op_sender = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(TxApplyObjectOp, _impl_.op_sender_)}},
     // string operation_type_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -2007,13 +2065,16 @@ TxApplyObjectOp::_table_ = {
     {PROTOBUF_FIELD_OFFSET(TxApplyObjectOp, _impl_.operation_body_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // string object_key = 3;
     {PROTOBUF_FIELD_OFFSET(TxApplyObjectOp, _impl_.object_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string op_sender = 4;
+    {PROTOBUF_FIELD_OFFSET(TxApplyObjectOp, _impl_.op_sender_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\36\21\0\12\0\0\0\0"
+    "\36\21\0\12\11\0\0\0"
     "world.block.tx.TxApplyObjectOp"
     "operation_type_id"
     "object_key"
+    "op_sender"
   }},
 };
 PROTOBUF_NOINLINE void TxApplyObjectOp::Clear() {
@@ -2024,7 +2085,7 @@ PROTOBUF_NOINLINE void TxApplyObjectOp::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.operation_type_id_.ClearNonDefaultToEmpty();
     }
@@ -2033,6 +2094,9 @@ PROTOBUF_NOINLINE void TxApplyObjectOp::Clear() {
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.op_sender_.ClearNonDefaultToEmpty();
     }
   }
   _impl_._has_bits_.Clear();
@@ -2086,6 +2150,16 @@ PROTOBUF_NOINLINE void TxApplyObjectOp::Clear() {
     }
   }
 
+  // string op_sender = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_op_sender().empty()) {
+      const ::std::string& _s = this_._internal_op_sender();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "world.block.tx.TxApplyObjectOp.op_sender");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -2111,7 +2185,7 @@ PROTOBUF_NOINLINE void TxApplyObjectOp::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     // string operation_type_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_operation_type_id().empty()) {
@@ -2133,6 +2207,13 @@ PROTOBUF_NOINLINE void TxApplyObjectOp::Clear() {
                                         this_._internal_object_key());
       }
     }
+    // string op_sender = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_op_sender().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_op_sender());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -2152,7 +2233,7 @@ void TxApplyObjectOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_operation_type_id().empty()) {
         _this->_internal_set_operation_type_id(from._internal_operation_type_id());
@@ -2180,6 +2261,15 @@ void TxApplyObjectOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_op_sender().empty()) {
+        _this->_internal_set_op_sender(from._internal_op_sender());
+      } else {
+        if (_this->_impl_.op_sender_.IsDefault()) {
+          _this->_internal_set_op_sender("");
+        }
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -2203,6 +2293,7 @@ void TxApplyObjectOp::InternalSwap(TxApplyObjectOp* PROTOBUF_RESTRICT PROTOBUF_N
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.operation_type_id_, &other->_impl_.operation_type_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.operation_body_, &other->_impl_.operation_body_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.op_sender_, &other->_impl_.op_sender_, arena);
 }
 
 ::google::protobuf::Metadata TxApplyObjectOp::GetMetadata() const {

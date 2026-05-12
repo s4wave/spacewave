@@ -36,7 +36,7 @@ func (f *ForwardingWorldState) ApplyWorldOp(
 	op world.Operation,
 	sender peer.ID,
 ) (uint64, bool, error) {
-	tx, err := world_block_tx.NewTxApplyWorldOp(op)
+	tx, err := world_block_tx.NewTxApplyWorldOp(op, sender)
 	if err != nil {
 		return 0, false, errors.Wrap(err, "serialize world op")
 	}

@@ -94,7 +94,7 @@ func (t *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opS
 	}
 
 	operationTypeID := op.GetOperationTypeId()
-	tt, err := NewTxApplyObjectOp(operationTypeID, op, t.key)
+	tt, err := NewTxApplyObjectOp(operationTypeID, op, t.key, opSender)
 	if err != nil {
 		return 0, false, err
 	}

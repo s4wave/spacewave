@@ -116,6 +116,9 @@ func TestWorldState(t *testing.T) {
 	if tt := tx.GetTxType(); tt != TxType_TxType_APPLY_WORLD_OP {
 		t.Fatalf("expected %s but got %s", TxType_TxType_APPLY_WORLD_OP.String(), tt.String())
 	}
+	if got := tx.GetTxApplyWorldOp().GetOpSender(); got != sender.String() {
+		t.Fatalf("expected world op sender %q, got %q", sender.String(), got)
+	}
 
 	// pass 3: apply the tx to a fresh state and check result
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
@@ -145,6 +148,30 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	checkRev(obj, 2)
+
+	objectTx, err := ForkWorldState(ctx, ws, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	obj, err = world.MustGetObject(ctx, objectTx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, _, err = obj.ApplyObjectOp(ctx, world_mock.NewMockObjectOp("object op sender"), sender)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	txBatch = objectTx.GetTxBatch()
+	if l := len(txBatch.GetTxs()); l != 1 {
+		t.Fatalf("expected 1 object tx but got %d", l)
+	}
+	tx = txBatch.GetTxs()[0]
+	if tt := tx.GetTxType(); tt != TxType_TxType_APPLY_OBJECT_OP {
+		t.Fatalf("expected %s but got %s", TxType_TxType_APPLY_OBJECT_OP.String(), tt.String())
+	}
+	if got := tx.GetTxApplyObjectOp().GetOpSender(); got != sender.String() {
+		t.Fatalf("expected object op sender %q, got %q", sender.String(), got)
+	}
 
 	// wait a moment before finishing the test
 	<-time.After(time.Millisecond * 100)

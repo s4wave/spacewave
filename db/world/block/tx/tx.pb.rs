@@ -65,6 +65,9 @@ pub struct TxApplyWorldOp {
     /// OperationBody is the encoded operation Block.
     #[prost(bytes="vec", tag="2")]
     pub operation_body: ::prost::alloc::vec::Vec<u8>,
+    /// OpSender is the peer ID to apply the operation as.
+    #[prost(string, tag="3")]
+    pub op_sender: ::prost::alloc::string::String,
 }
 /// TxApplyObjectOp applies a object operation.
 /// TxType: TxType_APPLY_OBJECT_OP
@@ -79,6 +82,9 @@ pub struct TxApplyObjectOp {
     /// ObjectKey is the object key to apply the operation to.
     #[prost(string, tag="3")]
     pub object_key: ::prost::alloc::string::String,
+    /// OpSender is the peer ID to apply the operation as.
+    #[prost(string, tag="4")]
+    pub op_sender: ::prost::alloc::string::String,
 }
 /// TxCreateObject creates a new object with a key and ref.
 /// TxType: TxType_CREATE_OBJECT

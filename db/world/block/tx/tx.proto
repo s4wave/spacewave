@@ -91,6 +91,8 @@ message TxApplyWorldOp {
   string operation_type_id = 1;
   // OperationBody is the encoded operation Block.
   bytes operation_body = 2;
+  // OpSender is the peer ID to apply the operation as.
+  string op_sender = 3;
 }
 
 // TxApplyObjectOp applies a object operation.
@@ -102,6 +104,8 @@ message TxApplyObjectOp {
   bytes operation_body = 2;
   // ObjectKey is the object key to apply the operation to.
   string object_key = 3;
+  // OpSender is the peer ID to apply the operation as.
+  string op_sender = 4;
 }
 
 // TxCreateObject creates a new object with a key and ref.

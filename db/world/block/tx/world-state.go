@@ -106,7 +106,7 @@ func (w *WorldState) ApplyWorldOp(
 		return 0, false, tx.ErrNotWrite
 	}
 
-	t, err := NewTxApplyWorldOp(op)
+	t, err := NewTxApplyWorldOp(op, opSender)
 	if err != nil {
 		return 0, false, err
 	}

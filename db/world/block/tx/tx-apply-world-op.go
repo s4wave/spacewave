@@ -6,10 +6,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
 // NewTxApplyWorldOp constructs a new APPLY_WORLD_OP transaction.
-func NewTxApplyWorldOp(op world.Operation) (*Tx, error) {
+func NewTxApplyWorldOp(op world.Operation, opSender peer.ID) (*Tx, error) {
 	opTypeID := op.GetOperationTypeId()
 	if opTypeID == "" {
 		return nil, world.ErrEmptyOp
@@ -23,6 +24,7 @@ func NewTxApplyWorldOp(op world.Operation) (*Tx, error) {
 		TxApplyWorldOp: &TxApplyWorldOp{
 			OperationTypeId: opTypeID,
 			OperationBody:   opBody,
+			OpSender:        opSender.String(),
 		},
 	}, nil
 }
@@ -57,6 +59,7 @@ func (t *TxApplyWorldOp) Clone() *TxApplyWorldOp {
 	return &TxApplyWorldOp{
 		OperationTypeId: t.GetOperationTypeId(),
 		OperationBody:   body,
+		OpSender:        t.GetOpSender(),
 	}
 }
 
@@ -65,6 +68,11 @@ func (t *TxApplyWorldOp) Clone() *TxApplyWorldOp {
 func (t *TxApplyWorldOp) Validate() error {
 	if len(t.GetOperationTypeId()) == 0 {
 		return world.ErrEmptyOp
+	}
+	if opSender := t.GetOpSender(); opSender != "" {
+		if _, err := confparse.ParsePeerID(opSender); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -88,6 +96,13 @@ func (t *TxApplyWorldOp) ExecuteTx(
 
 	if err := t.Validate(); err != nil {
 		return false, err
+	}
+	if opSender := t.GetOpSender(); opSender != "" {
+		var err error
+		sender, err = confparse.ParsePeerID(opSender)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	// resolve + construct the operation type

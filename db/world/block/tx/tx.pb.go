@@ -248,6 +248,8 @@ type TxApplyWorldOp struct {
 	OperationTypeId string `protobuf:"bytes,1,opt,name=operation_type_id,json=operationTypeId,proto3" json:"operationTypeId,omitempty"`
 	// OperationBody is the encoded operation Block.
 	OperationBody []byte `protobuf:"bytes,2,opt,name=operation_body,json=operationBody,proto3" json:"operationBody,omitempty"`
+	// OpSender is the peer ID to apply the operation as.
+	OpSender string `protobuf:"bytes,3,opt,name=op_sender,json=opSender,proto3" json:"opSender,omitempty"`
 }
 
 func (x *TxApplyWorldOp) Reset() {
@@ -270,6 +272,13 @@ func (x *TxApplyWorldOp) GetOperationBody() []byte {
 	return nil
 }
 
+func (x *TxApplyWorldOp) GetOpSender() string {
+	if x != nil {
+		return x.OpSender
+	}
+	return ""
+}
+
 // TxApplyObjectOp applies a object operation.
 // TxType: TxType_APPLY_OBJECT_OP
 type TxApplyObjectOp struct {
@@ -280,6 +289,8 @@ type TxApplyObjectOp struct {
 	OperationBody []byte `protobuf:"bytes,2,opt,name=operation_body,json=operationBody,proto3" json:"operationBody,omitempty"`
 	// ObjectKey is the object key to apply the operation to.
 	ObjectKey string `protobuf:"bytes,3,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// OpSender is the peer ID to apply the operation as.
+	OpSender string `protobuf:"bytes,4,opt,name=op_sender,json=opSender,proto3" json:"opSender,omitempty"`
 }
 
 func (x *TxApplyObjectOp) Reset() {
@@ -305,6 +316,13 @@ func (x *TxApplyObjectOp) GetOperationBody() []byte {
 func (x *TxApplyObjectOp) GetObjectKey() string {
 	if x != nil {
 		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *TxApplyObjectOp) GetOpSender() string {
+	if x != nil {
+		return x.OpSender
 	}
 	return ""
 }
@@ -558,6 +576,7 @@ func (m *TxApplyWorldOp) CloneVT() *TxApplyWorldOp {
 	}
 	r := new(TxApplyWorldOp)
 	r.OperationTypeId = m.OperationTypeId
+	r.OpSender = m.OpSender
 	if rhs := m.OperationBody; rhs != nil {
 		r.OperationBody = slices.Clone(rhs)
 	}
@@ -578,6 +597,7 @@ func (m *TxApplyObjectOp) CloneVT() *TxApplyObjectOp {
 	r := new(TxApplyObjectOp)
 	r.OperationTypeId = m.OperationTypeId
 	r.ObjectKey = m.ObjectKey
+	r.OpSender = m.OpSender
 	if rhs := m.OperationBody; rhs != nil {
 		r.OperationBody = slices.Clone(rhs)
 	}
@@ -597,7 +617,9 @@ func (m *TxCreateObject) CloneVT() *TxCreateObject {
 	}
 	r := new(TxCreateObject)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -614,7 +636,9 @@ func (m *TxObjectSet) CloneVT() *TxObjectSet {
 	}
 	r := new(TxObjectSet)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -680,7 +704,9 @@ func (m *TxSetGraphQuad) CloneVT() *TxSetGraphQuad {
 		return (*TxSetGraphQuad)(nil)
 	}
 	r := new(TxSetGraphQuad)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -696,7 +722,9 @@ func (m *TxDeleteGraphQuad) CloneVT() *TxDeleteGraphQuad {
 		return (*TxDeleteGraphQuad)(nil)
 	}
 	r := new(TxDeleteGraphQuad)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -821,6 +849,9 @@ func (this *TxApplyWorldOp) EqualVT(that *TxApplyWorldOp) bool {
 	if string(this.OperationBody) != string(that.OperationBody) {
 		return false
 	}
+	if this.OpSender != that.OpSender {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -845,6 +876,9 @@ func (this *TxApplyObjectOp) EqualVT(that *TxApplyObjectOp) bool {
 		return false
 	}
 	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.OpSender != that.OpSender {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1322,6 +1356,11 @@ func (x *TxApplyWorldOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("operationBody")
 		s.WriteBytes(x.OperationBody)
 	}
+	if x.OpSender != "" || s.HasField("opSender") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opSender")
+		s.WriteString(x.OpSender)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1345,6 +1384,9 @@ func (x *TxApplyWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "operation_body", "operationBody":
 			s.AddField("operation_body")
 			x.OperationBody = s.ReadBytes()
+		case "op_sender", "opSender":
+			s.AddField("op_sender")
+			x.OpSender = s.ReadString()
 		}
 	})
 }
@@ -1377,6 +1419,11 @@ func (x *TxApplyObjectOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
+	if x.OpSender != "" || s.HasField("opSender") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opSender")
+		s.WriteString(x.OpSender)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1403,6 +1450,9 @@ func (x *TxApplyObjectOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
+		case "op_sender", "opSender":
+			s.AddField("op_sender")
+			x.OpSender = s.ReadString()
 		}
 	})
 }
@@ -2007,6 +2057,13 @@ func (m *TxApplyWorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.OpSender) > 0 {
+		i -= len(m.OpSender)
+		copy(dAtA[i:], m.OpSender)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OpSender)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.OperationBody) > 0 {
 		i -= len(m.OperationBody)
 		copy(dAtA[i:], m.OperationBody)
@@ -2053,6 +2110,13 @@ func (m *TxApplyObjectOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.OpSender) > 0 {
+		i -= len(m.OpSender)
+		copy(dAtA[i:], m.OpSender)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.OpSender)))
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.ObjectKey) > 0 {
 		i -= len(m.ObjectKey)
@@ -2521,6 +2585,10 @@ func (m *TxApplyWorldOp) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.OpSender)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2540,6 +2608,10 @@ func (m *TxApplyObjectOp) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.OpSender)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -2814,6 +2886,13 @@ func (x *TxApplyWorldOp) MarshalProtoText() string {
 		sb.WriteString(base64.StdEncoding.EncodeToString(x.OperationBody))
 		sb.WriteString("\"")
 	}
+	if x.OpSender != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("op_sender: ")
+		sb.WriteString(strconv.Quote(x.OpSender))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -2847,6 +2926,13 @@ func (x *TxApplyObjectOp) MarshalProtoText() string {
 		}
 		sb.WriteString("object_key: ")
 		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.OpSender != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("op_sender: ")
+		sb.WriteString(strconv.Quote(x.OpSender))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3520,6 +3606,28 @@ func (m *TxApplyWorldOp) UnmarshalVT(dAtA []byte) error {
 				m.OperationBody = []byte{}
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpSender", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OpSender = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3632,6 +3740,28 @@ func (m *TxApplyObjectOp) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpSender", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OpSender = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

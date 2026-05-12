@@ -2655,7 +2655,7 @@
       "protoFiles": ["db/world/block/engine/engine.proto"]
     },
     "github.com/s4wave/spacewave/db/world/block/tx": {
-      "hash": "e55717a3ef6e0b2d1cedce6b973578b795f5d5b679491b63411d2d8c578be937",
+      "hash": "a140decbb57cadcc3acbbf3bc8ad60089ccde1b0f12d8f0898cce5ac9aca9b81",
       "generatedFiles": [
         "db/world/block/tx/tx.pb.cc",
         "db/world/block/tx/tx.pb.go",
