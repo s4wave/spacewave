@@ -596,8 +596,6 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		trace.Log(ctx, "result", "empty-ref")
 		return nil, false, nil
 	}
-	refStr := c.pos.ref.MarshalString()
-	trace.Log(ctx, "block-ref", refStr)
 
 	bkt, _ := c.GetBlockStore()
 	if bkt == nil {
