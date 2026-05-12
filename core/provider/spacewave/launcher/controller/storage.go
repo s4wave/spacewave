@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
@@ -95,6 +96,9 @@ func (c *Controller) loadDistConf(ctx context.Context) ([]byte, error) {
 
 // loadLocalDistConf loads a package-shipped dist config next to the entrypoint.
 func (c *Controller) loadLocalDistConf() ([]byte, string, error) {
+	if runtime.GOOS == "js" {
+		return nil, "", nil
+	}
 	exePath, err := os.Executable()
 	if err != nil {
 		return nil, "", err
