@@ -11,6 +11,8 @@ interface RegisteredCommand {
   menuPath?: string
   menuGroup?: number
   menuOrder?: number
+  active?: boolean
+  enabled?: boolean
   handler: (args: Record<string, string>) => void
 }
 
@@ -136,6 +138,16 @@ describe('BuiltinCommands', () => {
 
     expect(findCommand('spacewave.file.close-window')).toBeUndefined()
     expect(findCommand('spacewave.file.quit')).toBeUndefined()
+  })
+
+  it('deactivates Add State Root outside desktop mode', () => {
+    mocks.isDesktop = false
+
+    render(<BuiltinCommands />)
+
+    expect(findCommand('spacewave.root.add')).toMatchObject({
+      active: false,
+    })
   })
 
   it('routes File Quit through the desktop runtime quit bridge', async () => {

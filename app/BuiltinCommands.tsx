@@ -45,6 +45,7 @@ export function BuiltinCommands() {
     menuPath: 'File/Add State Root',
     menuGroup: 2,
     menuOrder: 1,
+    active: isDesktop,
     enabled: canAddRootAlias,
     handler: useCallback(() => {
       void addRootAlias()
