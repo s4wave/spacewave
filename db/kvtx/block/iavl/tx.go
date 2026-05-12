@@ -202,7 +202,13 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
-	_, _, err := t.GetAndDelete(ctx, key)
+	if t.root == nil {
+		t.root = &Node{}
+	}
+	if t.root.GetSize() == 0 {
+		return nil
+	}
+	_, _, err := t.removeFromRoot(ctx, key)
 	return err
 }
 

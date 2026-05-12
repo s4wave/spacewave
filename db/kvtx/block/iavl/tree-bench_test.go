@@ -564,36 +564,48 @@ func TestIAVLBenchHarnessGraphPrefix(t *testing.T) {
 
 func TestIAVLDeleteAvoidsValueFetch(t *testing.T) {
 	ctx := context.Background()
+	deleteReads := measureBenchTreeDeleteReads(t, ctx, "delete")
+	getAndDeleteReads := measureBenchTreeDeleteReads(t, ctx, "get-and-delete")
+
+	if deleteReads >= getAndDeleteReads {
+		t.Fatalf("Delete read %d blocks, GetAndDelete read %d blocks", deleteReads, getAndDeleteReads)
+	}
+
 	tree := buildBenchTree(t, 128)
-
-	tree.store.resetCounts()
 	tx := newBenchReadTx(t, ctx, tree)
-	if err := tx.Delete(ctx, tree.keys[benchLookupIndex(7, len(tree.keys))]); err != nil {
-		tx.Discard()
-		t.Fatal(err)
-	}
-	tx.Discard()
-	deleteReads := tree.store.getBlocks.Load()
-
-	tree.store.resetCounts()
-	tx = newBenchReadTx(t, ctx, tree)
-	if _, err := tx.DeleteCursorAtKey(ctx, tree.keys[benchLookupIndex(7, len(tree.keys))]); err != nil {
-		tx.Discard()
-		t.Fatal(err)
-	}
-	tx.Discard()
-	cursorDeleteReads := tree.store.getBlocks.Load()
-
-	if deleteReads != cursorDeleteReads {
-		t.Fatalf("Delete read %d blocks, DeleteCursorAtKey read %d blocks", deleteReads, cursorDeleteReads)
-	}
-
-	tx = newBenchReadTx(t, ctx, tree)
 	if err := tx.Delete(ctx, makeSequentialBenchKey(len(tree.keys)+1)); err != nil {
 		tx.Discard()
 		t.Fatal(err)
 	}
 	tx.Discard()
+}
+
+func measureBenchTreeDeleteReads(t *testing.T, ctx context.Context, mode string) int64 {
+	t.Helper()
+
+	tree := buildBenchTree(t, 128)
+	tree.store.resetCounts()
+	tx := newBenchReadTx(t, ctx, tree)
+	key := tree.keys[benchLookupIndex(7, len(tree.keys))]
+	switch mode {
+	case "delete":
+		if err := tx.Delete(ctx, key); err != nil {
+			tx.Discard()
+			t.Fatal(err)
+		}
+	case "get-and-delete":
+		if _, found, err := tx.GetAndDelete(ctx, key); err != nil {
+			tx.Discard()
+			t.Fatal(err)
+		} else if !found {
+			tx.Discard()
+			t.Fatal("key not found")
+		}
+	default:
+		t.Fatalf("unknown delete measurement mode %q", mode)
+	}
+	tx.Discard()
+	return tree.store.getBlocks.Load()
 }
 
 func TestIAVLBenchBadgerBlockStoreCounts(t *testing.T) {
