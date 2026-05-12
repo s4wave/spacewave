@@ -33,9 +33,8 @@ export function SpaceObjectContainer() {
 
   const objectInfo: ObjectInfo = useMemo(
     () => ({
-      info:
-        objectKey ?
-          {
+      info: objectKey
+        ? {
             case: 'worldObjectInfo' as const,
             value: { objectKey },
           }
@@ -46,9 +45,9 @@ export function SpaceObjectContainer() {
 
   const exportUrl = useMemo(
     () =>
-      sessionIndex != null && spaceId ?
-        `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(spaceId)}`
-      : undefined,
+      sessionIndex != null && spaceId
+        ? `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(spaceId)}`
+        : undefined,
     [sessionIndex, spaceId],
   )
 

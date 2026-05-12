@@ -160,9 +160,9 @@ export function DeleteCloudAccountPage() {
       toast.success('Confirmation email sent')
     } catch (err) {
       toast.error(
-        err instanceof Error ?
-          err.message
-        : 'Failed to send confirmation email',
+        err instanceof Error
+          ? err.message
+          : 'Failed to send confirmation email',
       )
     } finally {
       setSending(false)
@@ -232,14 +232,13 @@ export function DeleteCloudAccountPage() {
               {isPendingDelete ? 'Deletion Scheduled' : 'Delete Account'}
             </h1>
             <p className="text-foreground-alt max-w-sm text-center text-sm">
-              {isPendingDelete ?
-                'Your cloud account is read-only. You can still undo before the window closes.'
-              : "Close your Spacewave Cloud account. You'll have 24 hours to undo it before deletion is final."
-              }
+              {isPendingDelete
+                ? 'Your cloud account is read-only. You can still undo before the window closes.'
+                : "Close your Spacewave Cloud account. You'll have 24 hours to undo it before deletion is final."}
             </p>
           </div>
 
-          {isPendingDelete ?
+          {isPendingDelete ? (
             <>
               <PendingDeleteView
                 countdown={countdown}
@@ -257,7 +256,8 @@ export function DeleteCloudAccountPage() {
                 onConfirm={() => void handleLogout()}
               />
             </>
-          : <InitiateDeleteView
+          ) : (
+            <InitiateDeleteView
               sending={sending}
               verifying={verifying}
               retryAfter={retryAfter}
@@ -268,7 +268,7 @@ export function DeleteCloudAccountPage() {
               onConfirm={() => void handleConfirm()}
               onCancel={handleBack}
             />
-          }
+          )}
         </div>
       </div>
     </SessionFrame>
@@ -336,14 +336,15 @@ function InitiateDeleteView({
               Confirm by email
             </h2>
             <p className="text-foreground-alt text-xs leading-relaxed">
-              {email ?
+              {email ? (
                 <>
                   We sent a link and 6-digit code to{' '}
                   <strong className="text-foreground">{email}</strong>. Click
                   the link or enter the code below.
                 </>
-              : "We'll email you a confirmation link and a 6-digit code. Use either to finalize deletion."
-              }
+              ) : (
+                "We'll email you a confirmation link and a 6-digit code. Use either to finalize deletion."
+              )}
             </p>
           </div>
         </div>
@@ -357,19 +358,21 @@ function InitiateDeleteView({
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {sending ?
+          {sending ? (
             <Spinner />
-          : email ?
+          ) : email ? (
             <LuCircleCheck className="text-brand size-4" />
-          : <LuMail className="size-4" />}
+          ) : (
+            <LuMail className="size-4" />
+          )}
           <span className="text-foreground">
-            {sending ?
-              'Sending...'
-            : retryAfter > 0 ?
-              `Resend in ${retryAfter}s`
-            : email ?
-              'Resend confirmation email'
-            : 'Send confirmation email'}
+            {sending
+              ? 'Sending...'
+              : retryAfter > 0
+                ? `Resend in ${retryAfter}s`
+                : email
+                  ? 'Resend confirmation email'
+                  : 'Send confirmation email'}
           </span>
         </button>
 
@@ -472,9 +475,7 @@ function PendingDeleteView({
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {undoing ?
-            <Spinner />
-          : <LuRotateCcw className="size-4" />}
+          {undoing ? <Spinner /> : <LuRotateCcw className="size-4" />}
           {undoing ? 'Canceling...' : 'Undo deletion'}
         </button>
         <p className="text-foreground-alt text-center text-xs leading-relaxed">

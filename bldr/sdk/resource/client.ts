@@ -821,9 +821,9 @@ export class Client {
         }
         if (!signal.aborted) {
           throw new Error(
-            initialized ?
-              'ResourceClient stream closed'
-            : 'ResourceClient stream closed before init',
+            initialized
+              ? 'ResourceClient stream closed'
+              : 'ResourceClient stream closed before init',
           )
         }
       },

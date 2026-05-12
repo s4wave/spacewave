@@ -42,9 +42,9 @@ function tcpSocketToPacketStream(socket: net.Socket): PacketStream {
     sink: async (source: Source<Uint8Array>): Promise<void> => {
       for await (const chunk of pipe(source, prependLengthPrefixTransform())) {
         const data =
-          chunk instanceof Uint8Array ? chunk : (
-            (chunk as { subarray(): Uint8Array }).subarray()
-          )
+          chunk instanceof Uint8Array
+            ? chunk
+            : (chunk as { subarray(): Uint8Array }).subarray()
         await new Promise<void>((resolve, reject) => {
           socket.write(data, (err) => {
             if (err) reject(err)
@@ -110,7 +110,6 @@ async function main(): Promise<void> {
   rootMux.register(
     new StaticHandler('test.Root', {
       CreateChild: async (dataSource, dataSink) => {
-
         await readOne(dataSource)
         const child = await client.attachResourceTree(
           'ts-child',

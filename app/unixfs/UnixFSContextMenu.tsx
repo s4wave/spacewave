@@ -105,7 +105,7 @@ export function UnixFSContextMenu({
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="bottom">
-        {state?.entry ?
+        {state?.entry ? (
           <>
             <DropdownMenuItem onClick={handleOpen}>
               <LuFolderOpen className="size-3.5" />
@@ -141,7 +141,8 @@ export function UnixFSContextMenu({
               <DropdownMenuShortcut>Del</DropdownMenuShortcut>
             </DropdownMenuItem>
           </>
-        : <>
+        ) : (
+          <>
             <DropdownMenuItem onClick={handleNewFolder} disabled={!onNewFolder}>
               <LuFolderPlus className="size-3.5" />
               New folder
@@ -151,7 +152,7 @@ export function UnixFSContextMenu({
               Upload files
             </DropdownMenuItem>
           </>
-        }
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

@@ -23,9 +23,9 @@ export function useGitFileEntries(
   const statResource = useUnixFSHandleStat(pathHandle)
 
   const isDir =
-    statResource.loading || statResource.value === null ?
-      null
-    : (statResource.value.info.isDir ?? false)
+    statResource.loading || statResource.value === null
+      ? null
+      : (statResource.value.info.isDir ?? false)
 
   const entriesResource = useUnixFSHandleEntries(pathHandle, {
     enabled: isDir === true && (entriesEnabled ?? true),

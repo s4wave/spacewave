@@ -53,9 +53,9 @@ export function TopBar({
     const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
 
     const targetScrollLeft =
-      direction === 'left' ?
-        Math.max(0, scrollLeft - scrollAmount)
-      : Math.min(scrollWidth - clientWidth, scrollLeft + scrollAmount)
+      direction === 'left'
+        ? Math.max(0, scrollLeft - scrollAmount)
+        : Math.min(scrollWidth - clientWidth, scrollLeft + scrollAmount)
 
     isScrollingRef.current = true
 
@@ -193,14 +193,14 @@ export function TopBar({
                 'border-foreground/8 border border-b-0',
                 'rounded-t-lg',
                 'max-w-[120px] min-w-[30px]',
-                activeWorkspace === workspace.id ?
-                  'bg-shell-tab-active text-shell-tab-text-active'
-                : 'bg-shell-tab-inactive text-shell-tab-text hover:bg-shell-tab-active/50',
+                activeWorkspace === workspace.id
+                  ? 'bg-shell-tab-active text-shell-tab-text-active'
+                  : 'bg-shell-tab-inactive text-shell-tab-text hover:bg-shell-tab-active/50',
               )}
               style={
-                activeWorkspace === workspace.id ?
-                  { boxShadow: 'inset 0 -1px 0 var(--color-widget-emboss)' }
-                : undefined
+                activeWorkspace === workspace.id
+                  ? { boxShadow: 'inset 0 -1px 0 var(--color-widget-emboss)' }
+                  : undefined
               }
             >
               <button

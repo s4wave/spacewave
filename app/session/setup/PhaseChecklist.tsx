@@ -29,11 +29,13 @@ export function PhaseChecklist({ phases, className }: PhaseChecklistProps) {
 function PhaseChecklistRow({ label, done, active }: PhaseChecklistItem) {
   return (
     <div className="flex items-center gap-2">
-      {done ?
+      {done ? (
         <LuCircleCheck className="text-brand size-4" />
-      : active ?
+      ) : active ? (
         <Spinner className="text-brand" />
-      : <div className="border-foreground/20 size-4 rounded-full border" />}
+      ) : (
+        <div className="border-foreground/20 size-4 rounded-full border" />
+      )}
       <span
         className={cn(
           'text-xs',

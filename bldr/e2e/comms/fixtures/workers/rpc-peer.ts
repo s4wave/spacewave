@@ -6,11 +6,7 @@
 // Client: waits for 'start' signal, calls Echo, reports result.
 
 import { Server, Client, createHandler, createMux } from 'starpc'
-import {
-  EchoerDefinition,
-  EchoerClient,
-  EchoerServer,
-} from 'starpc/echo'
+import { EchoerDefinition, EchoerClient, EchoerServer } from 'starpc/echo'
 
 import { SabRingStream } from '../../../../web/bldr/sab-ring-stream.js'
 

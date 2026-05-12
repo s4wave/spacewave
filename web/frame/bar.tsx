@@ -45,9 +45,9 @@ export function Bar(props?: IBarProps) {
       <div className="flex overflow-hidden" style={props?.rightStyle}>
         {props?.right}
       </div>
-      {!props?.hideTopBorder ?
+      {!props?.hideTopBorder ? (
         <span className="after:bg-bar-border-top after:pointer-events-none after:absolute after:top-0 after:left-0 after:h-[1px] after:w-full after:content-['']" />
-      : null}
+      ) : null}
     </div>
   )
 }

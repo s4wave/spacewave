@@ -37,9 +37,9 @@ vi.mock('@s4wave/web/layout/BaseLayout.js', () => ({
       <div
         data-testid="base-layout"
         data-has-external-drag={
-          typeof props.flexLayoutProps?.onExternalDrag === 'function' ?
-            'yes'
-          : 'no'
+          typeof props.flexLayoutProps?.onExternalDrag === 'function'
+            ? 'yes'
+            : 'no'
         }
       />
     )

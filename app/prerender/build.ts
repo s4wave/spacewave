@@ -345,8 +345,9 @@ async function main() {
     ctx.log(`Prerendering ${page.path}...`)
     const body = await prerenderElement(createElement(Component), page.path)
 
-    const canonicalUrl =
-      meta.canonicalPath ? ctx.siteOrigin + meta.canonicalPath : undefined
+    const canonicalUrl = meta.canonicalPath
+      ? ctx.siteOrigin + meta.canonicalPath
+      : undefined
 
     const pageHtml = buildPageHtml({
       body,

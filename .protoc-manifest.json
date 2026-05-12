@@ -969,7 +969,10 @@
         "bldr/web/view/handler/rpc_srpc.pb.rs",
         "bldr/web/view/handler/rpc_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/view/handler/handler.proto", "bldr/web/view/handler/rpc.proto"]
+      "protoFiles": [
+        "bldr/web/view/handler/handler.proto",
+        "bldr/web/view/handler/rpc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/view/handler/controller": {
       "hash": "702ec75ff2a114d4835aeebb81ba81c96d69da7d7057c27923afb7be25faf0e0",
@@ -2684,7 +2687,10 @@
         "e2e/wasm/session/session_srpc.pb.rs",
         "e2e/wasm/session/session_srpc.pb.ts"
       ],
-      "protoFiles": ["e2e/wasm/session/config.proto", "e2e/wasm/session/session.proto"]
+      "protoFiles": [
+        "e2e/wasm/session/config.proto",
+        "e2e/wasm/session/session.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/cluster": {
       "hash": "8a215bbc0450044493bd2fcec30a86e05adc98a569c6a06ac8f0a7cb98b123ae",

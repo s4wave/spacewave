@@ -40,38 +40,38 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
           <div className="text-foreground text-sm font-semibold tracking-tight">
             {view.title}
           </div>
-          {view.detail ?
+          {view.detail ? (
             <div className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
               {view.detail}
             </div>
-          : null}
-          {view.progress !== undefined ?
+          ) : null}
+          {view.progress !== undefined ? (
             <div className="mt-2.5">
               <ProgressBar
                 value={view.progress * 100}
                 rate={view.rate?.down ?? view.rate?.up}
               />
             </div>
-          : null}
-          {view.rate && view.progress === undefined ?
+          ) : null}
+          {view.rate && view.progress === undefined ? (
             <div className="mt-2 grid grid-cols-2 gap-2">
               <RatePill label="Up" value={view.rate.up ?? '0 B/s'} />
               <RatePill label="Down" value={view.rate.down ?? '0 B/s'} />
             </div>
-          : null}
-          {view.lastActivity ?
+          ) : null}
+          {view.lastActivity ? (
             <div className="text-foreground-alt/40 mt-2 text-[0.65rem]">
               {view.lastActivity}
             </div>
-          : null}
-          {view.error ?
+          ) : null}
+          {view.error ? (
             <div className="bg-destructive/5 border-destructive/15 text-destructive mt-2 rounded-md border px-2 py-1 text-[0.65rem] leading-relaxed">
               {view.error}
             </div>
-          : null}
-          {view.onRetry || view.onCancel ?
+          ) : null}
+          {view.onRetry || view.onCancel ? (
             <div className="mt-2.5 flex gap-2">
-              {view.onRetry ?
+              {view.onRetry ? (
                 <button
                   type="button"
                   onClick={view.onRetry}
@@ -79,8 +79,8 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
                 >
                   Retry
                 </button>
-              : null}
-              {view.onCancel ?
+              ) : null}
+              {view.onCancel ? (
                 <button
                   type="button"
                   onClick={view.onCancel}
@@ -88,9 +88,9 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
                 >
                   Cancel
                 </button>
-              : null}
+              ) : null}
             </div>
-          : null}
+          ) : null}
         </div>
       </div>
     </div>

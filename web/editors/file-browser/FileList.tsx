@@ -97,14 +97,14 @@ export function FileList({
 
   const handleOpen = useMemo(
     () =>
-      onOpen ?
-        (openedItems: ListItem<FileEntry>[]) => {
-          const fileEntries = openedItems.flatMap((item) =>
-            item.data ? [item.data] : [],
-          )
-          onOpen(fileEntries)
-        }
-      : undefined,
+      onOpen
+        ? (openedItems: ListItem<FileEntry>[]) => {
+            const fileEntries = openedItems.flatMap((item) =>
+              item.data ? [item.data] : [],
+            )
+            onOpen(fileEntries)
+          }
+        : undefined,
     [onOpen],
   )
 

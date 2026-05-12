@@ -332,8 +332,8 @@ export default class WASI {
           const prestat_dir_name = prestat.inner.pr_name
           const buffer8 = new Uint8Array(this.inst.exports.memory.buffer)
           buffer8.set(prestat_dir_name.slice(0, path_len), path_ptr)
-          return prestat_dir_name.byteLength > path_len ?
-              wasi.ERRNO_NAMETOOLONG
+          return prestat_dir_name.byteLength > path_len
+            ? wasi.ERRNO_NAMETOOLONG
             : wasi.ERRNO_SUCCESS
         }
         return wasi.ERRNO_BADF
@@ -853,9 +853,9 @@ export default class WASI {
             }
 
             const endTime =
-              (s.flags & wasi.SUBCLOCKFLAGS_SUBSCRIPTION_CLOCK_ABSTIME) !== 0 ?
-                s.timeout
-              : getNow() + s.timeout
+              (s.flags & wasi.SUBCLOCKFLAGS_SUBSCRIPTION_CLOCK_ABSTIME) !== 0
+                ? s.timeout
+                : getNow() + s.timeout
 
             // Track the earliest clock timeout
             if (clockTimeout === null || endTime < clockTimeout) {
@@ -902,9 +902,8 @@ export default class WASI {
           // Calculate timeout in milliseconds for Atomics.wait
           let timeoutMs: number | undefined
           if (clockTimeout !== null) {
-            const getNow =
-              clockUseRealtime ?
-                () => BigInt(new Date().getTime()) * 1_000_000n
+            const getNow = clockUseRealtime
+              ? () => BigInt(new Date().getTime()) * 1_000_000n
               : () => BigInt(Math.round(performance.now() * 1_000_000))
 
             const remaining = clockTimeout - getNow()
@@ -1007,9 +1006,8 @@ export default class WASI {
 
               // Check if clock expired
               if (clockTimeout !== null) {
-                const getNow =
-                  clockUseRealtime ?
-                    () => BigInt(new Date().getTime()) * 1_000_000n
+                const getNow = clockUseRealtime
+                  ? () => BigInt(new Date().getTime()) * 1_000_000n
                   : () => BigInt(Math.round(performance.now() * 1_000_000))
 
                 if (getNow() >= clockTimeout) {

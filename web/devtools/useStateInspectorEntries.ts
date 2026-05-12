@@ -128,11 +128,11 @@ export function useStateInspectorValue(entry: StateInspectorEntry): unknown {
   const rootAccessor = useStateAtomAccessorForScope('root')
   const sessionAccessor = useStateAtomAccessorForScope('session')
   const resourceAccessor =
-    entry.kind === 'resource' ?
-      entry.scope === 'root' ?
-        rootAccessor
-      : sessionAccessor
-    : NULL_ACCESSOR
+    entry.kind === 'resource'
+      ? entry.scope === 'root'
+        ? rootAccessor
+        : sessionAccessor
+      : NULL_ACCESSOR
   const resourceState = useBackendStateAtomValue(
     resourceAccessor,
     entry.kind === 'resource' ? entry.storeId : '__devtools-unused__',

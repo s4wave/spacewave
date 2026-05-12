@@ -175,9 +175,9 @@ function AuthUnlockWizardContent({
               <div
                 className={cn(
                   'rounded-full px-2 py-0.5 text-xs font-medium',
-                  canConfirm ?
-                    'bg-brand/10 text-brand'
-                  : 'bg-foreground/5 text-foreground-alt',
+                  canConfirm
+                    ? 'bg-brand/10 text-brand'
+                    : 'bg-foreground/5 text-foreground-alt',
                 )}
               >
                 {canConfirm ? 'Ready' : 'Unlock more'}
@@ -531,9 +531,9 @@ function KeypairRow({
         void handleSSOUnlock()
       }}
       onCancel={
-        ssoFlow || desktopSSOAbort || desktopPasskeyAbort ?
-          handleCancelBrowserFlow
-        : undefined
+        ssoFlow || desktopSSOAbort || desktopPasskeyAbort
+          ? handleCancelBrowserFlow
+          : undefined
       }
       onUnlockPin={() => void handlePinUnlock()}
     />
@@ -647,16 +647,15 @@ function BrowserUnlockCard({
 }: BrowserUnlockCardProps) {
   const isPasskey = method === 'passkey'
   const actionLabel = isPasskey ? 'Use passkey' : `Use ${methodLabel(method)}`
-  const helperText =
-    needsPin ?
-      'Enter the PIN for the recovered key to finish unlocking this signer.'
-    : flowActive && desktopRelayActive && isPasskey ?
-      'Complete passkey verification in your browser, then return here.'
-    : flowActive ?
-      `Complete ${methodLabel(method)} in the browser, then return here.`
-    : isPasskey ?
-      'Use your passkey to unlock this signer in the shared escalation prompt.'
-    : `Use ${methodLabel(method)} to unlock this signer in the shared escalation prompt.`
+  const helperText = needsPin
+    ? 'Enter the PIN for the recovered key to finish unlocking this signer.'
+    : flowActive && desktopRelayActive && isPasskey
+      ? 'Complete passkey verification in your browser, then return here.'
+      : flowActive
+        ? `Complete ${methodLabel(method)} in the browser, then return here.`
+        : isPasskey
+          ? 'Use your passkey to unlock this signer in the shared escalation prompt.'
+          : `Use ${methodLabel(method)} to unlock this signer in the shared escalation prompt.`
 
   return (
     <div className="border-foreground/10 space-y-3 rounded-md border p-3">
@@ -718,9 +717,9 @@ function BrowserUnlockCard({
         <button
           onClick={needsPin ? onUnlockPin : onStart}
           disabled={
-            needsPin ?
-              disabled || waiting || pin.length === 0
-            : disabled || waiting
+            needsPin
+              ? disabled || waiting || pin.length === 0
+              : disabled || waiting
           }
           className={cn(
             'shrink-0 rounded-md border px-3 py-1.5 text-xs transition-all',
@@ -732,16 +731,18 @@ function BrowserUnlockCard({
           {!needsPin && isPasskey && <LuFingerprint className="size-3" />}
           {!needsPin &&
             !isPasskey &&
-            (method === 'google_sso' ?
+            (method === 'google_sso' ? (
               <FcGoogle className="size-3" />
-            : <LuGithub className="size-3" />)}
-          {needsPin ?
-            waiting ?
-              '...'
-            : 'Unlock'
-          : waiting ?
-            'Waiting...'
-          : actionLabel}
+            ) : (
+              <LuGithub className="size-3" />
+            ))}
+          {needsPin
+            ? waiting
+              ? '...'
+              : 'Unlock'
+            : waiting
+              ? 'Waiting...'
+              : actionLabel}
         </button>
       </div>
     </div>

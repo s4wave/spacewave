@@ -34,9 +34,9 @@ export function WindowFrame(props: IWindowFrameProps) {
       <AppLogo
         className={cn('select-none', !props.topBarHeight && 'max-h-bar')}
         style={
-          props.topBarHeight ?
-            { maxHeight: `${props.topBarHeight}px` }
-          : undefined
+          props.topBarHeight
+            ? { maxHeight: `${props.topBarHeight}px` }
+            : undefined
         }
       />
       <span className="text-white/72 select-none">{props.title}</span>

@@ -271,7 +271,7 @@ export function SpaceMembersPanel() {
           <div className="text-foreground-alt/50 mb-1 text-[0.6rem] font-medium tracking-wider uppercase">
             Pending Requests
           </div>
-          {mailboxEntries.length > 0 ?
+          {mailboxEntries.length > 0 ? (
             <div className="space-y-1">
               {mailboxEntries.map((entry) => (
                 <PendingRequestRow
@@ -287,13 +287,14 @@ export function SpaceMembersPanel() {
                 />
               ))}
             </div>
-          : <div
+          ) : (
+            <div
               className="text-foreground-alt/40 px-1 py-0.5 text-xs"
               data-testid="pending-request-empty"
             >
               No pending requests yet
             </div>
-          }
+          )}
         </div>
       )}
 
@@ -356,9 +357,7 @@ function MemberRow(props: {
           className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors disabled:opacity-50"
           data-testid="space-member-remove"
         >
-          {props.removing ?
-            <Spinner size="sm" />
-          : <LuX className="size-3" />}
+          {props.removing ? <Spinner size="sm" /> : <LuX className="size-3" />}
         </button>
       )}
     </div>
@@ -372,9 +371,8 @@ function InviteRow(props: {
   onRevoke: () => void
 }) {
   const inv = props.invite
-  const usageText =
-    inv.maxUses ?
-      `${inv.uses ?? 0}/${inv.maxUses} uses`
+  const usageText = inv.maxUses
+    ? `${inv.uses ?? 0}/${inv.maxUses} uses`
     : `${inv.uses ?? 0} uses`
 
   return (
@@ -392,9 +390,11 @@ function InviteRow(props: {
           disabled={props.revoking}
           className="text-foreground-alt/40 hover:text-destructive cursor-pointer transition-colors disabled:opacity-50"
         >
-          {props.revoking ?
+          {props.revoking ? (
             <Spinner size="sm" />
-          : <LuTrash2 className="size-3" />}
+          ) : (
+            <LuTrash2 className="size-3" />
+          )}
         </button>
       )}
     </div>
@@ -431,9 +431,10 @@ function PendingRequestRow(props: {
           {inviteLabel}
         </span>
       )}
-      {props.processing ?
+      {props.processing ? (
         <Spinner size="sm" className="text-foreground-alt/40" />
-      : <>
+      ) : (
+        <>
           <button
             onClick={props.onAccept}
             className="text-foreground-alt/40 cursor-pointer transition-colors hover:text-green-500"
@@ -447,7 +448,7 @@ function PendingRequestRow(props: {
             <LuX className="size-3" />
           </button>
         </>
-      }
+      )}
     </div>
   )
 }

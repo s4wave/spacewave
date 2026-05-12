@@ -179,16 +179,14 @@ function SignInMethodButton({
         'group rounded-md border transition-all duration-300',
         fullWidth ? 'w-full' : 'flex-1',
         'border-foreground/10 bg-background/20',
-        enabled ?
-          'hover:border-brand/30 hover:bg-background/40'
-        : 'cursor-not-allowed opacity-40',
+        enabled
+          ? 'hover:border-brand/30 hover:bg-background/40'
+          : 'cursor-not-allowed opacity-40',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'flex h-10 items-center justify-center gap-2',
       )}
     >
-      {loading ?
-        <Spinner size="md" className="text-foreground-alt" />
-      : icon}
+      {loading ? <Spinner size="md" className="text-foreground-alt" /> : icon}
       <span className="text-foreground-alt text-sm">{label}</span>
     </button>
   )
@@ -727,9 +725,9 @@ export function LoginForm({
               </p>
               <button
                 onClick={() =>
-                  isDesktop ?
-                    void handleDesktopBrowserSignIn('browser')
-                  : void onBrowserAuth?.()
+                  isDesktop
+                    ? void handleDesktopBrowserSignIn('browser')
+                    : void onBrowserAuth?.()
                 }
                 className={cn(
                   'w-full rounded-md border transition-all duration-300',
@@ -766,38 +764,40 @@ export function LoginForm({
               'flex h-10 items-center justify-center gap-2',
             )}
           >
-            {passwordBusy ?
+            {passwordBusy ? (
               <Spinner className="text-foreground" />
-            : <LuKeyRound className="text-foreground size-4" />}
+            ) : (
+              <LuKeyRound className="text-foreground size-4" />
+            )}
             <span className="text-foreground text-sm">
-              {passwordBusy ?
-                'Connecting...'
-              : creatingAccount ?
-                'Confirm and create account'
-              : 'Continue with password'}
+              {passwordBusy
+                ? 'Connecting...'
+                : creatingAccount
+                  ? 'Confirm and create account'
+                  : 'Continue with password'}
             </span>
           </button>
 
           {passwordBusy && (
             <AuthProgressCard
               title={
-                creatingAccount ?
-                  'Creating your secure account'
-                : 'Signing in securely'
+                creatingAccount
+                  ? 'Creating your secure account'
+                  : 'Signing in securely'
               }
               detail="Spacewave is securing your account on this device. This can take a moment."
               steps={
-                creatingAccount ?
-                  [
-                    'Creating secure account keys',
-                    'Protecting your account credentials',
-                    'Opening your first session',
-                  ]
-                : [
-                    'Checking your credentials',
-                    'Unlocking your account key',
-                    'Opening your session',
-                  ]
+                creatingAccount
+                  ? [
+                      'Creating secure account keys',
+                      'Protecting your account credentials',
+                      'Opening your first session',
+                    ]
+                  : [
+                      'Checking your credentials',
+                      'Unlocking your account key',
+                      'Opening your session',
+                    ]
               }
             />
           )}
@@ -835,10 +835,11 @@ export function LoginForm({
                   loading={loading === 'pem'}
                   icon={<LuKeyRound className="text-foreground-alt size-5" />}
                   label={
-                    loading === 'pem' ? 'Signing in with backup key...'
-                    : pemFileName ?
-                      `Backup key: ${pemFileName}`
-                    : 'Backup key (.pem)'
+                    loading === 'pem'
+                      ? 'Signing in with backup key...'
+                      : pemFileName
+                        ? `Backup key: ${pemFileName}`
+                        : 'Backup key (.pem)'
                   }
                   onClick={() => pemInputRef.current?.click()}
                 />
@@ -854,9 +855,12 @@ export function LoginForm({
                         }
                         label="Passkey"
                         onClick={() =>
-                          isDesktop ?
-                            void handleDesktopBrowserSignIn('passkey')
-                          : void handleAction('passkey', onContinueWithPasskey)
+                          isDesktop
+                            ? void handleDesktopBrowserSignIn('passkey')
+                            : void handleAction(
+                                'passkey',
+                                onContinueWithPasskey,
+                              )
                         }
                       />
                     </TooltipTrigger>
@@ -920,9 +924,9 @@ export function LoginForm({
                         <div className="flex items-center gap-3">
                           <PiUserCircleDuotone className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
                           <span className="text-foreground-alt group-hover:text-foreground text-sm transition-colors">
-                            {loading === 'continue' ?
-                              'Starting...'
-                            : 'Continue without account'}
+                            {loading === 'continue'
+                              ? 'Starting...'
+                              : 'Continue without account'}
                           </span>
                         </div>
                         <RxArrowRight
@@ -989,13 +993,14 @@ export function LoginForm({
       </Dialog>
 
       <div className="text-foreground-alt text-center text-xs leading-relaxed">
-        {creatingAccount ?
+        {creatingAccount ? (
           'creating a new cloud account'
-        : <>
+        ) : (
+          <>
             local-first, end-to-end encrypted,{' '}
             <span className="text-white">no account required</span>
           </>
-        }
+        )}
       </div>
     </div>
   )
@@ -1003,10 +1008,13 @@ export function LoginForm({
 
 function PasswordStrength({ password }: { password: string }) {
   const strength =
-    password.length === 0 ? 0
-    : password.length < 8 ? 1
-    : password.length < 12 ? 2
-    : 3
+    password.length === 0
+      ? 0
+      : password.length < 8
+        ? 1
+        : password.length < 12
+          ? 2
+          : 3
   const labels = ['', 'Weak', 'Fair', 'Strong']
   const colors = ['', 'bg-destructive', 'bg-yellow-500', 'bg-green-500']
 

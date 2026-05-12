@@ -154,9 +154,8 @@ export class DesktopTrayPopoverController {
     )
     const opensDown =
       trayBounds.y < workArea.y + Math.floor(workArea.height / 2)
-    const y =
-      opensDown ?
-        trayBounds.y + trayBounds.height + popoverMargin
+    const y = opensDown
+      ? trayBounds.y + trayBounds.height + popoverMargin
       : trayBounds.y - popoverHeight - popoverMargin
     return {
       x,
@@ -365,9 +364,9 @@ function renderEntries(entries: DesktopTrayEntry[]): string {
         .filter((part) => part !== '')
         .join(' / ')
       const pathHeader =
-        nextPath && nextPath !== currentPath ?
-          `<div class="path-title">${escapeHtml(nextPath)}</div>`
-        : ''
+        nextPath && nextPath !== currentPath
+          ? `<div class="path-title">${escapeHtml(nextPath)}</div>`
+          : ''
       currentPath = nextPath
       return pathHeader + renderEntry(entry)
     })

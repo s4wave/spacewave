@@ -80,9 +80,9 @@ export function ListRow<T>({
       className={cn(
         'flex items-center px-2 py-[1px] text-xs leading-tight',
         'cursor-pointer transition-colors select-none',
-        selected ?
-          'bg-brand/10 text-foreground'
-        : 'text-foreground/90 hover:bg-foreground/5',
+        selected
+          ? 'bg-brand/10 text-foreground'
+          : 'text-foreground/90 hover:bg-foreground/5',
         focused && !selected && 'ring-brand/25 ring-1 ring-inset',
       )}
       onClick={handleListRowSelect}

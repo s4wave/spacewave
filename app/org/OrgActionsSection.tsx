@@ -56,9 +56,9 @@ export function OrgActionsSection({
               Delete Organization
             </h4>
             <p className="text-destructive/80 group-hover:text-destructive-foreground/80 text-xs transition-colors select-none">
-              {blocked ?
-                `Remove or transfer all ${spaceCount} space${spaceCount !== 1 ? 's' : ''} before deleting`
-              : 'Permanently delete this organization'}
+              {blocked
+                ? `Remove or transfer all ${spaceCount} space${spaceCount !== 1 ? 's' : ''} before deleting`
+                : 'Permanently delete this organization'}
             </p>
           </div>
         </button>

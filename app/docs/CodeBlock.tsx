@@ -50,8 +50,9 @@ export function CodeBlock({ lang, code }: CodeBlockProps) {
     void getHighlighter().then((highlighter) => {
       if (cancelled) return
       const trimmed = code.replace(/\n$/, '')
-      const language =
-        highlighter.getLoadedLanguages().includes(lang) ? lang : 'text'
+      const language = highlighter.getLoadedLanguages().includes(lang)
+        ? lang
+        : 'text'
       setHtml(
         highlighter.codeToHtml(trimmed, {
           lang: language,
@@ -83,22 +84,25 @@ export function CodeBlock({ lang, code }: CodeBlockProps) {
         className={cn(
           'absolute top-2.5 right-2.5 z-10 flex size-7 items-center justify-center rounded-md transition-all',
           'opacity-0 group-hover/code:opacity-100',
-          copied ?
-            'bg-brand/20 text-brand'
-          : 'bg-foreground/5 text-foreground-alt/40 hover:bg-foreground/10 hover:text-foreground-alt',
+          copied
+            ? 'bg-brand/20 text-brand'
+            : 'bg-foreground/5 text-foreground-alt/40 hover:bg-foreground/10 hover:text-foreground-alt',
         )}
         title="Copy code"
       >
-        {copied ?
+        {copied ? (
           <LuCheck className="size-3.5" />
-        : <LuCopy className="size-3.5" />}
+        ) : (
+          <LuCopy className="size-3.5" />
+        )}
       </button>
-      {html ?
+      {html ? (
         <div dangerouslySetInnerHTML={{ __html: html }} />
-      : <pre>
+      ) : (
+        <pre>
           <code>{code}</code>
         </pre>
-      }
+      )}
     </div>
   )
 }

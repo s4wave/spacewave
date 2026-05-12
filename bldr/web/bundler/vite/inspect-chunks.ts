@@ -28,11 +28,7 @@ async function main() {
       { root: string; subPaths: Set<string> }
     >()
 
-    const { viteOutput } = await buildAndAnalyze(
-      config,
-      rootDir,
-      webPkgRefs,
-    )
+    const { viteOutput } = await buildAndAnalyze(config, rootDir, webPkgRefs)
 
     // Get the raw chunks BEFORE they're cleaned up
     const outputs = Array.isArray(viteOutput) ? viteOutput : [viteOutput]

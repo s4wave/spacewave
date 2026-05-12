@@ -501,9 +501,9 @@ export class BaseLayout extends AbortComponent<
       tabDataMap,
       protoModel: layoutModel,
       localState:
-        this.props.localState !== undefined ?
-          this.state.localState
-        : nextLocalState,
+        this.props.localState !== undefined
+          ? this.state.localState
+          : nextLocalState,
     }
 
     this.setState(nextState, () => {

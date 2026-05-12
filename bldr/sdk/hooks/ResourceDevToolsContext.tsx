@@ -75,10 +75,10 @@ function extractDebugInfo(value: unknown): ResourceDebugInfo | null {
 }
 
 // hasWatchDebugInfo checks if a resource has a watchDebugInfo method.
-function hasWatchDebugInfo(
-  value: unknown,
-): value is {
-  watchDebugInfo: (abortSignal?: AbortSignal) => AsyncIterable<ResourceDebugInfo>
+function hasWatchDebugInfo(value: unknown): value is {
+  watchDebugInfo: (
+    abortSignal?: AbortSignal,
+  ) => AsyncIterable<ResourceDebugInfo>
 } {
   if (!value || typeof value !== 'object') return false
   return (
@@ -144,19 +144,22 @@ function ResourceDevToolsProviderInner({
   }, [])
 
   // Wrapper to update both state and ref
-  const setSelectedId = useCallback((id: TrackingId | null) => {
-    if (selectedIdRef.current === id) return
-    selectedIdRef.current = id
-    notifySelectedIdSubscribers()
-  }, [notifySelectedIdSubscribers])
+  const setSelectedId = useCallback(
+    (id: TrackingId | null) => {
+      if (selectedIdRef.current === id) return
+      selectedIdRef.current = id
+      notifySelectedIdSubscribers()
+    },
+    [notifySelectedIdSubscribers],
+  )
 
   const register = useCallback(
     (id: TrackingId, parentIds: TrackingId[], retry: () => void) => {
       const prev = resourcesRef.current
       const existing = prev.get(id)
-      const sameParentIds = existing ?
-        trackingIdsEqual(existing.parentIds, parentIds)
-      : false
+      const sameParentIds = existing
+        ? trackingIdsEqual(existing.parentIds, parentIds)
+        : false
 
       if (existing && existing.retry === retry && sameParentIds) {
         return
@@ -236,7 +239,9 @@ function ResourceDevToolsProviderInner({
         // Start watching in background
         void (async () => {
           try {
-            for await (const info of value.watchDebugInfo(abortController.signal)) {
+            for await (const info of value.watchDebugInfo(
+              abortController.signal,
+            )) {
               if (abortController.signal.aborted) break
               const prev = resourcesRef.current
               const existing = prev.get(id)
@@ -265,27 +270,30 @@ function ResourceDevToolsProviderInner({
     [notifySubscribers],
   )
 
-  const unregister = useCallback((id: TrackingId) => {
-    // Abort any watch subscription for this resource
-    const abortController = watchAbortControllersRef.current.get(id)
-    if (abortController) {
-      abortController.abort()
-      watchAbortControllersRef.current.delete(id)
-    }
+  const unregister = useCallback(
+    (id: TrackingId) => {
+      // Abort any watch subscription for this resource
+      const abortController = watchAbortControllersRef.current.get(id)
+      if (abortController) {
+        abortController.abort()
+        watchAbortControllersRef.current.delete(id)
+      }
 
-    const prev = resourcesRef.current
-    if (!prev.has(id)) return
+      const prev = resourcesRef.current
+      if (!prev.has(id)) return
 
-    const next = new Map(prev)
-    next.delete(id)
-    resourcesRef.current = next
-    notifySubscribers()
+      const next = new Map(prev)
+      next.delete(id)
+      resourcesRef.current = next
+      notifySubscribers()
 
-    if (selectedIdRef.current === id) {
-      selectedIdRef.current = null
-      notifySelectedIdSubscribers()
-    }
-  }, [notifySelectedIdSubscribers, notifySubscribers])
+      if (selectedIdRef.current === id) {
+        selectedIdRef.current = null
+        notifySelectedIdSubscribers()
+      }
+    },
+    [notifySelectedIdSubscribers, notifySubscribers],
+  )
 
   useEffect(() => {
     const abortControllers = watchAbortControllersRef.current

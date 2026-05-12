@@ -272,11 +272,11 @@ export function CommandPalette() {
     abortRef.current = null
   }, [])
 
-  const activeSubItemCommand =
-    subItemCommandId ? findActiveCommand(commands, subItemCommandId) : undefined
-  const placeholder =
-    activeSubItemCommand ?
-      `Search ${activeSubItemCommand.command?.label ?? ''}...`
+  const activeSubItemCommand = subItemCommandId
+    ? findActiveCommand(commands, subItemCommandId)
+    : undefined
+  const placeholder = activeSubItemCommand
+    ? `Search ${activeSubItemCommand.command?.label ?? ''}...`
     : 'Type a command or search...'
 
   return (
@@ -291,7 +291,7 @@ export function CommandPalette() {
         onValueChange={subItemCommandId ? setSubQuery : undefined}
       />
       <CommandList>
-        {subItemCommandId ?
+        {subItemCommandId ? (
           <>
             <CommandEmpty>No items found.</CommandEmpty>
             <CommandGroup heading={activeSubItemCommand?.command?.label ?? ''}>
@@ -320,7 +320,8 @@ export function CommandPalette() {
               ))}
             </CommandGroup>
           </>
-        : <>
+        ) : (
+          <>
             <CommandEmpty>No commands found.</CommandEmpty>
             {grouped.map((g) => (
               <CommandGroup key={g.group} heading={g.group}>
@@ -338,7 +339,7 @@ export function CommandPalette() {
               </CommandGroup>
             ))}
           </>
-        }
+        )}
       </CommandList>
       <CommandFooter />
     </CommandDialog>

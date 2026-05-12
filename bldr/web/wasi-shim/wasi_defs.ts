@@ -130,7 +130,11 @@ export class Iovec {
     return iovec
   }
 
-  static read_bytes_array(view: DataView, ptr: number, len: number): Array<Iovec> {
+  static read_bytes_array(
+    view: DataView,
+    ptr: number,
+    len: number,
+  ): Array<Iovec> {
     const iovecs = []
     for (let i = 0; i < len; i++) {
       iovecs.push(Iovec.read_bytes(view, ptr + 8 * i))
@@ -150,7 +154,11 @@ export class Ciovec {
     return iovec
   }
 
-  static read_bytes_array(view: DataView, ptr: number, len: number): Array<Ciovec> {
+  static read_bytes_array(
+    view: DataView,
+    ptr: number,
+    len: number,
+  ): Array<Ciovec> {
     const iovecs = []
     for (let i = 0; i < len; i++) {
       iovecs.push(Ciovec.read_bytes(view, ptr + 8 * i))
@@ -205,7 +213,10 @@ export class Dirent {
   }
 
   write_name_bytes(view8: Uint8Array, ptr: number, buf_len: number) {
-    view8.set(this.dir_name.slice(0, Math.min(this.dir_name.byteLength, buf_len)), ptr)
+    view8.set(
+      this.dir_name.slice(0, Math.min(this.dir_name.byteLength, buf_len)),
+      ptr,
+    )
   }
 }
 
@@ -365,7 +376,10 @@ export class Event {
     view.setUint16(ptr + 8, this.error, true)
     view.setUint8(ptr + 10, this.eventtype)
     // For FD_READ/FD_WRITE events, write fd_readwrite union
-    if (this.eventtype === EVENTTYPE_FD_READ || this.eventtype === EVENTTYPE_FD_WRITE) {
+    if (
+      this.eventtype === EVENTTYPE_FD_READ ||
+      this.eventtype === EVENTTYPE_FD_WRITE
+    ) {
       view.setBigUint64(ptr + 16, this.nbytes, true)
       view.setUint16(ptr + 24, this.rwflags, true)
     }

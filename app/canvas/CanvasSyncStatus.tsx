@@ -79,7 +79,7 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
       )}
       style={{ transitionDuration: `${FADE_DURATION_MS}ms` }}
     >
-      {pending > 0 ?
+      {pending > 0 ? (
         <>
           <svg className="size-3 animate-spin" viewBox="0 0 16 16" fill="none">
             <circle
@@ -95,7 +95,8 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
           </svg>
           Applying {pending} {pending === 1 ? 'change' : 'changes'}...
         </>
-      : <>
+      ) : (
+        <>
           <svg className="size-3" viewBox="0 0 16 16" fill="none">
             <path
               d="M3 8.5l3.5 3.5 6.5-8"
@@ -107,7 +108,7 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
           </svg>
           Synced
         </>
-      }
+      )}
     </div>
   )
 }

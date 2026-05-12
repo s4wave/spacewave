@@ -309,9 +309,9 @@ export function UnixFSBrowser({
   // Determine if path is a directory - only after stat completes
   // CRITICAL: Also check statResource.loading to avoid using stale data during path changes
   const isDir =
-    statResource.loading || statResource.value === null ?
-      null
-    : (statResource.value.info.isDir ?? false)
+    statResource.loading || statResource.value === null
+      ? null
+      : (statResource.value.info.isDir ?? false)
   const normalizedDisplayPath = normalizeHandlePath(displayPath)
 
   const directoryHandle = useMappedResource(
@@ -394,9 +394,9 @@ export function UnixFSBrowser({
   const getDragEnvelope = useCallback(
     (entry: FileEntry, { selectedIds }: { selectedIds: string[] }) => {
       const dragEntries =
-        selectedIds.includes(entry.id) && selectedEntries.length > 1 ?
-          selectedEntries
-        : [entry]
+        selectedIds.includes(entry.id) && selectedEntries.length > 1
+          ? selectedEntries
+          : [entry]
       if (dragEntries.length === 1) {
         return buildUnixFSEntryAppDragEnvelope({
           entry,
@@ -426,9 +426,9 @@ export function UnixFSBrowser({
         return null
       }
       const dragEntries =
-        selectedIds.includes(entry.id) && selectedEntries.length > 1 ?
-          selectedEntries
-        : [entry]
+        selectedIds.includes(entry.id) && selectedEntries.length > 1
+          ? selectedEntries
+          : [entry]
       return buildUnixFSSelectionDownloadDragTarget({
         sessionIndex,
         sharedObjectId: spaceId,
@@ -532,10 +532,11 @@ export function UnixFSBrowser({
     (item: ListItem<FileEntry>, event: MouseEvent) => {
       const entry = item.data ?? null
       const actionEntries =
-        entry && selectedIds.includes(entry.id) && selectedEntries.length > 0 ?
-          selectedEntries
-        : entry ? [entry]
-        : []
+        entry && selectedIds.includes(entry.id) && selectedEntries.length > 0
+          ? selectedEntries
+          : entry
+            ? [entry]
+            : []
       dispatch({
         type: 'set-context-menu',
         menu: {
@@ -1051,12 +1052,15 @@ export function UnixFSBrowser({
       // New folder or new file inline input.
       const value = isNewFolder ? newFolderName : newFileName!
       const placeholder = isNewFolder ? 'Folder name' : 'File name'
-      const handleConfirm =
-        isNewFolder ? handleNewFolderConfirm : handleNewFileConfirm
-      const handleCancel =
-        isNewFolder ? handleNewFolderCancel : handleNewFileCancel
-      const dispatchType =
-        isNewFolder ? 'set-new-folder-name' : 'set-new-file-name'
+      const handleConfirm = isNewFolder
+        ? handleNewFolderConfirm
+        : handleNewFileConfirm
+      const handleCancel = isNewFolder
+        ? handleNewFolderCancel
+        : handleNewFileCancel
+      const dispatchType = isNewFolder
+        ? 'set-new-folder-name'
+        : 'set-new-file-name'
 
       return (
         <div
@@ -1188,10 +1192,9 @@ export function UnixFSBrowser({
             Delete {deleteTargets?.length === 1 ? 'item' : 'items'}
           </DialogTitle>
           <DialogDescription>
-            {deleteTargets?.length === 1 ?
-              `Are you sure you want to delete "${deleteTargets[0].name}"?`
-            : `Are you sure you want to delete ${deleteTargets?.length ?? 0} items?`
-            }{' '}
+            {deleteTargets?.length === 1
+              ? `Are you sure you want to delete "${deleteTargets[0].name}"?`
+              : `Are you sure you want to delete ${deleteTargets?.length ?? 0} items?`}{' '}
             This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
@@ -1216,7 +1219,7 @@ export function UnixFSBrowser({
   )
 
   const moveDialog =
-    moveDialogItems && rootHandle.value ?
+    moveDialogItems && rootHandle.value ? (
       <UnixFSMoveDialog
         rootHandle={rootHandle.value}
         moveItems={moveDialogItems}
@@ -1227,7 +1230,7 @@ export function UnixFSBrowser({
         }}
         onConfirm={handleConfirmMove}
       />
-    : null
+    ) : null
 
   // Drag overlay
   const dragOverlay = isDragging && (
@@ -1271,13 +1274,14 @@ export function UnixFSBrowser({
           onDragLeave={handleDragLeave}
           onDrop={(e) => void handleDrop(e)}
         >
-          {BrowserBody ?
+          {BrowserBody ? (
             <BrowserBody
               rootHandle={rootHandle}
               unixfsId={unixfsId}
               currentPath={displayPath}
             />
-          : <FileList
+          ) : (
+            <FileList
               entries={deferredFileEntries}
               onOpen={handleOpen}
               onContextMenu={handleContextMenu}
@@ -1290,7 +1294,7 @@ export function UnixFSBrowser({
               onEntryDragLeave={handleEntryDragLeave}
               onEntryDrop={handleEntryDrop}
             />
-          }
+          )}
           <div className="border-foreground/5 bg-background/85 pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-md border px-3 py-2 shadow-sm backdrop-blur">
             {loadingDiagnostics}
           </div>

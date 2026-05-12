@@ -24,9 +24,7 @@ export function AppShell(props: IAppShellProps) {
   const isMacElectron = isElectron && isMac
   return (
     <StateNamespaceProvider rootAtom={localStateAtom}>
-      {isElectron ?
-        <style>{electronStyles}</style>
-      : null}
+      {isElectron ? <style>{electronStyles}</style> : null}
       <WindowFrame
         className={'dark'}
         centerTopBar={isMacElectron || undefined}

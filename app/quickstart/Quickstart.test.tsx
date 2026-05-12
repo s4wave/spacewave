@@ -48,19 +48,19 @@ describe('Quickstart', () => {
         _deps: unknown,
         opts?: { enabled?: boolean },
       ) =>
-        opts?.enabled ?
-          {
-            error: new Error('local setup failed'),
-            loading: false,
-            retry: mockRetry,
-            value: null,
-          }
-        : {
-            error: null,
-            loading: false,
-            retry: mockRetry,
-            value: null,
-          },
+        opts?.enabled
+          ? {
+              error: new Error('local setup failed'),
+              loading: false,
+              retry: mockRetry,
+              value: null,
+            }
+          : {
+              error: null,
+              loading: false,
+              retry: mockRetry,
+              value: null,
+            },
     )
 
     render(<Quickstart quickstartId="local" />)
@@ -79,19 +79,19 @@ describe('Quickstart', () => {
         _deps: unknown,
         opts?: { enabled?: boolean },
       ) =>
-        opts?.enabled ?
-          {
-            error: new Error('space setup failed'),
-            loading: false,
-            retry: mockRetry,
-            value: null,
-          }
-        : {
-            error: null,
-            loading: false,
-            retry: mockRetry,
-            value: null,
-          },
+        opts?.enabled
+          ? {
+              error: new Error('space setup failed'),
+              loading: false,
+              retry: mockRetry,
+              value: null,
+            }
+          : {
+              error: null,
+              loading: false,
+              retry: mockRetry,
+              value: null,
+            },
     )
 
     render(<Quickstart quickstartId="v86" />)

@@ -123,9 +123,8 @@ const AnimatedLogo = ({
     }),
     [mousePosition, canAnimate],
   )
-  const fixedSizeStyle =
-    fixedSize ?
-      {
+  const fixedSizeStyle = fixedSize
+    ? {
         width: fixedSize,
         height: fixedSize,
       }
@@ -183,9 +182,9 @@ const AnimatedLogo = ({
             alt="Spacewave Icon"
             className="h-full w-full max-w-none"
             style={
-              fixedSize ?
-                { width: '100%', height: '100%', maxWidth: 'none' }
-              : undefined
+              fixedSize
+                ? { width: '100%', height: '100%', maxWidth: 'none' }
+                : undefined
             }
           />
         </div>

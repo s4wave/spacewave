@@ -698,8 +698,9 @@ async function waitForQuickstartRegistration(
   if (hasQuickstartRegistration(list, quickstartId, pluginId)) return
 
   const timeoutSignal = AbortSignal.timeout(QUICKSTART_REGISTRATION_TIMEOUT_MS)
-  const signal =
-    abortSignal ? AbortSignal.any([abortSignal, timeoutSignal]) : timeoutSignal
+  const signal = abortSignal
+    ? AbortSignal.any([abortSignal, timeoutSignal])
+    : timeoutSignal
   try {
     const stream = registry.WatchQuickstarts({}, signal)
     for await (const resp of stream) {

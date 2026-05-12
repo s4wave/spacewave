@@ -17,23 +17,24 @@ export function ProgressBar({ value, indeterminate, rate }: ProgressBarProps) {
   return (
     <div className="flex w-full items-center gap-3">
       <div className="bg-foreground/8 relative h-1.5 flex-1 overflow-hidden rounded-full">
-        {indeterminate ?
+        {indeterminate ? (
           <div className="bg-brand animate-progress-indeterminate absolute inset-y-0 w-1/3 rounded-full motion-reduce:left-0 motion-reduce:w-full motion-reduce:animate-none motion-reduce:opacity-70" />
-        : <div
+        ) : (
+          <div
             className="bg-brand h-full rounded-full transition-[width] duration-200 motion-reduce:transition-none"
             style={{ width: `${pct}%` }}
           />
-        }
+        )}
       </div>
-      {rate ?
+      {rate ? (
         <span className="text-foreground-alt/70 font-mono text-[0.65rem] tabular-nums">
           {rate}
         </span>
-      : !indeterminate ?
+      ) : !indeterminate ? (
         <span className="text-foreground-alt/70 w-8 text-right font-mono text-[0.65rem] tabular-nums">
           {pct}%
         </span>
-      : null}
+      ) : null}
     </div>
   )
 }

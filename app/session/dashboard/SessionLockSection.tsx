@@ -56,9 +56,9 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
     setSaving(true)
     try {
       const mode =
-        displayMode === 'pin' ?
-          SessionLockMode.PIN_ENCRYPTED
-        : SessionLockMode.AUTO_UNLOCK
+        displayMode === 'pin'
+          ? SessionLockMode.PIN_ENCRYPTED
+          : SessionLockMode.AUTO_UNLOCK
       const pinBytes =
         displayMode === 'pin' ? new TextEncoder().encode(pin) : undefined
       await session?.setLockMode(mode, pinBytes)

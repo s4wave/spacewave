@@ -87,9 +87,8 @@ export function createWebPkgRemapPlugin(
           const find =
             typeof alias.find === 'string' ? alias.find : alias.find?.source
           if (find && webPkgIDSet.has(find) && alias.replacement) {
-            const resolved =
-              path.isAbsolute(alias.replacement) ?
-                alias.replacement
+            const resolved = path.isAbsolute(alias.replacement)
+              ? alias.replacement
               : path.resolve(root, alias.replacement)
             webPkgRoots[find] = resolved
             if (debug)
@@ -137,15 +136,15 @@ export function createWebPkgRemapPlugin(
         if (firstSlash === -1) return null
         const secondSlash = normalizedImportId.indexOf('/', firstSlash + 1)
         pkgID =
-          secondSlash === -1 ? normalizedImportId : (
-            normalizedImportId.substring(0, secondSlash)
-          )
+          secondSlash === -1
+            ? normalizedImportId
+            : normalizedImportId.substring(0, secondSlash)
       } else {
         const firstSlash = normalizedImportId.indexOf('/')
         pkgID =
-          firstSlash === -1 ? normalizedImportId : (
-            normalizedImportId.substring(0, firstSlash)
-          )
+          firstSlash === -1
+            ? normalizedImportId
+            : normalizedImportId.substring(0, firstSlash)
       }
 
       const pkgNameRegex =
@@ -172,8 +171,9 @@ export function createWebPkgRemapPlugin(
 
       // Compute relative path within the package root.
       const pkgRoot = webPkgRoots[pkgID]
-      const resolvedRelPath =
-        pkgRoot ? relativePathInsideRoot(pkgRoot, resolved.id) : null
+      const resolvedRelPath = pkgRoot
+        ? relativePathInsideRoot(pkgRoot, resolved.id)
+        : null
       if (!resolvedRelPath) {
         // Could not determine relative path, use the specifier subpath.
         const result = remapWebPkgSpecifier(importId, config.webPkgIDs)
@@ -187,9 +187,8 @@ export function createWebPkgRemapPlugin(
 
       // Remap JS extensions to .mjs to match web pkg output.
       const ext = path.extname(resolvedRelPath)
-      const relPath =
-        JS_EXTENSIONS.includes(ext) ?
-          resolvedRelPath.substring(0, resolvedRelPath.length - ext.length) +
+      const relPath = JS_EXTENSIONS.includes(ext)
+        ? resolvedRelPath.substring(0, resolvedRelPath.length - ext.length) +
           '.mjs'
         : resolvedRelPath
 

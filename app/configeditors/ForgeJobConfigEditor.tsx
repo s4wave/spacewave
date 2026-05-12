@@ -117,9 +117,9 @@ export function ForgeJobConfigEditor({
         {clusters.length === 0 && (
           <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
             <LuServer className="size-3.5 shrink-0" />
-            {clustersResource.loading ?
-              'Loading clusters...'
-            : 'No clusters found. Create a cluster first.'}
+            {clustersResource.loading
+              ? 'Loading clusters...'
+              : 'No clusters found. Create a cluster first.'}
           </div>
         )}
         <div className="space-y-2">

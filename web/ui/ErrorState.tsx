@@ -26,9 +26,9 @@ export function ErrorState({
       <div
         className={cn(
           'flex items-center justify-center rounded-full',
-          variant === 'fullscreen' ?
-            'bg-error-bg size-16'
-          : 'bg-error-bg size-10',
+          variant === 'fullscreen'
+            ? 'bg-error-bg size-16'
+            : 'bg-error-bg size-10',
         )}
       >
         <LuCircleAlert

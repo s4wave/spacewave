@@ -13,11 +13,7 @@ const distPath = app.getAppPath()
 export function extractWebDocumentClientId(
   req: GlobalRequest,
 ): string | undefined {
-  const requestUrls = [
-    req.referrer,
-    req.headers.get('referer'),
-    req.url,
-  ]
+  const requestUrls = [req.referrer, req.headers.get('referer'), req.url]
   for (const requestUrl of requestUrls) {
     if (!requestUrl) {
       continue
@@ -36,10 +32,7 @@ export function extractWebDocumentClientId(
 
 // appRequestHandler handles requests for distribution files.
 export async function appRequestHandler(
-  swFetch: (
-    req: GlobalRequest,
-    clientId?: string,
-  ) => Promise<GlobalResponse>,
+  swFetch: (req: GlobalRequest, clientId?: string) => Promise<GlobalResponse>,
   req: GlobalRequest,
 ): Promise<GlobalResponse> {
   const reqUrl = new URL(req.url)

@@ -64,9 +64,11 @@ export function CryptoKeysSection({
                   className="hover:bg-foreground/5 text-foreground-alt hover:text-foreground flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs transition-colors"
                   aria-label={pemCopied ? 'Copied!' : 'Copy public key PEM'}
                 >
-                  {pemCopied ?
+                  {pemCopied ? (
                     <LuCheck className="size-3 text-green-500" />
-                  : <LuCopy className="size-3" />}
+                  ) : (
+                    <LuCopy className="size-3" />
+                  )}
                   <span>
                     {pemCopied ? 'Copied' : 'Export Public Key (PEM)'}
                   </span>

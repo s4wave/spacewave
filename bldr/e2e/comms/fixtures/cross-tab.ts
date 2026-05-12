@@ -113,7 +113,11 @@ async function run() {
         resolve()
         return
       }
-      navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true })
+      navigator.serviceWorker.addEventListener(
+        'controllerchange',
+        () => resolve(),
+        { once: true },
+      )
     })
   }
 

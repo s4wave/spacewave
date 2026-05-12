@@ -67,7 +67,7 @@ vi.mock('./AuthConfirmDialog.js', () => ({
     onConfirm: (credential: typeof confirmCredential) => Promise<void>
     title: string
   }) =>
-    open ?
+    open ? (
       <div>
         <div>{title}</div>
         <button
@@ -81,7 +81,7 @@ vi.mock('./AuthConfirmDialog.js', () => ({
           Confirm link
         </button>
       </div>
-    : null,
+    ) : null,
 }))
 
 vi.mock('@s4wave/web/ui/dialog.js', () => ({

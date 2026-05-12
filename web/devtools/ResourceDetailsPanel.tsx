@@ -28,9 +28,8 @@ export function ResourceDetailsPanel({ resource }: ResourceDetailsPanelProps) {
       released: resource.released,
       debugLabel: resource.debugLabel,
       debugDetails: resource.debugDetails,
-      error:
-        resource.error ?
-          {
+      error: resource.error
+        ? {
             message: resource.error.message,
             stack: resource.error.stack,
           }

@@ -322,9 +322,9 @@ function SchemePreviewCard({
       data-testid={`scheme-card-${scheme.id}`}
       className={cn(
         'group flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-all',
-        selected ?
-          'border-brand/50 bg-brand/5 ring-brand/20 ring-1'
-        : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
+        selected
+          ? 'border-brand/50 bg-brand/5 ring-brand/20 ring-1'
+          : 'border-foreground/8 hover:border-foreground/15 bg-background-card/30',
       )}
       onClick={onSelect}
       onKeyDown={(event) => {

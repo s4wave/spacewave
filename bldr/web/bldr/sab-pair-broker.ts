@@ -8,16 +8,17 @@ export interface SabPairMetadata {
   state: SabPairState
 }
 
-function normalizeWorkerIds(workerAId: string, workerBId: string): [string, string] {
+function normalizeWorkerIds(
+  workerAId: string,
+  workerBId: string,
+): [string, string] {
   if (!workerAId || !workerBId) {
     throw new Error('SAB pair requires two worker ids')
   }
   if (workerAId === workerBId) {
     throw new Error('SAB pair requires two distinct workers')
   }
-  return workerAId < workerBId
-    ? [workerAId, workerBId]
-    : [workerBId, workerAId]
+  return workerAId < workerBId ? [workerAId, workerBId] : [workerBId, workerAId]
 }
 
 function pairKey(workerAId: string, workerBId: string, pairId: string): string {
@@ -70,10 +71,7 @@ export class SabPairBroker {
     pairId: string,
   ): SabPairMetadata | undefined {
     const pair = this.findPair(pairId)
-    if (
-      !pair ||
-      (pair.workerAId !== workerId && pair.workerBId !== workerId)
-    ) {
+    if (!pair || (pair.workerAId !== workerId && pair.workerBId !== workerId)) {
       return undefined
     }
     pair.state = 'closing'

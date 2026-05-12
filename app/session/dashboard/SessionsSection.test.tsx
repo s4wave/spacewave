@@ -64,13 +64,13 @@ vi.mock('./AuthConfirmDialog.js', () => ({
     }) => Promise<void>
     account?: unknown
   }) =>
-    open ?
+    open ? (
       <button
         onClick={() => void onConfirm({ type: 'password', password: 'secret' })}
       >
         Confirm Session Revoke
       </button>
-    : null,
+    ) : null,
 }))
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'

@@ -71,16 +71,15 @@ export function buildUnixFSMoveItems(
   entries: Pick<FileEntry, 'id' | 'name' | 'isDir'>[],
 ): UnixFSMoveItem[] {
   const normalizedCurrentPath =
-    !currentPath || currentPath === '/' || currentPath === '.' ?
-      ''
-    : '/' + currentPath.replace(/^\/+|\/+$/g, '')
+    !currentPath || currentPath === '/' || currentPath === '.'
+      ? ''
+      : '/' + currentPath.replace(/^\/+|\/+$/g, '')
   return entries.map((entry) => ({
     id: entry.id,
     name: entry.name,
     isDir: entry.isDir ?? false,
-    path:
-      normalizedCurrentPath ?
-        `${normalizedCurrentPath}/${entry.name}`
+    path: normalizedCurrentPath
+      ? `${normalizedCurrentPath}/${entry.name}`
       : `/${entry.name}`,
   }))
 }

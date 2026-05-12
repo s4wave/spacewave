@@ -85,9 +85,11 @@ function StateScopeNode({ node }: { node: ScopeNode }) {
         )}
       >
         <span className="flex size-4 shrink-0 items-center justify-center">
-          {isExpanded ?
+          {isExpanded ? (
             <LuChevronDown className="size-3" />
-          : <LuChevronRight className="size-3" />}
+          ) : (
+            <LuChevronRight className="size-3" />
+          )}
         </span>
         <span>{node.label}</span>
         <span className="text-foreground-alt ml-auto font-mono text-xs">
@@ -136,9 +138,11 @@ function StateGroupNode({ node, level }: { node: GroupNode; level: number }) {
         style={{ paddingLeft: `${level * 12 + 8}px` }}
       >
         <span className="flex size-4 shrink-0 items-center justify-center">
-          {isExpanded ?
+          {isExpanded ? (
             <LuChevronDown className="size-2.5" />
-          : <LuChevronRight className="size-2.5" />}
+          ) : (
+            <LuChevronRight className="size-2.5" />
+          )}
         </span>
         <span className="truncate">{node.label}</span>
         <span className="text-foreground-alt ml-auto font-mono text-xs">
@@ -201,9 +205,9 @@ function StateEntryNode({
         }}
         className={cn(
           'flex h-6 cursor-pointer items-center gap-1 text-xs transition-colors duration-100',
-          isSelected ?
-            'bg-ui-selected text-foreground'
-          : 'text-text-secondary hover:bg-pulldown-hover/50',
+          isSelected
+            ? 'bg-ui-selected text-foreground'
+            : 'text-text-secondary hover:bg-pulldown-hover/50',
         )}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
       >
@@ -226,9 +230,11 @@ function StateEntryNode({
             !hasChildren && 'invisible',
           )}
         >
-          {isExpanded ?
+          {isExpanded ? (
             <LuChevronDown className="size-3" />
-          : <LuChevronRight className="size-3" />}
+          ) : (
+            <LuChevronRight className="size-3" />
+          )}
         </span>
 
         <LuDatabase className="text-brand size-3 shrink-0" />
@@ -331,9 +337,11 @@ function StateTreeNodeInner({
             !isExpandable && 'invisible',
           )}
         >
-          {isExpanded ?
+          {isExpanded ? (
             <LuChevronDown className="size-2.5" />
-          : <LuChevronRight className="size-2.5" />}
+          ) : (
+            <LuChevronRight className="size-2.5" />
+          )}
         </span>
 
         <span className="text-foreground font-mono text-xs">{nodeKey}:</span>
@@ -450,12 +458,12 @@ function sortNodes(nodes: ChildNode[]): ChildNode[] {
       return a.label.localeCompare(b.label)
     })
     .map((node) =>
-      node.kind === 'entry' ?
-        node
-      : {
-          ...node,
-          children: sortNodes(node.children),
-        },
+      node.kind === 'entry'
+        ? node
+        : {
+            ...node,
+            children: sortNodes(node.children),
+          },
     )
 }
 

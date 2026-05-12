@@ -61,7 +61,6 @@ export class FunctionComponentContainer extends BldrComponent<
     retryWithAbort(
       this.abortController.signal,
       async () => {
-
         const script = await import(this.scriptPath)
         let functionComponent: FunctionComponent | undefined
         if (script?.default && typeof script.default === 'function') {

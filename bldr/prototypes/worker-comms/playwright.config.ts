@@ -3,8 +3,7 @@ import { dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const dir = dirname(fileURLToPath(import.meta.url))
-const port =
-  Number.parseInt(process.env.PLAYWRIGHT_WEB_PORT ?? '', 10) || 40717
+const port = Number.parseInt(process.env.PLAYWRIGHT_WEB_PORT ?? '', 10) || 40717
 const url = `http://localhost:${port}`
 
 export default defineConfig({

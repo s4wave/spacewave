@@ -93,9 +93,8 @@ export function ResizeBorder({
     setIsDragging(true)
   }
 
-  const style: React.CSSProperties =
-    isHorizontal ?
-      {
+  const style: React.CSSProperties = isHorizontal
+    ? {
         left: position === 'right' ? coords.x + coords.width : coords.x,
         top: coords.y,
         height: coords.height,
@@ -125,9 +124,9 @@ export function ResizeBorder({
         <div
           className={cn(
             'border-editor-border bg-resize-handle-active absolute rounded-[2.5px] border',
-            isHorizontal ?
-              'left-1/2 h-full w-[2px] -translate-x-1/2'
-            : 'top-1/2 h-[2px] w-full -translate-y-1/2',
+            isHorizontal
+              ? 'left-1/2 h-full w-[2px] -translate-x-1/2'
+              : 'top-1/2 h-[2px] w-full -translate-y-1/2',
           )}
         />
       )}

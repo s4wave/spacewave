@@ -55,9 +55,8 @@ function InviteRow(props: {
     }
   }, [onRevoke, invite.id, revoking])
 
-  const usesLabel =
-    invite.maxUses ?
-      `${invite.uses ?? 0}/${invite.maxUses} uses`
+  const usesLabel = invite.maxUses
+    ? `${invite.uses ?? 0}/${invite.maxUses} uses`
     : `${invite.uses ?? 0} uses`
 
   return (

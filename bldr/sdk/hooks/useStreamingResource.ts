@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isAbortError } from 'starpc'
 
@@ -89,7 +88,13 @@ export function useStreamingResource<P, T>(
     })()
 
     return () => abort.abort()
-  }, [parent.loading, parent.value, parentValueChangeCount, retryCount, stableFactory])
+  }, [
+    parent.loading,
+    parent.value,
+    parentValueChangeCount,
+    retryCount,
+    stableFactory,
+  ])
 
   const retry = useCallback(() => {
     setRetryCount((c) => c + 1)

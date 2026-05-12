@@ -117,9 +117,8 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               icon: (
                 <LuHouse className={cn('size-3', isIndex && 'opacity-30')} />
               ),
-              tooltip:
-                isIndex ?
-                  'This object is the default object already'
+              tooltip: isIndex
+                ? 'This object is the default object already'
                 : 'Set as Index',
               onClick: isIndex ? undefined : () => handleSetAsIndexClick(key),
             },
@@ -309,7 +308,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="bottom">
-        {pendingDelete ?
+        {pendingDelete ? (
           <>
             <DropdownMenuItem disabled>
               Delete "{pendingDelete}"?
@@ -324,7 +323,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               Confirm Delete
             </DropdownMenuItem>
           </>
-        : pendingIndex ?
+        ) : pendingIndex ? (
           <>
             <DropdownMenuItem disabled>
               Set "{pendingIndex}" as index?
@@ -338,7 +337,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               Confirm
             </DropdownMenuItem>
           </>
-        : pendingRename ?
+        ) : pendingRename ? (
           <div className="w-80 p-2">
             <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border backdrop-blur-sm">
               <div className="border-foreground/8 flex h-9 items-center gap-2 border-b px-3">
@@ -405,7 +404,8 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               </div>
             </div>
           </div>
-        : <>
+        ) : (
+          <>
             <DropdownMenuItem onClick={handleMenuOpen}>
               <LuFolderOpen className="size-3.5" />
               Open
@@ -444,7 +444,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               Delete
             </DropdownMenuItem>
           </>
-        }
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

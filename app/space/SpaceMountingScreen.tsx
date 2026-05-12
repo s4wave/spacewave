@@ -49,15 +49,15 @@ export function SpaceMountingScreen({
       logo={<AnimatedLogo followMouse={false} />}
       containerClassName="bg-background relative flex h-full min-h-[28rem] w-full flex-col items-center justify-center overflow-hidden"
       topLeftSlot={
-        onBack ?
+        onBack ? (
           <BackButton floating onClick={onBack}>
             Back
           </BackButton>
-        : undefined
+        ) : undefined
       }
     >
       <SpaceMountStepper current={stage} />
-      {onRetry && allowRetry ?
+      {onRetry && allowRetry ? (
         <div className="mt-2 flex justify-center">
           <DashboardButton
             icon={<LuRefreshCw className="size-3.5" />}
@@ -66,7 +66,7 @@ export function SpaceMountingScreen({
             Retry
           </DashboardButton>
         </div>
-      : null}
+      ) : null}
     </LoadingScreen>
   )
 }
@@ -92,9 +92,9 @@ function SpaceMountStepper({ current }: { current: SpaceMountStage }) {
               )}
               aria-hidden="true"
             >
-              {isActive ?
+              {isActive ? (
                 <span className="bg-brand/30 absolute inset-[-6px] animate-ping rounded-full" />
-              : null}
+              ) : null}
             </span>
             <span
               className={cn(

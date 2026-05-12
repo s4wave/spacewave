@@ -274,7 +274,10 @@
         "react-compiler/react-compiler": "off",
         "react/rules-of-hooks": "warn"
       },
-      "jsPlugins": ["react-doctor/oxlint-plugin", "eslint-plugin-react-compiler"]
+      "jsPlugins": [
+        "react-doctor/oxlint-plugin",
+        "eslint-plugin-react-compiler"
+      ]
     },
     {
       "files": ["**/*.test.tsx"],

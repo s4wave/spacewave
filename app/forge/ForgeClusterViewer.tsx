@@ -239,7 +239,7 @@ export function ForgeClusterViewer({
         id: 'workers',
         label: 'Workers',
         content:
-          snapshot.workers.length === 0 ?
+          snapshot.workers.length === 0 ? (
             <ForgeEntityList
               entities={workers}
               loading={workersLoading || snapshotLoading}
@@ -247,7 +247,8 @@ export function ForgeClusterViewer({
               loadingLabel="Loading workers..."
               emptyLabel="No workers assigned"
             />
-          : <div className="space-y-2">
+          ) : (
+            <div className="space-y-2">
               {snapshot.workers.map((worker) => (
                 <div
                   key={worker.objectKey}
@@ -270,7 +271,8 @@ export function ForgeClusterViewer({
                   </div>
                 </div>
               ))}
-            </div>,
+            </div>
+          ),
       },
       {
         id: 'jobs',
@@ -290,7 +292,7 @@ export function ForgeClusterViewer({
                 </DashboardButton>
               </div>
             )}
-            {snapshot.jobs.length === 0 ?
+            {snapshot.jobs.length === 0 ? (
               <ForgeEntityList
                 entities={jobs}
                 loading={jobsLoading || snapshotLoading}
@@ -298,7 +300,8 @@ export function ForgeClusterViewer({
                 loadingLabel="Loading jobs..."
                 emptyLabel="No jobs in cluster"
               />
-            : <div className="space-y-2">
+            ) : (
+              <div className="space-y-2">
                 {snapshot.jobs.map((job) => {
                   const jobTasks = tasksByJobKey.get(job.objectKey) ?? []
                   const completeTasks = jobTasks.filter(
@@ -307,9 +310,9 @@ export function ForgeClusterViewer({
                       TaskState.TaskState_COMPLETE,
                   ).length
                   const progressPercent =
-                    jobTasks.length === 0 ?
-                      0
-                    : Math.round((completeTasks / jobTasks.length) * 100)
+                    jobTasks.length === 0
+                      ? 0
+                      : Math.round((completeTasks / jobTasks.length) * 100)
                   const startable =
                     (job.data.jobState ?? JobState.JobState_UNKNOWN) ===
                     JobState.JobState_PENDING
@@ -355,7 +358,7 @@ export function ForgeClusterViewer({
                   )
                 })}
               </div>
-            }
+            )}
           </div>
         ),
       },

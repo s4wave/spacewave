@@ -35,9 +35,9 @@ export function useObjectViewerSetup(
   const objectState = useResource(
     worldState,
     async (world, signal, cleanup) =>
-      world && objectKey ?
-        cleanup(await world.getObject(objectKey, signal))
-      : null,
+      world && objectKey
+        ? cleanup(await world.getObject(objectKey, signal))
+        : null,
     [objectKey],
   )
 

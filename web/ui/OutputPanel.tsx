@@ -46,9 +46,9 @@ export function OutputPanel({
   const getLineClassName = (line: string): string => {
     for (const rule of rules) {
       const matches =
-        typeof rule.match === 'string' ?
-          line.startsWith(rule.match)
-        : rule.match(line)
+        typeof rule.match === 'string'
+          ? line.startsWith(rule.match)
+          : rule.match(line)
       if (matches) {
         return rule.className
       }

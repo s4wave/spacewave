@@ -120,10 +120,11 @@ export function GitDiffPatchFiles({
               className="hover:bg-background-card/50 flex h-10 w-full items-center gap-2 px-3 text-left transition-colors"
               onClick={() => toggle(section.path)}
             >
-              {isCollapsed ?
+              {isCollapsed ? (
                 <LuChevronRight className="text-foreground-alt/50 size-3.5 shrink-0" />
-              : <LuChevronDown className="text-foreground-alt/50 size-3.5 shrink-0" />
-              }
+              ) : (
+                <LuChevronDown className="text-foreground-alt/50 size-3.5 shrink-0" />
+              )}
               <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
                 {section.path}
               </span>

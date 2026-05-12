@@ -14,9 +14,8 @@ import '@s4wave/web/style/app.css'
  * This is the hierarchy from .shell-flexlayout down to tab buttons.
  */
 function MockShellFlexLayout({ withMenu = true }: { withMenu?: boolean }) {
-  const shellClass =
-    withMenu ?
-      'shell-flexlayout shell-flexlayout--with-menu'
+  const shellClass = withMenu
+    ? 'shell-flexlayout shell-flexlayout--with-menu'
     : 'shell-flexlayout'
 
   return (

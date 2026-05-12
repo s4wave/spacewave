@@ -18,16 +18,16 @@ export function QuickstartCommands({ onQuickstart }: QuickstartCommandsProps) {
   return (
     <>
       {quickstartOptions.flatMap((opt) =>
-        opt.category !== 'account' ?
-          [
-            <QuickstartCommand
-              key={opt.id}
-              opt={opt}
-              isTabActive={isTabActive}
-              onQuickstart={onQuickstart}
-            />,
-          ]
-        : [],
+        opt.category !== 'account'
+          ? [
+              <QuickstartCommand
+                key={opt.id}
+                opt={opt}
+                isTabActive={isTabActive}
+                onQuickstart={onQuickstart}
+              />,
+            ]
+          : [],
       )}
     </>
   )

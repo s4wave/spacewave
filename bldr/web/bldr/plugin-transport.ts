@@ -27,7 +27,6 @@ export interface PluginTransportFactory {
   // cross-tab MessagePort channel. peerId is the ServiceWorker client ID.
   // Returns null if no channel exists for that peer.
   openCrossTabStream?: (peerId: string) => PacketStream | null
-
 }
 
 // TransportFactoryOpts configures the transport factory.

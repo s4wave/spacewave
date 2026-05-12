@@ -1,4 +1,3 @@
-
 import {
   createMux,
   createHandler,
@@ -77,10 +76,7 @@ class ResourceServer implements ResourceService {
     )
     this.clients.set(clientID, client)
 
-    const rootResourceID = client.addResource(
-      this.rootResourceMux,
-      undefined,
-    )
+    const rootResourceID = client.addResource(this.rootResourceMux, undefined)
 
     try {
       yield {
@@ -383,17 +379,52 @@ function createRoutedClient(
 ): ReturnType<StreamConn['buildClient']> {
   const prefix = `${resourceId}/`
   return {
-    request(service: string, method: string, data: Uint8Array, signal?: AbortSignal) {
+    request(
+      service: string,
+      method: string,
+      data: Uint8Array,
+      signal?: AbortSignal,
+    ) {
       return inner.request(prefix + service, method, data, signal)
     },
-    clientStreamingRequest(service: string, method: string, data: AsyncIterable<Uint8Array>, signal?: AbortSignal) {
-      return inner.clientStreamingRequest(prefix + service, method, data, signal)
+    clientStreamingRequest(
+      service: string,
+      method: string,
+      data: AsyncIterable<Uint8Array>,
+      signal?: AbortSignal,
+    ) {
+      return inner.clientStreamingRequest(
+        prefix + service,
+        method,
+        data,
+        signal,
+      )
     },
-    serverStreamingRequest(service: string, method: string, data: Uint8Array, signal?: AbortSignal) {
-      return inner.serverStreamingRequest(prefix + service, method, data, signal)
+    serverStreamingRequest(
+      service: string,
+      method: string,
+      data: Uint8Array,
+      signal?: AbortSignal,
+    ) {
+      return inner.serverStreamingRequest(
+        prefix + service,
+        method,
+        data,
+        signal,
+      )
     },
-    bidirectionalStreamingRequest(service: string, method: string, data: AsyncIterable<Uint8Array>, signal?: AbortSignal) {
-      return inner.bidirectionalStreamingRequest(prefix + service, method, data, signal)
+    bidirectionalStreamingRequest(
+      service: string,
+      method: string,
+      data: AsyncIterable<Uint8Array>,
+      signal?: AbortSignal,
+    ) {
+      return inner.bidirectionalStreamingRequest(
+        prefix + service,
+        method,
+        data,
+        signal,
+      )
     },
   } as ReturnType<StreamConn['buildClient']>
 }

@@ -167,14 +167,12 @@ export function buildGraphLinkViewModel(
           protected: policyResult.protected,
           ownerManaged: policyResult.ownerManaged,
           targetNodeId,
-          stubX:
-            targetNodeId ? undefined : (
-              selected.node.x + selected.node.width + stubOffset
-            ),
-          stubY:
-            targetNodeId ? undefined : (
-              selected.node.y + selected.node.height / 2
-            ),
+          stubX: targetNodeId
+            ? undefined
+            : selected.node.x + selected.node.width + stubOffset,
+          stubY: targetNodeId
+            ? undefined
+            : selected.node.y + selected.node.height / 2,
         })
         sourceGroupOffset += 1
       }

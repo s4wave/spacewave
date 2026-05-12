@@ -23,9 +23,11 @@ export function toSharedObjectView(
   }
   const summary = summariseHealth(health)
   const state: LoadingState =
-    summary.state === 'active' ? 'active'
-    : summary.state === 'synced' ? 'synced'
-    : 'error'
+    summary.state === 'active'
+      ? 'active'
+      : summary.state === 'synced'
+        ? 'synced'
+        : 'error'
   if (state === 'error') {
     return {
       state,
@@ -129,13 +131,13 @@ function summariseClosed(health: SharedObjectHealth): HealthSummary {
       return {
         state: 'error',
         title:
-          health.layer === SharedObjectHealthLayer.BODY ?
-            'Shared object body failed'
-          : 'Shared object unavailable',
+          health.layer === SharedObjectHealthLayer.BODY
+            ? 'Shared object body failed'
+            : 'Shared object unavailable',
         detail:
-          health.layer === SharedObjectHealthLayer.BODY ?
-            'The shared object opened, but the body content could not be mounted.'
-          : 'Alpha could not mount this shared object.',
+          health.layer === SharedObjectHealthLayer.BODY
+            ? 'The shared object opened, but the body content could not be mounted.'
+            : 'Alpha could not mount this shared object.',
       }
   }
 }

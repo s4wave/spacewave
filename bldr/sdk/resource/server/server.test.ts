@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createMux } from 'starpc'
 import { RemoteResourceClient } from './tracked-client.js'
@@ -544,13 +543,13 @@ describe('integration: full resource lifecycle', () => {
     const { value: initMsg } = await iterator.next()
     expect(initMsg.body?.case).toBe('init')
     const clientHandleId =
-      initMsg.body?.case === 'init' ?
-        (initMsg.body.value.clientHandleId ?? 0)
-      : 0
+      initMsg.body?.case === 'init'
+        ? (initMsg.body.value.clientHandleId ?? 0)
+        : 0
     const rootResourceId =
-      initMsg.body?.case === 'init' ?
-        (initMsg.body.value.rootResourceId ?? 0)
-      : 0
+      initMsg.body?.case === 'init'
+        ? (initMsg.body.value.rootResourceId ?? 0)
+        : 0
     expect(clientHandleId).toBe(1)
     expect(rootResourceId).toBeGreaterThan(0)
 
@@ -722,8 +721,8 @@ async function sendAddAndGetResourceId(
   })
   const { value: addAckPkt } = await attachIter.next()
   expect(addAckPkt.body?.case).toBe('addAck')
-  return addAckPkt.body?.case === 'addAck' ?
-      (addAckPkt.body.value.resourceId ?? 0)
+  return addAckPkt.body?.case === 'addAck'
+    ? (addAckPkt.body.value.resourceId ?? 0)
     : 0
 }
 

@@ -149,9 +149,9 @@ export const CanvasNode = memo(function CanvasNode({
     ({ delta: [dx, dy], first, last, event }) => {
       if (first) {
         const shiftKey =
-          event instanceof MouseEvent || event instanceof PointerEvent ?
-            event.shiftKey
-          : false
+          event instanceof MouseEvent || event instanceof PointerEvent
+            ? event.shiftKey
+            : false
         onSelectWithFocus(node.id, shiftKey, 'border')
       }
       if (dx !== 0 || dy !== 0) {
@@ -432,11 +432,13 @@ export const CanvasNode = memo(function CanvasNode({
       style={style}
       className={cn(
         'text-card-foreground border-foreground/6 pointer-events-auto box-border cursor-grab rounded-lg border transition-shadow duration-150 select-none',
-        isOutlineOnly ? 'bg-background-card/50'
-        : node.type === 'world_object' ?
-          'bg-background-card/30 shadow-sm backdrop-blur-sm'
-        : node.type === 'text' ? 'bg-background-card/20'
-        : null,
+        isOutlineOnly
+          ? 'bg-background-card/50'
+          : node.type === 'world_object'
+            ? 'bg-background-card/30 shadow-sm backdrop-blur-sm'
+            : node.type === 'text'
+              ? 'bg-background-card/20'
+              : null,
         selected && 'shadow-md',
         !isOutlineOnly &&
           (node.type === 'drawing' || node.type === 'text') &&
@@ -459,22 +461,23 @@ export const CanvasNode = memo(function CanvasNode({
           <DragEdgeHandle className="top-2 right-0 bottom-2 w-1.5 rounded-r-lg" />
         </>
       )}
-      {isOutlineOnly ?
+      {isOutlineOnly ? (
         content
-      : <div
+      ) : (
+        <div
           data-interactive-content={hasInteractiveContent ? '' : undefined}
           style={{
             transform:
               internalScale < 1 ? `scale(${internalScale})` : undefined,
             transformOrigin: 'top left',
             width:
-              internalScale < 1 ?
-                `${(100 / internalScale).toFixed(2)}%`
-              : '100%',
+              internalScale < 1
+                ? `${(100 / internalScale).toFixed(2)}%`
+                : '100%',
             height:
-              internalScale < 1 ?
-                `${(100 / internalScale).toFixed(2)}%`
-              : '100%',
+              internalScale < 1
+                ? `${(100 / internalScale).toFixed(2)}%`
+                : '100%',
             touchAction: isContentFocused ? 'auto' : undefined,
           }}
           className={cn(
@@ -484,7 +487,7 @@ export const CanvasNode = memo(function CanvasNode({
         >
           {content}
         </div>
-      }
+      )}
       {selected && (
         <>
           <div

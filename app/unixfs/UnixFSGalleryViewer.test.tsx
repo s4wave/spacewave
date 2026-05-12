@@ -168,11 +168,11 @@ vi.mock('react-photo-view', () => ({
     )
   },
   PhotoView: ({ children }: { children?: ReactNode }) =>
-    isValidElement<{ onClick?: () => void }>(children) ?
-      cloneElement(children, {
-        onClick: h.photoViewClick,
-      })
-    : children,
+    isValidElement<{ onClick?: () => void }>(children)
+      ? cloneElement(children, {
+          onClick: h.photoViewClick,
+        })
+      : children,
 }))
 
 describe('UnixFSGalleryViewer', () => {

@@ -59,9 +59,9 @@ export function useStateAtomResource<T>(
 
       // Get the new value - for updater functions, we need current value
       const newValue =
-        typeof update === 'function' ?
-          (update as (prev: T) => T)(currentValue)
-        : update
+        typeof update === 'function'
+          ? (update as (prev: T) => T)(currentValue)
+          : update
 
       stateAtom.setState(JSON.stringify(newValue)).catch(console.error)
     },

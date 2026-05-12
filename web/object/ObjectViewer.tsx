@@ -101,12 +101,13 @@ export function ObjectViewer({
       {content}
     </ObjectViewerProvider>
   )
-  const namespacedInner =
-    stateNamespace ?
-      <StateNamespaceProvider namespace={stateNamespace}>
-        {inner}
-      </StateNamespaceProvider>
-    : inner
+  const namespacedInner = stateNamespace ? (
+    <StateNamespaceProvider namespace={stateNamespace}>
+      {inner}
+    </StateNamespaceProvider>
+  ) : (
+    inner
+  )
 
   const [openMenu, setOpenMenu] = useState('')
   const handleSetOpenMenu = useCallback((id: string) => setOpenMenu(id), [])

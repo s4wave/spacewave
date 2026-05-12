@@ -92,7 +92,6 @@ describe('zero-native WebView IPC packet stream', () => {
     mux.register(createHandler(EchoerDefinition, new EchoerServer()))
     const server = new Server(mux.lookupMethod)
 
-
     const serverStream = await openZeroNativeWebViewIpcPacketStream(bridge, 11)
 
     const clientStream = await openZeroNativeWebViewIpcPacketStream(bridge, 11)

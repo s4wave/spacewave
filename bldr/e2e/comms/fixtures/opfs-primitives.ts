@@ -1,4 +1,3 @@
-
 // opfs-primitives.ts - OPFS primitives verification fixture.
 //
 // Tests all OPFS operations that the Go hydra/opfs package wraps:
@@ -24,8 +23,7 @@ declare global {
   }
 }
 
-interface FileSystemDirectoryHandleWithEntries
-  extends FileSystemDirectoryHandle {
+interface FileSystemDirectoryHandleWithEntries extends FileSystemDirectoryHandle {
   entries(): AsyncIterable<[string, FileSystemHandle]>
 }
 
@@ -98,7 +96,9 @@ async function run() {
     const ab = await file.arrayBuffer()
     const readData = new Uint8Array(ab)
     if (readData.length !== testData.length) {
-      errors.push(`read length mismatch: got ${readData.length}, want ${testData.length}`)
+      errors.push(
+        `read length mismatch: got ${readData.length}, want ${testData.length}`,
+      )
     } else {
       let match = true
       for (let i = 0; i < testData.length; i++) {
@@ -155,7 +155,9 @@ async function run() {
 
     // --- Iteration 3: ListDirectory ---
 
-    const listDir = await testDir.getDirectoryHandle('listtest', { create: true })
+    const listDir = await testDir.getDirectoryHandle('listtest', {
+      create: true,
+    })
     const fileNames = ['charlie.txt', 'alpha.txt', 'bravo.txt']
     for (const name of fileNames) {
       const lfh = await listDir.getFileHandle(name, { create: true })

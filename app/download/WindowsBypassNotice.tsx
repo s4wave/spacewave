@@ -13,9 +13,9 @@ export function WindowsBypassNotice() {
     <div
       className={cn(
         'rounded-lg border backdrop-blur-sm transition-all',
-        isOpen ?
-          'border-foreground/12 bg-background-card/60'
-        : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12',
+        isOpen
+          ? 'border-foreground/12 bg-background-card/60'
+          : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12',
       )}
     >
       <button
@@ -33,9 +33,9 @@ export function WindowsBypassNotice() {
         <div
           className={cn(
             'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md transition-all',
-            isOpen ?
-              'bg-brand/12 text-brand rotate-45'
-            : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
+            isOpen
+              ? 'bg-brand/12 text-brand rotate-45'
+              : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
           )}
         >
           <LuPlus className="size-3" />

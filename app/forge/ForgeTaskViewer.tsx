@@ -165,9 +165,9 @@ export function ForgeTaskViewer({
                       </div>
                       <div className="text-foreground-alt/50 text-xs">
                         {currentPass.data.execStates?.length ?? 0} execution
-                        {(currentPass.data.execStates?.length ?? 0) === 1 ?
-                          ''
-                        : 's'}
+                        {(currentPass.data.execStates?.length ?? 0) === 1
+                          ? ''
+                          : 's'}
                       </div>
                     </div>
                     <StateBadge

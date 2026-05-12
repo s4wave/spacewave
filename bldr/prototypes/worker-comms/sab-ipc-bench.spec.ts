@@ -28,8 +28,7 @@ test.describe('SAB IPC Benchmark', () => {
 
     // Report speedups (these vary wildly by browser).
     const rtSpeedup =
-      results.roundTrip.messagePort.latencyUs /
-      results.roundTrip.sab.latencyUs
+      results.roundTrip.messagePort.latencyUs / results.roundTrip.sab.latencyUs
     console.log(`Round-trip speedup: ${rtSpeedup.toFixed(1)}x`)
 
     const tp1kSpeedup =

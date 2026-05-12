@@ -158,14 +158,14 @@ export function LinkDeviceWizard({ exitPath, topLeft }: LinkDeviceWizardProps) {
                 onGenerate={() => setStep('pairing')}
                 onEnterCode={() => setStep('enter_code')}
                 onDirectOffer={
-                  directPairingSupported ?
-                    () => setStep('direct_offer')
-                  : undefined
+                  directPairingSupported
+                    ? () => setStep('direct_offer')
+                    : undefined
                 }
                 onDirectAnswer={
-                  directPairingSupported ?
-                    () => setStep('direct_answer')
-                  : undefined
+                  directPairingSupported
+                    ? () => setStep('direct_answer')
+                    : undefined
                 }
                 onSkip={handleSkip}
               />
@@ -575,8 +575,9 @@ function PairingStep({
     return () => clearInterval(interval)
   }, [generation, code])
 
-  const secondsLeft =
-    code ? Math.max(0, CODE_TTL_SECONDS - elapsed) : CODE_TTL_SECONDS
+  const secondsLeft = code
+    ? Math.max(0, CODE_TTL_SECONDS - elapsed)
+    : CODE_TTL_SECONDS
 
   // Auto-regenerate when the code expires.
   const onRegenerateCodeEvent = useEffectEvent(() => {
@@ -949,13 +950,14 @@ function EnterCodeStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          {loading ?
+          {loading ? (
             <Spinner />
-          : <>
+          ) : (
+            <>
               <LuLink className="text-brand size-4" />
               <span className="text-foreground text-sm">Connect</span>
             </>
-          }
+          )}
         </button>
       </div>
     </div>
@@ -1404,13 +1406,14 @@ function DirectOfferStep({
             'flex h-10 items-center justify-center gap-2',
           )}
         >
-          {accepting ?
+          {accepting ? (
             <Spinner />
-          : <>
+          ) : (
+            <>
               <LuLink className="text-brand size-4" />
               <span className="text-foreground text-sm">Connect</span>
             </>
-          }
+          )}
         </button>
       </div>
     </div>
@@ -1522,9 +1525,9 @@ function DirectAnswerStep({
           {answerPayload ? 'Share this response' : 'Scan or paste offer'}
         </h2>
         <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
-          {answerPayload ?
-            'Copy this response and paste it on the other device.'
-          : 'Scan the QR code or paste the offer from the other device.'}
+          {answerPayload
+            ? 'Copy this response and paste it on the other device.'
+            : 'Scan the QR code or paste the offer from the other device.'}
         </p>
       </div>
 
@@ -1616,13 +1619,14 @@ function DirectAnswerStep({
               'flex h-10 items-center justify-center gap-2',
             )}
           >
-            {loading ?
+            {loading ? (
               <Spinner />
-            : <>
+            ) : (
+              <>
                 <LuLink className="text-brand size-4" />
                 <span className="text-foreground text-sm">Accept offer</span>
               </>
-            }
+            )}
           </button>
         )}
       </div>

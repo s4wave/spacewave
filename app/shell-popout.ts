@@ -4,8 +4,9 @@ export function buildShellPopoutUrl(
   location: Pick<Location, 'origin' | 'pathname'> = window.location,
 ): string {
   const hashlessPath = path.replace(/^#/, '')
-  const normalizedPath =
-    hashlessPath.startsWith('/') ? hashlessPath : `/${hashlessPath}`
+  const normalizedPath = hashlessPath.startsWith('/')
+    ? hashlessPath
+    : `/${hashlessPath}`
   return `${location.origin}${location.pathname}#${normalizedPath}`
 }
 

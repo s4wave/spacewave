@@ -46,18 +46,15 @@ export interface IFrameProps {
 // Frame is a body with horizontal bars above and/or below it.
 export function Frame(props: IFrameProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
-  const bottomBar =
-    !props.bottomBar?.hidden ?
-      <Bar hideTopBorder={!!props.overlay} {...props.bottomBar} />
-    : undefined
+  const bottomBar = !props.bottomBar?.hidden ? (
+    <Bar hideTopBorder={!!props.overlay} {...props.bottomBar} />
+  ) : undefined
 
   const topBar =
-    (
-      !props.topBar?.hidden &&
-      (props.topBar?.left !== undefined || props.topBar?.right !== undefined)
-    ) ?
+    !props.topBar?.hidden &&
+    (props.topBar?.left !== undefined || props.topBar?.right !== undefined) ? (
       <Bar {...props.topBar} />
-    : undefined
+    ) : undefined
 
   useEffect(() => {
     if (props.overlay) overlayRef.current?.focus()
@@ -80,7 +77,7 @@ export function Frame(props: IFrameProps) {
     >
       {topBar}
 
-      {props.overlay ?
+      {props.overlay ? (
         <div
           ref={overlayRef}
           className={cn(
@@ -98,7 +95,7 @@ export function Frame(props: IFrameProps) {
         >
           {props.overlay}
         </div>
-      : null}
+      ) : null}
 
       <div
         className={cn(

@@ -90,11 +90,13 @@ export function SharedObjectDetails({
   const bodyType = meta?.sharedObjectMeta?.bodyType ?? 'unknown'
   const bodyTypeName = getBodyTypeName(bodyType)
   const ns = useStateNamespace(['details'])
-  const defaultOpenSection: SharedObjectOpenSection =
-    objectsSection ? 'objects'
-    : canShare ? 'sharing'
-    : settingsSection ? 'settings'
-    : 'data'
+  const defaultOpenSection: SharedObjectOpenSection = objectsSection
+    ? 'objects'
+    : canShare
+      ? 'sharing'
+      : settingsSection
+        ? 'settings'
+        : 'data'
   const [openSection, setOpenSection] = useStateAtom<SharedObjectOpenSection>(
     ns,
     'open-section',
@@ -128,13 +130,13 @@ export function SharedObjectDetails({
                 'hover:text-foreground-alt cursor-text transition-colors',
             )}
             onDoubleClick={
-              canRename && onRenameStart ?
-                (e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  onRenameStart()
-                }
-              : undefined
+              canRename && onRenameStart
+                ? (e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onRenameStart()
+                  }
+                : undefined
             }
           >
             {objectName}

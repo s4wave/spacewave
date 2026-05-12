@@ -43,8 +43,8 @@ function getYouTubeEmbedSupport(): YouTubeEmbedSupport {
   const iframeCredentiallessSupported =
     'credentialless' in window.HTMLIFrameElement.prototype
 
-  return iframeCredentiallessSupported ?
-      credentiallessEmbedSupport
+  return iframeCredentiallessSupported
+    ? credentiallessEmbedSupport
     : fallbackEmbedSupport
 }
 
@@ -95,14 +95,15 @@ function YouTubeEmbed({ videoid, title }: YouTubeEmbedProps) {
   const watchUrl =
     'https://www.youtube.com/watch?v=' + encodeURIComponent(videoid)
   const frameTitle = title ?? `YouTube video ${videoid}`
-  const credentiallessProps =
-    support.useCredentialless ? { credentialless: '' } : {}
+  const credentiallessProps = support.useCredentialless
+    ? { credentialless: '' }
+    : {}
 
   return (
     <div className="my-8">
       <div className="border-foreground/10 bg-background-card overflow-hidden rounded-2xl border shadow-sm">
         <div className="aspect-video">
-          {support.canInline ?
+          {support.canInline ? (
             <iframe
               {...credentiallessProps}
               src={src}
@@ -113,7 +114,9 @@ function YouTubeEmbed({ videoid, title }: YouTubeEmbedProps) {
               referrerPolicy="strict-origin-when-cross-origin"
               allowFullScreen
             />
-          : <YouTubeFallback frameTitle={frameTitle} watchUrl={watchUrl} />}
+          ) : (
+            <YouTubeFallback frameTitle={frameTitle} watchUrl={watchUrl} />
+          )}
         </div>
       </div>
     </div>

@@ -180,12 +180,13 @@ function OrgBillingAccountPicker({
 
   if (bas.length === 0) return null
 
-  const triggerLabel =
-    currentBaId ?
-      assigning ? 'Assigning...'
+  const triggerLabel = currentBaId
+    ? assigning
+      ? 'Assigning...'
       : 'Change billing account'
-    : assigning ? 'Assigning...'
-    : 'Assign billing account'
+    : assigning
+      ? 'Assigning...'
+      : 'Assign billing account'
 
   return (
     <div className="flex flex-col items-start gap-1">

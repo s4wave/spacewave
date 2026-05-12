@@ -1,4 +1,3 @@
-
 import React, {
   Activity,
   useCallback,
@@ -179,9 +178,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   // webViewState contains the current web view state.
   // Default to REACT_CHILDREN if children are passed, otherwise NONE.
   const [webViewState, setWebViewState] = useState<IWebViewState>(() => ({
-    renderMode:
-      props.children ?
-        RenderMode.RenderMode_REACT_CHILDREN
+    renderMode: props.children
+      ? RenderMode.RenderMode_REACT_CHILDREN
       : RenderMode.RenderMode_NONE,
     htmlLinks: [],
     refreshNonce: 0,
@@ -236,8 +234,9 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
-          refreshNonce:
-            options.refresh ? prev.refreshNonce + 1 : prev.refreshNonce,
+          refreshNonce: options.refresh
+            ? prev.refreshNonce + 1
+            : prev.refreshNonce,
           scriptPath:
             (options.renderMode !== RenderMode.RenderMode_NONE &&
               options.scriptPath?.trim()) ||
@@ -472,57 +471,63 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
 
   return (
     <BldrContext.Provider value={childContext}>
-      {props.showDebugInfo ?
+      {props.showDebugInfo ? (
         <DebugInfo>
           WebView ID: {uuid} <br />
-          {parentUuid ?
+          {parentUuid ? (
             <>
               Parent WebView ID: {parentUuid}
               <br />
             </>
-          : undefined}
+          ) : undefined}
           Ready: {webViewState.ready ? 'true' : 'false'}
           <br />
           Render Mode: {webViewState.renderMode}
           <br />
           CSS Loaded: {webViewState.cssLoaded ? 'true' : 'false'}
           <br />
-          {webViewState.scriptPath ?
+          {webViewState.scriptPath ? (
             <>
               Script Path: {webViewState.scriptPath}
               <br />
             </>
-          : undefined}
+          ) : undefined}
         </DebugInfo>
-      : undefined}
+      ) : undefined}
       {/* Show loading while CSS is loading or component not ready */}
-      {(
-        (!webViewState.ready || !webViewState.cssLoaded || !isComponentReady) &&
-        props.loading
-      ) ?
-        props.loading
-      : null}
+      {(!webViewState.ready || !webViewState.cssLoaded || !isComponentReady) &&
+      props.loading
+        ? props.loading
+        : null}
       {/* Render stylesheets immediately when ready with onload tracking */}
-      {webViewState.ready ?
-        webViewState.htmlLinks.flatMap((ilink) =>
-          ilink.link.rel === 'stylesheet' && ilink.link.href ? [
-            <StylesheetLink
-              key={`${webViewState.refreshNonce} -> ${ilink.id}`}
-              id={ilink.id}
-              href={ilink.link.href}
-              onLoad={onLinkLoad}
-            />,
-          ] : [],
-        )
-      : undefined}
+      {webViewState.ready
+        ? webViewState.htmlLinks.flatMap((ilink) =>
+            ilink.link.rel === 'stylesheet' && ilink.link.href
+              ? [
+                  <StylesheetLink
+                    key={`${webViewState.refreshNonce} -> ${ilink.id}`}
+                    id={ilink.id}
+                    href={ilink.link.href}
+                    onLoad={onLinkLoad}
+                  />,
+                ]
+              : [],
+          )
+        : undefined}
       {/* Render non-stylesheet links immediately */}
-      {webViewState.ready ?
-        webViewState.htmlLinks.flatMap((ilink) =>
-          ilink.link.rel !== 'stylesheet' && ilink.link.href ? [
-            <link key={ilink.id} href={ilink.link.href} rel={ilink.link.rel} />,
-          ] : [],
-        )
-      : undefined}
+      {webViewState.ready
+        ? webViewState.htmlLinks.flatMap((ilink) =>
+            ilink.link.rel !== 'stylesheet' && ilink.link.href
+              ? [
+                  <link
+                    key={ilink.id}
+                    href={ilink.link.href}
+                    rel={ilink.link.rel}
+                  />,
+                ]
+              : [],
+          )
+        : undefined}
       {/* Render component inside Activity - hidden until CSS loads */}
       {webViewState.ready &&
         webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
@@ -536,11 +541,9 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             />
           </Activity>
         )}
-      {(
-        webViewState.ready &&
-        webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
-        webViewState.scriptPath
-      ) ?
+      {webViewState.ready &&
+      webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
+      webViewState.scriptPath ? (
         <Activity mode={webViewState.cssLoaded ? 'visible' : 'hidden'}>
           <FunctionComponentContainer
             key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
@@ -549,7 +552,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             onReady={handleComponentReady}
           />
         </Activity>
-      : undefined}
+      ) : undefined}
       {/* Render React children when in REACT_CHILDREN mode */}
       {webViewState.ready &&
         webViewState.renderMode === RenderMode.RenderMode_REACT_CHILDREN &&

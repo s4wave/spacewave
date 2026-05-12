@@ -199,9 +199,9 @@ export function HandoffPage() {
     }
     setStoredHandoffPayload(handoffPayload)
     const usernameQuery =
-      routeHints.username !== '' ?
-        `?username=${encodeURIComponent(routeHints.username)}`
-      : ''
+      routeHints.username !== ''
+        ? `?username=${encodeURIComponent(routeHints.username)}`
+        : ''
     navigate({ path: `/auth/passkey${usernameQuery}` })
   }, [handoffPayload, navigate, routeHints.username])
 
@@ -260,9 +260,9 @@ export function HandoffPage() {
           <div className="flex items-center gap-2">
             <ClientTypeIcon clientType={request.clientType ?? ''} />
             <h1 className="text-xl font-semibold tracking-wide">
-              {routeHints.authIntent === 'signup' ?
-                `Creating a Spacewave ${label} account`
-              : `Signing in to Spacewave ${label}`}
+              {routeHints.authIntent === 'signup'
+                ? `Creating a Spacewave ${label} account`
+                : `Signing in to Spacewave ${label}`}
             </h1>
           </div>
           {routeHints.authIntent === 'signup' && routeHints.username && (

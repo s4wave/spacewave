@@ -87,9 +87,9 @@ export function useObjectViewer({
 
   // For world objects, use the standard setup hook.
   const worldObjectKey =
-    infoCase === 'worldObjectInfo' ?
-      (objectInfo.info?.value as { objectKey?: string })?.objectKey
-    : undefined
+    infoCase === 'worldObjectInfo'
+      ? (objectInfo.info?.value as { objectKey?: string })?.objectKey
+      : undefined
 
   const worldSetup = useObjectViewerSetup(worldState, worldObjectKey)
 
@@ -107,8 +107,9 @@ export function useObjectViewer({
   const typeID = isUnixfs ? UnixFSTypeID : worldSetup.typeID
   const objectState = worldSetup.objectState
   const rootRef = isUnixfs ? undefined : worldSetup.rootRef
-  const visibleComponents =
-    isUnixfs ? unixfsComponents : worldSetup.visibleComponents
+  const visibleComponents = isUnixfs
+    ? unixfsComponents
+    : worldSetup.visibleComponents
   const objectKey = isUnixfs ? undefined : worldObjectKey
 
   // State namespace for component selection persistence.
@@ -202,7 +203,7 @@ export function useObjectViewer({
           className={className}
         >
           <div className="flex-shrink flex-grow truncate">{displayKey}</div>
-          {showComponentName && selectedComponent && hasMultipleComponents ?
+          {showComponentName && selectedComponent && hasMultipleComponents ? (
             <>
               <div className="bg-border mx-2 h-3 w-px" />
               <ComponentSelector
@@ -217,21 +218,21 @@ export function useObjectViewer({
                 </div>
               </ComponentSelector>
             </>
-          : showComponentName && selectedComponent ?
+          ) : showComponentName && selectedComponent ? (
             <>
               <div className="bg-border mx-2 h-3 w-px" />
               <div className="text-muted-foreground truncate text-xs">
                 {selectedComponent.name}
               </div>
             </>
-          : showComponentName && typeID ?
+          ) : showComponentName && typeID ? (
             <>
               <div className="bg-border mx-2 h-3 w-px" />
               <div className="text-muted-foreground truncate text-xs">
                 Type: {typeID}
               </div>
             </>
-          : null}
+          ) : null}
         </BottomBarItem>
       )
     },
@@ -249,23 +250,23 @@ export function useObjectViewer({
 
   const overlayContent = useMemo(
     () =>
-      typeID && objectKey ?
+      typeID && objectKey ? (
         <ObjectViewerDetails
           key={selectedComponent?.name}
           objectKey={objectKey}
           typeID={typeID}
           rootRef={rootRef ?? ''}
           exportUrl={
-            exportUrl && objectKey ?
-              `${exportUrl}/-/${encodeURIComponent(objectKey)}`
-            : undefined
+            exportUrl && objectKey
+              ? `${exportUrl}/-/${encodeURIComponent(objectKey)}`
+              : undefined
           }
           availableComponents={visibleComponents}
           selectedComponent={selectedComponent}
           onComponentSelect={handleSelectComponent}
           onCloseClick={handleCloseDetails}
         />
-      : undefined,
+      ) : undefined,
     [
       typeID,
       objectKey,
@@ -282,9 +283,9 @@ export function useObjectViewer({
   const isTabActive = useIsTabActive()
   const objectExportUrl = useMemo(
     () =>
-      exportUrl && objectKey ?
-        `${exportUrl}/-/${encodeURIComponent(objectKey)}`
-      : undefined,
+      exportUrl && objectKey
+        ? `${exportUrl}/-/${encodeURIComponent(objectKey)}`
+        : undefined,
     [exportUrl, objectKey],
   )
 

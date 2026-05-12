@@ -55,7 +55,7 @@ export function LoadingScreen({
       className={cn(defaultContainerClassName, containerClassName)}
       data-sw-reduced-motion={reducedMotion ? 'true' : undefined}
     >
-      {showShineBorder && !reducedMotion ?
+      {showShineBorder && !reducedMotion ? (
         <div className="pointer-events-none absolute inset-0">
           <ShineBorder
             borderWidth={2}
@@ -69,47 +69,48 @@ export function LoadingScreen({
             className="rounded-br-[12px] rounded-bl-[12px]"
           />
         </div>
-      : null}
+      ) : null}
 
       {topLeftSlot ?? null}
 
       <div className="relative z-10 flex flex-col items-center gap-y-6">
-        {logo ?
+        {logo ? (
           <div className="mb-4">{logo}</div>
-        : <div className="bg-brand/10 mb-4 flex size-12 items-center justify-center rounded-xl">
+        ) : (
+          <div className="bg-brand/10 mb-4 flex size-12 items-center justify-center rounded-xl">
             <Spinner size="xl" className="text-brand" />
           </div>
-        }
+        )}
 
         <div className="space-y-2 text-center" aria-live="polite">
           <h1 className="text-foreground text-2xl font-semibold tracking-tight select-none">
             {view.title}
           </h1>
 
-          {view.detail ?
+          {view.detail ? (
             <p className="text-foreground-alt/70 text-sm select-none">
               {view.detail}
             </p>
-          : null}
+          ) : null}
 
-          {view.progress !== undefined ?
+          {view.progress !== undefined ? (
             <div className="mx-auto mt-4 w-64">
               <ProgressBar
                 value={view.progress * 100}
                 rate={view.rate?.down ?? view.rate?.up}
               />
             </div>
-          : null}
+          ) : null}
 
-          {view.error ?
+          {view.error ? (
             <p className="bg-destructive/5 border-destructive/15 text-destructive mx-auto mt-4 max-w-xs rounded-md border px-3 py-2 text-xs leading-relaxed">
               {view.error}
             </p>
-          : null}
+          ) : null}
 
-          {view.onRetry || view.onCancel ?
+          {view.onRetry || view.onCancel ? (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {view.onRetry ?
+              {view.onRetry ? (
                 <button
                   type="button"
                   onClick={view.onRetry}
@@ -118,8 +119,8 @@ export function LoadingScreen({
                   <LuRotateCw className="size-4" aria-hidden="true" />
                   <span>Retry</span>
                 </button>
-              : null}
-              {view.onCancel ?
+              ) : null}
+              {view.onCancel ? (
                 <button
                   type="button"
                   onClick={view.onCancel}
@@ -128,9 +129,9 @@ export function LoadingScreen({
                   <LuArrowLeft className="size-4" aria-hidden="true" />
                   <span>Back</span>
                 </button>
-              : null}
+              ) : null}
             </div>
-          : null}
+          ) : null}
         </div>
 
         {children ?? null}

@@ -538,9 +538,9 @@ export function NotesLandingDemo() {
                 onClick={() => setSelectedId(id)}
                 className={cn(
                   'w-full rounded-md border px-3 py-2 text-left transition-colors',
-                  selectedId === id ?
-                    'border-brand/40 bg-brand/10 text-foreground'
-                  : 'border-foreground/10 bg-background/40 text-foreground-alt hover:border-foreground/20 hover:bg-background/60 hover:text-foreground',
+                  selectedId === id
+                    ? 'border-brand/40 bg-brand/10 text-foreground'
+                    : 'border-foreground/10 bg-background/40 text-foreground-alt hover:border-foreground/20 hover:bg-background/60 hover:text-foreground',
                 )}
               >
                 <div className="text-sm font-medium">{notes[id].title}</div>

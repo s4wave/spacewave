@@ -75,26 +75,25 @@ export function BillingCancelPage() {
     lifecycleState === AccountLifecycleState.AccountLifecycleState_ACTIVE ||
     lifecycleState ===
       AccountLifecycleState.AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END
-  const endLabel =
-    endAt ?
-      new Date(Number(endAt)).toLocaleDateString(undefined, {
+  const endLabel = endAt
+    ? new Date(Number(endAt)).toLocaleDateString(undefined, {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
       })
     : null
-  const title =
-    isCancelScheduled ?
-      endLabel ? `Your plan will already cancel on ${endLabel}`
+  const title = isCancelScheduled
+    ? endLabel
+      ? `Your plan will already cancel on ${endLabel}`
       : 'Your plan is already set to cancel'
-    : isGrace ? 'Your plan is in the 30-day export window'
-    : 'Cancel your Spacewave Cloud plan?'
-  const subtitle =
-    isCancelScheduled ?
-      'Nothing else needs to happen. You still have full access until then. If you changed your mind, you can keep the plan active.'
-    : isGrace ?
-      'Your subscription has already ended. Cloud data is read-only for 30 days so you can export what you need or start a new subscription.'
-    : 'This keeps your plan active until the end of the current billing period. After that, your cloud data becomes read-only for 30 days so you can export it.'
+    : isGrace
+      ? 'Your plan is in the 30-day export window'
+      : 'Cancel your Spacewave Cloud plan?'
+  const subtitle = isCancelScheduled
+    ? 'Nothing else needs to happen. You still have full access until then. If you changed your mind, you can keep the plan active.'
+    : isGrace
+      ? 'Your subscription has already ended. Cloud data is read-only for 30 days so you can export what you need or start a new subscription.'
+      : 'This keeps your plan active until the end of the current billing period. After that, your cloud data becomes read-only for 30 days so you can export it.'
 
   const handleBack = useCallback(() => {
     navigate({ path: '../' })
@@ -147,11 +146,11 @@ export function BillingCancelPage() {
         <AnimatedLogo followMouse={false} />
         <div className="border-brand/25 bg-brand/8 text-brand mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium tracking-wide uppercase">
           <LuCalendarX className="size-3.5" />
-          {isCancelScheduled ?
-            'Cancellation scheduled'
-          : isGrace ?
-            'Read-only export window'
-          : 'End-of-period cancellation'}
+          {isCancelScheduled
+            ? 'Cancellation scheduled'
+            : isGrace
+              ? 'Read-only export window'
+              : 'End-of-period cancellation'}
         </div>
         <h1 className="mt-2 text-center text-xl font-semibold tracking-wide">
           {title}
@@ -168,14 +167,14 @@ export function BillingCancelPage() {
           </div>
           <div className="space-y-2">
             <h2 className="text-foreground text-lg font-semibold">
-              {isCancelScheduled || isGrace ?
-                'What happens next'
-              : 'If you cancel now'}
+              {isCancelScheduled || isGrace
+                ? 'What happens next'
+                : 'If you cancel now'}
             </h2>
             <p className="text-foreground-alt text-sm leading-relaxed">
-              {isGrace ?
+              {isGrace ? (
                 'Your plan has already ended. Cloud data is read-only for 30 days so you can export or start a new subscription.'
-              : endLabel ?
+              ) : endLabel ? (
                 <>
                   You keep full access through{' '}
                   <span className="text-foreground font-medium">
@@ -184,8 +183,9 @@ export function BillingCancelPage() {
                   . After that, your cloud data stays read-only for 30 days so
                   you can export what you need.
                 </>
-              : 'You keep full access through the end of the current billing period. After that, your cloud data stays read-only for 30 days so you can export what you need.'
-              }
+              ) : (
+                'You keep full access through the end of the current billing period. After that, your cloud data stays read-only for 30 days so you can export what you need.'
+              )}
             </p>
           </div>
         </div>
@@ -201,12 +201,13 @@ export function BillingCancelPage() {
               </h3>
             </div>
             <p className="text-foreground-alt text-sm leading-relaxed text-balance">
-              {isGrace ?
+              {isGrace ? (
                 'The subscription has already ended. You can still export existing cloud data during the remaining 30-day window.'
-              : endLabel ?
+              ) : endLabel ? (
                 <>Everything keeps working normally until {endLabel}.</>
-              : 'Everything keeps working normally until the current billing period ends.'
-              }
+              ) : (
+                'Everything keeps working normally until the current billing period ends.'
+              )}
             </p>
           </div>
           <div className="border-foreground/10 bg-background/45 rounded-lg border p-4">
@@ -233,12 +234,11 @@ export function BillingCancelPage() {
               </h3>
             </div>
             <p className="text-foreground-alt text-sm leading-relaxed text-balance">
-              {isGrace ?
-                'Start a new subscription whenever you want to restore read and write access.'
-              : isCancelScheduled ?
-                'If you changed your mind, keep the subscription active with one click.'
-              : 'If you change your mind later, you can keep the subscription active before it ends.'
-              }
+              {isGrace
+                ? 'Start a new subscription whenever you want to restore read and write access.'
+                : isCancelScheduled
+                  ? 'If you changed your mind, keep the subscription active with one click.'
+                  : 'If you change your mind later, you can keep the subscription active before it ends.'}
             </p>
           </div>
         </div>
@@ -269,7 +269,7 @@ export function BillingCancelPage() {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          {isCancelScheduled ?
+          {isCancelScheduled ? (
             <button
               onClick={() => void handleKeep()}
               disabled={action !== 'idle' || checkout.polling}
@@ -285,11 +285,12 @@ export function BillingCancelPage() {
                   action === 'reactivating' && 'animate-spin',
                 )}
               />
-              {action === 'reactivating' ?
-                'Keeping subscription...'
-              : 'Keep subscription active'}
+              {action === 'reactivating'
+                ? 'Keeping subscription...'
+                : 'Keep subscription active'}
             </button>
-          : <button
+          ) : (
+            <button
               onClick={() => void handleCancel()}
               disabled={action !== 'idle' || !canScheduleCancel}
               className={cn(
@@ -301,7 +302,7 @@ export function BillingCancelPage() {
               <LuCalendarX className="size-4" />
               {action === 'canceling' ? 'Canceling...' : 'Cancel at period end'}
             </button>
-          }
+          )}
           <button
             onClick={handleBack}
             className="border-foreground/15 bg-background/40 text-foreground hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300"

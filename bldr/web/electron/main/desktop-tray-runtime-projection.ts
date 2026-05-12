@@ -66,13 +66,13 @@ function buildAttentionEntries(state: DesktopRuntimeState): DesktopTrayEntry[] {
     ...(item?.detail ? [statusEntry('attention-detail', item.detail)] : []),
     separatorEntry('open-separator'),
     actionEntry('open', 'Open Spacewave', DesktopTrayActionKind.OPEN_ROUTE),
-    ...(state.update?.ready ?
-      [
-        separatorEntry('quick-actions-separator'),
-        sectionEntry('quick-actions-section', 'Quick Actions'),
-        applyUpdateEntry(state.update),
-      ]
-    : []),
+    ...(state.update?.ready
+      ? [
+          separatorEntry('quick-actions-separator'),
+          sectionEntry('quick-actions-section', 'Quick Actions'),
+          applyUpdateEntry(state.update),
+        ]
+      : []),
     separatorEntry('quit-separator'),
     actionEntry('quit', 'Quit', DesktopTrayActionKind.QUIT),
   ]

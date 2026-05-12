@@ -131,14 +131,14 @@ vi.mock('./dashboard/AuthConfirmDialog.js', () => ({
     confirmLabel?: string
     onConfirm?: () => Promise<void>
   }) =>
-    props.open ?
+    props.open ? (
       <div data-testid="auth-confirm-dialog">
         <div>{props.title}</div>
         <button onClick={() => void props.onConfirm?.()}>
           {props.confirmLabel ?? 'Confirm'}
         </button>
       </div>
-    : null,
+    ) : null,
 }))
 
 vi.mock('./SessionSelfEnrollmentStatusContext.js', () => ({

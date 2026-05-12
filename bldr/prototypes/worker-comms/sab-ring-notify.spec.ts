@@ -18,8 +18,12 @@ test.describe('SAB Ring Buffer Notify Mode', () => {
 
     for (const [label, data] of Object.entries(results) as any) {
       console.log(`\n${label}:`)
-      console.log(`  Timeout mode:  ${(data.timeout.throughput / 1e6).toFixed(1)} MB/s`)
-      console.log(`  Notify mode:   ${(data.notify.throughput / 1e6).toFixed(1)} MB/s`)
+      console.log(
+        `  Timeout mode:  ${(data.timeout.throughput / 1e6).toFixed(1)} MB/s`,
+      )
+      console.log(
+        `  Notify mode:   ${(data.notify.throughput / 1e6).toFixed(1)} MB/s`,
+      )
       console.log(`  Notify/Timeout: ${data.speedup.toFixed(1)}x`)
     }
 

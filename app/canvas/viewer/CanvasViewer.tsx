@@ -193,13 +193,13 @@ export function CanvasViewer({
 
   const canvasStateData = useMemo(
     () =>
-      canvasStateResource.value ?
-        protoToCanvasState(
-          canvasStateResource.value.nodes ?? {},
-          canvasStateResource.value.edges ?? [],
-          canvasStateResource.value.hiddenGraphLinks ?? [],
-        )
-      : null,
+      canvasStateResource.value
+        ? protoToCanvasState(
+            canvasStateResource.value.nodes ?? {},
+            canvasStateResource.value.edges ?? [],
+            canvasStateResource.value.hiddenGraphLinks ?? [],
+          )
+        : null,
     [canvasStateResource.value],
   )
 
@@ -237,11 +237,14 @@ export function CanvasViewer({
       if (!handle) throw new Error('no canvas handle')
 
       const setNodes: Record<string, ProtoCanvasNode> | undefined =
-        mutation.setNodes ?
-          Object.fromEntries(
-            [...mutation.setNodes].map(([id, n]) => [id, canvasNodeToProto(n)]),
-          )
-        : undefined
+        mutation.setNodes
+          ? Object.fromEntries(
+              [...mutation.setNodes].map(([id, n]) => [
+                id,
+                canvasNodeToProto(n),
+              ]),
+            )
+          : undefined
 
       const addEdges: ProtoCanvasEdge[] | undefined = mutation.addEdges?.map(
         (e) => ({

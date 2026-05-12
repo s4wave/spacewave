@@ -158,9 +158,9 @@ export function JoinSpaceDialog({
         <DialogHeader>
           <DialogTitle>Join Space</DialogTitle>
           <DialogDescription>
-            {isCloud ?
-              'Enter an invite code or paste an invite link.'
-            : 'Paste an invite link to join a space.'}
+            {isCloud
+              ? 'Enter an invite code or paste an invite link.'
+              : 'Paste an invite link to join a space.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -182,7 +182,7 @@ export function JoinSpaceDialog({
             )}
           />
 
-          {state.phase === 'enrolled' ?
+          {state.phase === 'enrolled' ? (
             <div className="text-center">
               <p className="text-foreground text-sm font-medium">
                 Joined successfully!
@@ -200,7 +200,7 @@ export function JoinSpaceDialog({
                 Close
               </button>
             </div>
-          : state.phase === 'pending' ?
+          ) : state.phase === 'pending' ? (
             <div className="text-center">
               <p className="text-foreground text-sm font-medium">
                 Awaiting owner approval
@@ -219,7 +219,7 @@ export function JoinSpaceDialog({
                 Close
               </button>
             </div>
-          : state.phase === 'owner_online_required' ?
+          ) : state.phase === 'owner_online_required' ? (
             <div className="text-center">
               <p className="text-foreground text-sm font-medium">
                 Owner must be online
@@ -239,7 +239,7 @@ export function JoinSpaceDialog({
                 Close
               </button>
             </div>
-          : state.phase === 'rejected' ?
+          ) : state.phase === 'rejected' ? (
             <div className="text-center">
               <p className="text-foreground text-sm font-medium">
                 Invite rejected
@@ -257,7 +257,8 @@ export function JoinSpaceDialog({
                 Close
               </button>
             </div>
-          : <>
+          ) : (
+            <>
               {busy && (
                 <div className="flex items-center justify-center gap-2 py-2">
                   <Spinner className="text-foreground-alt" />
@@ -280,7 +281,7 @@ export function JoinSpaceDialog({
                 </button>
               )}
             </>
-          }
+          )}
 
           {state.error && (
             <p className="text-destructive text-xs">{state.error}</p>

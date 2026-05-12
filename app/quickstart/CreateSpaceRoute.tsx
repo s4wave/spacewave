@@ -93,12 +93,14 @@ export function CreateSpaceRoute() {
       ) ?? null,
     [quickstartId, quickstartOptions],
   )
-  const staticId: QuickstartSpaceCreateId | null =
-    isQuickstartSpaceCreateId(quickstartId) ? quickstartId : null
+  const staticId: QuickstartSpaceCreateId | null = isQuickstartSpaceCreateId(
+    quickstartId,
+  )
+    ? quickstartId
+    : null
   const valid = !!selectedOption && (!!selectedOption.dynamic || !!staticId)
-  const spaceName =
-    staticId ?
-      getQuickstartSpaceName(staticId)
+  const spaceName = staticId
+    ? getQuickstartSpaceName(staticId)
     : selectedOption?.spaceName || selectedOption?.name || ''
 
   useEffect(() => {
@@ -223,13 +225,13 @@ export function CreateSpaceRoute() {
   if (!valid) return null
 
   const title =
-    state.phase === 'failed' ?
-      'Failed to create ' + spaceName
-    : 'Creating ' + spaceName
+    state.phase === 'failed'
+      ? 'Failed to create ' + spaceName
+      : 'Creating ' + spaceName
   const subtitle =
-    state.phase === 'failed' ?
-      'Something went wrong during setup.'
-    : 'Setting up your new space...'
+    state.phase === 'failed'
+      ? 'Something went wrong during setup.'
+      : 'Setting up your new space...'
 
   const order: Record<Phase, number> = {
     create: 0,

@@ -77,10 +77,11 @@ function updateStaticPhaseRail(
     const dot = target.querySelector<HTMLElement>('[data-sw-boot-phase-dot]')
     if (dot) {
       dot.style.background =
-        phase.state === 'error' ? 'var(--color-destructive,#ef4444)'
-        : phase.state === 'pending' ?
-          'color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)'
-        : 'var(--color-brand,var(--color-logo-blue,#4f8cff))'
+        phase.state === 'error'
+          ? 'var(--color-destructive,#ef4444)'
+          : phase.state === 'pending'
+            ? 'color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)'
+            : 'var(--color-brand,var(--color-logo-blue,#4f8cff))'
     }
 
     const label = target.querySelector<HTMLElement>(
@@ -88,11 +89,13 @@ function updateStaticPhaseRail(
     )
     if (label) {
       label.style.color =
-        phase.state === 'error' ? 'var(--color-destructive,#ef4444)'
-        : phase.state === 'current' ? 'var(--color-foreground,#fafafa)'
-        : phase.state === 'complete' ?
-          'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)'
-        : 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)'
+        phase.state === 'error'
+          ? 'var(--color-destructive,#ef4444)'
+          : phase.state === 'current'
+            ? 'var(--color-foreground,#fafafa)'
+            : phase.state === 'complete'
+              ? 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)'
+              : 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)'
     }
   }
 }

@@ -1,4 +1,3 @@
-
 // opfs-volume.ts - OPFS volume lifecycle integration fixture.
 //
 // Exercises the full volume lifecycle: create directory tree, write/read
@@ -89,37 +88,49 @@ async function run() {
     ]
 
     // Write under exclusive WebLock (simulating write transaction).
-    await navigator.locks.request(`${volId}|kvtx`, { mode: 'exclusive' }, async () => {
-      for (const { key, value } of entries) {
-        const hex = hexEncode(key)
-        const shard = hex.substring(0, 2)
-        const shardDir = await volDir.getDirectoryHandle(shard, { create: true })
-        const fh = await shardDir.getFileHandle(hex, { create: true })
-        const w = await fh.createWritable()
-        await w.write(value)
-        await w.close()
-      }
-    })
+    await navigator.locks.request(
+      `${volId}|kvtx`,
+      { mode: 'exclusive' },
+      async () => {
+        for (const { key, value } of entries) {
+          const hex = hexEncode(key)
+          const shard = hex.substring(0, 2)
+          const shardDir = await volDir.getDirectoryHandle(shard, {
+            create: true,
+          })
+          const fh = await shardDir.getFileHandle(hex, { create: true })
+          const w = await fh.createWritable()
+          await w.write(value)
+          await w.close()
+        }
+      },
+    )
     results.writeEntries = true
 
     // --- Integration 1: Read back under shared lock ---
 
     let readOk = true
-    await navigator.locks.request(`${volId}|kvtx`, { mode: 'shared' }, async () => {
-      for (const { key, value } of entries) {
-        const hex = hexEncode(key)
-        const shard = hex.substring(0, 2)
-        const shardDir = await volDir.getDirectoryHandle(shard, { create: false })
-        const fh = await shardDir.getFileHandle(hex)
-        const file = await fh.getFile()
-        const ab = await file.arrayBuffer()
-        const readValue = new Uint8Array(ab)
-        if (!arraysEqual(readValue, value)) {
-          errors.push(`read mismatch for key ${hex}`)
-          readOk = false
+    await navigator.locks.request(
+      `${volId}|kvtx`,
+      { mode: 'shared' },
+      async () => {
+        for (const { key, value } of entries) {
+          const hex = hexEncode(key)
+          const shard = hex.substring(0, 2)
+          const shardDir = await volDir.getDirectoryHandle(shard, {
+            create: false,
+          })
+          const fh = await shardDir.getFileHandle(hex)
+          const file = await fh.getFile()
+          const ab = await file.arrayBuffer()
+          const readValue = new Uint8Array(ab)
+          if (!arraysEqual(readValue, value)) {
+            errors.push(`read mismatch for key ${hex}`)
+            readOk = false
+          }
         }
-      }
-    })
+      },
+    )
     results.readEntries = readOk
 
     // --- Integration 1: Persistence across "reopen" ---
@@ -133,7 +144,9 @@ async function run() {
       const hex = hexEncode(key)
       const shard = hex.substring(0, 2)
       try {
-        const shardDir = await volDir2.getDirectoryHandle(shard, { create: false })
+        const shardDir = await volDir2.getDirectoryHandle(shard, {
+          create: false,
+        })
         const fh = await shardDir.getFileHandle(hex)
         const file = await fh.getFile()
         const ab = await file.arrayBuffer()
@@ -229,7 +242,9 @@ async function run() {
 
     results.pass = errors.length === 0
     results.detail =
-      errors.length > 0 ? errors.join('; ') : 'all volume integration tests passed'
+      errors.length > 0
+        ? errors.join('; ')
+        : 'all volume integration tests passed'
   } catch (err) {
     results.pass = false
     results.detail = `error: ${err}`

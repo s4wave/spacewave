@@ -116,7 +116,7 @@ export function PinUnlockOverlay({
               )}
             </div>
 
-            {!showRecovery ?
+            {!showRecovery ? (
               <>
                 <div>
                   <label
@@ -171,7 +171,8 @@ export function PinUnlockOverlay({
                   Forgot PIN?
                 </button>
               </>
-            : <>
+            ) : (
+              <>
                 <p className="text-foreground-alt text-xs leading-relaxed">
                   Re-authenticate with your account password or backup key to
                   reset this session. This generates a new session key.
@@ -210,7 +211,7 @@ export function PinUnlockOverlay({
                   Back to PIN entry
                 </button>
               </>
-            }
+            )}
           </div>
         </div>
       </div>

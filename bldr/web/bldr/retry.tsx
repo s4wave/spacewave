@@ -1,4 +1,3 @@
-
 // BackoffFn returns the number of milliseconds to wait till next retry.
 export type BackoffFn = () => number
 

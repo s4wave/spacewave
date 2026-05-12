@@ -93,9 +93,9 @@ export function GetStartedSection({
           tabIndex={showScrollIndicator ? 0 : -1}
           className={cn(
             'mt-2 mb-3 flex cursor-pointer flex-col items-center transition-opacity duration-300',
-            showScrollIndicator ? 'opacity-100' : (
-              'pointer-events-none opacity-0'
-            ),
+            showScrollIndicator
+              ? 'opacity-100'
+              : 'pointer-events-none opacity-0',
             showScrollIndicator &&
               animateScrollIndicator &&
               'animate-[pulse_8s_ease-in-out_infinite]',

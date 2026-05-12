@@ -37,9 +37,8 @@ export function DocsSidebar({
     navigate({ path: '/' })
   }, [navigate])
 
-  const githubUrl =
-    currentDoc ?
-      `${GITHUB_REPO_URL}/blob/master/app/docs/content/${currentDoc.site}/${currentDoc.section}/${currentDoc.filename}`
+  const githubUrl = currentDoc
+    ? `${GITHUB_REPO_URL}/blob/master/app/docs/content/${currentDoc.site}/${currentDoc.section}/${currentDoc.filename}`
     : `${GITHUB_REPO_URL}/tree/master/app/docs/content`
 
   // Group sections by site, preserving order.
@@ -68,9 +67,9 @@ export function DocsSidebar({
           onClick={goToIndex}
           className={cn(
             'mb-4 cursor-pointer text-left text-sm font-semibold transition-colors',
-            !currentSlug ? 'text-brand' : (
-              'text-foreground hover:text-foreground-alt'
-            ),
+            !currentSlug
+              ? 'text-brand'
+              : 'text-foreground hover:text-foreground-alt',
           )}
         >
           Documentation
@@ -93,9 +92,9 @@ export function DocsSidebar({
                         onClick={() => goToPage(page.url)}
                         className={cn(
                           'w-full cursor-pointer border-l-2 py-1.5 pl-3 text-left text-sm transition-colors',
-                          currentSlug === page.slug ?
-                            'border-brand text-brand'
-                          : 'text-foreground-alt/70 hover:text-foreground hover:border-foreground-alt/20 border-transparent',
+                          currentSlug === page.slug
+                            ? 'border-brand text-brand'
+                            : 'text-foreground-alt/70 hover:text-foreground hover:border-foreground-alt/20 border-transparent',
                         )}
                       >
                         {page.title}

@@ -130,9 +130,8 @@ export function OrgContainer() {
   }, [navigate, currentLevelPath])
 
   const roleLabel = isOwner ? 'OWNER' : 'MEMBER'
-  const roleBadgeClass =
-    isOwner ?
-      'bg-brand/15 text-brand'
+  const roleBadgeClass = isOwner
+    ? 'bg-brand/15 text-brand'
     : 'bg-foreground/10 text-foreground-alt/70'
 
   const orgButton = useCallback(
@@ -145,9 +144,11 @@ export function OrgContainer() {
           selected ? 'Close organization menu' : 'Open organization menu'
         }
       >
-        {selected ?
+        {selected ? (
           <LuArrowUp {...bottomBarIconProps} aria-hidden="true" />
-        : <LuBuilding2 {...bottomBarIconProps} aria-hidden="true" />}
+        ) : (
+          <LuBuilding2 {...bottomBarIconProps} aria-hidden="true" />
+        )}
         <div className="max-w-36 truncate">{orgName}</div>
         {info && (
           <span

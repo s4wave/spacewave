@@ -55,9 +55,8 @@ export class DesktopTrayController {
 
   private buildIcon(): Electron.NativeImage {
     const iconPath = this.getIconPath()
-    const image =
-      iconPath ?
-        electron.nativeImage.createFromPath(iconPath)
+    const image = iconPath
+      ? electron.nativeImage.createFromPath(iconPath)
       : electron.nativeImage.createEmpty()
     if (
       os.platform() === 'darwin' &&

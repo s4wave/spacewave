@@ -50,9 +50,9 @@ function TestHandle(props: {
   const resource = useResource(
     async (_signal, cleanup) => cleanup(await props.factory()),
     [],
-    props.retryOnReleasedResource === undefined ?
-      undefined
-    : { retryOnReleasedResource: props.retryOnReleasedResource },
+    props.retryOnReleasedResource === undefined
+      ? undefined
+      : { retryOnReleasedResource: props.retryOnReleasedResource },
   )
 
   return React.createElement(
@@ -87,13 +87,15 @@ function TestStreamValue(props: {
   version: number
   streamFactory?: (version: number) => AsyncIterable<string>
 }) {
-  const parent = useResource(async () => props.factory(props.version), [
-    props.version,
-  ])
+  const parent = useResource(
+    async () => props.factory(props.version),
+    [props.version],
+  )
   const resource = useStreamingResource(
     parent,
     (value) =>
-      props.streamFactory?.(value.version) ?? streamValue(`stream-${value.version}`),
+      props.streamFactory?.(value.version) ??
+      streamValue(`stream-${value.version}`),
     [],
   )
 
@@ -312,7 +314,10 @@ describe('useResource', () => {
   })
 
   it('keeps the previous streamed value visible while the parent reloads', async () => {
-    const pending = new Map<number, ReturnType<typeof deferred<{ version: number }>>>()
+    const pending = new Map<
+      number,
+      ReturnType<typeof deferred<{ version: number }>>
+    >()
     const factory = vi.fn((version: number) => {
       const next = deferred<{ version: number }>()
       pending.set(version, next)
@@ -323,7 +328,9 @@ describe('useResource', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(React.createElement(TestStreamValue, { factory, version: 1 }))
+      root?.render(
+        React.createElement(TestStreamValue, { factory, version: 1 }),
+      )
       await flush()
     })
 
@@ -341,7 +348,9 @@ describe('useResource', () => {
     )
 
     await act(async () => {
-      root?.render(React.createElement(TestStreamValue, { factory, version: 2 }))
+      root?.render(
+        React.createElement(TestStreamValue, { factory, version: 2 }),
+      )
       await flush()
     })
 
@@ -367,8 +376,14 @@ describe('useResource', () => {
   })
 
   it('ignores stale stream errors while a parent replacement is in flight', async () => {
-    const pending = new Map<number, ReturnType<typeof deferred<{ version: number }>>>()
-    const streams = new Map<number, ReturnType<typeof createManualAsyncIterable<string>>>()
+    const pending = new Map<
+      number,
+      ReturnType<typeof deferred<{ version: number }>>
+    >()
+    const streams = new Map<
+      number,
+      ReturnType<typeof createManualAsyncIterable<string>>
+    >()
     const factory = vi.fn((version: number) => {
       const next = deferred<{ version: number }>()
       pending.set(version, next)
@@ -451,9 +466,7 @@ describe('useResource', () => {
   })
 
   it('settles as not loading when the parent resolves to null', async () => {
-    const factory = vi.fn(
-      async (): Promise<{ version: number } | null> => null,
-    )
+    const factory = vi.fn(async (): Promise<{ version: number } | null> => null)
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)

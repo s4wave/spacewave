@@ -23,22 +23,22 @@ describe('loadForgeTaskDependencyGraph', () => {
             buckets: originObjectKeys.map((originObjectKey) => ({
               originObjectKey,
               outgoing:
-                originObjectKey === 'forge/task/1' ?
-                  [
-                    {
-                      obj: keyToIRI(
-                        options.predicate === PRED_TASK_TO_SUBTASK ?
-                          'forge/task/2'
-                        : 'forge/task/3',
-                      ),
-                      predicate: options.predicate,
-                    },
-                    {
-                      obj: keyToIRI('forge/task/outside'),
-                      predicate: options.predicate,
-                    },
-                  ]
-                : [],
+                originObjectKey === 'forge/task/1'
+                  ? [
+                      {
+                        obj: keyToIRI(
+                          options.predicate === PRED_TASK_TO_SUBTASK
+                            ? 'forge/task/2'
+                            : 'forge/task/3',
+                        ),
+                        predicate: options.predicate,
+                      },
+                      {
+                        obj: keyToIRI('forge/task/outside'),
+                        predicate: options.predicate,
+                      },
+                    ]
+                  : [],
             })),
           }),
       ),

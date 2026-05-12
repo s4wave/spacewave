@@ -77,9 +77,8 @@ export function CommitDetail({
   const subject = message.split('\n')[0]
   const body = message.split('\n').slice(1).join('\n').trim()
   const fullHash = commit.hash ?? ''
-  const authorDate =
-    commit.authorTimestamp ?
-      new Date(Number(commit.authorTimestamp) * 1000)
+  const authorDate = commit.authorTimestamp
+    ? new Date(Number(commit.authorTimestamp) * 1000)
     : null
 
   return (
@@ -138,9 +137,9 @@ export function CommitDetail({
               <span className="text-foreground-alt/70">
                 (
                 {formatRelativeTime(
-                  commit.authorTimestamp ?
-                    BigInt(commit.authorTimestamp)
-                  : undefined,
+                  commit.authorTimestamp
+                    ? BigInt(commit.authorTimestamp)
+                    : undefined,
                 )}
                 )
               </span>

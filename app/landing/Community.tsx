@@ -114,8 +114,9 @@ export function Community() {
   const [showDev, setShowDev] = useState(false)
   const [search, setSearch] = useState('')
   const filtered = useMemo(() => {
-    let entries =
-      showDev ? licenseEntries : licenseEntries.filter((e) => !e.isDev)
+    let entries = showDev
+      ? licenseEntries
+      : licenseEntries.filter((e) => !e.isDev)
     if (search) {
       const q = search.toLowerCase()
       entries = entries.filter(
@@ -278,9 +279,9 @@ export function Community() {
               onClick={() => setShowDev((v) => !v)}
               className={cn(
                 'flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-all duration-150',
-                showDev ?
-                  'border-brand/30 bg-brand/10 text-brand'
-                : 'border-foreground/10 text-foreground-alt/50 hover:border-foreground/20',
+                showDev
+                  ? 'border-brand/30 bg-brand/10 text-brand'
+                  : 'border-foreground/10 text-foreground-alt/50 hover:border-foreground/20',
               )}
             >
               <span
@@ -305,20 +306,21 @@ export function Community() {
             className="border-foreground/10 bg-background-card/30 text-foreground placeholder:text-foreground-alt/30 focus:border-brand/50 w-full rounded-lg border py-2 pr-3 pl-9 text-xs backdrop-blur-sm transition-colors outline-none"
           />
         </div>
-        {ossGroups.length === 0 ?
+        {ossGroups.length === 0 ? (
           <div className="text-foreground-alt/40 py-8 text-center text-xs">
             No packages match &ldquo;{search}&rdquo;
           </div>
-        : <div className="space-y-8">
+        ) : (
+          <div className="space-y-8">
             {ossGroups.map(({ category, entries }) => (
               <div key={category.id}>
                 <div className="mb-3 flex items-center gap-2">
                   <h3
                     className={cn(
                       'text-xs font-medium select-none',
-                      category.id === 'internal' ?
-                        'text-brand'
-                      : 'text-foreground',
+                      category.id === 'internal'
+                        ? 'text-brand'
+                        : 'text-foreground',
                     )}
                   >
                     {category.id === 'internal' ? 'Our Stack' : category.label}
@@ -342,37 +344,38 @@ export function Community() {
                       aria-label={`Copy dependency details for ${entry.name}`}
                       className={cn(
                         'flex cursor-pointer flex-col gap-1.5 rounded-lg border p-3 backdrop-blur-sm transition-all duration-150',
-                        entry.internal ?
-                          'border-brand/15 bg-brand/5 hover:border-brand/30'
-                        : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
+                        entry.internal
+                          ? 'border-brand/15 bg-brand/5 hover:border-brand/30'
+                          : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
                       )}
                     >
                       <div className="flex items-center gap-2">
                         <div className="flex min-w-0 items-center gap-2">
-                          {entry.repo ?
+                          {entry.repo ? (
                             <ExternalLink
                               href={entry.repo}
                               onClick={(e) => e.stopPropagation()}
                               className={cn(
                                 'truncate text-xs font-medium hover:underline',
-                                entry.internal ? 'text-brand' : (
-                                  'text-foreground'
-                                ),
+                                entry.internal
+                                  ? 'text-brand'
+                                  : 'text-foreground',
                               )}
                             >
                               {entry.name}
                             </ExternalLink>
-                          : <span
+                          ) : (
+                            <span
                               className={cn(
                                 'truncate text-xs font-medium',
-                                entry.internal ? 'text-brand' : (
-                                  'text-foreground'
-                                ),
+                                entry.internal
+                                  ? 'text-brand'
+                                  : 'text-foreground',
                               )}
                             >
                               {entry.name}
                             </span>
-                          }
+                          )}
                           <span
                             title={entry.version}
                             className="text-foreground-alt/40 max-w-28 truncate text-[0.55rem]"
@@ -409,7 +412,7 @@ export function Community() {
               </div>
             ))}
           </div>
-        }
+        )}
         <p className="text-foreground-alt/40 mt-8 text-center text-xs">
           Full license texts available at{' '}
           <a

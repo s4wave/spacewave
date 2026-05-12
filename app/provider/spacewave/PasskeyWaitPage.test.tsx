@@ -60,9 +60,9 @@ vi.mock('./keypair-utils.js', () => ({
     const resp = (await mockUnwrapPemWithPin(args[1], args[2])) as
       | Uint8Array
       | { pemPrivateKey?: Uint8Array }
-    return resp instanceof Uint8Array ? resp : (
-        (resp.pemPrivateKey ?? new Uint8Array())
-      )
+    return resp instanceof Uint8Array
+      ? resp
+      : (resp.pemPrivateKey ?? new Uint8Array())
   },
 }))
 
@@ -212,7 +212,9 @@ describe('PasskeyWaitPage', () => {
         prfOutput: 'output-1',
       })
     })
-    expect(mockNavigate).toHaveBeenCalledWith({ path: '/auth/passkey/confirm' })
+    expect(mockNavigate).toHaveBeenCalledWith({
+      path: '/auth/passkey/confirm',
+    })
   })
 
   it('offers retry from the desktop passkey error state', async () => {

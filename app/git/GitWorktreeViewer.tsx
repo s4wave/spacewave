@@ -147,24 +147,20 @@ export function GitWorktreeViewer({
   const renderEntry = useCallback(
     (props: { entry: FileEntry; defaultNode: ReactNode; path: string }) => {
       const path =
-        props.path === '/' ?
-          props.entry.name
-        : props.path.replace(/^\//, '') + '/' + props.entry.name
+        props.path === '/'
+          ? props.entry.name
+          : props.path.replace(/^\//, '') + '/' + props.entry.name
       const status = statusMap.get(path)
       if (!status) return props.defaultNode
 
       const code =
-        (
-          status.worktreeStatus !== undefined &&
-          status.worktreeStatus !== FileStatusCode.UNMODIFIED
-        ) ?
-          status.worktreeStatus
-        : (
-          status.stagingStatus !== undefined &&
-          status.stagingStatus !== FileStatusCode.UNMODIFIED
-        ) ?
-          status.stagingStatus
-        : null
+        status.worktreeStatus !== undefined &&
+        status.worktreeStatus !== FileStatusCode.UNMODIFIED
+          ? status.worktreeStatus
+          : status.stagingStatus !== undefined &&
+              status.stagingStatus !== FileStatusCode.UNMODIFIED
+            ? status.stagingStatus
+            : null
       if (!code) return props.defaultNode
 
       return (
@@ -202,37 +198,33 @@ export function GitWorktreeViewer({
     ],
   )
   const filesInlineFileURL =
-    (
-      route.mode !== 'files' ||
-      files.isDir !== false ||
-      !files.statResource.value ||
-      !sessionIndex ||
-      !spaceCtx?.spaceId ||
-      !inlinePreviewObjectKey
-    ) ?
-      undefined
-    : buildUnixFSFileInlineURL(
-        sessionIndex,
-        spaceCtx.spaceId,
-        inlinePreviewObjectKey,
-        displayPath,
-      )
+    route.mode !== 'files' ||
+    files.isDir !== false ||
+    !files.statResource.value ||
+    !sessionIndex ||
+    !spaceCtx?.spaceId ||
+    !inlinePreviewObjectKey
+      ? undefined
+      : buildUnixFSFileInlineURL(
+          sessionIndex,
+          spaceCtx.spaceId,
+          inlinePreviewObjectKey,
+          displayPath,
+        )
   const workdirInlineFileURL =
-    (
-      route.mode !== 'workdir' ||
-      workdirFiles.isDir !== false ||
-      !workdirFiles.statResource.value ||
-      !sessionIndex ||
-      !spaceCtx?.spaceId ||
-      !inlinePreviewObjectKey
-    ) ?
-      undefined
-    : buildUnixFSFileInlineURL(
-        sessionIndex,
-        spaceCtx.spaceId,
-        inlinePreviewObjectKey,
-        workdirPath,
-      )
+    route.mode !== 'workdir' ||
+    workdirFiles.isDir !== false ||
+    !workdirFiles.statResource.value ||
+    !sessionIndex ||
+    !spaceCtx?.spaceId ||
+    !inlinePreviewObjectKey
+      ? undefined
+      : buildUnixFSFileInlineURL(
+          sessionIndex,
+          spaceCtx.spaceId,
+          inlinePreviewObjectKey,
+          workdirPath,
+        )
   const nav = useGitNavigation({
     route,
     effectiveRef,
@@ -277,17 +269,14 @@ export function GitWorktreeViewer({
     lastCommit: tipCommit ?? undefined,
     loading: tipCommitResource.loading,
     error: tipCommitResource.error,
-    onClickCommit:
-      tipCommitHash ?
-        () => navigate({ path: '/commit/' + tipCommitHash })
+    onClickCommit: tipCommitHash
+      ? () => navigate({ path: '/commit/' + tipCommitHash })
       : undefined,
-    onClickTree:
-      effectiveRef ?
-        () => navigate({ path: '/tree/' + effectiveRef })
+    onClickTree: effectiveRef
+      ? () => navigate({ path: '/tree/' + effectiveRef })
       : undefined,
-    onClickLog:
-      effectiveRef ?
-        () => navigate({ path: '/commits/' + effectiveRef })
+    onClickLog: effectiveRef
+      ? () => navigate({ path: '/commits/' + effectiveRef })
       : undefined,
   }
 
@@ -449,16 +438,17 @@ export function GitWorktreeViewer({
     }
 
     const fileError =
-      route.mode === 'commit' || route.mode === 'changes' ? null
-      : route.mode === 'workdir' ?
-        (workdirHandleResource.error ??
-        workdirFiles.pathHandle.error ??
-        workdirFiles.statResource.error ??
-        workdirFiles.entriesResource.error)
-      : (rootHandleResource.error ??
-        files.pathHandle.error ??
-        files.statResource.error ??
-        files.entriesResource.error)
+      route.mode === 'commit' || route.mode === 'changes'
+        ? null
+        : route.mode === 'workdir'
+          ? (workdirHandleResource.error ??
+            workdirFiles.pathHandle.error ??
+            workdirFiles.statResource.error ??
+            workdirFiles.entriesResource.error)
+          : (rootHandleResource.error ??
+            files.pathHandle.error ??
+            files.statResource.error ??
+            files.entriesResource.error)
     if (fileError) {
       function handleRetry() {
         if (route.mode === 'workdir') {

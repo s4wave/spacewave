@@ -191,12 +191,12 @@ export class BldrElectronApp {
       {
         label: 'View',
         submenu: [
-          ...(isDebug ?
-            [
-              { role: 'toggleDevTools' as const },
-              { type: 'separator' as const },
-            ]
-          : []),
+          ...(isDebug
+            ? [
+                { role: 'toggleDevTools' as const },
+                { type: 'separator' as const },
+              ]
+            : []),
           { role: 'resetZoom' as const },
           { role: 'zoomIn' as const },
           { role: 'zoomOut' as const },
@@ -600,9 +600,8 @@ export class BldrElectronApp {
   }
 
   private buildWindowUrl(webDocumentId?: string, hash?: string): string {
-    let url =
-      webDocumentId ?
-        `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
+    let url = webDocumentId
+      ? `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
       : `${APP_SCHEME}://index.html`
 
     if (hash) {

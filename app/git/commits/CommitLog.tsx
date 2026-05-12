@@ -167,9 +167,11 @@ function CommitLogInner({ handle, refName, onCommitClick }: CommitLogProps) {
           onClick={handleShowMore}
           disabled={loadingMore}
         >
-          {loadingMore ?
+          {loadingMore ? (
             <LoadingInline label="Loading" tone="muted" size="sm" />
-          : <span className="text-brand">Show more</span>}
+          ) : (
+            <span className="text-brand">Show more</span>
+          )}
         </button>
       )}
     </div>

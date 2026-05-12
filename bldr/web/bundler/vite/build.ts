@@ -1,4 +1,3 @@
-
 import { loadConfigFromFile, mergeConfig, build as viteBuild } from 'vite'
 import type {
   InlineConfig,
@@ -167,9 +166,8 @@ function synthesizeManifest(
       continue
     }
     const chunk = output as ViteOutputChunkWithMetadata
-    const entrypoint =
-      chunk.facadeModuleId ?
-        normalizeModuleId(chunk.facadeModuleId, rootDir)
+    const entrypoint = chunk.facadeModuleId
+      ? normalizeModuleId(chunk.facadeModuleId, rootDir)
       : chunk.name
     if (!entrypoint) {
       continue
@@ -343,24 +341,25 @@ export async function analyzeManifest(
   // Collect modules from the entry chunk AND all its imported chunks (transitive).
   const entrypointOutputs = Object.entries(manifest).flatMap(([key, value]) => {
     if (!value.isEntry) return []
-      const allModules = collectAllModulesForChunk(
-        value.file,
-        jsChunkToModules,
-        chunkImports,
-      )
-      const entrypointPath = value.src ?? key
-      return [{
-        entrypoint:
-          path.isAbsolute(entrypointPath) ?
-            path.relative(rootDir, entrypointPath)
+    const allModules = collectAllModulesForChunk(
+      value.file,
+      jsChunkToModules,
+      chunkImports,
+    )
+    const entrypointPath = value.src ?? key
+    return [
+      {
+        entrypoint: path.isAbsolute(entrypointPath)
+          ? path.relative(rootDir, entrypointPath)
           : entrypointPath,
         outputs: {
           js: value.file,
           css: new Set<string>(value.css ?? []),
         },
         inputs: allModules,
-      }]
-    })
+      },
+    ]
+  })
 
   // 4. Associate CSS assets with entrypoints using manifest data.
   const allCssAssets = new Set<string>()
@@ -384,9 +383,8 @@ export async function analyzeManifest(
 
     // Find the corresponding entrypoint output
     const entrypointPath = value.src ?? key
-    const normalizedEntrypoint =
-      path.isAbsolute(entrypointPath) ?
-        path.relative(rootDir, entrypointPath)
+    const normalizedEntrypoint = path.isAbsolute(entrypointPath)
+      ? path.relative(rootDir, entrypointPath)
       : entrypointPath
     const entryOutput = entrypointOutputByEntrypoint.get(normalizedEntrypoint)
 
@@ -451,8 +449,9 @@ export async function buildAndAnalyze(
   const viteOutput = (await viteBuild(buildOptions)) as
     | Rollup.RollupOutput[]
     | Rollup.RollupOutput
-  const rollupOutputs: Rollup.RollupOutput[] =
-    Array.isArray(viteOutput) ? viteOutput : [viteOutput]
+  const rollupOutputs: Rollup.RollupOutput[] = Array.isArray(viteOutput)
+    ? viteOutput
+    : [viteOutput]
 
   // merge the output chunks into one array
   const outputChunks = rollupOutputs.flatMap((output) => output.output)
@@ -469,10 +468,9 @@ export async function buildAndAnalyze(
 
   // Map the analysis results to the response format and make paths relative to rootDir
   const entrypointOutputs = analysis.entrypointOutputs.map((entry) => ({
-    entrypoint:
-      entry.entrypoint ?
-        path.isAbsolute(entry.entrypoint) ?
-          path.relative(rootDir, entry.entrypoint)
+    entrypoint: entry.entrypoint
+      ? path.isAbsolute(entry.entrypoint)
+        ? path.relative(rootDir, entry.entrypoint)
         : entry.entrypoint
       : '',
     inputFiles: (entry.inputs || []).map((file) =>

@@ -6,7 +6,10 @@ import { defineConfig } from 'vite'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { readdirSync } from 'fs'
-import { buildGoAliases, goTsResolver } from '../../web/bundler/vite/go-ts-resolver.js'
+import {
+  buildGoAliases,
+  goTsResolver,
+} from '../../web/bundler/vite/go-ts-resolver.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '../../..')

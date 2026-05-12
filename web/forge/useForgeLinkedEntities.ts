@@ -32,17 +32,17 @@ export async function loadForgeLinkedEntities(
     {
       predicate,
       direction:
-        direction === 'out' ?
-          GraphEdgeBucketDirection.OUT
-        : GraphEdgeBucketDirection.IN,
+        direction === 'out'
+          ? GraphEdgeBucketDirection.OUT
+          : GraphEdgeBucketDirection.IN,
       abortSignal: signal,
     },
   )
   const bucket = bucketResponse.buckets?.[0]
   const linkedIRIs =
-    direction === 'out' ?
-      (bucket?.outgoing ?? []).flatMap((q) => (q.obj ? [q.obj] : []))
-    : (bucket?.incoming ?? []).flatMap((q) => (q.subject ? [q.subject] : []))
+    direction === 'out'
+      ? (bucket?.outgoing ?? []).flatMap((q) => (q.obj ? [q.obj] : []))
+      : (bucket?.incoming ?? []).flatMap((q) => (q.subject ? [q.subject] : []))
   const entityKeys = linkedIRIs.map(iriToKey)
   if (entityKeys.length === 0) return []
 

@@ -72,9 +72,9 @@ function ProcessBindingRow({ binding, onToggle }: ProcessBindingRowProps) {
         onClick={handleToggle}
         className={cn(
           'rounded px-2 py-1 text-xs font-medium transition-colors',
-          approved ?
-            'bg-green-600 text-white hover:bg-green-700'
-          : 'bg-neutral-600 text-white hover:bg-neutral-700',
+          approved
+            ? 'bg-green-600 text-white hover:bg-green-700'
+            : 'bg-neutral-600 text-white hover:bg-neutral-700',
           !onToggle && 'cursor-not-allowed opacity-50',
         )}
       >

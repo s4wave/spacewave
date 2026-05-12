@@ -49,9 +49,8 @@ export function useSetupWizard(onboarding: LocalSessionOnboardingContextValue) {
             setError('Account not ready')
             return
           }
-          const credential =
-            pemCredential ?
-              {
+          const credential = pemCredential
+            ? {
                 credential: {
                   case: 'pemPrivateKey' as const,
                   value: pemCredential,
@@ -66,7 +65,9 @@ export function useSetupWizard(onboarding: LocalSessionOnboardingContextValue) {
             setError('Session not ready')
             return
           }
-          const resp = await session.localProvider.exportBackupKey({ password })
+          const resp = await session.localProvider.exportBackupKey({
+            password,
+          })
           pemData = resp.pemData
         }
 
@@ -111,9 +112,9 @@ export function useSetupWizard(onboarding: LocalSessionOnboardingContextValue) {
     try {
       if (session) {
         const mode =
-          lockMode === 'pin' ?
-            SessionLockMode.PIN_ENCRYPTED
-          : SessionLockMode.AUTO_UNLOCK
+          lockMode === 'pin'
+            ? SessionLockMode.PIN_ENCRYPTED
+            : SessionLockMode.AUTO_UNLOCK
         const pinBytes =
           lockMode === 'pin' ? new TextEncoder().encode(pin) : undefined
         await session.setLockMode(mode, pinBytes)

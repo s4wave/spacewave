@@ -79,11 +79,12 @@ export function VerifyEmailPage() {
           </div>
 
           {/* Email cards */}
-          {loading && !emails ?
+          {loading && !emails ? (
             <div className="flex items-center justify-center py-8">
               <Spinner size="md" className="text-foreground-alt" />
             </div>
-          : <>
+          ) : (
+            <>
               {emails?.map((e) => (
                 <EmailCard
                   key={e.email}
@@ -113,7 +114,7 @@ export function VerifyEmailPage() {
                   </p>
                 )}
             </>
-          }
+          )}
 
           {/* Continue button after successful verification */}
           {hasVerified && (
@@ -235,17 +236,21 @@ function EmailCard({
             verified ? 'bg-brand/20' : 'bg-brand/10',
           )}
         >
-          {verified ?
+          {verified ? (
             <LuCheck className="text-brand size-4" />
-          : <LuMail className="text-brand size-4" />}
+          ) : (
+            <LuMail className="text-brand size-4" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-foreground truncate text-sm font-medium">
             {addr}
           </h3>
-          {verified ?
+          {verified ? (
             <p className="text-brand text-xs">Verified</p>
-          : <p className="text-foreground-alt text-xs">Not yet verified</p>}
+          ) : (
+            <p className="text-foreground-alt text-xs">Not yet verified</p>
+          )}
         </div>
 
         {/* Actions */}
@@ -260,11 +265,13 @@ function EmailCard({
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              {sending ?
+              {sending ? (
                 <Spinner size="sm" />
-              : retryAfter > 0 ?
+              ) : retryAfter > 0 ? (
                 retryAfter + 's'
-              : 'Send code'}
+              ) : (
+                'Send code'
+              )}
             </button>
           )}
           {!primary && !verified && (
@@ -326,11 +333,11 @@ function EmailCard({
             disabled={sending || busy || retryAfter > 0}
             className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors disabled:opacity-50"
           >
-            {sending ?
-              'Sending...'
-            : retryAfter > 0 ?
-              'Resend in ' + retryAfter + 's'
-            : "Didn't get it? Send again"}
+            {sending
+              ? 'Sending...'
+              : retryAfter > 0
+                ? 'Resend in ' + retryAfter + 's'
+                : "Didn't get it? Send again"}
           </button>
         </div>
       )}

@@ -71,9 +71,9 @@ export function useUploadManager(
       if (nextGroupIds.length === 0) return prev
 
       const next = prev.map((item) =>
-        item.status === 'queued' && nextGroupIds.includes(item.groupId) ?
-          { ...item, status: 'uploading' as const }
-        : item,
+        item.status === 'queued' && nextGroupIds.includes(item.groupId)
+          ? { ...item, status: 'uploading' as const }
+          : item,
       )
 
       return next
@@ -112,9 +112,9 @@ export function useUploadManager(
       if (!h) {
         setItems((cur) =>
           cur.map((c) =>
-            c.groupId === groupId ?
-              { ...c, status: 'error' as const, error: 'No handle' }
-            : c,
+            c.groupId === groupId
+              ? { ...c, status: 'error' as const, error: 'No handle' }
+              : c,
           ),
         )
         continue
@@ -130,25 +130,25 @@ export function useUploadManager(
       )
       entries.push(
         ...groupItems.flatMap((item) =>
-          item.kind === 'file' && item.file !== null ?
-            [
-              {
-                kind: 'file' as const,
-                path: item.path,
-                totalSize: BigInt(item.totalSize),
-                stream: item.file.stream(),
-                onProgress: (bytesWritten: bigint) => {
-                  setItems((cur) =>
-                    cur.map((c) =>
-                      c.id === item.id ?
-                        { ...c, bytesWritten: Number(bytesWritten) }
-                      : c,
-                    ),
-                  )
+          item.kind === 'file' && item.file !== null
+            ? [
+                {
+                  kind: 'file' as const,
+                  path: item.path,
+                  totalSize: BigInt(item.totalSize),
+                  stream: item.file.stream(),
+                  onProgress: (bytesWritten: bigint) => {
+                    setItems((cur) =>
+                      cur.map((c) =>
+                        c.id === item.id
+                          ? { ...c, bytesWritten: Number(bytesWritten) }
+                          : c,
+                      ),
+                    )
+                  },
                 },
-              },
-            ]
-          : [],
+              ]
+            : [],
         ),
       )
 
@@ -157,9 +157,9 @@ export function useUploadManager(
           groupDirsRef.current.delete(groupId)
           setItems((cur) =>
             cur.map((c) =>
-              c.groupId === groupId ?
-                { ...c, status: 'done' as const, bytesWritten: c.totalSize }
-              : c,
+              c.groupId === groupId
+                ? { ...c, status: 'done' as const, bytesWritten: c.totalSize }
+                : c,
             ),
           )
         })
@@ -169,9 +169,9 @@ export function useUploadManager(
           const msg = err instanceof Error ? err.message : 'Upload failed'
           setItems((cur) =>
             cur.map((c) =>
-              c.groupId === groupId ?
-                { ...c, status: 'error' as const, error: msg }
-              : c,
+              c.groupId === groupId
+                ? { ...c, status: 'error' as const, error: msg }
+                : c,
             ),
           )
         })

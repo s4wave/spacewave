@@ -50,8 +50,9 @@ export function resolveSpaceIndexPath(
   }
 
   return {
-    path:
-      parsed.path ? replacement + SUBPATH_DELIMITER + parsed.path : replacement,
+    path: parsed.path
+      ? replacement + SUBPATH_DELIMITER + parsed.path
+      : replacement,
     stale: true,
   }
 }
@@ -87,9 +88,9 @@ export function SpaceIndex() {
     [indexPath, spaceState.worldContents?.objects],
   )
   const redirectPath =
-    indexResolution.path && indexResolution.path !== '/' ?
-      indexResolution.path
-    : null
+    indexResolution.path && indexResolution.path !== '/'
+      ? indexResolution.path
+      : null
 
   const handleCreateClick = useCallback(() => {
     openCommand('spacewave.create-object')

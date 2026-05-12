@@ -110,13 +110,15 @@ export function Toolbar({
         </div>
       )}
 
-      {showPath ?
+      {showPath ? (
         <PathBar
           path={currentPath}
           onPathChange={onPathChange}
           onNavigate={onNavigate}
         />
-      : <div className="flex-1" />}
+      ) : (
+        <div className="flex-1" />
+      )}
 
       {(onNewFolder || onUploadFiles) && (
         <div className="flex items-center gap-0.5">
@@ -137,14 +139,15 @@ export function Toolbar({
         </div>
       )}
 
-      {showOverflow ?
-        searchActive ?
+      {showOverflow ? (
+        searchActive ? (
           <SearchBox
             placeholder="Search"
             focusOnMount
             onBlur={() => setSearchActive(false)}
           />
-        : <OverflowMenu
+        ) : (
+          <OverflowMenu
             collapseLevel={collapseLevel}
             onSearchClick={() => setSearchActive(true)}
             onBack={onBack}
@@ -154,8 +157,10 @@ export function Toolbar({
             canGoForward={canGoForward}
             canGoUp={canGoUp}
           />
-
-      : <SearchBox placeholder="Search" />}
+        )
+      ) : (
+        <SearchBox placeholder="Search" />
+      )}
     </PanelHeader>
   )
 }
@@ -179,9 +184,9 @@ function NavIconButton({ icon, label, onClick, disabled }: NavIconButtonProps) {
       aria-label={label}
       className={cn(
         'flex size-6 items-center justify-center rounded transition-colors',
-        disabled ?
-          'text-foreground-alt/30 cursor-default'
-        : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
+        disabled
+          ? 'text-foreground-alt/30 cursor-default'
+          : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
       )}
     >
       {icon}

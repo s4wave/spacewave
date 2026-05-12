@@ -235,10 +235,11 @@ export function StateNamespaceProvider({
   const namespace = useMemoPath(inheritedNamespace ?? namespaceProp)
   const contextValue = useMemo(() => {
     const parentNamespace = parentContext?.namespace ?? []
-    const childNamespace =
-      inheritedNamespace ? namespace
-      : namespace.length > 0 ? [...parentNamespace, ...namespace]
-      : parentNamespace
+    const childNamespace = inheritedNamespace
+      ? namespace
+      : namespace.length > 0
+        ? [...parentNamespace, ...namespace]
+        : parentNamespace
 
     return {
       namespace: childNamespace,
@@ -351,9 +352,9 @@ export function useStateAtom<T>(
     (update: T | ((prev: T) => T)) => {
       if (!stateAtom) return
       const newValue =
-        typeof update === 'function' ?
-          (update as (prev: T) => T)(getValue())
-        : update
+        typeof update === 'function'
+          ? (update as (prev: T) => T)(getValue())
+          : update
       const state = stateAtom.get()
       stateAtom.set(
         setDeepValue(state, path, key, newValue, defaultValueLatest.current),

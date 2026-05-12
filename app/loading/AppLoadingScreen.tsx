@@ -167,9 +167,9 @@ function BrowserStartupPreviewSurface({
                   key={item}
                   className={cn(
                     'h-12 rounded-md border transition-colors duration-300 motion-reduce:transition-none',
-                    index <= phaseIndex ?
-                      'border-brand/20 bg-brand/15'
-                    : 'border-foreground/6 bg-foreground/[0.04]',
+                    index <= phaseIndex
+                      ? 'border-brand/20 bg-brand/15'
+                      : 'border-foreground/6 bg-foreground/[0.04]',
                   )}
                 />
               ))}

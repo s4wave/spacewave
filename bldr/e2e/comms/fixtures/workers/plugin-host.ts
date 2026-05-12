@@ -21,7 +21,10 @@ self.onmessage = async (ev: MessageEvent<InitMsg>) => {
 
   // Echo back the received detection config to verify init message passthrough.
   if (workerCommsDetect) {
-    self.postMessage({ type: 'config-received', config: workerCommsDetect.config })
+    self.postMessage({
+      type: 'config-received',
+      config: workerCommsDetect.config,
+    })
   }
 
   // Dynamically import the plugin script and call its default export.

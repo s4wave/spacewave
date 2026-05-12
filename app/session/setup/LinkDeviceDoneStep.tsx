@@ -106,16 +106,18 @@ export function LinkDeviceDoneStep({
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3">
         <div className="bg-brand/10 flex size-12 items-center justify-center rounded-full">
-          {syncDone ?
+          {syncDone ? (
             <LuCircleCheck className="text-brand size-6" />
-          : <Spinner size="lg" className="text-brand" />}
+          ) : (
+            <Spinner size="lg" className="text-brand" />
+          )}
         </div>
         <h2 className="text-foreground text-sm font-medium">
-          {syncState === 'confirming' ?
-            'Confirming linked device...'
-          : syncDone ?
-            'All set!'
-          : 'Finishing device sync...'}
+          {syncState === 'confirming'
+            ? 'Confirming linked device...'
+            : syncDone
+              ? 'All set!'
+              : 'Finishing device sync...'}
         </h2>
       </div>
 

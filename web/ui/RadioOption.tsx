@@ -25,9 +25,9 @@ function RadioOption({
       onClick={onSelect}
       className={cn(
         'w-full rounded-md border p-2.5 text-left transition-all duration-200',
-        selected ?
-          'border-brand/30 bg-brand/5'
-        : 'border-foreground/10 bg-background/20 hover:border-foreground/20',
+        selected
+          ? 'border-brand/30 bg-brand/5'
+          : 'border-foreground/10 bg-background/20 hover:border-foreground/20',
         className,
       )}
     >
@@ -52,9 +52,9 @@ function RadioOption({
               <span
                 className={cn(
                   'rounded px-1.5 py-0.5 text-[10px] font-medium',
-                  selected ?
-                    'bg-brand/20 text-brand'
-                  : 'bg-foreground/10 text-foreground-alt',
+                  selected
+                    ? 'bg-brand/20 text-brand'
+                    : 'bg-foreground/10 text-foreground-alt',
                 )}
               >
                 {tag}

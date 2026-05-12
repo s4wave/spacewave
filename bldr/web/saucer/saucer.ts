@@ -1,4 +1,3 @@
-
 /**
  * saucer.ts provides the interface for JS to communicate with the Go runtime
  * via the C++ Saucer process. Uses a single yamux-multiplexed connection over
@@ -159,9 +158,8 @@ export class SaucerRuntimeClient {
 
       // Build a server handler for incoming streams from Go.
       const incomingHandler = this.handleIncomingStream
-      const server =
-        incomingHandler ?
-          {
+      const server = incomingHandler
+        ? {
             handlePacketStream: (strm: Parameters<HandleStreamFunc>[0]) => {
               incomingHandler(strm).catch((err: Error) => {
                 console.error('[saucer] Incoming stream error:', err)
@@ -217,9 +215,11 @@ export class SaucerRuntimeClient {
       for await (const chunk of source) {
         if (abortController.signal.aborted) break
         const data =
-          chunk instanceof Uint8Array ? chunk
-          : chunk instanceof Uint8ArrayList ? chunk.subarray()
-          : new Uint8Array(chunk)
+          chunk instanceof Uint8Array
+            ? chunk
+            : chunk instanceof Uint8ArrayList
+              ? chunk.subarray()
+              : new Uint8Array(chunk)
         const resp = await fetch(muxUrl, {
           method: 'POST',
           body: data as unknown as BodyInit,

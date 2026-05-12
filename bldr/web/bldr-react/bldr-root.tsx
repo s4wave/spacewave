@@ -26,9 +26,7 @@ export const BldrRoot: React.FC<IBldrRootProps> = React.memo((props) => {
       webDocument={props.webDocument || undefined}
       webDocumentOpts={props.webDocumentOpts}
     >
-      {!props.disableRootWebView ?
-        <WebView isPermanent={true} />
-      : undefined}
+      {!props.disableRootWebView ? <WebView isPermanent={true} /> : undefined}
       {props.children}
     </WebDocument>
   )

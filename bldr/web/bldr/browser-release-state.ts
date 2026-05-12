@@ -139,9 +139,11 @@ export function promoteBrowserRelease(
     discovered: release,
     staged: release,
     promotedCurrent: release,
-    promotedPrevious:
-      sameBrowserRelease(state.promotedCurrent, state.promotedPrevious) ?
-        state.promotedPrevious
+    promotedPrevious: sameBrowserRelease(
+      state.promotedCurrent,
+      state.promotedPrevious,
+    )
+      ? state.promotedPrevious
       : state.promotedCurrent,
   }
 }

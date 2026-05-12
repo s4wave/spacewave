@@ -68,9 +68,11 @@ export function CommitRow({
         onClick={handleCommitExpand}
         onKeyDown={handleCommitExpandKeyDown}
       >
-        {expanded ?
+        {expanded ? (
           <LuChevronDown className="text-foreground-alt size-3 shrink-0" />
-        : <LuChevronRight className="text-foreground-alt size-3 shrink-0" />}
+        ) : (
+          <LuChevronRight className="text-foreground-alt size-3 shrink-0" />
+        )}
         <button
           type="button"
           className="text-brand shrink-0 cursor-pointer bg-transparent p-0 font-mono hover:underline"
@@ -97,9 +99,9 @@ export function CommitRow({
           )}
           {(commit.parentHashes?.length ?? 0) > 0 && (
             <div className="text-foreground-alt mb-2 text-xs">
-              {(commit.parentHashes?.length ?? 0) > 1 ?
-                'Parents: '
-              : 'Parent: '}
+              {(commit.parentHashes?.length ?? 0) > 1
+                ? 'Parents: '
+                : 'Parent: '}
               {commit.parentHashes?.map((ph) => ph.slice(0, 7)).join(', ')}
             </div>
           )}

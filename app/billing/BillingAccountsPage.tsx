@@ -251,8 +251,9 @@ export function BillingAccountsPage() {
             title="No billing accounts yet"
             description="A billing account holds your subscription. Create one, run checkout to activate it, then assign it to your personal account or to an organization you own."
             action={{
-              label:
-                creating ? 'Creating...' : 'Create your first BillingAccount',
+              label: creating
+                ? 'Creating...'
+                : 'Create your first BillingAccount',
               onClick: () => void handleCreate(),
             }}
             className="border-foreground/10 bg-foreground/5 rounded-md border"
@@ -315,10 +316,9 @@ export function BillingAccountsPage() {
                         const isPersonal =
                           a.ownerType === 'account' &&
                           a.ownerId === callerAccountId
-                        const label =
-                          isPersonal ? 'Personal' : (
-                            a.displayName || a.ownerId || ''
-                          )
+                        const label = isPersonal
+                          ? 'Personal'
+                          : a.displayName || a.ownerId || ''
                         return (
                           <span
                             key={`${a.ownerType}:${a.ownerId}`}
@@ -372,9 +372,9 @@ export function BillingAccountsPage() {
                               <LuCheck
                                 className={cn(
                                   'size-3',
-                                  isSelected ? 'text-brand' : (
-                                    'text-transparent'
-                                  ),
+                                  isSelected
+                                    ? 'text-brand'
+                                    : 'text-transparent',
                                 )}
                               />
                               <span>{t.label}</span>

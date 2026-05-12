@@ -95,12 +95,13 @@ export function SSOUnlockCard(props: SSOUnlockCardProps) {
                 }
               }}
             />
-            {pinError ?
+            {pinError ? (
               <p className="text-destructive text-xs">{pinError}</p>
-            : <p className="text-foreground-alt/50 text-xs">
+            ) : (
+              <p className="text-foreground-alt/50 text-xs">
                 The PIN you set when this account was created.
               </p>
-            }
+            )}
           </label>
           <AuthPrimaryActionButton
             onClick={onSubmit}

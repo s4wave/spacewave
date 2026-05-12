@@ -213,12 +213,11 @@ export function SSOLinkDialog({
             Link {getProviderLabel(provider)}
           </DialogTitle>
           <DialogDescription>
-            {isDesktop ?
-              `Sign in with ${getProviderLabel(provider)} in your system
+            {isDesktop
+              ? `Sign in with ${getProviderLabel(provider)} in your system
                browser, then confirm the link in this window.`
-            : `Open the provider sign-in page in a popup, then confirm the
-               link in this window.`
-            }
+              : `Open the provider sign-in page in a popup, then confirm the
+               link in this window.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -233,14 +232,13 @@ export function SSOLinkDialog({
                   Continue with {getProviderLabel(provider)}
                 </p>
                 <p className="text-foreground-alt text-xs">
-                  {isDesktop ?
-                    `The provider page opens in your system browser so this
+                  {isDesktop
+                    ? `The provider page opens in your system browser so this
                      app keeps its current account state and unlocked-key
                      context.`
-                  : `The provider page opens in a separate window so this
+                    : `The provider page opens in a separate window so this
                      session keeps its current account state and unlocked-key
-                     context.`
-                  }
+                     context.`}
                 </p>
               </div>
             </div>
@@ -255,12 +253,11 @@ export function SSOLinkDialog({
                 </p>
               </div>
               <p className="text-foreground-alt mt-1 text-xs">
-                {isDesktop ?
-                  `Finish the provider sign-in in your browser, then return
+                {isDesktop
+                  ? `Finish the provider sign-in in your browser, then return
                    here to confirm the account link.`
-                : `Finish the provider sign-in in the popup, then return
-                   here to confirm the account link.`
-                }
+                  : `Finish the provider sign-in in the popup, then return
+                   here to confirm the account link.`}
               </p>
             </div>
           )}
@@ -293,11 +290,11 @@ export function SSOLinkDialog({
             )}
           >
             <LuArrowUpRight className="size-4" />
-            {waiting ?
-              'Open again'
-            : isDesktop ?
-              'Continue in browser'
-            : 'Continue in popup'}
+            {waiting
+              ? 'Open again'
+              : isDesktop
+                ? 'Continue in browser'
+                : 'Continue in popup'}
           </button>
         </DialogFooter>
       </DialogContent>

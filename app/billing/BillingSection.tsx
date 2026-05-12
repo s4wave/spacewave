@@ -62,11 +62,11 @@ export function BillingSection({
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
-        hasActive ?
+        hasActive ? (
           <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-[0.55rem] font-medium">
             Active
           </span>
-        : undefined
+        ) : undefined
       }
     >
       <div className="space-y-2">
@@ -102,24 +102,24 @@ export function BillingSection({
           <LoadingInline label="Loading billing info" tone="muted" size="sm" />
         )}
         {orgs.flatMap((org) =>
-          org.billingAccountId ?
-            [
-              <button
-                key={org.id}
-                onClick={() => {
-                  handleNavigate(`org/${org.id}/billing`)
-                }}
-                className="border-foreground/6 bg-background-card/20 hover:border-foreground/12 w-full cursor-pointer rounded-md border p-2.5 text-left transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-foreground text-xs font-medium">
-                    {org.displayName || org.id}
-                  </span>
-                  <span className="text-brand/60 text-xs">Manage</span>
-                </div>
-              </button>,
-            ]
-          : [],
+          org.billingAccountId
+            ? [
+                <button
+                  key={org.id}
+                  onClick={() => {
+                    handleNavigate(`org/${org.id}/billing`)
+                  }}
+                  className="border-foreground/6 bg-background-card/20 hover:border-foreground/12 w-full cursor-pointer rounded-md border p-2.5 text-left transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground text-xs font-medium">
+                      {org.displayName || org.id}
+                    </span>
+                    <span className="text-brand/60 text-xs">Manage</span>
+                  </div>
+                </button>,
+              ]
+            : [],
         )}
       </div>
     </CollapsibleSection>

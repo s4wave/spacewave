@@ -46,14 +46,15 @@ export function BlogTagPage({ tag, posts }: BlogTagPageProps) {
       <div className="via-foreground/8 relative z-10 mx-auto h-px w-full max-w-5xl bg-gradient-to-r from-transparent to-transparent" />
 
       <main className="relative z-10 mx-auto w-full max-w-5xl px-4 pt-10 pb-20 @lg:px-8">
-        {posts.length > 0 ?
+        {posts.length > 0 ? (
           <PostList posts={posts} />
-        : <div className="border-foreground/6 rounded-xl border border-dashed px-8 py-20 text-center">
+        ) : (
+          <div className="border-foreground/6 rounded-xl border border-dashed px-8 py-20 text-center">
             <p className="text-foreground-alt text-sm">
               No posts with this tag.
             </p>
           </div>
-        }
+        )}
       </main>
 
       <LegalFooter />

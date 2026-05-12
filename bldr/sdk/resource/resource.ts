@@ -65,5 +65,7 @@ export abstract class Resource {
 
   // watchDebugInfo returns an async iterable of debug info updates.
   // Override in subclasses that have dynamic debug info.
-  public watchDebugInfo?(abortSignal?: AbortSignal): AsyncIterable<ResourceDebugInfo>
+  public watchDebugInfo?(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<ResourceDebugInfo>
 }

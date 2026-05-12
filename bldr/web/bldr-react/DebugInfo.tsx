@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   use,
@@ -128,43 +127,43 @@ function DebugInfoDisplay({
   style,
   ...props
 }: DebugInfoDisplayProps) {
-    const [localDebugInfo, setLocalDebugInfo] = useState<React.ReactNode[]>([])
-    const context = use(DebugInfoContext)
+  const [localDebugInfo, setLocalDebugInfo] = useState<React.ReactNode[]>([])
+  const context = use(DebugInfoContext)
 
-    useEffect(() => {
-      if (!context) return
-      const unsubscribe = context.subscribeDebugInfo(setLocalDebugInfo)
-      return () => unsubscribe()
-    }, [context])
+  useEffect(() => {
+    if (!context) return
+    const unsubscribe = context.subscribeDebugInfo(setLocalDebugInfo)
+    return () => unsubscribe()
+  }, [context])
 
-    const mergedStyle = useMemo(
-      () => ({
-        ...debugInfoStyle,
-        ...style,
-      }),
-      [style],
-    )
+  const mergedStyle = useMemo(
+    () => ({
+      ...debugInfoStyle,
+      ...style,
+    }),
+    [style],
+  )
 
-    if (!localDebugInfo.length) {
-      return null
-    }
+  if (!localDebugInfo.length) {
+    return null
+  }
 
-    return (
-      <div ref={ref} className={className} style={mergedStyle} {...props}>
-        {localDebugInfo.map((info, index) => (
-          <div
-            style={
-              index !== 0 ?
-                { margin: '0.33rem 0', marginBlockEnd: 0 }
+  return (
+    <div ref={ref} className={className} style={mergedStyle} {...props}>
+      {localDebugInfo.map((info, index) => (
+        <div
+          style={
+            index !== 0
+              ? { margin: '0.33rem 0', marginBlockEnd: 0 }
               : { margin: 0 }
-            }
-            key={typeof info === 'string' ? info : `debug-${index}`}
-          >
-            {info}
-          </div>
-        ))}
-      </div>
-    )
+          }
+          key={typeof info === 'string' ? info : `debug-${index}`}
+        >
+          {info}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 DebugInfoDisplay.displayName = 'DebugInfoDisplay'

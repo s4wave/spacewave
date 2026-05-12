@@ -151,9 +151,9 @@ export function SessionDetails({
   const localDisplayName = useWatchStateRpc(
     useCallback(
       (req: WatchLocalDisplayNameRequest, signal: AbortSignal) =>
-        isLocal && session ?
-          session.localProvider.watchDisplayName(req, signal)
-        : null,
+        isLocal && session
+          ? session.localProvider.watchDisplayName(req, signal)
+          : null,
       [isLocal, session],
     ),
     localDisplayNameReq,
@@ -442,7 +442,7 @@ export function SessionDetails({
                           >
                             Display Name
                           </label>
-                          {editingDisplayName ?
+                          {editingDisplayName ? (
                             <>
                               <div className="flex items-center gap-2">
                                 <Input
@@ -489,7 +489,8 @@ export function SessionDetails({
                                 </div>
                               )}
                             </>
-                          : <div className="flex items-center justify-between gap-2">
+                          ) : (
+                            <div className="flex items-center justify-between gap-2">
                               <div
                                 className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-xs transition-colors"
                                 role="button"
@@ -511,14 +512,14 @@ export function SessionDetails({
                                 Edit
                               </DashboardButton>
                             </div>
-                          }
+                          )}
                         </div>
                       </div>
                     </InfoCard>
                   </CollapsibleSection>
                 )}
 
-                {!isLocal && account ?
+                {!isLocal && account ? (
                   <AccountDashboardStateProvider account={accountResource}>
                     <AuthMethodsSection
                       account={accountResource}
@@ -545,7 +546,8 @@ export function SessionDetails({
                       onLinkDeviceClick={handleOpenLinkDevice}
                     />
                   </AccountDashboardStateProvider>
-                : <>
+                ) : (
+                  <>
                     <SecuritySection
                       account={accountResource}
                       retainStepUp={retainStepUp}
@@ -563,7 +565,7 @@ export function SessionDetails({
                       />
                     )}
                   </>
-                }
+                )}
                 <OrganizationsSection
                   open={openSection === 'orgs'}
                   onOpenChange={handleSectionOpenChange('orgs')}
@@ -721,9 +723,9 @@ export function SessionDetails({
                               {isLocal ? 'Delete Local Data' : 'Delete Account'}
                             </h4>
                             <p className="text-destructive/80 group-hover:text-destructive-foreground/80 text-xs transition-colors select-none">
-                              {isLocal ?
-                                'Permanently remove this account and all local data'
-                              : 'Permanently delete this account and all data'}
+                              {isLocal
+                                ? 'Permanently remove this account and all local data'
+                                : 'Permanently delete this account and all data'}
                             </p>
                           </div>
                         </button>

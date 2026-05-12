@@ -199,10 +199,13 @@ function StateBadgeSection() {
 
 function CurrentBadge({ label }: StateSpec) {
   const color =
-    label === 'COMPLETE' ? 'bg-green-600'
-    : label === 'RUNNING' || label === 'CHECKING' ? 'bg-blue-600'
-    : label === 'RETRY' ? 'bg-red-600'
-    : 'bg-neutral-600'
+    label === 'COMPLETE'
+      ? 'bg-green-600'
+      : label === 'RUNNING' || label === 'CHECKING'
+        ? 'bg-blue-600'
+        : label === 'RETRY'
+          ? 'bg-red-600'
+          : 'bg-neutral-600'
   return (
     <span
       className={cn(
@@ -596,9 +599,9 @@ function CurrentTabs({
           onClick={() => onSelect(i)}
           className={cn(
             'relative px-3 pt-1 pb-1.5 text-xs font-medium transition-colors',
-            i === active ? 'text-foreground' : (
-              'text-foreground/50 hover:text-foreground/70'
-            ),
+            i === active
+              ? 'text-foreground'
+              : 'text-foreground/50 hover:text-foreground/70',
           )}
         >
           {label}
@@ -627,9 +630,9 @@ function BrandTabs({
           onClick={() => onSelect(i)}
           className={cn(
             'relative px-3 pt-1.5 pb-2 text-xs font-medium tracking-tight transition-colors',
-            i === active ? 'text-foreground' : (
-              'text-foreground-alt/50 hover:text-foreground-alt/80'
-            ),
+            i === active
+              ? 'text-foreground'
+              : 'text-foreground-alt/50 hover:text-foreground-alt/80',
           )}
         >
           {label}
@@ -658,9 +661,9 @@ function PillTabs({
           onClick={() => onSelect(i)}
           className={cn(
             'rounded px-2.5 py-1 text-xs font-medium transition-colors',
-            i === active ?
-              'bg-brand/10 text-foreground border-brand/20 border'
-            : 'text-foreground-alt/60 hover:text-foreground-alt/90 border border-transparent',
+            i === active
+              ? 'bg-brand/10 text-foreground border-brand/20 border'
+              : 'text-foreground-alt/60 hover:text-foreground-alt/90 border border-transparent',
           )}
         >
           {label}
@@ -701,9 +704,9 @@ function ViewerShellSection() {
               onClick={() => setTab(i)}
               className={cn(
                 'relative px-3 pt-1.5 pb-2 text-xs font-medium tracking-tight transition-colors',
-                i === tab ? 'text-foreground' : (
-                  'text-foreground-alt/50 hover:text-foreground-alt/80'
-                ),
+                i === tab
+                  ? 'text-foreground'
+                  : 'text-foreground-alt/50 hover:text-foreground-alt/80',
               )}
             >
               {label}
@@ -793,17 +796,21 @@ function MiniStat({
       <span
         className={cn(
           'flex size-6 shrink-0 items-center justify-center rounded',
-          tone === 'success' ? 'bg-emerald-400/10'
-          : tone === 'error' ? 'bg-destructive/10'
-          : 'bg-blue-400/10',
+          tone === 'success'
+            ? 'bg-emerald-400/10'
+            : tone === 'error'
+              ? 'bg-destructive/10'
+              : 'bg-blue-400/10',
         )}
       >
         <Icon
           className={cn(
             'size-3',
-            tone === 'success' ? 'text-emerald-300'
-            : tone === 'error' ? 'text-destructive'
-            : 'text-blue-300',
+            tone === 'success'
+              ? 'text-emerald-300'
+              : tone === 'error'
+                ? 'text-destructive'
+                : 'text-blue-300',
           )}
         />
       </span>
@@ -831,9 +838,9 @@ function ShellAction({
       type="button"
       className={cn(
         'flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors',
-        variant === 'destructive' ?
-          'text-destructive hover:bg-destructive/10'
-        : 'text-foreground/80 hover:bg-foreground/5',
+        variant === 'destructive'
+          ? 'text-destructive hover:bg-destructive/10'
+          : 'text-foreground/80 hover:bg-foreground/5',
       )}
     >
       {icon}

@@ -203,13 +203,13 @@ function getHealthSummary(health: SharedObjectHealth): {
   return {
     badge: 'Closed',
     title:
-      health.layer === SharedObjectHealthLayer.BODY ?
-        'Shared object body failed'
-      : 'Shared object unavailable',
+      health.layer === SharedObjectHealthLayer.BODY
+        ? 'Shared object body failed'
+        : 'Shared object unavailable',
     description:
-      health.layer === SharedObjectHealthLayer.BODY ?
-        'The shared object opened, but the body content could not be mounted.'
-      : 'Alpha could not mount this shared object.',
+      health.layer === SharedObjectHealthLayer.BODY
+        ? 'The shared object opened, but the body content could not be mounted.'
+        : 'Alpha could not mount this shared object.',
     hint: '',
   }
 }
@@ -320,9 +320,9 @@ function RemediationActionButton({
       onClick={onClick}
       disabled={disabled || !!disabledReason}
       className={
-        (active ?
-          'border-foreground/15 bg-foreground/8 text-foreground '
-        : '') + className
+        (active
+          ? 'border-foreground/15 bg-foreground/8 text-foreground '
+          : '') + className
       }
     >
       {label}
@@ -443,11 +443,11 @@ function SharedObjectHealthCard({
                 {summary.hint ||
                   'Review the issue details below before choosing the next step.'}
               </p>
-              {detail ?
+              {detail ? (
                 <div className="border-foreground/8 bg-foreground/5 text-foreground-alt/80 mt-2.5 rounded-md border px-2.5 py-1.5 text-[0.7rem] leading-relaxed break-words whitespace-pre-wrap">
                   {detail}
                 </div>
-              : null}
+              ) : null}
             </div>
 
             <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
@@ -458,24 +458,23 @@ function SharedObjectHealthCard({
                 </span>
               </div>
               <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-                {selectedAction === 'repair' ?
-                  'Repair keeps the current shared object identity, but it can rewrite recovery state. Confirm only after checking that the current state is backed up or recoverable.'
-                : selectedAction === 'reinitialize' ?
-                  'Reinitialize is destructive. It rewrites the broken shared object in place on the same shared object id and canonical URL.'
-                : mutationPermission.canMutate ?
-                  'Choose Repair only after checking the current shared object state. Reinitialize rewrites the shared object in place. You can also go back and decide later.'
-                : 'You do not have permission to repair or reinitialize this shared object from the current account. The action set stays visible here so the owner can recover it without losing this route.'
-                }
+                {selectedAction === 'repair'
+                  ? 'Repair keeps the current shared object identity, but it can rewrite recovery state. Confirm only after checking that the current state is backed up or recoverable.'
+                  : selectedAction === 'reinitialize'
+                    ? 'Reinitialize is destructive. It rewrites the broken shared object in place on the same shared object id and canonical URL.'
+                    : mutationPermission.canMutate
+                      ? 'Choose Repair only after checking the current shared object state. Reinitialize rewrites the shared object in place. You can also go back and decide later.'
+                      : 'You do not have permission to repair or reinitialize this shared object from the current account. The action set stays visible here so the owner can recover it without losing this route.'}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {showRetry ?
+                {showRetry ? (
                   <DashboardButton
                     icon={<LuRotateCcw className="size-3.5" />}
                     onClick={onRetry}
                   >
                     Retry
                   </DashboardButton>
-                : null}
+                ) : null}
                 <RemediationActionButton
                   icon={<LuRefreshCw className="size-3.5" />}
                   label="Repair"
@@ -483,9 +482,9 @@ function SharedObjectHealthCard({
                     setConfirmingRepair(true)
                   }}
                   disabledReason={
-                    mutationPermission.canMutate ? '' : (
-                      mutationPermission.disabledReason
-                    )
+                    mutationPermission.canMutate
+                      ? ''
+                      : mutationPermission.disabledReason
                   }
                   disabled={mutationPending}
                   active={selectedAction === 'repair'}
@@ -495,16 +494,16 @@ function SharedObjectHealthCard({
                   label="Reinitialize"
                   onClick={() => setConfirmingReinitialize(true)}
                   disabledReason={
-                    mutationPermission.canMutate ? '' : (
-                      mutationPermission.disabledReason
-                    )
+                    mutationPermission.canMutate
+                      ? ''
+                      : mutationPermission.disabledReason
                   }
                   disabled={mutationPending}
                   active={selectedAction === 'reinitialize'}
                   className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 />
               </div>
-              {confirmingRepair ?
+              {confirmingRepair ? (
                 <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
                   <div className="flex items-center gap-1.5">
                     <LuTriangleAlert className="text-destructive size-3.5" />
@@ -539,8 +538,8 @@ function SharedObjectHealthCard({
                     </DashboardButton>
                   </div>
                 </div>
-              : null}
-              {confirmingReinitialize ?
+              ) : null}
+              {confirmingReinitialize ? (
                 <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
                   <div className="flex items-center gap-1.5">
                     <LuShieldAlert className="text-destructive size-3.5" />
@@ -575,19 +574,19 @@ function SharedObjectHealthCard({
                     </DashboardButton>
                   </div>
                 </div>
-              : null}
-              {selectedAction ?
+              ) : null}
+              {selectedAction ? (
                 <p className="text-foreground-alt/55 mt-2.5 text-[0.7rem]">
-                  {selectedAction === 'repair' ?
-                    'Repair is selected for this broken shared object.'
-                  : 'Reinitialize is selected for this broken shared object.'}
+                  {selectedAction === 'repair'
+                    ? 'Repair is selected for this broken shared object.'
+                    : 'Reinitialize is selected for this broken shared object.'}
                 </p>
-              : null}
-              {mutationError ?
+              ) : null}
+              {mutationError ? (
                 <p className="text-destructive mt-2.5 text-[0.7rem]">
                   {mutationError}
                 </p>
-              : null}
+              ) : null}
             </div>
           </div>
         </div>
@@ -715,13 +714,13 @@ export function SessionSharedObjectContainer() {
       <br />
       Meta:{' '}
       <pre>
-        {sharedObjectResource.value ?
-          JSON.stringify(
-            MountSharedObjectResponse.toJson(sharedObjectResource.value.meta),
-            null,
-            4,
-          )
-        : 'none'}
+        {sharedObjectResource.value
+          ? JSON.stringify(
+              MountSharedObjectResponse.toJson(sharedObjectResource.value.meta),
+              null,
+              4,
+            )
+          : 'none'}
       </pre>
       Shared object body loaded: {(!!sharedObjectBodyResource.value).toString()}
       <br />
@@ -894,16 +893,16 @@ export function SessionSharedObjectContainer() {
   const body = (
     <>
       {debugInfo}
-      {sharedObjectResource.value && sharedObjectBodyResource.value ?
+      {sharedObjectResource.value && sharedObjectBodyResource.value ? (
         <SharedObjectBodyContainer />
-      : needsSelfEnrollmentStepUp ?
+      ) : needsSelfEnrollmentStepUp ? (
         <ErrorState
           variant="fullscreen"
           title="Unlock to open this Space"
           message="This Space needs your account key so this session can be connected before opening it."
           onRetry={() => setSelfEnrollmentStepUpOpen(true)}
         />
-      : isBlocked ?
+      ) : isBlocked ? (
         <ErrorState
           variant="fullscreen"
           title="Content Unavailable"
@@ -917,7 +916,7 @@ export function SessionSharedObjectContainer() {
             DMCA Policy
           </a>
         </ErrorState>
-      : resourceError ?
+      ) : resourceError ? (
         <SharedObjectHealthCard
           health={
             activeHealth ??
@@ -934,7 +933,7 @@ export function SessionSharedObjectContainer() {
           mutationPending={mutationPending}
           mutationError={mutationError}
         />
-      : activeHealth ?
+      ) : activeHealth ? (
         <SharedObjectHealthCard
           health={activeHealth}
           onRetry={handleRetry}
@@ -945,13 +944,14 @@ export function SessionSharedObjectContainer() {
           mutationPending={mutationPending}
           mutationError={mutationError}
         />
-      : <SpaceMountingScreen
+      ) : (
+        <SpaceMountingScreen
           stage="resolve"
           detail="Looking up the shared object."
           onBack={handleBack}
         />
-      }
-      {credentialRepairOpen ?
+      )}
+      {credentialRepairOpen ? (
         <AccountDashboardStateProvider account={accountResource}>
           <AuthConfirmDialog
             open={credentialRepairOpen}
@@ -970,8 +970,8 @@ export function SessionSharedObjectContainer() {
             retainAfterClose
           />
         </AccountDashboardStateProvider>
-      : null}
-      {needsSelfEnrollmentStepUp ?
+      ) : null}
+      {needsSelfEnrollmentStepUp ? (
         <AccountDashboardStateProvider account={accountResource}>
           <AuthConfirmDialog
             open={selfEnrollmentStepUpOpen}
@@ -990,7 +990,7 @@ export function SessionSharedObjectContainer() {
             retainAfterClose
           />
         </AccountDashboardStateProvider>
-      : null}
+      ) : null}
     </>
   )
 

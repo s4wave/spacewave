@@ -194,11 +194,11 @@ export function NoActiveBillingAccountPage() {
 
   const disableActions = !session || checkout.polling || !target.ownerId
 
-  const title =
-    hasAccounts ? 'Reactivate a billing account' : 'Create a billing account'
-  const subtitle =
-    hasAccounts ?
-      'None of your billing accounts are currently active. Reactivate one below or create a new one to continue using Spacewave Cloud.'
+  const title = hasAccounts
+    ? 'Reactivate a billing account'
+    : 'Create a billing account'
+  const subtitle = hasAccounts
+    ? 'None of your billing accounts are currently active. Reactivate one below or create a new one to continue using Spacewave Cloud.'
     : 'Create a billing account to continue using Spacewave Cloud.'
 
   // Relative redirects resolve against the current URL, not the session
@@ -214,9 +214,11 @@ export function NoActiveBillingAccountPage() {
       <div className="mt-4 flex w-full justify-start">
         <div className="border-foreground/10 bg-background-card/35 inline-flex items-center gap-3 rounded-xl border p-3 backdrop-blur-sm">
           <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-xl">
-            {target.ownerType === 'organization' ?
+            {target.ownerType === 'organization' ? (
               <LuBuilding2 className="size-5" />
-            : <RxPerson className="size-5" />}
+            ) : (
+              <RxPerson className="size-5" />
+            )}
           </div>
           <div className="min-w-0">
             <div className="text-foreground-alt/60 text-[11px] font-medium tracking-[0.18em] uppercase">
@@ -286,8 +288,9 @@ export function NoActiveBillingAccountPage() {
             const baId = ba.id ?? ''
             const isBusy = activatingBaId === baId
             const isActive = isStatusActive(ba.subscriptionStatus)
-            const activateLabel =
-              isActive ? 'Use this billing account' : 'Activate'
+            const activateLabel = isActive
+              ? 'Use this billing account'
+              : 'Activate'
             return (
               <li
                 key={baId}
@@ -333,9 +336,11 @@ export function NoActiveBillingAccountPage() {
                       'disabled:cursor-not-allowed disabled:opacity-50',
                     )}
                   >
-                    {isBusy ?
+                    {isBusy ? (
                       <Spinner size="sm" />
-                    : <LuZap className="size-3.5" />}
+                    ) : (
+                      <LuZap className="size-3.5" />
+                    )}
                     <span>{isBusy ? 'Starting...' : activateLabel}</span>
                   </button>
                 </div>
@@ -351,15 +356,13 @@ export function NoActiveBillingAccountPage() {
           disabled={creating || disableActions}
           className={cn(
             'flex cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
-            hasAccounts ?
-              'border-foreground/20 bg-foreground/5 text-foreground hover:bg-foreground/10'
-            : 'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
+            hasAccounts
+              ? 'border-foreground/20 bg-foreground/5 text-foreground hover:bg-foreground/10'
+              : 'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {creating ?
-            <Spinner />
-          : <LuPlus className="size-4" />}
+          {creating ? <Spinner /> : <LuPlus className="size-4" />}
           <span>{creating ? 'Creating...' : 'Create new billing account'}</span>
         </button>
       </div>

@@ -126,9 +126,9 @@ vi.mock('@aptre/flex-layout', () => {
     }) {
       const tabsetJson = json.layout.children[0]
       const selected =
-        typeof tabsetJson.selected === 'number' ?
-          (tabsetJson.children[tabsetJson.selected]?.id ?? null)
-        : null
+        typeof tabsetJson.selected === 'number'
+          ? (tabsetJson.children[tabsetJson.selected]?.id ?? null)
+          : null
       this.tabset = new MockTabSetNode(tabsetJson.id, selected)
       this.tabs = tabsetJson.children.map((child) => {
         const tab = new MockTabNode(child.id, child.name, this.tabset)

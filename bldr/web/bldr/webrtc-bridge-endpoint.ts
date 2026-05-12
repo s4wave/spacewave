@@ -50,13 +50,11 @@ export class WebRTCBridgeEndpoint {
       signalingState: pc.signalingState,
       iceConnectionState: pc.iceConnectionState,
       iceGatheringState: pc.iceGatheringState,
-      localDescription:
-        pc.localDescription ?
-          { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
+      localDescription: pc.localDescription
+        ? { type: pc.localDescription.type, sdp: pc.localDescription.sdp }
         : null,
-      remoteDescription:
-        pc.remoteDescription ?
-          { type: pc.remoteDescription.type, sdp: pc.remoteDescription.sdp }
+      remoteDescription: pc.remoteDescription
+        ? { type: pc.remoteDescription.type, sdp: pc.remoteDescription.sdp }
         : null,
     }
   }
@@ -82,11 +80,11 @@ export class WebRTCBridgeEndpoint {
       report.forEach((stat) => {
         if (stat.type !== 'candidate-pair') return
         const pair = stat as RTCIceCandidatePairStats
-        const localCandidate =
-          pair.localCandidateId ? local.get(pair.localCandidateId) : undefined
-        const remoteCandidate =
-          pair.remoteCandidateId ?
-            remote.get(pair.remoteCandidateId)
+        const localCandidate = pair.localCandidateId
+          ? local.get(pair.localCandidateId)
+          : undefined
+        const remoteCandidate = pair.remoteCandidateId
+          ? remote.get(pair.remoteCandidateId)
           : undefined
 
         pairs.push(
@@ -102,9 +100,8 @@ export class WebRTCBridgeEndpoint {
             requestsSent: pair.requestsSent,
             responsesReceived: pair.responsesReceived,
             responsesSent: pair.responsesSent,
-            local:
-              localCandidate ?
-                {
+            local: localCandidate
+              ? {
                   id: localCandidate.id,
                   address: localCandidate.address,
                   port: localCandidate.port,
@@ -112,9 +109,8 @@ export class WebRTCBridgeEndpoint {
                   candidateType: localCandidate.candidateType,
                 }
               : undefined,
-            remote:
-              remoteCandidate ?
-                {
+            remote: remoteCandidate
+              ? {
                   id: remoteCandidate.id,
                   address: remoteCandidate.address,
                   port: remoteCandidate.port,
@@ -181,9 +177,8 @@ export class WebRTCBridgeEndpoint {
       const event: BridgeEvent = {
         type: 'event:icecandidate',
         pcId,
-        candidate:
-          e.candidate ?
-            {
+        candidate: e.candidate
+          ? {
               candidate: e.candidate.candidate,
               sdpMid: e.candidate.sdpMid ?? undefined,
               sdpMLineIndex: e.candidate.sdpMLineIndex ?? undefined,

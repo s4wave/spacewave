@@ -54,9 +54,8 @@ function OrgMemberRow(props: {
   const [removing, setRemoving] = useState(false)
   const isMemberOwner = member.roleId === ORG_ROLE_OWNER
   const roleLabel = isMemberOwner ? 'Owner' : 'Member'
-  const joinedDate =
-    member.createdAt ?
-      new Date(Number(member.createdAt)).toLocaleDateString()
+  const joinedDate = member.createdAt
+    ? new Date(Number(member.createdAt)).toLocaleDateString()
     : ''
 
   const handleRemove = useCallback(async () => {
@@ -84,9 +83,9 @@ function OrgMemberRow(props: {
           <span
             className={cn(
               'rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase',
-              isMemberOwner ?
-                'bg-brand/15 text-brand'
-              : 'bg-foreground/10 text-foreground-alt/70',
+              isMemberOwner
+                ? 'bg-brand/15 text-brand'
+                : 'bg-foreground/10 text-foreground-alt/70',
             )}
           >
             {roleLabel}

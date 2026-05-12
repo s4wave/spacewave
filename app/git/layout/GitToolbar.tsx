@@ -62,9 +62,9 @@ export function GitToolbar({
           disabled={!canGoForward}
           className={cn(
             'rounded p-[2px]',
-            canGoForward ?
-              'hover:bg-pulldown-hover'
-            : 'cursor-default opacity-40',
+            canGoForward
+              ? 'hover:bg-pulldown-hover'
+              : 'cursor-default opacity-40',
           )}
         >
           <LuChevronRight className="text-foreground-alt size-4" />
@@ -74,9 +74,9 @@ export function GitToolbar({
           disabled={currentPath === '/'}
           className={cn(
             'rounded p-[2px]',
-            currentPath !== '/' ?
-              'hover:bg-pulldown-hover'
-            : 'cursor-default opacity-40',
+            currentPath !== '/'
+              ? 'hover:bg-pulldown-hover'
+              : 'cursor-default opacity-40',
           )}
         >
           <LuChevronUp className="text-foreground-alt size-4" />

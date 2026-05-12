@@ -181,15 +181,15 @@ export function CommandProvider({
       if (!service) return []
       const resp = await service.GetSubItems({ commandId, query }, signal)
       return (resp.items ?? []).flatMap((item) =>
-        item.id ?
-          [
-            {
-              id: item.id,
-              label: item.label ?? '',
-              description: item.description || undefined,
-            },
-          ]
-        : [],
+        item.id
+          ? [
+              {
+                id: item.id,
+                label: item.label ?? '',
+                description: item.description || undefined,
+              },
+            ]
+          : [],
       )
     },
     [service],

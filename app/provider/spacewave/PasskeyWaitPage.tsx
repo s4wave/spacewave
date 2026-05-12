@@ -274,9 +274,9 @@ export function PasskeyWaitPage() {
   }
 
   const statusMessage =
-    state.step === 'logging_in' ?
-      'Signing in...'
-    : 'Complete the passkey step in your browser'
+    state.step === 'logging_in'
+      ? 'Signing in...'
+      : 'Complete the passkey step in your browser'
 
   return (
     <AuthScreenLayout

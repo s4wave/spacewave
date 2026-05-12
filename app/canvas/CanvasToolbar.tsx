@@ -48,9 +48,9 @@ function ToolButton({
         <button
           className={cn(
             'flex h-8 w-8 items-center justify-center rounded-md transition-colors duration-150',
-            active ?
-              'bg-foreground/10 text-foreground'
-            : 'text-foreground-alt/50 hover:bg-foreground/6 hover:text-foreground-alt',
+            active
+              ? 'bg-foreground/10 text-foreground'
+              : 'text-foreground-alt/50 hover:bg-foreground/6 hover:text-foreground-alt',
           )}
           onClick={onClick}
           aria-label={label}

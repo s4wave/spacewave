@@ -265,9 +265,9 @@ export function DocumentationViewer({
 
         {/* File listing */}
         <div className="flex-1 overflow-y-auto">
-          {filteredEntries.length === 0 ?
+          {filteredEntries.length === 0 ? (
             <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
-              {mdEntries.length === 0 ?
+              {mdEntries.length === 0 ? (
                 <>
                   <span className="text-xs">No pages yet</span>
                   <button
@@ -280,9 +280,12 @@ export function DocumentationViewer({
                     Create first page
                   </button>
                 </>
-              : <span className="text-xs">No matching pages</span>}
+              ) : (
+                <span className="text-xs">No matching pages</span>
+              )}
             </div>
-          : filteredEntries.map((entry) => {
+          ) : (
+            filteredEntries.map((entry) => {
               const label = entry.name.replace(/\.md$/, '')
               const selected = selectedPage === entry.name
               return (
@@ -302,13 +305,13 @@ export function DocumentationViewer({
                 </button>
               )
             })
-          }
+          )}
         </div>
       </div>
 
       {/* Content area */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {selectedPage ?
+        {selectedPage ? (
           <>
             {/* Content header */}
             <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
@@ -344,18 +347,18 @@ export function DocumentationViewer({
             </div>
 
             {/* Content body */}
-            {textResource.loading ?
+            {textResource.loading ? (
               <div className="flex flex-1 items-center justify-center p-4">
                 <LoadingInline label="Loading page" tone="muted" size="sm" />
               </div>
-            : textResource.error ?
+            ) : textResource.error ? (
               <div className="text-destructive flex flex-1 flex-col items-center justify-center gap-2 p-4 text-xs">
                 <span>Failed to load page</span>
                 <span className="text-foreground-alt/50 text-xs">
                   {textResource.error.message}
                 </span>
               </div>
-            : editing ?
+            ) : editing ? (
               <div className="flex-1 overflow-auto">
                 <textarea
                   className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
@@ -363,19 +366,21 @@ export function DocumentationViewer({
                   onChange={(e) => setEditContent(e.target.value)}
                 />
               </div>
-            : <div className="flex-1 overflow-auto p-4">
+            ) : (
+              <div className="flex-1 overflow-auto p-4">
                 <div className="docs-prose">
                   <Markdown options={markdownOverrides}>
                     {textResource.value ?? ''}
                   </Markdown>
                 </div>
               </div>
-            }
+            )}
           </>
-        : <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
+        ) : (
+          <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
             Select a page to view
           </div>
-        }
+        )}
       </div>
     </div>
   )

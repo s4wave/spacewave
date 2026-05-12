@@ -21,9 +21,7 @@ test.describe('SAB Cross-Tab Transfer', () => {
     await expect(senderLog).toContainText('DONE', { timeout: 15000 })
 
     // Check sender results.
-    const senderResults = await sender.evaluate(
-      () => (window as any).__results,
-    )
+    const senderResults = await sender.evaluate(() => (window as any).__results)
     console.log('Sender results:', JSON.stringify(senderResults, null, 2))
     console.log('Sender log:\n' + (await senderLog.textContent()))
 

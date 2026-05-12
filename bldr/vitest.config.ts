@@ -4,7 +4,10 @@ import type { Plugin } from 'vite'
 import { resolve } from 'path'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildGoAliases, goTsResolver } from './web/bundler/vite/go-ts-resolver.js'
+import {
+  buildGoAliases,
+  goTsResolver,
+} from './web/bundler/vite/go-ts-resolver.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '..')

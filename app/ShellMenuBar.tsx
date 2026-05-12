@@ -243,7 +243,7 @@ export function ShellMenuBar() {
                   </button>
                 </MenubarTrigger>
                 <MenubarContent align="start">
-                  {items.length ?
+                  {items.length ? (
                     items.map((item) => {
                       if (isMenuSeparator(item)) {
                         return <MenubarSeparator key={item.separatorKey} />
@@ -256,7 +256,9 @@ export function ShellMenuBar() {
                         />
                       )
                     })
-                  : <EmptyMenuItem />}
+                  ) : (
+                    <EmptyMenuItem />
+                  )}
                 </MenubarContent>
               </MenubarMenu>
             )

@@ -165,9 +165,9 @@ export async function wrapPemWithPasskeyPrf(
   abortSignal?: AbortSignal,
 ): Promise<PasskeyPrfWrapResult> {
   const plaintextBytes =
-    typeof plaintext === 'string' ?
-      new TextEncoder().encode(plaintext)
-    : plaintext
+    typeof plaintext === 'string'
+      ? new TextEncoder().encode(plaintext)
+      : plaintext
   const resp = await spacewave.wrapWithPasskeyPrf(
     {
       plaintext: plaintextBytes,

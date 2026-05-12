@@ -30,4 +30,6 @@ Bun.serve({
     })
   },
 })
-console.log(`Serving ${dir} on http://localhost:${port} (cross-origin isolated)`)
+console.log(
+  `Serving ${dir} on http://localhost:${port} (cross-origin isolated)`,
+)

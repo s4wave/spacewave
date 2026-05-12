@@ -70,9 +70,9 @@ export function PasskeySection({
         }
         prfSalt = handoff.prfSalt ?? ''
         prfOutput =
-          handoff.prfCapable && handoff.prfOutput ?
-            base64ToBytes(handoff.prfOutput)
-          : null
+          handoff.prfCapable && handoff.prfOutput
+            ? base64ToBytes(handoff.prfOutput)
+            : null
       } else {
         const optionsResp = await acc.passkeyRegisterOptions()
         const optionsJSON = optionsResp.optionsJson ?? ''
@@ -96,9 +96,8 @@ export function PasskeySection({
         root,
         async (spacewave) => {
           const { entity } = await generateAuthKeypairs(spacewave)
-          const prfWrapped =
-            prfOutput ?
-              await wrapPemWithPasskeyPrf(spacewave, entity.pem, prfOutput)
+          const prfWrapped = prfOutput
+            ? await wrapPemWithPasskeyPrf(spacewave, entity.pem, prfOutput)
             : null
           return { entity, prfWrapped }
         },
@@ -172,9 +171,9 @@ export function PasskeySection({
             <div className="flex items-center justify-center py-4">
               <LoadingInline
                 label={
-                  isDesktop ?
-                    'Complete the passkey step in your browser'
-                  : 'Waiting for authenticator'
+                  isDesktop
+                    ? 'Complete the passkey step in your browser'
+                    : 'Waiting for authenticator'
                 }
                 tone="muted"
                 size="sm"
@@ -194,20 +193,20 @@ export function PasskeySection({
                 <div
                   className={cn(
                     'flex items-center gap-2 rounded-md border px-3 py-2',
-                    prfResult ?
-                      'border-green-500/20 bg-green-500/5'
-                    : 'border-yellow-500/20 bg-yellow-500/5',
+                    prfResult
+                      ? 'border-green-500/20 bg-green-500/5'
+                      : 'border-yellow-500/20 bg-yellow-500/5',
                   )}
                 >
-                  {prfResult ?
+                  {prfResult ? (
                     <LuShieldCheck className="size-4 shrink-0 text-green-500" />
-                  : <LuShieldAlert className="size-4 shrink-0 text-yellow-500" />
-                  }
+                  ) : (
+                    <LuShieldAlert className="size-4 shrink-0 text-yellow-500" />
+                  )}
                   <span className="text-foreground-alt text-xs">
-                    {prfResult ?
-                      'Authenticator PRF is active: your PEM was encrypted locally before upload'
-                    : 'Server-assisted: this passkey is stored with server PEM wrapping'
-                    }
+                    {prfResult
+                      ? 'Authenticator PRF is active: your PEM was encrypted locally before upload'
+                      : 'Server-assisted: this passkey is stored with server PEM wrapping'}
                   </span>
                 </div>
               )}

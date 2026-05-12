@@ -163,7 +163,7 @@ export function TreeRow<T = void>({
           ))}
         </div>
       )}
-      {hasChildren ?
+      {hasChildren ? (
         <button
           className="hover:bg-menu-hover rounded p-[2px]"
           onClick={handleToggle}
@@ -173,11 +173,15 @@ export function TreeRow<T = void>({
             ?.map((child: TreeNode<T>) => child.id)
             .join(' ')}
         >
-          {isExpanded ?
+          {isExpanded ? (
             <LuChevronDown className="size-4" aria-hidden="true" />
-          : <LuChevronRight className="size-4" aria-hidden="true" />}
+          ) : (
+            <LuChevronRight className="size-4" aria-hidden="true" />
+          )}
         </button>
-      : <span className="w-4 flex-shrink-0" />}
+      ) : (
+        <span className="w-4 flex-shrink-0" />
+      )}
       {node.icon && (
         <span className="flex size-4 flex-shrink-0 items-center justify-center">
           {node.icon}

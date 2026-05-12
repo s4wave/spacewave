@@ -36,7 +36,7 @@ export function mapAuthError(msg: string): string {
 
 // truncatePeerId shortens a peer ID for display.
 export function truncatePeerId(peerId: string): string {
-  return peerId.length > 16 ?
-      peerId.slice(0, 8) + '...' + peerId.slice(-8)
+  return peerId.length > 16
+    ? peerId.slice(0, 8) + '...' + peerId.slice(-8)
     : peerId
 }

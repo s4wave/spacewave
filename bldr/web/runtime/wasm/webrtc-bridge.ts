@@ -136,8 +136,8 @@ export class DataChannelWrapper {
     }
   }
   get onbufferedamountlow() {
-    return this._realDC ?
-        this._realDC.onbufferedamountlow
+    return this._realDC
+      ? this._realDC.onbufferedamountlow
       : this._onbufferedamountlow
   }
   set onbufferedamountlow(v: ((ev: Event) => void) | null) {
@@ -653,8 +653,8 @@ export class ProxyRTCPeerConnection {
   // only reads properties via syscall/js .Get("type") and .Get("sdp").
 
   get localDescription(): { type: string; sdp: string } | null {
-    return this._snapshot.localDescription ?
-        {
+    return this._snapshot.localDescription
+      ? {
           type: this._snapshot.localDescription.type,
           sdp: this._snapshot.localDescription.sdp ?? '',
         }
@@ -662,8 +662,8 @@ export class ProxyRTCPeerConnection {
   }
 
   get remoteDescription(): { type: string; sdp: string } | null {
-    return this._snapshot.remoteDescription ?
-        {
+    return this._snapshot.remoteDescription
+      ? {
           type: this._snapshot.remoteDescription.type,
           sdp: this._snapshot.remoteDescription.sdp ?? '',
         }

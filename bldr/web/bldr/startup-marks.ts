@@ -30,8 +30,8 @@ declare global {
 let nextStartupMarkSequence = 1
 
 function getPerformance(): Performance | undefined {
-  return typeof globalThis.performance?.mark === 'function' ?
-      globalThis.performance
+  return typeof globalThis.performance?.mark === 'function'
+    ? globalThis.performance
     : undefined
 }
 

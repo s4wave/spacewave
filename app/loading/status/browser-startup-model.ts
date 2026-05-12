@@ -164,21 +164,21 @@ export function projectBrowserStartup(
   const boot = withBrowserBootProgress(status)
   const phase = selectStartupPhase(boot, marks)
   const view: LoadingView =
-    boot.state === 'error' ?
-      {
-        state: 'error',
-        title: 'Spacewave',
-        detail: `${phase.label}: ${phase.detail}`,
-        progress: phase.progress,
-        error:
-          'Startup did not finish. Check the browser console or startup marks for details.',
-      }
-    : {
-        state: phase.id === 'done' ? 'synced' : 'loading',
-        title: 'Spacewave',
-        detail: `${phase.label}: ${phase.detail}`,
-        progress: phase.progress,
-      }
+    boot.state === 'error'
+      ? {
+          state: 'error',
+          title: 'Spacewave',
+          detail: `${phase.label}: ${phase.detail}`,
+          progress: phase.progress,
+          error:
+            'Startup did not finish. Check the browser console or startup marks for details.',
+        }
+      : {
+          state: phase.id === 'done' ? 'synced' : 'loading',
+          title: 'Spacewave',
+          detail: `${phase.label}: ${phase.detail}`,
+          progress: phase.progress,
+        }
 
   return {
     view,
@@ -235,10 +235,13 @@ function projectPhaseViews(
   const currentIdx = phaseIndex(currentID)
   return browserStartupPhaseRail.map((phase, idx) => {
     const state =
-      idx < currentIdx ? 'complete'
-      : idx === currentIdx && bootState === 'error' ? 'error'
-      : idx === currentIdx ? 'current'
-      : 'pending'
+      idx < currentIdx
+        ? 'complete'
+        : idx === currentIdx && bootState === 'error'
+          ? 'error'
+          : idx === currentIdx
+            ? 'current'
+            : 'pending'
     return { ...phase, state }
   })
 }

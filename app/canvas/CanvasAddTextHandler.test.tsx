@@ -21,7 +21,7 @@ vi.mock('./CanvasContextMenu.js', () => ({
     state: { position: { x: number; y: number } } | null
     onAddText: () => void
   }) =>
-    state ?
+    state ? (
       <button
         type="button"
         onClick={() => {
@@ -31,7 +31,7 @@ vi.mock('./CanvasContextMenu.js', () => ({
       >
         Add Text Node Here
       </button>
-    : null,
+    ) : null,
 }))
 
 vi.mock('./CanvasTextNode.js', () => ({

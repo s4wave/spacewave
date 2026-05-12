@@ -83,18 +83,19 @@ export function DebugObjectViewer({
                 <CopyableField
                   label="Type ID (resolved)"
                   value={
-                    resolving ? 'Resolving...'
-                    : effectiveTypeID ?
-                      effectiveTypeID
-                    : '(untyped)'
+                    resolving
+                      ? 'Resolving...'
+                      : effectiveTypeID
+                        ? effectiveTypeID
+                        : '(untyped)'
                   }
                 />
-                {hintTypeID && hintTypeID !== resolvedTypeID ?
+                {hintTypeID && hintTypeID !== resolvedTypeID ? (
                   <CopyableField
                     label="Type ID (route hint)"
                     value={hintTypeID}
                   />
-                : null}
+                ) : null}
               </div>
             </InfoCard>
           </section>

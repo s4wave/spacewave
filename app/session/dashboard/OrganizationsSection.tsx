@@ -89,9 +89,9 @@ export function OrganizationsSection({
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
-        count > 0 ?
+        count > 0 ? (
           <span className="text-foreground-alt/50 text-[0.55rem]">{count}</span>
-        : undefined
+        ) : undefined
       }
     >
       <div className="space-y-2">

@@ -29,9 +29,7 @@ test.describe('SAB SharedWorker Relay', () => {
 
     // Check if sender got the confirmation.
     await expect(senderLog).toContainText('DONE', { timeout: 10000 })
-    const senderResults = await sender.evaluate(
-      () => (window as any).__results,
-    )
+    const senderResults = await sender.evaluate(() => (window as any).__results)
     console.log('Sender results:', JSON.stringify(senderResults, null, 2))
     console.log('Sender log:\n' + (await senderLog.textContent()))
 

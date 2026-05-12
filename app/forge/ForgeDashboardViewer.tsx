@@ -183,9 +183,9 @@ export function ForgeDashboardViewer({
   const handleCreateJob = useCallback(async () => {
     try {
       const selectedClusterKey =
-        clusterEntities.length === 1 ?
-          (clusterEntities[0]?.objectKey ?? '')
-        : ''
+        clusterEntities.length === 1
+          ? (clusterEntities[0]?.objectKey ?? '')
+          : ''
       const configData = ForgeJobCreateOp.toBinary({
         jobKey: '',
         clusterKey: selectedClusterKey,
@@ -264,9 +264,9 @@ export function ForgeDashboardViewer({
                   }}
                   className="border-brand/40 bg-brand/10 hover:border-brand/60 hover:bg-brand/15 text-foreground mt-3 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150"
                 >
-                  {pendingWorkers.length === 1 ?
-                    'Start worker'
-                  : 'Start workers'}
+                  {pendingWorkers.length === 1
+                    ? 'Start worker'
+                    : 'Start workers'}
                 </button>
               </div>
             )}
@@ -403,20 +403,21 @@ export function ForgeDashboardViewer({
         label: 'Bindings',
         content: (
           <div>
-            {bindings.length > 0 ?
+            {bindings.length > 0 ? (
               <ProcessBindingList
                 bindings={bindings}
                 onToggle={(bindingObjectKey, approved) => {
                   void handleToggle(bindingObjectKey, approved)
                 }}
               />
-            : <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+            ) : (
+              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
                 <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
                   <LuBox className="size-3.5 shrink-0" />
                   <span>No process bindings</span>
                 </div>
               </div>
-            }
+            )}
           </div>
         ),
       },

@@ -208,7 +208,10 @@ async function runImportFailureScenario(): Promise<{
   const lockName = `bldr-doc-${webDocumentId}`
   const releaseLock = await holdWebDocumentLock(lockName)
   const worker = new Worker(
-    new URL('./workers/plugin-startup-fixture.js?mode=import-fail', import.meta.url),
+    new URL(
+      './workers/plugin-startup-fixture.js?mode=import-fail',
+      import.meta.url,
+    ),
     {
       type: 'module',
       name: 'startup-failures-import-worker',
@@ -359,10 +362,7 @@ async function run() {
     details.push(importFailure.detail)
 
     const pass =
-      slow.ok &&
-      close.ok &&
-      workerPreRegistration.ok &&
-      importFailure.ok
+      slow.ok && close.ok && workerPreRegistration.ok && importFailure.ok
     window.__results = {
       pass,
       detail: details.join('; '),

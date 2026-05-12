@@ -101,13 +101,15 @@ function SessionItem({ session }: { session: SessionListEntry }) {
     metadata?.displayName || metadata?.cloudEntityId || accountId
   const providerLabel =
     metadata?.providerDisplayName ||
-    (metadata?.providerId === 'spacewave' ? 'Cloud'
-    : metadata?.providerId === 'local' ? 'Local'
-    : 'Account')
+    (metadata?.providerId === 'spacewave'
+      ? 'Cloud'
+      : metadata?.providerId === 'local'
+        ? 'Local'
+        : 'Account')
   const subtitle =
-    metadata?.cloudEntityId && metadata.cloudEntityId !== accountName ?
-      `${providerLabel} · ${metadata.cloudEntityId}`
-    : providerLabel
+    metadata?.cloudEntityId && metadata.cloudEntityId !== accountName
+      ? `${providerLabel} · ${metadata.cloudEntityId}`
+      : providerLabel
 
   const handleClick = useCallback(() => {
     navigate({ path: '/u/' + session.sessionIndex + '/' })

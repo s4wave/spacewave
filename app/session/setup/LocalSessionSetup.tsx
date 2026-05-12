@@ -131,9 +131,9 @@ function LocalSessionSetupCloudScreen({
         })().catch((err) => {
           if (signal.aborted) return
           setError(
-            err instanceof Error ?
-              err.message
-            : 'Failed to prepare local session',
+            err instanceof Error
+              ? err.message
+              : 'Failed to prepare local session',
           )
         })
       },
@@ -264,15 +264,17 @@ export function WarningCard({
             disabled={isDesktop}
             className={cn(
               'border-foreground/10 flex w-full items-center gap-3 rounded-md border p-3 text-left transition-colors',
-              isDesktop ?
-                'cursor-default opacity-60'
-              : 'hover:border-brand/30 hover:bg-brand/5 cursor-pointer',
+              isDesktop
+                ? 'cursor-default opacity-60'
+                : 'hover:border-brand/30 hover:bg-brand/5 cursor-pointer',
             )}
           >
             <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-              {isDesktop ?
+              {isDesktop ? (
                 <LuCheck className="text-foreground-alt size-4" />
-              : <LuMonitor className="text-foreground-alt size-4" />}
+              ) : (
+                <LuMonitor className="text-foreground-alt size-4" />
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-foreground text-sm font-medium">
@@ -293,9 +295,11 @@ export function WarningCard({
             className="border-foreground/10 hover:border-brand/30 hover:bg-brand/5 flex w-full cursor-pointer items-center gap-3 rounded-md border p-3 text-left transition-colors disabled:opacity-50"
           >
             <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-              {upgradeLoading ?
+              {upgradeLoading ? (
                 <Spinner className="text-foreground-alt" />
-              : <LuCloud className="text-foreground-alt size-4" />}
+              ) : (
+                <LuCloud className="text-foreground-alt size-4" />
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-foreground text-sm font-medium">

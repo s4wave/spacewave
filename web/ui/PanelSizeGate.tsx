@@ -53,13 +53,11 @@ export function PanelSizeGate({
   const [size, setSize] = useState<PanelSize>(defaultSize)
   const setMeasuredSize = useCallback((next: PanelSize) => {
     setSize((current) =>
-      (
-        current.width === next.width &&
-        current.height === next.height &&
-        current.measured === next.measured
-      ) ?
-        current
-      : next,
+      current.width === next.width &&
+      current.height === next.height &&
+      current.measured === next.measured
+        ? current
+        : next,
     )
   }, [])
   const containerRef = useCallback(

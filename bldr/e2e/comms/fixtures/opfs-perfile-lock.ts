@@ -1,4 +1,3 @@
-
 // opfs-perfile-lock.ts - Per-file WebLock + OPFS contention fixture.
 //
 // Validates the locking protocol used by hydra's OPFS volume stores:
@@ -89,7 +88,11 @@ async function run() {
     // --- Test 1: Per-file exclusive lock ---
     {
       const lockName = `${testId}/file-a`
-      const { writable, release } = await acquireFileExclusive(testDir, 'file-a', lockName)
+      const { writable, release } = await acquireFileExclusive(
+        testDir,
+        'file-a',
+        lockName,
+      )
       const enc = new TextEncoder()
       await writable.write(enc.encode('locked-write'))
       await writable.close()
@@ -115,7 +118,11 @@ async function run() {
         const lockName = `${testId}/par-${i}`
         promises.push(
           (async () => {
-            const { writable, release } = await acquireFileExclusive(testDir, fname, lockName)
+            const { writable, release } = await acquireFileExclusive(
+              testDir,
+              fname,
+              lockName,
+            )
             const enc = new TextEncoder()
             await writable.write(enc.encode(`data-${i}`))
             await writable.close()
@@ -194,7 +201,9 @@ async function run() {
 
     // --- Test 4: Block store pattern (content-addressed + shard dirs) ---
     {
-      const blocksDir = await testDir.getDirectoryHandle('blocks', { create: true })
+      const blocksDir = await testDir.getDirectoryHandle('blocks', {
+        create: true,
+      })
 
       // Simulate 3 block puts with 2-char shard prefix.
       const blocks = [
@@ -206,10 +215,16 @@ async function run() {
       for (const b of blocks) {
         const shard = b.key.substring(0, 2)
 
-        const shardDir = await blocksDir.getDirectoryHandle(shard, { create: true })
+        const shardDir = await blocksDir.getDirectoryHandle(shard, {
+          create: true,
+        })
         const lockName = `${testId}/blocks/${shard}/${b.key}`
 
-        const { writable, release } = await acquireFileExclusive(shardDir, b.key, lockName)
+        const { writable, release } = await acquireFileExclusive(
+          shardDir,
+          b.key,
+          lockName,
+        )
         await writable.write(b.data)
         await writable.close()
         release()
@@ -248,30 +263,48 @@ async function run() {
 
     // --- Test 5: Object store read/write with readers-writer WebLock ---
     {
-      const objDir = await testDir.getDirectoryHandle('objects', { create: true })
+      const objDir = await testDir.getDirectoryHandle('objects', {
+        create: true,
+      })
       const objLock = `${testId}|objstore`
 
       // Write under exclusive lock.
-      await navigator.locks.request(objLock, { mode: 'exclusive' }, async () => {
-        const entries = [
-          { key: new Uint8Array([0x01, 0x02]), value: new Uint8Array([0x41, 0x42]) },
-          { key: new Uint8Array([0x03, 0x04]), value: new Uint8Array([0x43, 0x44, 0x45]) },
-        ]
-        for (const { key, value } of entries) {
-          const hex = hexEncode(key)
-          const shard = hex.substring(0, 2)
-          const shardDir = await objDir.getDirectoryHandle(shard, { create: true })
-          const perFileLock = `${testId}/obj/${shard}/${hex}`
+      await navigator.locks.request(
+        objLock,
+        { mode: 'exclusive' },
+        async () => {
+          const entries = [
+            {
+              key: new Uint8Array([0x01, 0x02]),
+              value: new Uint8Array([0x41, 0x42]),
+            },
+            {
+              key: new Uint8Array([0x03, 0x04]),
+              value: new Uint8Array([0x43, 0x44, 0x45]),
+            },
+          ]
+          for (const { key, value } of entries) {
+            const hex = hexEncode(key)
+            const shard = hex.substring(0, 2)
+            const shardDir = await objDir.getDirectoryHandle(shard, {
+              create: true,
+            })
+            const perFileLock = `${testId}/obj/${shard}/${hex}`
 
-          // Per-file lock within the exclusive WebLock.
-          await navigator.locks.request(perFileLock, { mode: 'exclusive' }, async () => {
-            const fh = await shardDir.getFileHandle(hex, { create: true })
-            const w = await fh.createWritable()
-            await w.write(value)
-            await w.close()
-          })
-        }
-      })
+            // Per-file lock within the exclusive WebLock.
+            await navigator.locks.request(
+              perFileLock,
+              { mode: 'exclusive' },
+              async () => {
+                const fh = await shardDir.getFileHandle(hex, { create: true })
+                const w = await fh.createWritable()
+                await w.write(value)
+                await w.close()
+              },
+            )
+          }
+        },
+      )
 
       // Read under shared lock.
       let readOk = true
@@ -296,19 +329,27 @@ async function run() {
       const events: string[] = []
 
       // Start exclusive write.
-      const writeDone = navigator.locks.request(acidLock, { mode: 'exclusive' }, async () => {
-        events.push('write-start')
-        await new Promise((r) => setTimeout(r, 100))
-        events.push('write-end')
-      })
+      const writeDone = navigator.locks.request(
+        acidLock,
+        { mode: 'exclusive' },
+        async () => {
+          events.push('write-start')
+          await new Promise((r) => setTimeout(r, 100))
+          events.push('write-end')
+        },
+      )
 
       // Give write a moment to acquire.
       await new Promise((r) => setTimeout(r, 20))
 
       // Start shared read (should wait for write to finish).
-      const readDone = navigator.locks.request(acidLock, { mode: 'shared' }, async () => {
-        events.push('read-start')
-      })
+      const readDone = navigator.locks.request(
+        acidLock,
+        { mode: 'shared' },
+        async () => {
+          events.push('read-start')
+        },
+      )
 
       await Promise.all([writeDone, readDone])
 

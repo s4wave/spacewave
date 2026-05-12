@@ -128,9 +128,9 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
       open={sectionOpen}
       onOpenChange={handleOpenChange}
       badge={
-        count > 0 ?
+        count > 0 ? (
           <span className="text-foreground-alt/50 text-[0.55rem]">{count}</span>
-        : undefined
+        ) : undefined
       }
     >
       {loading && !emails && (
@@ -341,10 +341,11 @@ function EmailRow({
   const source = email.source ?? ''
   const lastVerified = verified && verifiedCount <= 1
   const canRemove = !primary && !lastVerified
-  const removeReason =
-    primary ? 'Primary email cannot be removed'
-    : lastVerified ? 'Cannot remove the only verified email'
-    : null
+  const removeReason = primary
+    ? 'Primary email cannot be removed'
+    : lastVerified
+      ? 'Cannot remove the only verified email'
+      : null
   const canSetPrimary = verified && !primary
   const busy = removing || sendingCode || verifyingCode || settingPrimary
   const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
@@ -364,9 +365,11 @@ function EmailRow({
               verified ? 'bg-brand/10' : 'bg-foreground/5',
             )}
           >
-            {verified ?
+            {verified ? (
               <LuCheck className="text-brand size-4" />
-            : <LuMail className="text-foreground-alt size-4" />}
+            ) : (
+              <LuMail className="text-foreground-alt size-4" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
@@ -397,18 +400,20 @@ function EmailRow({
           {!verified && (
             <DashboardButton
               icon={
-                sendingCode ?
+                sendingCode ? (
                   <Spinner size="sm" />
-                : <LuSend className="size-3" />
+                ) : (
+                  <LuSend className="size-3" />
+                )
               }
               disabled={busy || retryAfter > 0}
               onClick={() => void onSendCode(addr)}
             >
-              {sendingCode ?
-                'Sending...'
-              : retryAfter > 0 ?
-                retryAfter + 's'
-              : 'Send code'}
+              {sendingCode
+                ? 'Sending...'
+                : retryAfter > 0
+                  ? retryAfter + 's'
+                  : 'Send code'}
             </DashboardButton>
           )}
           {canSetPrimary && !primaryConfirmOpen && (
@@ -444,9 +449,11 @@ function EmailRow({
             </DashboardButton>
             <DashboardButton
               icon={
-                settingPrimary ?
+                settingPrimary ? (
                   <Spinner size="sm" />
-                : <LuStar className="size-3" />
+                ) : (
+                  <LuStar className="size-3" />
+                )
               }
               className="text-brand hover:bg-brand/10"
               disabled={settingPrimary}
@@ -491,17 +498,19 @@ function EmailRow({
               disabled={sendingCode || verifyingCode || retryAfter > 0}
               className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
             >
-              {sendingCode ?
-                'Sending...'
-              : retryAfter > 0 ?
-                'Resend in ' + retryAfter + 's'
-              : "Didn't get it? Send again"}
+              {sendingCode
+                ? 'Sending...'
+                : retryAfter > 0
+                  ? 'Resend in ' + retryAfter + 's'
+                  : "Didn't get it? Send again"}
             </button>
             <DashboardButton
               icon={
-                verifyingCode ?
+                verifyingCode ? (
                   <Spinner size="sm" />
-                : <LuArrowRight className="size-3" />
+                ) : (
+                  <LuArrowRight className="size-3" />
+                )
               }
               disabled={verifyingCode || code.length !== 6}
               onClick={() => void onVerifyCode()}

@@ -1,4 +1,3 @@
-
 /**
  * This file (only) is dual licensed under MIT and Apache-2.0.
  * MIT: https://www.opensource.org/licenses/mit

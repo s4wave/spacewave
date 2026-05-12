@@ -63,9 +63,9 @@ function discoverPosts(includeDrafts: boolean): BlogPost[] {
     // Normalize date to YYYY-MM-DD string (gray-matter may parse as Date).
     const rawDate = fm.date as unknown
     const dateStr =
-      rawDate instanceof Date ?
-        rawDate.toISOString().slice(0, 10)
-      : String(rawDate)
+      rawDate instanceof Date
+        ? rawDate.toISOString().slice(0, 10)
+        : String(rawDate)
 
     // Derive URL: /blog/YYYY/MM/slug
     const dateParts = dateStr.split('-')

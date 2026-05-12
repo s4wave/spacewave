@@ -91,8 +91,9 @@ export function Tree<T>({
       const metaKey = e.metaKey || e.ctrlKey
       const shiftKey = e.shiftKey
 
-      const focusedNode =
-        state.focusedId ? findNodeById(nodes, state.focusedId) : undefined
+      const focusedNode = state.focusedId
+        ? findNodeById(nodes, state.focusedId)
+        : undefined
 
       switch (key) {
         case 'Enter': {
@@ -236,11 +237,11 @@ export function Tree<T>({
         onRowDefaultAction={onRowDefaultAction}
         onRowContextMenu={onRowContextMenu}
       />,
-      ...(node.children && state.expandedIds.has(node.id) ?
-        node.children.flatMap((child, i) =>
-          renderNode(child, level + 1, index + i + 1),
-        )
-      : []),
+      ...(node.children && state.expandedIds.has(node.id)
+        ? node.children.flatMap((child, i) =>
+            renderNode(child, level + 1, index + i + 1),
+          )
+        : []),
     ]
 
     return nodes.flatMap((node, index) => renderNode(node, 0, index))
@@ -285,11 +286,13 @@ export function Tree<T>({
             Use arrow keys or j/k to navigate, Enter to select, and h/l to
             collapse/expand nodes
           </div>
-          {nodes.length === 0 ?
+          {nodes.length === 0 ? (
             <div className="text-foreground-alt flex flex-1 items-center justify-center p-4">
               {placeholder ?? 'No items'}
             </div>
-          : <div>{flattenedRows}</div>}
+          ) : (
+            <div>{flattenedRows}</div>
+          )}
         </div>
       </TreeDispatchContext.Provider>
     </TreeStateContext.Provider>

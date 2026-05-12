@@ -66,9 +66,9 @@ function ErrorRow({ resource }: ErrorRowProps) {
         'flex items-center gap-2 px-3 py-1.5 text-left text-xs',
         'border-popover-border/30 border-b',
         'transition-colors duration-100',
-        isSelected ?
-          'bg-ui-selected text-foreground'
-        : 'text-text-secondary hover:bg-pulldown-hover/50',
+        isSelected
+          ? 'bg-ui-selected text-foreground'
+          : 'text-text-secondary hover:bg-pulldown-hover/50',
       )}
       data-testid="resource-error-row"
     >

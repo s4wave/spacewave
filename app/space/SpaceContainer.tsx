@@ -99,9 +99,9 @@ export function SpaceContainer() {
     sharedObjectBodyResource,
     (parentSharedObjectBody) =>
       Promise.resolve(
-        parentSharedObjectBody ?
-          new Space(parentSharedObjectBody.resourceRef)
-        : null,
+        parentSharedObjectBody
+          ? new Space(parentSharedObjectBody.resourceRef)
+          : null,
       ),
     [],
   )
@@ -305,9 +305,11 @@ export function SpaceContainer() {
           selected ? 'Close shared object menu' : 'Open shared object menu'
         }
       >
-        {selected ?
+        {selected ? (
           <LuArrowUp {...bottomBarIconProps} aria-hidden="true" />
-        : <PiAppStoreLogoLight {...bottomBarIconProps} aria-hidden="true" />}
+        ) : (
+          <PiAppStoreLogoLight {...bottomBarIconProps} aria-hidden="true" />
+        )}
         <div className="flex-shrink flex-grow truncate">{spaceName}</div>
       </BottomBarItem>
     ),
@@ -382,7 +384,7 @@ export function SpaceContainer() {
               onDeleteClick={handleDeleteClick}
               onRenameStart={handleRenameStart}
               orgIndicator={
-                spaceOrgId ?
+                spaceOrgId ? (
                   <button
                     onClick={() =>
                       navigate({ path: `../../org/${spaceOrgId}` })
@@ -394,10 +396,10 @@ export function SpaceContainer() {
                       {spaceOrgState?.organization?.displayName || 'Org'}
                     </span>
                   </button>
-                : undefined
+                ) : undefined
               }
               orgInfoSection={
-                spaceOrgId && spaceOrgState?.organization ?
+                spaceOrgId && spaceOrgState?.organization ? (
                   <div className="space-y-1">
                     <div className="text-foreground-alt mb-0.5 text-[0.6rem] select-none">
                       Organization
@@ -408,13 +410,13 @@ export function SpaceContainer() {
                         {spaceOrgState.organization.displayName || spaceOrgId}
                       </span>
                       <span className="text-foreground-alt/50 text-[0.6rem]">
-                        {spaceOrgState.organization.role === 'org:owner' ?
-                          'Owner'
-                        : 'Member'}
+                        {spaceOrgState.organization.role === 'org:owner'
+                          ? 'Owner'
+                          : 'Member'}
                       </span>
                     </div>
                   </div>
-                : undefined
+                ) : undefined
               }
               objectsBadge={
                 <span className="text-foreground-alt/50 text-[0.55rem]">
@@ -506,14 +508,14 @@ export function SpaceContainer() {
           <br />
           Space state:{' '}
           <pre>
-            {spaceState ?
-              JSON.stringify(SpaceState.toJson(spaceState), null, 4)
-            : 'none'}
+            {spaceState
+              ? JSON.stringify(SpaceState.toJson(spaceState), null, 4)
+              : 'none'}
           </pre>
         </DebugInfo>
         <SpaceContext.Provider resource={spaceResource}>
           <SpaceContentsContext.Provider resource={spaceContentsResource}>
-            {ready ?
+            {ready ? (
               <SpaceContainerContext.Provider
                 spaceId={sharedObjectId}
                 spaceWorldResource={spaceWorldResource}
@@ -535,7 +537,8 @@ export function SpaceContainer() {
                 <CreateObjectButton />
                 <SpaceBody />
               </SpaceContainerContext.Provider>
-            : <SpaceMountingScreen
+            ) : (
+              <SpaceMountingScreen
                 stage={spaceMountStageFromWorld(
                   !!root,
                   !!space,
@@ -550,7 +553,7 @@ export function SpaceContainer() {
                 )}
                 onBack={() => navigate({ path: '../' })}
               />
-            }
+            )}
           </SpaceContentsContext.Provider>
         </SpaceContext.Provider>
       </BottomBarLevel>

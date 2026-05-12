@@ -135,9 +135,11 @@ describe('AppLoadingScreen', () => {
       phases: mockProjection.current.phases.map((phase) => ({
         ...phase,
         state:
-          phase.id === 'prepare' ? 'complete'
-          : phase.id === 'connect' ? 'error'
-          : 'pending',
+          phase.id === 'prepare'
+            ? 'complete'
+            : phase.id === 'connect'
+              ? 'error'
+              : 'pending',
       })),
     }
 

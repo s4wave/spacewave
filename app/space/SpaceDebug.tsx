@@ -18,9 +18,9 @@ export function SpaceDebug() {
       </p>
       <p>
         World Contents:{' '}
-        {spaceState.worldContents ?
-          JSON.stringify(spaceState.worldContents)
-        : 'None'}
+        {spaceState.worldContents
+          ? JSON.stringify(spaceState.worldContents)
+          : 'None'}
       </p>
     </div>
   )

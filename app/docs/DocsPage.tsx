@@ -104,15 +104,17 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             onClick={handleCopyMarkdown}
             className={cn(
               'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors',
-              copied ? 'text-brand' : (
-                'text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5'
-              ),
+              copied
+                ? 'text-brand'
+                : 'text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5',
             )}
             title="Copy as Markdown"
           >
-            {copied ?
+            {copied ? (
               <LuCheck className="size-3" />
-            : <LuCopy className="size-3" />}
+            ) : (
+              <LuCopy className="size-3" />
+            )}
             <span className="hidden @lg:inline">
               {copied ? 'Copied' : 'Copy MD'}
             </span>
@@ -171,7 +173,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
       {/* Previous / Next navigation */}
       {(prevDoc || nextDoc) && (
         <nav className="mt-12 grid grid-cols-2 gap-4">
-          {prevDoc ?
+          {prevDoc ? (
             <button
               onClick={navigatePrev}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-5 text-left transition-all duration-200"
@@ -184,9 +186,11 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
                 {prevDoc.title}
               </span>
             </button>
-          : <div />}
+          ) : (
+            <div />
+          )}
 
-          {nextDoc ?
+          {nextDoc ? (
             <button
               onClick={navigateNext}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-5 text-right transition-all duration-200"
@@ -199,7 +203,9 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
                 {nextDoc.title}
               </span>
             </button>
-          : <div />}
+          ) : (
+            <div />
+          )}
         </nav>
       )}
     </article>

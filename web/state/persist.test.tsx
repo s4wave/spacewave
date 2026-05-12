@@ -23,9 +23,9 @@ function CounterContent() {
   const [count, setCount] = useStateAtom(null, 'count', 0)
   const { namespace: contextNamespace } = useParentStateNamespace()
   const testId =
-    contextNamespace.length > 0 ?
-      `counter-${contextNamespace.join('-')}`
-    : 'counter-root'
+    contextNamespace.length > 0
+      ? `counter-${contextNamespace.join('-')}`
+      : 'counter-root'
   return (
     <button onClick={() => setCount((c: number) => c + 1)} data-testid={testId}>
       Count: {count}
@@ -308,9 +308,9 @@ describe('StateNamespaceProvider', () => {
 
       const { namespace: contextNamespace } = useParentStateNamespace()
       const testId =
-        contextNamespace.length > 0 ?
-          `reducer-counter-${contextNamespace.join('-')}`
-        : 'reducer-counter-root'
+        contextNamespace.length > 0
+          ? `reducer-counter-${contextNamespace.join('-')}`
+          : 'reducer-counter-root'
 
       return (
         <div>

@@ -111,7 +111,9 @@ export function PasskeyPage() {
         const prfOutput = getCredentialPrfOutput(
           credential.clientExtensionResults,
         )
-        const verifyResp = await spacewave.passkeyAuthVerify({ credentialJson })
+        const verifyResp = await spacewave.passkeyAuthVerify({
+          credentialJson,
+        })
         const blob = verifyResp.encryptedBlob ?? ''
         if (!blob) {
           throw new Error('No encrypted blob in response')
@@ -211,9 +213,8 @@ export function PasskeyPage() {
         )
         setState({ step: 'creating', username })
         const { entity, session } = await generateAuthKeypairs(spacewave)
-        const prfWrapped =
-          prfOutput ?
-            await wrapPemWithPasskeyPrf(spacewave, entity.pem, prfOutput)
+        const prfWrapped = prfOutput
+          ? await wrapPemWithPasskeyPrf(spacewave, entity.pem, prfOutput)
           : null
 
         await spacewave.passkeyConfirmSignup({
@@ -445,9 +446,11 @@ export function PasskeyPage() {
     <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
       <div className="relative z-10 flex flex-col items-center gap-4 text-center">
         <AnimatedLogo followMouse={false} />
-        {state.step === 'complete' ?
+        {state.step === 'complete' ? (
           <LuCheck className="text-brand size-6" />
-        : <Spinner size="md" className="text-foreground-alt" />}
+        ) : (
+          <Spinner size="md" className="text-foreground-alt" />
+        )}
         <p className="text-foreground-alt text-sm">{statusMessage}</p>
       </div>
     </div>

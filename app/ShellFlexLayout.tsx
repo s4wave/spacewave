@@ -484,14 +484,14 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
 
         // Keep tabs that still exist in model, update names
         const updatedTabs = prevTabs.flatMap((t) =>
-          modelTabIds.has(t.id) ?
-            [
-              {
-                ...t,
-                name: modelTabNames.get(t.id) ?? t.name,
-              },
-            ]
-          : [],
+          modelTabIds.has(t.id)
+            ? [
+                {
+                  ...t,
+                  name: modelTabNames.get(t.id) ?? t.name,
+                },
+              ]
+            : [],
         )
 
         // Add any new tabs from model (shouldn't happen often, but handle it)

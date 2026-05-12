@@ -1,4 +1,3 @@
-
 import toIt from './readablestream-to-it.js'
 import { Source } from 'it-stream-types'
 import { pipe } from 'it-pipe'
@@ -83,9 +82,9 @@ async function waitForFirstPacket(
         clearTimeout(timer)
         const reason = abortController.signal.reason
         reject(
-          reason instanceof Error ? reason : (
-            new Error('proxied fetch aborted before response headers')
-          ),
+          reason instanceof Error
+            ? reason
+            : new Error('proxied fetch aborted before response headers'),
         )
       }
 

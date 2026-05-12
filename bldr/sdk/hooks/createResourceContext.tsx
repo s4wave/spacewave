@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  use,
-  useMemo,
-  type ReactNode,
-} from 'react'
+import React, { createContext, use, useMemo, type ReactNode } from 'react'
 import type { Resource as SDKResource } from '../resource/resource.js'
 import type { Resource } from './useResource.js'
 

@@ -344,9 +344,9 @@ function InlineSecureAccountSection(props: {
     try {
       if (props.session) {
         const mode =
-          lock.mode === 'pin' ?
-            SessionLockMode.PIN_ENCRYPTED
-          : SessionLockMode.AUTO_UNLOCK
+          lock.mode === 'pin'
+            ? SessionLockMode.PIN_ENCRYPTED
+            : SessionLockMode.AUTO_UNLOCK
         const pinBytes =
           lock.mode === 'pin' ? new TextEncoder().encode(lock.pin) : undefined
         await props.session.setLockMode(mode, pinBytes)
@@ -371,12 +371,13 @@ function InlineSecureAccountSection(props: {
           Secure Your Account
         </h2>
         <div className="space-y-4">
-          {onboarding.onboarding.backupComplete ?
+          {onboarding.onboarding.backupComplete ? (
             <div className="text-foreground-alt flex items-center gap-2 px-3 py-2 text-sm">
               <LuCheck className="text-brand size-4 shrink-0" />
               <span>Backup key downloaded</span>
             </div>
-          : <div className="space-y-3">
+          ) : (
+            <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <div className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
                   <LuDownload className="text-brand size-4" />
@@ -429,16 +430,17 @@ function InlineSecureAccountSection(props: {
                 <p className="text-destructive text-xs">{pemError}</p>
               )}
             </div>
-          }
+          )}
 
           <div className="border-ui-outline/30 border-t" />
 
-          {onboarding.onboarding.lockComplete ?
+          {onboarding.onboarding.lockComplete ? (
             <div className="text-foreground-alt flex items-center gap-2 px-3 py-2 text-sm">
               <LuCheck className="text-brand size-4 shrink-0" />
               <span>Session lock configured</span>
             </div>
-          : <div className="space-y-3">
+          ) : (
+            <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <div className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
                   <LuKeyRound className="text-brand size-4" />
@@ -543,7 +545,7 @@ function InlineSecureAccountSection(props: {
                 <p className="text-destructive text-xs">{lock.error}</p>
               )}
             </div>
-          }
+          )}
         </div>
       </div>
     </div>
@@ -718,11 +720,13 @@ function DashboardCommandPalette({
       />
       <CommandList className="min-h-0 flex-1 overflow-y-auto bg-transparent">
         <CommandEmpty className="text-foreground-alt py-8 text-center text-sm">
-          {isLoading ?
+          {isLoading ? (
             <div className="flex items-center justify-center">
               <LoadingInline label="Loading spaces" tone="muted" size="sm" />
             </div>
-          : 'No results'}
+          ) : (
+            'No results'
+          )}
         </CommandEmpty>
 
         {hasSpaces && personalSpaces.length > 0 && (
@@ -755,11 +759,12 @@ function DashboardCommandPalette({
             }
             className="py-1"
           >
-            {orgSpaces.length === 0 ?
+            {orgSpaces.length === 0 ? (
               <div className="text-foreground-alt/40 px-2 py-3 text-center text-xs">
                 No spaces yet
               </div>
-            : orgSpaces.map((space) => (
+            ) : (
+              orgSpaces.map((space) => (
                 <DashboardItem
                   key={space.id}
                   value={`space-${space.name}-${space.id}`}
@@ -771,7 +776,7 @@ function DashboardCommandPalette({
                   onSelect={() => handleSpaceSelect(space)}
                 />
               ))
-            }
+            )}
           </CommandGroup>
         ))}
 
@@ -799,24 +804,24 @@ function DashboardCommandPalette({
           className="py-1"
         >
           {quickstartOptions.flatMap((opt) =>
-            opt.id !== 'account' && opt.id !== 'pair' ?
-              [
-                <DashboardItem
-                  key={opt.id}
-                  value={`create-${opt.id}`}
-                  icon={opt.icon}
-                  iconTone="muted"
-                  label={opt.name}
-                  sublabel={opt.description}
-                  experimental={'experimental' in opt && !!opt.experimental}
-                  onSelect={() =>
-                    onQuickstartClick ?
-                      onQuickstartClick(opt.id)
-                    : navigate({ path: getQuickstartPath(opt) })
-                  }
-                />,
-              ]
-            : [],
+            opt.id !== 'account' && opt.id !== 'pair'
+              ? [
+                  <DashboardItem
+                    key={opt.id}
+                    value={`create-${opt.id}`}
+                    icon={opt.icon}
+                    iconTone="muted"
+                    label={opt.name}
+                    sublabel={opt.description}
+                    experimental={'experimental' in opt && !!opt.experimental}
+                    onSelect={() =>
+                      onQuickstartClick
+                        ? onQuickstartClick(opt.id)
+                        : navigate({ path: getQuickstartPath(opt) })
+                    }
+                  />,
+                ]
+              : [],
           )}
         </CommandGroup>
       </CommandList>
@@ -832,7 +837,7 @@ function SectionHeading(props: {
 }) {
   return (
     <span className="flex w-full items-center justify-between">
-      {props.onLabelClick ?
+      {props.onLabelClick ? (
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -842,7 +847,9 @@ function SectionHeading(props: {
         >
           {props.label}
         </button>
-      : <span>{props.label}</span>}
+      ) : (
+        <span>{props.label}</span>
+      )}
       {props.actionLabel && props.onAction && (
         <button
           onClick={(e) => {

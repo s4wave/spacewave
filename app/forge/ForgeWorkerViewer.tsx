@@ -258,9 +258,9 @@ export function ForgeWorkerViewer({
                 </div>
                 <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
                   <span>
-                    {(execution.data.result?.success ?? false) ?
-                      'Success'
-                    : 'Complete'}
+                    {(execution.data.result?.success ?? false)
+                      ? 'Success'
+                      : 'Complete'}
                   </span>
                   <span>
                     {execution.data.timestamp?.toISOString() ?? 'No timestamp'}

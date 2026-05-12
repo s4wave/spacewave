@@ -96,9 +96,8 @@ function SecurityLevelSectionContent({
   )
 
   const content =
-    !loading && info && keypairCount <= 1 ?
-      null
-    : <>
+    !loading && info && keypairCount <= 1 ? null : (
+      <>
         {loading && (
           <p className="text-foreground-alt/40 text-xs">
             Loading security info…
@@ -158,6 +157,7 @@ function SecurityLevelSectionContent({
           retainAfterClose={retainStepUp}
         />
       </>
+    )
 
   if (!content) return null
 

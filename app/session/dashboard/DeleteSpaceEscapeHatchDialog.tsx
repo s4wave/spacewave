@@ -99,9 +99,9 @@ export function DeleteSpaceEscapeHatchDialog({
   const healthResp = useWatchStateRpc(
     useCallback(
       (req: WatchSharedObjectHealthRequest, signal: AbortSignal) =>
-        open && session && selectedId ?
-          session.watchSharedObjectHealth(req, signal)
-        : null,
+        open && session && selectedId
+          ? session.watchSharedObjectHealth(req, signal)
+          : null,
       [open, session, selectedId],
     ),
     selectedId ? { sharedObjectId: selectedId } : null,
@@ -378,9 +378,9 @@ function SpaceSelectList({
             onClick={() => onSelect(choice.id)}
             className={cn(
               'flex w-full cursor-pointer items-start gap-2.5 rounded-md border p-2.5 text-left transition-colors',
-              isSelected ?
-                'border-destructive/40 bg-destructive/5'
-              : 'border-foreground/10 bg-foreground/5 hover:border-destructive/30 hover:bg-destructive/5',
+              isSelected
+                ? 'border-destructive/40 bg-destructive/5'
+                : 'border-foreground/10 bg-foreground/5 hover:border-destructive/30 hover:bg-destructive/5',
             )}
           >
             <LuBoxes

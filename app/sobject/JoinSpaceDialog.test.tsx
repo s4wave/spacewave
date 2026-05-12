@@ -42,13 +42,8 @@ vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
 }))
 
 vi.mock('@s4wave/web/ui/dialog.js', () => ({
-  Dialog: ({
-    children,
-    open,
-  }: {
-    children?: React.ReactNode
-    open: boolean
-  }) => (open ? <div>{children}</div> : null),
+  Dialog: ({ children, open }: { children?: React.ReactNode; open: boolean }) =>
+    open ? <div>{children}</div> : null,
   DialogContent: ({ children }: { children?: React.ReactNode }) => (
     <div>{children}</div>
   ),

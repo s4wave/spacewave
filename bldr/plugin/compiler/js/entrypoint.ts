@@ -282,9 +282,8 @@ async function loadFrontendEntrypoints(
       })
 
     // Check if empty and clone by serializing to json
-    const setRenderModeRequestBin =
-      entrypoint.setRenderMode ?
-        SetRenderModeRequest.toBinary(entrypoint.setRenderMode)
+    const setRenderModeRequestBin = entrypoint.setRenderMode
+      ? SetRenderModeRequest.toBinary(entrypoint.setRenderMode)
       : null
     if (setRenderModeRequestBin?.length) {
       // Clone the message via fromBinary
@@ -305,9 +304,8 @@ async function loadFrontendEntrypoints(
     }
 
     // Check if empty and clone by serializing to json
-    const setHtmlLinksRequestBin =
-      entrypoint.setHtmlLinks ?
-        SetHtmlLinksRequest.toBinary(entrypoint.setHtmlLinks)
+    const setHtmlLinksRequestBin = entrypoint.setHtmlLinks
+      ? SetHtmlLinksRequest.toBinary(entrypoint.setHtmlLinks)
       : null
     if (setHtmlLinksRequestBin?.length) {
       const setHtmlLinksRequest = SetHtmlLinksRequest.fromBinary(

@@ -116,13 +116,15 @@ function shellTabsProviderReducer(
 ): ShellTabsProviderState {
   switch (action.type) {
     case 'hydrate': {
-      const activeTabId =
-        action.state.tabs.some((t) => t.id === state.activeTabId) ?
-          state.activeTabId
+      const activeTabId = action.state.tabs.some(
+        (t) => t.id === state.activeTabId,
+      )
+        ? state.activeTabId
         : action.state.tabs[0]?.id || DEFAULT_HOME_TAB.id
-      const renamingTabId =
-        action.state.tabs.some((t) => t.id === state.renamingTabId) ?
-          state.renamingTabId
+      const renamingTabId = action.state.tabs.some(
+        (t) => t.id === state.renamingTabId,
+      )
+        ? state.renamingTabId
         : null
       return { ...action.state, activeTabId, renamingTabId }
     }
@@ -131,9 +133,8 @@ function shellTabsProviderReducer(
       if (tabs === state.tabs || shellTabsEqual(tabs, state.tabs)) {
         return state
       }
-      const renamingTabId =
-        tabs.some((t) => t.id === state.renamingTabId) ?
-          state.renamingTabId
+      const renamingTabId = tabs.some((t) => t.id === state.renamingTabId)
+        ? state.renamingTabId
         : null
       if (renamingTabId === state.renamingTabId) {
         return { ...state, tabs }

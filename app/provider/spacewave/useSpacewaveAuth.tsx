@@ -144,9 +144,9 @@ export function useSpacewaveAuth(
   const handleSignInWithSSO = useCallback(
     (provider: 'google' | 'github') => {
       const providerEnabled =
-        provider === 'google' ?
-          !!cloudProviderConfig?.googleSsoEnabled
-        : !!cloudProviderConfig?.githubSsoEnabled
+        provider === 'google'
+          ? !!cloudProviderConfig?.googleSsoEnabled
+          : !!cloudProviderConfig?.githubSsoEnabled
       if (!providerEnabled) {
         throw new Error(`${provider} SSO is not configured`)
       }

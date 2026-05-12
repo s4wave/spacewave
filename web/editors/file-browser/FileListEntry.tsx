@@ -139,8 +139,9 @@ export function FileListEntry({
   )
 
   const context = use(ListStateContext)
-  const selected =
-    entry ? (context?.selectedIds?.includes(entry.id) ?? false) : false
+  const selected = entry
+    ? (context?.selectedIds?.includes(entry.id) ?? false)
+    : false
   const focused = itemIndex === context?.focusedIndex
 
   const divRef = useRef<HTMLDivElement>(null)
@@ -168,20 +169,20 @@ export function FileListEntry({
   const { data: entryDetails } = usePromise(fetchDetails)
   const dragEnvelope = useMemo(
     () =>
-      entry ?
-        (getDragEnvelope?.(entry, {
-          selectedIds: context?.selectedIds ?? [],
-        }) ?? null)
-      : null,
+      entry
+        ? (getDragEnvelope?.(entry, {
+            selectedIds: context?.selectedIds ?? [],
+          }) ?? null)
+        : null,
     [context?.selectedIds, entry, getDragEnvelope],
   )
   const downloadDragTarget = useMemo(
     () =>
-      entry ?
-        (getDownloadDragTarget?.(entry, {
-          selectedIds: context?.selectedIds ?? [],
-        }) ?? null)
-      : null,
+      entry
+        ? (getDownloadDragTarget?.(entry, {
+            selectedIds: context?.selectedIds ?? [],
+          }) ?? null)
+        : null,
     [context?.selectedIds, entry, getDownloadDragTarget],
   )
 
@@ -247,9 +248,9 @@ export function FileListEntry({
 
   const defaultNode = (
     <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
-      {isEntryLoading ?
+      {isEntryLoading ? (
         <Spinner className="text-brand shrink-0" />
-      : entry.isDir ?
+      ) : entry.isDir ? (
         <LuFolder
           className={cn(
             'size-4 shrink-0',
@@ -257,38 +258,39 @@ export function FileListEntry({
           )}
           style={iconStyle}
         />
-      : <LuFile
+      ) : (
+        <LuFile
           className={cn(
             'size-4 shrink-0',
             selected ? 'text-foreground' : 'text-foreground-alt/60',
           )}
           style={iconStyle}
         />
-      }
+      )}
       <span className="truncate">{entry.name || entry.id}</span>
     </div>
   )
 
   const rowContent = (
     <>
-      {renderEntry ?
-        renderEntry({
-          entry,
-          defaultNode,
-          path: currentPath ?? '/',
-        })
-      : defaultNode}
+      {renderEntry
+        ? renderEntry({
+            entry,
+            defaultNode,
+            path: currentPath ?? '/',
+          })
+        : defaultNode}
       <div className="text-foreground-alt/50 w-[140px] min-w-[100px] shrink text-xs">
-        {entryDetails?.modTime ?
-          format(entryDetails.modTime, 'MMM dd, yyyy')
-        : '—'}
+        {entryDetails?.modTime
+          ? format(entryDetails.modTime, 'MMM dd, yyyy')
+          : '—'}
       </div>
       <div className="text-foreground-alt/50 w-[70px] min-w-[50px] shrink text-right text-xs">
-        {entryDetails?.size && !entry.isSymlink ?
-          entry.isDir ?
-            entryDetails.size
-          : formatBytes(entryDetails.size, 0)
-        : '—'}
+        {entryDetails?.size && !entry.isSymlink
+          ? entry.isDir
+            ? entryDetails.size
+            : formatBytes(entryDetails.size, 0)
+          : '—'}
       </div>
       <button
         type="button"
@@ -317,9 +319,9 @@ export function FileListEntry({
       className={cn(
         'group relative flex items-center px-3 py-1.5 text-xs',
         'cursor-pointer transition-colors select-none',
-        selected ?
-          'bg-brand/10 text-foreground'
-        : 'text-foreground/90 hover:bg-foreground/5',
+        selected
+          ? 'bg-brand/10 text-foreground'
+          : 'text-foreground/90 hover:bg-foreground/5',
         focused && !selected && 'ring-brand/25 ring-1 ring-inset',
         isDropTargetActive && 'bg-brand/10 ring-brand/40 ring-1 ring-inset',
       )}

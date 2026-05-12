@@ -182,9 +182,9 @@ export function CanvasDrawingLayer({
       ref={canvasRef}
       className={cn(
         'text-foreground absolute inset-0 h-full w-full',
-        visible ?
-          'pointer-events-auto cursor-crosshair'
-        : 'pointer-events-none',
+        visible
+          ? 'pointer-events-auto cursor-crosshair'
+          : 'pointer-events-none',
         className,
       )}
       style={{ zIndex: visible ? 10 : -1 }}

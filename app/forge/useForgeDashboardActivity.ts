@@ -115,15 +115,15 @@ function describeActivitySource(
         timestamp: execution.timestamp ?? undefined,
         state: executionStateLabels[execution.executionState ?? 0] ?? 'UNKNOWN',
         logs: (execution.logEntries ?? []).flatMap((entry) =>
-          entry.timestamp ?
-            [
-              {
-                timestamp: entry.timestamp,
-                level: entry.level ?? 'info',
-                message: entry.message ?? '',
-              },
-            ]
-          : [],
+          entry.timestamp
+            ? [
+                {
+                  timestamp: entry.timestamp,
+                  level: entry.level ?? 'info',
+                  message: entry.message ?? '',
+                },
+              ]
+            : [],
         ),
       }
     }

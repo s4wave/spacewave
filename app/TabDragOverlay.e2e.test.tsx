@@ -144,14 +144,14 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     ) as HTMLElement
     console.log(
       '=== DRAG OVER TAB BAR ===',
-      outlineRectAtTabBar ?
-        {
-          exists: true,
-          visibility: outlineRectAtTabBar.style.visibility,
-          computedVisibility:
-            window.getComputedStyle(outlineRectAtTabBar).visibility,
-        }
-      : 'NOT FOUND',
+      outlineRectAtTabBar
+        ? {
+            exists: true,
+            visibility: outlineRectAtTabBar.style.visibility,
+            computedVisibility:
+              window.getComputedStyle(outlineRectAtTabBar).visibility,
+          }
+        : 'NOT FOUND',
     )
 
     expect(outlineRectAtTabBar).not.toBeNull()
@@ -177,15 +177,15 @@ describe('Tab Drag Overlay Visibility Bug', () => {
 
     console.log(
       '=== DRAG DOWN INTO CONTENT AREA (100px below tab) ===',
-      outlineRectAtContent ?
-        {
-          exists: true,
-          visibility: outlineRectAtContent.style.visibility,
-          computedVisibility:
-            window.getComputedStyle(outlineRectAtContent).visibility,
-          boundingRect: outlineRectAtContent.getBoundingClientRect(),
-        }
-      : 'NOT FOUND - BUG: outline_rect was removed!',
+      outlineRectAtContent
+        ? {
+            exists: true,
+            visibility: outlineRectAtContent.style.visibility,
+            computedVisibility:
+              window.getComputedStyle(outlineRectAtContent).visibility,
+            boundingRect: outlineRectAtContent.getBoundingClientRect(),
+          }
+        : 'NOT FOUND - BUG: outline_rect was removed!',
     )
 
     // BUG CHECK: The outline rect should still exist and be visible
@@ -364,12 +364,12 @@ describe('Tab Drag Overlay Visibility Bug', () => {
 
     console.log(
       '=== QUICKSTART TAB: DRAG DOWN 100px ===',
-      outlineAfterDrag ?
-        {
-          visibility: outlineAfterDrag.style.visibility,
-          computed: window.getComputedStyle(outlineAfterDrag).visibility,
-        }
-      : 'NOT FOUND',
+      outlineAfterDrag
+        ? {
+            visibility: outlineAfterDrag.style.visibility,
+            computed: window.getComputedStyle(outlineAfterDrag).visibility,
+          }
+        : 'NOT FOUND',
     )
 
     // BUG: This should not be null or hidden
@@ -536,11 +536,11 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     ) as HTMLElement
     console.log(
       '=== OUTLINE AT TAB BAR ===',
-      outlineAtTabBar ?
-        {
-          visibility: outlineAtTabBar.style.visibility,
-        }
-      : 'NOT FOUND',
+      outlineAtTabBar
+        ? {
+            visibility: outlineAtTabBar.style.visibility,
+          }
+        : 'NOT FOUND',
     )
     expect(outlineAtTabBar).not.toBeNull()
 
@@ -594,13 +594,13 @@ describe('Tab Drag Overlay Visibility Bug', () => {
 
       console.log(
         '=== OUTLINE AFTER ENTERING NESTED LAYOUT ===',
-        outlineAfterNestedEnter ?
-          {
-            visibility: outlineAfterNestedEnter.style.visibility,
-            computed: window.getComputedStyle(outlineAfterNestedEnter)
-              .visibility,
-          }
-        : 'NOT FOUND - BUG!',
+        outlineAfterNestedEnter
+          ? {
+              visibility: outlineAfterNestedEnter.style.visibility,
+              computed: window.getComputedStyle(outlineAfterNestedEnter)
+                .visibility,
+            }
+          : 'NOT FOUND - BUG!',
       )
 
       // BUG CHECK: Outline should still be visible
@@ -804,12 +804,12 @@ describe('Tab Drag Overlay Visibility Bug', () => {
 
     console.log(
       '=== AFTER DRAGLEAVE ON SHELL ===',
-      outline ?
-        {
-          visibility: outline.style.visibility,
-          computed: window.getComputedStyle(outline).visibility,
-        }
-      : 'OUTLINE REMOVED - BUG REPRODUCED!',
+      outline
+        ? {
+            visibility: outline.style.visibility,
+            computed: window.getComputedStyle(outline).visibility,
+          }
+        : 'OUTLINE REMOVED - BUG REPRODUCED!',
     )
 
     // If the bug is present, the outline will be removed or hidden

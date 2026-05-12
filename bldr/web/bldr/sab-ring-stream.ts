@@ -1,4 +1,3 @@
-
 import type { Sink, Source, Duplex } from 'it-stream-types'
 import { pushable } from 'it-pushable'
 import type { Pushable } from 'it-pushable'
@@ -101,10 +100,11 @@ async function waitForChange(
 //
 // Satisfies the same Duplex<AsyncGenerator<Uint8Array>, Source<Uint8Array>,
 // Promise<void>> interface as ChannelStream from starpc.
-export class SabRingStream
-  implements
-    Duplex<AsyncGenerator<Uint8Array>, Source<Uint8Array>, Promise<void>>
-{
+export class SabRingStream implements Duplex<
+  AsyncGenerator<Uint8Array>,
+  Source<Uint8Array>,
+  Promise<void>
+> {
   public source: AsyncGenerator<Uint8Array>
   public sink: Sink<Source<Uint8Array>, Promise<void>>
 

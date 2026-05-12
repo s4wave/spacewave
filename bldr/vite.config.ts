@@ -16,6 +16,6 @@ export default defineConfig(async () => {
       command: 'build',
       mode: process.env.NODE_ENV || 'development',
     },
-    resolve(__dirname, EXAMPLE_DIR, 'vite.config.ts')
+    resolve(__dirname, EXAMPLE_DIR, 'vite.config.ts'),
   )
 })

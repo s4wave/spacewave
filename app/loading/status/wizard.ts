@@ -44,13 +44,14 @@ export function toWizardView(input: WizardViewInput): LoadingView {
   }
   const step = state?.step ?? 0
   const stepLabel =
-    totalSteps !== undefined ?
-      `Step ${step + 1} of ${totalSteps}`
-    : `Step ${step + 1}`
-  const title =
-    state?.name ? `Configuring ${state.name}`
-    : state?.targetTypeId ? `Configuring ${state.targetTypeId}`
-    : 'Wizard'
+    totalSteps !== undefined
+      ? `Step ${step + 1} of ${totalSteps}`
+      : `Step ${step + 1}`
+  const title = state?.name
+    ? `Configuring ${state.name}`
+    : state?.targetTypeId
+      ? `Configuring ${state.targetTypeId}`
+      : 'Wizard'
   return {
     state: 'active',
     title,

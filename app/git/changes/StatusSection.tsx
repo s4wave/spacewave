@@ -81,9 +81,11 @@ export function StatusSection({
         className="text-foreground flex w-full items-center gap-1 px-3 py-1.5 text-xs font-medium select-none hover:bg-white/[0.03]"
         onClick={toggle}
       >
-        {collapsed ?
+        {collapsed ? (
           <LuChevronRight className="size-3.5 shrink-0" />
-        : <LuChevronDown className="size-3.5 shrink-0" />}
+        ) : (
+          <LuChevronDown className="size-3.5 shrink-0" />
+        )}
         <span>
           {title} ({entries.length})
         </span>
@@ -93,9 +95,9 @@ export function StatusSection({
           {entries.map((entry) => {
             const path = entry.filePath ?? ''
             const code =
-              statusField === 'staging' ?
-                (entry.stagingStatus ?? FileStatusCode.UNMODIFIED)
-              : (entry.worktreeStatus ?? FileStatusCode.UNMODIFIED)
+              statusField === 'staging'
+                ? (entry.stagingStatus ?? FileStatusCode.UNMODIFIED)
+                : (entry.worktreeStatus ?? FileStatusCode.UNMODIFIED)
             const letter = statusCodeToLetter(code)
             const color = statusCodeToColor(code)
 

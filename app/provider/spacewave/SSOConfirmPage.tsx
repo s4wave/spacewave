@@ -153,9 +153,8 @@ export function SSOConfirmPage() {
     try {
       await withSpacewaveProvider(root, async (spacewave) => {
         const { entity, session } = await generateAuthKeypairs(spacewave)
-        const wrappedEntityKey =
-          wantsPin ?
-            await wrapPemWithPin(spacewave, entity.pem, pin)
+        const wrappedEntityKey = wantsPin
+          ? await wrapPemWithPin(spacewave, entity.pem, pin)
           : entity.custodiedPemBase64
 
         await spacewave.confirmSSO({
@@ -272,9 +271,9 @@ export function SSOConfirmPage() {
           <>
             <AnimatedLogo followMouse={false} />
             <h2 className="text-foreground text-lg font-semibold">
-              {state.step === 'logging_in' ?
-                'Signing in...'
-              : 'Creating account...'}
+              {state.step === 'logging_in'
+                ? 'Signing in...'
+                : 'Creating account...'}
             </h2>
             {pendingState.email && (
               <p className="text-foreground-alt text-sm">
@@ -286,27 +285,27 @@ export function SSOConfirmPage() {
       >
         <AuthProgressCard
           title={
-            state.step === 'logging_in' ?
-              'Signing you in'
-            : `Creating ${username}`
+            state.step === 'logging_in'
+              ? 'Signing you in'
+              : `Creating ${username}`
           }
           detail={
-            state.step === 'logging_in' ?
-              'Opening your new encrypted session.'
-            : 'Creating secure account keys and registering your account.'
+            state.step === 'logging_in'
+              ? 'Opening your new encrypted session.'
+              : 'Creating secure account keys and registering your account.'
           }
           steps={
-            state.step === 'logging_in' ?
-              [
-                'Unlocking your account key',
-                'Preparing your account workspace',
-                'Opening Spacewave',
-              ]
-            : [
-                'Creating secure account keys',
-                'Protecting your account credentials',
-                'Registering your username',
-              ]
+            state.step === 'logging_in'
+              ? [
+                  'Unlocking your account key',
+                  'Preparing your account workspace',
+                  'Opening Spacewave',
+                ]
+              : [
+                  'Creating secure account keys',
+                  'Protecting your account credentials',
+                  'Registering your username',
+                ]
           }
         />
       </AuthScreenLayout>
@@ -375,12 +374,13 @@ export function SSOConfirmPage() {
                   }
                 }}
               />
-              {usernameError ?
+              {usernameError ? (
                 <p className="text-destructive text-xs">{usernameError}</p>
-              : <p className="text-foreground-alt/50 text-xs">
+              ) : (
+                <p className="text-foreground-alt/50 text-xs">
                   Lowercase letters, numbers, and hyphens
                 </p>
-              }
+              )}
             </label>
             <OptionalPinLock
               pin={pin}

@@ -35,9 +35,9 @@ export function CanvasObjectNode({
 
   const exportUrl = useMemo(
     () =>
-      sessionIndex != null && spaceCtx?.spaceId ?
-        `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(spaceCtx.spaceId)}`
-      : undefined,
+      sessionIndex != null && spaceCtx?.spaceId
+        ? `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(spaceCtx.spaceId)}`
+        : undefined,
     [sessionIndex, spaceCtx?.spaceId],
   )
 

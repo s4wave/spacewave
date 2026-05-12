@@ -453,9 +453,11 @@ export default async function main(
   const assetLoadingMode = selectBackendAssetLoadingMode()
   const entryAssetPaths = collectBackendEntrypointAssetPaths(pluginScript)
   const backendAssetCache = new Map<string, BackendAssetCacheEntry>()
-  const loadedBackendAssets =
-    shouldPreloadBackendAssets(assetLoadingMode, entryAssetPaths) ?
-      await loadBackendAssets(
+  const loadedBackendAssets = shouldPreloadBackendAssets(
+    assetLoadingMode,
+    entryAssetPaths,
+  )
+    ? await loadBackendAssets(
         api,
         signal,
         files,
@@ -465,9 +467,9 @@ export default async function main(
     : false
 
   const preopens =
-    assetLoadingMode === 'lazy-http' ?
-      createBackendAssetPreopens(api, signal, backendAssetCache)
-    : []
+    assetLoadingMode === 'lazy-http'
+      ? createBackendAssetPreopens(api, signal, backendAssetCache)
+      : []
 
   if (assetLoadingMode === 'bounded-preload') {
     if (loadedBackendAssets) {

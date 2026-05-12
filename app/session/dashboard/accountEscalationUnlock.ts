@@ -107,9 +107,9 @@ export async function recoverPasskeyEntityPem(
         opts.abortSignal,
       )
       const prfOutput =
-        reauth.prfCapable && reauth.prfOutput ?
-          base64ToBytes(reauth.prfOutput)
-        : null
+        reauth.prfCapable && reauth.prfOutput
+          ? base64ToBytes(reauth.prfOutput)
+          : null
       return await recoverFromPasskeyArtifacts(
         spacewave,
         reauth.encryptedBlob ?? '',

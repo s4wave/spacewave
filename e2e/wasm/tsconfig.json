@@ -16,10 +16,18 @@
       "@s4wave/web/*": ["../../web/*"],
       "@s4wave/web": ["../../web"],
       "@s4wave/core/*": ["../../core/*"],
-      "@aptre/bldr": ["../../vendor/github.com/s4wave/spacewave/bldr/web/bldr/index.js"],
-      "@aptre/bldr-react": ["../../vendor/github.com/s4wave/spacewave/bldr/web/bldr-react/index.js"],
-      "@aptre/bldr-sdk": ["../../vendor/github.com/s4wave/spacewave/bldr/sdk/plugin.ts"],
-      "@aptre/bldr-sdk/*": ["../../vendor/github.com/s4wave/spacewave/bldr/sdk/*"]
+      "@aptre/bldr": [
+        "../../vendor/github.com/s4wave/spacewave/bldr/web/bldr/index.js"
+      ],
+      "@aptre/bldr-react": [
+        "../../vendor/github.com/s4wave/spacewave/bldr/web/bldr-react/index.js"
+      ],
+      "@aptre/bldr-sdk": [
+        "../../vendor/github.com/s4wave/spacewave/bldr/sdk/plugin.ts"
+      ],
+      "@aptre/bldr-sdk/*": [
+        "../../vendor/github.com/s4wave/spacewave/bldr/sdk/*"
+      ]
     }
   },
   "include": ["*.ts"]

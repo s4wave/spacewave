@@ -149,10 +149,9 @@ export function RecoveryPage() {
     setRequesting(true)
     setRequestError(null)
     try {
-      const turnstileToken =
-        isDesktop ? '' : (
-          ((await turnstileRef.current?.getResponsePromise()) ?? '')
-        )
+      const turnstileToken = isDesktop
+        ? ''
+        : ((await turnstileRef.current?.getResponsePromise()) ?? '')
       if (!isDesktop && !turnstileToken) {
         throw new Error('Turnstile verification failed')
       }
@@ -399,9 +398,11 @@ function RequestRecoveryForm({
         )}
         disabled={loading}
       >
-        {loading ?
+        {loading ? (
           <Spinner className="text-foreground" />
-        : <LuArrowRight className="text-foreground size-4" />}
+        ) : (
+          <LuArrowRight className="text-foreground size-4" />
+        )}
         <span className="text-foreground text-sm">
           {loading ? 'Sending recovery link...' : 'Send recovery link'}
         </span>
@@ -605,10 +606,13 @@ function PasswordForm({
 
 function PasswordStrength({ password }: { password: string }) {
   const strength =
-    password.length === 0 ? 0
-    : password.length < 8 ? 1
-    : password.length < 12 ? 2
-    : 3
+    password.length === 0
+      ? 0
+      : password.length < 8
+        ? 1
+        : password.length < 12
+          ? 2
+          : 3
   const labels = ['', 'Weak', 'Fair', 'Strong']
   const colors = ['', 'bg-destructive', 'bg-yellow-500', 'bg-green-500']
 

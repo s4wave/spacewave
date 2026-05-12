@@ -86,9 +86,9 @@ export function useBackendStateAtomValue<T>(
     (update: T | ((prev: T) => T)) => {
       if (!stateAtom) return
       const newValue =
-        typeof update === 'function' ?
-          (update as (prev: T) => T)(currentValueLatest.current)
-        : update
+        typeof update === 'function'
+          ? (update as (prev: T) => T)(currentValueLatest.current)
+          : update
       stateAtom.setState(superjson.stringify(newValue)).catch(console.error)
     },
     [stateAtom, currentValueLatest],

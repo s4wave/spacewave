@@ -38,9 +38,9 @@ function UseCaseFeatureCard({
       ref={ref}
       className={cn(
         'border-foreground/6 bg-background-card/30 group rounded-lg border p-6 backdrop-blur-sm transition-all duration-500',
-        visible ?
-          'hover:border-foreground/12 hover:bg-background-card/50 translate-y-0 opacity-100 hover:-translate-y-0.5'
-        : 'translate-y-8 opacity-0',
+        visible
+          ? 'hover:border-foreground/12 hover:bg-background-card/50 translate-y-0 opacity-100 hover:-translate-y-0.5'
+          : 'translate-y-8 opacity-0',
       )}
       style={{ transitionDelay: `${index * 80}ms` }}
     >

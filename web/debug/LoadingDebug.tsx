@@ -189,23 +189,24 @@ function ProgressBar({
   return (
     <div className="flex w-full items-center gap-3">
       <div className="bg-foreground/8 relative h-1.5 flex-1 overflow-hidden rounded-full">
-        {indeterminate ?
+        {indeterminate ? (
           <div className="bg-brand animate-progress-indeterminate absolute inset-y-0 w-1/3 rounded-full" />
-        : <div
+        ) : (
+          <div
             className="bg-brand h-full rounded-full transition-[width] duration-200"
             style={{ width: `${pct}%` }}
           />
-        }
+        )}
       </div>
-      {rate ?
+      {rate ? (
         <span className="text-foreground-alt/70 font-mono text-[0.65rem] tabular-nums">
           {rate}
         </span>
-      : !indeterminate ?
+      ) : !indeterminate ? (
         <span className="text-foreground-alt/70 w-8 text-right font-mono text-[0.65rem] tabular-nums">
           {pct}%
         </span>
-      : null}
+      ) : null}
     </div>
   )
 }
@@ -300,38 +301,38 @@ function LoadingCard({ view }: { view: LoadingView }) {
           <div className="text-foreground text-sm font-semibold tracking-tight">
             {view.title}
           </div>
-          {view.detail ?
+          {view.detail ? (
             <div className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
               {view.detail}
             </div>
-          : null}
-          {view.progress !== undefined ?
+          ) : null}
+          {view.progress !== undefined ? (
             <div className="mt-2.5">
               <ProgressBar
                 value={view.progress * 100}
                 rate={view.rate?.down ?? view.rate?.up}
               />
             </div>
-          : null}
-          {view.rate && view.progress === undefined ?
+          ) : null}
+          {view.rate && view.progress === undefined ? (
             <div className="mt-2 grid grid-cols-2 gap-2">
               <RatePill label="Up" value={view.rate.up ?? '0 B/s'} />
               <RatePill label="Down" value={view.rate.down ?? '0 B/s'} />
             </div>
-          : null}
-          {view.lastActivity ?
+          ) : null}
+          {view.lastActivity ? (
             <div className="text-foreground-alt/40 mt-2 text-[0.65rem]">
               {view.lastActivity}
             </div>
-          : null}
-          {view.error ?
+          ) : null}
+          {view.error ? (
             <div className="bg-destructive/5 border-destructive/15 text-destructive mt-2 rounded-md border px-2 py-1 text-[0.65rem] leading-relaxed">
               {view.error}
             </div>
-          : null}
-          {view.onRetry || view.onCancel ?
+          ) : null}
+          {view.onRetry || view.onCancel ? (
             <div className="mt-2.5 flex gap-2">
-              {view.onRetry ?
+              {view.onRetry ? (
                 <button
                   type="button"
                   onClick={view.onRetry}
@@ -339,8 +340,8 @@ function LoadingCard({ view }: { view: LoadingView }) {
                 >
                   Retry
                 </button>
-              : null}
-              {view.onCancel ?
+              ) : null}
+              {view.onCancel ? (
                 <button
                   type="button"
                   onClick={view.onCancel}
@@ -348,9 +349,9 @@ function LoadingCard({ view }: { view: LoadingView }) {
                 >
                   Cancel
                 </button>
-              : null}
+              ) : null}
             </div>
-          : null}
+          ) : null}
         </div>
       </div>
     </div>
@@ -482,9 +483,11 @@ function LoadingInline({
   tone?: 'brand' | 'muted' | 'destructive'
 }) {
   const toneCls =
-    tone === 'brand' ? 'text-brand'
-    : tone === 'destructive' ? 'text-destructive'
-    : 'text-foreground-alt'
+    tone === 'brand'
+      ? 'text-brand'
+      : tone === 'destructive'
+        ? 'text-destructive'
+        : 'text-foreground-alt'
   return (
     <span className={cn('inline-flex items-center gap-1.5', toneCls)}>
       <Spinner size={size} />

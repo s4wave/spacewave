@@ -155,8 +155,9 @@ export function BillingAssignmentsSection({
           {assignees.map((a) => {
             const isPersonal =
               a.ownerType === 'account' && a.ownerId === callerAccountId
-            const label =
-              isPersonal ? 'Personal' : a.displayName || a.ownerId || ''
+            const label = isPersonal
+              ? 'Personal'
+              : a.displayName || a.ownerId || ''
             return (
               <span
                 key={`${a.ownerType}:${a.ownerId}`}

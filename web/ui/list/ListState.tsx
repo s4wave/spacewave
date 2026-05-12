@@ -115,10 +115,10 @@ export function selectItemReducer<T>(
   }
 
   const targetIndex =
-    action.id !== undefined ?
-      items.findIndex((item) => item.id === action.id)
-    : (state.focusedIndex ?? state.lastSelectedIndex ?? 0) +
-      (action.offset ?? 0)
+    action.id !== undefined
+      ? items.findIndex((item) => item.id === action.id)
+      : (state.focusedIndex ?? state.lastSelectedIndex ?? 0) +
+        (action.offset ?? 0)
 
   if (targetIndex < 0 || targetIndex >= items.length) {
     return state

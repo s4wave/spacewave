@@ -119,7 +119,7 @@ export function ForgePassViewer({
         id: 'executions',
         label: 'Executions',
         content:
-          decodedExecutions.length === 0 ?
+          decodedExecutions.length === 0 ? (
             <ForgeEntityList
               entities={executions}
               loading={executionsLoading || decodedExecutionsLoading}
@@ -127,7 +127,8 @@ export function ForgePassViewer({
               loadingLabel="Loading executions..."
               emptyLabel="No executions yet"
             />
-          : <div className="space-y-2">
+          ) : (
+            <div className="space-y-2">
               {decodedExecutions.map((execution) => (
                 <div
                   key={execution.entity.objectKey}
@@ -157,7 +158,8 @@ export function ForgePassViewer({
                   </div>
                 </div>
               ))}
-            </div>,
+            </div>
+          ),
       },
       {
         id: 'details',

@@ -115,9 +115,11 @@ export function MigrateDecisionPage() {
       >
         <div className="flex items-start gap-4">
           <div className="bg-foreground/5 flex size-10 shrink-0 items-center justify-center rounded-lg">
-            {unlinking ?
+            {unlinking ? (
               <Spinner size="md" className="text-foreground-alt" />
-            : <LuUnlink className="text-foreground-alt size-5" />}
+            ) : (
+              <LuUnlink className="text-foreground-alt size-5" />
+            )}
           </div>
           <div className="flex-1">
             <h2 className="text-foreground text-sm font-semibold">

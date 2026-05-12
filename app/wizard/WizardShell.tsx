@@ -93,9 +93,9 @@ export function WizardShell({
         <div className="flex-1 px-4 py-3">
           <div className="space-y-3">
             <div className="text-foreground-alt/50 flex items-center text-[0.6rem] font-medium tracking-widest uppercase select-none">
-              {totalSteps !== undefined ?
-                `Step ${step + 1} of ${totalSteps}`
-              : `Step ${step + 1}`}
+              {totalSteps !== undefined
+                ? `Step ${step + 1} of ${totalSteps}`
+                : `Step ${step + 1}`}
             </div>
 
             {step === nameStep && (

@@ -99,12 +99,11 @@ export function treeReducer<T>(
 
       let targetId = action.id
       if (!targetId && action.offset !== undefined) {
-        const currentIndex =
-          state.focusedId ?
-            visibleNodes.findIndex((n) => n.id === state.focusedId)
-          : state.lastSelectedId ?
-            visibleNodes.findIndex((n) => n.id === state.lastSelectedId)
-          : -1
+        const currentIndex = state.focusedId
+          ? visibleNodes.findIndex((n) => n.id === state.focusedId)
+          : state.lastSelectedId
+            ? visibleNodes.findIndex((n) => n.id === state.lastSelectedId)
+            : -1
 
         const nextIndex = Math.max(
           0,

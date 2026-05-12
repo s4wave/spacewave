@@ -22,7 +22,9 @@ export type CrossTabBrokerMessage =
   | { crossTab: 'peer-gone'; peerId: string }
 
 // isCrossTabMessage checks if a message is a cross-tab broker message.
-export function isCrossTabMessage(data: unknown): data is CrossTabClientMessage {
+export function isCrossTabMessage(
+  data: unknown,
+): data is CrossTabClientMessage {
   if (typeof data !== 'object' || data === null) return false
   const msg = data as Record<string, unknown>
   return msg.crossTab === 'hello' || msg.crossTab === 'goodbye'
@@ -45,12 +47,18 @@ export async function handleCrossTabMessage(
       if (client.id === senderId) continue
       const channel = new MessageChannel()
       client.postMessage(
-        { crossTab: 'direct-port', peerId: senderId } satisfies CrossTabBrokerMessage,
+        {
+          crossTab: 'direct-port',
+          peerId: senderId,
+        } satisfies CrossTabBrokerMessage,
         [channel.port1],
       )
       if (sender) {
         sender.postMessage(
-          { crossTab: 'direct-port', peerId: client.id } satisfies CrossTabBrokerMessage,
+          {
+            crossTab: 'direct-port',
+            peerId: client.id,
+          } satisfies CrossTabBrokerMessage,
           [channel.port2],
         )
       }
@@ -59,9 +67,10 @@ export async function handleCrossTabMessage(
     const allClients = await clients.matchAll({ type: 'window' })
     for (const client of allClients) {
       if (client.id === senderId) continue
-      client.postMessage(
-        { crossTab: 'peer-gone', peerId: senderId } satisfies CrossTabBrokerMessage,
-      )
+      client.postMessage({
+        crossTab: 'peer-gone',
+        peerId: senderId,
+      } satisfies CrossTabBrokerMessage)
     }
   }
 }

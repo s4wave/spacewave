@@ -196,14 +196,15 @@ function SymlinkViewer({
             <p className="text-foreground text-xs font-medium select-none">
               Symbolic link
             </p>
-            {loading ?
+            {loading ? (
               <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
                 Reading target…
               </p>
-            : <p className="text-foreground-alt/70 mt-1 truncate font-mono text-[11px]">
+            ) : (
+              <p className="text-foreground-alt/70 mt-1 truncate font-mono text-[11px]">
                 {target}
               </p>
-            }
+            )}
           </div>
         </div>
         {!loading && onNavigate && (
@@ -278,9 +279,8 @@ export function UnixFSFileViewer({
     // Resolve relative target against the symlink's parent directory.
     const parent = path.replace(/\/[^/]*$/, '') || '/'
     const parts = (
-      parent === '/' ?
-        []
-      : parent.split('/').filter(Boolean)).concat(target.split('/'))
+      parent === '/' ? [] : parent.split('/').filter(Boolean)
+    ).concat(target.split('/'))
     const resolved: string[] = []
     for (const part of parts) {
       if (part === '..') {
@@ -319,35 +319,37 @@ export function UnixFSFileViewer({
 
       {/* File content */}
       <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
-        {isSymlink ?
+        {isSymlink ? (
           <SymlinkViewer
             target={symlinkTargetResource.value ?? ''}
             loading={symlinkTargetResource.loading}
             onNavigate={resolvedTarget ? handleNavigateSymlink : undefined}
           />
-        : isImage && inlineFileURL ?
+        ) : isImage && inlineFileURL ? (
           <ImageFileViewer
             alt={path.split('/').filter(Boolean).at(-1) ?? 'image'}
             inlineFileURL={inlineFileURL}
           />
-        : isPdf && inlineFileURL ?
+        ) : isPdf && inlineFileURL ? (
           <UnixFSPdfFileViewer
             title={path.split('/').filter(Boolean).at(-1) ?? 'pdf'}
             inlineFileURL={inlineFileURL}
           />
-        : isAudio && inlineFileURL ?
+        ) : isAudio && inlineFileURL ? (
           <UnixFSAudioFileViewer
             title={path.split('/').filter(Boolean).at(-1) ?? 'audio'}
             inlineFileURL={inlineFileURL}
           />
-        : isVideo && inlineFileURL ?
+        ) : isVideo && inlineFileURL ? (
           <UnixFSVideoFileViewer
             title={path.split('/').filter(Boolean).at(-1) ?? 'video'}
             inlineFileURL={inlineFileURL}
           />
-        : isText ?
+        ) : isText ? (
           <TextFileViewer rootHandle={rootHandle} path={path} />
-        : <BinaryFileViewer mimeType={stat.mimeType} />}
+        ) : (
+          <BinaryFileViewer mimeType={stat.mimeType} />
+        )}
       </div>
     </div>
   )

@@ -28,7 +28,10 @@ export abstract class Fd {
   fd_fdstat_set_flags(_flags: number): number {
     return wasi.ERRNO_NOTSUP
   }
-  fd_fdstat_set_rights(_fs_rights_base: bigint, _fs_rights_inheriting: bigint): number {
+  fd_fdstat_set_rights(
+    _fs_rights_base: bigint,
+    _fs_rights_inheriting: bigint,
+  ): number {
     return wasi.ERRNO_NOTSUP
   }
   fd_filestat_get(): { ret: number; filestat: wasi.Filestat | null } {
@@ -37,7 +40,11 @@ export abstract class Fd {
   fd_filestat_set_size(_size: bigint): number {
     return wasi.ERRNO_NOTSUP
   }
-  fd_filestat_set_times(_atim: bigint, _mtim: bigint, _fst_flags: number): number {
+  fd_filestat_set_times(
+    _atim: bigint,
+    _mtim: bigint,
+    _fst_flags: number,
+  ): number {
     return wasi.ERRNO_NOTSUP
   }
   fd_pread(_size: number, _offset: bigint): { ret: number; data: Uint8Array } {
@@ -46,7 +53,10 @@ export abstract class Fd {
   fd_prestat_get(): { ret: number; prestat: wasi.Prestat | null } {
     return { ret: wasi.ERRNO_NOTSUP, prestat: null }
   }
-  fd_pwrite(_data: Uint8Array, _offset: bigint): { ret: number; nwritten: number } {
+  fd_pwrite(
+    _data: Uint8Array,
+    _offset: bigint,
+  ): { ret: number; nwritten: number } {
     return { ret: wasi.ERRNO_NOTSUP, nwritten: 0 }
   }
   fd_read(_size: number): { ret: number; data: Uint8Array } {
@@ -73,7 +83,10 @@ export abstract class Fd {
   path_create_directory(_path: string): number {
     return wasi.ERRNO_NOTSUP
   }
-  path_filestat_get(_flags: number, _path: string): { ret: number; filestat: wasi.Filestat | null } {
+  path_filestat_get(
+    _flags: number,
+    _path: string,
+  ): { ret: number; filestat: wasi.Filestat | null } {
     return { ret: wasi.ERRNO_NOTSUP, filestat: null }
   }
   path_filestat_set_times(
@@ -91,7 +104,10 @@ export abstract class Fd {
   path_unlink(_path: string): { ret: number; inode_obj: Inode | null } {
     return { ret: wasi.ERRNO_NOTSUP, inode_obj: null }
   }
-  path_lookup(_path: string, _dirflags: number): { ret: number; inode_obj: Inode | null } {
+  path_lookup(
+    _path: string,
+    _dirflags: number,
+  ): { ret: number; inode_obj: Inode | null } {
     return { ret: wasi.ERRNO_NOTSUP, inode_obj: null }
   }
   path_open(

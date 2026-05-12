@@ -9,7 +9,10 @@ import {
   RemoveWebDocumentFunc,
   WebRuntime,
 } from '../../bldr/web-runtime.js'
-import { GoWasmProcess, loadWebAssemblyModule } from '../../runtime/wasm/go-process.js'
+import {
+  GoWasmProcess,
+  loadWebAssemblyModule,
+} from '../../runtime/wasm/go-process.js'
 
 // Detect whether we are running as a SharedWorker or a dedicated Worker.
 // SharedWorker receives connections via the 'connect' event.
@@ -51,9 +54,9 @@ declare const BLDR_RUNTIME_WASM: string | undefined
 
 // runtimeWasmURL is the path to the bldr runtime wasm that we will use.
 const runtimeWasmURL = new URL(
-  typeof BLDR_RUNTIME_WASM === 'string' && !!BLDR_RUNTIME_WASM ?
-    BLDR_RUNTIME_WASM
-  : './runtime.wasm',
+  typeof BLDR_RUNTIME_WASM === 'string' && !!BLDR_RUNTIME_WASM
+    ? BLDR_RUNTIME_WASM
+    : './runtime.wasm',
   baseURL,
 )
 
@@ -131,7 +134,12 @@ function handlePortMessage(msgEvent: MessageEvent) {
     return
   }
 
-  console.log('runtime-wasm: valid message from:', msg.from, 'keys:', Object.keys(msg))
+  console.log(
+    'runtime-wasm: valid message from:',
+    msg.from,
+    'keys:',
+    Object.keys(msg),
+  )
 
   if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
     runtimeStarted = true
@@ -150,7 +158,10 @@ function handlePortMessage(msgEvent: MessageEvent) {
 if (isSharedWorker) {
   // SharedWorker mode: each connecting page fires a 'connect' event with a port.
   self.addEventListener('connect', (ev) => {
-    console.log('runtime-wasm: connect event received, ports:', ev.ports?.length)
+    console.log(
+      'runtime-wasm: connect event received, ports:',
+      ev.ports?.length,
+    )
     const port = ev.ports?.[0]
     if (!port) {
       return
@@ -169,7 +180,11 @@ if (isSharedWorker) {
       port.start()
     }
     // The first message may also contain an init or connect request.
-    if (msgEvent.data && typeof msgEvent.data === 'object' && msgEvent.data.from) {
+    if (
+      msgEvent.data &&
+      typeof msgEvent.data === 'object' &&
+      msgEvent.data.from
+    ) {
       handlePortMessage(msgEvent)
     }
   }

@@ -12,7 +12,9 @@ const caps = {
   broadcastChannelAvailable: true,
 }
 
-function detect(config: WorkerCommsDetectResult['config']): WorkerCommsDetectResult {
+function detect(
+  config: WorkerCommsDetectResult['config'],
+): WorkerCommsDetectResult {
   return { config, caps }
 }
 

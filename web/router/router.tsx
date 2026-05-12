@@ -219,9 +219,8 @@ export const Routes: FC<{
   fullPath?: boolean
 }> = ({ children, path: pathProp, fullPath }) => {
   const router = useRouter()
-  const effectivePath =
-    fullPath ?
-      (pathProp ?? router.path)
+  const effectivePath = fullPath
+    ? (pathProp ?? router.path)
     : (router.params['*'] ?? pathProp ?? router.path)
 
   const childElements = collectRoutes(children)
@@ -231,17 +230,15 @@ export const Routes: FC<{
     if (params) {
       // Calculate the basePath by removing the wildcard portion if it exists
       // Calculate the current path segment
-      const currentPath =
-        params['*'] ?
-          effectivePath.slice(0, -params['*'].length - 1) // -1 for the trailing slash
+      const currentPath = params['*']
+        ? effectivePath.slice(0, -params['*'].length - 1) // -1 for the trailing slash
         : effectivePath
 
       const value = {
         ...router,
         params,
-        parentPaths:
-          routePattern.endsWith('*') ?
-            [...router.parentPaths, currentPath]
+        parentPaths: routePattern.endsWith('*')
+          ? [...router.parentPaths, currentPath]
           : router.parentPaths,
       }
       return (

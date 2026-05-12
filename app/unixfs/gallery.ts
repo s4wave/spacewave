@@ -105,9 +105,8 @@ async function resolveGalleryScope(
   scopePath: string
 }> {
   const normalizedRequestedPath = normalizeScopePath(requestedScopePath)
-  const requestedHandle =
-    normalizedRequestedPath ?
-      (await rootHandle.lookupPath(normalizedRequestedPath, signal)).handle
+  const requestedHandle = normalizedRequestedPath
+    ? (await rootHandle.lookupPath(normalizedRequestedPath, signal)).handle
     : await rootHandle.clone(signal)
   const info = await requestedHandle.getFileInfo(signal)
   if (info.isDir ?? false) {
@@ -120,9 +119,8 @@ async function resolveGalleryScope(
 
   const scopePath = getParentPath(requestedScopePath || '/')
   const normalizedScopePath = normalizeScopePath(scopePath)
-  const handle =
-    normalizedScopePath ?
-      (await rootHandle.lookupPath(normalizedScopePath, signal)).handle
+  const handle = normalizedScopePath
+    ? (await rootHandle.lookupPath(normalizedScopePath, signal)).handle
     : await rootHandle.clone(signal)
   return {
     handle,

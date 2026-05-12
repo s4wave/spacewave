@@ -79,10 +79,15 @@ async function runBrowser(plan: BrowserPlan) {
     const results = await Promise.race([
       page.evaluate((suite) => (window as any).runAll(suite), plan.suite),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`benchmark timed out after ${timeoutMs}ms`)), timeoutMs),
+        setTimeout(
+          () => reject(new Error(`benchmark timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        ),
       ),
     ])
-    const logText = await page.evaluate(() => document.getElementById('log')?.textContent ?? '')
+    const logText = await page.evaluate(
+      () => document.getElementById('log')?.textContent ?? '',
+    )
     console.log(
       `[${plan.browserName}] done in ${results?.meta?.elapsedMs?.toFixed?.(1) ?? 'n/a'}ms`,
     )
@@ -98,7 +103,7 @@ async function runBrowser(plan: BrowserPlan) {
       browserName: plan.browserName,
       suite: plan.suite,
       ok: false,
-      error: err instanceof Error ? err.stack ?? err.message : String(err),
+      error: err instanceof Error ? (err.stack ?? err.message) : String(err),
     }
   } finally {
     await browser.close()

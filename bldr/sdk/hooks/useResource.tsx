@@ -1,4 +1,3 @@
-
 import {
   useCallback,
   useEffect,
@@ -481,10 +480,7 @@ export function useResource<T>(
     devtools.register(trackingId, parentTrackingIds, () => retryRef.current())
     // Immediately update with current state after registration
     const s = stateRef.current
-    const currentState =
-      s.loading ? 'loading'
-      : s.error ? 'error'
-      : 'ready'
+    const currentState = s.loading ? 'loading' : s.error ? 'error' : 'ready'
     devtools.update(trackingId, currentState, s.value, s.error)
     return () => {
       devtools.unregister(trackingId)
@@ -513,35 +509,36 @@ export function useResource<T>(
       error: state.error,
       value: state.value,
     }
-    const currentState =
-      state.loading ? 'loading'
-      : state.error ? 'error'
-      : 'ready'
+    const currentState = state.loading
+      ? 'loading'
+      : state.error
+        ? 'error'
+        : 'ready'
     devtools.update(trackingId, currentState, state.value, state.error)
   }, [devtools, trackingId, state.loading, state.error, state.value])
 
   useEffect(() => {
     if (!enabled) {
       setState((prev) =>
-        prev.value === null && !prev.loading && prev.error === null ?
-          prev
-        : {
-            value: null,
-            loading: false,
-            error: null,
-          },
+        prev.value === null && !prev.loading && prev.error === null
+          ? prev
+          : {
+              value: null,
+              loading: false,
+              error: null,
+            },
       )
       return
     }
     if (parent.values.some((v) => v === null)) {
       setState((prev) =>
-        prev.value === null && prev.loading === parent.loading ?
-          prev
-        : {
-            value: null,
-            loading: parent.loading,
-            error: null,
-          },
+        prev.value === null && prev.loading === parent.loading
+          ? prev
+          : {
+              value: null,
+              loading: parent.loading,
+              error: null,
+            },
       )
       return
     }
@@ -558,13 +555,13 @@ export function useResource<T>(
     loadedParentValuesCountRef.current = parentValuesChangeCount
 
     setState((prev) =>
-      prev.loading && prev.error === null ?
-        prev
-      : {
-          value: prev.value,
-          loading: true,
-          error: null,
-        },
+      prev.loading && prev.error === null
+        ? prev
+        : {
+            value: prev.value,
+            loading: true,
+            error: null,
+          },
     )
 
     const cleanupResources: { [Symbol.dispose](): void }[] = []

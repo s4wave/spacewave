@@ -232,9 +232,9 @@ export function useCanvasViewport(
         if (toolRef.current !== 'select') return
 
         const shiftKey =
-          event instanceof MouseEvent || event instanceof PointerEvent ?
-            event.shiftKey
-          : false
+          event instanceof MouseEvent || event instanceof PointerEvent
+            ? event.shiftKey
+            : false
 
         // Shift+drag starts box selection instead of panning.
         if (first && shiftKey && options?.dragSelect) {

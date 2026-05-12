@@ -10,7 +10,9 @@ export async function fetchWithDecompress(source: string): Promise<Response> {
     return response
   }
 
-  const contentEncoding = response.headers.get('content-encoding')?.toLowerCase()
+  const contentEncoding = response.headers
+    .get('content-encoding')
+    ?.toLowerCase()
   if (source.endsWith('.gz') && !contentEncoding?.includes('gzip')) {
     const ds = new DecompressionStream('gzip')
     const decompressedStream = response.body.pipeThrough(ds)

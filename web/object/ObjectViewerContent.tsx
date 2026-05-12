@@ -36,11 +36,13 @@ export function ObjectViewerContent({
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center p-3">
         <div className="bg-background-dark border-border flex h-full w-full items-center justify-center rounded-xl border">
-          {!objectKey ?
+          {!objectKey ? (
             <span>No object selected</span>
-          : !typeID ?
+          ) : !typeID ? (
             <span>Object has no type</span>
-          : <span>No viewer available for type: {typeID}</span>}
+          ) : (
+            <span>No viewer available for type: {typeID}</span>
+          )}
         </div>
       </div>
     )

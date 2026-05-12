@@ -188,9 +188,9 @@ function UnixFSVideoPlayerSurface({
             <LuTriangleAlert className="size-5" />
           </div>
           <div className="text-foreground text-sm font-semibold">
-            {state.unsupported ?
-              'Video preview unavailable'
-            : 'Video playback failed'}
+            {state.unsupported
+              ? 'Video preview unavailable'
+              : 'Video playback failed'}
           </div>
           <div className="text-foreground-alt max-w-md text-xs">
             {state.message}

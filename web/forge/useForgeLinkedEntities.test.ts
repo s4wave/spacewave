@@ -35,9 +35,9 @@ describe('loadForgeLinkedEntities', () => {
             outgoing: [
               {
                 obj: keyToIRI(
-                  originObjectKey.startsWith('forge/job') ? 'forge/job' : (
-                    'forge/worker'
-                  ),
+                  originObjectKey.startsWith('forge/job')
+                    ? 'forge/job'
+                    : 'forge/worker',
                 ),
                 predicate: '<type>',
               },

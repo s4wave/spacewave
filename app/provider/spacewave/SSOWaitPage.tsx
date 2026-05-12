@@ -241,10 +241,13 @@ export function SSOWaitPage() {
   }
 
   const detail =
-    state.step === 'logging_in' ? 'Signing in with your entity key.'
-    : state.step === 'redirecting' ? `Redirecting to ${providerLabel}.`
-    : isDesktop ? 'Finish sign-in in your browser, then return here.'
-    : `Connecting to ${providerLabel}.`
+    state.step === 'logging_in'
+      ? 'Signing in with your entity key.'
+      : state.step === 'redirecting'
+        ? `Redirecting to ${providerLabel}.`
+        : isDesktop
+          ? 'Finish sign-in in your browser, then return here.'
+          : `Connecting to ${providerLabel}.`
 
   return (
     <AuthScreenLayout

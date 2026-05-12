@@ -180,7 +180,10 @@ function useSnapshotUpdatedAt(snapshotKey: string): string {
 
 function buildSpacesSnapshotKey(
   spaces: ReadonlyArray<{
-    entry?: { ref?: { providerResourceRef?: { id?: string } }; source?: string }
+    entry?: {
+      ref?: { providerResourceRef?: { id?: string } }
+      source?: string
+    }
     spaceMeta?: { name?: string }
   }>,
 ): string {
@@ -826,9 +829,9 @@ function LogPanel({ namespace }: { namespace: StateNamespace }) {
                 onClick={() => setFilter(level)}
                 className={cn(
                   'rounded px-1.5 py-0.5 font-mono text-[0.5rem] transition-colors',
-                  filter === level ?
-                    'bg-foreground/10 text-foreground'
-                  : 'text-foreground-alt/30 hover:text-foreground-alt/50',
+                  filter === level
+                    ? 'bg-foreground/10 text-foreground'
+                    : 'text-foreground-alt/30 hover:text-foreground-alt/50',
                 )}
               >
                 {level ?? 'all'}
@@ -931,9 +934,9 @@ function StatPill({
         <span
           className={cn(
             'rounded-full px-1 py-0.5 font-mono text-[0.5rem] transition-opacity duration-300',
-            delta > 0 ?
-              'bg-success/10 text-success/80'
-            : 'bg-warning/10 text-warning/80',
+            delta > 0
+              ? 'bg-success/10 text-success/80'
+              : 'bg-warning/10 text-warning/80',
           )}
         >
           {delta > 0 ? `+${delta}` : String(delta)}
@@ -1060,10 +1063,12 @@ function SidebarTree({
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const visibleSpaces = showAllSpaces ? spaces : spaces.slice(0, 5)
   const visiblePlugins = plugins.slice(0, 5)
-  const visibleControllers =
-    showAllControllers ? controllers : controllers.slice(0, 5)
-  const visibleDirectiveGroups =
-    showAllDirectives ? directiveGroups : directiveGroups.slice(0, 5)
+  const visibleControllers = showAllControllers
+    ? controllers
+    : controllers.slice(0, 5)
+  const visibleDirectiveGroups = showAllDirectives
+    ? directiveGroups
+    : directiveGroups.slice(0, 5)
   const entries = useMemo<SidebarEntry[]>(() => {
     const nextEntries: SidebarEntry[] = [
       {
@@ -1219,10 +1224,9 @@ function SidebarTree({
           id: 'more:controllers',
           kind: 'more',
           section: 'controllers',
-          label:
-            showAllControllers ? 'Show fewer' : (
-              `+${controllers.length - 5} more`
-            ),
+          label: showAllControllers
+            ? 'Show fewer'
+            : `+${controllers.length - 5} more`,
           expanded: showAllControllers,
           level: 2,
           parentSection: 'controllers',
@@ -1274,10 +1278,9 @@ function SidebarTree({
           id: 'more:directives',
           kind: 'more',
           section: 'directives',
-          label:
-            showAllDirectives ? 'Show fewer' : (
-              `+${directiveGroups.length - 5} more`
-            ),
+          label: showAllDirectives
+            ? 'Show fewer'
+            : `+${directiveGroups.length - 5} more`,
           expanded: showAllDirectives,
           level: 2,
           parentSection: 'directives',
@@ -1348,10 +1351,9 @@ function SidebarTree({
     visiblePlugins,
     visibleSpaces,
   ])
-  const resolvedFocusedId =
-    entries.some((entry) => entry.id === focusedId) ? focusedId : (
-      (entries[0]?.id ?? '')
-    )
+  const resolvedFocusedId = entries.some((entry) => entry.id === focusedId)
+    ? focusedId
+    : (entries[0]?.id ?? '')
 
   function setSectionExpanded(section: SidebarSectionKey, expanded: boolean) {
     setOpenSections((state) => ({ ...state, [section]: expanded }))
@@ -1540,9 +1542,9 @@ function SidebarTree({
             onClick={() => activateEntry(entry)}
             className={cn(
               'focus-visible:ring-brand/30 flex w-full items-center gap-1.5 py-0.5 pr-3 pl-7 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none',
-              entry.selected ?
-                'bg-brand/[0.08] text-foreground'
-              : 'text-foreground/60 hover:bg-foreground/[0.02] hover:text-foreground/80',
+              entry.selected
+                ? 'bg-brand/[0.08] text-foreground'
+                : 'text-foreground/60 hover:bg-foreground/[0.02] hover:text-foreground/80',
             )}
           >
             <span className={cn('size-1.5 shrink-0 rounded-full', entry.dot)} />
@@ -1593,9 +1595,9 @@ function SessionSidebarItem({
       onClick={onClick}
       className={cn(
         'focus-visible:ring-brand/30 flex w-full items-center gap-1.5 py-0.5 pr-3 pl-7 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none',
-        selected ?
-          'bg-brand/[0.08] text-foreground'
-        : 'text-foreground/60 hover:bg-foreground/[0.02] hover:text-foreground/80',
+        selected
+          ? 'bg-brand/[0.08] text-foreground'
+          : 'text-foreground/60 hover:bg-foreground/[0.02] hover:text-foreground/80',
       )}
     >
       <span className="bg-success size-1.5 shrink-0 rounded-full" />
@@ -1841,13 +1843,15 @@ function SessionDetail({
       {metadata?.lockMode != null && (
         <DetailCard title="Security" accent="border-warning/40">
           <div className="flex items-center gap-2 px-3 py-1.5">
-            {metadata.lockMode === SessionLockMode.AUTO_UNLOCK ?
+            {metadata.lockMode === SessionLockMode.AUTO_UNLOCK ? (
               <LuLockOpen className="text-success/60 size-3" />
-            : <LuLock className="text-warning/60 size-3" />}
+            ) : (
+              <LuLock className="text-warning/60 size-3" />
+            )}
             <span className="text-foreground/70 text-xs">
-              {metadata.lockMode === SessionLockMode.AUTO_UNLOCK ?
-                'Auto-unlock (no PIN)'
-              : 'PIN encrypted'}
+              {metadata.lockMode === SessionLockMode.AUTO_UNLOCK
+                ? 'Auto-unlock (no PIN)'
+                : 'PIN encrypted'}
             </span>
           </div>
         </DetailCard>
@@ -2189,9 +2193,9 @@ function BuildInfoCard({ buildInfo }: { buildInfo: AppBuildInfo }) {
         <DetailRow
           label="Platform"
           value={
-            buildInfo.goos && buildInfo.goarch ?
-              `${buildInfo.goos}/${buildInfo.goarch}`
-            : 'unknown'
+            buildInfo.goos && buildInfo.goarch
+              ? `${buildInfo.goos}/${buildInfo.goarch}`
+              : 'unknown'
           }
         />
         <DetailRow
@@ -2543,8 +2547,9 @@ function ResourcesDetail() {
 function AtomsDetail() {
   const selectedAtomId = useSelectedStateAtomId()
   const entryMap = useStateInspectorEntryMap()
-  const selectedEntry =
-    selectedAtomId ? entryMap.get(selectedAtomId) : undefined
+  const selectedEntry = selectedAtomId
+    ? entryMap.get(selectedAtomId)
+    : undefined
 
   return (
     <div className="flex h-full flex-col p-4">

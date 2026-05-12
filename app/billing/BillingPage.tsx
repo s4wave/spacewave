@@ -83,10 +83,11 @@ export function BillingPage() {
     (managedData?.accounts ?? []).find((row) => row.id === baId) ?? null
   const managedBillingLoading = !!session && managedData == null
   const assigneeCount = managedBillingAccount?.assignees?.length ?? 0
-  const deleteDisabledReason =
-    managedBillingLoading ? 'Loading billing account assignments...'
-    : !managedBillingAccount ? 'Only the billing account creator can delete it.'
-    : null
+  const deleteDisabledReason = managedBillingLoading
+    ? 'Loading billing account assignments...'
+    : !managedBillingAccount
+      ? 'Only the billing account creator can delete it.'
+      : null
 
   useEffect(() => {
     if (!renaming) {
@@ -155,7 +156,7 @@ export function BillingPage() {
       <div className="w-full max-w-md px-4">
         <div className="mb-6 flex items-center gap-2">
           <LuCreditCard className="text-foreground size-5 shrink-0" />
-          {renaming ?
+          {renaming ? (
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <input
                 ref={handleRenameInputRef}
@@ -192,7 +193,8 @@ export function BillingPage() {
                 Cancel
               </DashboardButton>
             </div>
-          : <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+          ) : (
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
               <h1 className="text-foreground truncate text-lg font-semibold tracking-tight">
                 {title}
               </h1>
@@ -205,7 +207,7 @@ export function BillingPage() {
                 </DashboardButton>
               )}
             </div>
-          }
+          )}
         </div>
         {renameError && (
           <div className="border-destructive/20 bg-destructive/5 text-destructive mb-3 rounded-md border px-3 py-2 text-xs">

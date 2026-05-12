@@ -37,9 +37,9 @@ export function toLockView(input: LockViewInput): LoadingView {
       state: 'active',
       title: 'Unlocking session',
       detail:
-        mode === SessionLockMode.PIN_ENCRYPTED ?
-          'Deriving session key from PIN.'
-        : 'Deriving session key.',
+        mode === SessionLockMode.PIN_ENCRYPTED
+          ? 'Deriving session key from PIN.'
+          : 'Deriving session key.',
       onCancel,
     }
   }
@@ -47,9 +47,9 @@ export function toLockView(input: LockViewInput): LoadingView {
     state: 'loading',
     title: 'Session locked',
     detail:
-      mode === SessionLockMode.PIN_ENCRYPTED ?
-        'Enter PIN to unlock the session.'
-      : 'Waiting for auto-unlock.',
+      mode === SessionLockMode.PIN_ENCRYPTED
+        ? 'Enter PIN to unlock the session.'
+        : 'Waiting for auto-unlock.',
     onCancel,
   }
 }

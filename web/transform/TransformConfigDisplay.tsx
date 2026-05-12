@@ -124,10 +124,7 @@ function decodeS2(config?: Uint8Array): { detail: string; tooltip: string } {
   if (config && config.length > 0) {
     try {
       const decoded = S2Cfg.fromBinary(config)
-      mode =
-        decoded.best ? 'Best'
-        : decoded.better ? 'Better'
-        : 'Fast'
+      mode = decoded.best ? 'Best' : decoded.better ? 'Better' : 'Fast'
     } catch {
       // fall back to defaults
     }
@@ -231,14 +228,13 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
     <div
       className={cn(
         'divide-foreground/6 divide-y overflow-hidden rounded-lg border backdrop-blur-sm',
-        hasEncryption ?
-          'border-brand/12 bg-background-card/40'
-        : 'border-foreground/6 bg-background-card/30',
+        hasEncryption
+          ? 'border-brand/12 bg-background-card/40'
+          : 'border-foreground/6 bg-background-card/30',
       )}
       style={{
-        boxShadow:
-          hasEncryption ?
-            '0 4px 20px rgba(0,0,0,0.25), 0 0 40px rgba(200,80,60,0.04)'
+        boxShadow: hasEncryption
+          ? '0 4px 20px rgba(0,0,0,0.25), 0 0 40px rgba(200,80,60,0.04)'
           : '0 2px 8px rgba(0,0,0,0.15)',
       }}
     >
@@ -300,9 +296,9 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
           <div
             className={cn(
               'flex cursor-default items-center justify-between gap-3 px-4 py-1.5',
-              hasEncryption ?
-                'bg-brand/6 border-brand/12 text-brand/80'
-              : 'bg-foreground/3 text-foreground-alt/60',
+              hasEncryption
+                ? 'bg-brand/6 border-brand/12 text-brand/80'
+                : 'bg-foreground/3 text-foreground-alt/60',
             )}
           >
             <div className="flex min-w-0 items-center gap-2">

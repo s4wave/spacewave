@@ -1,4 +1,3 @@
-
 import {
   DependencyList,
   RefObject,
@@ -654,8 +653,8 @@ export function useWatchStateRpc<T, R = unknown>(
     [watchStateRpc, memoizedReq, ...(deps ?? [])],
   )
 
-  return currValue == null || watchStateRpc == null || memoizedReq == null ?
-      null
+  return currValue == null || watchStateRpc == null || memoizedReq == null
+    ? null
     : currValue
 }
 
@@ -701,8 +700,8 @@ export function useGetValueRpc<T, R = unknown>(
     [getValueRpc, memoizedReq, ...(deps ?? [])],
   )
 
-  return currValue == null || getValueRpc == null || memoizedReq == null ?
-      null
+  return currValue == null || getValueRpc == null || memoizedReq == null
+    ? null
     : currValue
 }
 

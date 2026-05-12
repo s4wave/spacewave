@@ -59,9 +59,11 @@ export function GraphLinkPill({
           </span>
         )}
         <span className="ml-auto flex items-center gap-1">
-          {loaded ?
+          {loaded ? (
             <LuLocateFixed className="size-3" />
-          : <LuPlus className="size-3" />}
+          ) : (
+            <LuPlus className="size-3" />
+          )}
           {loaded ? 'Focus' : 'Load'}
         </span>
       </button>

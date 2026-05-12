@@ -306,9 +306,9 @@ export function ForgeJobViewer({
                   onClick={() => setTasksView('list')}
                   className={cn(
                     'flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
-                    tasksView === 'list' ?
-                      'border-brand/30 bg-brand/10 text-foreground'
-                    : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
+                    tasksView === 'list'
+                      ? 'border-brand/30 bg-brand/10 text-foreground'
+                      : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
                   )}
                 >
                   <LuList className="size-3.5" />
@@ -319,9 +319,9 @@ export function ForgeJobViewer({
                   onClick={() => setTasksView('dag')}
                   className={cn(
                     'flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
-                    tasksView === 'dag' ?
-                      'border-brand/30 bg-brand/10 text-foreground'
-                    : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
+                    tasksView === 'dag'
+                      ? 'border-brand/30 bg-brand/10 text-foreground'
+                      : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
                   )}
                 >
                   <LuGitBranch className="size-3.5" />

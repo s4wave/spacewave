@@ -131,9 +131,8 @@ export function PasskeyConfirmPage() {
         let authParams = ''
         const pinWrapped = wantsPin
         if (pendingState.prfCapable) {
-          const plaintext =
-            wantsPin ?
-              await wrapPemWithPin(spacewave, entity.pem, pin)
+          const plaintext = wantsPin
+            ? await wrapPemWithPin(spacewave, entity.pem, pin)
             : entity.pem
           const prfWrapped = await wrapPemWithPasskeyPrf(
             spacewave,
@@ -257,9 +256,11 @@ export function PasskeyConfirmPage() {
 
   const isBusy = state.step === 'creating' || state.step === 'logging_in'
   const statusMessage =
-    state.step === 'creating' ? 'Creating account...'
-    : state.step === 'logging_in' ? 'Signing in...'
-    : ''
+    state.step === 'creating'
+      ? 'Creating account...'
+      : state.step === 'logging_in'
+        ? 'Signing in...'
+        : ''
 
   return (
     <AuthScreenLayout

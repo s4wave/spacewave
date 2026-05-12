@@ -102,9 +102,9 @@ export function useEmailManagement(): EmailManagement {
         return true
       } catch (err) {
         const msg =
-          err instanceof Error ?
-            err.message
-          : 'Failed to send verification email'
+          err instanceof Error
+            ? err.message
+            : 'Failed to send verification email'
         toast.error(msg)
         return false
       } finally {

@@ -199,9 +199,11 @@ function SessionSelfEnrollmentStatusPopover({
               void handleStart()
             }}
           >
-            {busy ?
+            {busy ? (
               <Spinner size="sm" />
-            : <LuRotateCw className="size-3.5" aria-hidden="true" />}
+            ) : (
+              <LuRotateCw className="size-3.5" aria-hidden="true" />
+            )}
             {status.startLabel}
           </Button>
           {status.skipVisible && (

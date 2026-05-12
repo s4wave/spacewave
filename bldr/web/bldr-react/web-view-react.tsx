@@ -41,7 +41,6 @@ export function ReactComponentContainer(props: IReactComponentContainerProps) {
     () =>
       React.lazy(
         async (): Promise<{ default: LoadedProtoComponent }> =>
-
           import(props.scriptPath),
       ),
     [props.scriptPath],

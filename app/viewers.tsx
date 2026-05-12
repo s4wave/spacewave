@@ -224,15 +224,16 @@ export function getObjectViewersForType(
   typeID: string,
   dynamicViewers?: ObjectViewerComponent[],
 ): ObjectViewerComponent[] {
-  const all =
-    dynamicViewers ? [...staticViewers, ...dynamicViewers] : staticViewers
+  const all = dynamicViewers
+    ? [...staticViewers, ...dynamicViewers]
+    : staticViewers
   return getViewersForType(typeID, all)
 }
 
 export function getAllObjectViewers(
   dynamicViewers?: ObjectViewerComponent[],
 ): ObjectViewerComponent[] {
-  return dynamicViewers ?
-      [...staticViewers, ...dynamicViewers]
+  return dynamicViewers
+    ? [...staticViewers, ...dynamicViewers]
     : [...staticViewers]
 }

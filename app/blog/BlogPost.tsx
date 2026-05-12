@@ -111,22 +111,23 @@ export function BlogPostPage({
         </header>
 
         {/* Post body */}
-        {bodyHtml ?
+        {bodyHtml ? (
           <div
             className="blog-prose"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
           />
-        : <div className="blog-prose">
+        ) : (
+          <div className="blog-prose">
             <BlogMarkdown>{post.body}</BlogMarkdown>
           </div>
-        }
+        )}
 
         <BlogCta />
 
         {/* Post navigation */}
         {(prevPost || nextPost) && (
           <nav className="mt-12 grid grid-cols-2 gap-4">
-            {prevPost ?
+            {prevPost ? (
               <button
                 onClick={navigatePrev}
                 className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-5 text-left transition-all duration-200"
@@ -139,9 +140,11 @@ export function BlogPostPage({
                   {prevPost.title}
                 </span>
               </button>
-            : <div />}
+            ) : (
+              <div />
+            )}
 
-            {nextPost ?
+            {nextPost ? (
               <button
                 onClick={navigateNext}
                 className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-5 text-right transition-all duration-200"
@@ -154,7 +157,9 @@ export function BlogPostPage({
                   {nextPost.title}
                 </span>
               </button>
-            : <div />}
+            ) : (
+              <div />
+            )}
           </nav>
         )}
       </article>

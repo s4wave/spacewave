@@ -10,7 +10,7 @@ export function CheckoutResultPage({ success }: { success?: boolean }) {
     <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
       <div className="relative z-10 flex flex-col items-center gap-6 text-center">
         <AnimatedLogo followMouse={false} />
-        {success ?
+        {success ? (
           <>
             <div className="bg-brand/10 flex size-16 items-center justify-center rounded-full">
               <LuCheck className="text-brand size-8" />
@@ -22,7 +22,8 @@ export function CheckoutResultPage({ success }: { success?: boolean }) {
               You can close this tab and return to the app.
             </p>
           </>
-        : <>
+        ) : (
+          <>
             <div className="bg-destructive/10 flex size-16 items-center justify-center rounded-full">
               <LuX className="text-destructive size-8" />
             </div>
@@ -33,7 +34,7 @@ export function CheckoutResultPage({ success }: { success?: boolean }) {
               You can close this tab and return to the app to try again.
             </p>
           </>
-        }
+        )}
       </div>
     </div>
   )

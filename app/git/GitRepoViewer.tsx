@@ -76,15 +76,16 @@ export function GitRepoViewer({
   const [pendingName, setPendingName] = useState<string | null>(null)
   const staleEntries = useDeferredValue(fileEntries)
   const inlineFileURL =
-    route.mode === 'commit' || isDir !== false || !statResource.value ?
-      undefined
-    : !sessionIndex || !spaceCtx?.spaceId ? undefined
-    : buildUnixFSFileInlineURL(
-        sessionIndex,
-        spaceCtx.spaceId,
-        objectKey,
-        displayPath,
-      )
+    route.mode === 'commit' || isDir !== false || !statResource.value
+      ? undefined
+      : !sessionIndex || !spaceCtx?.spaceId
+        ? undefined
+        : buildUnixFSFileInlineURL(
+            sessionIndex,
+            spaceCtx.spaceId,
+            objectKey,
+            displayPath,
+          )
   const nav = useGitNavigation({
     route,
     effectiveRef,
@@ -112,17 +113,14 @@ export function GitRepoViewer({
     lastCommit: tipCommit ?? undefined,
     loading: tipCommitResource.loading,
     error: tipCommitResource.error,
-    onClickCommit:
-      tipCommitHash ?
-        () => navigate({ path: '/commit/' + tipCommitHash })
+    onClickCommit: tipCommitHash
+      ? () => navigate({ path: '/commit/' + tipCommitHash })
       : undefined,
-    onClickTree:
-      effectiveRef ?
-        () => navigate({ path: '/tree/' + effectiveRef })
+    onClickTree: effectiveRef
+      ? () => navigate({ path: '/tree/' + effectiveRef })
       : undefined,
-    onClickLog:
-      effectiveRef ?
-        () => navigate({ path: '/commits/' + effectiveRef })
+    onClickLog: effectiveRef
+      ? () => navigate({ path: '/commits/' + effectiveRef })
       : undefined,
   }
 
@@ -248,12 +246,12 @@ export function GitRepoViewer({
     }
 
     const fileError =
-      route.mode === 'commit' ?
-        null
-      : (rootHandleResource.error ??
-        pathHandle.error ??
-        statResource.error ??
-        entriesResource.error)
+      route.mode === 'commit'
+        ? null
+        : (rootHandleResource.error ??
+          pathHandle.error ??
+          statResource.error ??
+          entriesResource.error)
     if (fileError) {
       function handleRetry() {
         if (rootHandleResource.error) {

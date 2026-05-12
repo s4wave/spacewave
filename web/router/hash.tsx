@@ -44,9 +44,8 @@ export function useHashPath(): [string, (path: string) => void] {
   useEffect(() => {
     // Handler for hash changes
     const handleHashChange = () => {
-      const raw =
-        window.location.hash.startsWith('#') ?
-          window.location.hash.slice(1)
+      const raw = window.location.hash.startsWith('#')
+        ? window.location.hash.slice(1)
         : window.location.hash
       const nextPath = normalizeAppPath(raw)
       setPath((prev) => (prev === nextPath ? prev : nextPath))
@@ -64,9 +63,8 @@ export function useHashPath(): [string, (path: string) => void] {
   // Function to update the hash path
   const updatePath = useCallback((newPath: string) => {
     const nextHash = newPath.startsWith('/') ? newPath : `/${newPath}`
-    const currentHash =
-      window.location.hash.startsWith('#') ?
-        window.location.hash.slice(1)
+    const currentHash = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
       : window.location.hash
     if (currentHash === nextHash) {
       return

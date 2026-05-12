@@ -59,9 +59,9 @@ export function TabContent({
 
   const exportUrl = useMemo(
     () =>
-      sessionIndex != null && spaceContext?.spaceId ?
-        `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(spaceContext.spaceId)}`
-      : undefined,
+      sessionIndex != null && spaceContext?.spaceId
+        ? `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(spaceContext.spaceId)}`
+        : undefined,
     [sessionIndex, spaceContext?.spaceId],
   )
 

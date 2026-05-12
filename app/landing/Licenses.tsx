@@ -28,10 +28,7 @@ function getLicenseEntryKey(entry: AnnotatedLicenseEntry): string {
 }
 
 function SourceBadge({ source }: { source: string }) {
-  const label =
-    source === 'both' ? 'JS + Go'
-    : source === 'js' ? 'JS'
-    : 'Go'
+  const label = source === 'both' ? 'JS + Go' : source === 'js' ? 'JS' : 'Go'
   return (
     <span className="bg-foreground/8 text-foreground-alt rounded px-1.5 py-0.5 text-[10px] font-medium uppercase">
       {label}
@@ -79,9 +76,11 @@ function LicenseGroup({
             className="text-foreground-alt/60 hover:text-foreground-alt ml-auto flex cursor-pointer items-center gap-1 text-xs transition-colors"
           >
             {showBase ? 'Hide' : 'Show'} license text
-            {showBase ?
+            {showBase ? (
               <LuChevronDown className="size-3" />
-            : <LuChevronRight className="size-3" />}
+            ) : (
+              <LuChevronRight className="size-3" />
+            )}
           </button>
         )}
       </div>
@@ -115,20 +114,24 @@ function LicenseGroup({
                     aria-label={buttonLabel}
                     className="text-foreground-alt/60 hover:text-foreground-alt cursor-pointer transition-colors"
                   >
-                    {isExpanded ?
+                    {isExpanded ? (
                       <LuChevronDown className="size-3.5" />
-                    : <LuChevronRight className="size-3.5" />}
+                    ) : (
+                      <LuChevronRight className="size-3.5" />
+                    )}
                   </button>
                 )}
                 <span className="text-foreground text-sm">
-                  {entry.repo ?
+                  {entry.repo ? (
                     <ExternalLink
                       href={entry.repo}
                       className="hover:text-brand transition-colors hover:underline"
                     >
                       {entry.name}
                     </ExternalLink>
-                  : entry.name}
+                  ) : (
+                    entry.name
+                  )}
                 </span>
                 <span className="text-foreground-alt/50 text-xs">
                   {entry.version}

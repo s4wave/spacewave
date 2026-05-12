@@ -95,8 +95,8 @@ export function tabNodeListToProto(
   tabNodeList: IJsonTabNode[],
   tabDataMap: TabDataMap,
 ): TabDef[] {
-  return tabNodeList?.length ?
-      tabNodeList.map((def) => tabNodeToProto(def, tabDataMap))
+  return tabNodeList?.length
+    ? tabNodeList.map((def) => tabNodeToProto(def, tabDataMap))
     : []
 }
 
@@ -166,9 +166,8 @@ export function protoToTabSetNode(
     id: tabSetDef?.id || undefined,
     name: tabSetDef?.name || undefined,
     weight: tabSetDef?.weight || undefined,
-    children:
-      tabSetDef?.children?.length ?
-        protoToTabNodeList(tabSetDef?.children, tabDataMap)
+    children: tabSetDef?.children?.length
+      ? protoToTabNodeList(tabSetDef?.children, tabDataMap)
       : [],
   }
 }
@@ -250,8 +249,8 @@ export function protoToRowOrTabSetNodeList(
   def: RowOrTabSetDef[] | undefined,
   tabDataMap: TabDataMap,
 ): (IJsonRowNode | IJsonTabSetNode)[] {
-  return def?.length ?
-      def.map((def) => protoToRowOrTabSetNode(def, tabDataMap))
+  return def?.length
+    ? def.map((def) => protoToRowOrTabSetNode(def, tabDataMap))
     : []
 }
 
@@ -260,8 +259,8 @@ export function rowOrTabSetNodeListToProto(
   tabDataMap: TabDataMap,
   localState?: ILocalState,
 ): RowOrTabSetDef[] {
-  return def?.length ?
-      def.map((def) => rowOrTabSetNodeToProto(def, tabDataMap, localState))
+  return def?.length
+    ? def.map((def) => rowOrTabSetNodeToProto(def, tabDataMap, localState))
     : []
 }
 
@@ -279,9 +278,8 @@ export function layoutModelToJsonModel(
 ): IJsonModel {
   return merge(modelBase, {
     borders: protoToBorderNodeList(layoutModel?.borders, tabDataMap),
-    layout:
-      layoutModel?.layout ?
-        protoToRowNode(layoutModel.layout, tabDataMap)
+    layout: layoutModel?.layout
+      ? protoToRowNode(layoutModel.layout, tabDataMap)
       : undefined,
   })
 }

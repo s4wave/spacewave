@@ -36,9 +36,9 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
     [cloneOpts?.url],
   )
   const cloneUrlError =
-    isClone && !isDesktop && isGithubCloneUrl(cloneOpts?.url ?? '') ?
-      githubBrowserCloneError
-    : ''
+    isClone && !isDesktop && isGithubCloneUrl(cloneOpts?.url ?? '')
+      ? githubBrowserCloneError
+      : ''
   const lastAutoNameRef = useRef<string | undefined>(undefined)
   const completedObjectKeyRef = useRef<string | undefined>(undefined)
 
@@ -96,9 +96,8 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
         objectKey: repoKey,
         name: ws.localName,
         clone: isClone,
-        cloneOpts:
-          isClone ?
-            {
+        cloneOpts: isClone
+          ? {
               url: cloneOpts?.url,
               ref: cloneOpts?.ref || undefined,
               depth: cloneOpts?.depth || undefined,
@@ -237,7 +236,7 @@ function GitCloneProgressStep({
           Clone Progress
         </h3>
       </div>
-      {failed ?
+      {failed ? (
         <LoadingCard
           view={{
             state: 'error',
@@ -245,14 +244,15 @@ function GitCloneProgressStep({
             error: error || message,
           }}
         />
-      : <LoadingCard
+      ) : (
+        <LoadingCard
           view={{
             state: 'active',
             title: 'Cloning repository',
             detail: message,
           }}
         />
-      }
+      )}
     </section>
   )
 }

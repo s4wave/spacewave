@@ -87,14 +87,15 @@ export function SSOLinkFinishPage() {
     >
       <div className="border-foreground/20 bg-background-get-started rounded-lg border p-5 shadow-lg backdrop-blur-sm">
         <div className="flex flex-col items-center gap-3 text-center">
-          {ok ?
+          {ok ? (
             <LuCheck className="text-brand size-8" />
-          : <LuCircleAlert className="text-destructive size-8" />}
+          ) : (
+            <LuCircleAlert className="text-destructive size-8" />
+          )}
           <p className="text-foreground-alt text-sm">
-            {ok ?
-              'This window can close. Finish confirming the account link in the original Spacewave window.'
-            : 'The OAuth callback data was incomplete. Close this window and try linking again.'
-            }
+            {ok
+              ? 'This window can close. Finish confirming the account link in the original Spacewave window.'
+              : 'The OAuth callback data was incomplete. Close this window and try linking again.'}
           </p>
         </div>
       </div>

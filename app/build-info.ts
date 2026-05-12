@@ -45,9 +45,9 @@ function readBuildInfo(): AppBuildInfo {
   const goVersion = raw.goVersion || ''
   const runtimeLabel =
     raw.runtimeLabel ||
-    (goVersion && raw.goos && raw.goarch ?
-      `${goVersion} on ${raw.goos}/${raw.goarch}`
-    : '')
+    (goVersion && raw.goos && raw.goarch
+      ? `${goVersion} on ${raw.goos}/${raw.goarch}`
+      : '')
   return {
     mainVersion: raw.mainVersion || '',
     version,

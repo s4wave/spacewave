@@ -52,17 +52,18 @@ function GalleryTile({
   const body = (
     <>
       <div className="bg-foreground/5 aspect-square overflow-hidden">
-        {item.previewURL ?
+        {item.previewURL ? (
           <img
             alt={item.label}
             className="h-full w-full object-cover"
             loading="lazy"
             src={item.previewURL}
           />
-        : <div className="text-foreground-alt/40 flex h-full w-full items-center justify-center">
+        ) : (
+          <div className="text-foreground-alt/40 flex h-full w-full items-center justify-center">
             <LuImage className="size-8" />
           </div>
-        }
+        )}
       </div>
       <div className="space-y-1 px-3 py-2 text-left">
         <div
@@ -131,9 +132,9 @@ function UnixFSGalleryBody({
     label: item.label,
     mimeType: item.mimeType,
     previewURL:
-      !sessionIndex || !spaceId ?
-        undefined
-      : buildUnixFSFileInlineURL(sessionIndex, spaceId, unixfsId, item.path),
+      !sessionIndex || !spaceId
+        ? undefined
+        : buildUnixFSFileInlineURL(sessionIndex, spaceId, unixfsId, item.path),
   }))
   const lightboxItems = previewItems.filter((item) => !!item.previewURL)
   const isScanning = !galleryComplete && !galleryState.error

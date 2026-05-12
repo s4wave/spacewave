@@ -207,9 +207,11 @@ function SpaceRootAliasCard(props: {
   return (
     <div className="border-foreground/10 flex items-center gap-3 rounded-lg border px-4 py-3">
       <div className="bg-brand/10 flex size-9 items-center justify-center rounded-lg">
-        {ready ?
+        {ready ? (
           <LuFolderOpen className="size-4" />
-        : <LuTriangleAlert className="text-warning size-4" />}
+        ) : (
+          <LuTriangleAlert className="text-warning size-4" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -255,9 +257,8 @@ function SpaceRootRuntimePanel(props: {
 }) {
   const runtime = props.runtime
   const sessions = runtime?.sessions ?? []
-  const runtimeSessions =
-    runtime?.runtimeSessions?.length ?
-      runtime.runtimeSessions
+  const runtimeSessions = runtime?.runtimeSessions?.length
+    ? runtime.runtimeSessions
     : sessions.map((session): SpaceRootRuntimeSession => ({ session }))
   const statusLabel = runtimeStatusLabel(runtime?.status)
   const loading =
@@ -269,14 +270,14 @@ function SpaceRootRuntimePanel(props: {
   return (
     <div className="border-foreground/10 mt-4 w-full max-w-md rounded-lg border px-4 py-3">
       <div className="flex items-center gap-2">
-        {loading ?
+        {loading ? (
           <Spinner size="md" />
-        : (
-          runtime?.status ===
-          SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR
-        ) ?
+        ) : runtime?.status ===
+          SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR ? (
           <LuTriangleAlert className="text-warning size-4" />
-        : <LuPlug className="size-4" />}
+        ) : (
+          <LuPlug className="size-4" />
+        )}
         <span className="text-foreground text-sm font-medium">
           {statusLabel}
         </span>
@@ -398,11 +399,11 @@ function SessionCard(props: {
   const providerLabel =
     meta?.providerDisplayName || (isCloudProvider ? 'Cloud' : 'Local')
   const subtitle =
-    isCloudProvider && meta?.cloudEntityId && meta.cloudEntityId !== title ?
-      `${providerLabel} · ${meta.cloudEntityId}`
-    : !isCloudProvider && !meta?.displayName ?
-      `${providerLabel} · Session ${props.session.sessionIndex}`
-    : providerLabel
+    isCloudProvider && meta?.cloudEntityId && meta.cloudEntityId !== title
+      ? `${providerLabel} · ${meta.cloudEntityId}`
+      : !isCloudProvider && !meta?.displayName
+        ? `${providerLabel} · Session ${props.session.sessionIndex}`
+        : providerLabel
 
   const handleSessionSelect = useCallback(() => {
     navigate({ path: '/u/' + props.session.sessionIndex + '/' })

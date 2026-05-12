@@ -63,9 +63,9 @@ export function CanvasEdgeLayer({
       const s = getNodeCenter(source)
       const t = getNodeCenter(target)
       const path =
-        edge.style === 'straight' ?
-          straightPath(s.cx, s.cy, t.cx, t.cy)
-        : bezierPath(s.cx, s.cy, t.cx, t.cy)
+        edge.style === 'straight'
+          ? straightPath(s.cx, s.cy, t.cx, t.cy)
+          : bezierPath(s.cx, s.cy, t.cx, t.cy)
 
       result.push({
         path,

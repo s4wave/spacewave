@@ -727,9 +727,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (isSaucer) {
       this.isSaucer = true
     }
-    this.webRuntimeClientId =
-      this.isElectron ?
-        `${this.webDocumentUuid}-${randomId()}`
+    this.webRuntimeClientId = this.isElectron
+      ? `${this.webDocumentUuid}-${randomId()}`
       : this.webDocumentUuid
     this.webViews = {}
     this.webWorkers = {}
@@ -875,9 +874,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         documentId: this.webDocumentUuid,
         runtimeId: this.webRuntimeId,
         mode:
-          typeof navigator.storage?.getDirectory === 'function' ?
-            'browser-opfs-indexeddb'
-          : 'browser-indexeddb',
+          typeof navigator.storage?.getDirectory === 'function'
+            ? 'browser-opfs-indexeddb'
+            : 'browser-indexeddb',
         persistSupported: typeof navigator.storage?.persist === 'function',
         persistedSupported: typeof navigator.storage?.persisted === 'function',
       })
@@ -1008,9 +1007,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // NOTE: scope controls which pages are covered by the worker.
     // NOTE: scope must only be narrower than paths below the script.
     // NOTE: for example /my/sw.mjs can only manage paths under /my/...
-    const swUrl =
-      opts?.serviceWorkerPath ?
-        new URL(opts.serviceWorkerPath, baseURL).toString()
+    const swUrl = opts?.serviceWorkerPath
+      ? new URL(opts.serviceWorkerPath, baseURL).toString()
       : '/sw.mjs'
     console.log('WebDocument: registering service worker', swUrl)
     markStartupBoundary('service-worker.register-start', {
@@ -2055,21 +2053,17 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       hidden: false,
       sequence: this.resumeReadySequence,
       focused:
-        (
-          typeof document !== 'undefined' &&
-          typeof document.hasFocus === 'function'
-        ) ?
-          document.hasFocus()
-        : undefined,
+        typeof document !== 'undefined' &&
+        typeof document.hasFocus === 'function'
+          ? document.hasFocus()
+          : undefined,
       visibilityState:
         typeof document !== 'undefined' ? document.visibilityState : undefined,
       timestampMs:
-        (
-          typeof performance !== 'undefined' &&
-          typeof performance.now === 'function'
-        ) ?
-          performance.now()
-        : undefined,
+        typeof performance !== 'undefined' &&
+        typeof performance.now === 'function'
+          ? performance.now()
+          : undefined,
     }
     globalThis.__swWebDocumentResumeReady = state
     markStartupBoundary('web-document.resume-ready', {
@@ -2141,9 +2135,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.on('closed', onClosed)
       if (this.closed) {
         onClosed(
-          this.closed instanceof Error ?
-            this.closed
-          : new Error('web document is closed'),
+          this.closed instanceof Error
+            ? this.closed
+            : new Error('web document is closed'),
         )
       }
     })

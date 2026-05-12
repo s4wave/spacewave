@@ -14,9 +14,9 @@ export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
   const message = useForgeBlockData(objectState, ChatMessage)
 
   const textContent =
-    message?.content?.content?.case === 'text' ?
-      message.content.content.value
-    : undefined
+    message?.content?.content?.case === 'text'
+      ? message.content.content.value
+      : undefined
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">

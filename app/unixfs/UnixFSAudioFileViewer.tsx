@@ -177,9 +177,9 @@ function UnixFSAudioPlayerSurface({
                   <LuTriangleAlert className="size-5" />
                 </div>
                 <div className="text-foreground text-sm font-semibold">
-                  {state.unsupported ?
-                    'Audio preview unavailable'
-                  : 'Audio playback failed'}
+                  {state.unsupported
+                    ? 'Audio preview unavailable'
+                    : 'Audio playback failed'}
                 </div>
                 <div className="text-foreground-alt max-w-md text-xs">
                   {state.message}

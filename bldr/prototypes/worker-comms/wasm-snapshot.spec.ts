@@ -15,7 +15,9 @@ test.describe('WASM Memory Snapshot/Restore', () => {
     expect(results.checksumMatch).toBe(true)
 
     // Snapshot and restore should be fast.
-    console.log(`Snapshot: ${results.snapshotMs.toFixed(2)} ms for ${results.memoryKB} KB`)
+    console.log(
+      `Snapshot: ${results.snapshotMs.toFixed(2)} ms for ${results.memoryKB} KB`,
+    )
     console.log(`Restore: ${results.restoreMs.toFixed(2)} ms`)
 
     if (results.opfsAvailable) {

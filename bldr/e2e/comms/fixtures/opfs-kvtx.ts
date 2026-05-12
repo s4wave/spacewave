@@ -1,4 +1,3 @@
-
 // opfs-kvtx.ts - OPFS kvtx.Store verification fixture.
 //
 // Pure-JS smoke that exercises the kvtx wire layout against OPFS:
@@ -22,8 +21,7 @@ declare global {
   }
 }
 
-interface FileSystemDirectoryHandleWithEntries
-  extends FileSystemDirectoryHandle {
+interface FileSystemDirectoryHandleWithEntries extends FileSystemDirectoryHandle {
   entries(): AsyncIterable<[string, FileSystemHandle]>
 }
 
@@ -97,9 +95,7 @@ async function deleteEntry(
   }
 }
 
-async function listAllKeys(
-  root: FileSystemDirectoryHandle,
-): Promise<string[]> {
+async function listAllKeys(root: FileSystemDirectoryHandle): Promise<string[]> {
   const keys: string[] = []
   for await (const [name, handle] of getEntries(root)) {
     if (handle.kind !== 'directory' || name.length !== 2) continue
@@ -138,9 +134,12 @@ async function run() {
 
   try {
     const opfsRoot = await navigator.storage.getDirectory()
-    const testDir = await opfsRoot.getDirectoryHandle(`kvtx-test-${Date.now()}`, {
-      create: true,
-    })
+    const testDir = await opfsRoot.getDirectoryHandle(
+      `kvtx-test-${Date.now()}`,
+      {
+        create: true,
+      },
+    )
 
     // --- Iteration 1+2: Read and Write transactions ---
 
@@ -150,10 +149,14 @@ async function run() {
     const key2 = new Uint8Array([0x01, 0x02, 0x04])
     const val2 = new Uint8Array([0x44, 0x45, 0x46]) // "DEF"
 
-    await navigator.locks.request('kvtx-test', { mode: 'exclusive' }, async () => {
-      await writeEntry(testDir, key1, val1)
-      await writeEntry(testDir, key2, val2)
-    })
+    await navigator.locks.request(
+      'kvtx-test',
+      { mode: 'exclusive' },
+      async () => {
+        await writeEntry(testDir, key1, val1)
+        await writeEntry(testDir, key2, val2)
+      },
+    )
     results.writeTx = true
 
     // Read back with shared lock
@@ -181,9 +184,13 @@ async function run() {
     // --- Iteration 3: Delete ---
 
     let deleteOk = true
-    await navigator.locks.request('kvtx-test', { mode: 'exclusive' }, async () => {
-      await deleteEntry(testDir, key1)
-    })
+    await navigator.locks.request(
+      'kvtx-test',
+      { mode: 'exclusive' },
+      async () => {
+        await deleteEntry(testDir, key1)
+      },
+    )
     await navigator.locks.request('kvtx-test', { mode: 'shared' }, async () => {
       const r = await readEntry(testDir, key1)
       if (r !== null) {
@@ -202,9 +209,12 @@ async function run() {
     // --- Iteration 4: ScanPrefix ---
 
     // Write keys with known prefixes for scanning
-    const scanDir = await opfsRoot.getDirectoryHandle(`kvtx-scan-${Date.now()}`, {
-      create: true,
-    })
+    const scanDir = await opfsRoot.getDirectoryHandle(
+      `kvtx-scan-${Date.now()}`,
+      {
+        create: true,
+      },
+    )
     const scanKeys = [
       { key: new Uint8Array([0xaa, 0x01]), val: new Uint8Array([1]) },
       { key: new Uint8Array([0xaa, 0x02]), val: new Uint8Array([2]) },
@@ -242,7 +252,9 @@ async function run() {
     if (iterateOk) {
       for (let i = 0; i < expectedOrder.length; i++) {
         if (sortedKeys[i] !== expectedOrder[i]) {
-          errors.push(`iterate order: [${i}] got ${sortedKeys[i]}, want ${expectedOrder[i]}`)
+          errors.push(
+            `iterate order: [${i}] got ${sortedKeys[i]}, want ${expectedOrder[i]}`,
+          )
           iterateOk = false
         }
       }
@@ -270,7 +282,11 @@ async function run() {
     await pw.close()
 
     // Write a partial entry (simulating what commit started)
-    await writeEntry(crashDir, new Uint8Array([0xcc, 0x01]), new Uint8Array([99]))
+    await writeEntry(
+      crashDir,
+      new Uint8Array([0xcc, 0x01]),
+      new Uint8Array([99]),
+    )
 
     // "Next write transaction" detects .pending and cleans up
     let pendingExists = false

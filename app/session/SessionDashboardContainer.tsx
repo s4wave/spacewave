@@ -83,14 +83,14 @@ export function SessionDashboardContainer() {
   const dashboardOrgs: DashboardOrg[] | undefined = useMemo(
     () =>
       orgList?.flatMap((o) =>
-        o.id ?
-          [
-            {
-              id: o.id,
-              displayName: o.displayName ?? '',
-            },
-          ]
-        : [],
+        o.id
+          ? [
+              {
+                id: o.id,
+                displayName: o.displayName ?? '',
+              },
+            ]
+          : [],
       ),
     [orgList],
   )
@@ -121,8 +121,8 @@ export function SessionDashboardContainer() {
     const spaces: DashboardSpace[] = resourcesList.spacesList.flatMap(
       (entry) => {
         const id = entry.entry?.ref?.providerResourceRef?.id
-        return id ?
-            [
+        return id
+          ? [
               {
                 id,
                 name: entry.spaceMeta?.name ?? 'Untitled',
@@ -175,8 +175,9 @@ export function SessionDashboardContainer() {
   const handleSpaceClick = useCallback(
     (space: DashboardSpace) => {
       navigateSession({
-        path:
-          space.orgId ? `org/${space.orgId}/so/${space.id}` : `so/${space.id}`,
+        path: space.orgId
+          ? `org/${space.orgId}/so/${space.id}`
+          : `so/${space.id}`,
       })
     },
     [navigateSession],

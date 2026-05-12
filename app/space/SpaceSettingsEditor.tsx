@@ -58,7 +58,7 @@ export function SpaceSettingsEditor({
             <span className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
               Display Name
             </span>
-            {canRename && onRenameStart ?
+            {canRename && onRenameStart ? (
               <div className="flex items-center justify-between gap-2">
                 <div
                   className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-xs transition-colors"
@@ -81,26 +81,28 @@ export function SpaceSettingsEditor({
                   Rename
                 </DashboardButton>
               </div>
-            : <div className="text-foreground text-xs">
+            ) : (
+              <div className="text-foreground text-xs">
                 {displayName || 'Untitled'}
               </div>
-            }
+            )}
           </div>
           <div>
             <span className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
               Index Path
             </span>
-            {canEdit ?
+            {canEdit ? (
               <ObjectKeySelector
                 nodes={treeNodes}
                 value={indexPath}
                 onChange={(newPath) => void handleIndexPathChange(newPath)}
                 placeholder="No default view"
               />
-            : <div className="text-foreground text-sm">
+            ) : (
+              <div className="text-foreground text-sm">
                 {indexPath || 'Not set'}
               </div>
-            }
+            )}
           </div>
         </div>
       </InfoCard>

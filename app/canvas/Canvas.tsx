@@ -195,13 +195,11 @@ export function Canvas({
       if (!pendingText) return
       const el = pendingTextRef.current
       const id = generateNodeId()
-      const w =
-        el ?
-          Math.max(el.scrollWidth + 4, DEFAULT_TEXT_NODE_WIDTH)
+      const w = el
+        ? Math.max(el.scrollWidth + 4, DEFAULT_TEXT_NODE_WIDTH)
         : DEFAULT_TEXT_NODE_WIDTH
-      const h =
-        el ?
-          Math.max(el.scrollHeight + 4, MIN_TEXT_NODE_HEIGHT)
+      const h = el
+        ? Math.max(el.scrollHeight + 4, MIN_TEXT_NODE_HEIGHT)
         : MIN_TEXT_NODE_HEIGHT
       const node: CanvasNodeData = {
         id,
@@ -271,9 +269,8 @@ export function Canvas({
   const handleNodeMove = useCallback(
     (id: string, dx: number, dy: number) => {
       // Accumulate local drag offsets without firing RPC.
-      const idsToMove =
-        selection.selectedNodeIds.has(id) ?
-          selection.selectedNodeIds
+      const idsToMove = selection.selectedNodeIds.has(id)
+        ? selection.selectedNodeIds
         : new Set([id])
 
       setDragOffsets((prev) => {
@@ -706,14 +703,14 @@ export function Canvas({
           containerSize={containerSize}
           onViewportChange={setViewport}
           width={
-            containerSize.width >= XL_BREAKPOINT ?
-              DEFAULT_MINIMAP_WIDTH
-            : DEFAULT_MINIMAP_WIDTH / 2
+            containerSize.width >= XL_BREAKPOINT
+              ? DEFAULT_MINIMAP_WIDTH
+              : DEFAULT_MINIMAP_WIDTH / 2
           }
           height={
-            containerSize.width >= XL_BREAKPOINT ?
-              DEFAULT_MINIMAP_HEIGHT
-            : DEFAULT_MINIMAP_HEIGHT / 2
+            containerSize.width >= XL_BREAKPOINT
+              ? DEFAULT_MINIMAP_HEIGHT
+              : DEFAULT_MINIMAP_HEIGHT / 2
           }
         />
         <CanvasScaleIndicator scale={viewport.scale} />

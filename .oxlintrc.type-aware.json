@@ -300,7 +300,10 @@
         "react/rules-of-hooks": "warn",
         "typescript/no-unnecessary-type-assertion": "warn"
       },
-      "jsPlugins": ["react-doctor/oxlint-plugin", "eslint-plugin-react-compiler"]
+      "jsPlugins": [
+        "react-doctor/oxlint-plugin",
+        "eslint-plugin-react-compiler"
+      ]
     },
     {
       "files": ["**/*.test.tsx"],

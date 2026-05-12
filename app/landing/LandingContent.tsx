@@ -125,9 +125,9 @@ function CtaButton({
       onClick={onClick}
       className={cn(
         'flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none hover:-translate-y-0.5',
-        variant === 'primary' ?
-          'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15'
-        : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
+        variant === 'primary'
+          ? 'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15'
+          : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
       )}
     >
       <Icon className="size-4" />
@@ -245,9 +245,9 @@ const FaqItem: React.FC<FaqItemProps> = ({
       tabIndex={0}
       className={cn(
         'group cursor-pointer rounded-lg border p-5 backdrop-blur-sm transition-all',
-        isOpen ?
-          'border-foreground/12 bg-background-card/60'
-        : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:-translate-y-0.5',
+        isOpen
+          ? 'border-foreground/12 bg-background-card/60'
+          : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:-translate-y-0.5',
       )}
       onClick={onToggle}
       onKeyDown={handleFaqKeyDown}
@@ -256,9 +256,9 @@ const FaqItem: React.FC<FaqItemProps> = ({
         <h3
           className={cn(
             'font-heading text-sm leading-relaxed font-semibold transition-colors @lg:text-base',
-            isOpen ? 'text-foreground' : (
-              'text-foreground group-hover:text-brand'
-            ),
+            isOpen
+              ? 'text-foreground'
+              : 'text-foreground group-hover:text-brand',
           )}
         >
           {question}
@@ -266,9 +266,9 @@ const FaqItem: React.FC<FaqItemProps> = ({
         <div
           className={cn(
             'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md transition-all',
-            isOpen ?
-              'bg-brand/12 text-brand rotate-45'
-            : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
+            isOpen
+              ? 'bg-brand/12 text-brand rotate-45'
+              : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
           )}
         >
           <LuPlus className="size-3" />
@@ -1032,9 +1032,9 @@ function UseCaseCard({
       href={resolvedHref}
       className={cn(
         'border-foreground/6 bg-background-card/30 group cursor-pointer rounded-lg border p-6 no-underline backdrop-blur-sm transition-all duration-500',
-        visible ?
-          'translate-y-0 opacity-100 hover:-translate-y-1'
-        : 'translate-y-8 opacity-0',
+        visible
+          ? 'translate-y-0 opacity-100 hover:-translate-y-1'
+          : 'translate-y-8 opacity-0',
       )}
       style={{ transitionDelay: `${index * 80}ms` }}
     >
@@ -1111,15 +1111,15 @@ function ArchitectureStackDiagram() {
               key={layer.name}
               className={cn(
                 'transition-all duration-500',
-                visible ?
-                  'translate-x-0 opacity-100'
-                : '-translate-x-4 opacity-0',
+                visible
+                  ? 'translate-x-0 opacity-100'
+                  : '-translate-x-4 opacity-0',
               )}
               style={{
                 transitionDelay: `${(STACK_LAYERS.length - 1 - i) * 100}ms`,
               }}
             >
-              {isTop ?
+              {isTop ? (
                 <div
                   className="border-foreground/8 bg-background-card relative rounded-lg border px-5 py-4 backdrop-blur-sm"
                   style={{
@@ -1153,7 +1153,8 @@ function ArchitectureStackDiagram() {
                     </div>
                   </div>
                 </div>
-              : <div
+              ) : (
+                <div
                   className="border-foreground/8 bg-background-card/80 flex items-center gap-2 rounded-t-lg border-x border-t px-4 py-2"
                   style={{
                     zIndex: STACK_LAYERS.length - i,
@@ -1170,7 +1171,7 @@ function ArchitectureStackDiagram() {
                     {layer.desc}
                   </span>
                 </div>
-              }
+              )}
             </div>
           )
         })}
@@ -1373,18 +1374,22 @@ const ComparisonChart: React.FC = () => {
                 <span>{feature.name}</span>
               </div>
               <div className="flex justify-center px-2 py-4 @md:p-4">
-                {feature.spacewave === true ?
+                {feature.spacewave === true ? (
                   <LuCheck className="text-success size-6 font-bold" />
-                : feature.spacewave === 'partial' ?
+                ) : feature.spacewave === 'partial' ? (
                   <div className="bg-partial size-5 rounded-full" />
-                : <LuX className="size-5 text-red-400" />}
+                ) : (
+                  <LuX className="size-5 text-red-400" />
+                )}
               </div>
               <div className="flex justify-center px-2 py-4 @md:p-4">
-                {feature.traditional === true ?
+                {feature.traditional === true ? (
                   <LuCheck className="text-success size-6 font-bold" />
-                : feature.traditional === 'partial' ?
+                ) : feature.traditional === 'partial' ? (
                   <div className="bg-warning h-0.5 w-4 rounded-full" />
-                : <LuX className="size-5 text-red-400" />}
+                ) : (
+                  <LuX className="size-5 text-red-400" />
+                )}
               </div>
             </div>
           ))}

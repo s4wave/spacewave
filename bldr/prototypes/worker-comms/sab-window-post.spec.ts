@@ -44,7 +44,9 @@ test.describe('SAB Cross-Tab via window.postMessage', () => {
 
     if (results.windowPostSAB) {
       if (results.sabShared) {
-        console.log('FINDING: window.postMessage SUPPORTS SharedArrayBuffer transfer!')
+        console.log(
+          'FINDING: window.postMessage SUPPORTS SharedArrayBuffer transfer!',
+        )
       } else {
         console.log('FINDING: window.postMessage sent SAB but sharing failed')
         console.log(`  Response: ${results.responseReceived}`)
@@ -54,9 +56,14 @@ test.describe('SAB Cross-Tab via window.postMessage', () => {
         `FINDING: SAB downgraded to ${results.receivedType} during window.postMessage`,
       )
     } else if (results.timeout) {
-      console.log('FINDING: window.postMessage SAB transfer timed out (likely dropped)')
+      console.log(
+        'FINDING: window.postMessage SAB transfer timed out (likely dropped)',
+      )
     } else {
-      console.log('FINDING: window.postMessage SAB transfer failed:', results.error)
+      console.log(
+        'FINDING: window.postMessage SAB transfer failed:',
+        results.error,
+      )
     }
 
     if (child) {

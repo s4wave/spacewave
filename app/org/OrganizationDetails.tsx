@@ -154,10 +154,9 @@ function getRecoveryPermission(
   return {
     canRepair: isOwner,
     canReinitialize: isOwner,
-    disabledReason:
-      isOwner ? '' : (
-        'Only organization owners can repair or reinitialize this shared object.'
-      ),
+    disabledReason: isOwner
+      ? ''
+      : 'Only organization owners can repair or reinitialize this shared object.',
   }
 }
 
@@ -182,9 +181,9 @@ function RecoveryActionButton({
       onClick={onClick}
       disabled={disabled || !!disabledReason}
       className={
-        destructive ?
-          'text-destructive hover:bg-destructive/10 hover:text-destructive'
-        : undefined
+        destructive
+          ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
+          : undefined
       }
     >
       {label}
@@ -472,11 +471,13 @@ export function OrganizationDetails({
                             'bg-destructive/10',
                         )}
                       >
-                        {recoverySummary.tone === 'loading' ?
+                        {recoverySummary.tone === 'loading' ? (
                           <Spinner className="text-foreground" />
-                        : recoverySummary.tone === 'degraded' ?
+                        ) : recoverySummary.tone === 'degraded' ? (
                           <LuTriangleAlert className="text-warning size-4" />
-                        : <LuShieldAlert className="text-destructive size-4" />}
+                        ) : (
+                          <LuShieldAlert className="text-destructive size-4" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-foreground text-xs font-medium">
@@ -517,9 +518,9 @@ export function OrganizationDetails({
                         }}
                         disabled={mutationPending}
                         disabledReason={
-                          recoveryPermission.canRepair ? '' : (
-                            (recoveryPermission.disabledReason ?? '')
-                          )
+                          recoveryPermission.canRepair
+                            ? ''
+                            : (recoveryPermission.disabledReason ?? '')
                         }
                       />
                       <RecoveryActionButton
@@ -528,9 +529,9 @@ export function OrganizationDetails({
                         onClick={() => setConfirmingReinitialize(true)}
                         disabled={mutationPending}
                         disabledReason={
-                          recoveryPermission.canReinitialize ? '' : (
-                            (recoveryPermission.disabledReason ?? '')
-                          )
+                          recoveryPermission.canReinitialize
+                            ? ''
+                            : (recoveryPermission.disabledReason ?? '')
                         }
                         destructive={true}
                       />
@@ -561,9 +562,9 @@ export function OrganizationDetails({
                             disabled={mutationPending}
                             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
-                            {mutationPending ?
-                              'Reinitializing...'
-                            : 'Confirm reinitialize'}
+                            {mutationPending
+                              ? 'Reinitializing...'
+                              : 'Confirm reinitialize'}
                           </DashboardButton>
                         </div>
                       </div>
@@ -612,11 +613,11 @@ export function OrganizationDetails({
               open={openSection === 'invites'}
               onOpenChange={handleSectionOpenChange('invites')}
               badge={
-                invites.length > 0 ?
+                invites.length > 0 ? (
                   <span className="text-foreground-alt/40 text-[0.6rem]">
                     {invites.length}
                   </span>
-                : undefined
+                ) : undefined
               }
               headerActions={
                 <button
@@ -661,11 +662,11 @@ export function OrganizationDetails({
                       !session
                     }
                   >
-                    {usernameInvitePending ?
-                      'Sending...'
-                    : usernameInviteSent ?
-                      'Sent'
-                    : 'Invite'}
+                    {usernameInvitePending
+                      ? 'Sending...'
+                      : usernameInviteSent
+                        ? 'Sent'
+                        : 'Invite'}
                   </DashboardButton>
                 </div>
               </div>
@@ -692,7 +693,7 @@ export function OrganizationDetails({
                     >
                       Display Name
                     </label>
-                    {renaming ?
+                    {renaming ? (
                       <div className="flex items-center gap-2">
                         <input
                           ref={handleRenameInputRef}
@@ -726,7 +727,8 @@ export function OrganizationDetails({
                           Cancel
                         </DashboardButton>
                       </div>
-                    : <div className="flex items-center justify-between gap-2">
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
                         <div
                           className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-xs transition-colors"
                           role="button"
@@ -748,7 +750,7 @@ export function OrganizationDetails({
                           Edit
                         </DashboardButton>
                       </div>
-                    }
+                    )}
                   </div>
                 </div>
               </InfoCard>

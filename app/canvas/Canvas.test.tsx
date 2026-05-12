@@ -15,13 +15,13 @@ vi.mock('./CanvasContextMenu.js', () => ({
   }: {
     state: { position: { x: number; y: number } } | null
   }) =>
-    state ?
+    state ? (
       <div
         data-testid="canvas-context-menu"
         data-x={state.position.x}
         data-y={state.position.y}
       />
-    : null,
+    ) : null,
 }))
 
 import { Canvas } from './Canvas.js'

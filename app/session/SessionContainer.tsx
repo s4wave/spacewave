@@ -188,14 +188,14 @@ export function SessionContainer(props: {
 
   const spacewaveSessionResource = useMemo<Resource<Session>>(
     () =>
-      props.metadata?.providerId === 'spacewave' ?
-        props.sessionResource
-      : {
-          value: null,
-          loading: props.sessionResource.loading,
-          error: props.sessionResource.error,
-          retry: props.sessionResource.retry,
-        },
+      props.metadata?.providerId === 'spacewave'
+        ? props.sessionResource
+        : {
+            value: null,
+            loading: props.sessionResource.loading,
+            error: props.sessionResource.error,
+            retry: props.sessionResource.retry,
+          },
     [props.metadata?.providerId, props.sessionResource],
   )
 
@@ -282,15 +282,16 @@ export function SessionContainer(props: {
 
   const isCloudProvider = props.metadata?.providerId === 'spacewave'
 
-  const badgeLabel =
-    isCloudProvider ?
-      isDormant ? 'INACTIVE'
+  const badgeLabel = isCloudProvider
+    ? isDormant
+      ? 'INACTIVE'
       : 'CLOUD'
     : 'LOCAL'
-  const badgeClass =
-    isDormant ? 'bg-warning/15 text-warning'
-    : isCloudProvider ? 'bg-brand/15 text-brand'
-    : 'bg-foreground/10 text-foreground-alt/70'
+  const badgeClass = isDormant
+    ? 'bg-warning/15 text-warning'
+    : isCloudProvider
+      ? 'bg-brand/15 text-brand'
+      : 'bg-foreground/10 text-foreground-alt/70'
 
   const accountButton = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
@@ -300,9 +301,11 @@ export function SessionContainer(props: {
         className={className}
         aria-label={selected ? 'Close account menu' : 'Open account menu'}
       >
-        {selected ?
+        {selected ? (
           <LuArrowUp {...bottomBarIconProps} aria-hidden="true" />
-        : <LuPersonStanding {...bottomBarIconProps} aria-hidden="true" />}
+        ) : (
+          <LuPersonStanding {...bottomBarIconProps} aria-hidden="true" />
+        )}
         <div className="max-w-36 truncate">{accountLabel}</div>
         {props.metadata && (
           <span

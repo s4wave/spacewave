@@ -23,7 +23,9 @@ const releasedAttachedClient: ReleasedResourceClient = new Proxy(
       ) {
         return undefined
       }
-      throw new Error(`Cannot access "${String(prop)}" on released attached resource`)
+      throw new Error(
+        `Cannot access "${String(prop)}" on released attached resource`,
+      )
     },
   },
 )
@@ -54,10 +56,14 @@ function createRawAttachedResourceRef(
       return attached.client
     },
     createRef(): ClientResourceRef {
-      throw new Error(`Cannot create child ref from raw attached resource ${id}`)
+      throw new Error(
+        `Cannot create child ref from raw attached resource ${id}`,
+      )
     },
     createResource<T>(): T {
-      throw new Error(`Cannot create child resource from raw attached resource ${id}`)
+      throw new Error(
+        `Cannot create child resource from raw attached resource ${id}`,
+      )
     },
     release,
     [Symbol.dispose]: release,
@@ -99,7 +105,9 @@ function createAttachedResourceRef(
     createRef(newId: number): ClientResourceRef {
       const attached = owner.attachedResources.get(id)
       if (released || !attached || attached.signal.aborted) {
-        throw new Error(`Cannot create ref from released attached resource ${id}`)
+        throw new Error(
+          `Cannot create ref from released attached resource ${id}`,
+        )
       }
       if (!owner.attachedResources.has(newId)) {
         throw new Error(`attached child resource ${newId} not found`)

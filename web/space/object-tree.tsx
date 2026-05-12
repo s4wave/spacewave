@@ -126,10 +126,11 @@ function mapToTreeNodes(
     const node: TreeNode<ObjectTreeNode> = {
       id: fullKey,
       name,
-      icon:
-        isVirtual ?
-          <LuFolder className={iconSize} />
-        : getObjectTypeIcon(objectType),
+      icon: isVirtual ? (
+        <LuFolder className={iconSize} />
+      ) : (
+        getObjectTypeIcon(objectType)
+      ),
       data: {
         objectKey: isVirtual ? fullKey : (entry.object?.objectKey ?? fullKey),
         objectType,

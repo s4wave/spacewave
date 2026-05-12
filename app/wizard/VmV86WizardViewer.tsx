@@ -642,31 +642,30 @@ function SourcePickerStep({
   onOpenCdnPicker,
   pending,
 }: SourcePickerStepProps) {
-  const shortcutRow =
-    existingDefault?.imageKey ?
-      <button
-        type="button"
-        className={cn(
-          'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
-          cfg.source === V86WizardConfig_Source.EXISTING_IN_SPACE &&
-            cfg.imageObjectKey === existingDefault.imageKey &&
-            'border-brand/30 bg-brand/5',
-        )}
-        onClick={() => onSelectInSpace(existingDefault.imageKey)}
-      >
-        <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
-          <LuRefreshCcw className="text-foreground-alt/50 size-3.5" />
-        </span>
-        <div className="min-w-0">
-          <div className="text-foreground text-xs font-medium">
-            Use same image as {existingDefault.name}
-          </div>
-          <div className="text-foreground-alt/50 text-xs">
-            Inherit the V86Image from the newest existing VM in this Space.
-          </div>
+  const shortcutRow = existingDefault?.imageKey ? (
+    <button
+      type="button"
+      className={cn(
+        'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
+        cfg.source === V86WizardConfig_Source.EXISTING_IN_SPACE &&
+          cfg.imageObjectKey === existingDefault.imageKey &&
+          'border-brand/30 bg-brand/5',
+      )}
+      onClick={() => onSelectInSpace(existingDefault.imageKey)}
+    >
+      <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
+        <LuRefreshCcw className="text-foreground-alt/50 size-3.5" />
+      </span>
+      <div className="min-w-0">
+        <div className="text-foreground text-xs font-medium">
+          Use same image as {existingDefault.name}
         </div>
-      </button>
-    : null
+        <div className="text-foreground-alt/50 text-xs">
+          Inherit the V86Image from the newest existing VM in this Space.
+        </div>
+      </div>
+    </button>
+  ) : null
 
   return (
     <section>
@@ -797,15 +796,15 @@ function ConfigStep({
             Image
           </div>
           <div className="text-foreground-alt/50 text-xs">
-            {isCdn ?
-              selectedCdnImage ?
-                `Will copy from CDN: ${formatImageLabel(selectedCdnImage)}`
-              : `Will copy from CDN: ${cfg.cdnSourceObjectKey || '(pending)'}`
-            : selectedImage ?
-              formatImageLabel(selectedImage)
-            : existingDefault?.imageKey ?
-              `Inheriting image ${existingDefault.imageKey} from ${existingDefault.name}`
-            : cfg.imageObjectKey || '(no image selected)'}
+            {isCdn
+              ? selectedCdnImage
+                ? `Will copy from CDN: ${formatImageLabel(selectedCdnImage)}`
+                : `Will copy from CDN: ${cfg.cdnSourceObjectKey || '(pending)'}`
+              : selectedImage
+                ? formatImageLabel(selectedImage)
+                : existingDefault?.imageKey
+                  ? `Inheriting image ${existingDefault.imageKey} from ${existingDefault.name}`
+                  : cfg.imageObjectKey || '(no image selected)'}
           </div>
         </div>
       </div>
@@ -893,12 +892,12 @@ function CdnImagePickerModal({
                 {formatImageLabel(entry.image)}
               </span>
               <span className="text-foreground-alt/50 text-xs">
-                {entry.metadataError ?
-                  `Metadata decode failed: ${entry.metadataError}`
-                : entry.image.distro || ''}
-                {!entry.metadataError && entry.image.tags?.length ?
-                  `  ·  ${entry.image.tags.join(', ')}`
-                : ''}
+                {entry.metadataError
+                  ? `Metadata decode failed: ${entry.metadataError}`
+                  : entry.image.distro || ''}
+                {!entry.metadataError && entry.image.tags?.length
+                  ? `  ·  ${entry.image.tags.join(', ')}`
+                  : ''}
               </span>
             </button>
           ))}

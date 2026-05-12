@@ -59,11 +59,13 @@ export function AuthProgressCard({
                       active ? 'bg-brand/10 text-brand' : 'bg-foreground/5',
                     )}
                   >
-                    {active ?
+                    {active ? (
                       <LuKeyRound className="size-3" aria-hidden="true" />
-                    : index === steps.length - 1 ?
+                    ) : index === steps.length - 1 ? (
                       <LuCheck className="size-3" aria-hidden="true" />
-                    : <LuShield className="size-3" aria-hidden="true" />}
+                    ) : (
+                      <LuShield className="size-3" aria-hidden="true" />
+                    )}
                   </div>
                   <span>{step}</span>
                 </div>

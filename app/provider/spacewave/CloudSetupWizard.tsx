@@ -115,9 +115,11 @@ export function CloudSetupWizard({
                 backupDone ? 'bg-brand/20' : 'bg-brand/10',
               )}
             >
-              {backupDone ?
+              {backupDone ? (
                 <LuCheck className="text-brand size-4" />
-              : <LuShieldCheck className="text-brand size-4" />}
+              ) : (
+                <LuShieldCheck className="text-brand size-4" />
+              )}
             </div>
             <div className="flex-1 text-left">
               <h3 className="text-foreground text-sm font-medium">
@@ -169,9 +171,9 @@ export function CloudSetupWizard({
               >
                 <LuDownload className="text-foreground size-4" />
                 <span className="text-foreground text-sm">
-                  {wiz.downloading ?
-                    'Generating key...'
-                  : 'Download backup .pem'}
+                  {wiz.downloading
+                    ? 'Generating key...'
+                    : 'Download backup .pem'}
                 </span>
               </button>
               {wiz.error && (
@@ -195,9 +197,11 @@ export function CloudSetupWizard({
                 pinDone ? 'bg-brand/20' : 'bg-brand/10',
               )}
             >
-              {pinDone ?
+              {pinDone ? (
                 <LuCheck className="text-brand size-4" />
-              : <LuLock className="text-brand size-4" />}
+              ) : (
+                <LuLock className="text-brand size-4" />
+              )}
             </div>
             <div className="flex-1 text-left">
               <h3 className="text-foreground text-sm font-medium">

@@ -164,9 +164,7 @@ export class WebViewErrorBoundary extends React.Component<
       <div style={containerStyle}>
         <div>Failed to load module</div>
         <div style={errorTextStyle}>{modulePath}</div>
-        {recoverable && countdown > 0 && (
-          <div>Retrying in {countdown}s…</div>
-        )}
+        {recoverable && countdown > 0 && <div>Retrying in {countdown}s…</div>}
         <div style={buttonRowStyle}>
           {recoverable && (
             <button style={buttonStyle} onClick={this.handleRetryNow}>

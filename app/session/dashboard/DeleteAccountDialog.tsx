@@ -65,10 +65,9 @@ export function DeleteAccountDialog({
           </DialogTitle>
           {step === 'warning' && (
             <DialogDescription>
-              {isCloud ?
-                'Deleting your cloud account requires extra verification. You will confirm by email code or from account.spacewave.app, billing will finalize immediately, and a 24-hour undo window will begin.'
-              : 'This will permanently delete your local account and all its data.'
-              }
+              {isCloud
+                ? 'Deleting your cloud account requires extra verification. You will confirm by email code or from account.spacewave.app, billing will finalize immediately, and a 24-hour undo window will begin.'
+                : 'This will permanently delete your local account and all its data.'}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -144,10 +143,9 @@ export function DeleteAccountDialog({
         {step === 'final' && (
           <>
             <p className="text-destructive text-sm">
-              {isCloud ?
-                'Continue to the delete confirmation screen to send the email code and finalize the 24-hour delete countdown.'
-              : 'This action cannot be undone. All local data will be permanently deleted.'
-              }
+              {isCloud
+                ? 'Continue to the delete confirmation screen to send the email code and finalize the 24-hour delete countdown.'
+                : 'This action cannot be undone. All local data will be permanently deleted.'}
             </p>
 
             {error && <p className="text-destructive text-xs">{error}</p>}
@@ -169,11 +167,11 @@ export function DeleteAccountDialog({
                   'disabled:cursor-not-allowed disabled:opacity-50',
                 )}
               >
-                {submitting ?
-                  'Deleting...'
-                : isCloud ?
-                  'Continue to Delete Flow'
-                : 'Delete Everything'}
+                {submitting
+                  ? 'Deleting...'
+                  : isCloud
+                    ? 'Continue to Delete Flow'
+                    : 'Delete Everything'}
               </button>
             </DialogFooter>
           </>

@@ -51,9 +51,9 @@ export function ViewModeSelector({
           key={tab.key}
           className={cn(
             'rounded px-2 py-0.5 text-xs select-none',
-            mode === tab.key ?
-              'text-foreground bg-white/[0.08] font-medium'
-            : 'text-foreground-alt hover:text-foreground hover:bg-white/[0.03]',
+            mode === tab.key
+              ? 'text-foreground bg-white/[0.08] font-medium'
+              : 'text-foreground-alt hover:text-foreground hover:bg-white/[0.03]',
           )}
           onClick={() => onModeChange(tab.key)}
         >

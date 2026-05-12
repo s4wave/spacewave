@@ -1,4 +1,3 @@
-
 import { castToError } from 'starpc'
 import { ServiceWorkerHostClient } from '../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
@@ -482,9 +481,8 @@ async function matchPromotedGenerationResponse(
     const cache = await caches.open(
       buildGenerationCacheName(release.generationId),
     )
-    const candidates =
-      isNavigation ?
-        buildOfflineNavigationFallbacks(pathname, release)
+    const candidates = isNavigation
+      ? buildOfflineNavigationFallbacks(pathname, release)
       : [pathname]
     for (const candidate of candidates) {
       const response = await cache.match(buildCacheRequest(candidate))

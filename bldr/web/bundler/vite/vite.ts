@@ -1,4 +1,3 @@
-
 import path, { resolve } from 'path'
 import fs from 'fs'
 import net from 'net'
@@ -328,8 +327,9 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     if (isBundleError(err)) {
       // Vite 8 BundleError: extract structured errors from the errors array
       const messages = err.errors.map((e) => {
-        const loc =
-          e.loc ? ` (${e.loc.file}:${e.loc.line}:${e.loc.column})` : ''
+        const loc = e.loc
+          ? ` (${e.loc.file}:${e.loc.line}:${e.loc.column})`
+          : ''
         return `${e.message}${loc}`
       })
       errorMessage = messages.join('\n')
@@ -495,26 +495,26 @@ async function buildWebPkg(
       // runs first and the plugin never sees ImportKind::Require calls.
       // Also remap non-BldrExternal sibling web packages to /b/pkg/ URLs.
       plugins: [
-        ...(allExternal.length > 0 ?
-          [
-            esmExternalRequirePlugin({
-              external: allExternal.map(
-                (pkg) =>
-                  new RegExp(
-                    `^${pkg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\/.*)?$`,
-                  ),
-              ),
-            }),
-          ]
-        : []),
-        ...(remapSiblingIds.length > 0 ?
-          [
-            createWebPkgRemapPlugin({
-              webPkgIDs: remapSiblingIds,
-              debug: verboseDebug,
-            }),
-          ]
-        : []),
+        ...(allExternal.length > 0
+          ? [
+              esmExternalRequirePlugin({
+                external: allExternal.map(
+                  (pkg) =>
+                    new RegExp(
+                      `^${pkg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\/.*)?$`,
+                    ),
+                ),
+              }),
+            ]
+          : []),
+        ...(remapSiblingIds.length > 0
+          ? [
+              createWebPkgRemapPlugin({
+                webPkgIDs: remapSiblingIds,
+                debug: verboseDebug,
+              }),
+            ]
+          : []),
       ],
 
       build: {
@@ -550,8 +550,9 @@ async function buildWebPkg(
     const viteOutput = (await viteBuild(config)) as
       | Rollup.RolldownOutput[]
       | Rollup.RolldownOutput
-    const rollupOutputs: Rollup.RolldownOutput[] =
-      Array.isArray(viteOutput) ? viteOutput : [viteOutput]
+    const rollupOutputs: Rollup.RolldownOutput[] = Array.isArray(viteOutput)
+      ? viteOutput
+      : [viteOutput]
     const outputChunks = rollupOutputs.flatMap((o) => o.output)
 
     // Build import map entries from the output chunks.
@@ -602,8 +603,9 @@ async function buildWebPkg(
     let errorMessage: string
     if (isBundleError(err)) {
       const messages = err.errors.map((e) => {
-        const loc =
-          e.loc ? ` (${e.loc.file}:${e.loc.line}:${e.loc.column})` : ''
+        const loc = e.loc
+          ? ` (${e.loc.file}:${e.loc.line}:${e.loc.column})`
+          : ''
         return `${e.message}${loc}`
       })
       errorMessage = messages.join('\n')

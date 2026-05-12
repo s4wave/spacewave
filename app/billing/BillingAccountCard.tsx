@@ -24,16 +24,17 @@ export function BillingAccountCard({
   onManage,
 }: BillingAccountCardProps) {
   const status = billing.status
-  const stColor =
-    isStatusActive(status) ? 'text-green-500'
-    : isStatusPastDue(status) ? 'text-yellow-500'
-    : status === BillingStatus.BillingStatus_CANCELED ? 'text-destructive'
-    : 'text-foreground-alt/50'
+  const stColor = isStatusActive(status)
+    ? 'text-green-500'
+    : isStatusPastDue(status)
+      ? 'text-yellow-500'
+      : status === BillingStatus.BillingStatus_CANCELED
+        ? 'text-destructive'
+        : 'text-foreground-alt/50'
 
   const intLabel = intervalLabel(billing.billingInterval)
-  const nextDate =
-    billing.currentPeriodEnd ?
-      new Date(Number(billing.currentPeriodEnd)).toLocaleDateString()
+  const nextDate = billing.currentPeriodEnd
+    ? new Date(Number(billing.currentPeriodEnd)).toLocaleDateString()
     : ''
 
   const detail = [intLabel, nextDate && `Next: ${nextDate}`]

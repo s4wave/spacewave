@@ -173,9 +173,11 @@ function GraphLinkPill({
       data-testid={`graph-link-pill-${variant}-${fixture.state}`}
       className={cn(
         'bg-background-card/50 text-foreground flex items-center rounded-md border shadow-lg backdrop-blur-sm',
-        compact ? 'gap-1 px-1.5 py-0.5 text-[0.55rem]'
-        : balanced ? 'gap-1 px-1.5 py-0.5 text-[0.6rem]'
-        : 'gap-1.5 px-2 py-1 text-[0.6rem]',
+        compact
+          ? 'gap-1 px-1.5 py-0.5 text-[0.55rem]'
+          : balanced
+            ? 'gap-1 px-1.5 py-0.5 text-[0.6rem]'
+            : 'gap-1.5 px-2 py-1 text-[0.6rem]',
         metadata && 'px-2.5 py-1.5',
         loaded ? 'border-brand/20' : 'border-foreground/10',
         hidden && 'opacity-55',
@@ -214,9 +216,11 @@ function GraphLinkPill({
         aria-label={`${loaded ? 'Focus' : 'Load'} ${fixture.targetLabel}`}
         disabled={hidden}
       >
-        {loaded ?
+        {loaded ? (
           <LuLocateFixed className="size-3" />
-        : <LuPlus className="size-3" />}
+        ) : (
+          <LuPlus className="size-3" />
+        )}
         {!compact && (loaded ? 'Focus' : 'Load')}
       </button>
       <button

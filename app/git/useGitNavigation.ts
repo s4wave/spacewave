@@ -89,9 +89,9 @@ export function useGitNavigation(opts: {
 
       if (route.mode === 'workdir' && workdirPath !== undefined) {
         const sub =
-          workdirPath === '/' ?
-            entry.name
-          : workdirPath.replace(/^\//, '') + '/' + entry.name
+          workdirPath === '/'
+            ? entry.name
+            : workdirPath.replace(/^\//, '') + '/' + entry.name
         onPendingName?.(entry.id)
         navigate({ path: '/workdir/' + sub })
         return
@@ -99,9 +99,9 @@ export function useGitNavigation(opts: {
 
       if (!effectiveRef) return
       const sub =
-        displayPath === '/' ?
-          entry.name
-        : displayPath.replace(/^\//, '') + '/' + entry.name
+        displayPath === '/'
+          ? entry.name
+          : displayPath.replace(/^\//, '') + '/' + entry.name
       onPendingName?.(entry.id)
       navigate({ path: '/tree/' + effectiveRef + '/' + sub })
     },

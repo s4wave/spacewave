@@ -698,8 +698,9 @@ export class Directory extends Inode {
       return { ret: wasi.ERRNO_EXIST, entry: null }
     }
 
-    const newChild =
-      is_dir ? new Directory(new Map()) : new File(new ArrayBuffer(0))
+    const newChild = is_dir
+      ? new Directory(new Map())
+      : new File(new ArrayBuffer(0))
     parent_entry.contents.set(filename, newChild)
 
     return { ret: wasi.ERRNO_SUCCESS, entry: newChild }

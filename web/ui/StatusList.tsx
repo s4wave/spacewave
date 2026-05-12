@@ -102,9 +102,10 @@ export function StatusList({
         className,
       )}
     >
-      {items.length === 0 ?
+      {items.length === 0 ? (
         <div className="text-foreground-alt">{emptyMessage}</div>
-      : items.map((item) => {
+      ) : (
+        items.map((item) => {
           const content = (
             <>
               <div className="flex items-center gap-1.5">
@@ -144,7 +145,7 @@ export function StatusList({
             </div>
           )
         })
-      }
+      )}
     </div>
   )
 }

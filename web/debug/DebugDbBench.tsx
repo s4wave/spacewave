@@ -134,7 +134,9 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
   const suites = results.suites ?? []
   const info = results.info
   const downloadResults = useCallback(() => {
-    const json = BenchmarkResultsType.toJsonString(results, { prettySpaces: 2 })
+    const json = BenchmarkResultsType.toJsonString(results, {
+      prettySpaces: 2,
+    })
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -183,38 +185,38 @@ function StorageInfoPanel({ info }: { info: StorageInfo }) {
         <span className="text-text-primary">{info.goos || '-'}</span>
         <span className="text-text-muted">GOARCH</span>
         <span className="text-text-primary">{info.goarch || '-'}</span>
-        {info.blockShardCount ?
+        {info.blockShardCount ? (
           <>
             <span className="text-text-muted">Block Shards</span>
             <span className="text-text-primary">
               {info.blockShardCount.toString()}
             </span>
           </>
-        : null}
-        {info.blockFlushThreshold ?
+        ) : null}
+        {info.blockFlushThreshold ? (
           <>
             <span className="text-text-muted">Flush Threshold</span>
             <span className="text-text-primary">
               {info.blockFlushThreshold.toString()}
             </span>
           </>
-        : null}
-        {info.blockFlushMaxAgeMillis ?
+        ) : null}
+        {info.blockFlushMaxAgeMillis ? (
           <>
             <span className="text-text-muted">Flush Max Age</span>
             <span className="text-text-primary">
               {info.blockFlushMaxAgeMillis.toString()}ms
             </span>
           </>
-        : null}
-        {info.pageSize ?
+        ) : null}
+        {info.pageSize ? (
           <>
             <span className="text-text-muted">Page Size</span>
             <span className="text-text-primary">
               {info.pageSize.toString()}
             </span>
           </>
-        : null}
+        ) : null}
         <span className="text-text-muted">Async I/O</span>
         <span className="text-text-primary">{info.asyncIo ? 'on' : 'off'}</span>
       </div>
@@ -241,11 +243,11 @@ function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
           style={{ width: `${progress.percentComplete ?? 0}%` }}
         />
       </div>
-      {progress.metricName ?
+      {progress.metricName ? (
         <span className="text-text-muted font-mono text-[10px]">
           {progress.metricName}
         </span>
-      : null}
+      ) : null}
     </div>
   )
 }
@@ -343,9 +345,9 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
             disabled={running || !debugDb.value}
             className={cn(
               'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-              running ?
-                'text-text-muted cursor-not-allowed bg-white/5'
-              : 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer',
+              running
+                ? 'text-text-muted cursor-not-allowed bg-white/5'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer',
             )}
           >
             <LuPlay className="size-3.5" />
@@ -354,19 +356,15 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
         </div>
       </div>
 
-      {running && progress ?
-        <ProgressBar progress={progress} />
-      : null}
+      {running && progress ? <ProgressBar progress={progress} /> : null}
 
-      {error ?
+      {error ? (
         <div className="rounded-lg bg-red-500/10 p-3 font-mono text-xs text-red-400">
           {error}
         </div>
-      : null}
+      ) : null}
 
-      {results ?
-        <ResultsDisplay results={results} />
-      : null}
+      {results ? <ResultsDisplay results={results} /> : null}
     </div>
   )
 }
@@ -419,19 +417,20 @@ export function DebugDbBench() {
           GC flush, and meta store operations.
         </p>
 
-        {loading ?
+        {loading ? (
           <div className="text-text-muted text-sm">Loading…</div>
-        : err ?
+        ) : err ? (
           <div className="rounded-lg bg-red-500/10 p-3 font-mono text-xs text-red-400">
             {err.message}
           </div>
-        : <div className="flex flex-col gap-8">
-            {storageInfo.data ?
+        ) : (
+          <div className="flex flex-col gap-8">
+            {storageInfo.data ? (
               <StorageInfoPanel info={storageInfo.data} />
-            : null}
+            ) : null}
             <BenchmarkPanel debugDb={debugDbResource} />
           </div>
-        }
+        )}
       </div>
     </div>
   )

@@ -77,9 +77,9 @@ export function UnixFSMoveDialog({
   }, [moveItems, selectedPath])
   const validationMessage = useMemo(
     () =>
-      validation && !validation.accepted ?
-        describeUnixFSMoveValidation(validation)
-      : null,
+      validation && !validation.accepted
+        ? describeUnixFSMoveValidation(validation)
+        : null,
     [validation],
   )
 

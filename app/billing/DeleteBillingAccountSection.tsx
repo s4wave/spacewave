@@ -103,7 +103,7 @@ export function DeleteBillingAccountSection({
       <div className="text-foreground-alt/60 text-xs font-medium tracking-wider uppercase">
         Danger Zone
       </div>
-      {disabledReason ?
+      {disabledReason ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">{button}</span>
@@ -112,7 +112,9 @@ export function DeleteBillingAccountSection({
             {disabledReason}
           </TooltipContent>
         </Tooltip>
-      : button}
+      ) : (
+        button
+      )}
       <div className="text-foreground-alt/40 text-xs">
         Permanently removes this billing account record after cancellation and
         detach are complete.

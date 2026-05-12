@@ -423,9 +423,9 @@ export function List<T>({
       <ListDispatchContext.Provider value={dispatch}>
         <div
           className={cn(
-            autoHeight ? 'flex flex-col' : (
-              'flex min-h-0 flex-1 flex-col overflow-hidden'
-            ),
+            autoHeight
+              ? 'flex flex-col'
+              : 'flex min-h-0 flex-1 flex-col overflow-hidden',
             className,
           )}
           role="list"
@@ -439,17 +439,17 @@ export function List<T>({
             role="rowgroup"
             className={cn(
               'p-[2px] outline-none',
-              autoHeight ? 'flex flex-col' : (
-                'flex min-h-0 flex-1 flex-col overflow-hidden'
-              ),
+              autoHeight
+                ? 'flex flex-col'
+                : 'flex min-h-0 flex-1 flex-col overflow-hidden',
             )}
             onKeyDown={handleKeyDown}
           >
-            {sortedItems.length === 0 ?
+            {sortedItems.length === 0 ? (
               <div className="text-foreground-alt flex flex-1 items-center justify-center p-4">
                 {placeholder ?? 'No items'}
               </div>
-            : autoHeight ?
+            ) : autoHeight ? (
               <div role="list" className="relative">
                 {sortedItems.map((item, index) => (
                   <RowComponentInternal
@@ -464,7 +464,8 @@ export function List<T>({
                   />
                 ))}
               </div>
-            : <VirtualList
+            ) : (
+              <VirtualList
                 listRef={listRef}
                 rowHeight={rowHeight}
                 rowCount={sortedItems.length}
@@ -473,7 +474,7 @@ export function List<T>({
                 rowProps={{}}
                 className="flex-1"
               />
-            }
+            )}
           </div>
         </div>
       </ListDispatchContext.Provider>

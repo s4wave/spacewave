@@ -222,11 +222,11 @@ function AuthMethodsSectionContent({
         open={sectionOpen}
         onOpenChange={handleOpenChange}
         badge={
-          keypairCount > 0 ?
+          keypairCount > 0 ? (
             <span className="text-foreground-alt/50 text-[0.55rem]">
               {keypairCount}
             </span>
-          : undefined
+          ) : undefined
         }
         headerActions={
           <button
@@ -535,9 +535,9 @@ function MethodOption({
       onClick={onClick}
       className={cn(
         'border-foreground/6 bg-background-card/30 w-full rounded-md border px-3 py-2.5 text-left transition-colors',
-        disabled ?
-          'cursor-not-allowed opacity-50'
-        : 'hover:border-foreground/12 hover:bg-background-card/50',
+        disabled
+          ? 'cursor-not-allowed opacity-50'
+          : 'hover:border-foreground/12 hover:bg-background-card/50',
       )}
     >
       <div className="flex items-center gap-2">

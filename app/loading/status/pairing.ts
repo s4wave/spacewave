@@ -27,9 +27,9 @@ export function toPairingView(input: PairingViewInput): LoadingView {
     }
   }
   const detail =
-    stage.state === 'active' && pairingCode ?
-      `${stage.detail} Code: ${pairingCode}`
-    : stage.detail
+    stage.state === 'active' && pairingCode
+      ? `${stage.detail} Code: ${pairingCode}`
+      : stage.detail
   return {
     state: stage.state,
     title: stage.title,

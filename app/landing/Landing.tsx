@@ -194,9 +194,9 @@ export function Landing() {
         <div className="bg-background/95 pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center text-sm">
           <span
             className={
-              pageActive ?
-                'text-foreground-alt animate-[pulse_2s_ease-in-out_infinite]'
-              : 'text-foreground-alt'
+              pageActive
+                ? 'text-foreground-alt animate-[pulse_2s_ease-in-out_infinite]'
+                : 'text-foreground-alt'
             }
           >
             &larr; Wider please! &rarr;

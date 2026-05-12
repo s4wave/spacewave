@@ -217,16 +217,16 @@ function AuthMutationWizardContent({
   const step0Ready = mode === 'add' ? cred.hasCredential : !!removePeerId
 
   const title =
-    mode === 'add' ?
-      addMethodType === 'pem' ?
-        'Add backup key'
-      : 'Add auth method'
-    : 'Remove auth method'
+    mode === 'add'
+      ? addMethodType === 'pem'
+        ? 'Add backup key'
+        : 'Add auth method'
+      : 'Remove auth method'
 
   const description =
-    mode === 'add' ?
-      'Step through the wizard to securely add a new auth method.'
-    : `Remove "${removeMethodLabel ?? 'auth method'}" from your account.`
+    mode === 'add'
+      ? 'Step through the wizard to securely add a new auth method.'
+      : `Remove "${removeMethodLabel ?? 'auth method'}" from your account.`
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -241,9 +241,9 @@ function AuthMutationWizardContent({
 
         {/* Step content */}
         <div className="min-h-[120px]">
-          {complete ?
+          {complete ? (
             <CompleteView mode={mode} addMethodType={addMethodType} />
-          : step === 0 ?
+          ) : step === 0 ? (
             <Step0Content
               mode={mode}
               removePeerId={removePeerId}
@@ -252,7 +252,7 @@ function AuthMutationWizardContent({
               cred={cred}
               keypairs={keypairs}
             />
-          : step === 1 ?
+          ) : step === 1 ? (
             <Step1Unlock
               keypairs={keypairs}
               unlockedCount={unlockedCount}
@@ -261,7 +261,8 @@ function AuthMutationWizardContent({
               account={account}
               onError={setError}
             />
-          : <Step2Confirm
+          ) : (
+            <Step2Confirm
               mode={mode}
               addMethodType={addMethodType}
               removeMethodLabel={removeMethodLabel}
@@ -269,13 +270,13 @@ function AuthMutationWizardContent({
               unlockedCount={unlockedCount}
               required={required}
             />
-          }
+          )}
 
           {error && <p className="text-destructive mt-2 text-xs">{error}</p>}
         </div>
 
         <DialogFooter>
-          {complete ?
+          {complete ? (
             <button
               onClick={handleDone}
               className={cn(
@@ -285,7 +286,8 @@ function AuthMutationWizardContent({
             >
               Close
             </button>
-          : <>
+          ) : (
+            <>
               {step > 0 && (
                 <button
                   onClick={() => {
@@ -307,7 +309,7 @@ function AuthMutationWizardContent({
               >
                 Cancel
               </button>
-              {step < 2 ?
+              {step < 2 ? (
                 <button
                   onClick={() => {
                     setError(null)
@@ -323,36 +325,38 @@ function AuthMutationWizardContent({
                   Next
                   <LuArrowRight className="size-3" />
                 </button>
-              : <button
+              ) : (
+                <button
                   onClick={() => void handleExecute()}
                   disabled={executing || !canExecute}
                   className={cn(
                     'flex items-center gap-1 rounded-md border px-4 py-2 text-sm transition-all',
-                    mode === 'remove' ?
-                      'border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive'
-                    : 'border-brand/30 bg-brand/10 hover:bg-brand/20',
+                    mode === 'remove'
+                      ? 'border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive'
+                      : 'border-brand/30 bg-brand/10 hover:bg-brand/20',
                     'disabled:cursor-not-allowed disabled:opacity-50',
                   )}
                 >
-                  {executing ?
+                  {executing ? (
                     <>
                       <Spinner size="sm" />
                       Executing…
                     </>
-                  : mode === 'remove' ?
+                  ) : mode === 'remove' ? (
                     <>
                       <LuTrash2 className="size-3" />
                       Remove
                     </>
-                  : <>
+                  ) : (
+                    <>
                       <LuDownload className="size-3" />
                       Generate and download
                     </>
-                  }
+                  )}
                 </button>
-              }
+              )}
             </>
-          }
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -379,17 +383,17 @@ function StepIndicator({
             <div
               className={cn(
                 'h-1 w-full rounded-full transition-colors',
-                done ? 'bg-brand'
-                : active ? 'bg-brand/40'
-                : 'bg-foreground/10',
+                done ? 'bg-brand' : active ? 'bg-brand/40' : 'bg-foreground/10',
               )}
             />
             <span
               className={cn(
                 'text-[10px] leading-tight',
-                done ? 'text-brand'
-                : active ? 'text-foreground'
-                : 'text-foreground-alt/50',
+                done
+                  ? 'text-brand'
+                  : active
+                    ? 'text-foreground'
+                    : 'text-foreground-alt/50',
               )}
             >
               {label}
@@ -505,9 +509,9 @@ function Step1Unlock({
         <div
           className={cn(
             'rounded-full px-2 py-0.5 text-xs font-medium',
-            ready ?
-              'bg-brand/10 text-brand'
-            : 'bg-foreground/5 text-foreground-alt',
+            ready
+              ? 'bg-brand/10 text-brand'
+              : 'bg-foreground/5 text-foreground-alt',
           )}
         >
           {ready ? 'Ready' : 'Unlock more'}
@@ -631,7 +635,7 @@ function UnlockRow({
       </div>
 
       <div className="flex items-center gap-2">
-        {needsPassword ?
+        {needsPassword ? (
           <input
             type="password"
             value={cred.password}
@@ -645,7 +649,8 @@ function UnlockRow({
               'focus:border-brand/50',
             )}
           />
-        : <>
+        ) : (
+          <>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -670,7 +675,7 @@ function UnlockRow({
               className="hidden"
             />
           </>
-        }
+        )}
         <button
           onClick={() => void handleUnlock()}
           disabled={unlocking || !canUnlock}
@@ -711,20 +716,21 @@ function Step2Confirm({
       <div
         className={cn(
           'rounded-md border p-3',
-          ready ?
-            'border-brand/20 bg-brand/5'
-          : 'border-yellow-500/20 bg-yellow-500/5',
+          ready
+            ? 'border-brand/20 bg-brand/5'
+            : 'border-yellow-500/20 bg-yellow-500/5',
         )}
       >
         <div className="flex items-center gap-2">
-          {ready ?
+          {ready ? (
             <LuShieldCheck className="text-brand size-4 shrink-0" />
-          : <LuLock className="size-4 shrink-0 text-yellow-500" />}
+          ) : (
+            <LuLock className="size-4 shrink-0 text-yellow-500" />
+          )}
           <p className="text-foreground text-sm font-medium">
-            {ready ?
-              'Ready to execute'
-            : `Need ${required - unlockedCount} more unlock${required - unlockedCount === 1 ? '' : 's'}`
-            }
+            {ready
+              ? 'Ready to execute'
+              : `Need ${required - unlockedCount} more unlock${required - unlockedCount === 1 ? '' : 's'}`}
           </p>
         </div>
 
@@ -740,11 +746,11 @@ function Step2Confirm({
           Operation
         </p>
         <p className="text-foreground text-sm">
-          {mode === 'add' ?
-            addMethodType === 'pem' ?
-              'Generate and download a new backup key (.pem)'
-            : 'Add a new auth method'
-          : `Remove "${removeMethodLabel ?? 'auth method'}"`}
+          {mode === 'add'
+            ? addMethodType === 'pem'
+              ? 'Generate and download a new backup key (.pem)'
+              : 'Add a new auth method'
+            : `Remove "${removeMethodLabel ?? 'auth method'}"`}
         </p>
       </div>
 
@@ -790,18 +796,18 @@ function CompleteView({
         <LuCheck className="text-brand size-5" />
       </div>
       <p className="text-foreground text-sm font-medium">
-        {mode === 'add' ?
-          addMethodType === 'pem' ?
-            'Backup key generated and downloaded'
-          : 'Auth method added'
-        : 'Auth method removed'}
+        {mode === 'add'
+          ? addMethodType === 'pem'
+            ? 'Backup key generated and downloaded'
+            : 'Auth method added'
+          : 'Auth method removed'}
       </p>
       <p className="text-foreground-alt text-center text-xs">
-        {mode === 'add' ?
-          addMethodType === 'pem' ?
-            'Store the .pem file in a safe location. You will need it to recover your account.'
-          : 'The new auth method is now active on your account.'
-        : 'The auth method has been permanently removed from your account.'}
+        {mode === 'add'
+          ? addMethodType === 'pem'
+            ? 'Store the .pem file in a safe location. You will need it to recover your account.'
+            : 'The new auth method is now active on your account.'
+          : 'The auth method has been permanently removed from your account.'}
       </p>
     </div>
   )

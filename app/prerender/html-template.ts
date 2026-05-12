@@ -28,31 +28,26 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   const twitterCard = opts.twitterCard ?? 'summary_large_image'
   const themeColor = opts.themeColor ?? '#0a0a0a'
 
-  const canonicalTag =
-    opts.canonicalUrl ?
-      `\n  <link rel="canonical" href="${opts.canonicalUrl}"/>`
+  const canonicalTag = opts.canonicalUrl
+    ? `\n  <link rel="canonical" href="${opts.canonicalUrl}"/>`
     : ''
-  const ogImageTag =
-    opts.ogImage ?
-      `\n  <meta property="og:image" content="${opts.ogImage}"/>`
+  const ogImageTag = opts.ogImage
+    ? `\n  <meta property="og:image" content="${opts.ogImage}"/>`
     : ''
-  const twitterImageTag =
-    opts.ogImage ?
-      `\n  <meta name="twitter:image" content="${opts.ogImage}"/>`
+  const twitterImageTag = opts.ogImage
+    ? `\n  <meta name="twitter:image" content="${opts.ogImage}"/>`
     : ''
-  const ogUrlTag =
-    opts.canonicalUrl ?
-      `\n  <meta property="og:url" content="${opts.canonicalUrl}"/>`
+  const ogUrlTag = opts.canonicalUrl
+    ? `\n  <meta property="og:url" content="${opts.canonicalUrl}"/>`
     : ''
-  const jsonLdTag =
-    opts.jsonLd ?
-      `\n  <script type="application/ld+json">${serializeJsonScriptData(opts.jsonLd)}</script>`
+  const jsonLdTag = opts.jsonLd
+    ? `\n  <script type="application/ld+json">${serializeJsonScriptData(opts.jsonLd)}</script>`
     : ''
-  const criticalStyle =
-    opts.criticalCss ? `\n  <style>${opts.criticalCss}</style>` : ''
-  const importMapTag =
-    opts.importMap ?
-      `\n  <script type="importmap">${opts.importMap}</script>`
+  const criticalStyle = opts.criticalCss
+    ? `\n  <style>${opts.criticalCss}</style>`
+    : ''
+  const importMapTag = opts.importMap
+    ? `\n  <script type="importmap">${opts.importMap}</script>`
     : ''
 
   return `<!doctype html>

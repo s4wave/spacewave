@@ -116,12 +116,13 @@ export function BlogCta() {
         {/* Right column: Email capture (hidden in Electron) */}
         {!isDesktop && (
           <div className="flex flex-1 flex-col justify-center">
-            {formState === 'success' ?
+            {formState === 'success' ? (
               <div className="text-brand flex items-center gap-2 text-sm font-medium">
                 <LuCheck className="size-4" />
                 Subscribed.
               </div>
-            : <form
+            ) : (
+              <form
                 onSubmit={(e) => {
                   void handleSubmit(e)
                 }}
@@ -153,7 +154,7 @@ export function BlogCta() {
                   siteKey={TURNSTILE_PROD_SITE_KEY}
                 />
               </form>
-            }
+            )}
           </div>
         )}
       </div>

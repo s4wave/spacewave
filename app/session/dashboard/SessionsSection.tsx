@@ -222,14 +222,17 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
     .join(' · ')
   const createdAt = row.createdAt ?? null
   const lastSeenAt = row.lastSeenAt ?? null
-  const status =
-    row.currentSession ? 'Current session'
-    : isLocalRow ?
-      createdAt ? `Paired ${createdAt.toLocaleDateString()}`
-      : 'Linked device'
-    : lastSeenAt ? `Last seen ${lastSeenAt.toLocaleDateString()}`
-    : createdAt ? `Created ${createdAt.toLocaleDateString()}`
-    : 'Cloud session'
+  const status = row.currentSession
+    ? 'Current session'
+    : isLocalRow
+      ? createdAt
+        ? `Paired ${createdAt.toLocaleDateString()}`
+        : 'Linked device'
+      : lastSeenAt
+        ? `Last seen ${lastSeenAt.toLocaleDateString()}`
+        : createdAt
+          ? `Created ${createdAt.toLocaleDateString()}`
+          : 'Cloud session'
 
   const actionLabel = isLocalRow ? 'Unlink session' : 'Log out session'
   const label = row.label || row.peerId || 'Session'
@@ -238,9 +241,11 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
     <div className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="relative shrink-0">
-          {isLocalRow ?
+          {isLocalRow ? (
             <LuSmartphone className="text-foreground-alt size-3.5" />
-          : <LuCloud className="text-foreground-alt size-3.5" />}
+          ) : (
+            <LuCloud className="text-foreground-alt size-3.5" />
+          )}
           {row.currentSession && (
             <span className="bg-success absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
           )}
@@ -276,9 +281,11 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
           )}
           title={actionLabel}
         >
-          {isLocalRow ?
+          {isLocalRow ? (
             <LuUnlink className="size-3" />
-          : <LuLogOut className="size-3" />}
+          ) : (
+            <LuLogOut className="size-3" />
+          )}
         </button>
       )}
     </div>

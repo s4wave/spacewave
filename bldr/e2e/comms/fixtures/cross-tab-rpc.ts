@@ -7,18 +7,8 @@
 // Echo call. The peer accepts the relay port, wraps it, and runs the echo
 // server. Verifies the full RPC round-trip across tabs.
 
-import {
-  Server,
-  Client,
-  ChannelStream,
-  createHandler,
-  createMux,
-} from 'starpc'
-import {
-  EchoerDefinition,
-  EchoerClient,
-  EchoerServer,
-} from 'starpc/echo'
+import { Server, Client, ChannelStream, createHandler, createMux } from 'starpc'
+import { EchoerDefinition, EchoerClient, EchoerServer } from 'starpc/echo'
 import type { ChannelStreamOpts } from 'starpc'
 import type { CrossTabBrokerMessage } from '../../../web/bldr/cross-tab-broker.js'
 
@@ -138,13 +128,22 @@ async function run() {
   const reg = await navigator.serviceWorker.register('/cross-tab-sw.js')
   const sw = reg.active || reg.installing || reg.waiting
   if (!sw) {
-    window.__results = { pass: false, detail: 'no SW', swRegistered: false, peerCount: 0, echoBody: '' }
+    window.__results = {
+      pass: false,
+      detail: 'no SW',
+      swRegistered: false,
+      peerCount: 0,
+      echoBody: '',
+    }
     log.textContent = 'DONE'
     return
   }
 
   await new Promise<void>((resolve) => {
-    if (sw.state === 'activated') { resolve(); return }
+    if (sw.state === 'activated') {
+      resolve()
+      return
+    }
     sw.addEventListener('statechange', () => {
       if (sw.state === 'activated') resolve()
     })
@@ -154,8 +153,15 @@ async function run() {
   if (!navigator.serviceWorker.controller) {
     await navigator.serviceWorker.ready
     await new Promise<void>((resolve) => {
-      if (navigator.serviceWorker.controller) { resolve(); return }
-      navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true })
+      if (navigator.serviceWorker.controller) {
+        resolve()
+        return
+      }
+      navigator.serviceWorker.addEventListener(
+        'controllerchange',
+        () => resolve(),
+        { once: true },
+      )
     })
   }
 

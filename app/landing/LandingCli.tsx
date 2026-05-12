@@ -127,14 +127,16 @@ export function LandingCli() {
                 key={`${line.prompt ? 'prompt' : 'line'}:${line.text}`}
                 className="whitespace-pre"
               >
-                {line.text === '' ?
+                {line.text === '' ? (
                   '\u00A0'
-                : line.prompt ?
+                ) : line.prompt ? (
                   <>
                     <span className="text-brand">$</span>{' '}
                     <span className="text-foreground">{line.text}</span>
                   </>
-                : <span className="text-foreground-alt">{line.text}</span>}
+                ) : (
+                  <span className="text-foreground-alt">{line.text}</span>
+                )}
               </div>
             ))}
           </div>

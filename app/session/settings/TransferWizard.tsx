@@ -440,21 +440,21 @@ function SelectStep({
         </span>
         <div className="space-y-1.5">
           {sessionOptions.flatMap((s) =>
-            s.index !== sourceIdx ?
-              [
-                <RadioOption
-                  key={`tgt-${s.index}`}
-                  selected={targetIdx === s.index}
-                  onSelect={() => onTargetChange(s.index)}
-                  label={s.label}
-                  description={
-                    s.providerId === 'local' ?
-                      'Local storage'
-                    : 'Spacewave Cloud'
-                  }
-                />,
-              ]
-            : [],
+            s.index !== sourceIdx
+              ? [
+                  <RadioOption
+                    key={`tgt-${s.index}`}
+                    selected={targetIdx === s.index}
+                    onSelect={() => onTargetChange(s.index)}
+                    label={s.label}
+                    description={
+                      s.providerId === 'local'
+                        ? 'Local storage'
+                        : 'Spacewave Cloud'
+                    }
+                  />,
+                ]
+              : [],
           )}
         </div>
       </div>
@@ -543,9 +543,11 @@ function InventoryStep({
               )}
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded">
-                {checked ?
+                {checked ? (
                   <LuSquareCheck className="text-brand size-5" />
-                : <LuSquare className="text-foreground-alt size-5" />}
+                ) : (
+                  <LuSquare className="text-foreground-alt size-5" />
+                )}
               </div>
               <p className="text-foreground text-sm">{name}</p>
             </button>

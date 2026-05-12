@@ -199,10 +199,11 @@ export function AddUserDialog({
     orgMembersLoading ?? (!!effectiveOrgId && !spaceContainer?.orgState)
   const hasOrgTab = effectiveOrgId.length > 0
 
-  const defaultTab =
-    hasOrgTab ? 'members'
-    : isCloudProvider ? 'username'
-    : 'code'
+  const defaultTab = hasOrgTab
+    ? 'members'
+    : isCloudProvider
+      ? 'username'
+      : 'code'
 
   const inputClass = cn(
     'border-foreground/10 bg-background-card/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm font-mono outline-none transition-colors duration-150',
@@ -224,9 +225,9 @@ export function AddUserDialog({
         <DialogHeader>
           <DialogTitle>Add User</DialogTitle>
           <DialogDescription>
-            {isCloudProvider ?
-              'Add an existing org member, send a username invite, or create a shareable code or link.'
-            : 'Add an existing org member, or create a shareable code or link.'}
+            {isCloudProvider
+              ? 'Add an existing org member, send a username invite, or create a shareable code or link.'
+              : 'Add an existing org member, or create a shareable code or link.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -267,7 +268,7 @@ export function AddUserDialog({
           )}
 
           <TabsContent value="code" className="space-y-3 pt-2">
-            {shortCode ?
+            {shortCode ? (
               <div className="space-y-2">
                 <label
                   htmlFor={inviteCodeId}
@@ -292,31 +293,33 @@ export function AddUserDialog({
                     state.copied && successActionClass,
                   )}
                 >
-                  {state.copied ?
+                  {state.copied ? (
                     <>
                       <LuCheck className="size-3.5" />
                       Copied
                     </>
-                  : <>
+                  ) : (
+                    <>
                       <LuCopy className="size-3.5" />
                       Copy Code
                     </>
-                  }
+                  )}
                 </button>
               </div>
-            : state.inviteResp ?
+            ) : state.inviteResp ? (
               <p className="text-foreground-alt text-xs">
                 Short codes are only available for cloud sessions. Use the Link
                 tab instead.
               </p>
-            : <button
+            ) : (
+              <button
                 onClick={() => void handleCreateInvite()}
                 disabled={state.creating || !session}
                 className={actionButtonClass}
               >
                 {state.creating ? 'Creating...' : 'Create Invite Code'}
               </button>
-            }
+            )}
           </TabsContent>
 
           {isCloudProvider && (
@@ -347,23 +350,24 @@ export function AddUserDialog({
                     state.usernameSent && successActionClass,
                   )}
                 >
-                  {state.usernameSent ?
+                  {state.usernameSent ? (
                     <>
                       <LuCheck className="size-3.5" />
                       Sent
                     </>
-                  : <>
+                  ) : (
+                    <>
                       <LuUserPlus className="size-3.5" />
                       {state.creating ? 'Sending...' : 'Send Invite'}
                     </>
-                  }
+                  )}
                 </button>
               </div>
             </TabsContent>
           )}
 
           <TabsContent value="link" className="space-y-3 pt-2">
-            {state.inviteResp?.inviteMessage ?
+            {state.inviteResp?.inviteMessage ? (
               <div className="space-y-2">
                 <label
                   htmlFor={inviteLinkId}
@@ -385,26 +389,28 @@ export function AddUserDialog({
                     state.copied && successActionClass,
                   )}
                 >
-                  {state.copied ?
+                  {state.copied ? (
                     <>
                       <LuCheck className="size-3.5" />
                       Copied
                     </>
-                  : <>
+                  ) : (
+                    <>
                       <LuCopy className="size-3.5" />
                       Copy Link
                     </>
-                  }
+                  )}
                 </button>
               </div>
-            : <button
+            ) : (
+              <button
                 onClick={() => void handleCreateInvite()}
                 disabled={state.creating || !session}
                 className={actionButtonClass}
               >
                 {state.creating ? 'Creating...' : 'Create Invite Link'}
               </button>
-            }
+            )}
           </TabsContent>
         </Tabs>
 
@@ -496,10 +502,9 @@ function OrgMembersTab({
   return (
     <>
       <p className="text-foreground-alt/60 text-xs">
-        {isCloudProvider ?
-          'Choose someone already in this organization. Use Username, Code, or Link to share with anyone else.'
-        : 'Choose someone already in this organization. Use Code or Link to share with anyone else.'
-        }
+        {isCloudProvider
+          ? 'Choose someone already in this organization. Use Username, Code, or Link to share with anyone else.'
+          : 'Choose someone already in this organization. Use Code or Link to share with anyone else.'}
       </p>
       <div className="relative">
         <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 size-3.5" />
@@ -555,11 +560,13 @@ function OrgMembersTab({
                 </div>
               </div>
               <div className="shrink-0">
-                {isEnrolled ?
+                {isEnrolled ? (
                   <LuCheck className="text-success size-3.5" />
-                : isEnrolling ?
+                ) : isEnrolling ? (
                   <span className="text-foreground-alt text-xs">Adding…</span>
-                : <LuUserPlus className="text-foreground-alt/50 size-3.5" />}
+                ) : (
+                  <LuUserPlus className="text-foreground-alt/50 size-3.5" />
+                )}
               </div>
             </button>
           )

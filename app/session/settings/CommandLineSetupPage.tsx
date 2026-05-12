@@ -331,9 +331,11 @@ function listenerToneLabel(
 // listener state tone.
 function StatusDot({ tone }: { tone: 'ready' | 'warning' | 'muted' }) {
   const cls =
-    tone === 'ready' ? 'text-emerald-500'
-    : tone === 'warning' ? 'text-amber-500'
-    : 'text-foreground-alt/40'
+    tone === 'ready'
+      ? 'text-emerald-500'
+      : tone === 'warning'
+        ? 'text-amber-500'
+        : 'text-foreground-alt/40'
   return (
     <LuCircle
       className={cn('h-2.5 w-2.5 shrink-0 fill-current', cls)}

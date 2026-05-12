@@ -89,9 +89,9 @@ export function ForgeViewerShell({
                 onClick={() => onTabClick(tab.id)}
                 className={cn(
                   'rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
-                  resolvedTab?.id === tab.id ?
-                    'border-brand/30 bg-brand/10 text-foreground'
-                  : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
+                  resolvedTab?.id === tab.id
+                    ? 'border-brand/30 bg-brand/10 text-foreground'
+                    : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
                 )}
               >
                 {tab.label}

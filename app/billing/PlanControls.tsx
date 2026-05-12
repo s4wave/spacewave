@@ -41,9 +41,8 @@ export function PlanControls(props: {
   const isActive = isStatusActive(props.status)
   const isCanceled = props.status === BillingStatus.BillingStatus_CANCELED
   const isCancelScheduled = isActive && !!props.cancelAt
-  const cancelLabel =
-    props.cancelAt ?
-      new Date(Number(props.cancelAt)).toLocaleDateString()
+  const cancelLabel = props.cancelAt
+    ? new Date(Number(props.cancelAt)).toLocaleDateString()
     : null
 
   const handleCancel = useCallback(() => {
@@ -113,9 +112,9 @@ export function PlanControls(props: {
             onClick={() => void handleReactivate()}
             disabled={action !== 'idle' || checkout.polling}
           >
-            {action === 'reactivating' ?
-              'Keeping subscription...'
-            : 'Keep subscription'}
+            {action === 'reactivating'
+              ? 'Keeping subscription...'
+              : 'Keep subscription'}
           </DashboardButton>
         )}
         {isCanceled && (
@@ -124,9 +123,9 @@ export function PlanControls(props: {
             onClick={() => void handleReactivate()}
             disabled={action !== 'idle' || checkout.polling}
           >
-            {action === 'reactivating' ?
-              'Reactivating...'
-            : 'Reactivate subscription'}
+            {action === 'reactivating'
+              ? 'Reactivating...'
+              : 'Reactivate subscription'}
           </DashboardButton>
         )}
       </div>

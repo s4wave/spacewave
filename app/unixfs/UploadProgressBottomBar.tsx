@@ -84,10 +84,11 @@ function UploadProgressOverlay({
         <SummaryCell
           label="Active"
           value={
-            activeCount > 0 ? `${activeCount} uploading`
-            : queuedCount > 0 ?
-              `${queuedCount} queued`
-            : 'Idle'
+            activeCount > 0
+              ? `${activeCount} uploading`
+              : queuedCount > 0
+                ? `${queuedCount} queued`
+                : 'Idle'
           }
         />
         <SummaryCell label="Completed" value={`${doneCount}`} />
@@ -147,26 +148,31 @@ function UploadItemRow({
   onCancel: (id: string) => void
 }) {
   const progress =
-    item.totalSize > 0 ?
-      Math.round((item.bytesWritten / item.totalSize) * 100)
-    : 0
+    item.totalSize > 0
+      ? Math.round((item.bytesWritten / item.totalSize) * 100)
+      : 0
 
   const handleCancel = useCallback(() => {
     onCancel(item.id)
   }, [item.id, onCancel])
 
   const statusLabel =
-    item.status === 'uploading' ? 'Uploading'
-    : item.status === 'queued' ? 'Queued'
-    : item.status === 'done' ? 'Complete'
-    : (item.error ?? 'Failed')
+    item.status === 'uploading'
+      ? 'Uploading'
+      : item.status === 'queued'
+        ? 'Queued'
+        : item.status === 'done'
+          ? 'Complete'
+          : (item.error ?? 'Failed')
 
   return (
     <div className="border-popover-border flex items-start gap-3 border-t px-5 py-4 first:border-t-0">
       <div className="bg-muted text-foreground-alt mt-0.5 flex size-9 flex-shrink-0 items-center justify-center rounded-md">
-        {item.kind === 'directory' ?
+        {item.kind === 'directory' ? (
           <LuFolder className="size-4" />
-        : <LuUpload className="size-4" />}
+        ) : (
+          <LuUpload className="size-4" />
+        )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -258,12 +264,14 @@ export function UploadProgressBottomBar({
           className,
         )}
       >
-        {activeUploading > 0 ?
+        {activeUploading > 0 ? (
           <Spinner size="sm" />
-        : <LuUpload className="size-3" />}
-        {activeUploading > 0 ?
-          `Uploading ${activeUploading}/${totalCount}`
-        : `${doneCount}/${totalCount} uploaded`}
+        ) : (
+          <LuUpload className="size-3" />
+        )}
+        {activeUploading > 0
+          ? `Uploading ${activeUploading}/${totalCount}`
+          : `${doneCount}/${totalCount} uploaded`}
       </button>
     ),
     [activeUploading, totalCount, doneCount],

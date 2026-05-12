@@ -65,9 +65,11 @@ export function CopyButton({
         className,
       )}
     >
-      {copied ?
+      {copied ? (
         <LuCheck className={cn(iconCls, 'text-emerald-500')} />
-      : <LuCopy className={iconCls} />}
+      ) : (
+        <LuCopy className={iconCls} />
+      )}
     </button>
   )
 }

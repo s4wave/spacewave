@@ -29,9 +29,9 @@ async function waitForConsole(
     const handler = (msg: ConsoleMessage) => {
       const text = msg.text()
       const matches =
-        typeof pattern === 'string' ?
-          text.includes(pattern)
-        : pattern.test(text)
+        typeof pattern === 'string'
+          ? text.includes(pattern)
+          : pattern.test(text)
       if (matches) {
         clearTimeout(timer)
         page.removeListener('console', handler)

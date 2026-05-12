@@ -69,13 +69,12 @@ export function PairCodePage(props: PairCodePageProps) {
   const params = useParams()
   const rawCode = params.code ?? ''
   const isDirectMode = rawCode === 'direct' || rawCode.length > 8
-  const initialCode =
-    isDirectMode ? '' : (
-      rawCode
+  const initialCode = isDirectMode
+    ? ''
+    : rawCode
         .replace(/[^A-Za-z0-9]/g, '')
         .toUpperCase()
         .slice(0, 8)
-    )
   const initialOfferPayload = rawCode.length > 8 ? rawCode : undefined
   const navigate = useNavigate()
 
@@ -256,13 +255,14 @@ export function PairCodePage(props: PairCodePageProps) {
                     'flex h-10 items-center justify-center gap-2',
                   )}
                 >
-                  {loading ?
+                  {loading ? (
                     <Spinner />
-                  : <>
+                  ) : (
+                    <>
                       <LuLink className="text-brand size-4" />
                       <span className="text-foreground text-sm">Connect</span>
                     </>
-                  }
+                  )}
                 </button>
               </div>
             </div>
@@ -699,9 +699,9 @@ function PairDirectStep({
           {answerPayload ? 'Share this response' : 'Direct pairing'}
         </h2>
         <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
-          {answerPayload ?
-            'Copy this response and paste it on the other device.'
-          : 'Scan the QR code or paste the offer from the other device.'}
+          {answerPayload
+            ? 'Copy this response and paste it on the other device.'
+            : 'Scan the QR code or paste the offer from the other device.'}
         </p>
       </div>
 
@@ -793,13 +793,14 @@ function PairDirectStep({
               'flex h-10 items-center justify-center gap-2',
             )}
           >
-            {loading ?
+            {loading ? (
               <Spinner />
-            : <>
+            ) : (
+              <>
                 <LuLink className="text-brand size-4" />
                 <span className="text-foreground text-sm">Accept offer</span>
               </>
-            }
+            )}
           </button>
         )}
       </div>

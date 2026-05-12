@@ -206,9 +206,9 @@ export function PlanSelectionPage({
       showRetry: false,
       polling: checkoutResult === 'success',
       error:
-        checkoutResult === 'cancel' ?
-          'Checkout was not completed. You can try again.'
-        : null,
+        checkoutResult === 'cancel'
+          ? 'Checkout was not completed. You can try again.'
+          : null,
       checkoutUrl: '',
     }),
     // Only compute once on mount.

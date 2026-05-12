@@ -4,11 +4,7 @@
 
 export { Fd, Inode, type PollResult } from './fd.js'
 export * from './wasi_defs.js'
-export {
-  WASI,
-  WASIProcExit,
-  type Options,
-} from './wasi.js'
+export { WASI, WASIProcExit, type Options } from './wasi.js'
 export {
   File,
   Directory,

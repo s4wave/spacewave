@@ -192,14 +192,16 @@ export function CloudConfirmationPage({
               showRetry ? 'rounded-r-none' : '',
             )}
           >
-            {loading ?
+            {loading ? (
               <>
                 <Spinner />
-                {polling ?
-                  'Activating subscription...'
-                : 'Continuing with Stripe...'}
+                {polling
+                  ? 'Activating subscription...'
+                  : 'Continuing with Stripe...'}
               </>
-            : 'Continue with Stripe...'}
+            ) : (
+              'Continue with Stripe...'
+            )}
           </button>
           {showRetry && (
             <button
@@ -364,9 +366,9 @@ export function PlanFaqItem({
       tabIndex={0}
       className={cn(
         'cursor-pointer rounded-lg border p-4 backdrop-blur-sm transition-all',
-        isOpen ?
-          'border-foreground/12 bg-background-card/60'
-        : 'border-foreground/6 bg-background-card/20 hover:border-foreground/12',
+        isOpen
+          ? 'border-foreground/12 bg-background-card/60'
+          : 'border-foreground/6 bg-background-card/20 hover:border-foreground/12',
       )}
       onClick={onToggle}
       onKeyDown={handleFaqKeyDown}
@@ -375,9 +377,9 @@ export function PlanFaqItem({
         <h3
           className={cn(
             'text-xs leading-relaxed font-medium transition-colors',
-            isOpen ? 'text-foreground' : (
-              'text-foreground-alt group-hover:text-foreground'
-            ),
+            isOpen
+              ? 'text-foreground'
+              : 'text-foreground-alt group-hover:text-foreground',
           )}
         >
           {question}
@@ -385,9 +387,9 @@ export function PlanFaqItem({
         <div
           className={cn(
             'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded transition-all',
-            isOpen ?
-              'bg-brand/12 text-brand rotate-45'
-            : 'bg-foreground/6 text-foreground-alt',
+            isOpen
+              ? 'bg-brand/12 text-brand rotate-45'
+              : 'bg-foreground/6 text-foreground-alt',
           )}
         >
           <LuPlus className="size-2.5" />

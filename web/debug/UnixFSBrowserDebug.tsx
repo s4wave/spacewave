@@ -285,9 +285,11 @@ function CurrentRow({
       )}
     >
       <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
-        {row.isDir ?
+        {row.isDir ? (
           <LuFolder className="text-file-folder-icon size-4 shrink-0" />
-        : <LuFile className="text-foreground-alt size-4 shrink-0" />}
+        ) : (
+          <LuFile className="text-foreground-alt size-4 shrink-0" />
+        )}
         <span className="truncate">{row.name}</span>
       </div>
       <div className="text-foreground-alt w-[140px] min-w-[100px] shrink text-xs opacity-70">
@@ -321,29 +323,30 @@ function DenseRow({
       }}
       className={cn(
         'group relative flex cursor-pointer items-center px-3 py-1.5 text-xs transition-colors select-none',
-        selected ?
-          'bg-brand/10 text-foreground'
-        : 'text-foreground/90 hover:bg-foreground/5',
+        selected
+          ? 'bg-brand/10 text-foreground'
+          : 'text-foreground/90 hover:bg-foreground/5',
       )}
     >
       {selected && (
         <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-[2px] rounded-r" />
       )}
       <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
-        {row.isDir ?
+        {row.isDir ? (
           <LuFolder
             className={cn(
               'size-4 shrink-0',
               selected ? 'text-brand' : 'text-foreground-alt/80',
             )}
           />
-        : <LuFile
+        ) : (
+          <LuFile
             className={cn(
               'size-4 shrink-0',
               selected ? 'text-foreground' : 'text-foreground-alt/60',
             )}
           />
-        }
+        )}
         <span className="truncate">{row.name}</span>
       </div>
       <div className="text-foreground-alt/50 w-[140px] min-w-[100px] shrink text-xs">
@@ -377,33 +380,34 @@ function CardRow({
       }}
       className={cn(
         'group flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-xs transition-all duration-150 select-none',
-        selected ?
-          'border-brand/30 bg-brand/5'
-        : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
+        selected
+          ? 'border-brand/30 bg-brand/5'
+          : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
       )}
     >
       <span
         className={cn(
           'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-          selected ? 'bg-brand/15' : (
-            'bg-foreground/5 group-hover:bg-foreground/8'
-          ),
+          selected
+            ? 'bg-brand/15'
+            : 'bg-foreground/5 group-hover:bg-foreground/8',
         )}
       >
-        {row.isDir ?
+        {row.isDir ? (
           <LuFolder
             className={cn(
               'size-3.5',
               selected ? 'text-brand' : 'text-foreground-alt/70',
             )}
           />
-        : <LuFile
+        ) : (
+          <LuFile
             className={cn(
               'size-3.5',
               selected ? 'text-foreground' : 'text-foreground-alt/60',
             )}
           />
-        }
+        )}
       </span>
       <div className="min-w-0 flex-1 truncate">
         <div className="text-foreground truncate font-medium">{row.name}</div>
@@ -547,9 +551,9 @@ function NavIconButton({
       disabled={disabled}
       className={cn(
         'flex size-6 items-center justify-center rounded transition-colors',
-        disabled ?
-          'text-foreground-alt/30 cursor-default'
-        : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
+        disabled
+          ? 'text-foreground-alt/30 cursor-default'
+          : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
       )}
     >
       {icon}
@@ -687,9 +691,11 @@ function DummyRows() {
       {FILE_ROWS.slice(0, 4).map((row) => (
         <div key={row.id} className="flex items-center px-3 py-1.5 text-xs">
           <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
-            {row.isDir ?
+            {row.isDir ? (
               <LuFolder className="text-foreground-alt/60 size-4 shrink-0" />
-            : <LuFile className="text-foreground-alt/60 size-4 shrink-0" />}
+            ) : (
+              <LuFile className="text-foreground-alt/60 size-4 shrink-0" />
+            )}
             <span className="text-foreground-alt/70 truncate">{row.name}</span>
           </div>
         </div>
