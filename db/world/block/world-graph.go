@@ -40,15 +40,7 @@ func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.
 	}
 
 	graphHd := world.NewReadOperationCayleyHandle(t.graphHd)
-	results := make([][]world.GraphQuad, len(filters))
-	for i, filter := range filters {
-		quads, err := lookupGraphQuads(ctx, graphHd, filter, limitPerFilter)
-		if err != nil {
-			return nil, err
-		}
-		results[i] = quads
-	}
-	return results, nil
+	return lookupGraphQuadsBatch(ctx, graphHd, filters, limitPerFilter)
 }
 
 func (t *WorldState) lookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
@@ -78,6 +70,32 @@ func lookupGraphQuads(ctx context.Context, h world.CayleyHandle, filter world.Gr
 		err = nil
 	}
 	return quads, err
+}
+
+func lookupGraphQuadsBatch(ctx context.Context, h world.CayleyHandle, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	cfilters := make([]quad.Quad, len(filters))
+	for i, filter := range filters {
+		if filter == nil {
+			filter = world.NewGraphQuad("", "", "", "")
+		}
+		cq, err := world.GraphQuadToCayleyQuad(filter, false)
+		if err != nil {
+			return nil, err
+		}
+		cfilters[i] = cq
+	}
+	cresults, err := world.CollectFilteredFullQuadsBatch(ctx, h, cfilters, limitPerFilter)
+	if err != nil {
+		return nil, err
+	}
+	results := make([][]world.GraphQuad, len(cresults))
+	for i, cquads := range cresults {
+		results[i] = make([]world.GraphQuad, len(cquads))
+		for j, cq := range cquads {
+			results[i][j] = world.CayleyQuadToGraphQuad(cq)
+		}
+	}
+	return results, nil
 }
 
 // QueryGraphPath executes a bounded graph traversal.

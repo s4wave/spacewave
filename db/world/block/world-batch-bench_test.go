@@ -2,6 +2,7 @@ package world_block_test
 
 import (
 	"context"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -10,6 +11,29 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
 )
+
+func TestWorldStateLookupGraphQuadsBatchMatchesPrimitiveLoop(t *testing.T) {
+	ctx := context.Background()
+	ws, filters, cleanup := setupRelationshipFanoutBenchWorld(ctx, t, 8)
+	defer cleanup()
+
+	results, err := ws.LookupGraphQuadsBatch(ctx, filters, 16)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(results) != len(filters) {
+		t.Fatalf("result count = %d, want %d", len(results), len(filters))
+	}
+	for i, filter := range filters {
+		quads, err := ws.LookupGraphQuads(ctx, filter, 16)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !reflect.DeepEqual(graphQuadStrings(results[i]), graphQuadStrings(quads)) {
+			t.Fatalf("filter %d batch result = %#v, want %#v", i, graphQuadStrings(results[i]), graphQuadStrings(quads))
+		}
+	}
+}
 
 func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 	ctx := context.Background()
@@ -51,24 +75,24 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 	})
 }
 
-func setupRelationshipFanoutBenchWorld(ctx context.Context, b *testing.B, roots int) (*world_block.WorldState, []world.GraphQuad, func()) {
-	b.Helper()
+func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots int) (*world_block.WorldState, []world.GraphQuad, func()) {
+	tb.Helper()
 
 	le := logrus.NewEntry(logrus.New())
-	tb, err := testbed.NewTestbed(ctx, le)
+	tbed, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
-		b.Fatal(err.Error())
+		tb.Fatal(err.Error())
 	}
-	ocs, err := tb.BuildEmptyCursor(ctx)
+	ocs, err := tbed.BuildEmptyCursor(ctx)
 	if err != nil {
-		tb.Release()
-		b.Fatal(err.Error())
+		tbed.Release()
+		tb.Fatal(err.Error())
 	}
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		ocs.Release()
-		tb.Release()
-		b.Fatal(err.Error())
+		tbed.Release()
+		tb.Fatal(err.Error())
 	}
 
 	outPredicates := []string{
@@ -88,22 +112,22 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, b *testing.B, roots 
 		if _, err := ws.CreateObject(ctx, rootKey, nil); err != nil {
 			ws.Discard()
 			ocs.Release()
-			tb.Release()
-			b.Fatal(err.Error())
+			tbed.Release()
+			tb.Fatal(err.Error())
 		}
 		for predIndex, pred := range outPredicates {
 			targetKey := rootKey + "/out/" + strconv.Itoa(predIndex)
 			if _, err := ws.CreateObject(ctx, targetKey, nil); err != nil {
 				ws.Discard()
 				ocs.Release()
-				tb.Release()
-				b.Fatal(err.Error())
+				tbed.Release()
+				tb.Fatal(err.Error())
 			}
 			if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(rootKey, pred, targetKey, "")); err != nil {
 				ws.Discard()
 				ocs.Release()
-				tb.Release()
-				b.Fatal(err.Error())
+				tbed.Release()
+				tb.Fatal(err.Error())
 			}
 			filters = append(filters, world.NewGraphQuadWithKeys(rootKey, pred, "", ""))
 		}
@@ -112,14 +136,14 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, b *testing.B, roots 
 			if _, err := ws.CreateObject(ctx, sourceKey, nil); err != nil {
 				ws.Discard()
 				ocs.Release()
-				tb.Release()
-				b.Fatal(err.Error())
+				tbed.Release()
+				tb.Fatal(err.Error())
 			}
 			if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(sourceKey, pred, rootKey, "")); err != nil {
 				ws.Discard()
 				ocs.Release()
-				tb.Release()
-				b.Fatal(err.Error())
+				tbed.Release()
+				tb.Fatal(err.Error())
 			}
 			filters = append(filters, world.NewGraphQuadWithKeys("", pred, rootKey, ""))
 		}
@@ -128,7 +152,15 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, b *testing.B, roots 
 	cleanup := func() {
 		ws.Discard()
 		ocs.Release()
-		tb.Release()
+		tbed.Release()
 	}
 	return ws, filters, cleanup
+}
+
+func graphQuadStrings(quads []world.GraphQuad) []string {
+	out := make([]string, len(quads))
+	for i, q := range quads {
+		out[i] = q.GetSubject() + "\x00" + q.GetPredicate() + "\x00" + q.GetObj() + "\x00" + q.GetLabel()
+	}
+	return out
 }

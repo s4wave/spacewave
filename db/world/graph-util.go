@@ -68,6 +68,113 @@ func IterateFilteredFullQuads(ctx context.Context, h CayleyHandle, filter quad.Q
 	})
 }
 
+// CollectFilteredFullQuadsBatch collects full quads for a batch of concrete quad filters.
+func CollectFilteredFullQuadsBatch(ctx context.Context, h CayleyHandle, filters []quad.Quad, limitPerFilter uint32) ([][]quad.Quad, error) {
+	results := make([][]quad.Quad, len(filters))
+	groupsByKey := make(map[quadFilterBatchKey]int)
+	var groups []quadFilterBatchGroup
+
+	for i, filter := range filters {
+		if !hasQuadFilter(filter) {
+			quads, err := collectFilteredFullQuads(ctx, h, filter, limitPerFilter)
+			if err != nil {
+				return nil, err
+			}
+			results[i] = quads
+			continue
+		}
+		dir, ref, ok, err := selectQuadFilterIterator(ctx, h, filter)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			continue
+		}
+		key := quadFilterBatchKey{dir: dir, ref: graphRefCacheKey(ref)}
+		if groupIdx, ok := groupsByKey[key]; ok {
+			groups[groupIdx].filterIndexes = append(groups[groupIdx].filterIndexes, i)
+			continue
+		}
+		groupsByKey[key] = len(groups)
+		groups = append(groups, quadFilterBatchGroup{
+			dir:           dir,
+			ref:           ref,
+			filterIndexes: []int{i},
+		})
+	}
+
+	for _, group := range groups {
+		if err := collectQuadFilterBatchGroup(ctx, h, filters, results, group, limitPerFilter); err != nil {
+			return nil, err
+		}
+	}
+	return results, nil
+}
+
+type quadFilterBatchKey struct {
+	dir quad.Direction
+	ref any
+}
+
+type quadFilterBatchGroup struct {
+	dir           quad.Direction
+	ref           graph.Ref
+	filterIndexes []int
+}
+
+func collectFilteredFullQuads(ctx context.Context, h CayleyHandle, filter quad.Quad, limit uint32) ([]quad.Quad, error) {
+	var quads []quad.Quad
+	err := IterateFilteredFullQuads(ctx, h, filter, func(q quad.Quad) error {
+		quads = append(quads, q)
+		if limit != 0 && uint32(len(quads)) >= limit { //nolint:gosec
+			return io.EOF
+		}
+		return nil
+	})
+	if err == io.EOF {
+		err = nil
+	}
+	return quads, err
+}
+
+func collectQuadFilterBatchGroup(
+	ctx context.Context,
+	h CayleyHandle,
+	filters []quad.Quad,
+	results [][]quad.Quad,
+	group quadFilterBatchGroup,
+	limit uint32,
+) error {
+	it := h.QuadIterator(ctx, group.dir, group.ref).Iterate(ctx)
+	defer it.Close()
+
+	var remaining int
+	filled := make([]bool, len(filters))
+	if limit != 0 {
+		remaining = len(group.filterIndexes)
+	}
+	err := iterateQuadResults(ctx, h, it, func(q quad.Quad) error {
+		for _, filterIdx := range group.filterIndexes {
+			if filled[filterIdx] || !quadMatchesFilter(q, filters[filterIdx]) {
+				continue
+			}
+			results[filterIdx] = append(results[filterIdx], q)
+			if limit != 0 && uint32(len(results[filterIdx])) >= limit { //nolint:gosec
+				filled[filterIdx] = true
+				remaining--
+			}
+		}
+		if limit != 0 && remaining == 0 {
+			return io.EOF
+		}
+		return nil
+	})
+	if err == io.EOF {
+		err = nil
+	}
+	return err
+}
+
 // IterateFullQuads iterates over the full quads matched by a shape.
 func IterateFullQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, cb func(q quad.Quad) error) error {
 	if cb == nil {
