@@ -85,7 +85,7 @@ func NewIterator(
 				return false
 			}
 			it.items = append(it.items, item)
-			if sort && len(it.items) != 0 && bytes.Compare(it.items[len(it.items)-1].key, item.key) > 0 {
+			if sort && len(it.items) > 1 && bytes.Compare(it.items[len(it.items)-2].key, item.key) > 0 {
 				sortRequired = true
 			}
 			return true

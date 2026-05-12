@@ -1,7 +1,6 @@
 package kvtx_hidalgo
 
 import (
-	"bytes"
 	"context"
 
 	kv "github.com/aperturerobotics/cayley/kv/flat"
@@ -80,7 +79,6 @@ func (t *Tx) Del(ctx context.Context, k kv.Key) error {
 // Expects them to arrive in order in the hidalgo kvtest.
 // Use hidalgo/options.WithKVPrefix to specify a prefix for scanning.
 func (t *Tx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Iterator {
-	iter := &txScanIterator{}
 	var pref kv.Key
 	for _, opt := range opts {
 		pkv, ok := opt.(options.PrefixKV)
@@ -88,38 +86,7 @@ func (t *Tx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Iterator {
 			pref = kv.KeyEscape(pkv.Pref)
 		}
 	}
-	iter.err = t.tx.ScanPrefix(ctx, pref, func(key, value []byte) error {
-		// Hidalgo expects them to arrive in order.
-		// Unfortunately hydra does not guarantee this.
-		// Perform a basic insertion sort.
-		// TODO: is this necessary? it might be OK to iterate out of order.
-		// TODO: ScanPrefix returns sorted values in most of our k/v stores.
-		// TODO: implement a better iterator
-		nv := &txScanIteratorValue{
-			key:   key,
-			value: value,
-		}
-		ov := iter.value
-		nextPtr := &iter.value
-		for ov != nil {
-			// if the iterated value is greater than current, break
-			if bytes.Compare(ov.key, key) > 0 {
-				nv.next = ov
-				break
-			}
-			// this node is less than kkey
-			// set next ptr to this->next
-			nextPtr = &ov.next
-			ov = ov.next
-		}
-
-		*nextPtr = nv
-		return nil
-	})
-	iter.first = true
-	iter.start = iter.value
-	iter.value = nil
-	return iter
+	return newTxScanIterator(ctx, t.tx, pref)
 }
 
 // Commit applies all changes made in the transaction.
