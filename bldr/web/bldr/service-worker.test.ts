@@ -151,6 +151,16 @@ function buildFetchOnlyEvent(path: string, init?: RequestInit): FetchEvent {
   } as FetchEvent
 }
 
+function buildMalformedFetchEvent(url: string): FetchEvent {
+  return {
+    request: {
+      url,
+      method: 'GET',
+      headers: new Headers(),
+    } as unknown as Request,
+  } as FetchEvent
+}
+
 describe('service worker browser release requests', () => {
   beforeEach(() => {
     resetServiceWorkerTestState()
@@ -417,6 +427,15 @@ describe('service worker fetch release cache routing', () => {
 
     expect(await response.text()).toBe('network root')
     expect(fetch).toHaveBeenCalledTimes(1)
+    expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('returns bad request for malformed request URLs', async () => {
+    const response = await swFetch(buildMalformedFetchEvent(''))
+
+    expect(response.status).toBe(400)
+    expect(await response.text()).toBe('malformed request URL')
+    expect(fetch).not.toHaveBeenCalled()
     expect(proxyFetch).not.toHaveBeenCalled()
   })
 })

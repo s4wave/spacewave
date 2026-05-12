@@ -700,7 +700,20 @@ export async function swFetch(
   matchPrefixes = BLDR_URI_PREFIXES,
 ): Promise<Response> {
   const request = ev.request
-  const requestURL = new URL(request.url)
+  let requestURL: URL
+  try {
+    requestURL = new URL(request.url)
+  } catch (error) {
+    console.warn(
+      'ServiceWorker: %s: malformed fetch request URL: %s: %s',
+      serviceWorkerId,
+      request.url,
+      castToError(error, 'invalid URL').message,
+    )
+    return new Response('malformed request URL', {
+      status: 400,
+    })
+  }
   const requestOrigin = requestURL.origin
   const requestPath = requestURL.pathname
 
