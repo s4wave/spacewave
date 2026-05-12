@@ -86,7 +86,7 @@ func BuildTree(
 			left := layer[i]
 			right := layer[i+1]
 
-			h := maxUint32(left.height, right.height) + 1
+			h := max(left.height, right.height) + 1
 			s := left.size + right.size
 
 			// The internal node's key is the leftmost key of the right

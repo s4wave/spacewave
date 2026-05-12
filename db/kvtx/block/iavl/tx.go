@@ -563,7 +563,9 @@ func (t *Tx) setFromNode(
 	if err != nil {
 		return nil, nil, changed, err
 	}
-	updateNodeHeightAndSize(nod, bcs, leftNod, rightNod)
+	nod.Height = max(leftNod.GetHeight(), rightNod.GetHeight()) + 1
+	nod.Size = leftNod.GetSize() + rightNod.GetSize()
+	bcs.SetBlock(nod, true)
 
 	// Balance the tree from this node.
 	nroot, nrootCs, err := t.balanceFromLoadedChildren(ctx, nod, bcs, leftNod, leftCs, rightNod, rightCs)
@@ -634,7 +636,9 @@ func (t *Tx) calcNodeHeightAndSize(ctx context.Context, nod *Node, bcs *block.Cu
 	if err != nil {
 		return err
 	}
-	updateNodeHeightAndSize(nod, bcs, leftNod, rightNod)
+	nod.Height = max(leftNod.GetHeight(), rightNod.GetHeight()) + 1
+	nod.Size = leftNod.GetSize() + rightNod.GetSize()
+	bcs.SetBlock(nod, true)
 	return nil
 }
 
@@ -652,12 +656,6 @@ func (t *Tx) loadNodeChildren(
 		return nil, nil, nil, nil, err
 	}
 	return leftNod, leftCs, rightNod, rightCs, nil
-}
-
-func updateNodeHeightAndSize(nod *Node, bcs *block.Cursor, leftNod, rightNod *Node) {
-	nod.Height = maxUint32(leftNod.GetHeight(), rightNod.GetHeight()) + 1
-	nod.Size = leftNod.GetSize() + rightNod.GetSize()
-	bcs.SetBlock(nod, true)
 }
 
 // calcNodeBalance calcluates a node's balance
@@ -742,23 +740,6 @@ func (t *Tx) rotateNodeLeft(ctx context.Context, nod *Node, bcs *block.Cursor) (
 	}
 
 	return rightNod, rightNodCs, nil
-}
-
-// maxUint32 returns the max of two uint32
-func maxUint32(i1, i2 uint32) uint32 {
-	if i1 > i2 {
-		return i1
-	}
-	return i2
-}
-
-// balanceFromNode balances the tree from a node.
-func (t *Tx) balanceFromNode(ctx context.Context, nod *Node, bcs *block.Cursor) (*Node, *block.Cursor, error) {
-	leftNod, leftNodCs, rightNod, rightNodCs, err := t.loadNodeChildren(ctx, nod, bcs)
-	if err != nil {
-		return nil, nil, err
-	}
-	return t.balanceFromLoadedChildren(ctx, nod, bcs, leftNod, leftNodCs, rightNod, rightNodCs)
 }
 
 func (t *Tx) balanceFromLoadedChildren(
