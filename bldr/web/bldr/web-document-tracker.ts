@@ -1,4 +1,3 @@
-
 import { HandleStreamFunc } from 'starpc'
 import { Message } from '@aptre/protobuf-es-lite'
 
@@ -153,9 +152,12 @@ export class WebDocumentTracker {
         return
       }
 
-      if (data.resumeReady) {
+      if (data.resumeReady === true) {
         this.webDocumentResumeReadyIds.add(webDocumentId)
         this.resolveResumeReadyWaiters(webDocumentId)
+      }
+      if (data.resumeReady === false) {
+        this.webDocumentResumeReadyIds.delete(webDocumentId)
       }
 
       if (data.openSabPairAck) {

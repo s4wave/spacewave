@@ -20,6 +20,7 @@ import (
 var testHarness *harness
 
 const browserWaitMS = 60000
+const foregroundResumeReadyRecordMS = 10000
 const quickstartContentReadyRecordMS = 60000
 const quickstartPostLoadSOOperationCount = 25
 const quickstartPostLoadSOWorkloadTimeoutMS = 120000
@@ -181,10 +182,11 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		t.Logf("quickstart content-ready not reached: %s", driveContentReadyError)
 	}
 	postLoadSOWorkload := runQuickstartPostLoadSOWorkload(t, page, driveContentReadyMs != nil)
+	foregroundResume := collectForegroundResumeEvidence(t, page)
 	logQuickstartTiming(t, page)
 	runtimeTrace := traceCapture.stop(t)
 
-	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError, runtimeTrace, postLoadSOWorkload)
+	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError, runtimeTrace, postLoadSOWorkload, foregroundResume)
 	if err != nil {
 		t.Fatalf("collect quickstart smoke artifact: %v", err)
 	}
@@ -207,10 +209,11 @@ func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstart
 	info := map[string]any{
 		"kind":                   "chromium-devtools-runtime-trace",
 		"captured":               false,
-		"captureWindow":          "before-page-goto-through-post-load-so-workload",
+		"captureWindow":          "before-page-goto-through-foreground-resume-probe",
 		"startupPerformanceGate": "frame-ready",
 		"seedCompletionGate":     "drive-content-ready",
 		"postLoadWorkloadGate":   "sequential-shared-object-operations",
+		"foregroundResumeGate":   "web-document.resume-ready",
 		"path":                   path,
 	}
 	c := &quickstartRuntimeTraceCapture{info: info}
@@ -250,7 +253,7 @@ func (c *quickstartRuntimeTraceCapture) stop(t *testing.T) map[string]any {
 		t.Fatal("expected non-empty quickstart runtime trace")
 	}
 	c.info["bytes"] = len(data)
-	c.info["stoppedAfter"] = "post-load SharedObject workload"
+	c.info["stoppedAfter"] = "foreground resume probe"
 	t.Logf("quickstart runtime trace written to %s (%d bytes)", c.info["path"], len(data))
 	return c.info
 }
@@ -454,6 +457,255 @@ func runQuickstartPostLoadSOWorkload(t *testing.T, page playwright.Page, content
 	return workload
 }
 
+func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[string]any {
+	t.Helper()
+
+	before, err := webDocumentResumeReadySnapshot(page)
+	if err != nil {
+		return map[string]any{
+			"scenario":      "quickstart-drive-foreground-resume",
+			"skipped":       true,
+			"skippedReason": "read initial WebDocument resume readiness: " + err.Error(),
+		}
+	}
+	beforeSequence := resumeReadySequence(before)
+	backgroundPage, err := page.Context().NewPage()
+	if err != nil {
+		return map[string]any{
+			"scenario":      "quickstart-drive-foreground-resume",
+			"skipped":       true,
+			"skippedReason": "open backgrounding page: " + err.Error(),
+			"before":        before,
+		}
+	}
+	defer func() {
+		if err := backgroundPage.Close(); err != nil {
+			t.Logf("close foreground-resume background page: %v", err)
+		}
+	}()
+
+	if _, err := backgroundPage.Goto("about:blank"); err != nil {
+		return map[string]any{
+			"scenario":      "quickstart-drive-foreground-resume",
+			"skipped":       true,
+			"skippedReason": "navigate backgrounding page: " + err.Error(),
+			"before":        before,
+		}
+	}
+	if err := backgroundPage.BringToFront(); err != nil {
+		return map[string]any{
+			"scenario":      "quickstart-drive-foreground-resume",
+			"skipped":       true,
+			"skippedReason": "bring backgrounding page to front: " + err.Error(),
+			"before":        before,
+		}
+	}
+
+	hiddenObserved, hiddenAtMs, hiddenState := waitForDocumentHiddenState(t, page, true, 5*time.Second)
+	if !hiddenObserved {
+		return map[string]any{
+			"scenario":      "quickstart-drive-foreground-resume",
+			"skipped":       true,
+			"skippedReason": "browser did not report the quickstart page as hidden",
+			"before":        before,
+			"hidden":        hiddenState,
+		}
+	}
+	if err := page.BringToFront(); err != nil {
+		return map[string]any{
+			"scenario":      "quickstart-drive-foreground-resume",
+			"skipped":       true,
+			"skippedReason": "bring quickstart page to front: " + err.Error(),
+			"before":        before,
+			"hidden":        hiddenState,
+			"hiddenAtMs":    hiddenAtMs,
+		}
+	}
+	foregroundStartMs := browserNowMs(t, page)
+
+	raw, err := page.Evaluate(`async (args) => {
+		const roundMs = (value) =>
+			typeof value === 'number' && Number.isFinite(value) ?
+				Math.round(value * 1000) / 1000
+			: null
+		const readResumeState = () => {
+			const state = globalThis.__swWebDocumentResumeReady ?? null
+			return state ?
+				{
+					ready: state.ready === true,
+					documentId: state.documentId ?? null,
+					runtimeId: state.runtimeId ?? null,
+					hidden: state.hidden === true,
+					sequence:
+						typeof state.sequence === 'number' ? state.sequence : null,
+					focused:
+						typeof state.focused === 'boolean' ? state.focused : null,
+					visibilityState: state.visibilityState ?? null,
+					timestampMs: roundMs(state.timestampMs),
+				}
+			: null
+		}
+		const deadline = performance.now() + args.timeoutMs
+		let state = readResumeState()
+		while (
+			document.hidden ||
+			!state?.ready ||
+			typeof state.sequence !== 'number' ||
+			state.sequence <= args.beforeSequence ||
+			typeof state.timestampMs !== 'number' ||
+			state.timestampMs < args.foregroundStartMs
+		) {
+			if (performance.now() > deadline) {
+				return {
+					scenario: 'quickstart-drive-foreground-resume',
+					skipped: false,
+					timedOut: true,
+					timeoutMs: args.timeoutMs,
+					beforeSequence: args.beforeSequence,
+					foregroundStartMs: roundMs(args.foregroundStartMs),
+					browserNowMs: roundMs(performance.now()),
+					state,
+					page: {
+						visibilityState: document.visibilityState,
+						hidden: document.hidden,
+						focused: document.hasFocus(),
+					},
+				}
+			}
+			await new Promise((resolve) => requestAnimationFrame(resolve))
+			state = readResumeState()
+		}
+		return {
+			scenario: 'quickstart-drive-foreground-resume',
+			skipped: false,
+			timedOut: false,
+			timeoutMs: args.timeoutMs,
+			beforeSequence: args.beforeSequence,
+			foregroundStartMs: roundMs(args.foregroundStartMs),
+			resumeReadyMs: state.timestampMs,
+			elapsedMs: roundMs(state.timestampMs - args.foregroundStartMs),
+			state,
+			page: {
+				visibilityState: document.visibilityState,
+				hidden: document.hidden,
+				focused: document.hasFocus(),
+			},
+			evidence: ['document.visibilityState', 'web-document.resume-ready'],
+		}
+	}`, map[string]any{
+		"beforeSequence":    beforeSequence,
+		"foregroundStartMs": foregroundStartMs,
+		"timeoutMs":         foregroundResumeReadyRecordMS,
+	})
+	if err != nil {
+		return map[string]any{
+			"scenario":      "quickstart-drive-foreground-resume",
+			"skipped":       true,
+			"skippedReason": "wait for foreground resume readiness: " + err.Error(),
+			"before":        before,
+			"hidden":        hiddenState,
+			"hiddenAtMs":    hiddenAtMs,
+		}
+	}
+	evidence, ok := raw.(map[string]any)
+	if !ok {
+		return map[string]any{
+			"scenario":      "quickstart-drive-foreground-resume",
+			"skipped":       true,
+			"skippedReason": "unexpected foreground resume evidence payload",
+			"before":        before,
+			"hidden":        hiddenState,
+			"hiddenAtMs":    hiddenAtMs,
+		}
+	}
+	evidence["before"] = before
+	evidence["hidden"] = hiddenState
+	evidence["hiddenAtMs"] = hiddenAtMs
+	t.Logf("foreground resume evidence: %#v", evidence)
+	return evidence
+}
+
+func webDocumentResumeReadySnapshot(page playwright.Page) (map[string]any, error) {
+	raw, err := page.Evaluate(`() => {
+		const state = globalThis.__swWebDocumentResumeReady ?? null
+		return {
+			page: {
+				visibilityState: document.visibilityState,
+				hidden: document.hidden,
+				focused: document.hasFocus(),
+			},
+			state: state ?
+				{
+					ready: state.ready === true,
+					documentId: state.documentId ?? null,
+					runtimeId: state.runtimeId ?? null,
+					hidden: state.hidden === true,
+					sequence:
+						typeof state.sequence === 'number' ? state.sequence : null,
+					focused:
+						typeof state.focused === 'boolean' ? state.focused : null,
+					visibilityState: state.visibilityState ?? null,
+					timestampMs:
+						typeof state.timestampMs === 'number' ?
+							Math.round(state.timestampMs * 1000) / 1000
+						: null,
+				}
+			: null,
+		}
+	}`)
+	if err != nil {
+		return nil, err
+	}
+	snapshot, ok := raw.(map[string]any)
+	if !ok {
+		return nil, errors.Errorf("unexpected WebDocument resume readiness snapshot %T", raw)
+	}
+	return snapshot, nil
+}
+
+func resumeReadySequence(snapshot map[string]any) int {
+	state, _ := snapshot["state"].(map[string]any)
+	raw, _ := state["sequence"].(float64)
+	return int(raw)
+}
+
+func waitForDocumentHiddenState(t *testing.T, page playwright.Page, hidden bool, timeout time.Duration) (bool, int, map[string]any) {
+	t.Helper()
+
+	deadline := time.Now().Add(timeout)
+	var snapshot map[string]any
+	for {
+		raw, err := page.Evaluate(`() => ({
+			visibilityState: document.visibilityState,
+			hidden: document.hidden,
+			focused: document.hasFocus(),
+			browserNowMs: Math.round(performance.now()),
+		})`)
+		if err == nil {
+			if next, ok := raw.(map[string]any); ok {
+				snapshot = next
+				if got, _ := next["hidden"].(bool); got == hidden {
+					return true, browserNowFromSnapshot(next), next
+				}
+			}
+		}
+		if time.Now().After(deadline) {
+			return false, 0, snapshot
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func browserNowFromSnapshot(snapshot map[string]any) int {
+	if val, ok := snapshot["browserNowMs"].(int); ok {
+		return val
+	}
+	if val, ok := snapshot["browserNowMs"].(float64); ok {
+		return int(val)
+	}
+	return 0
+}
+
 func browserNowMs(t *testing.T, page playwright.Page) int {
 	t.Helper()
 
@@ -481,6 +733,7 @@ func collectQuickstartSmokeArtifact(
 	driveContentReadyError string,
 	runtimeTrace map[string]any,
 	postLoadSOWorkload map[string]any,
+	foregroundResume map[string]any,
 ) ([]byte, error) {
 	var driveContentReadyArg any
 	if driveContentReadyMs != nil {
@@ -617,6 +870,7 @@ func collectQuickstartSmokeArtifact(
 			'runtime.worker-created',
 			'service-worker.register-ready',
 			'runtime.connected',
+			'web-document.resume-ready',
 			'worker.first-ready',
 			'plugin.running',
 		]
@@ -802,7 +1056,7 @@ func collectQuickstartSmokeArtifact(
 				)
 			: null
 		const artifact = {
-			schemaVersion: 6,
+			schemaVersion: 7,
 			scenario: 'quickstart-drive-production-smoke',
 			collectedAt: new Date().toISOString(),
 			baseURL: args.baseURL,
@@ -858,6 +1112,7 @@ func collectQuickstartSmokeArtifact(
 			readiness: {
 				startupPerformanceGate: 'frame-ready',
 				contentCorrectnessTiming: 'content-ready',
+				foregroundResumeTiming: 'web-document.resume-ready',
 				frameReadyMs: args.driveFrameReadyMs,
 				quickstartState: quickstartTiming?.state ?? null,
 				progressReadyMs: quickstartTiming?.progressReadyMs ?? null,
@@ -868,9 +1123,19 @@ func collectQuickstartSmokeArtifact(
 				pluginRunningMs: pluginRunning?.startTimeMs ?? null,
 				missingReadinessMarks,
 				timeline: readinessTimeline,
+				coldStart: {
+					startupPerformanceGate: 'frame-ready',
+					contentCorrectnessTiming: 'content-ready',
+					frameReadyMs: args.driveFrameReadyMs,
+					contentReadyMs: args.driveContentReadyMs,
+					contentReadyError: args.driveContentReadyError || null,
+					timeline: readinessTimeline,
+				},
+				foregroundResume: args.foregroundResume,
 			},
 			runtimeTrace: args.runtimeTrace,
 			postLoadSharedObjectWorkload: args.postLoadSOWorkload,
+			foregroundResume: args.foregroundResume,
 			startupMarks,
 			missingStartupMarks: expectedStartupMarks.filter((label) => !labels.has(label)),
 			startupAttribution: {
@@ -894,6 +1159,7 @@ func collectQuickstartSmokeArtifact(
 		"driveContentReadyError": driveContentReadyError,
 		"runtimeTrace":           runtimeTrace,
 		"postLoadSOWorkload":     postLoadSOWorkload,
+		"foregroundResume":       foregroundResume,
 		"release": map[string]any{
 			"generationId": desc.GenerationID,
 			"shellAssets": map[string]any{

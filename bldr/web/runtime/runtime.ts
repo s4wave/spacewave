@@ -169,8 +169,9 @@ export interface WebDocumentToClient {
   from: string
   // close indicates the web document is about to close.
   close?: true
-  // resumeReady indicates the WebDocument reached its foreground resume gate.
-  resumeReady?: true
+  // resumeReady indicates whether the WebDocument is past its foreground
+  // resume gate.
+  resumeReady?: boolean
   // sabPairEndpoint delivers an endpoint opened by another worker.
   sabPairEndpoint?: SabPairEndpointDescriptor
   // sabPairClosed notifies a worker that broker metadata for a pair closed.

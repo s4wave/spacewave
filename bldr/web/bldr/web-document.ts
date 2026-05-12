@@ -496,6 +496,7 @@ export interface WebDocumentResumeReadyState {
   documentId: string
   runtimeId: string
   hidden: false
+  sequence: number
   focused?: boolean
   visibilityState?: string
   timestampMs?: number
@@ -635,6 +636,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private resumeReady = false
   // resumeReadyPending records an in-flight foreground-frame stability check.
   private resumeReadyPending = false
+  // resumeReadySequence increments each time this document reaches the
+  // foreground resume-ready gate.
+  private resumeReadySequence = 0
 
   // isClosed checks if the web document is closed
   public get isClosed(): boolean | Error {
@@ -1600,6 +1604,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.hidden = hidden
     if (hidden) {
       console.log('WebDocument: document is hidden')
+      this.clearResumeReadyState('hidden')
     } else {
       console.log('WebDocument: document is visible')
     }
@@ -1955,6 +1960,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
     this.runtimeConnected = false
+    this.clearResumeReadyState('runtime-disconnected')
     this.taskEnsureWebRuntimeConn()
   }
 
@@ -2004,12 +2010,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
     this.resumeReady = true
+    this.resumeReadySequence++
 
     const state: WebDocumentResumeReadyState = {
       ready: true,
       documentId: this.webDocumentUuid,
       runtimeId: this.webRuntimeId,
       hidden: false,
+      sequence: this.resumeReadySequence,
       focused:
         (
           typeof document !== 'undefined' &&
@@ -2032,6 +2040,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       source: 'browser',
       documentId: state.documentId,
       runtimeId: state.runtimeId,
+      sequence: state.sequence,
       focused: state.focused,
       visibilityState: state.visibilityState,
     })
@@ -2039,10 +2048,28 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.notifyResumeReadyClients()
   }
 
-  private notifyResumeReadyClients() {
-    if (!this.resumeReady) {
+  private clearResumeReadyState(reason: string) {
+    if (!this.resumeReady && !this.resumeReadyPending) {
       return
     }
+    this.resumeReady = false
+    this.resumeReadyPending = false
+    if (
+      globalThis.__swWebDocumentResumeReady?.documentId === this.webDocumentUuid
+    ) {
+      globalThis.__swWebDocumentResumeReady = undefined
+    }
+    markStartupBoundary('web-document.resume-not-ready', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      sequence: this.resumeReadySequence,
+      reason,
+    })
+    this.notifyResumeReadyClients()
+  }
+
+  private notifyResumeReadyClients() {
     if (this.serviceWorkerPort) {
       this.notifyResumeReadyClient(this.serviceWorkerPort)
     }
@@ -2052,12 +2079,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   private notifyResumeReadyClient(port: MessagePort) {
-    if (!this.resumeReady) {
-      return
-    }
     const msg: WebDocumentToClient = {
       from: this.webDocumentUuid,
-      resumeReady: true,
+      resumeReady: this.resumeReady,
     }
     port.postMessage(msg)
   }

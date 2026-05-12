@@ -80,6 +80,48 @@ describe('WebDocumentTracker resume-ready gate', () => {
     port2.close()
   })
 
+  it('waits again after the active WebDocument clears resume-ready', async () => {
+    const tracker = buildTracker()
+    const { port1, port2 } = new MessageChannel()
+    tracker.handleWebDocumentMessage({
+      from: 'document-1',
+      initPort: port1,
+    })
+    Reflect.set(tracker, 'lastWebDocumentId', 'document-1')
+
+    port2.postMessage({
+      from: 'document-1',
+      resumeReady: true,
+    })
+    await expect(
+      waitForActiveWebDocumentResumeReady(tracker),
+    ).resolves.toBeUndefined()
+
+    port2.postMessage({
+      from: 'document-1',
+      resumeReady: false,
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const readyPromise = waitForActiveWebDocumentResumeReady(tracker)
+    let resolved = false
+    readyPromise.then(() => {
+      resolved = true
+    })
+    await Promise.resolve()
+    expect(resolved).toBe(false)
+
+    port2.postMessage({
+      from: 'document-1',
+      resumeReady: true,
+    })
+
+    await expect(readyPromise).resolves.toBeUndefined()
+
+    tracker.close()
+    port2.close()
+  })
+
   it('keeps plugin worker reconnect parked while the active WebDocument is hidden', async () => {
     vi.useFakeTimers()
     const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)

@@ -11,6 +11,7 @@ type TestWebDocument = {
   hidden: boolean
   resumeReady: boolean
   resumeReadyPending: boolean
+  resumeReadySequence: number
   runtimeConnected: boolean
   serviceWorkerPort?: MessagePort
   webWorkers: Record<string, Record<string, unknown> & { port: MessagePort }>
@@ -18,7 +19,12 @@ type TestWebDocument = {
   webrtcBridgeEndpoints: Map<string, unknown>
   firstWorkerReadyMarked: boolean
   notifyWebWorkerUpdated: ReturnType<typeof vi.fn>
+  webStatusStream: {
+    pushChangeEvent: ReturnType<typeof vi.fn>
+    snapshot: Promise<null>
+  }
   scheduleResumeReadySeed(): void
+  onVisibilityChange(hidden: boolean): void
   onWebWorkerMessage(workerID: string, event: MessageEvent): void
   onWebDocumentClientMessage(event: MessageEvent): void
   openWebDocumentHostStream(): Promise<unknown>
@@ -34,6 +40,7 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     hidden,
     resumeReady: false,
     resumeReadyPending: false,
+    resumeReadySequence: 0,
     runtimeConnected: true,
     serviceWorkerPort: undefined,
     webWorkers: {},
@@ -41,6 +48,10 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     webrtcBridgeEndpoints: new Map(),
     firstWorkerReadyMarked: false,
     notifyWebWorkerUpdated: vi.fn(),
+    webStatusStream: {
+      pushChangeEvent: vi.fn(),
+      snapshot: Promise.resolve(null),
+    },
     eventHandlers: {},
   })
   return doc
@@ -128,6 +139,7 @@ describe('WebDocument resume-ready state', () => {
       documentId: 'document-1',
       runtimeId: 'runtime-1',
       hidden: false,
+      sequence: 1,
     })
     expect(mark).toHaveBeenCalledWith(
       `${startupMarkPrefix}web-document.resume-ready`,
@@ -136,6 +148,7 @@ describe('WebDocument resume-ready state', () => {
           label: 'web-document.resume-ready',
           documentId: 'document-1',
           runtimeId: 'runtime-1',
+          sequence: 1,
         }),
       }),
     )
@@ -192,6 +205,67 @@ describe('WebDocument resume-ready state', () => {
     expect(globalThis.__swWebDocumentResumeReady).toBeUndefined()
   })
 
+  it('clears and reseeds resume-ready across foreground resumes', () => {
+    const frames: FrameRequestCallback[] = []
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn((cb: FrameRequestCallback) => {
+        frames.push(cb)
+        return frames.length
+      }),
+    )
+    const mark = vi.spyOn(performance, 'mark').mockImplementation(() => {
+      return {} as PerformanceMark
+    })
+    const workerPostMessage = vi.fn()
+    const doc = buildTestWebDocument()
+    doc.webWorkers = {
+      'worker-1': {
+        port: {
+          postMessage: workerPostMessage,
+        } as unknown as MessagePort,
+      },
+    }
+
+    doc.scheduleResumeReadySeed()
+    frames.shift()?.(1)
+    frames.shift()?.(2)
+
+    expect(globalThis.__swWebDocumentResumeReady?.sequence).toBe(1)
+    workerPostMessage.mockClear()
+
+    doc.onVisibilityChange(true)
+
+    expect(doc.resumeReady).toBe(false)
+    expect(globalThis.__swWebDocumentResumeReady).toBeUndefined()
+    expect(workerPostMessage).toHaveBeenCalledWith({
+      from: 'document-1',
+      resumeReady: false,
+    })
+    expect(mark).toHaveBeenCalledWith(
+      `${startupMarkPrefix}web-document.resume-not-ready`,
+      expect.objectContaining({
+        detail: expect.objectContaining({
+          label: 'web-document.resume-not-ready',
+          reason: 'hidden',
+          sequence: expect.any(Number),
+        }),
+      }),
+    )
+
+    doc.onVisibilityChange(false)
+    frames.shift()?.(3)
+    frames.shift()?.(4)
+
+    expect(globalThis.__swWebDocumentResumeReady).toMatchObject({
+      ready: true,
+      documentId: 'document-1',
+      runtimeId: 'runtime-1',
+      hidden: false,
+      sequence: 2,
+    })
+  })
+
   it('keeps stream-open failures observable after resume-ready is seeded', async () => {
     const err = new Error('stream-open failed')
     const doc = buildTestWebDocument()
@@ -201,6 +275,7 @@ describe('WebDocument resume-ready state', () => {
       documentId: 'document-1',
       runtimeId: 'runtime-1',
       hidden: false,
+      sequence: 1,
     }
     doc.webRuntimeClient = {
       openStream: vi.fn().mockRejectedValue(err),
@@ -247,8 +322,10 @@ describe('WebDocument SAB pair broker', () => {
     expect(targetPostMessage).toHaveBeenCalledOnce()
     expect(sourcePostMessage).toHaveBeenCalledOnce()
 
-    const targetMessage = targetPostMessage.mock.calls[0][0] as WebDocumentToClient
-    const sourceMessage = sourcePostMessage.mock.calls[0][0] as WebDocumentToClient
+    const targetMessage = targetPostMessage.mock
+      .calls[0][0] as WebDocumentToClient
+    const sourceMessage = sourcePostMessage.mock
+      .calls[0][0] as WebDocumentToClient
     const targetEndpoint = targetMessage.sabPairEndpoint
     const sourceEndpoint = sourceMessage.openSabPairAck?.endpoint
 
