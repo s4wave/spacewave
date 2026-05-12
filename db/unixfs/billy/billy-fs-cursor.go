@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"sync"
 	"sync/atomic"
 
 	"github.com/go-git/go-billy/v6"
@@ -15,14 +16,23 @@ import (
 // BillyFSCursor is an FSCursor implementation backed by a BillyFS.
 type BillyFSCursor struct {
 	released atomic.Bool
-	bfs      billy.Basic
+	state    *billyFSState
 	path     string
+}
+
+type billyFSState struct {
+	bfs billy.Basic
+	mtx sync.Mutex
 }
 
 // NewBillyFSCursor constructs a FSCursor from a BillyFS at the given path.
 // The path can be empty to build at the root of the fs.
 func NewBillyFSCursor(bfs billy.Basic, path string) *BillyFSCursor {
-	return &BillyFSCursor{bfs: bfs, path: path}
+	return newBillyFSCursor(&billyFSState{bfs: bfs}, path)
+}
+
+func newBillyFSCursor(state *billyFSState, path string) *BillyFSCursor {
+	return &BillyFSCursor{state: state, path: path}
 }
 
 // CheckReleased checks if the fs cursor is currently released.
@@ -56,7 +66,9 @@ func (c *BillyFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, e
 		return nil, unixfs_errors.ErrReleased
 	}
 
-	fi, err := billyLstat(c.bfs, c.path)
+	c.state.mtx.Lock()
+	fi, err := billyLstat(c.state.bfs, c.path)
+	c.state.mtx.Unlock()
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist

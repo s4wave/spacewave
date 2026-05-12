@@ -93,7 +93,9 @@ func (o *BillyFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCu
 		return nil, err
 	}
 
-	_, err = billyLstat(o.c.bfs, npath)
+	o.c.state.mtx.Lock()
+	_, err = billyLstat(o.c.state.bfs, npath)
+	o.c.state.mtx.Unlock()
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -101,7 +103,7 @@ func (o *BillyFSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCu
 		return nil, err
 	}
 
-	return NewBillyFSCursor(o.c.bfs, npath), nil
+	return newBillyFSCursor(o.c.state, npath), nil
 }
 
 // Mknod implements FSCursorOps.
@@ -120,7 +122,7 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 	var dirFs billy.Dir
 	if createDir {
 		var ok bool
-		dirFs, ok = o.c.bfs.(billy.Dir)
+		dirFs, ok = o.c.state.bfs.(billy.Dir)
 		if !ok {
 			return billy.ErrNotSupported
 		}
@@ -139,9 +141,11 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 	slices.Sort(childPaths)
 	childPaths = slices.Compact(childPaths)
 
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
 	if checkExist {
 		for _, childPath := range childPaths {
-			_, err := o.c.bfs.Stat(childPath)
+			_, err := o.c.state.bfs.Stat(childPath)
 			if err == nil {
 				return unixfs_errors.ErrExist
 			}
@@ -158,7 +162,7 @@ func (o *BillyFSCursorOps) Mknod(ctx context.Context, checkExist bool, names []s
 				return err
 			}
 		} else {
-			f, err := o.c.bfs.OpenFile(childPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, permissions)
+			f, err := o.c.state.bfs.OpenFile(childPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, permissions)
 			if err != nil {
 				return err
 			}
@@ -189,7 +193,9 @@ func (o *BillyFSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte
 		return 0, unixfs_errors.ErrReleased
 	}
 
-	file, err := o.c.bfs.Open(o.c.path)
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
+	file, err := o.c.state.bfs.Open(o.c.path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -211,12 +217,14 @@ func (o *BillyFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb func(
 		return unixfs_errors.ErrNotDirectory
 	}
 
-	dirFs, ok := o.c.bfs.(billy.Dir)
+	dirFs, ok := o.c.state.bfs.(billy.Dir)
 	if !ok {
 		return unixfs_errors.ErrNotDirectory
 	}
 
+	o.c.state.mtx.Lock()
 	fis, err := dirFs.ReadDir(o.c.path)
+	o.c.state.mtx.Unlock()
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -243,7 +251,7 @@ func (o *BillyFSCursorOps) Readlink(ctx context.Context, name string) ([]string,
 		return nil, false, unixfs_errors.ErrReleased
 	}
 
-	symlinkFs, ok := o.c.bfs.(billy.Symlink)
+	symlinkFs, ok := o.c.state.bfs.(billy.Symlink)
 	if !ok {
 		return nil, false, billy.ErrNotSupported
 	}
@@ -253,7 +261,9 @@ func (o *BillyFSCursorOps) Readlink(ctx context.Context, name string) ([]string,
 		return nil, false, err
 	}
 
+	o.c.state.mtx.Lock()
 	outPath, err := symlinkFs.Readlink(fpath)
+	o.c.state.mtx.Unlock()
 	if err != nil {
 		return nil, false, err
 	}
@@ -279,9 +289,11 @@ func (o *BillyFSCursorOps) Remove(ctx context.Context, names []string, ts time.T
 	slices.Sort(removePaths)
 	removePaths = slices.Compact(removePaths)
 
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
 	for _, removePath := range removePaths {
 		o.released.Store(true) // release the cursor just before filesystem modification
-		err := o.c.bfs.Remove(removePath)
+		err := o.c.state.bfs.Remove(removePath)
 		if err != nil && !os.IsNotExist(err) && err != unixfs_errors.ErrNotExist {
 			return err
 		}
@@ -296,12 +308,14 @@ func (o *BillyFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time)
 		return unixfs_errors.ErrReleased
 	}
 
-	changeFs, ok := o.c.bfs.(billy.Change)
+	changeFs, ok := o.c.state.bfs.(billy.Change)
 	if !ok {
 		return billy.ErrNotSupported
 	}
 
 	o.released.Store(true) // release the cursor just before filesystem modification
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
 	return changeFs.Chtimes(o.c.path, mtime, mtime)
 }
 
@@ -311,13 +325,15 @@ func (o *BillyFSCursorOps) SetPermissions(ctx context.Context, permissions fs.Fi
 		return unixfs_errors.ErrReleased
 	}
 
-	changeFs, ok := o.c.bfs.(billy.Change)
+	changeFs, ok := o.c.state.bfs.(billy.Change)
 	if !ok {
 		return billy.ErrNotSupported
 	}
 
 	newMode := o.fi.Mode().Type() | permissions.Perm()
 	o.released.Store(true) // release the cursor just before filesystem modification
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
 	return changeFs.Chmod(o.c.path, newMode)
 }
 
@@ -327,7 +343,7 @@ func (o *BillyFSCursorOps) Symlink(ctx context.Context, checkExist bool, name st
 		return unixfs_errors.ErrReleased
 	}
 
-	symlinkFs, ok := o.c.bfs.(billy.Symlink)
+	symlinkFs, ok := o.c.state.bfs.(billy.Symlink)
 	if !ok {
 		return billy.ErrNotSupported
 	}
@@ -337,8 +353,10 @@ func (o *BillyFSCursorOps) Symlink(ctx context.Context, checkExist bool, name st
 		return err
 	}
 
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
 	if checkExist {
-		_, err := o.c.bfs.Stat(fpath)
+		_, err := o.c.state.bfs.Stat(fpath)
 		if err == nil {
 			return unixfs_errors.ErrExist
 		}
@@ -346,7 +364,6 @@ func (o *BillyFSCursorOps) Symlink(ctx context.Context, checkExist bool, name st
 			return err
 		}
 	}
-
 	o.released.Store(true) // release the cursor just before filesystem modification
 	return symlinkFs.Symlink(unixfs.JoinPath(target, targetIsAbsolute), fpath)
 }
@@ -360,7 +377,9 @@ func (o *BillyFSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.T
 		return unixfs_errors.ErrNotFile
 	}
 
-	f, err := o.c.bfs.OpenFile(o.c.path, os.O_WRONLY, 0o644)
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
+	f, err := o.c.state.bfs.OpenFile(o.c.path, os.O_WRONLY, 0o644)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -386,7 +405,9 @@ func (o *BillyFSCursorOps) WriteAt(ctx context.Context, offset int64, data []byt
 		return unixfs_errors.ErrNotFile
 	}
 
-	f, err := o.c.bfs.OpenFile(o.c.path, os.O_WRONLY, 0o644)
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
+	f, err := o.c.state.bfs.OpenFile(o.c.path, os.O_WRONLY, 0o644)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = unixfs_errors.ErrNotExist
@@ -431,7 +452,9 @@ func (o *BillyFSCursorOps) MknodWithContent(ctx context.Context, name string, no
 	}
 
 	o.released.Store(true) // release the cursor just before filesystem modification
-	f, err := o.c.bfs.OpenFile(fpath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, permissions)
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
+	f, err := o.c.state.bfs.OpenFile(fpath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, permissions)
 	if err != nil {
 		return err
 	}
