@@ -147,9 +147,6 @@ func (k *KVTxBlock) PutBlockBackground(ctx context.Context, data []byte, opts *b
 // GetBlock looks up a block in the store.
 // Returns data, found, and error.
 func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	ctx, task := trace.NewTask(ctx, "hydra/block-store/kvtx/get-block")
-	defer task.End()
-
 	if err := ref.Validate(false); err != nil {
 		return nil, false, err
 	}
@@ -160,19 +157,13 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/new-transaction")
-	tx, err := k.store.NewTransaction(taskCtx, false)
-	subtask.End()
+	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, false, err
 	}
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/get")
-	data, found, err := tx.Get(taskCtx, key)
-	subtask.End()
-	_, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/discard")
+	data, found, err := tx.Get(ctx, key)
 	tx.Discard()
-	subtask.End()
 	if err != nil || !found {
 		return nil, found, err
 	}
@@ -184,9 +175,7 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 		return data, found, nil
 	}
 
-	_, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/get-block/hash-verify")
 	err = ref.VerifyData(data, true)
-	subtask.End()
 	// Return the data and the error with the hash mismatch.
 	// All callers to GetBlock should check the error return value.
 	// We return the data here for cases where we want to report the invalid data.

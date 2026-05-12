@@ -637,9 +637,6 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 // Returns value from ctor() without calling Unmarshal if empty.
 // Returns nil, block.ErrNotFound if not found.
 func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error) {
-	ctx, task := trace.NewTask(ctx, "hydra/block/cursor/unmarshal")
-	defer task.End()
-
 	if c == nil {
 		return nil, nil
 	}
@@ -663,9 +660,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 
 	// returns nil, false, nil if reference was empty.
 	// returns nil, false, ErrNotFound if reference was not found.
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/cursor/unmarshal/fetch")
-	dat, datFound, err := c.Fetch(taskCtx)
-	subtask.End()
+	dat, datFound, err := c.Fetch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -678,9 +673,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	}
 
 	if datFound {
-		_, subtask = trace.NewTask(ctx, "hydra/block/cursor/unmarshal/decode-block")
 		err := b.UnmarshalBlock(dat)
-		subtask.End()
 		if err != nil {
 			return nil, err
 		}
