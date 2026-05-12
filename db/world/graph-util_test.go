@@ -87,6 +87,31 @@ func TestCachedCayleyHandleCachesReadOperations(t *testing.T) {
 	}
 }
 
+func TestReadOperationCayleyHandleSkipsQuadRefCaches(t *testing.T) {
+	ctx := context.Background()
+	fake := &cachedCayleyHandleTestStore{
+		valueRef: testGraphRef("value-ref"),
+		quadRef:  testGraphRef("quad-ref"),
+	}
+	handle := NewReadOperationCayleyHandle(fake)
+
+	for range 2 {
+		q, err := handle.Quad(ctx, fake.quadRef)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if q.Subject.String() != "<<rel>>" {
+			t.Fatalf("quad subject = %s, want <<rel>>", q.Subject.String())
+		}
+	}
+	if fake.directionCalls != 8 {
+		t.Fatalf("QuadDirection calls = %d, want 8", fake.directionCalls)
+	}
+	if fake.nameOfCalls != 1 {
+		t.Fatalf("NameOf calls = %d, want 1", fake.nameOfCalls)
+	}
+}
+
 type cachedCayleyHandleTestStore struct {
 	CayleyHandle
 

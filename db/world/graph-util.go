@@ -100,8 +100,18 @@ func iterateQuadResults(ctx context.Context, h CayleyHandle, it iterator.Scanner
 
 // NewCachedCayleyHandle wraps a Cayley handle with per-operation read caches.
 func NewCachedCayleyHandle(h CayleyHandle) CayleyHandle {
+	return newCachedCayleyHandle(h, true)
+}
+
+// NewReadOperationCayleyHandle wraps a Cayley handle for a batched read operation.
+func NewReadOperationCayleyHandle(h CayleyHandle) CayleyHandle {
+	return newCachedCayleyHandle(h, false)
+}
+
+func newCachedCayleyHandle(h CayleyHandle, cacheQuadRefs bool) CayleyHandle {
 	return &cachedCayleyHandle{
 		CayleyHandle:        h,
+		cacheQuadRefs:       cacheQuadRefs,
 		valueRefs:           make(map[string]graph.Ref),
 		valueRefFound:       make(map[string]bool),
 		names:               make(map[any]quad.Value),
@@ -118,6 +128,7 @@ func NewCachedCayleyHandle(h CayleyHandle) CayleyHandle {
 type cachedCayleyHandle struct {
 	CayleyHandle
 
+	cacheQuadRefs       bool
 	valueRefs           map[string]graph.Ref
 	valueRefFound       map[string]bool
 	names               map[any]quad.Value
@@ -192,6 +203,13 @@ func (h *cachedCayleyHandle) Quad(ctx context.Context, ref graph.Ref) (quad.Quad
 	if err := ctx.Err(); err != nil {
 		return quad.Quad{}, err
 	}
+	if !h.cacheQuadRefs {
+		q, ok, err := h.quadFromDirectionsUncached(ctx, ref)
+		if err == nil && !ok {
+			q, err = h.CayleyHandle.Quad(ctx, ref)
+		}
+		return q, err
+	}
 	key := graphRefCacheKey(ref)
 	if q, ok := h.quads[key]; ok {
 		return q, h.quadErrors[key]
@@ -209,6 +227,28 @@ func (h *cachedCayleyHandle) quadFromDirections(ctx context.Context, ref graph.R
 	var q quad.Quad
 	for _, dir := range quad.Directions {
 		dirRef, err := h.QuadDirection(ctx, ref, dir)
+		if err != nil {
+			return q, false, err
+		}
+		if dirRef == nil {
+			if dir == quad.Label {
+				continue
+			}
+			return q, false, nil
+		}
+		val, err := h.NameOf(ctx, dirRef)
+		if err != nil {
+			return q, false, err
+		}
+		q.Set(dir, val)
+	}
+	return q, true, nil
+}
+
+func (h *cachedCayleyHandle) quadFromDirectionsUncached(ctx context.Context, ref graph.Ref) (quad.Quad, bool, error) {
+	var q quad.Quad
+	for _, dir := range quad.Directions {
+		dirRef, err := h.CayleyHandle.QuadDirection(ctx, ref, dir)
 		if err != nil {
 			return q, false, err
 		}

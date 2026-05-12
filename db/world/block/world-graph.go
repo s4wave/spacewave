@@ -39,7 +39,7 @@ func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.
 		return nil, tx.ErrDiscarded
 	}
 
-	graphHd := world.NewCachedCayleyHandle(t.graphHd)
+	graphHd := world.NewReadOperationCayleyHandle(t.graphHd)
 	results := make([][]world.GraphQuad, len(filters))
 	for i, filter := range filters {
 		quads, err := lookupGraphQuads(ctx, graphHd, filter, limitPerFilter)
