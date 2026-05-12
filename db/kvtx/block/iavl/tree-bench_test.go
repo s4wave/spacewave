@@ -18,6 +18,7 @@ import (
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_badger "github.com/s4wave/spacewave/db/store/kvtx/badger"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -365,6 +366,30 @@ func buildBenchTreeWithGC(tb testing.TB, keys [][]byte) (*benchTree, *benchRefGr
 	tree := buildBenchTreeWithOps(tb, keys, store, gcStore, gcStore.FlushPending)
 	refGraph.resetCounts()
 	return tree, refGraph
+}
+
+func buildBenchTreeWithRealGC(tb testing.TB, keys [][]byte) *benchTree {
+	tb.Helper()
+
+	ctx := context.Background()
+	kvStore := store_kvtx_inmem.NewStore()
+	store := newBenchBlockStoreWithOps(block_store_kvtx.NewKVTxBlock(
+		store_kvkey.NewDefaultKVKey(),
+		kvStore,
+		0,
+		false,
+	))
+	refGraph, err := block_gc.NewRefGraph(ctx, kvStore, []byte("gc/"))
+	if err != nil {
+		tb.Fatal(err)
+	}
+	tb.Cleanup(func() {
+		if err := refGraph.Close(); err != nil {
+			tb.Error(err)
+		}
+	})
+	gcStore := block_gc.NewGCStoreOps(store, refGraph)
+	return buildBenchTreeWithOps(tb, keys, store, gcStore, gcStore.FlushPending)
 }
 
 func buildBenchTreeWithOps(
@@ -1018,6 +1043,37 @@ func BenchmarkIAVLUpdateCommitGC(b *testing.B) {
 			b.StopTimer()
 			tree.store.reportMetrics(b, int64(b.N))
 			refGraph.reportMetrics(b, int64(b.N))
+		})
+	}
+}
+
+func BenchmarkIAVLUpdateCommitGCRefGraph(b *testing.B) {
+	for _, size := range []int{1024, 16384} {
+		b.Run("updates_100/"+benchSizeName(size), func(b *testing.B) {
+			ctx := context.Background()
+			tree := buildBenchTreeWithRealGC(b, makeBenchKeys(size, benchKeySequential))
+			tree.store.resetCounts()
+			b.ResetTimer()
+			for i := range b.N {
+				btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
+				tx, err := NewTx(ctx, rootCursor, nil, true, nil)
+				if err != nil {
+					b.Fatal(err)
+				}
+				for updateIndex := range 100 {
+					key := tree.keys[benchLookupIndex(i+updateIndex, size)]
+					if err := tx.Set(ctx, key, benchValue(i+updateIndex+size)); err != nil {
+						tx.Discard()
+						b.Fatal(err)
+					}
+				}
+				tx.Discard()
+				if _, _, err := btx.Write(ctx, true); err != nil {
+					b.Fatal(err)
+				}
+			}
+			b.StopTimer()
+			tree.store.reportMetrics(b, int64(b.N))
 		})
 	}
 }
