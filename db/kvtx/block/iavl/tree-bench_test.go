@@ -11,8 +11,12 @@ import (
 	"sync/atomic"
 	"testing"
 
+	badger "github.com/dgraph-io/badger/v4"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_badger "github.com/s4wave/spacewave/db/store/kvtx/badger"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -50,9 +54,34 @@ type benchBlockStore struct {
 }
 
 func newBenchBlockStore() *benchBlockStore {
+	return newBenchBlockStoreWithOps(block_mock.NewMockStore(0))
+}
+
+func newBenchBlockStoreWithOps(inner block.StoreOps) *benchBlockStore {
 	return &benchBlockStore{
-		inner: block_mock.NewMockStore(0),
+		inner: inner,
 	}
+}
+
+func newBenchBadgerBlockStore(tb testing.TB) *benchBlockStore {
+	tb.Helper()
+
+	kv, err := store_kvtx_badger.Open(badger.DefaultOptions(tb.TempDir()).WithLogger(nil))
+	if err != nil {
+		tb.Fatal(err)
+	}
+	tb.Cleanup(func() {
+		if err := kv.GetDB().Close(); err != nil {
+			tb.Error(err)
+		}
+	})
+
+	return newBenchBlockStoreWithOps(block_store_kvtx.NewKVTxBlock(
+		store_kvkey.NewDefaultKVKey(),
+		kv,
+		0,
+		false,
+	))
 }
 
 func (s *benchBlockStore) GetHashType() hash.HashType {
@@ -225,8 +254,13 @@ func buildBenchTree(tb testing.TB, size int) *benchTree {
 func buildBenchTreeWithKeys(tb testing.TB, keys [][]byte) *benchTree {
 	tb.Helper()
 
+	return buildBenchTreeWithStore(tb, keys, newBenchBlockStore())
+}
+
+func buildBenchTreeWithStore(tb testing.TB, keys [][]byte, store *benchBlockStore) *benchTree {
+	tb.Helper()
+
 	ctx := context.Background()
-	store := newBenchBlockStore()
 	size := len(keys)
 	refs := make([]*block.BlockRef, size)
 	for i := range size {
@@ -406,6 +440,24 @@ func TestIAVLDeleteAvoidsValueFetch(t *testing.T) {
 		t.Fatal(err)
 	}
 	tx.Discard()
+}
+
+func TestIAVLBenchBadgerBlockStoreCounts(t *testing.T) {
+	ctx := context.Background()
+	tree := buildBenchTreeWithStore(t, makeBenchKeys(32, benchKeySequential), newBenchBadgerBlockStore(t))
+	tx := newBenchReadTx(t, ctx, tree)
+	defer tx.Discard()
+
+	_, found, err := tx.Get(ctx, tree.keys[17])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("key not found")
+	}
+	if tree.store.getBlocks.Load() == 0 {
+		t.Fatal("expected counted physical block reads")
+	}
 }
 
 func runIAVLTrace(
@@ -777,6 +829,74 @@ func BenchmarkIAVLDeleteCursorCommit(b *testing.B) {
 			tree.store.reportMetrics(b, int64(b.N))
 		})
 	}
+}
+
+func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
+	const size = 1024
+
+	b.Run("cold_get_cursor/"+benchSizeName(size), func(b *testing.B) {
+		ctx := context.Background()
+		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
+		tree.store.resetCounts()
+		b.ResetTimer()
+		for i := range b.N {
+			tx := newBenchReadTx(b, ctx, tree)
+			_, err := tx.GetCursorAtKey(ctx, tree.keys[benchLookupIndex(i, size)])
+			tx.Discard()
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+		b.StopTimer()
+		tree.store.reportMetrics(b, int64(b.N))
+	})
+
+	b.Run("cold_get_value/"+benchSizeName(size), func(b *testing.B) {
+		ctx := context.Background()
+		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
+		tree.store.resetCounts()
+		b.ResetTimer()
+		for i := range b.N {
+			tx := newBenchReadTx(b, ctx, tree)
+			_, found, err := tx.Get(ctx, tree.keys[benchLookupIndex(i, size)])
+			tx.Discard()
+			if err != nil {
+				b.Fatal(err)
+			}
+			if !found {
+				b.Fatal("key not found")
+			}
+		}
+		b.StopTimer()
+		tree.store.reportMetrics(b, int64(b.N))
+	})
+
+	b.Run("updates_100/"+benchSizeName(size), func(b *testing.B) {
+		ctx := context.Background()
+		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
+		tree.store.resetCounts()
+		b.ResetTimer()
+		for i := range b.N {
+			btx, rootCursor := block.NewTransaction(tree.store, nil, tree.rootRef, nil)
+			tx, err := NewTx(ctx, rootCursor, nil, true, nil)
+			if err != nil {
+				b.Fatal(err)
+			}
+			for updateIndex := range 100 {
+				key := tree.keys[benchLookupIndex(i+updateIndex, size)]
+				if err := tx.Set(ctx, key, benchValue(i+updateIndex+size)); err != nil {
+					tx.Discard()
+					b.Fatal(err)
+				}
+			}
+			tx.Discard()
+			if _, _, err := btx.Write(ctx, true); err != nil {
+				b.Fatal(err)
+			}
+		}
+		b.StopTimer()
+		tree.store.reportMetrics(b, int64(b.N))
+	})
 }
 
 // _ is a type assertion
