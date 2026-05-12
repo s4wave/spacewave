@@ -145,8 +145,18 @@ interface TraceWindowSummary {
   topTerms: TraceTerm[]
 }
 
+interface TraceRegionSummary {
+  name: string
+  startMs: number | null
+  endMs: number | null
+  elapsedMs: number | null
+  attribution?: string
+  evidence?: string[]
+  traceWindow: TraceWindowSummary
+}
+
 interface BaselineReport {
-  schemaVersion: 1
+  schemaVersion: 2
   generatedAt: string
   inputs: {
     smokePath: string
@@ -164,6 +174,7 @@ interface BaselineReport {
     adjacentDriveRenderSegment: StartupSegment | null
     quickstartSeedPhases: QuickstartPhase[]
     longestStartupSegments: StartupSegment[]
+    runtimeTraceRegions: TraceRegionSummary[]
     traceWindow: TraceWindowSummary
   }
   postLoadAcceptedOpThroughput: {
@@ -182,6 +193,7 @@ interface BaselineReport {
     endingSeqno?: string
     dominantOperationTerms: string[]
     slowestOps: AcceptedOperationTiming[]
+    operationTraceRegions: TraceRegionSummary[]
     traceWindow: TraceWindowSummary
   }
 }
@@ -503,6 +515,97 @@ function summarizeTraceWindow(
   }
 }
 
+function traceRegionFromSegment(
+  segment: StartupSegment,
+  events: TraceEvent[] | null,
+  traceOffsetMs: number | null,
+  topCount: number,
+): TraceRegionSummary {
+  const concrete = concreteSegment(segment)
+  const name = concrete.name ?? '(unnamed)'
+  return {
+    name,
+    startMs: concrete.startMs ?? null,
+    endMs: concrete.endMs ?? null,
+    elapsedMs: concrete.elapsedMs ?? null,
+    attribution: concrete.attribution,
+    evidence: concrete.evidence,
+    traceWindow: summarizeTraceWindow(
+      name,
+      events,
+      traceOffsetMs,
+      concrete.startMs ?? null,
+      concrete.endMs ?? null,
+      topCount,
+    ),
+  }
+}
+
+function traceRegionFromAcceptedOp(
+  op: AcceptedOperationTiming,
+  events: TraceEvent[] | null,
+  traceOffsetMs: number | null,
+  topCount: number,
+): TraceRegionSummary {
+  const name = `accepted-op-${op.ordinal ?? 'unknown'}`
+  const startMs = numberOrNull(op.startedMs)
+  const endMs = numberOrNull(op.finishedMs)
+  const elapsedMs =
+    typeof op.elapsedMs === 'number' ? roundMs(op.elapsedMs)
+    : startMs !== null && endMs !== null ? roundMs(Math.max(0, endMs - startMs))
+    : null
+  return {
+    name,
+    startMs,
+    endMs,
+    elapsedMs,
+    evidence: [`acceptedOperationTimings.${op.ordinal ?? 'unknown'}`],
+    traceWindow: summarizeTraceWindow(
+      name,
+      events,
+      traceOffsetMs,
+      startMs,
+      endMs,
+      topCount,
+    ),
+  }
+}
+
+function runtimeTraceRegions(
+  smoke: QuickstartSmokeArtifact,
+  events: TraceEvent[] | null,
+  traceOffsetMs: number | null,
+  topCount: number,
+): TraceRegionSummary[] {
+  return (smoke.startupAttribution?.segments ?? [])
+    .filter(
+      (segment) =>
+        typeof segment.startMs === 'number' &&
+        typeof segment.endMs === 'number' &&
+        typeof segment.elapsedMs === 'number',
+    )
+    .map((segment) =>
+      traceRegionFromSegment(segment, events, traceOffsetMs, topCount),
+    )
+}
+
+function operationTraceRegions(
+  acceptedTimings: AcceptedOperationTiming[],
+  events: TraceEvent[] | null,
+  traceOffsetMs: number | null,
+  topCount: number,
+): TraceRegionSummary[] {
+  return [...acceptedTimings]
+    .filter(
+      (op) =>
+        typeof op.startedMs === 'number' && typeof op.finishedMs === 'number',
+    )
+    .sort((a, b) => (b.elapsedMs ?? 0) - (a.elapsedMs ?? 0))
+    .slice(0, topCount)
+    .sort((a, b) => (a.startedMs ?? 0) - (b.startedMs ?? 0))
+    .map((op) => traceRegionFromAcceptedOp(op, events, traceOffsetMs, topCount))
+}
+
 function buildReport(opts: CliOptions): BaselineReport {
   if (!existsSync(opts.smokePath)) {
     throw new Error(`missing smoke artifact: ${opts.smokePath}`)
@@ -529,7 +632,7 @@ function buildReport(opts: CliOptions): BaselineReport {
   const postLoadEndMs = numberOrNull(postLoad.finishedMs)
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     inputs: {
       smokePath: opts.smokePath,
@@ -548,6 +651,12 @@ function buildReport(opts: CliOptions): BaselineReport {
         renderSegment ? concreteSegment(renderSegment) : null,
       quickstartSeedPhases: seedPhases(smoke, seedStartMs, seedEndMs),
       longestStartupSegments: longestSegments(smoke, 6),
+      runtimeTraceRegions: runtimeTraceRegions(
+        smoke,
+        traceEvents,
+        traceOffsetMs,
+        opts.topCount,
+      ),
       traceWindow: summarizeTraceWindow(
         'quickstart-content-seed',
         traceEvents,
@@ -582,6 +691,12 @@ function buildReport(opts: CliOptions): BaselineReport {
       slowestOps: [...acceptedTimings]
         .sort((a, b) => (b.elapsedMs ?? 0) - (a.elapsedMs ?? 0))
         .slice(0, 5),
+      operationTraceRegions: operationTraceRegions(
+        acceptedTimings,
+        traceEvents,
+        traceOffsetMs,
+        opts.topCount,
+      ),
       traceWindow: summarizeTraceWindow(
         'post-load-accepted-op-throughput',
         traceEvents,
@@ -643,6 +758,22 @@ function markdownSegments(segments: StartupSegment[]): string {
   return `${rows.join('\n')}\n`
 }
 
+function markdownTraceRegions(regions: TraceRegionSummary[]): string {
+  if (regions.length === 0)
+    return 'No narrowed trace regions were measured for this window.\n'
+  const rows = [
+    '| region | elapsed | top trace term | top term total | events | attribution |',
+    '| --- | ---: | --- | ---: | ---: | --- |',
+    ...regions.map((region) => {
+      const topTerm = region.traceWindow.topTerms[0] ?? null
+      return `| ${escapeCell(region.name)} | ${formatMs(region.elapsedMs)} | ${escapeCell(topTerm?.name ?? 'n/a')} | ${formatMs(topTerm?.totalMs)} | ${
+        topTerm?.eventCount ?? 'n/a'
+      } | ${escapeCell(region.attribution ?? '')} |`
+    }),
+  ]
+  return `${rows.join('\n')}\n`
+}
+
 function escapeCell(value: string): string {
   return value.replaceAll('|', '\\|').replaceAll('\n', ' ')
 }
@@ -681,6 +812,9 @@ ${markdownPhases(report.coldStartDriveSeed.quickstartSeedPhases)}
 Dominant concrete trace terms during Drive seed:
 
 ${markdownTerms(report.coldStartDriveSeed.traceWindow.topTerms)}
+Narrowed runtime trace regions:
+
+${markdownTraceRegions(report.coldStartDriveSeed.runtimeTraceRegions)}
 ## Post-load Accepted-op Throughput
 
 Scenario: ${post.scenario ?? 'n/a'}
@@ -702,6 +836,9 @@ ${markdownOps(post.slowestOps)}
 Dominant concrete trace terms during post-load accepted-op throughput:
 
 ${markdownTerms(post.traceWindow.topTerms)}
+Narrowed accepted-op trace regions:
+
+${markdownTraceRegions(post.operationTraceRegions)}
 `
 }
 
