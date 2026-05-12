@@ -104,6 +104,8 @@ func NewCachedCayleyHandle(h CayleyHandle) CayleyHandle {
 		CayleyHandle:        h,
 		valueRefs:           make(map[string]graph.Ref),
 		valueRefFound:       make(map[string]bool),
+		names:               make(map[any]quad.Value),
+		nameFound:           make(map[any]bool),
 		quadIteratorSizes:   make(map[quadIteratorSizeKey]refs.Size),
 		quadIteratorErrors:  make(map[quadIteratorSizeKey]error),
 		quads:               make(map[any]quad.Quad),
@@ -118,6 +120,8 @@ type cachedCayleyHandle struct {
 
 	valueRefs           map[string]graph.Ref
 	valueRefFound       map[string]bool
+	names               map[any]quad.Value
+	nameFound           map[any]bool
 	quadIteratorSizes   map[quadIteratorSizeKey]refs.Size
 	quadIteratorErrors  map[quadIteratorSizeKey]error
 	quads               map[any]quad.Quad
@@ -153,6 +157,23 @@ func (h *cachedCayleyHandle) ValueOf(ctx context.Context, val quad.Value) (graph
 	return ref, nil
 }
 
+func (h *cachedCayleyHandle) NameOf(ctx context.Context, ref graph.Ref) (quad.Value, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	key := graphRefCacheKey(ref)
+	if h.nameFound[key] {
+		return h.names[key], nil
+	}
+	val, err := h.CayleyHandle.NameOf(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	h.nameFound[key] = true
+	h.names[key] = val
+	return val, nil
+}
+
 func (h *cachedCayleyHandle) QuadIteratorSize(ctx context.Context, dir quad.Direction, ref graph.Ref) (refs.Size, error) {
 	if err := ctx.Err(); err != nil {
 		return refs.Size{}, err
@@ -175,10 +196,35 @@ func (h *cachedCayleyHandle) Quad(ctx context.Context, ref graph.Ref) (quad.Quad
 	if q, ok := h.quads[key]; ok {
 		return q, h.quadErrors[key]
 	}
-	q, err := h.CayleyHandle.Quad(ctx, ref)
+	q, ok, err := h.quadFromDirections(ctx, ref)
+	if err == nil && !ok {
+		q, err = h.CayleyHandle.Quad(ctx, ref)
+	}
 	h.quads[key] = q
 	h.quadErrors[key] = err
 	return q, err
+}
+
+func (h *cachedCayleyHandle) quadFromDirections(ctx context.Context, ref graph.Ref) (quad.Quad, bool, error) {
+	var q quad.Quad
+	for _, dir := range quad.Directions {
+		dirRef, err := h.QuadDirection(ctx, ref, dir)
+		if err != nil {
+			return q, false, err
+		}
+		if dirRef == nil {
+			if dir == quad.Label {
+				continue
+			}
+			return q, false, nil
+		}
+		val, err := h.NameOf(ctx, dirRef)
+		if err != nil {
+			return q, false, err
+		}
+		q.Set(dir, val)
+	}
+	return q, true, nil
 }
 
 func (h *cachedCayleyHandle) QuadDirection(ctx context.Context, ref graph.Ref, dir quad.Direction) (graph.Ref, error) {

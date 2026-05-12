@@ -76,11 +76,14 @@ func TestCachedCayleyHandleCachesReadOperations(t *testing.T) {
 	if fake.sizeCalls != 1 {
 		t.Fatalf("QuadIteratorSize calls = %d, want 1", fake.sizeCalls)
 	}
-	if fake.quadCalls != 1 {
-		t.Fatalf("Quad calls = %d, want 1", fake.quadCalls)
+	if fake.nameOfCalls != 1 {
+		t.Fatalf("NameOf calls = %d, want 1", fake.nameOfCalls)
 	}
-	if fake.directionCalls != 1 {
-		t.Fatalf("QuadDirection calls = %d, want 1", fake.directionCalls)
+	if fake.quadCalls != 0 {
+		t.Fatalf("Quad calls = %d, want 0", fake.quadCalls)
+	}
+	if fake.directionCalls != 4 {
+		t.Fatalf("QuadDirection calls = %d, want 4", fake.directionCalls)
 	}
 }
 
@@ -90,6 +93,7 @@ type cachedCayleyHandleTestStore struct {
 	valueRef       graph.Ref
 	quadRef        graph.Ref
 	valueOfCalls   int
+	nameOfCalls    int
 	sizeCalls      int
 	quadCalls      int
 	directionCalls int
@@ -98,6 +102,11 @@ type cachedCayleyHandleTestStore struct {
 func (s *cachedCayleyHandleTestStore) ValueOf(ctx context.Context, value quad.Value) (graph.Ref, error) {
 	s.valueOfCalls++
 	return s.valueRef, nil
+}
+
+func (s *cachedCayleyHandleTestStore) NameOf(ctx context.Context, ref graph.Ref) (quad.Value, error) {
+	s.nameOfCalls++
+	return quad.IRI("<rel>"), nil
 }
 
 func (s *cachedCayleyHandleTestStore) QuadIteratorSize(ctx context.Context, dir quad.Direction, ref graph.Ref) (refs.Size, error) {
