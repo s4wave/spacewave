@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
@@ -19,12 +18,7 @@ func NewNodeBlock() block.Block {
 // loadNode follows the node cursor.
 // may return nil
 func loadNode(ctx context.Context, cursor *block.Cursor) (*Node, error) {
-	ctx, task := trace.NewTask(ctx, "hydra/kvtx-block-iavl/load-node")
-	defer task.End()
-
-	unmarshalCtx, unmarshalTask := trace.NewTask(ctx, "hydra/kvtx-block-iavl/load-node/unmarshal")
-	ni, err := cursor.Unmarshal(unmarshalCtx, func() block.Block { return &Node{} })
-	unmarshalTask.End()
+	ni, err := cursor.Unmarshal(ctx, func() block.Block { return &Node{} })
 	if err != nil {
 		return nil, err
 	}
@@ -32,11 +26,7 @@ func loadNode(ctx context.Context, cursor *block.Cursor) (*Node, error) {
 	if !ok || niv == nil {
 		return nil, nil
 	}
-
-	_, validateTask := trace.NewTask(ctx, "hydra/kvtx-block-iavl/load-node/validate")
-	err = niv.Validate()
-	validateTask.End()
-	if err != nil {
+	if err := niv.Validate(); err != nil {
 		return nil, err
 	}
 	return niv, nil

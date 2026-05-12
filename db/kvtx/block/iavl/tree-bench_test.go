@@ -416,6 +416,10 @@ func runIAVLTrace(
 ) {
 	t.Helper()
 
+	if os.Getenv("SPACEWAVE_IAVL_TRACE") != "1" {
+		t.Skip("set SPACEWAVE_IAVL_TRACE=1 to capture IAVL runtime traces")
+	}
+
 	ctx := context.Background()
 	tree := buildBenchTree(t, 16384)
 	if setup != nil {
