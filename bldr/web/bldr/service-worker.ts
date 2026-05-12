@@ -40,6 +40,7 @@ const controlCacheName = 'bldr-control'
 const browserReleasePath = '/browser-release.json'
 const bootAssetPath = '/boot.mjs'
 const browserIndexPath = '/b/__index.html'
+const rootNavigationPath = '/'
 const browserReleaseStatePath = '/__bldr/browser-release-state.json'
 
 // CACHES is the list of fixed caches.
@@ -412,9 +413,11 @@ async function cacheBrowserIndexResponse(response: Response): Promise<void> {
     return
   }
   const cache = await getControlCache()
-  const request = buildCacheRequest(browserIndexPath)
-  if (canCacheRequest(request)) {
-    await cache.put(request, response.clone())
+  for (const path of [browserIndexPath, rootNavigationPath]) {
+    const request = buildCacheRequest(path)
+    if (canCacheRequest(request)) {
+      await cache.put(request, response.clone())
+    }
   }
 }
 
@@ -689,6 +692,15 @@ function isBrowserIndexRefreshMessage(
   return (data as BrowserIndexRefreshMessage).bldrRefreshBrowserIndex === true
 }
 
+function isNavigationRequest(request: Request): boolean {
+  const accept = request.headers.get('Accept') ?? ''
+  return (
+    request.mode === 'navigate' ||
+    request.destination === 'document' ||
+    accept.includes('text/html')
+  )
+}
+
 // isSwOrigin checks if the given origin matches the local origin.
 function isSwOrigin(origin: string): boolean {
   return origin === self.location.origin
@@ -750,6 +762,13 @@ export async function swFetch(
       await matchPromotedCurrentGenerationResponse(request)
     if (promotedResponse) {
       return promotedResponse
+    }
+
+    if (requestPath === rootNavigationPath && isNavigationRequest(request)) {
+      const cachedBrowserIndex = await matchBrowserIndexCache(request)
+      if (cachedBrowserIndex) {
+        return cachedBrowserIndex
+      }
     }
 
     // Check the cache (for e.x. index.html)
