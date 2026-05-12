@@ -15,6 +15,7 @@ import (
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -672,4 +673,115 @@ func TestSimpleIterate(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestIteratorSeekNilUsesPrefixBounds(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		tb.BucketId,
+		tb.Volume.GetID(),
+		&block_transform.Config{},
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer oc.Release()
+
+	tr := NewAVLTree(oc)
+	btx, err := tr.NewAVLTreeTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, key := range []string{"aa/0", "aa/1", "aa/2", "ab/0", "b/0"} {
+		if err := btx.Set(ctx, []byte(key), []byte("value-"+key)); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := btx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	t.Run("forward", func(t *testing.T) {
+		btx, err := tr.NewAVLTreeTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+
+		iter := btx.Iterate(ctx, []byte("aa/"), true, false)
+		defer iter.Close()
+		if err := iter.Seek(nil); err != nil {
+			t.Fatal(err.Error())
+		}
+		assertIteratorKeys(t, iter, []string{"aa/0", "aa/1", "aa/2"})
+	})
+
+	t.Run("reverse", func(t *testing.T) {
+		btx, err := tr.NewAVLTreeTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer btx.Discard()
+
+		iter := btx.Iterate(ctx, []byte("aa/"), true, true)
+		defer iter.Close()
+		if err := iter.Seek(nil); err != nil {
+			t.Fatal(err.Error())
+		}
+		assertIteratorKeys(t, iter, []string{"aa/2", "aa/1", "aa/0"})
+	})
+}
+
+func TestPrefixUpperBound(t *testing.T) {
+	tests := []struct {
+		name   string
+		prefix []byte
+		want   []byte
+		ok     bool
+	}{
+		{name: "simple", prefix: []byte("aa/"), want: []byte("aa0"), ok: true},
+		{name: "carry", prefix: []byte{'a', 0xff}, want: []byte{'b'}, ok: true},
+		{name: "no bound", prefix: []byte{0xff, 0xff}, ok: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, ok := prefixUpperBound(test.prefix)
+			if ok != test.ok {
+				t.Fatalf("ok = %t, want %t", ok, test.ok)
+			}
+			if !bytes.Equal(got, test.want) {
+				t.Fatalf("bound = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func assertIteratorKeys(t *testing.T, iter kvtx.Iterator, expected []string) {
+	t.Helper()
+	for idx, exp := range expected {
+		if idx != 0 && !iter.Next() {
+			t.Fatalf("iterator stopped before %s", exp)
+		}
+		if !iter.Valid() {
+			t.Fatalf("iterator invalid, expected key %s", exp)
+		}
+		if got := string(iter.Key()); got != exp {
+			t.Fatalf("key = %s, want %s", got, exp)
+		}
+	}
+	if iter.Next() || iter.Valid() {
+		t.Fatalf("iterator returned extra key %s", iter.Key())
+	}
 }

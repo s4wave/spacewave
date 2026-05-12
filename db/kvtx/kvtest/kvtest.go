@@ -229,6 +229,9 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		if err := it.Seek(nil); err != nil {
 			return err
 		}
+		if !it.Valid() || string(it.Key()) != "test-1" {
+			return errors.Errorf("expected first prefixed key test-1 but got %q", it.Key())
+		}
 		for ; it.Valid(); it.Next() {
 			vals++
 		}
@@ -237,6 +240,56 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		}
 		if vals != 2 {
 			return errors.Errorf("expected 2 values but got %v", vals)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		it := tx.Iterate(ctx, []byte("test-"), true, true)
+		defer it.Close()
+
+		if err := it.Seek(nil); err != nil {
+			return err
+		}
+		expected := []string{"test-2", "test-1"}
+		for _, exp := range expected {
+			if !it.Valid() || string(it.Key()) != exp {
+				return errors.Errorf("expected reverse prefixed key %s but got %q", exp, it.Key())
+			}
+			it.Next()
+		}
+		if err := it.Err(); err != nil {
+			return err
+		}
+		if it.Valid() {
+			return errors.Errorf("expected reverse prefixed iterator to stop but got %q", it.Key())
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		for _, reverse := range []bool{false, true} {
+			it := tx.Iterate(ctx, []byte("missing/"), true, reverse)
+			if err := it.Seek(nil); err != nil {
+				it.Close()
+				return err
+			}
+			if it.Valid() {
+				err := errors.Errorf("expected missing prefix to be invalid but got %q", it.Key())
+				it.Close()
+				return err
+			}
+			if err := it.Err(); err != nil {
+				it.Close()
+				return err
+			}
+			it.Close()
 		}
 		return nil
 	})

@@ -20,6 +20,8 @@ type Iterator struct {
 	rev bool
 	// prefix is the key prefix constraint
 	prefix []byte
+	// prefixEnd is the exclusive upper bound for prefix, when one exists.
+	prefixEnd []byte
 
 	// key is the current key
 	key []byte
@@ -49,10 +51,16 @@ type stackEntry struct {
 // Note: sort is ignored, the iavl iterator is always sorted.
 func NewIterator(ctx context.Context, t *Tx, prefix []byte, sort, reverse bool) *Iterator {
 	it := &Iterator{
-		ctx:    ctx,
-		t:      t,
-		rev:    reverse,
-		prefix: prefix,
+		ctx:       ctx,
+		t:         t,
+		rev:       reverse,
+		prefix:    prefix,
+		prefixEnd: nil,
+	}
+	if len(prefix) != 0 {
+		if end, ok := prefixUpperBound(prefix); ok {
+			it.prefixEnd = end
+		}
 	}
 	it.stack = make([]stackEntry, 1, 18)
 	it.stack[0] = stackEntry{node: it.t.root, cursor: it.t.bcs}
@@ -212,6 +220,20 @@ func (i *Iterator) Seek(k []byte) error {
 	i.stack[0] = stackEntry{node: i.t.root, cursor: i.t.bcs}
 
 	if len(k) == 0 {
+		if len(i.prefix) != 0 {
+			if i.rev {
+				if i.prefixEnd != nil {
+					k = i.prefixEnd
+				} else {
+					return i.seekToEnd()
+				}
+			} else {
+				k = i.prefix
+			}
+		}
+	}
+
+	if len(k) == 0 {
 		if i.rev {
 			return i.seekToEnd()
 		}
@@ -330,6 +352,15 @@ func (i *Iterator) Close() {
 func (i *Iterator) setCurrentNode(node *Node, cursor *block.Cursor) bool {
 	key := node.GetKey()
 	if !i.matchesPrefix(key) {
+		if len(i.prefix) != 0 {
+			if i.rev {
+				if bytes.Compare(key, i.prefix) < 0 {
+					i.stack = nil
+				}
+			} else if i.prefixEnd != nil && bytes.Compare(key, i.prefixEnd) >= 0 {
+				i.stack = nil
+			}
+		}
 		return false
 	}
 	i.key = key
@@ -457,6 +488,17 @@ func (i *Iterator) seekToBeginning() error {
 // matchesPrefix checks if a key matches the iterator's prefix constraint
 func (i *Iterator) matchesPrefix(key []byte) bool {
 	return len(key) > 0 && (len(i.prefix) == 0 || bytes.HasPrefix(key, i.prefix))
+}
+
+func prefixUpperBound(prefix []byte) ([]byte, bool) {
+	out := append([]byte(nil), prefix...)
+	for idx := len(out) - 1; idx >= 0; idx-- {
+		if out[idx] != 0xff {
+			out[idx]++
+			return out[:idx+1], true
+		}
+	}
+	return nil, false
 }
 
 // _ is a type assertion
