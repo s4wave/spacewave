@@ -195,6 +195,12 @@ vi.mock('./SessionSharedObjectContainer.js', () => ({
   SessionSharedObjectContainer: () => null,
 }))
 
+vi.mock('./SessionFrame.js', () => ({
+  SessionFrame: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="session-frame">{children}</div>
+  ),
+}))
+
 vi.mock('./SetupWizard.js', () => ({
   SetupWizard: () => null,
 }))

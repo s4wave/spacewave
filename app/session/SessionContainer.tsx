@@ -67,6 +67,7 @@ import { SessionDetails } from './dashboard/SessionDetails.js'
 import { DeletedAccountOverlay } from './DeletedAccountOverlay.js'
 import { DormantOverlay } from './DormantOverlay.js'
 import { ReAuthOverlay } from './ReAuthOverlay.js'
+import { SessionFlowFrame } from './SessionFlowFrame.js'
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
 import { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'
 import type { ReauthenticateSessionRequest } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
@@ -400,7 +401,9 @@ export function SessionContainer(props: {
                   sessionResource={spacewaveSessionResource}
                 />
                 <Routes>
-                  {spacewaveSessionRoutes(props.metadata)}
+                  {spacewaveSessionRoutes(props.metadata, {
+                    fallbackPath: currentLevelPath,
+                  })}
                   <Route path="/settings/cli">
                     <CommandLineSetupPage />
                   </Route>
@@ -421,19 +424,32 @@ export function SessionContainer(props: {
                     />
                   </Route>
                   <Route path="/setup/link-device">
-                    <LinkDeviceWizard />
+                    <SessionFlowFrame fallbackPath={currentLevelPath}>
+                      <LinkDeviceWizard />
+                    </SessionFlowFrame>
                   </Route>
                   <Route path="/setup/provider">
-                    <ProviderSetup />
+                    <SessionFlowFrame fallbackPath={currentLevelPath}>
+                      <ProviderSetup />
+                    </SessionFlowFrame>
                   </Route>
                   <Route path="/setup/free-local">
-                    <LocalSessionSetup mode="local" metadata={props.metadata} />
+                    <SessionFlowFrame fallbackPath={currentLevelPath}>
+                      <LocalSessionSetup
+                        mode="local"
+                        metadata={props.metadata}
+                      />
+                    </SessionFlowFrame>
                   </Route>
                   <Route path="/setup/*">
-                    <SetupWizard />
+                    <SessionFlowFrame fallbackPath={currentLevelPath}>
+                      <SetupWizard />
+                    </SessionFlowFrame>
                   </Route>
                   <Route path="/setup">
-                    <SetupWizard />
+                    <SessionFlowFrame fallbackPath={currentLevelPath}>
+                      <SetupWizard />
+                    </SessionFlowFrame>
                   </Route>
                   <Route path="/">
                     <SessionRootRouter metadata={props.metadata} />
