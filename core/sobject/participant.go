@@ -172,35 +172,24 @@ func (s *SOStateParticipantHandle) GetRootInner(ctx context.Context) (*SORootInn
 		return nil, nil
 	}
 
+	xfrm, err := s.GetTransformer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.decodeRootInnerWithTransformer(xfrm)
+}
+
+func (s *SOStateParticipantHandle) decodeRootInnerWithTransformer(xfrm *block_transform.Transformer) (*SORootInner, error) {
+	stateRoot := s.state.GetRoot()
+	if stateRoot.GetInnerSeqno() == 0 {
+		return nil, nil
+	}
+
 	rootInnerData := bytes.Clone(stateRoot.GetInner())
 	if len(rootInnerData) == 0 {
 		return nil, ErrEmptyInnerData
 	}
 	defer scrub.Scrub(rootInnerData)
-
-	grants := s.state.GetRootGrants()
-	localGrantIdx := slices.IndexFunc(grants, func(g *SOGrant) bool {
-		return g.GetPeerId() == s.peerIDStr
-	})
-	if localGrantIdx == -1 {
-		return nil, ErrCannotDecode
-	}
-
-	localGrant := grants[localGrantIdx]
-	innerDataObj, err := localGrant.DecryptInnerData(s.privKey, s.sharedObjectID)
-	if err != nil {
-		return nil, errors.Wrap(err, "so grant: decode inner data")
-	}
-
-	transformConf := innerDataObj.GetTransformConf()
-	if err := transformConf.Validate(); err != nil {
-		return nil, errors.Wrap(err, "so grant: validate transform config")
-	}
-
-	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: s.le}, s.sfs, transformConf)
-	if err != nil {
-		return nil, err
-	}
 
 	rootInnerDataDec, err := xfrm.DecodeBlock(rootInnerData)
 	if err != nil {
@@ -222,6 +211,11 @@ func (s *SOStateParticipantHandle) GetRootInner(ctx context.Context) (*SORootInn
 	}
 
 	return rootInnerObj, nil
+}
+
+type operationMatch struct {
+	op      *SOOperation
+	localID string
 }
 
 // ProcessOperations implements SharedObjectStateSnapshot.ProcessOperations
@@ -247,6 +241,7 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 
 	// Decode inner operations
 	innerOps := make([]*SOOperationInner, 0, len(ops))
+	opMatches := make(map[string]map[uint64]operationMatch, len(ops))
 	var rejectedOps []*SOOperationRejection
 	var acceptedOps []*SOOperation
 
@@ -289,10 +284,21 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 			inner.OpData = opDataDec
 		}
 		innerOps = append(innerOps, inner)
+		peerMatches := opMatches[inner.GetPeerId()]
+		if peerMatches == nil {
+			peerMatches = make(map[uint64]operationMatch)
+			opMatches[inner.GetPeerId()] = peerMatches
+		}
+		if _, ok := peerMatches[inner.GetNonce()]; !ok {
+			peerMatches[inner.GetNonce()] = operationMatch{
+				op:      op,
+				localID: inner.GetLocalId(),
+			}
+		}
 	}
 
 	// Get current root inner state to access current state data
-	rootInner, err := s.GetRootInner(ctx)
+	rootInner, err := s.decodeRootInnerWithTransformer(xfrm)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -364,21 +370,8 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 			return nil, nil, nil, errors.Wrap(err, "failed to parse submitter peer ID")
 		}
 
-		// Find matching operation
-		var matchOp *SOOperation
-		var matchLocalID string
-		for _, op := range ops {
-			inner, err := op.UnmarshalInner()
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			if inner.GetPeerId() == opRef.GetPeerId() && inner.GetNonce() == opRef.GetNonce() {
-				matchOp = op
-				matchLocalID = inner.GetLocalId()
-				break
-			}
-		}
-		if matchOp == nil {
+		match, ok := opMatches[opRef.GetPeerId()][opRef.GetNonce()]
+		if !ok {
 			continue
 		}
 
@@ -389,7 +382,7 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 				s.sharedObjectID,
 				submitterPeerID,
 				opRef.GetNonce(),
-				matchLocalID,
+				match.localID,
 				body.ErrorDetails,
 			)
 			if err != nil {
@@ -397,7 +390,7 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 			}
 			rejectedOps = append(rejectedOps, rejection)
 		default:
-			acceptedOps = append(acceptedOps, matchOp)
+			acceptedOps = append(acceptedOps, match.op)
 			nextRoot.updateAccountNonce(opRef.GetPeerId(), opRef.GetNonce())
 		}
 	}
