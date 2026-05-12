@@ -428,10 +428,101 @@ func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
 	resourceCtx.ReleaseResource(resp.GetResourceId())
 }
 
+func TestEngineResourceOperationObserverPropagatesToTransactions(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	var records []resource_world.WorldStateOperationRecord
+	engineResource := resource_world.NewEngineResource(
+		nil,
+		nil,
+		tb.Engine,
+		nil,
+		nil,
+		resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+			records = append(records, record)
+		}),
+	)
+	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
+	ctx = resource_server.WithResourceClientContext(ctx, resourceCtx)
+
+	writeResp, err := engineResource.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	writeClient, err := resourceCtx.GetAttachedResource(writeResp.GetResourceId())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	writeWorld := s4wave_world.NewSRPCWorldStateResourceServiceClient(writeClient)
+	writeTx := s4wave_world.NewSRPCTxResourceServiceClient(writeClient)
+	for _, key := range []string{"engine-observer/a", "engine-observer/b"} {
+		resp, err := writeWorld.CreateObject(ctx, &s4wave_world.CreateObjectRequest{ObjectKey: key})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		resourceCtx.ReleaseResource(resp.GetResourceId())
+	}
+	graphQuad := world.NewGraphQuadWithKeys("engine-observer/a", "<engine-observer-rel>", "engine-observer/b", "")
+	if _, err := writeWorld.SetGraphQuad(ctx, &s4wave_world.SetGraphQuadRequest{
+		Quad: &quad.Quad{
+			Subject:   graphQuad.GetSubject(),
+			Predicate: graphQuad.GetPredicate(),
+			Obj:       graphQuad.GetObj(),
+		},
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := writeTx.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
+		t.Fatal(err.Error())
+	}
+	resourceCtx.ReleaseResource(writeResp.GetResourceId())
+
+	readResp, err := engineResource.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer resourceCtx.ReleaseResource(readResp.GetResourceId())
+
+	readClient, err := resourceCtx.GetAttachedResource(readResp.GetResourceId())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	readWorld := s4wave_world.NewSRPCWorldStateResourceServiceClient(readClient)
+	resp, err := readWorld.LookupGraphQuadsBatch(ctx, &s4wave_world.LookupGraphQuadsBatchRequest{
+		Filters: []*quad.Quad{
+			{
+				Subject:   graphQuad.GetSubject(),
+				Predicate: graphQuad.GetPredicate(),
+			},
+		},
+		LimitPerFilter: 10,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(resp.GetResults()) != 1 || len(resp.GetResults()[0].GetQuads()) != 1 {
+		t.Fatalf("expected one propagated transaction result, got %#v", resp.GetResults())
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected one operation record, got %d", len(records))
+	}
+	record := records[0]
+	if record.Name != "LookupGraphQuadsBatch" || record.FilterCount != 1 || record.Limit != 10 {
+		t.Fatalf("unexpected propagated record request counts: %+v", record)
+	}
+	if record.ResultSetCount != 1 || record.ResultQuadCount != 1 || record.Error != "" {
+		t.Fatalf("unexpected propagated record result counts: %+v", record)
+	}
+}
+
 type worldStateOperationResourceContext struct {
 	ctx      context.Context
 	nextID   uint32
 	releases map[uint32]func()
+	invokers map[uint32]srpc.Invoker
 }
 
 func (c *worldStateOperationResourceContext) Context() context.Context {
@@ -442,15 +533,19 @@ func (c *worldStateOperationResourceContext) AddResource(mux srpc.Invoker, relea
 	return c.AddResourceValue(mux, nil, releaseFn)
 }
 
-func (c *worldStateOperationResourceContext) AddResourceValue(_ srpc.Invoker, _ any, releaseFn func()) (uint32, error) {
+func (c *worldStateOperationResourceContext) AddResourceValue(mux srpc.Invoker, _ any, releaseFn func()) (uint32, error) {
 	c.nextID++
 	if c.releases == nil {
 		c.releases = make(map[uint32]func())
+	}
+	if c.invokers == nil {
+		c.invokers = make(map[uint32]srpc.Invoker)
 	}
 	if releaseFn == nil {
 		releaseFn = func() {}
 	}
 	c.releases[c.nextID] = releaseFn
+	c.invokers[c.nextID] = mux
 	return c.nextID, nil
 }
 
@@ -460,6 +555,7 @@ func (c *worldStateOperationResourceContext) ReleaseResource(resourceID uint32) 
 		return false
 	}
 	delete(c.releases, resourceID)
+	delete(c.invokers, resourceID)
 	releaseFn()
 	return true
 }
@@ -468,8 +564,12 @@ func (c *worldStateOperationResourceContext) GetResourceValue(uint32) (any, erro
 	return nil, resource.ErrResourceNotFound
 }
 
-func (c *worldStateOperationResourceContext) GetAttachedResource(uint32) (srpc.Client, error) {
-	return nil, resource.ErrResourceNotFound
+func (c *worldStateOperationResourceContext) GetAttachedResource(resourceID uint32) (srpc.Client, error) {
+	mux, ok := c.invokers[resourceID]
+	if !ok {
+		return nil, resource.ErrResourceNotFound
+	}
+	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))), nil
 }
 
 // _ is a type assertion

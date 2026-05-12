@@ -15,22 +15,31 @@ import (
 
 // EngineResource wraps an Engine for resource access.
 type EngineResource struct {
-	le         *logrus.Entry
-	b          bus.Bus
-	mux        srpc.Invoker
-	engine     world.Engine
-	lookupOp   world.LookupOp
-	engineInfo *s4wave_world.EngineInfo
+	le                *logrus.Entry
+	b                 bus.Bus
+	mux               srpc.Invoker
+	engine            world.Engine
+	lookupOp          world.LookupOp
+	engineInfo        *s4wave_world.EngineInfo
+	worldStateOptions []WorldStateResourceOption
 }
 
 // NewEngineResource creates a new EngineResource.
-func NewEngineResource(le *logrus.Entry, b bus.Bus, w world.Engine, lookupOp world.LookupOp, engineInfo *s4wave_world.EngineInfo) *EngineResource {
+func NewEngineResource(
+	le *logrus.Entry,
+	b bus.Bus,
+	w world.Engine,
+	lookupOp world.LookupOp,
+	engineInfo *s4wave_world.EngineInfo,
+	opts ...WorldStateResourceOption,
+) *EngineResource {
 	engineResource := &EngineResource{
-		le:         le,
-		b:          b,
-		engine:     w,
-		lookupOp:   lookupOp,
-		engineInfo: engineInfo,
+		le:                le,
+		b:                 b,
+		engine:            w,
+		lookupOp:          lookupOp,
+		engineInfo:        engineInfo,
+		worldStateOptions: opts,
 	}
 	engineResource.mux = resource_server.NewResourceMux(
 		func(mux srpc.Mux) error { return s4wave_world.SRPCRegisterEngineResourceService(mux, engineResource) },
@@ -91,7 +100,7 @@ func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.N
 		return nil, err
 	}
 
-	txResource := NewTxResource(r.le, r.b, wtx, r.lookupOp, r.engine)
+	txResource := NewTxResource(r.le, r.b, wtx, r.lookupOp, r.engine, r.worldStateOptions...)
 	id, err := resourceCtx.AddResource(txResource.GetMux(), func() {
 		wtx.Discard()
 	})
@@ -182,7 +191,7 @@ func (r *EngineResource) WatchWorldState(
 		trackedWs := NewTrackedWorldState(wtx, seqno, ctx)
 
 		// Register as a resource
-		trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine)
+		trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine, r.worldStateOptions...)
 		resourceId, err := resourceCtx.AddResource(trackedResource.GetMux(), func() {
 			trackedWs.Close()
 		})

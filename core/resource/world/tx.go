@@ -22,8 +22,15 @@ type TxResource struct {
 // NewTxResource creates a new TxResource.
 //
 // engine is optional - if provided, TypedObjectResourceService is registered on the mux.
-func NewTxResource(le *logrus.Entry, b bus.Bus, tx world.Tx, lookupOp world.LookupOp, engine world.Engine) *TxResource {
-	wsResource := NewWorldStateResource(le, b, tx, lookupOp)
+func NewTxResource(
+	le *logrus.Entry,
+	b bus.Bus,
+	tx world.Tx,
+	lookupOp world.LookupOp,
+	engine world.Engine,
+	opts ...WorldStateResourceOption,
+) *TxResource {
+	wsResource := NewWorldStateResource(le, b, tx, lookupOp, opts...)
 	mux := wsResource.mux.(srpc.Mux)
 	txResource := &TxResource{
 		WorldStateResource: wsResource,
