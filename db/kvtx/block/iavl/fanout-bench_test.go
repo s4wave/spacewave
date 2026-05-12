@@ -126,6 +126,91 @@ func fanoutBenchGet(ctx context.Context, tree *fanoutBenchTree, key []byte) ([]b
 	return data, found, err
 }
 
+func fanoutBenchScanPrefixKeys(
+	ctx context.Context,
+	tree *fanoutBenchTree,
+	prefix []byte,
+	cb func(key []byte) error,
+) error {
+	return fanoutBenchScanPrefixRefs(ctx, tree, tree.root, prefix, fanoutBenchPrefixEnd(prefix), func(key []byte, _ *block.BlockRef) error {
+		return cb(key)
+	})
+}
+
+func fanoutBenchScanPrefixValues(
+	ctx context.Context,
+	tree *fanoutBenchTree,
+	prefix []byte,
+	cb func(key, value []byte) error,
+) error {
+	return fanoutBenchScanPrefixRefs(ctx, tree, tree.root, prefix, fanoutBenchPrefixEnd(prefix), func(key []byte, ref *block.BlockRef) error {
+		value, found, err := tree.store.GetBlock(ctx, ref)
+		if err != nil {
+			return err
+		}
+		if !found {
+			return block.ErrNotFound
+		}
+		return cb(key, value)
+	})
+}
+
+func fanoutBenchScanPrefixRefs(
+	ctx context.Context,
+	tree *fanoutBenchTree,
+	ref *block.BlockRef,
+	prefix []byte,
+	end []byte,
+	cb func(key []byte, ref *block.BlockRef) error,
+) error {
+	node, err := loadFanoutBenchNode(ctx, tree.store, ref)
+	if err != nil {
+		return err
+	}
+	if node.leaf {
+		for i, key := range node.keys {
+			if bytes.Compare(key, prefix) < 0 {
+				continue
+			}
+			if end != nil && bytes.Compare(key, end) >= 0 {
+				break
+			}
+			if !bytes.HasPrefix(key, prefix) {
+				continue
+			}
+			if err := cb(key, node.refs[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	var prevMax []byte
+	for i, maxKey := range node.keys {
+		if end != nil && prevMax != nil && bytes.Compare(prevMax, end) >= 0 {
+			break
+		}
+		if bytes.Compare(maxKey, prefix) >= 0 {
+			if err := fanoutBenchScanPrefixRefs(ctx, tree, node.refs[i], prefix, end, cb); err != nil {
+				return err
+			}
+		}
+		prevMax = maxKey
+	}
+	return nil
+}
+
+func fanoutBenchPrefixEnd(prefix []byte) []byte {
+	end := append([]byte(nil), prefix...)
+	for i := len(end) - 1; i >= 0; i-- {
+		if end[i] != 0xff {
+			end[i]++
+			return end[:i+1]
+		}
+	}
+	return nil
+}
+
 func fanoutBenchSet(
 	ctx context.Context,
 	store block.StoreOps,
@@ -302,6 +387,82 @@ func TestFanoutBenchTreeHarness(t *testing.T) {
 	}
 }
 
+func TestFanoutBenchTreeScanPrefixBoundaries(t *testing.T) {
+	ctx := context.Background()
+	tree := buildFanoutBenchTree(t, [][]byte{
+		[]byte("a/"),
+		[]byte("a/0"),
+		[]byte("a0"),
+		[]byte("aa"),
+		[]byte("b"),
+	}, 2)
+
+	var keys [][]byte
+	if err := fanoutBenchScanPrefixKeys(ctx, tree, []byte("a/"), func(key []byte) error {
+		keys = append(keys, append([]byte(nil), key...))
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(keys) != 2 || !bytes.Equal(keys[0], []byte("a/")) || !bytes.Equal(keys[1], []byte("a/0")) {
+		t.Fatalf("unexpected a/ prefix keys: %q", keys)
+	}
+	keyOnlyReads := tree.store.getBlocks.Load()
+
+	tree.store.resetCounts()
+	var values int
+	if err := fanoutBenchScanPrefixValues(ctx, tree, []byte("a/"), func(key, value []byte) error {
+		if !bytes.HasPrefix(key, []byte("a/")) {
+			t.Fatalf("key %q crossed prefix boundary", key)
+		}
+		if len(value) == 0 {
+			t.Fatalf("empty value for %q", key)
+		}
+		values++
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if values != 2 {
+		t.Fatalf("expected 2 a/ prefix values, got %d", values)
+	}
+	if tree.store.getBlocks.Load() <= keyOnlyReads {
+		t.Fatalf("expected value scan to fetch value blocks, key scan read %d blocks and value scan read %d", keyOnlyReads, tree.store.getBlocks.Load())
+	}
+}
+
+func TestFanoutBenchTreeScanPrefixGraphAndMissing(t *testing.T) {
+	ctx := context.Background()
+	tree := buildFanoutBenchTree(t, makeBenchKeys(512, benchKeyGraph), 32)
+
+	var count int
+	prefix := benchGraphPrefix(2)
+	if err := fanoutBenchScanPrefixKeys(ctx, tree, prefix, func(key []byte) error {
+		if !bytes.HasPrefix(key, prefix) {
+			t.Fatalf("key %x crossed graph prefix %x", key, prefix)
+		}
+		count++
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if count != benchGraphGroupSize {
+		t.Fatalf("expected %d graph prefix keys, got %d", benchGraphGroupSize, count)
+	}
+
+	tree.store.resetCounts()
+	count = 0
+	if err := fanoutBenchScanPrefixKeys(ctx, tree, benchGraphPrefix(4), func(key []byte) error {
+		count++
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("expected missing graph prefix to return 0 keys, got %d", count)
+	}
+}
+
 func TestFanoutBenchTreeRejectsInvalidKeys(t *testing.T) {
 	for _, test := range []struct {
 		name string
@@ -317,6 +478,64 @@ func TestFanoutBenchTreeRejectsInvalidKeys(t *testing.T) {
 				t.Fatal("expected invalid keys")
 			}
 		})
+	}
+}
+
+func BenchmarkFanoutBlockTreeScanPrefixKeys(b *testing.B) {
+	for _, fanout := range []int{16, 32, 64} {
+		for _, size := range []int{1024, 16384} {
+			b.Run("fanout_"+strconv.Itoa(fanout)+"/"+benchFixtureName(benchKeyGraph, size), func(b *testing.B) {
+				ctx := context.Background()
+				tree := buildFanoutBenchTree(b, makeBenchKeys(size, benchKeyGraph), fanout)
+				tree.store.resetCounts()
+				b.ResetTimer()
+				for i := range b.N {
+					var count int
+					err := fanoutBenchScanPrefixKeys(ctx, tree, benchGraphPrefix(benchLookupIndex(i, size)/benchGraphGroupSize), func(key []byte) error {
+						count++
+						return nil
+					})
+					if err != nil {
+						b.Fatal(err)
+					}
+					if count == 0 {
+						b.Fatal("expected matching prefix keys")
+					}
+				}
+				b.StopTimer()
+				b.ReportMetric(float64(tree.fanout), "fanout")
+				tree.store.reportMetrics(b, int64(b.N))
+			})
+		}
+	}
+}
+
+func BenchmarkFanoutBlockTreeScanPrefixValues(b *testing.B) {
+	for _, fanout := range []int{16, 32, 64} {
+		for _, size := range []int{1024, 16384} {
+			b.Run("fanout_"+strconv.Itoa(fanout)+"/"+benchFixtureName(benchKeyGraph, size), func(b *testing.B) {
+				ctx := context.Background()
+				tree := buildFanoutBenchTree(b, makeBenchKeys(size, benchKeyGraph), fanout)
+				tree.store.resetCounts()
+				b.ResetTimer()
+				for i := range b.N {
+					var count int
+					err := fanoutBenchScanPrefixValues(ctx, tree, benchGraphPrefix(benchLookupIndex(i, size)/benchGraphGroupSize), func(_, _ []byte) error {
+						count++
+						return nil
+					})
+					if err != nil {
+						b.Fatal(err)
+					}
+					if count == 0 {
+						b.Fatal("expected matching prefix values")
+					}
+				}
+				b.StopTimer()
+				b.ReportMetric(float64(tree.fanout), "fanout")
+				tree.store.reportMetrics(b, int64(b.N))
+			})
+		}
 	}
 }
 
