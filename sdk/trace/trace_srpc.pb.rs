@@ -19,6 +19,17 @@ pub trait TraceServiceStopTraceStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for TraceService.CaptureCPUProfile.
+#[starpc::async_trait]
+pub trait TraceServiceCaptureCPUProfileStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<CaptureCPUProfileResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for TraceService.
 #[starpc::async_trait]
 pub trait TraceServiceClient: Send + Sync {
@@ -26,6 +37,8 @@ pub trait TraceServiceClient: Send + Sync {
     async fn start_trace(&self, request: &StartTraceRequest) -> starpc::Result<StartTraceResponse>;
     /// StopTrace.
     async fn stop_trace(&self, request: &StopTraceRequest) -> starpc::Result<Box<dyn TraceServiceStopTraceStream>>;
+    /// CaptureCPUProfile.
+    async fn capture_c_p_u_profile(&self, request: &CaptureCPUProfileRequest) -> starpc::Result<Box<dyn TraceServiceCaptureCPUProfileStream>>;
 }
 
 /// Client implementation for TraceService.
@@ -52,6 +65,13 @@ impl<C: starpc::Client + 'static> TraceServiceClient for TraceServiceClientImpl<
         stream.close_send().await?;
         Ok(Box::new(TraceServiceStopTraceStreamImpl { stream }))
     }
+    async fn capture_c_p_u_profile(&self, request: &CaptureCPUProfileRequest) -> starpc::Result<Box<dyn TraceServiceCaptureCPUProfileStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.trace.TraceService", "CaptureCPUProfile", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(TraceServiceCaptureCPUProfileStreamImpl { stream }))
+    }
 }
 
 struct TraceServiceStopTraceStreamImpl {
@@ -71,6 +91,23 @@ impl TraceServiceStopTraceStream for TraceServiceStopTraceStreamImpl {
     }
 }
 
+struct TraceServiceCaptureCPUProfileStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl TraceServiceCaptureCPUProfileStream for TraceServiceCaptureCPUProfileStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<CaptureCPUProfileResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for TraceService.
 #[starpc::async_trait]
 pub trait TraceServiceServer: Send + Sync {
@@ -78,11 +115,14 @@ pub trait TraceServiceServer: Send + Sync {
     async fn start_trace(&self, request: StartTraceRequest) -> starpc::Result<StartTraceResponse>;
     /// StopTrace.
     async fn stop_trace(&self, request: StopTraceRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// CaptureCPUProfile.
+    async fn capture_c_p_u_profile(&self, request: CaptureCPUProfileRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const TRACE_SERVICE_METHOD_IDS: &[&str] = &[
     "StartTrace",
     "StopTrace",
+    "CaptureCPUProfile",
 ];
 
 /// Handler for TraceService.
@@ -132,6 +172,13 @@ impl<S: TraceServiceServer + 'static> starpc::Invoker for TraceServiceHandler<S>
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.stop_trace(request, stream).await)
+            }
+            "CaptureCPUProfile" => {
+                let request: CaptureCPUProfileRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.capture_c_p_u_profile(request, stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

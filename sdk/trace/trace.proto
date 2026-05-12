@@ -4,6 +4,7 @@ package s4wave.trace;
 service TraceService {
   rpc StartTrace(StartTraceRequest) returns (StartTraceResponse);
   rpc StopTrace(StopTraceRequest) returns (stream StopTraceResponse);
+  rpc CaptureCPUProfile(CaptureCPUProfileRequest) returns (stream CaptureCPUProfileResponse);
 }
 
 // StartTraceRequest is the request for StartTrace.
@@ -21,5 +22,19 @@ message StopTraceRequest {}
 // StopTraceResponse is a streamed response chunk for StopTrace.
 message StopTraceResponse {
   // Data is a chunk of the raw runtime trace bytes.
+  bytes data = 1;
+}
+
+// CaptureCPUProfileRequest is the request for CaptureCPUProfile.
+message CaptureCPUProfileRequest {
+  // DurationMillis is the CPU profile capture duration in milliseconds.
+  uint32 duration_millis = 1;
+  // Label is an optional human-readable label for the capture.
+  string label = 2;
+}
+
+// CaptureCPUProfileResponse is a streamed response chunk for CaptureCPUProfile.
+message CaptureCPUProfileResponse {
+  // Data is a chunk of the raw pprof CPU profile bytes.
   bytes data = 1;
 }

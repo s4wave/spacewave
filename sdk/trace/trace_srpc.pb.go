@@ -17,6 +17,8 @@ type SRPCTraceServiceClient interface {
 	StartTrace(ctx context.Context, in *StartTraceRequest) (*StartTraceResponse, error)
 
 	StopTrace(ctx context.Context, in *StopTraceRequest) (SRPCTraceService_StopTraceClient, error)
+
+	CaptureCPUProfile(ctx context.Context, in *CaptureCPUProfileRequest) (SRPCTraceService_CaptureCPUProfileClient, error)
 }
 
 type srpcTraceServiceClient struct {
@@ -80,10 +82,46 @@ func (x *srpcTraceService_StopTraceClient) RecvTo(m *StopTraceResponse) error {
 	return x.MsgRecv(m)
 }
 
+func (c *srpcTraceServiceClient) CaptureCPUProfile(ctx context.Context, in *CaptureCPUProfileRequest) (SRPCTraceService_CaptureCPUProfileClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "CaptureCPUProfile", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcTraceService_CaptureCPUProfileClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCTraceService_CaptureCPUProfileClient interface {
+	srpc.Stream
+	Recv() (*CaptureCPUProfileResponse, error)
+	RecvTo(*CaptureCPUProfileResponse) error
+}
+
+type srpcTraceService_CaptureCPUProfileClient struct {
+	srpc.Stream
+}
+
+func (x *srpcTraceService_CaptureCPUProfileClient) Recv() (*CaptureCPUProfileResponse, error) {
+	m := new(CaptureCPUProfileResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcTraceService_CaptureCPUProfileClient) RecvTo(m *CaptureCPUProfileResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCTraceServiceServer interface {
 	StartTrace(context.Context, *StartTraceRequest) (*StartTraceResponse, error)
 
 	StopTrace(*StopTraceRequest, SRPCTraceService_StopTraceStream) error
+
+	CaptureCPUProfile(*CaptureCPUProfileRequest, SRPCTraceService_CaptureCPUProfileStream) error
 }
 
 const SRPCTraceServiceServiceID = "s4wave.trace.TraceService"
@@ -114,6 +152,7 @@ func (SRPCTraceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"StartTrace",
 		"StopTrace",
+		"CaptureCPUProfile",
 	}
 }
 
@@ -130,6 +169,8 @@ func (d *SRPCTraceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_StartTrace(d.impl, strm)
 	case "StopTrace":
 		return true, d.InvokeMethod_StopTrace(d.impl, strm)
+	case "CaptureCPUProfile":
+		return true, d.InvokeMethod_CaptureCPUProfile(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -156,6 +197,15 @@ func (SRPCTraceServiceHandler) InvokeMethod_StopTrace(impl SRPCTraceServiceServe
 	return impl.StopTrace(req, serverStrm)
 }
 
+func (SRPCTraceServiceHandler) InvokeMethod_CaptureCPUProfile(impl SRPCTraceServiceServer, strm srpc.Stream) error {
+	req := new(CaptureCPUProfileRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcTraceService_CaptureCPUProfileStream{strm}
+	return impl.CaptureCPUProfile(req, serverStrm)
+}
+
 type SRPCTraceService_StartTraceStream interface {
 	srpc.Stream
 }
@@ -179,6 +229,29 @@ func (x *srpcTraceService_StopTraceStream) Send(m *StopTraceResponse) error {
 }
 
 func (x *srpcTraceService_StopTraceStream) SendAndClose(m *StopTraceResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCTraceService_CaptureCPUProfileStream interface {
+	srpc.Stream
+	Send(*CaptureCPUProfileResponse) error
+	SendAndClose(*CaptureCPUProfileResponse) error
+}
+
+type srpcTraceService_CaptureCPUProfileStream struct {
+	srpc.Stream
+}
+
+func (x *srpcTraceService_CaptureCPUProfileStream) Send(m *CaptureCPUProfileResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcTraceService_CaptureCPUProfileStream) SendAndClose(m *CaptureCPUProfileResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

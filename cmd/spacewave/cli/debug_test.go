@@ -49,6 +49,37 @@ func TestDefaultDebugTraceOutputPath(t *testing.T) {
 	}
 }
 
+func TestDefaultDebugCPUProfileOutputPath(t *testing.T) {
+	got := defaultDebugCPUProfileOutputPath(time.Date(2026, 5, 11, 18, 20, 30, 0, time.UTC))
+	want := ".tmp/spacewave-daemon-20260511-182030.pprof"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestCaptureDaemonCPUProfileWritesProfile(t *testing.T) {
+	ctx := context.Background()
+	traceClient := newDebugTraceTestClient(t)
+	var out bytes.Buffer
+
+	byteCount, err := captureDaemonCPUProfile(
+		ctx,
+		traceClient,
+		&out,
+		100*time.Millisecond,
+		"debug-cpu-profile-test",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byteCount == 0 {
+		t.Fatal("expected CPU profile bytes")
+	}
+	if int64(out.Len()) != byteCount {
+		t.Fatalf("expected %d bytes, got %d", byteCount, out.Len())
+	}
+}
+
 func newDebugTraceTestClient(t *testing.T) s4wave_trace.SRPCTraceServiceClient {
 	t.Helper()
 

@@ -3,6 +3,8 @@
 /* eslint-disable */
 
 import {
+  CaptureCPUProfileRequest,
+  CaptureCPUProfileResponse,
   StartTraceRequest,
   StartTraceResponse,
   StopTraceRequest,
@@ -35,6 +37,15 @@ export const TraceServiceDefinition = {
       O: StopTraceResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * @generated from rpc s4wave.trace.TraceService.CaptureCPUProfile
+     */
+    CaptureCPUProfile: {
+      name: 'CaptureCPUProfile',
+      I: CaptureCPUProfileRequest,
+      O: CaptureCPUProfileResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -57,6 +68,14 @@ export interface TraceService {
     request: StopTraceRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<StopTraceResponse>
+
+  /**
+   * @generated from rpc s4wave.trace.TraceService.CaptureCPUProfile
+   */
+  CaptureCPUProfile(
+    request: CaptureCPUProfileRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<CaptureCPUProfileResponse>
 }
 
 export const TraceServiceServiceName = TraceServiceDefinition.typeName
@@ -69,6 +88,7 @@ export class TraceServiceClient implements TraceService {
     this.rpc = rpc
     this.StartTrace = this.StartTrace.bind(this)
     this.StopTrace = this.StopTrace.bind(this)
+    this.CaptureCPUProfile = this.CaptureCPUProfile.bind(this)
   }
   /**
    * @generated from rpc s4wave.trace.TraceService.StartTrace
@@ -102,5 +122,22 @@ export class TraceServiceClient implements TraceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(StopTraceResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.trace.TraceService.CaptureCPUProfile
+   */
+  CaptureCPUProfile(
+    request: CaptureCPUProfileRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<CaptureCPUProfileResponse> {
+    const requestMsg = CaptureCPUProfileRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      TraceServiceDefinition.methods.CaptureCPUProfile.name,
+      CaptureCPUProfileRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(CaptureCPUProfileResponse)(result)
   }
 }

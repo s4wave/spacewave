@@ -57,6 +57,14 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace trace {
+class CaptureCPUProfileRequest;
+struct CaptureCPUProfileRequestDefaultTypeInternal;
+extern CaptureCPUProfileRequestDefaultTypeInternal _CaptureCPUProfileRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CaptureCPUProfileRequest_class_data_;
+class CaptureCPUProfileResponse;
+struct CaptureCPUProfileResponseDefaultTypeInternal;
+extern CaptureCPUProfileResponseDefaultTypeInternal _CaptureCPUProfileResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CaptureCPUProfileResponse_class_data_;
 class StartTraceRequest;
 struct StartTraceRequestDefaultTypeInternal;
 extern StartTraceRequestDefaultTypeInternal _StartTraceRequest_default_instance_;
@@ -744,6 +752,408 @@ class StartTraceRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull StartTraceRequest_class_data_;
+// -------------------------------------------------------------------
+
+class CaptureCPUProfileResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.trace.CaptureCPUProfileResponse) */ {
+ public:
+  inline CaptureCPUProfileResponse() : CaptureCPUProfileResponse(nullptr) {}
+  ~CaptureCPUProfileResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CaptureCPUProfileResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CaptureCPUProfileResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CaptureCPUProfileResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CaptureCPUProfileResponse(const CaptureCPUProfileResponse& from) : CaptureCPUProfileResponse(nullptr, from) {}
+  inline CaptureCPUProfileResponse(CaptureCPUProfileResponse&& from) noexcept
+      : CaptureCPUProfileResponse(nullptr, ::std::move(from)) {}
+  inline CaptureCPUProfileResponse& operator=(const CaptureCPUProfileResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CaptureCPUProfileResponse& operator=(CaptureCPUProfileResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CaptureCPUProfileResponse& default_instance() {
+    return *reinterpret_cast<const CaptureCPUProfileResponse*>(
+        &_CaptureCPUProfileResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(CaptureCPUProfileResponse& a, CaptureCPUProfileResponse& b) { a.Swap(&b); }
+  inline void Swap(CaptureCPUProfileResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CaptureCPUProfileResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CaptureCPUProfileResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CaptureCPUProfileResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CaptureCPUProfileResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CaptureCPUProfileResponse& from) { CaptureCPUProfileResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CaptureCPUProfileResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.trace.CaptureCPUProfileResponse"; }
+
+  explicit CaptureCPUProfileResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CaptureCPUProfileResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CaptureCPUProfileResponse& from);
+  CaptureCPUProfileResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CaptureCPUProfileResponse&& from) noexcept
+      : CaptureCPUProfileResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kDataFieldNumber = 1,
+  };
+  // bytes data = 1;
+  void clear_data() ;
+  const ::std::string& data() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_data(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_data();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_data();
+  void set_allocated_data(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_data() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_data(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_data();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.trace.CaptureCPUProfileResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CaptureCPUProfileResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr data_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftrace_2ftrace_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CaptureCPUProfileResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CaptureCPUProfileRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.trace.CaptureCPUProfileRequest) */ {
+ public:
+  inline CaptureCPUProfileRequest() : CaptureCPUProfileRequest(nullptr) {}
+  ~CaptureCPUProfileRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CaptureCPUProfileRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CaptureCPUProfileRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CaptureCPUProfileRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CaptureCPUProfileRequest(const CaptureCPUProfileRequest& from) : CaptureCPUProfileRequest(nullptr, from) {}
+  inline CaptureCPUProfileRequest(CaptureCPUProfileRequest&& from) noexcept
+      : CaptureCPUProfileRequest(nullptr, ::std::move(from)) {}
+  inline CaptureCPUProfileRequest& operator=(const CaptureCPUProfileRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CaptureCPUProfileRequest& operator=(CaptureCPUProfileRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CaptureCPUProfileRequest& default_instance() {
+    return *reinterpret_cast<const CaptureCPUProfileRequest*>(
+        &_CaptureCPUProfileRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(CaptureCPUProfileRequest& a, CaptureCPUProfileRequest& b) { a.Swap(&b); }
+  inline void Swap(CaptureCPUProfileRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CaptureCPUProfileRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CaptureCPUProfileRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CaptureCPUProfileRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CaptureCPUProfileRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CaptureCPUProfileRequest& from) { CaptureCPUProfileRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CaptureCPUProfileRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.trace.CaptureCPUProfileRequest"; }
+
+  explicit CaptureCPUProfileRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CaptureCPUProfileRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CaptureCPUProfileRequest& from);
+  CaptureCPUProfileRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CaptureCPUProfileRequest&& from) noexcept
+      : CaptureCPUProfileRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLabelFieldNumber = 2,
+    kDurationMillisFieldNumber = 1,
+  };
+  // string label = 2;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // uint32 duration_millis = 1;
+  void clear_duration_millis() ;
+  ::uint32_t duration_millis() const;
+  void set_duration_millis(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_duration_millis() const;
+  void _internal_set_duration_millis(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.trace.CaptureCPUProfileRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 51,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CaptureCPUProfileRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::uint32_t duration_millis_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftrace_2ftrace_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CaptureCPUProfileRequest_class_data_;
 
 // ===================================================================
 
@@ -901,6 +1311,169 @@ inline void StopTraceResponse::set_allocated_data(::std::string* PROTOBUF_NULLAB
     _impl_.data_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.trace.StopTraceResponse.data)
+}
+
+// -------------------------------------------------------------------
+
+// CaptureCPUProfileRequest
+
+// uint32 duration_millis = 1;
+inline void CaptureCPUProfileRequest::clear_duration_millis() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.duration_millis_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint32_t CaptureCPUProfileRequest::duration_millis() const {
+  // @@protoc_insertion_point(field_get:s4wave.trace.CaptureCPUProfileRequest.duration_millis)
+  return _internal_duration_millis();
+}
+inline void CaptureCPUProfileRequest::set_duration_millis(::uint32_t value) {
+  _internal_set_duration_millis(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.trace.CaptureCPUProfileRequest.duration_millis)
+}
+inline ::uint32_t CaptureCPUProfileRequest::_internal_duration_millis() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.duration_millis_;
+}
+inline void CaptureCPUProfileRequest::_internal_set_duration_millis(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.duration_millis_ = value;
+}
+
+// string label = 2;
+inline void CaptureCPUProfileRequest::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CaptureCPUProfileRequest::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.trace.CaptureCPUProfileRequest.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CaptureCPUProfileRequest::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.trace.CaptureCPUProfileRequest.label)
+}
+inline ::std::string* PROTOBUF_NONNULL CaptureCPUProfileRequest::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:s4wave.trace.CaptureCPUProfileRequest.label)
+  return _s;
+}
+inline const ::std::string& CaptureCPUProfileRequest::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void CaptureCPUProfileRequest::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CaptureCPUProfileRequest::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CaptureCPUProfileRequest::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.trace.CaptureCPUProfileRequest.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CaptureCPUProfileRequest::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.trace.CaptureCPUProfileRequest.label)
+}
+
+// -------------------------------------------------------------------
+
+// CaptureCPUProfileResponse
+
+// bytes data = 1;
+inline void CaptureCPUProfileResponse::clear_data() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.data_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CaptureCPUProfileResponse::data() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.trace.CaptureCPUProfileResponse.data)
+  return _internal_data();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CaptureCPUProfileResponse::set_data(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.data_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.trace.CaptureCPUProfileResponse.data)
+}
+inline ::std::string* PROTOBUF_NONNULL CaptureCPUProfileResponse::mutable_data()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_data();
+  // @@protoc_insertion_point(field_mutable:s4wave.trace.CaptureCPUProfileResponse.data)
+  return _s;
+}
+inline const ::std::string& CaptureCPUProfileResponse::_internal_data() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.data_.Get();
+}
+inline void CaptureCPUProfileResponse::_internal_set_data(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.data_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CaptureCPUProfileResponse::_internal_mutable_data() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.data_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CaptureCPUProfileResponse::release_data() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.trace.CaptureCPUProfileResponse.data)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.data_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.data_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CaptureCPUProfileResponse::set_allocated_data(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.data_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.data_.IsDefault()) {
+    _impl_.data_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.trace.CaptureCPUProfileResponse.data)
 }
 
 #ifdef __GNUC__

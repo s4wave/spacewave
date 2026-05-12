@@ -22,4 +22,21 @@ pub struct StopTraceResponse {
     #[prost(bytes="vec", tag="1")]
     pub data: ::prost::alloc::vec::Vec<u8>,
 }
+/// CaptureCPUProfileRequest is the request for CaptureCPUProfile.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CaptureCpuProfileRequest {
+    /// DurationMillis is the CPU profile capture duration in milliseconds.
+    #[prost(uint32, tag="1")]
+    pub duration_millis: u32,
+    /// Label is an optional human-readable label for the capture.
+    #[prost(string, tag="2")]
+    pub label: ::prost::alloc::string::String,
+}
+/// CaptureCPUProfileResponse is a streamed response chunk for CaptureCPUProfile.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CaptureCpuProfileResponse {
+    /// Data is a chunk of the raw pprof CPU profile bytes.
+    #[prost(bytes="vec", tag="1")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+}
 // @@protoc_insertion_point(module)

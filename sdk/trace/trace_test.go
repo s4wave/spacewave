@@ -10,9 +10,11 @@ import (
 )
 
 type testTraceService struct {
-	startLabel string
-	stopData   [][]byte
-	stopCalls  int
+	startLabel     string
+	stopData       [][]byte
+	stopCalls      int
+	cpuProfileData [][]byte
+	cpuProfileCall int
 }
 
 func (t *testTraceService) StartTrace(_ context.Context, req *StartTraceRequest) (*StartTraceResponse, error) {
@@ -24,6 +26,16 @@ func (t *testTraceService) StopTrace(_ *StopTraceRequest, strm SRPCTraceService_
 	t.stopCalls++
 	for _, chunk := range t.stopData {
 		if err := strm.Send(&StopTraceResponse{Data: chunk}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *testTraceService) CaptureCPUProfile(_ *CaptureCPUProfileRequest, strm SRPCTraceService_CaptureCPUProfileStream) error {
+	t.cpuProfileCall++
+	for _, chunk := range t.cpuProfileData {
+		if err := strm.Send(&CaptureCPUProfileResponse{Data: chunk}); err != nil {
 			return err
 		}
 	}
@@ -43,6 +55,9 @@ func newTestTraceClient(t *testing.T, impl SRPCTraceServiceServer) SRPCTraceServ
 	if !mux.HasServiceMethod(SRPCTraceServiceServiceID, "StopTrace") {
 		t.Fatal("expected StopTrace to be registered")
 	}
+	if !mux.HasServiceMethod(SRPCTraceServiceServiceID, "CaptureCPUProfile") {
+		t.Fatal("expected CaptureCPUProfile to be registered")
+	}
 
 	server := srpc.NewServer(mux)
 	client := srpc.NewClient(srpc.NewServerPipe(server))
@@ -55,6 +70,10 @@ func TestTraceServiceContract(t *testing.T) {
 		stopData: [][]byte{
 			[]byte("trace-"),
 			[]byte("bytes"),
+		},
+		cpuProfileData: [][]byte{
+			[]byte("cpu-"),
+			[]byte("profile"),
 		},
 	}
 	client := newTestTraceClient(t, impl)
@@ -89,5 +108,27 @@ func TestTraceServiceContract(t *testing.T) {
 	}
 	if !bytes.Equal(traceData, []byte("trace-bytes")) {
 		t.Fatalf("expected streamed trace %q, got %q", []byte("trace-bytes"), traceData)
+	}
+
+	cpuStrm, err := client.CaptureCPUProfile(ctx, &CaptureCPUProfileRequest{DurationMillis: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cpuData []byte
+	for {
+		msg, err := cpuStrm.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		cpuData = append(cpuData, msg.GetData()...)
+	}
+	if impl.cpuProfileCall != 1 {
+		t.Fatalf("expected 1 CaptureCPUProfile call, got %d", impl.cpuProfileCall)
+	}
+	if !bytes.Equal(cpuData, []byte("cpu-profile")) {
+		t.Fatalf("expected streamed CPU profile %q, got %q", []byte("cpu-profile"), cpuData)
 	}
 }

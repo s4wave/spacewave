@@ -4198,7 +4198,7 @@
       "protoFiles": ["sdk/testbed/testbed.proto"]
     },
     "github.com/s4wave/spacewave/sdk/trace": {
-      "hash": "bdb9fa2428f362f890fcd0621d4ac8fe68bc97b33d209585ad91ae6a3030130a",
+      "hash": "c1b7d07ad568deba064ac078c67ee748487ffbdfcbb04cf0a47b5974ac46d7e6",
       "generatedFiles": [
         "sdk/trace/trace.pb.cc",
         "sdk/trace/trace.pb.go",

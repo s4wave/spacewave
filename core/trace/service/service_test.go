@@ -223,3 +223,32 @@ func TestTraceServiceStopTraceOwnsStreamedBytes(t *testing.T) {
 		}
 	}
 }
+
+func TestTraceServiceCaptureCPUProfile(t *testing.T) {
+	ctx := context.Background()
+	client := newTestTraceClient(t, NewService())
+
+	strm, err := client.CaptureCPUProfile(ctx, &s4wave_trace.CaptureCPUProfileRequest{
+		DurationMillis: 100,
+		Label:          "cpu-profile-test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var profileData []byte
+	for {
+		msg, err := strm.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		profileData = append(profileData, msg.GetData()...)
+	}
+
+	if len(profileData) == 0 {
+		t.Fatal("expected non-empty CPU profile data")
+	}
+}

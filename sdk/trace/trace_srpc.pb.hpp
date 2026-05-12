@@ -22,6 +22,8 @@ constexpr const char* kSRPCTraceServiceServiceID = "s4wave.trace.TraceService";
 
 class SRPCTraceService_StopTraceClient;
 class SRPCTraceService_StopTraceStream;
+class SRPCTraceService_CaptureCPUProfileClient;
+class SRPCTraceService_CaptureCPUProfileStream;
 
 // SRPCTraceServiceClient is the client API for TraceService service.
 class SRPCTraceServiceClient {
@@ -35,6 +37,8 @@ class SRPCTraceServiceClient {
   virtual starpc::Error StartTrace(const s4wave::trace::StartTraceRequest& in, s4wave::trace::StartTraceResponse* out) = 0;
   // StopTrace
   virtual std::pair<std::unique_ptr<SRPCTraceService_StopTraceClient>, starpc::Error> StopTrace(const s4wave::trace::StopTraceRequest& in) = 0;
+  // CaptureCPUProfile
+  virtual std::pair<std::unique_ptr<SRPCTraceService_CaptureCPUProfileClient>, starpc::Error> CaptureCPUProfile(const s4wave::trace::CaptureCPUProfileRequest& in) = 0;
 };
 
 // SRPCTraceServiceClientImpl implements SRPCTraceServiceClient.
@@ -49,6 +53,8 @@ class SRPCTraceServiceClientImpl : public SRPCTraceServiceClient {
   virtual starpc::Error StartTrace(const s4wave::trace::StartTraceRequest& in, s4wave::trace::StartTraceResponse* out) override;
   // StopTrace
   virtual std::pair<std::unique_ptr<SRPCTraceService_StopTraceClient>, starpc::Error> StopTrace(const s4wave::trace::StopTraceRequest& in) override;
+  // CaptureCPUProfile
+  virtual std::pair<std::unique_ptr<SRPCTraceService_CaptureCPUProfileClient>, starpc::Error> CaptureCPUProfile(const s4wave::trace::CaptureCPUProfileRequest& in) override;
 
  private:
   starpc::Client* cc_;
@@ -69,6 +75,8 @@ class SRPCTraceServiceServer {
   virtual starpc::Error StartTrace(const s4wave::trace::StartTraceRequest& req, s4wave::trace::StartTraceResponse* resp) = 0;
   // StopTrace
   virtual starpc::Error StopTrace(const s4wave::trace::StopTraceRequest& req, SRPCTraceService_StopTraceStream* strm) = 0;
+  // CaptureCPUProfile
+  virtual starpc::Error CaptureCPUProfile(const s4wave::trace::CaptureCPUProfileRequest& req, SRPCTraceService_CaptureCPUProfileStream* strm) = 0;
 };
 
 // SRPCTraceServiceHandler implements starpc::Handler for TraceService.
@@ -131,6 +139,41 @@ class SRPCTraceService_StopTraceStream {
   }
 
   starpc::Error SendAndClose(const s4wave::trace::StopTraceResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCTraceService_CaptureCPUProfileClient is the client stream for CaptureCPUProfile.
+class SRPCTraceService_CaptureCPUProfileClient {
+ public:
+  explicit SRPCTraceService_CaptureCPUProfileClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::trace::CaptureCPUProfileResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCTraceService_CaptureCPUProfileStream is the server stream for CaptureCPUProfile.
+class SRPCTraceService_CaptureCPUProfileStream {
+ public:
+  explicit SRPCTraceService_CaptureCPUProfileStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::trace::CaptureCPUProfileResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::trace::CaptureCPUProfileResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();

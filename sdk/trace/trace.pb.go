@@ -78,6 +78,55 @@ func (x *StopTraceResponse) GetData() []byte {
 	return nil
 }
 
+// CaptureCPUProfileRequest is the request for CaptureCPUProfile.
+type CaptureCPUProfileRequest struct {
+	unknownFields []byte
+	// DurationMillis is the CPU profile capture duration in milliseconds.
+	DurationMillis uint32 `protobuf:"varint,1,opt,name=duration_millis,json=durationMillis,proto3" json:"durationMillis,omitempty"`
+	// Label is an optional human-readable label for the capture.
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+}
+
+func (x *CaptureCPUProfileRequest) Reset() {
+	*x = CaptureCPUProfileRequest{}
+}
+
+func (*CaptureCPUProfileRequest) ProtoMessage() {}
+
+func (x *CaptureCPUProfileRequest) GetDurationMillis() uint32 {
+	if x != nil {
+		return x.DurationMillis
+	}
+	return 0
+}
+
+func (x *CaptureCPUProfileRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+// CaptureCPUProfileResponse is a streamed response chunk for CaptureCPUProfile.
+type CaptureCPUProfileResponse struct {
+	unknownFields []byte
+	// Data is a chunk of the raw pprof CPU profile bytes.
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (x *CaptureCPUProfileResponse) Reset() {
+	*x = CaptureCPUProfileResponse{}
+}
+
+func (*CaptureCPUProfileResponse) ProtoMessage() {}
+
+func (x *CaptureCPUProfileResponse) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 func (m *StartTraceRequest) CloneVT() *StartTraceRequest {
 	if m == nil {
 		return (*StartTraceRequest)(nil)
@@ -139,6 +188,41 @@ func (m *StopTraceResponse) CloneVT() *StopTraceResponse {
 }
 
 func (m *StopTraceResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CaptureCPUProfileRequest) CloneVT() *CaptureCPUProfileRequest {
+	if m == nil {
+		return (*CaptureCPUProfileRequest)(nil)
+	}
+	r := new(CaptureCPUProfileRequest)
+	r.DurationMillis = m.DurationMillis
+	r.Label = m.Label
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CaptureCPUProfileRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CaptureCPUProfileResponse) CloneVT() *CaptureCPUProfileResponse {
+	if m == nil {
+		return (*CaptureCPUProfileResponse)(nil)
+	}
+	r := new(CaptureCPUProfileResponse)
+	if rhs := m.Data; rhs != nil {
+		r.Data = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CaptureCPUProfileResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -210,6 +294,49 @@ func (this *StopTraceResponse) EqualVT(that *StopTraceResponse) bool {
 
 func (this *StopTraceResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*StopTraceResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CaptureCPUProfileRequest) EqualVT(that *CaptureCPUProfileRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DurationMillis != that.DurationMillis {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CaptureCPUProfileRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CaptureCPUProfileRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CaptureCPUProfileResponse) EqualVT(that *CaptureCPUProfileResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if string(this.Data) != string(that.Data) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CaptureCPUProfileResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CaptureCPUProfileResponse)
 	if !ok {
 		return false
 	}
@@ -360,6 +487,98 @@ func (x *StopTraceResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CaptureCPUProfileRequest message to JSON.
+func (x *CaptureCPUProfileRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.DurationMillis != 0 || s.HasField("durationMillis") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("durationMillis")
+		s.WriteUint32(x.DurationMillis)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CaptureCPUProfileRequest to JSON.
+func (x *CaptureCPUProfileRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CaptureCPUProfileRequest message from JSON.
+func (x *CaptureCPUProfileRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "duration_millis", "durationMillis":
+			s.AddField("duration_millis")
+			x.DurationMillis = s.ReadUint32()
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CaptureCPUProfileRequest from JSON.
+func (x *CaptureCPUProfileRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CaptureCPUProfileResponse message to JSON.
+func (x *CaptureCPUProfileResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Data) > 0 || s.HasField("data") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("data")
+		s.WriteBytes(x.Data)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CaptureCPUProfileResponse to JSON.
+func (x *CaptureCPUProfileResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CaptureCPUProfileResponse message from JSON.
+func (x *CaptureCPUProfileResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "data":
+			s.AddField("data")
+			x.Data = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CaptureCPUProfileResponse from JSON.
+func (x *CaptureCPUProfileResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *StartTraceRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -506,6 +725,91 @@ func (m *StopTraceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *CaptureCPUProfileRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CaptureCPUProfileRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CaptureCPUProfileRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.DurationMillis != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DurationMillis))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CaptureCPUProfileResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CaptureCPUProfileResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CaptureCPUProfileResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Data) > 0 {
+		i -= len(m.Data)
+		copy(dAtA[i:], m.Data)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Data)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *StartTraceRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -541,6 +845,37 @@ func (m *StopTraceRequest) SizeVT() (n int) {
 }
 
 func (m *StopTraceResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CaptureCPUProfileRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.DurationMillis != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.DurationMillis))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CaptureCPUProfileResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -611,6 +946,51 @@ func (x *StopTraceResponse) MarshalProtoText() string {
 }
 
 func (x *StopTraceResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CaptureCPUProfileRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CaptureCPUProfileRequest {")
+	if x.DurationMillis != 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("duration_millis: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.DurationMillis), 10))
+	}
+	if x.Label != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CaptureCPUProfileRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CaptureCPUProfileResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CaptureCPUProfileResponse {")
+	if x.Data != nil {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("data: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Data))
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CaptureCPUProfileResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -783,6 +1163,149 @@ func (m *StopTraceResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: StopTraceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CaptureCPUProfileRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CaptureCPUProfileRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CaptureCPUProfileRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DurationMillis", wireType)
+			}
+			m.DurationMillis = 0
+			m.DurationMillis, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CaptureCPUProfileResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CaptureCPUProfileResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CaptureCPUProfileResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

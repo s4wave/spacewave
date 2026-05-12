@@ -84,3 +84,58 @@ export const StopTraceResponse: MessageType<StopTraceResponse> =
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * CaptureCPUProfileRequest is the request for CaptureCPUProfile.
+ *
+ * @generated from message s4wave.trace.CaptureCPUProfileRequest
+ */
+export interface CaptureCPUProfileRequest {
+  /**
+   * DurationMillis is the CPU profile capture duration in milliseconds.
+   *
+   * @generated from field: uint32 duration_millis = 1;
+   */
+  durationMillis?: number
+  /**
+   * Label is an optional human-readable label for the capture.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+}
+
+// CaptureCPUProfileRequest contains the message type declaration for CaptureCPUProfileRequest.
+export const CaptureCPUProfileRequest: MessageType<CaptureCPUProfileRequest> =
+  createMessageType({
+    typeName: 's4wave.trace.CaptureCPUProfileRequest',
+    fields: [
+      { no: 1, name: 'duration_millis', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CaptureCPUProfileResponse is a streamed response chunk for CaptureCPUProfile.
+ *
+ * @generated from message s4wave.trace.CaptureCPUProfileResponse
+ */
+export interface CaptureCPUProfileResponse {
+  /**
+   * Data is a chunk of the raw pprof CPU profile bytes.
+   *
+   * @generated from field: bytes data = 1;
+   */
+  data?: Uint8Array
+}
+
+// CaptureCPUProfileResponse contains the message type declaration for CaptureCPUProfileResponse.
+export const CaptureCPUProfileResponse: MessageType<CaptureCPUProfileResponse> =
+  createMessageType({
+    typeName: 's4wave.trace.CaptureCPUProfileResponse',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
