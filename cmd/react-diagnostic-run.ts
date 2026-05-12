@@ -359,29 +359,29 @@ function formatTopDiagnosticGroups(
     else groups.set(key, [diagnostic])
   }
 
-  return Array.from(groups.entries())
-    .toSorted(([, diagnosticsA], [, diagnosticsB]) => {
-      const severityA = getDiagnosticSeverity(diagnosticsA[0])
-      const severityB = getDiagnosticSeverity(diagnosticsB[0])
-      const severityDelta =
-        severityA === severityB
-          ? 0
-          : severityA === 'error'
-            ? -1
-            : 1
-      if (severityDelta !== 0) return severityDelta
-      return diagnosticsB.length - diagnosticsA.length
-    })
-    .slice(0, 5)
-    .flatMap(([rule, ruleDiagnostics]) => {
-      const first = ruleDiagnostics[0]
-      const severity = getDiagnosticSeverity(first)
-      return [
-        `- ${severity} ${rule} (${pluralize(ruleDiagnostics.length, 'site')}, ${first.category ?? 'Uncategorized'})`,
-        `  ${first.message ?? 'No diagnostic message.'}`,
-        `  ${formatDiagnosticSite(first)}`,
-      ]
-    })
+  const sortedGroups = Array.from(groups.entries())
+  sortedGroups.sort(([, diagnosticsA], [, diagnosticsB]) => {
+    const severityA = getDiagnosticSeverity(diagnosticsA[0])
+    const severityB = getDiagnosticSeverity(diagnosticsB[0])
+    const severityDelta =
+      severityA === severityB
+        ? 0
+        : severityA === 'error'
+          ? -1
+          : 1
+    if (severityDelta !== 0) return severityDelta
+    return diagnosticsB.length - diagnosticsA.length
+  })
+
+  return sortedGroups.slice(0, 5).flatMap(([rule, ruleDiagnostics]) => {
+    const first = ruleDiagnostics[0]
+    const severity = getDiagnosticSeverity(first)
+    return [
+      `- ${severity} ${rule} (${pluralize(ruleDiagnostics.length, 'site')}, ${first.category ?? 'Uncategorized'})`,
+      `  ${first.message ?? 'No diagnostic message.'}`,
+      `  ${formatDiagnosticSite(first)}`,
+    ]
+  })
 }
 
 export function formatReactDiagnosticHumanSummary(
