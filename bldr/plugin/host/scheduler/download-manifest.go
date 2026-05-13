@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	block_copy "github.com/s4wave/spacewave/db/block/copy"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
@@ -54,13 +53,19 @@ func (t *pluginInstance) execDownloadManifest(
 		return ws.AccessWorldState(ctx, ref, func(src *bucket_lookup.Cursor) error {
 			destBucketID := dest.GetOpArgs().GetBucketId()
 			le.Infof("copying manifest DAG from bucket %s to %s", src.GetOpArgs().GetBucketId(), destBucketID)
-			err := block_copy.CopyBlockDAG(ctx, blockRef, bldr_manifest.NewManifestBlock, src.GetBucket(), dest.GetBucket())
+			localRef, err := bucket_lookup.CopyObjectToBucket(
+				ctx,
+				dest,
+				src,
+				bldr_manifest.NewManifestBlock,
+				1,
+				false,
+				nil,
+			)
 			if err != nil {
 				return errors.Wrap(err, "copy manifest block DAG")
 			}
 			if !t.c.conf.GetDisableStoreManifest() {
-				localRef := ref.CloneVT()
-				localRef.BucketId = destBucketID
 				manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifestMeta)
 				if err := bldr_manifest_world.ExStoreManifestOp(
 					ctx,

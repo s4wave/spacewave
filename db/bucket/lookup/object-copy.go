@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 )
 
@@ -57,6 +58,9 @@ func CopyObjectToBucket(
 
 	readBkt := srcCursor.GetBucket()
 	readXfrm := srcCursor.GetTransformer()
+	if readXfrm == nil {
+		readXfrm = block_transform.NewTransformerWithSteps(nil)
+	}
 	writeBkt := writeCursor.GetBucket()
 
 	// Ensure we do not process duplicate blocks by tracking which blocks were seen.
