@@ -5,8 +5,13 @@ package bldr_project_starlark
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+
+	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 )
 
 func TestEvaluateMinimal(t *testing.T) {
@@ -375,6 +380,130 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	for _, want := range []string{"spacewave-web", "spacewave-app"} {
 		if !strings.Contains(jsManifests, want) {
 			t.Fatalf("release remote js manifests missing %s: %v", want, jsBuild.GetManifests())
+		}
+	}
+}
+
+func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
+	starPath := "../../../bldr.star"
+	if _, err := os.Stat(starPath); err != nil {
+		t.Skipf("bldr.star not found at %s: %v", starPath, err)
+	}
+
+	result, err := Evaluate(starPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	core := result.Config.GetManifests()["spacewave-core"]
+	if core == nil {
+		t.Fatal("spacewave-core manifest not found")
+	}
+	coreConf := mustGoPluginConfig(t, core.GetBuilder().GetConfig())
+	assertGoConfigOmitsDesktopStatusProjector(t, "base spacewave-core", coreConf)
+
+	desktopConf := flattenGoConfigForPlatform(t, coreConf, "desktop/darwin/arm64")
+	assertGoConfigHasDesktopStatusProjector(t, "desktop spacewave-core", desktopConf)
+
+	webConf := flattenGoConfigForPlatform(t, coreConf, "web/js/wasm")
+	assertGoConfigOmitsDesktopStatusProjector(t, "web spacewave-core", webConf)
+
+	jsConf := flattenGoConfigForPlatform(t, coreConf, "js")
+	assertGoConfigOmitsDesktopStatusProjector(t, "js spacewave-core", jsConf)
+
+	cli := result.Config.GetManifests()["spacewave"]
+	if cli == nil {
+		t.Fatal("spacewave CLI manifest not found")
+	}
+	cliConf := mustCliConfig(t, cli.GetBuilder().GetConfig())
+	assertCliConfigOmitsDesktopStatusProjector(t, "spacewave CLI", cliConf)
+}
+
+func mustGoPluginConfig(t *testing.T, data []byte) *bldr_plugin_compiler_go.Config {
+	t.Helper()
+	conf := bldr_plugin_compiler_go.NewConfig()
+	if err := conf.UnmarshalJSON(data); err != nil {
+		t.Fatalf("unmarshal Go plugin config: %v\n%s", err, string(data))
+	}
+	return conf
+}
+
+func mustCliConfig(t *testing.T, data []byte) *bldr_cli_compiler.Config {
+	t.Helper()
+	conf := &bldr_cli_compiler.Config{}
+	if err := conf.UnmarshalJSON(data); err != nil {
+		t.Fatalf("unmarshal CLI config: %v\n%s", err, string(data))
+	}
+	return conf
+}
+
+func flattenGoConfigForPlatform(
+	t *testing.T,
+	base *bldr_plugin_compiler_go.Config,
+	platformID string,
+) *bldr_plugin_compiler_go.Config {
+	t.Helper()
+	platform, err := bldr_platform.ParsePlatform(platformID)
+	if err != nil {
+		t.Fatalf("parse platform %q: %v", platformID, err)
+	}
+	conf := base.CloneVT()
+	conf.FlattenPlatformTypes(platform)
+	return conf
+}
+
+func assertGoConfigHasDesktopStatusProjector(
+	t *testing.T,
+	name string,
+	conf *bldr_plugin_compiler_go.Config,
+) {
+	t.Helper()
+	if !slices.Contains(conf.GetGoPkgs(), "./core/resource/desktop/statusprojector") {
+		t.Fatalf("%s missing desktop status projector package: %v", name, conf.GetGoPkgs())
+	}
+	if got := conf.GetConfigSet()["desktop-status-projector"]; got == nil {
+		t.Fatalf("%s missing desktop-status-projector config", name)
+	} else {
+		if got.GetId() != "resource/desktop/status-projector" {
+			t.Fatalf("%s desktop-status-projector config id: got %q", name, got.GetId())
+		}
+	}
+}
+
+func assertGoConfigOmitsDesktopStatusProjector(
+	t *testing.T,
+	name string,
+	conf *bldr_plugin_compiler_go.Config,
+) {
+	t.Helper()
+	if slices.Contains(conf.GetGoPkgs(), "./core/resource/desktop/statusprojector") {
+		t.Fatalf("%s unexpectedly contains desktop status projector package: %v", name, conf.GetGoPkgs())
+	}
+	if got := conf.GetConfigSet()["desktop-status-projector"]; got != nil {
+		t.Fatalf("%s unexpectedly contains desktop-status-projector config: %v", name, got)
+	}
+	for key, cfg := range conf.GetConfigSet() {
+		if cfg.GetId() == "resource/desktop/status-projector" {
+			t.Fatalf("%s unexpectedly contains status projector config %q", name, key)
+		}
+	}
+}
+
+func assertCliConfigOmitsDesktopStatusProjector(
+	t *testing.T,
+	name string,
+	conf *bldr_cli_compiler.Config,
+) {
+	t.Helper()
+	if slices.Contains(conf.GetGoPkgs(), "./core/resource/desktop/statusprojector") {
+		t.Fatalf("%s unexpectedly contains desktop status projector package: %v", name, conf.GetGoPkgs())
+	}
+	if got := conf.GetConfigSet()["desktop-status-projector"]; got != nil {
+		t.Fatalf("%s unexpectedly contains desktop-status-projector config: %v", name, got)
+	}
+	for key, cfg := range conf.GetConfigSet() {
+		if cfg.GetId() == "resource/desktop/status-projector" {
+			t.Fatalf("%s unexpectedly contains status projector config %q", name, key)
 		}
 	}
 }

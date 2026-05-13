@@ -7,7 +7,6 @@
 CORE_GO_PKGS = [
     "./core/resource/root/controller",
     "./core/resource/listener",
-    "./core/resource/desktop/statusprojector",
     "./core/session/controller",
     "./core/provider/local",
     "./core/provider/spacewave",
@@ -55,6 +54,10 @@ def core_config_set(listener_path="git:.spacewave/spacewave.sock"):
         "resource-listener": config_entry("resource/listener", 1, {
             "listenerSocketPath": listener_path,
         }),
+    }
+
+def desktop_status_projector_config_set():
+    return {
         "desktop-status-projector": config_entry("resource/desktop/status-projector", 1),
     }
 
@@ -198,6 +201,12 @@ manifest("spacewave-core",
                         "listenerSocketPath": "~/.spacewave/spacewave.sock",
                     }),
                 },
+            },
+        },
+        "platformTypes": {
+            "desktop": {
+                "goPkgs": ["./core/resource/desktop/statusprojector"],
+                "configSet": desktop_status_projector_config_set(),
             },
         },
         "hostConfigSet": {
