@@ -27,6 +27,7 @@ type bucketHandle struct {
 	v          volume.Volume
 	bucketConf *bucket.Config
 	gcOps      *block_gc.GCStoreOps
+	readOps    block.StoreOps
 }
 
 // clone copies the bucketHandle
@@ -276,6 +277,9 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 // This should return as fast as possible (called frequently).
 // If 0 is returned, uses a default defined by Hydra.
 func (b *bucketHandle) GetHashType() hash.HashType {
+	if b != nil && b.readOps != nil {
+		return b.readOps.GetHashType()
+	}
 	if b != nil && b.v != nil {
 		return b.v.GetHashType()
 	}
@@ -286,6 +290,9 @@ func (b *bucketHandle) GetHashType() hash.HashType {
 func (b *bucketHandle) GetSupportedFeatures() block.StoreFeature {
 	if b == nil || b.v == nil {
 		return block.StoreFeature_STORE_FEATURE_UNKNOWN
+	}
+	if b.readOps != nil {
+		return b.readOps.GetSupportedFeatures() | block.StoreFeatureNativeDeferFlush
 	}
 	features := b.v.GetSupportedFeatures()
 	if b.gcOps != nil {
@@ -304,6 +311,7 @@ func (b *bucketHandle) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 		return nil, nil, err
 	}
 	scoped := b.clone()
+	scoped.readOps = scopedV
 	if v, ok := scopedV.(volume.Volume); ok {
 		scoped.v = v
 	}
@@ -316,6 +324,7 @@ func (b *bucketHandle) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 		}
 		if gcOps, ok := scopedGC.(*block_gc.GCStoreOps); ok {
 			scoped.gcOps = gcOps
+			scoped.readOps = gcOps
 		}
 		releaseGC = release
 	}
@@ -333,6 +342,9 @@ func (b *bucketHandle) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 	if b.bucketConf == nil {
 		return nil, false, bucket.ErrBucketNotFound
 	}
+	if b.readOps != nil {
+		return b.readOps.GetBlock(ctx, ref)
+	}
 
 	return b.v.GetBlock(ctx, ref)
 }
@@ -343,6 +355,9 @@ func (b *bucketHandle) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 	if b.bucketConf == nil {
 		return false, bucket.ErrBucketNotFound
 	}
+	if b.readOps != nil {
+		return b.readOps.GetBlockExists(ctx, ref)
+	}
 
 	return b.v.GetBlockExists(ctx, ref)
 }
@@ -351,6 +366,9 @@ func (b *bucketHandle) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 func (b *bucketHandle) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	if b.bucketConf == nil {
 		return nil, bucket.ErrBucketNotFound
+	}
+	if b.readOps != nil {
+		return b.readOps.GetBlockExistsBatch(ctx, refs)
 	}
 	if b.gcOps != nil {
 		return b.gcOps.GetBlockExistsBatch(ctx, refs)
@@ -363,6 +381,9 @@ func (b *bucketHandle) GetBlockExistsBatch(ctx context.Context, refs []*block.Bl
 func (b *bucketHandle) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	if b.bucketConf == nil {
 		return nil, bucket.ErrBucketNotFound
+	}
+	if b.readOps != nil {
+		return b.readOps.StatBlock(ctx, ref)
 	}
 
 	if b.gcOps != nil {

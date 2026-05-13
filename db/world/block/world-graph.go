@@ -39,6 +39,14 @@ func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.
 	if t.discarded.Load() {
 		return nil, tx.ErrDiscarded
 	}
+	if !t.write && t.store != nil {
+		store, release, err := t.store.BeginReadOperation(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+		ctx = block.WithReadOperationStore(ctx, store)
+	}
 
 	graphHd := world.NewReadOperationCayleyHandle(t.graphHd)
 	return lookupGraphQuadsBatch(ctx, graphHd, filters, limitPerFilter)

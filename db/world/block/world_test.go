@@ -302,6 +302,53 @@ func TestWorldState_QueryGraphPathSeesUncommittedWrite(t *testing.T) {
 	}
 }
 
+func TestWorldState_LookupGraphQuadsBatchSeesUncommittedWrite(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ws.Discard()
+
+	if _, err := ws.CreateObject(ctx, "batch-pending/a", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := ws.CreateObject(ctx, "batch-pending/b", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("batch-pending/a", "<batch-pending-rel>", "batch-pending/b", "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	results, err := ws.LookupGraphQuadsBatch(ctx, []world.GraphQuad{
+		world.NewGraphQuadWithKeys("batch-pending/a", "<batch-pending-rel>", "", ""),
+	}, 10)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(results) != 1 || len(results[0]) != 1 {
+		t.Fatalf("unexpected batch results: %#v", results)
+	}
+	if results[0][0].GetObj() != "<batch-pending/b>" {
+		t.Fatalf("unexpected object: %q", results[0][0].GetObj())
+	}
+}
+
 // TestWorldState_DeleteObject tests the DeleteObject functionality
 func TestWorldState_DeleteObject(t *testing.T) {
 	ctx := context.Background()
