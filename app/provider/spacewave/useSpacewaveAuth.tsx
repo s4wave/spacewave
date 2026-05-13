@@ -7,7 +7,7 @@ import {
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 import { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
+import { useNavigate, usePath } from '@s4wave/web/router/router.js'
 import { CloudProviderConfig } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import type { LoginResult } from '@s4wave/web/ui/login-form.js'
 import { setSSOStartIntent } from './sso-start-intent.js'
@@ -45,6 +45,7 @@ export function useSpacewaveAuth(
   const root = useResourceValue(rootResource)
   const cloudProviderConfig = useCloudProviderConfig()
   const navigate = useNavigate()
+  const path = usePath()
 
   const handleLoginWithPassword = useCallback(
     async (
@@ -152,10 +153,10 @@ export function useSpacewaveAuth(
 
       // Navigate to the SSO wait page which handles both desktop (RPC) and
       // web (OAuth redirect) flows.
-      setSSOStartIntent(provider)
+      setSSOStartIntent(provider, path)
       navigate({ path: `/auth/sso/${provider}` })
     },
-    [cloudProviderConfig, navigate],
+    [cloudProviderConfig, navigate, path],
   )
 
   const handleContinueInBrowser = useCallback(

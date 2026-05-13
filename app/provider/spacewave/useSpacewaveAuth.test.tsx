@@ -44,6 +44,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => mockNavigate,
+  usePath: () => '/u/7/plan',
 }))
 
 vi.mock('@s4wave/sdk/provider/spacewave/spacewave.js', () => ({
@@ -55,8 +56,8 @@ vi.mock('@s4wave/sdk/provider/spacewave/spacewave.js', () => ({
 }))
 
 vi.mock('./sso-start-intent.js', () => ({
-  setSSOStartIntent: (provider: string): void => {
-    mockSetSSOStartIntent(provider)
+  setSSOStartIntent: (provider: string, returnTo: string): void => {
+    mockSetSSOStartIntent(provider, returnTo)
   },
 }))
 
@@ -92,7 +93,7 @@ describe('useSpacewaveAuth SSO', () => {
   it('navigates to the SSO wait page for Google', () => {
     render(<HookHarness />)
     fireEvent.click(screen.getByText('google-sso'))
-    expect(mockSetSSOStartIntent).toHaveBeenCalledWith('google')
+    expect(mockSetSSOStartIntent).toHaveBeenCalledWith('google', '/u/7/plan')
     expect(mockNavigate).toHaveBeenCalledWith({ path: '/auth/sso/google' })
     expect(mockNavigateToSession).not.toHaveBeenCalled()
   })
@@ -100,7 +101,7 @@ describe('useSpacewaveAuth SSO', () => {
   it('navigates to the SSO wait page for GitHub', () => {
     render(<HookHarness />)
     fireEvent.click(screen.getByText('github-sso'))
-    expect(mockSetSSOStartIntent).toHaveBeenCalledWith('github')
+    expect(mockSetSSOStartIntent).toHaveBeenCalledWith('github', '/u/7/plan')
     expect(mockNavigate).toHaveBeenCalledWith({ path: '/auth/sso/github' })
     expect(mockNavigateToSession).not.toHaveBeenCalled()
   })

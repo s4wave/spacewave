@@ -67,8 +67,8 @@ vi.mock('./sso-state.js', () => ({
 }))
 
 vi.mock('./sso-start-intent.js', () => ({
-  consumeSSOStartIntent: (provider: string): boolean =>
-    mockConsumeSSOStartIntent(provider) as boolean,
+  consumeSSOStartIntent: (provider: string): unknown =>
+    mockConsumeSSOStartIntent(provider),
 }))
 
 vi.mock('./useSpacewaveAuth.js', () => ({
@@ -115,7 +115,10 @@ describe('SSOWaitPage', () => {
     mockBytesToBase64.mockReset()
     mockSetPendingSSOState.mockReset()
     mockConsumeSSOStartIntent.mockReset()
-    mockConsumeSSOStartIntent.mockReturnValue(true)
+    mockConsumeSSOStartIntent.mockReturnValue({
+      authorized: true,
+      returnTo: '/login',
+    })
     mockRuntime.isDesktop = true
     mockParams.provider = 'github'
     mockBytesToBase64.mockReturnValue('wrapped-blob')
@@ -207,7 +210,10 @@ describe('SSOWaitPage', () => {
   it('returns stale browser SSO wait routes to login without redirecting', async () => {
     mockRuntime.isDesktop = false
     mockParams.provider = 'google'
-    mockConsumeSSOStartIntent.mockReturnValue(false)
+    mockConsumeSSOStartIntent.mockReturnValue({
+      authorized: false,
+      returnTo: '/sessions',
+    })
     const replace = vi
       .spyOn(window.location, 'replace')
       .mockImplementation(() => {})
@@ -216,7 +222,7 @@ describe('SSOWaitPage', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith({
-        path: '/login',
+        path: '/sessions',
         replace: true,
       })
     })

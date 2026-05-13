@@ -119,8 +119,9 @@ export function SSOWaitPage() {
     if (isDesktop || !provider) return
     const ssoBaseUrl = cloudProviderConfig?.ssoBaseUrl
     if (!ssoBaseUrl) return
-    if (!consumeSSOStartIntent(provider)) {
-      navigate({ path: '/login', replace: true })
+    const intent = consumeSSOStartIntent(provider)
+    if (!intent.authorized) {
+      navigate({ path: intent.returnTo, replace: true })
       return
     }
     queueMicrotask(() => setState({ step: 'redirecting' }))
