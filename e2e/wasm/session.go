@@ -255,6 +255,12 @@ func (s *TestSession) WatchConsole() (<-chan string, func()) {
 	return ch, stop
 }
 
+func (s *TestSession) consoleWatcherCount() int {
+	s.consoleMu.Lock()
+	defer s.consoleMu.Unlock()
+	return len(s.console)
+}
+
 // LoadApp loads the app base URL into the session page.
 func (s *TestSession) LoadApp() error {
 	return s.h.loadAppPage(s)

@@ -494,6 +494,111 @@ func TestRetainedStateResourceSessionSupportsSequentialReuse(t *testing.T) {
 	)
 }
 
+// TestRetainedStateSessionReleaseCleansPerSessionState proves sequential
+// retained-state sessions do not keep page registrations, console watchers,
+// Resource SDK handles, or browser peer leases after release.
+func TestRetainedStateSessionReleaseCleansPerSessionState(t *testing.T) {
+	h := testHarness
+	baselinePages := h.pageSessionCount()
+	baselineLeases := h.browserPeerLeaseCount()
+
+	s1 := h.NewRetainedStateSession(t)
+	firstPage := s1.Page()
+	firstPeer := s1.browserPeer
+	if firstPage == nil {
+		t.Fatal("expected first retained-state session page")
+	}
+	if len(firstPeer) == 0 {
+		t.Fatal("expected first retained-state session peer")
+	}
+	if got := h.LookupSessionByPage(firstPage); got != s1 {
+		t.Fatal("expected first page registration to point at first session")
+	}
+	if got := h.browserPeerLeaseOwner(firstPeer); got != s1 {
+		t.Fatal("expected first peer lease to point at first session")
+	}
+	if s1.Root() == nil || s1.ResourceClient() == nil || s1.BrowserClient() == nil {
+		t.Fatal("expected first session resource handles")
+	}
+
+	stoppedConsole, stopStoppedConsole := s1.WatchConsole()
+	releasedConsole, _ := s1.WatchConsole()
+	if got := s1.consoleWatcherCount(); got != 2 {
+		t.Fatalf("expected two console watchers, got %d", got)
+	}
+	stopStoppedConsole()
+	assertConsoleClosed(t, stoppedConsole)
+	if got := s1.consoleWatcherCount(); got != 1 {
+		t.Fatalf("expected one console watcher after explicit stop, got %d", got)
+	}
+
+	s1.Release()
+	assertConsoleClosed(t, releasedConsole)
+	if got := h.LookupSessionByPage(firstPage); got != nil {
+		t.Fatal("expected first page registration to be removed after release")
+	}
+	if got := h.browserPeerLeaseOwner(firstPeer); got != nil {
+		t.Fatal("expected first peer lease to be removed after release")
+	}
+	if got := h.pageSessionCount(); got != baselinePages {
+		t.Fatalf("expected page registrations to return to %d, got %d", baselinePages, got)
+	}
+	if got := h.browserPeerLeaseCount(); got != baselineLeases {
+		t.Fatalf("expected peer leases to return to %d, got %d", baselineLeases, got)
+	}
+	if s1.Root() != nil || s1.ResourceClient() != nil || s1.BrowserClient() != nil {
+		t.Fatal("expected first session resource handles to be cleared after release")
+	}
+
+	s2 := h.NewRetainedStateSession(t)
+	secondPage := s2.Page()
+	secondPeer := s2.browserPeer
+	if secondPage == nil {
+		t.Fatal("expected second retained-state session page")
+	}
+	if secondPage == firstPage {
+		t.Fatal("expected second retained-state session to use a fresh page")
+	}
+	if len(secondPeer) == 0 {
+		t.Fatal("expected second retained-state session peer")
+	}
+	if got := h.LookupSessionByPage(secondPage); got != s2 {
+		t.Fatal("expected second page registration to point at second session")
+	}
+	if got := h.browserPeerLeaseOwner(secondPeer); got != s2 {
+		t.Fatal("expected second peer lease to point at second session")
+	}
+
+	s2.Release()
+	if got := h.LookupSessionByPage(secondPage); got != nil {
+		t.Fatal("expected second page registration to be removed after release")
+	}
+	if got := h.browserPeerLeaseOwner(secondPeer); got != nil {
+		t.Fatal("expected second peer lease to be removed after release")
+	}
+	if got := h.pageSessionCount(); got != baselinePages {
+		t.Fatalf("expected page registrations to return to %d after second release, got %d", baselinePages, got)
+	}
+	if got := h.browserPeerLeaseCount(); got != baselineLeases {
+		t.Fatalf("expected peer leases to return to %d after second release, got %d", baselineLeases, got)
+	}
+}
+
+func assertConsoleClosed(t testing.TB, ch <-chan string) {
+	t.Helper()
+	timeout := time.After(time.Second)
+	for {
+		select {
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+		case <-timeout:
+			t.Fatal("expected console watcher channel to close")
+		}
+	}
+}
+
 // TestBrowserHelpersAndRawAccess verifies raw Playwright access works.
 func TestBrowserHelpersAndRawAccess(t *testing.T) {
 	sess := testHarness.NewCleanSession(t)

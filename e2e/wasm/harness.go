@@ -417,6 +417,22 @@ func (h *Harness) releaseBrowserPeerLease(s *TestSession, p peer.ID) {
 	}
 }
 
+func (h *Harness) browserPeerLeaseOwner(p peer.ID) *TestSession {
+	if len(p) == 0 {
+		return nil
+	}
+	key := string(p)
+	h.peerLeaseMu.Lock()
+	defer h.peerLeaseMu.Unlock()
+	return h.peerLeases[key]
+}
+
+func (h *Harness) browserPeerLeaseCount() int {
+	h.peerLeaseMu.Lock()
+	defer h.peerLeaseMu.Unlock()
+	return len(h.peerLeases)
+}
+
 func (h *Harness) getRetainedStateResourcePeer() peer.ID {
 	h.retainedStateResourcePeerMu.Lock()
 	defer h.retainedStateResourcePeerMu.Unlock()

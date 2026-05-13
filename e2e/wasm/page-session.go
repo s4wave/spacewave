@@ -27,3 +27,9 @@ func (h *Harness) unregisterPageSession(page playwright.Page) {
 
 	delete(h.pageSessions, page)
 }
+
+func (h *Harness) pageSessionCount() int {
+	h.pageSessionMu.Lock()
+	defer h.pageSessionMu.Unlock()
+	return len(h.pageSessions)
+}
