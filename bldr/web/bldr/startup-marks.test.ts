@@ -66,4 +66,16 @@ describe('startup marks', () => {
       },
     })
   })
+
+  it('continues an existing global startup mark sequence', () => {
+    globalThis.__swStartupMarkSequence = 7
+
+    markStartupBoundary('shell.entrypoint-loaded')
+    markStartupBoundary('shell.container-resolved')
+
+    expect(globalThis.__swStartupMarks?.map((mark) => mark.sequence)).toEqual([
+      7, 8,
+    ])
+    expect(globalThis.__swStartupMarkSequence).toBe(9)
+  })
 })

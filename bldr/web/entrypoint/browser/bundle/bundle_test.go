@@ -150,8 +150,23 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "spacewave:boot-status") {
 		t.Fatalf("boot asset missing boot status event: %s", script)
 	}
+	if !strings.Contains(script, "spacewave.startup.") {
+		t.Fatalf("boot asset missing startup mark prefix: %s", script)
+	}
+	if !strings.Contains(script, "boot-status.") {
+		t.Fatalf("boot asset missing boot status mark labels: %s", script)
+	}
 	if !strings.Contains(script, "__swBootStatus") {
 		t.Fatalf("boot asset missing boot status global: %s", script)
+	}
+	if !strings.Contains(script, "data-sw-boot-progress") {
+		t.Fatalf("boot asset missing progress target support: %s", script)
+	}
+	if !strings.Contains(script, "startupPhaseOrder") {
+		t.Fatalf("boot asset missing startup phase rail ordering: %s", script)
+	}
+	if !strings.Contains(script, "data-sw-boot-phase") {
+		t.Fatalf("boot asset missing startup phase rail target support: %s", script)
 	}
 	if !strings.Contains(script, "canMutateBootStatusTarget") {
 		t.Fatalf("boot asset missing prerender mutation guard: %s", script)

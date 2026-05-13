@@ -446,10 +446,66 @@ async function buildRootTemplate(ctx: PrerenderContext) {
   // based on hasSession/hash. No separate inline script needed.
   const body = `<div id="sw-landing" style="display:flex;flex-direction:column;flex:1;min-height:0">${landingHtml}</div>
       <div id="sw-loading" data-sw-boot-state="loading" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;background:var(--color-background,#0a0a0a)">
-          <div style="text-align:center">
-            <h1 style="font-size:1.5rem;font-weight:600;color:var(--color-foreground,#fafafa)">Spacewave</h1>
-            <p data-sw-boot-status style="font-size:0.875rem;color:var(--color-foreground-alt,#a1a1aa);margin-top:0.75rem">Loading application...</p>
+        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;background:var(--color-background,#0a0a0a);color:var(--color-foreground,#fafafa);overflow:hidden">
+          <div style="display:flex;width:min(30rem,calc(100vw - 2rem));flex-direction:column;align-items:center;gap:1.25rem;text-align:center">
+            <div style="display:flex;height:5rem;width:5rem;align-items:center;justify-content:center;border-radius:1rem;background:color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 10%,transparent);box-shadow:0 0 42px color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 22%,transparent)">
+              <img src="${ctx.iconUrl}" alt="" width="44" height="44" style="display:block;height:2.75rem;width:2.75rem;border-radius:0.75rem"/>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0.5rem">
+              <h1 style="margin:0;font-size:1.5rem;font-weight:600;letter-spacing:0;color:var(--color-foreground,#fafafa)">Spacewave</h1>
+              <p data-sw-boot-status style="margin:0;font-size:0.875rem;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)">Prepare: Preparing browser files.</p>
+              <div style="margin-top:0.5rem;display:flex;width:min(16rem,calc(100vw - 4rem));align-items:center;gap:0.75rem">
+                <div style="height:0.375rem;flex:1;overflow:hidden;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 8%,transparent)">
+                  <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8" style="height:100%;width:8%;border-radius:9999px;background:var(--color-brand,var(--color-logo-blue,#4f8cff));transition:width 200ms"></div>
+                </div>
+                <span data-sw-boot-progress-label style="width:2rem;text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:0.65rem;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent);font-variant-numeric:tabular-nums">8%</span>
+              </div>
+              <p data-sw-boot-error style="display:none;margin:0.5rem 0 0;max-width:20rem;border:1px solid color-mix(in srgb,var(--color-destructive,#ef4444) 15%,transparent);border-radius:0.375rem;background:color-mix(in srgb,var(--color-destructive,#ef4444) 5%,transparent);padding:0.5rem 0.75rem;font-size:0.75rem;line-height:1.5;color:var(--color-destructive,#ef4444)"></p>
+              <div data-sw-boot-error-actions style="display:none;align-items:center;justify-content:center;gap:0.5rem;margin-top:0.25rem">
+                <button data-sw-boot-retry type="button" style="height:2.25rem;border:1px solid color-mix(in srgb,var(--color-foreground,#fafafa) 10%,transparent);border-radius:0.375rem;background:color-mix(in srgb,var(--color-foreground,#fafafa) 5%,transparent);padding:0 0.75rem;color:var(--color-foreground,#fafafa);font-size:0.875rem;font-weight:500">Retry</button>
+                <button data-sw-boot-back type="button" style="height:2.25rem;border:0;border-radius:0.375rem;background:transparent;padding:0 0.75rem;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 80%,transparent);font-size:0.875rem;font-weight:500">Back</button>
+              </div>
+            </div>
+            <ol aria-label="Startup phases" style="display:grid;width:100%;grid-template-columns:repeat(5,minmax(0,1fr));gap:0.5rem;margin:0;padding:0;list-style:none">
+              <li data-sw-boot-phase="prepare" data-sw-boot-phase-state="current" style="min-width:0"><div style="display:flex;height:1.5rem;align-items:center;justify-content:center"><span data-sw-boot-phase-dot style="display:block;height:0.625rem;width:0.625rem;border-radius:9999px;background:var(--color-brand,var(--color-logo-blue,#4f8cff))"></span></div><div data-sw-boot-phase-label style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:0.65rem;font-weight:500;color:var(--color-foreground,#fafafa)">Prepare</div></li>
+              <li data-sw-boot-phase="connect" data-sw-boot-phase-state="pending" style="min-width:0"><div style="display:flex;height:1.5rem;align-items:center;justify-content:center"><span data-sw-boot-phase-dot style="display:block;height:0.625rem;width:0.625rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)"></span></div><div data-sw-boot-phase-label style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:0.65rem;font-weight:500;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)">Connect</div></li>
+              <li data-sw-boot-phase="runtime" data-sw-boot-phase-state="pending" style="min-width:0"><div style="display:flex;height:1.5rem;align-items:center;justify-content:center"><span data-sw-boot-phase-dot style="display:block;height:0.625rem;width:0.625rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)"></span></div><div data-sw-boot-phase-label style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:0.65rem;font-weight:500;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)">Runtime</div></li>
+              <li data-sw-boot-phase="frame" data-sw-boot-phase-state="pending" style="min-width:0"><div style="display:flex;height:1.5rem;align-items:center;justify-content:center"><span data-sw-boot-phase-dot style="display:block;height:0.625rem;width:0.625rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)"></span></div><div data-sw-boot-phase-label style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:0.65rem;font-weight:500;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)">Frame</div></li>
+              <li data-sw-boot-phase="done" data-sw-boot-phase-state="pending" style="min-width:0"><div style="display:flex;height:1.5rem;align-items:center;justify-content:center"><span data-sw-boot-phase-dot style="display:block;height:0.625rem;width:0.625rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)"></span></div><div data-sw-boot-phase-label style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:0.65rem;font-weight:500;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)">Done</div></li>
+            </ol>
+            <div aria-hidden="true" style="position:relative;height:7.5rem;width:100%;overflow:hidden;border-radius:0.5rem;border:1px solid color-mix(in srgb,var(--color-foreground,#fafafa) 8%,transparent);background:color-mix(in srgb,var(--color-background-card,#171717) 35%,transparent);box-shadow:0 1.5rem 4rem color-mix(in srgb,var(--color-background-dark,#000) 45%,transparent)">
+              <div style="display:flex;height:1.75rem;align-items:center;gap:0.375rem;border-bottom:1px solid color-mix(in srgb,var(--color-foreground,#fafafa) 8%,transparent);background:color-mix(in srgb,var(--color-background-card,#171717) 70%,transparent);padding:0 0.75rem">
+                <span style="height:0.5rem;width:0.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-destructive,#ef4444) 75%,transparent)"></span>
+                <span style="height:0.5rem;width:0.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-warning,#f59e0b) 75%,transparent)"></span>
+                <span style="height:0.5rem;width:0.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-success,#22c55e) 75%,transparent)"></span>
+                <span style="margin-left:0.5rem;height:0.5rem;width:4.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 8%,transparent)"></span>
+              </div>
+              <div style="display:grid;height:calc(100% - 1.75rem);grid-template-columns:4.25rem 1fr">
+                <div style="display:flex;flex-direction:column;gap:0.5rem;border-right:1px solid color-mix(in srgb,var(--color-foreground,#fafafa) 6%,transparent);background:color-mix(in srgb,var(--color-background-dark,#000) 35%,transparent);padding:0.5rem">
+                  <span data-sw-boot-preview="0" style="height:0.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 55%,transparent)"></span>
+                  <span data-sw-boot-preview="1" style="height:0.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 10%,transparent)"></span>
+                  <span data-sw-boot-preview="2" style="height:0.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 10%,transparent)"></span>
+                  <span data-sw-boot-preview="3" style="height:0.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 10%,transparent)"></span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 5.5rem;gap:0.75rem;padding:0.75rem">
+                  <div style="display:flex;flex-direction:column;gap:0.5rem">
+                    <span style="height:0.625rem;width:6rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 20%,transparent)"></span>
+                    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.5rem">
+                      <span data-sw-boot-preview="0" style="height:3rem;border-radius:0.375rem;border:1px solid color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 20%,transparent);background:color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 15%,transparent)"></span>
+                      <span data-sw-boot-preview="1" style="height:3rem;border-radius:0.375rem;border:1px solid color-mix(in srgb,var(--color-foreground,#fafafa) 6%,transparent);background:color-mix(in srgb,var(--color-foreground,#fafafa) 4%,transparent)"></span>
+                      <span data-sw-boot-preview="2" style="height:3rem;border-radius:0.375rem;border:1px solid color-mix(in srgb,var(--color-foreground,#fafafa) 6%,transparent);background:color-mix(in srgb,var(--color-foreground,#fafafa) 4%,transparent)"></span>
+                    </div>
+                    <span style="height:0.5rem;width:10.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 10%,transparent)"></span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:0.375rem;border-radius:0.375rem;border:1px solid color-mix(in srgb,var(--color-foreground,#fafafa) 6%,transparent);background:color-mix(in srgb,var(--color-background,#0a0a0a) 35%,transparent);padding:0.5rem">
+                    <span data-sw-boot-preview="0" style="height:0.375rem;width:72%;border-radius:9999px;background:color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 65%,transparent)"></span>
+                    <span data-sw-boot-preview="1" style="height:0.375rem;width:55%;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 10%,transparent)"></span>
+                    <span data-sw-boot-preview="2" style="height:0.375rem;width:88%;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 10%,transparent)"></span>
+                  </div>
+                </div>
+              </div>
+              <span style="position:absolute;right:1rem;bottom:1rem;height:0.5rem;width:0.5rem;border-radius:9999px;background:color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 60%,transparent);box-shadow:0 0 18px var(--color-brand,var(--color-logo-blue,#4f8cff))"></span>
+            </div>
           </div>
         </div>
       </div>`

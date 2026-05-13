@@ -15,6 +15,18 @@ export interface StartupMarkDetail {
   [key: string]: unknown
 }
 
+declare global {
+  var __swStartupMarks:
+    | Array<{
+        name: string
+        label: string
+        sequence: number
+        detail: Record<string, unknown>
+      }>
+    | undefined
+  var __swStartupMarkSequence: number | undefined
+}
+
 let nextStartupMarkSequence = 1
 
 function getPerformance(): Performance | undefined {
@@ -23,16 +35,28 @@ function getPerformance(): Performance | undefined {
     : undefined
 }
 
+function nextSequence(): number {
+  const next = globalThis.__swStartupMarkSequence ?? nextStartupMarkSequence
+  globalThis.__swStartupMarkSequence = next + 1
+  nextStartupMarkSequence = next + 1
+  return next
+}
+
 export function markStartupBoundary(
   label: string,
   detail: StartupMarkDetail = {},
 ): string {
   const name = `${startupMarkPrefix}${label}`
+  const sequence = nextSequence()
   const markDetail: StartupMarkDetail = {
     ...detail,
     label,
-    sequence: nextStartupMarkSequence++,
+    sequence,
   }
+  globalThis.__swStartupMarks = [
+    ...(globalThis.__swStartupMarks ?? []),
+    { name, label, sequence, detail: markDetail },
+  ]
   const perf = getPerformance()
   if (perf) {
     try {
@@ -59,4 +83,6 @@ export function markStartupBoundary(
 
 export function resetStartupMarksForTest(): void {
   nextStartupMarkSequence = 1
+  globalThis.__swStartupMarkSequence = undefined
+  globalThis.__swStartupMarks = undefined
 }

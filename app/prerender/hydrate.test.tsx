@@ -94,9 +94,17 @@ describe('hydrate root hash boot', () => {
     const ready = createReady()
     globalThis.__swReady = ready.promise
     window.history.replaceState({}, '', '/quickstart/drive')
+    const startupMark = vi.fn<(event: Event) => void>()
+    window.addEventListener('spacewave-startup-mark', startupMark)
 
     await import('./hydrate.js')
     expect(mockHydrateRoot).toHaveBeenCalledTimes(1)
+    const startupMarkNames = startupMark.mock.calls.map(
+      ([event]) => (event as CustomEvent<{ name: string }>).detail.name,
+    )
+    expect(startupMarkNames).toContain(
+      'spacewave.startup.quickstart.static-handoff-requested',
+    )
 
     const boot = vi.fn()
     globalThis.__swBoot = boot
@@ -104,6 +112,7 @@ describe('hydrate root hash boot', () => {
     await ready.promise
     await Promise.resolve()
 
+    window.removeEventListener('spacewave-startup-mark', startupMark)
     expect(boot).toHaveBeenCalledWith('#/quickstart/drive')
   }, 15000)
 

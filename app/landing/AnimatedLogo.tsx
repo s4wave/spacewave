@@ -29,10 +29,14 @@ const AnimatedLogo = ({
   className,
   containerClassName,
   followMouse = true,
+  fixedSize,
+  reduceMotion = false,
 }: {
   className?: string
   containerClassName?: string
   followMouse?: boolean
+  fixedSize?: string | number
+  reduceMotion?: boolean
 }) => {
   const [mouse, mouseRef] = useMouse<HTMLDivElement>()
   const docVisible = useDocumentVisibility()
@@ -40,11 +44,12 @@ const AnimatedLogo = ({
   const [elementRect, setElementRect] = useState<DOMRect | null>(null)
   const [isOnScreen, setIsOnScreen] = useState(false)
   const [hasMouse, setHasMouse] = useState(false)
-  const canRunAnimation = isOnScreen && docVisible === 'visible' && isTabActive
-  const canAnimate = followMouse && canRunAnimation && hasMouse
+  const canRunAnimation =
+    !reduceMotion && isOnScreen && docVisible === 'visible' && isTabActive
+  const canAnimate = !reduceMotion && followMouse && canRunAnimation && hasMouse
 
   useEffect(() => {
-    if (!followMouse) return
+    if (!followMouse || reduceMotion) return
 
     const el = mouseRef.current
     if (!el) return
@@ -58,10 +63,10 @@ const AnimatedLogo = ({
     return () => {
       observer.disconnect()
     }
-  }, [followMouse, mouseRef])
+  }, [followMouse, mouseRef, reduceMotion])
 
   useEffect(() => {
-    if (!followMouse) return
+    if (!followMouse || reduceMotion) return
 
     const query = window.matchMedia('(hover: hover) and (pointer: fine)')
     const update = () =>
@@ -72,7 +77,7 @@ const AnimatedLogo = ({
     return () => {
       query.removeEventListener('change', update)
     }
-  }, [followMouse])
+  }, [followMouse, reduceMotion])
 
   useEffect(() => {
     if (!canAnimate || !mouseRef.current) return
@@ -118,17 +123,26 @@ const AnimatedLogo = ({
     }),
     [mousePosition, canAnimate],
   )
+  const fixedSizeStyle =
+    fixedSize ?
+      {
+        width: fixedSize,
+        height: fixedSize,
+      }
+    : undefined
 
   return (
     <div
       ref={mouseRef}
       className={cn('group relative perspective-[1000px]', containerClassName)}
+      style={fixedSizeStyle}
     >
       <div
         className="relative size-20 @lg:h-28 @lg:w-28"
         style={{
+          ...fixedSizeStyle,
           transform: `rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg) scale(${transform.scale})`,
-          transition: 'transform 0.8s ease-out',
+          transition: reduceMotion ? 'none' : 'transform 0.8s ease-out',
         }}
       >
         {/* Background Gradient Layer - Blur for Depth */}
@@ -162,11 +176,17 @@ const AnimatedLogo = ({
             'relative z-10 h-full w-full overflow-hidden rounded-3xl',
             className,
           )}
+          style={fixedSize ? { width: '100%', height: '100%' } : undefined}
         >
           <img
             src={spacewaveIcon}
             alt="Spacewave Icon"
             className="h-full w-full max-w-none"
+            style={
+              fixedSize ?
+                { width: '100%', height: '100%', maxWidth: 'none' }
+              : undefined
+            }
           />
         </div>
       </div>

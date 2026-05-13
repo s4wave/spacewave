@@ -1,7 +1,9 @@
 import { PUBLIC_QUICKSTART_OPTIONS, type QuickstartOption } from './options.js'
-import { useBrowserBootStatus } from '@s4wave/app/prerender/boot-status.js'
+import { BrowserStartupPhaseRail } from '@s4wave/app/loading/AppLoadingScreen.js'
+import { useBrowserStartupProjection } from '@s4wave/app/loading/status/browser-startup.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { usePath } from '@s4wave/web/router/router.js'
+import { LoadingScreen } from '@s4wave/web/ui/loading/LoadingScreen.js'
 
 // QuickstartLoading is a static prerendered page for /quickstart/{id}.
 // Shows the quickstart metadata with a loading indicator. When the
@@ -12,7 +14,7 @@ export function QuickstartLoading() {
   const id = path.split('/').pop() ?? ''
   const option = PUBLIC_QUICKSTART_OPTIONS.find((o) => o.id === id)
   const landingHref = useStaticHref('/')
-  const boot = useBrowserBootStatus()
+  const startup = useBrowserStartupProjection()
 
   if (!option) {
     return (
@@ -25,33 +27,27 @@ export function QuickstartLoading() {
   }
 
   return (
-    <div className="flex min-h-screen flex-1 flex-col items-center justify-center bg-[var(--color-neutral-950)] px-4 text-[var(--color-neutral-100)]">
-      <div className="flex max-w-md flex-col items-center gap-6 text-center">
-        <QuickstartIcon option={option} />
-        <h1 className="text-2xl font-semibold">{option.name}</h1>
-        <p className="text-lg text-[var(--color-neutral-400)]">
+    <LoadingScreen
+      view={{
+        ...startup.view,
+        title: option.name,
+      }}
+      logo={<QuickstartIcon option={option} />}
+      showShineBorder={false}
+    >
+      <div className="flex w-[min(30rem,calc(100vw-2rem))] flex-col items-center gap-5 text-center">
+        <p className="text-foreground-alt/70 max-w-md text-sm leading-relaxed">
           {option.description}
         </p>
-        <div
-          data-sw-boot-state={boot.state}
-          className="flex flex-col items-center gap-3"
-        >
-          <LoadingDots />
-          <p
-            data-sw-boot-status
-            className="min-h-5 text-sm text-[var(--color-neutral-500)]"
-          >
-            {boot.detail}
-          </p>
-        </div>
+        <BrowserStartupPhaseRail phases={startup.phases} />
         <a
           href={landingHref}
-          className="mt-4 text-sm text-[var(--color-neutral-500)] transition-colors hover:text-[var(--color-neutral-300)]"
+          className="text-foreground-alt hover:text-foreground text-sm transition-colors motion-reduce:transition-none"
         >
           Back to home
         </a>
       </div>
-    </div>
+    </LoadingScreen>
   )
 }
 
@@ -60,29 +56,6 @@ function QuickstartIcon(props: { option: QuickstartOption }) {
   return (
     <div className="flex size-16 items-center justify-center rounded-2xl bg-[var(--color-neutral-900)]">
       <Icon className="size-8 text-[var(--color-neutral-300)]" />
-    </div>
-  )
-}
-
-function LoadingDots() {
-  const dots = [
-    { key: 'first', delay: 0 },
-    { key: 'second', delay: 0.2 },
-    { key: 'third', delay: 0.4 },
-  ]
-
-  return (
-    <div className="flex gap-1.5">
-      {dots.map((dot) => (
-        <div
-          key={dot.key}
-          className="size-2 rounded-full bg-[var(--color-neutral-500)]"
-          style={{
-            animation: 'pulse 0.9s ease-in-out infinite',
-            animationDelay: `${dot.delay}s`,
-          }}
-        />
-      ))}
     </div>
   )
 }

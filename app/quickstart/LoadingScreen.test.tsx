@@ -16,9 +16,9 @@ describe('quickstart LoadingScreen', () => {
     render(<LoadingScreen quickstartId="drive" />)
 
     expect(screen.getByText('Setting up drive')).toBeDefined()
-    expect(screen.getByText('Local session')).toBeDefined()
-    expect(screen.getByText('Frame-ready')).toBeDefined()
-    expect(screen.getByText('Content-ready')).toBeDefined()
+    expect(screen.getByText('Local Session')).toBeDefined()
+    expect(screen.getByText('Frame-Ready')).toBeDefined()
+    expect(screen.getByText('Content-Ready')).toBeDefined()
   })
 
   it('shows specific setup progress for the active phase', () => {
@@ -41,7 +41,7 @@ describe('quickstart LoadingScreen', () => {
   it('keeps local-only quickstart progress scoped to session setup', () => {
     render(<LoadingScreen quickstartId="local" />)
 
-    expect(screen.getByText('Local session')).toBeDefined()
+    expect(screen.getByText('Local Session')).toBeDefined()
     expect(screen.queryByText('Space')).toBeNull()
   })
 })

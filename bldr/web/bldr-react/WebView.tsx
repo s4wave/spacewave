@@ -28,6 +28,7 @@ import { FunctionComponentContainer } from './web-view-function.js'
 import { ReactComponentContainer } from './web-view-react.js'
 import { DebugInfo } from './DebugInfo.js'
 import { useLatestRef } from './hooks.js'
+import { markStartupBoundary } from '../bldr/startup-marks.js'
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: BldrWebView) => void
@@ -49,6 +50,8 @@ interface IWebViewProps {
   showDebugInfo?: boolean
   // loading is rendered when the web view is not ready yet (loading).
   loading?: React.ReactNode
+  // startupProgress indicates this WebView is the startup-critical root view.
+  startupProgress?: boolean
   // children are rendered when renderMode is REACT_CHILDREN.
   // If children are passed and no SetRenderMode has been called,
   // the initial renderMode defaults to REACT_CHILDREN instead of NONE.
@@ -146,6 +149,19 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
 
   // parentUuidRef is the current parent uuid ref.
   const parentUuidRef = useLatestRef(parentUuid)
+  const setHtmlLinksSeenRef = useRef(false)
+  const markedStylesheetReadyRef = useRef(false)
+  const markedComponentReadyRef = useRef(false)
+  const markedRevealedRef = useRef(false)
+
+  const resetComponentRevealStartupMarks = useCallback(() => {
+    markedComponentReadyRef.current = false
+    markedRevealedRef.current = false
+  }, [])
+
+  const resetStylesheetStartupMarks = useCallback(() => {
+    markedStylesheetReadyRef.current = false
+  }, [])
 
   // removable marks if this is removable or not
   const removable = useMemo(
@@ -181,6 +197,18 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
 
   // onRemoveRef is a ref to the latest onRemove callback
   const onRemoveRef = useLatestRef(props.onRemove)
+  const markWebViewStartupBoundary = useCallback(
+    (label: string, detail: Record<string, unknown> = {}) => {
+      markStartupBoundary(`webview.${label}`, {
+        source: 'webview',
+        webViewId: uuid,
+        ...(parentUuid ? { parentWebViewId: parentUuid } : {}),
+        startupRelevant: props.startupProgress === true,
+        ...detail,
+      })
+    },
+    [parentUuid, props.startupProgress, uuid],
+  )
 
   const bldrWebViewRef = useRef<BldrWebView | null>(null)
   const bldrWebView: BldrWebView = useMemoManual(
@@ -204,6 +232,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         options: SetRenderModeRequest,
       ): Promise<SetRenderModeResponse | void> {
         console.log(`WebView: set render mode: ${uuid}`, options)
+        setIsComponentReady(false)
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
@@ -215,12 +244,21 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             undefined,
           props: options.props,
         }))
+        resetComponentRevealStartupMarks()
+        if (options.refresh) {
+          resetStylesheetStartupMarks()
+        }
       },
       // setHtmlLinks sets or updates the list of HTML links.
       async setHtmlLinks(
         options: SetHtmlLinksRequest,
       ): Promise<SetHtmlLinksResponse | void> {
         console.log(`WebView: set html links: ${uuid}`, options)
+        setHtmlLinksSeenRef.current = true
+        if (options.clear) {
+          resetStylesheetStartupMarks()
+          markedRevealedRef.current = false
+        }
         setWebViewState((prev) => {
           // Build lookup of previously loaded hrefs to preserve loaded state
           // when the same stylesheet is re-set (e.g. on manifest re-commit).
@@ -268,12 +306,17 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       },
       // resetView resets the web view to the initial state.
       async resetView(): Promise<void> {
+        setIsComponentReady(false)
+        setHtmlLinksSeenRef.current = false
+        resetComponentRevealStartupMarks()
+        resetStylesheetStartupMarks()
         setWebViewState((prev) => {
           const next = { ...prev }
           next.refreshNonce++
           if (next.htmlLinks.length) {
             next.htmlLinks = []
           }
+          next.cssLoaded = true
           if (next.renderMode != null) {
             next.renderMode = RenderMode.RenderMode_NONE
           }
@@ -298,7 +341,16 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         return false
       },
     }),
-    [uuid, removableRef, parentUuidRef, onRemoveRef, bldrWebViewRef],
+    [
+      uuid,
+      removableRef,
+      parentUuidRef,
+      onRemoveRef,
+      bldrWebViewRef,
+      setHtmlLinksSeenRef,
+      resetComponentRevealStartupMarks,
+      resetStylesheetStartupMarks,
+    ],
   )
 
   useEffect(() => {
@@ -338,6 +390,10 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       console.log(
         `WebView: mounted ${uuid} to document ${bldrWebDocument.webDocumentUuid} runtime ${bldrWebDocument.webRuntimeId}`,
       )
+      markWebViewStartupBoundary('registered', {
+        webDocumentId: bldrWebDocument.webDocumentUuid,
+        webRuntimeId: bldrWebDocument.webRuntimeId,
+      })
       // see: this.reg.webViewHost
     } else {
       console.error('Runtime is empty in WebView.')
@@ -349,7 +405,70 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         setWebViewState((prev) => ({ ...prev, ready: false, reg: undefined }))
       }
     }
-  }, [uuid, bldrWebDocument, bldrWebView])
+  }, [uuid, bldrWebDocument, bldrWebView, markWebViewStartupBoundary])
+
+  const stylesheetCount = webViewState.htmlLinks.filter(
+    (link) => link.link.rel === 'stylesheet',
+  ).length
+  useEffect(() => {
+    if (
+      markedStylesheetReadyRef.current ||
+      !webViewState.ready ||
+      !webViewState.cssLoaded ||
+      (!setHtmlLinksSeenRef.current && stylesheetCount === 0)
+    ) {
+      return
+    }
+    markedStylesheetReadyRef.current = true
+    markWebViewStartupBoundary('stylesheet-ready', {
+      stylesheetCount,
+    })
+  }, [
+    markWebViewStartupBoundary,
+    stylesheetCount,
+    webViewState.cssLoaded,
+    webViewState.ready,
+    webViewState.refreshNonce,
+  ])
+
+  const handleComponentReady = useCallback(() => {
+    setIsComponentReady(true)
+    if (markedComponentReadyRef.current) {
+      return
+    }
+    markedComponentReadyRef.current = true
+    markWebViewStartupBoundary('component-ready', {
+      renderMode: webViewState.renderMode,
+      scriptPath: webViewState.scriptPath,
+    })
+  }, [
+    markWebViewStartupBoundary,
+    webViewState.renderMode,
+    webViewState.scriptPath,
+  ])
+
+  useEffect(() => {
+    if (
+      markedRevealedRef.current ||
+      !webViewState.ready ||
+      !webViewState.cssLoaded ||
+      !isComponentReady
+    ) {
+      return
+    }
+    markedRevealedRef.current = true
+    markWebViewStartupBoundary('revealed', {
+      renderMode: webViewState.renderMode,
+      stylesheetCount,
+    })
+  }, [
+    isComponentReady,
+    markWebViewStartupBoundary,
+    stylesheetCount,
+    webViewState.cssLoaded,
+    webViewState.ready,
+    webViewState.renderMode,
+  ])
 
   return (
     <BldrContext.Provider value={childContext}>
@@ -413,7 +532,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
               key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
               scriptPath={webViewState.scriptPath}
               componentProps={webViewState.props}
-              onReady={() => setIsComponentReady(true)}
+              onReady={handleComponentReady}
             />
           </Activity>
         )}
@@ -427,7 +546,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
             scriptPath={webViewState.scriptPath}
             componentProps={webViewState.props}
-            onReady={() => setIsComponentReady(true)}
+            onReady={handleComponentReady}
           />
         </Activity>
       : undefined}

@@ -1,5 +1,7 @@
 /* Tailwind CSS */
 @import 'tailwindcss';
+@source '../../app';
+@source '../../web';
 
 /* Custom variants for height-based responsive design */
 @custom-variant tall (@media (min-height: 800px));

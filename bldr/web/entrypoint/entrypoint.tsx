@@ -8,10 +8,7 @@ import {
 import { WebDocument as BldrWebDocument, WebDocumentOptions } from '@aptre/bldr'
 
 import { setAppPath } from '@s4wave/web/router/app-path.js'
-import {
-  bootStatusEvent,
-  canMutateBrowserBootStatusTarget,
-} from '@s4wave/app/prerender/boot-status.js'
+import { writeBrowserBootStatus } from '@s4wave/app/prerender/boot-status.js'
 
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
 import { markStartupBoundary } from '../bldr/startup-marks.js'
@@ -20,7 +17,12 @@ declare global {
   var __swDeferBoot: boolean | undefined
   var __swBoot: ((hash: string) => void) | undefined
   var __swBootStatus:
-    | { phase: string; detail: string; state: 'loading' | 'error' }
+    | {
+        phase: string
+        detail: string
+        state: 'loading' | 'error'
+        progress?: number
+      }
     | undefined
   var __swPrerenderRoot: Root | undefined
   var __swPrerenderContainer: HTMLElement | undefined
@@ -74,17 +76,7 @@ function setBrowserBootStatus(
   detail: string,
   state: 'loading' | 'error' = 'loading',
 ) {
-  const status = { phase, detail, state }
-  globalThis.__swBootStatus = status
-  const detailTarget = document.querySelector('[data-sw-boot-status]')
-  if (canMutateBrowserBootStatusTarget(detailTarget)) {
-    detailTarget.replaceChildren(detail)
-  }
-  const stateTarget = document.querySelector('[data-sw-boot-state]')
-  if (canMutateBrowserBootStatusTarget(stateTarget)) {
-    stateTarget.setAttribute('data-sw-boot-state', state)
-  }
-  window.dispatchEvent(new CustomEvent(bootStatusEvent, { detail: status }))
+  writeBrowserBootStatus({ phase, detail, state })
 }
 
 // BLDR_STARTUP_JS is an injected variable with the path to the startup js component
@@ -97,7 +89,6 @@ if (typeof BLDR_STARTUP_JS === 'string') {
           async (): Promise<{
             default: React.LazyExoticComponent<React.ComponentType>
           }> =>
-
             (await import(BLDR_STARTUP_JS)) as {
               default: React.LazyExoticComponent<React.ComponentType>
             },

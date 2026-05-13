@@ -78,5 +78,5 @@ export default function Startup() {
     return <PrerenderedApp />
   }, [isStaticPage])
 
-  return <WebView loading={loading} />
+  return <WebView loading={loading} startupProgress />
 }

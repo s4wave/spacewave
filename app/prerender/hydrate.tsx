@@ -20,6 +20,7 @@ import { getStaticPageComponent } from './static-pages.js'
 import { isStaticRoute } from '@s4wave/web/router/static-routes.js'
 import { markInteracted } from '@s4wave/web/state/interaction.js'
 import { RouterProvider, type To } from '@s4wave/web/router/router.js'
+import { markBrowserStartupBoundary } from '@s4wave/app/prerender/boot-status.js'
 import { Landing } from '@s4wave/app/landing/Landing.js'
 import { BlogPostPage } from '@s4wave/app/blog/BlogPost.js'
 import { BlogIndex } from '@s4wave/app/blog/BlogIndex.js'
@@ -176,6 +177,10 @@ if (pathname === '/' && window.location.hash.length > 1) {
         </RouterProvider>,
       )
       // Auto-transition to app quickstart when entrypoint is ready.
+      markBrowserStartupBoundary('quickstart.static-handoff-requested', {
+        source: 'browser',
+        path: pathname,
+      })
       awaitBoot('#' + pathname)
     }
   }

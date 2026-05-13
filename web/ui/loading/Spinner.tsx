@@ -22,7 +22,11 @@ interface SpinnerProps {
 export function Spinner({ size = 'md', className }: SpinnerProps) {
   return (
     <LuLoader
-      className={cn('animate-spin', sizeClasses[size], className)}
+      className={cn(
+        'animate-spin motion-reduce:animate-none',
+        sizeClasses[size],
+        className,
+      )}
       aria-hidden="true"
     />
   )

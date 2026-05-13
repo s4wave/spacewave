@@ -21,7 +21,7 @@ describe('QuickstartLoading', () => {
     globalThis.__swBootStatus = undefined
   })
 
-  it('renders the current browser boot status', () => {
+  it('renders the projected browser startup phase', () => {
     globalThis.__swBootStatus = {
       phase: 'wasm',
       detail: 'Preparing runtime...',
@@ -30,14 +30,20 @@ describe('QuickstartLoading', () => {
 
     renderQuickstartLoading()
 
-    expect(screen.getByText('Preparing runtime...')).toBeTruthy()
+    expect(screen.getByText('Connect: Connecting the app shell.')).toBeTruthy()
+    expect(screen.getByText('30%')).toBeTruthy()
     expect(screen.getByText('Create a Drive')).toBeTruthy()
+    expect(screen.getByLabelText('Startup phases')).toBeTruthy()
+    expect(screen.getByText('Prepare')).toBeTruthy()
+    expect(screen.getByText('Runtime')).toBeTruthy()
+    expect(screen.getByText('Frame')).toBeTruthy()
+    expect(screen.getByText('Done')).toBeTruthy()
   })
 
-  it('renders the default boot status before boot progress arrives', () => {
+  it('renders the default startup projection before boot progress arrives', () => {
     renderQuickstartLoading()
 
-    expect(screen.getByText('Loading application...')).toBeTruthy()
+    expect(screen.getByText('Prepare: Preparing browser files.')).toBeTruthy()
   })
 
   it('treats dynamic quickstart ids as unknown public routes', () => {

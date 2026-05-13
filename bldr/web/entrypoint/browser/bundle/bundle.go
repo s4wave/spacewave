@@ -101,16 +101,76 @@ func WriteStableBootAsset(dir string) error {
 	const bootAsset = `const releasePath='/browser-release.json';
 const g=globalThis;
 const bootStatusEvent='spacewave:boot-status';
+const startupMarkPrefix='spacewave.startup.';
+const startupMarkEvent='spacewave-startup-mark';
 let releasePromise;
 let primePromise;
+let nextStartupMarkSequence=1;
+const phaseProgress={loading:.04,manifest:.12,'manifest-ready':.22,wasm:.38,entrypoint:.54,runtime:.76,ready:.9,app:.96};
+const startupPhaseInfo={
+  prepare:{label:'Prepare',detail:'Preparing browser files.',progress:.08},
+  connect:{label:'Connect',detail:'Connecting the app shell.',progress:.3},
+  runtime:{label:'Runtime',detail:'Starting the Spacewave runtime.',progress:.58},
+  frame:{label:'Frame',detail:'Opening the app frame.',progress:.84},
+  done:{label:'Done',detail:'Spacewave is ready.',progress:1}
+};
+const startupPhaseOrder=['prepare','connect','runtime','frame','done'];
+const bootPhaseStartupPhase={loading:'prepare',manifest:'prepare','manifest-ready':'prepare','manifest-error':'prepare',wasm:'connect',entrypoint:'connect','entrypoint-error':'connect',runtime:'runtime',ready:'runtime','runtime-error':'runtime',app:'frame'};
+function startupDisplayForBootPhase(phase,state){
+  const id=bootPhaseStartupPhase[phase]||'prepare';
+  const info=startupPhaseInfo[id];
+  return {id:id,detail:info.label+': '+info.detail,progress:info.progress,error:state==='error'};
+}
+function markStartupBoundary(label,detail){
+  const name=startupMarkPrefix+label;
+  const sequence=g.__swStartupMarkSequence??nextStartupMarkSequence;
+  g.__swStartupMarkSequence=sequence+1;
+  nextStartupMarkSequence=sequence+1;
+  const markDetail=Object.assign({},detail||{},{label:label,sequence:sequence});
+  g.__swStartupMarks=(g.__swStartupMarks||[]).concat([{name:name,label:label,sequence:sequence,detail:markDetail}]);
+  if(g.performance&&typeof g.performance.mark==='function'){
+    try{g.performance.mark(name,{detail:markDetail})}catch(_){g.performance.mark(name)}
+  }
+  window.dispatchEvent(new CustomEvent(startupMarkEvent,{detail:{name:name,detail:markDetail}}));
+  return name;
+}
 function setBootStatus(phase,detail,state){
+  const progress=phaseProgress[phase];
   const status={phase,detail:detail||phase,state:state||'loading'};
+  const display=startupDisplayForBootPhase(phase,status.state);
+  if(progress!==undefined)status.progress=progress;
   g.__swBootStatus=status;
   const target=document.querySelector('[data-sw-boot-status]');
-  if(canMutateBootStatusTarget(target))target.textContent=status.detail;
+  if(canMutateBootStatusTarget(target))target.textContent=display.detail;
   const stateTarget=document.querySelector('[data-sw-boot-state]');
   if(canMutateBootStatusTarget(stateTarget))stateTarget.setAttribute('data-sw-boot-state',status.state);
+  if(display.progress!==undefined){
+    const pct=Math.round(display.progress*100);
+    const progressTarget=document.querySelector('[data-sw-boot-progress]');
+    if(canMutateBootStatusTarget(progressTarget)){
+      progressTarget.style.width=pct+'%';
+      progressTarget.setAttribute('aria-valuenow',String(pct));
+    }
+    const progressLabel=document.querySelector('[data-sw-boot-progress-label]');
+    if(canMutateBootStatusTarget(progressLabel))progressLabel.textContent=pct+'%';
+  }
+  updateStaticPhaseRail(display.id,status.state);
+  markStartupBoundary('boot-status.'+phase,{source:'boot',phase:phase,state:status.state,progress:status.progress});
   window.dispatchEvent(new CustomEvent(bootStatusEvent,{detail:status}));
+}
+function updateStaticPhaseRail(currentID,bootState){
+  const currentIdx=startupPhaseOrder.indexOf(currentID);
+  for(let i=0;i<startupPhaseOrder.length;i++){
+    const phaseID=startupPhaseOrder[i];
+    const target=document.querySelector('[data-sw-boot-phase="'+phaseID+'"]');
+    if(!canMutateBootStatusTarget(target))continue;
+    const phaseState=i<currentIdx?'complete':i===currentIdx&&bootState==='error'?'error':i===currentIdx?'current':'pending';
+    target.setAttribute('data-sw-boot-phase-state',phaseState);
+    const dot=target.querySelector('[data-sw-boot-phase-dot]');
+    if(dot)dot.style.background=phaseState==='error'?'var(--color-destructive,#ef4444)':phaseState==='pending'?'color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)':'var(--color-brand,var(--color-logo-blue,#4f8cff))';
+    const label=target.querySelector('[data-sw-boot-phase-label]');
+    if(label)label.style.color=phaseState==='error'?'var(--color-destructive,#ef4444)':phaseState==='current'?'var(--color-foreground,#fafafa)':phaseState==='complete'?'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)':'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)';
+  }
 }
 function canMutateBootStatusTarget(target){
   if(!target)return false;

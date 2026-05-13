@@ -26,6 +26,8 @@ describe('ProgressBar', () => {
     const { container } = render(<ProgressBar indeterminate />)
     const sweep = container.querySelector('div.animate-progress-indeterminate')
     expect(sweep).toBeTruthy()
+    expect(sweep?.classList.contains('motion-reduce:animate-none')).toBe(true)
+    expect(sweep?.classList.contains('motion-reduce:w-full')).toBe(true)
     expect(screen.queryByText(/%$/)).toBeNull()
   })
 

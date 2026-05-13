@@ -9,10 +9,10 @@ import type {
 } from './create.js'
 
 const progressLabels: Array<{ step: QuickstartProgressStep; label: string }> = [
-  { step: 'session', label: 'Local session' },
+  { step: 'session', label: 'Local Session' },
   { step: 'space', label: 'Space' },
-  { step: 'frame', label: 'Frame-ready' },
-  { step: 'content', label: 'Content-ready' },
+  { step: 'frame', label: 'Frame-Ready' },
+  { step: 'content', label: 'Content-Ready' },
 ]
 
 function getProgressLabels(quickstartId: string) {
