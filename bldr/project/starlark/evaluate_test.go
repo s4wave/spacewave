@@ -461,12 +461,12 @@ func assertGoConfigHasDesktopStatusProjector(
 	if !slices.Contains(conf.GetGoPkgs(), "./core/resource/desktop/statusprojector") {
 		t.Fatalf("%s missing desktop status projector package: %v", name, conf.GetGoPkgs())
 	}
-	if got := conf.GetConfigSet()["desktop-status-projector"]; got == nil {
+	got := conf.GetConfigSet()["desktop-status-projector"]
+	if got == nil {
 		t.Fatalf("%s missing desktop-status-projector config", name)
-	} else {
-		if got.GetId() != "resource/desktop/status-projector" {
-			t.Fatalf("%s desktop-status-projector config id: got %q", name, got.GetId())
-		}
+	}
+	if got.GetId() != "resource/desktop/status-projector" {
+		t.Fatalf("%s desktop-status-projector config id: got %q", name, got.GetId())
 	}
 }
 
