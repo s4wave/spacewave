@@ -19,6 +19,20 @@ func (k *KVTx) GetSupportedFeatures() block.StoreFeature {
 	return k.blk.GetSupportedFeatures()
 }
 
+// BeginReadOperation opens a read scope on the underlying block store.
+func (k *KVTx) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	blk, release, err := k.blk.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &KVTx{
+		conf:  k.conf,
+		kvkey: k.kvkey,
+		blk:   blk,
+		store: k.store,
+	}, release, nil
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.

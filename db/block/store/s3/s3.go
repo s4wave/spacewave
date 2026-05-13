@@ -56,6 +56,11 @@ func (b *S3Block) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeature_STORE_FEATURE_UNKNOWN
 }
 
+// BeginReadOperation returns the S3 block store as the scoped read handle.
+func (b *S3Block) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return b, func() {}, nil
+}
+
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (b *S3Block) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {

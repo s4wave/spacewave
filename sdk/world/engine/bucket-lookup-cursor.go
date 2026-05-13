@@ -110,6 +110,10 @@ func (s *sdkBucketLookupStore) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
 
+func (s *sdkBucketLookupStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 func (s *sdkBucketLookupStore) PutBlock(
 	ctx context.Context,
 	data []byte,

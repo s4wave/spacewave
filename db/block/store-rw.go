@@ -54,6 +54,15 @@ func (b *StoreRW) GetSupportedFeatures() StoreFeature {
 	return out
 }
 
+// BeginReadOperation opens a read scope on the read handle.
+func (b *StoreRW) BeginReadOperation(ctx context.Context) (StoreOps, func(), error) {
+	readHandle, release, err := b.readHandle.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return NewStoreRW(readHandle, readHandle), release, nil
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *StoreRW) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {

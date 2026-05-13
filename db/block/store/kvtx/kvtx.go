@@ -2,6 +2,7 @@ package block_store_kvtx
 
 import (
 	"context"
+	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -46,6 +47,19 @@ func (k *KVTxBlock) GetHashType() hash.HashType {
 // GetSupportedFeatures returns the native feature bitmask for the store.
 func (k *KVTxBlock) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+}
+
+// BeginReadOperation opens one read-only kvtx transaction for a bounded read scope.
+func (k *KVTxBlock) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	tx, err := k.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	scope := &readOperation{
+		parent: k,
+		tx:     tx,
+	}
+	return scope, scope.release, nil
 }
 
 // PutBlock puts a block into the store.
@@ -147,6 +161,15 @@ func (k *KVTxBlock) PutBlockBackground(ctx context.Context, data []byte, opts *b
 // GetBlock looks up a block in the store.
 // Returns data, found, and error.
 func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	tx, err := k.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, false, err
+	}
+	defer tx.Discard()
+	return k.getBlock(ctx, tx, ref)
+}
+
+func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) ([]byte, bool, error) {
 	if err := ref.Validate(false); err != nil {
 		return nil, false, err
 	}
@@ -157,13 +180,7 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
-	tx, err := k.store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, false, err
-	}
-
 	data, found, err := tx.Get(ctx, key)
-	tx.Discard()
 	if err != nil || !found {
 		return nil, found, err
 	}
@@ -182,20 +199,116 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	return data, found, err
 }
 
+type readOperation struct {
+	parent *KVTxBlock
+	tx     kvtx.Tx
+	mtx    sync.Mutex
+	closed bool
+}
+
+func (r *readOperation) GetHashType() hash.HashType {
+	return r.parent.GetHashType()
+}
+
+func (r *readOperation) GetSupportedFeatures() block.StoreFeature {
+	return r.parent.GetSupportedFeatures()
+}
+
+func (r *readOperation) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return r, func() {}, nil
+}
+
+func (r *readOperation) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
+	return nil, false, ErrReadOperationReadOnly
+}
+
+func (r *readOperation) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
+	return ErrReadOperationReadOnly
+}
+
+func (r *readOperation) PutBlockBackground(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
+	return nil, false, ErrReadOperationReadOnly
+}
+
+func (r *readOperation) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	if r.closed {
+		return nil, false, ErrReadOperationClosed
+	}
+	return r.parent.getBlock(ctx, r.tx, ref)
+}
+
+func (r *readOperation) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	if r.closed {
+		return false, ErrReadOperationClosed
+	}
+	return r.parent.getBlockExists(ctx, r.tx, ref)
+}
+
+func (r *readOperation) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := r.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
+func (r *readOperation) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	if r.closed {
+		return nil, ErrReadOperationClosed
+	}
+	return r.parent.statBlock(ctx, r.tx, ref)
+}
+
+func (r *readOperation) RmBlock(context.Context, *block.BlockRef) error {
+	return ErrReadOperationReadOnly
+}
+
+func (r *readOperation) Flush(context.Context) error {
+	return nil
+}
+
+func (r *readOperation) BeginDeferFlush() {}
+
+func (r *readOperation) EndDeferFlush(context.Context) error {
+	return nil
+}
+
+func (r *readOperation) release() {
+	r.mtx.Lock()
+	if !r.closed {
+		r.closed = true
+		r.tx.Discard()
+	}
+	r.mtx.Unlock()
+}
+
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any exceptional error.
 func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	rm, err := ref.MarshalKey()
-	if err != nil {
-		return false, err
-	}
-	key := k.kvkey.GetBlockKey(rm)
-
 	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return false, err
 	}
 	defer tx.Discard()
+	return k.getBlockExists(ctx, tx, ref)
+}
+
+func (k *KVTxBlock) getBlockExists(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (bool, error) {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return false, err
+	}
+	key := k.kvkey.GetBlockKey(rm)
 
 	return tx.Exists(ctx, key)
 }
@@ -216,17 +329,20 @@ func (k *KVTxBlock) GetBlockExistsBatch(ctx context.Context, refs []*block.Block
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (k *KVTxBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	rm, err := ref.MarshalKey()
-	if err != nil {
-		return nil, err
-	}
-	key := k.kvkey.GetBlockKey(rm)
-
 	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
+	return k.statBlock(ctx, tx, ref)
+}
+
+func (k *KVTxBlock) statBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (*block.BlockStat, error) {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return nil, err
+	}
+	key := k.kvkey.GetBlockKey(rm)
 
 	exists, err := tx.Exists(ctx, key)
 	if err != nil || !exists {
@@ -277,4 +393,7 @@ func (k *KVTxBlock) EndDeferFlush(context.Context) error {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*KVTxBlock)(nil))
+var (
+	_ block.StoreOps = ((*KVTxBlock)(nil))
+	_ block.StoreOps = ((*readOperation)(nil))
+)

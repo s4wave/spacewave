@@ -92,6 +92,11 @@ func (s *CdnBlockStore) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
 
+// BeginReadOperation returns the CDN block store as the scoped read handle.
+func (s *CdnBlockStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 // SetWriteback enables local co-block persistence through the underlying
 // packfile store.
 func (s *CdnBlockStore) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {

@@ -272,12 +272,25 @@ func (c *Cursor) CloneWithLocalOnlyReads() *Cursor {
 // BuildTransaction builds a block transaction at the cursor location.
 // putOpts is optional
 func (c *Cursor) BuildTransaction(putOpts *block.PutOpts) (*block.Transaction, *block.Cursor) {
-	return c.BuildTransactionAtRef(putOpts, c.ref.GetRootRef())
+	return c.BuildTransactionWithStore(putOpts, c.bkt)
+}
+
+// BuildTransactionWithStore builds a block transaction using the supplied store.
+func (c *Cursor) BuildTransactionWithStore(putOpts *block.PutOpts, store block.StoreOps) (*block.Transaction, *block.Cursor) {
+	return c.BuildTransactionAtRefWithStore(putOpts, c.ref.GetRootRef(), store)
 }
 
 // BuildTransactionAtRef builds a transaction rooted at the reference.
 func (c *Cursor) BuildTransactionAtRef(putOpts *block.PutOpts, ref *block.BlockRef) (*block.Transaction, *block.Cursor) {
-	return block.NewTransaction(c.bkt, c.xfrm, ref, putOpts)
+	return c.BuildTransactionAtRefWithStore(putOpts, ref, c.bkt)
+}
+
+// BuildTransactionAtRefWithStore builds a transaction rooted at the reference using the supplied store.
+func (c *Cursor) BuildTransactionAtRefWithStore(putOpts *block.PutOpts, ref *block.BlockRef, store block.StoreOps) (*block.Transaction, *block.Cursor) {
+	if store == nil {
+		store = c.bkt
+	}
+	return block.NewTransaction(store, c.xfrm, ref, putOpts)
 }
 
 // FollowRef attempts to follow a object reference using the bucket ID from the reference.

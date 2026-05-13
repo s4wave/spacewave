@@ -41,6 +41,11 @@ func (l *lookupBucket) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeature_STORE_FEATURE_UNKNOWN
 }
 
+// BeginReadOperation returns the lookup bucket as a scoped read handle.
+func (l *lookupBucket) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return l, func() {}, nil
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {

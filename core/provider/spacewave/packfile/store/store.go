@@ -176,6 +176,11 @@ func (s *PackfileStore) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
 
+// BeginReadOperation returns the packfile store as the scoped read handle.
+func (s *PackfileStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 // GetBlock gets a block by reference from the packfile store.
 //
 // The manifest's bloom pruning selects candidate packs, and each candidate

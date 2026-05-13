@@ -76,6 +76,11 @@ func (b *HTTPBlock) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeature_STORE_FEATURE_UNKNOWN
 }
 
+// BeginReadOperation returns the HTTP block store as the scoped read handle.
+func (b *HTTPBlock) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return b, func() {}, nil
+}
+
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {

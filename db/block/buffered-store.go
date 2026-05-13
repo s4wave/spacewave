@@ -91,6 +91,11 @@ func (s *BufferedStore) GetSupportedFeatures() StoreFeature {
 	return s.inner.GetSupportedFeatures() | StoreFeatureNativeFlush | StoreFeatureNativeDeferFlush
 }
 
+// BeginReadOperation returns the buffered store for a read scope.
+func (s *BufferedStore) BeginReadOperation(context.Context) (StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 // PutBlock buffers a block in memory and starts background draining if needed.
 func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
 	if len(data) == 0 {

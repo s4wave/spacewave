@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/quad"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -298,7 +299,9 @@ func (r *WorldStateResource) LookupGraphQuadsBatch(ctx context.Context, req *s4w
 		Limit:       int(req.GetLimitPerFilter()),
 	}
 	var retErr error
+	ctx, readCounter := block.WithReadCounter(ctx)
 	defer func() {
+		recordBlockReadSnapshot(&record, readCounter)
 		r.observeOperation(record, started, retErr)
 	}()
 
@@ -335,9 +338,23 @@ func (r *WorldStateResource) LookupGraphQuadsBatch(ctx context.Context, req *s4w
 
 // ListGraphEdgeBuckets lists grouped inbound/outbound graph edge buckets.
 func (r *WorldStateResource) ListGraphEdgeBuckets(ctx context.Context, req *s4wave_world.ListGraphEdgeBucketsRequest) (*s4wave_world.ListGraphEdgeBucketsResponse, error) {
+	started := time.Now()
+	record := WorldStateOperationRecord{
+		Name:          "ListGraphEdgeBuckets",
+		StartKeyCount: len(req.GetOriginObjectKeys()),
+		Limit:         int(req.GetLimitPerOrigin()),
+	}
+	var retErr error
+	ctx, readCounter := block.WithReadCounter(ctx)
+	defer func() {
+		recordBlockReadSnapshot(&record, readCounter)
+		r.observeOperation(record, started, retErr)
+	}()
+
 	direction, err := graphEdgeBucketDirectionFromProto(req.GetDirection())
 	if err != nil {
-		return nil, err
+		retErr = err
+		return nil, retErr
 	}
 
 	buckets, err := world.ListGraphEdgeBuckets(ctx, r.ws, &world.GraphEdgeBucketQuery{
@@ -347,11 +364,13 @@ func (r *WorldStateResource) ListGraphEdgeBuckets(ctx context.Context, req *s4wa
 		Direction:        direction,
 	})
 	if err != nil {
-		return nil, err
+		retErr = err
+		return nil, retErr
 	}
 
 	out := make([]*s4wave_world.GraphEdgeBucket, len(buckets))
 	for i, bucket := range buckets {
+		record.ResultQuadCount += len(bucket.Outgoing) + len(bucket.Incoming)
 		out[i] = &s4wave_world.GraphEdgeBucket{
 			OriginObjectKey:   bucket.OriginObjectKey,
 			Outgoing:          graphQuadsToProto(bucket.Outgoing),
@@ -360,6 +379,7 @@ func (r *WorldStateResource) ListGraphEdgeBuckets(ctx context.Context, req *s4wa
 			IncomingTruncated: bucket.IncomingTruncated,
 		}
 	}
+	record.ResultSetCount = len(out)
 
 	return &s4wave_world.ListGraphEdgeBucketsResponse{Buckets: out}, nil
 }
@@ -382,7 +402,9 @@ func (r *WorldStateResource) GetObjectRootRefsBatch(ctx context.Context, req *s4
 		ResultObjectCount: 0,
 	}
 	var retErr error
+	ctx, readCounter := block.WithReadCounter(ctx)
 	defer func() {
+		recordBlockReadSnapshot(&record, readCounter)
 		r.observeOperation(record, started, retErr)
 	}()
 
@@ -438,7 +460,9 @@ func (r *WorldStateResource) QueryGraphPath(ctx context.Context, req *s4wave_wor
 		PageSize:      int(req.GetPageSize()),
 	}
 	var retErr error
+	ctx, readCounter := block.WithReadCounter(ctx)
 	defer func() {
+		recordBlockReadSnapshot(&record, readCounter)
 		r.observeOperation(record, started, retErr)
 	}()
 
@@ -551,6 +575,13 @@ func (r *WorldStateResource) observeOperation(record WorldStateOperationRecord, 
 		record.Error = err.Error()
 	}
 	r.operationObserver(record)
+}
+
+func recordBlockReadSnapshot(record *WorldStateOperationRecord, counter *block.ReadCounter) {
+	snapshot := counter.Snapshot()
+	record.BlockReadCount = snapshot.BlockReadCount
+	record.BlockReadBytes = snapshot.BlockReadBytes
+	record.BlockReadMissCount = snapshot.BlockReadMissCount
 }
 
 func graphPathQueryFromProto(req *s4wave_world.QueryGraphPathRequest) (*world.GraphPathQuery, error) {

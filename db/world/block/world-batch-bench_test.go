@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -42,10 +43,12 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 
 	b.Run("primitive-loop", func(b *testing.B) {
 		b.ReportAllocs()
+		var readCount, readBytes uint64
 		for range b.N {
+			opCtx, counter := block.WithReadCounter(ctx)
 			var total int
 			for _, filter := range filters {
-				quads, err := ws.LookupGraphQuads(ctx, filter, 16)
+				quads, err := ws.LookupGraphQuads(opCtx, filter, 16)
 				if err != nil {
 					b.Fatal(err.Error())
 				}
@@ -54,13 +57,19 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 			if total != len(filters) {
 				b.Fatalf("result count = %d, want %d", total, len(filters))
 			}
+			snapshot := counter.Snapshot()
+			readCount += snapshot.BlockReadCount
+			readBytes += snapshot.BlockReadBytes
 		}
+		reportBlockReadMetrics(b, readCount, readBytes)
 	})
 
 	b.Run("owner-batch", func(b *testing.B) {
 		b.ReportAllocs()
+		var readCount, readBytes uint64
 		for range b.N {
-			results, err := ws.LookupGraphQuadsBatch(ctx, filters, 16)
+			opCtx, counter := block.WithReadCounter(ctx)
+			results, err := ws.LookupGraphQuadsBatch(opCtx, filters, 16)
 			if err != nil {
 				b.Fatal(err.Error())
 			}
@@ -71,7 +80,11 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 			if total != len(filters) {
 				b.Fatalf("result count = %d, want %d", total, len(filters))
 			}
+			snapshot := counter.Snapshot()
+			readCount += snapshot.BlockReadCount
+			readBytes += snapshot.BlockReadBytes
 		}
+		reportBlockReadMetrics(b, readCount, readBytes)
 	})
 }
 
@@ -163,4 +176,13 @@ func graphQuadStrings(quads []world.GraphQuad) []string {
 		out[i] = q.GetSubject() + "\x00" + q.GetPredicate() + "\x00" + q.GetObj() + "\x00" + q.GetLabel()
 	}
 	return out
+}
+
+func reportBlockReadMetrics(b *testing.B, readCount, readBytes uint64) {
+	if b.N == 0 {
+		return
+	}
+	denom := float64(b.N)
+	b.ReportMetric(float64(readCount)/denom, "block-reads/op")
+	b.ReportMetric(float64(readBytes)/denom, "block-read-bytes/op")
 }

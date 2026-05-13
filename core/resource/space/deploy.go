@@ -317,6 +317,11 @@ func (s *streamStoreOps) GetBlockExistsBatch(ctx context.Context, refs []*block.
 	return make([]bool, len(refs)), nil
 }
 
+// BeginReadOperation returns the stream source as the scoped read handle.
+func (s *streamStoreOps) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 // PutBlock is not used on the source side.
 func (s *streamStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return nil, false, block_store.ErrReadOnly

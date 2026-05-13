@@ -37,6 +37,19 @@ func (b *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return b.store.GetSupportedFeatures()
 }
 
+// BeginReadOperation opens a read scope on the inner store.
+func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := b.store.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	scopedStore, ok := store.(block_store.Store)
+	if !ok {
+		scopedStore = block_store.NewStore(b.store.GetID(), store)
+	}
+	return &BlockStore{store: scopedStore}, release, nil
+}
+
 // PutBlock forwards to the inner store.
 func (b *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return b.store.PutBlock(ctx, data, opts)

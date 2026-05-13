@@ -42,6 +42,11 @@ func (m *MirrorUnion) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
 
+// BeginReadOperation returns the mirror union as the scoped read handle.
+func (m *MirrorUnion) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return m, func() {}, nil
+}
+
 // PutBlock rejects writes against the mirror.
 func (m *MirrorUnion) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return nil, false, block_store.ErrReadOnly

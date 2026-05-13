@@ -1988,6 +1988,10 @@ func (s *countingBlockStore) GetSupportedFeatures() block.StoreFeature {
 	return s.store.GetSupportedFeatures()
 }
 
+func (s *countingBlockStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 func (s *countingBlockStore) PutBlock(
 	ctx context.Context,
 	data []byte,

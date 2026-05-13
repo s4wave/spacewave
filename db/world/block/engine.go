@@ -331,8 +331,19 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-transformer")
 	xfrm := e.root.GetTransformer()
 	subtask.End()
+	readStore := store
+	var readRelease func()
+	if readOnly {
+		var err error
+		_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/begin-read-operation")
+		readStore, readRelease, err = store.BeginReadOperation(ctx)
+		subtask.End()
+		if err != nil {
+			return nil, err
+		}
+	}
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
-	btx, bcs := e.root.BuildTransaction(nil)
+	btx, bcs := e.root.BuildTransactionWithStore(nil, readStore)
 	subtask.End()
 	if readOnly {
 		btx = nil
@@ -351,7 +362,14 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 		e.verbose,
 	)
 	subtask.End()
-	return ws, err
+	if err != nil {
+		if readRelease != nil {
+			readRelease()
+		}
+		return nil, err
+	}
+	ws.readRelease = readRelease
+	return ws, nil
 }
 
 // _ is a type assertion

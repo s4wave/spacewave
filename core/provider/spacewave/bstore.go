@@ -59,6 +59,19 @@ func (b *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return b.store.GetSupportedFeatures()
 }
 
+// BeginReadOperation opens a read scope on the inner store.
+func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := b.store.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	scopedStore, ok := store.(block_store.Store)
+	if !ok {
+		scopedStore = block_store.NewStore(b.store.GetID(), store)
+	}
+	return &BlockStore{store: scopedStore, forceSync: b.forceSync}, release, nil
+}
+
 // PutBlock forwards to the inner store.
 func (b *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return b.store.PutBlock(ctx, data, opts)
@@ -368,6 +381,15 @@ func (d *dirtyTrackingStore) GetHashType() hash.HashType {
 // GetSupportedFeatures returns the inner store native feature bitset.
 func (d *dirtyTrackingStore) GetSupportedFeatures() block.StoreFeature {
 	return d.store.GetSupportedFeatures()
+}
+
+// BeginReadOperation opens a read scope on the inner store.
+func (d *dirtyTrackingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := d.store.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &dirtyTrackingStore{store: store, markDirty: d.markDirty}, release, nil
 }
 
 // PutBlock puts a block and marks it dirty if new.

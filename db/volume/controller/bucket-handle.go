@@ -294,6 +294,39 @@ func (b *bucketHandle) GetSupportedFeatures() block.StoreFeature {
 	return features | block.StoreFeatureNativeDeferFlush
 }
 
+// BeginReadOperation opens a read scope for the bucket's volume reads.
+func (b *bucketHandle) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	if b == nil || b.v == nil {
+		return b, func() {}, nil
+	}
+	scopedV, releaseV, err := b.v.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	scoped := b.clone()
+	if v, ok := scopedV.(volume.Volume); ok {
+		scoped.v = v
+	}
+	var releaseGC func()
+	if b.gcOps != nil {
+		scopedGC, release, err := b.gcOps.BeginReadOperation(ctx)
+		if err != nil {
+			releaseV()
+			return nil, nil, err
+		}
+		if gcOps, ok := scopedGC.(*block_gc.GCStoreOps); ok {
+			scoped.gcOps = gcOps
+		}
+		releaseGC = release
+	}
+	return scoped, func() {
+		if releaseGC != nil {
+			releaseGC()
+		}
+		releaseV()
+	}, nil
+}
+
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 func (b *bucketHandle) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {

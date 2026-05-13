@@ -96,6 +96,10 @@ func (s *benchBlockStore) GetSupportedFeatures() block.StoreFeature {
 	return s.inner.GetSupportedFeatures()
 }
 
+func (s *benchBlockStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	ref, found, err := s.inner.PutBlock(ctx, data, opts)
 	if err == nil {

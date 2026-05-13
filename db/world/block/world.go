@@ -32,12 +32,13 @@ var objectKeyPrefix = "o/"
 // Note: GetRoot, WaitSeqno are concurrency safe.
 // Note: all other calls are not concurrency safe. Use Tx if you want a mutex.
 type WorldState struct {
-	le        *logrus.Entry
-	btx       *block.Transaction
-	bcs       *block.Cursor
-	write     bool
-	verbose   bool
-	discarded atomic.Bool
+	le          *logrus.Entry
+	btx         *block.Transaction
+	bcs         *block.Cursor
+	write       bool
+	verbose     bool
+	discarded   atomic.Bool
+	readRelease func()
 
 	// store is the raw block store (unwrapped).
 	store block.StoreOps
@@ -469,6 +470,10 @@ func (t *WorldState) Discard() {
 	}
 	if t.gcJournalTree != nil {
 		t.gcJournalTree.Discard()
+	}
+	if t.readRelease != nil {
+		t.readRelease()
+		t.readRelease = nil
 	}
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		broadcast()

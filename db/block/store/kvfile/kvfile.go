@@ -70,6 +70,11 @@ func (k *KvfileBlock) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeature_STORE_FEATURE_UNKNOWN
 }
 
+// BeginReadOperation returns the read-only kvfile block store as the scoped handle.
+func (k *KvfileBlock) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return k, func() {}, nil
+}
+
 // PutBlock puts a block into the store.
 // Stores should check if the block already exists if possible.
 func (k *KvfileBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, exists bool, err error) {

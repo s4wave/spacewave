@@ -595,6 +595,9 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		return nil, false, ErrBlockStoreUnavailable
 	}
 	data, found, err := bkt.GetBlock(ctx, c.pos.ref)
+	if err == nil {
+		recordReadCounter(ctx, found, len(data))
+	}
 	if err != nil || !found {
 		if err == nil {
 			err = ErrNotFound

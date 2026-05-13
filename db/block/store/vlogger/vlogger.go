@@ -38,6 +38,19 @@ func (s *VLoggerStore) GetSupportedFeatures() block.StoreFeature {
 	return s.st.GetSupportedFeatures()
 }
 
+// BeginReadOperation opens a read scope on the wrapped store.
+func (s *VLoggerStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	st, release, err := s.st.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	scopedStore, ok := st.(block_store.Store)
+	if !ok {
+		scopedStore = block_store.NewStore(s.st.GetID(), st)
+	}
+	return &VLoggerStore{le: s.le, st: scopedStore}, release, nil
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.

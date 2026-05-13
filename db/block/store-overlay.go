@@ -83,6 +83,26 @@ func (o *StoreOverlay) GetSupportedFeatures() StoreFeature {
 	}
 }
 
+// BeginReadOperation opens read scopes for the overlay stores.
+func (o *StoreOverlay) BeginReadOperation(ctx context.Context) (StoreOps, func(), error) {
+	lower, lowerRelease, err := o.lower.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	upper, upperRelease, err := o.upper.BeginReadOperation(ctx)
+	if err != nil {
+		lowerRelease()
+		return nil, nil, err
+	}
+	scoped := *o
+	scoped.lower = lower
+	scoped.upper = upper
+	return &scoped, func() {
+		upperRelease()
+		lowerRelease()
+	}, nil
+}
+
 // GetBlock gets a block with the given reference.
 // The ref should not be modified or retained by GetBlock.
 // Returns data, found, error.

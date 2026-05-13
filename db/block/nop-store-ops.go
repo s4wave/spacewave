@@ -22,6 +22,11 @@ func (NopStoreOps) GetSupportedFeatures() StoreFeature {
 	return StoreFeature_STORE_FEATURE_UNKNOWN
 }
 
+// BeginReadOperation returns the no-op store for a read scope.
+func (n NopStoreOps) BeginReadOperation(context.Context) (StoreOps, func(), error) {
+	return n, func() {}, nil
+}
+
 // PutBlock returns ErrBlockStoreUnavailable.
 func (NopStoreOps) PutBlock(context.Context, []byte, *PutOpts) (*BlockRef, bool, error) {
 	return nil, false, ErrBlockStoreUnavailable

@@ -132,6 +132,17 @@ func (g *GCStoreOps) GetStore() block.StoreOps {
 	return g.store
 }
 
+// BeginReadOperation opens a read scope on the inner store.
+func (g *GCStoreOps) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := g.store.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	scoped := *g
+	scoped.store = store
+	return &scoped, release, nil
+}
+
 // PutBlock puts a block into the store and buffers a gc/ref edge for
 // later flush if the block is new. When parentIRI is set, the edge
 // is parentIRI -> block; otherwise unreferenced -> block.

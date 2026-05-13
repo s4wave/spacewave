@@ -71,6 +71,11 @@ func (v *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return v.supportedFeatures
 }
 
+// BeginReadOperation returns the remote store as the scoped read handle.
+func (v *BlockStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return v, func() {}, nil
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.

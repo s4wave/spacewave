@@ -16,6 +16,10 @@ type StoreOps interface {
 	// This should return as fast as possible (called frequently) and remain
 	// static for the lifetime of the store.
 	GetSupportedFeatures() StoreFeature
+	// BeginReadOperation opens a read scope for a bounded logical operation.
+	// The returned store must be released after use. Implementations without
+	// native read-operation state may return themselves with a no-op release.
+	BeginReadOperation(ctx context.Context) (StoreOps, func(), error)
 	// PutBlock puts a block into the store.
 	// The ref should not be modified after return.
 	// The second return value can optionally indicate if the block already existed.

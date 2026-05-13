@@ -28,6 +28,12 @@ type WorldStateOperationRecord struct {
 	ResultObjectCount int
 	// ResourceCreated indicates that the operation attached a resource.
 	ResourceCreated bool
+	// BlockReadCount is the number of block cursor fetches issued by the operation.
+	BlockReadCount uint64
+	// BlockReadBytes is the number of block bytes returned to block cursors.
+	BlockReadBytes uint64
+	// BlockReadMissCount is the number of block cursor fetches that missed.
+	BlockReadMissCount uint64
 }
 
 // WorldStateOperationObserver observes WorldStateResource operation records.

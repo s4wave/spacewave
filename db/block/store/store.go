@@ -52,6 +52,15 @@ func (s *store) GetSupportedFeatures() block.StoreFeature {
 	return s.ops.GetSupportedFeatures()
 }
 
+// BeginReadOperation opens a read scope on the inner StoreOps.
+func (s *store) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	ops, release, err := s.ops.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &store{ops: ops, id: s.id}, release, nil
+}
+
 // PutBlock forwards to the inner StoreOps.
 func (s *store) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return s.ops.PutBlock(ctx, data, opts)

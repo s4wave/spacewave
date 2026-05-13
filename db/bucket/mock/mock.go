@@ -49,6 +49,17 @@ func (b *mockBucket) GetSupportedFeatures() block.StoreFeature {
 	return b.store.GetSupportedFeatures()
 }
 
+// BeginReadOperation opens a read scope on the inner store.
+func (b *mockBucket) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := b.store.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	scoped := *b
+	scoped.store = store
+	return &scoped, release, nil
+}
+
 // PutBlock forwards to the inner store.
 func (b *mockBucket) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return b.store.PutBlock(ctx, data, opts)

@@ -432,6 +432,10 @@ func (s *releaseCDNFallbackWritebackStore) GetBlockExistsBatch(
 	return out, nil
 }
 
+func (s *releaseCDNFallbackWritebackStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 func (s *releaseCDNFallbackWritebackStore) StatBlock(
 	ctx context.Context,
 	ref *block.BlockRef,
