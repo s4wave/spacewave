@@ -99,6 +99,22 @@ export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 const baseURL = import.meta?.url || window.location.origin
 const dedicatedWorkerShutdownGraceMs = 1000
 
+function isFirefoxBrowserRuntime(): boolean {
+  return /\bFirefox\//.test(globalThis.navigator?.userAgent ?? '')
+}
+
+// shouldForceDedicatedWorkers reports whether this browser document should
+// avoid SharedWorker-backed runtime and plugin workers.
+export function shouldForceDedicatedWorkers(
+  forceDedicatedWorkers?: boolean,
+): boolean {
+  return (
+    !!forceDedicatedWorkers ||
+    typeof SharedWorker === 'undefined' ||
+    isFirefoxBrowserRuntime()
+  )
+}
+
 // buildWorkerURL builds the shw.mjs wrapper URL with the user script path,
 // worker type, and plugin marker encoded into the query string.
 function buildWorkerParams(
@@ -723,9 +739,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (opts?.closedCallback) {
       this.closedCallback = opts.closedCallback
     }
-    if (opts?.forceDedicatedWorkers) {
-      this.forceDedicatedWorkers = true
-    }
+    this.forceDedicatedWorkers = shouldForceDedicatedWorkers(
+      opts?.forceDedicatedWorkers,
+    )
 
     // Detect if we can use WebAssembly (not needed for saucer - Go runtime is native).
     if (!this.isSaucer) {
@@ -839,9 +855,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     // Determine whether to use a dedicated Worker instead of SharedWorker.
-    // Forced by option, or when SharedWorker is unavailable (e.g. Chrome Android).
-    const useDedicatedRuntime =
-      this.forceDedicatedWorkers || typeof SharedWorker === 'undefined'
+    const useDedicatedRuntime = this.forceDedicatedWorkers
     markStartupBoundary('runtime.mode-selected', {
       source: 'browser',
       documentId: this.webDocumentUuid,
@@ -1211,7 +1225,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     const workerMode = request.workerMode ?? WebWorkerMode.WORKER_MODE_DEFAULT
     let shared: boolean
-    if (workerMode === WebWorkerMode.WORKER_MODE_DEDICATED) {
+    if (this.forceDedicatedWorkers) {
+      shared = false
+    } else if (workerMode === WebWorkerMode.WORKER_MODE_DEDICATED) {
       shared = false
     } else if (workerMode === WebWorkerMode.WORKER_MODE_SHARED) {
       shared = true

@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { WebDocumentToClient } from '../runtime/runtime.js'
 import { WebWorkerType } from '../document/document.pb.js'
-import { WebDocument, registerUpdatedServiceWorker } from './web-document.js'
+import {
+  WebDocument,
+  registerUpdatedServiceWorker,
+  shouldForceDedicatedWorkers,
+} from './web-document.js'
 import { SabPairBroker } from './sab-pair-broker.js'
 import { resetStartupMarksForTest, startupMarkPrefix } from './startup-marks.js'
 
@@ -98,6 +102,43 @@ describe('registerUpdatedServiceWorker', () => {
 
     expect(result).toBeNull()
     expect(register).not.toHaveBeenCalled()
+  })
+})
+
+describe('shouldForceDedicatedWorkers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('uses dedicated runtime when explicitly forced', () => {
+    vi.stubGlobal('SharedWorker', class {})
+
+    expect(shouldForceDedicatedWorkers(true)).toBe(true)
+  })
+
+  it('uses dedicated runtime when SharedWorker is unavailable', () => {
+    vi.stubGlobal('SharedWorker', undefined)
+
+    expect(shouldForceDedicatedWorkers()).toBe(true)
+  })
+
+  it('uses dedicated runtime for Firefox', () => {
+    vi.stubGlobal('SharedWorker', class {})
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+      'Mozilla/5.0 Firefox/147.0',
+    )
+
+    expect(shouldForceDedicatedWorkers()).toBe(true)
+  })
+
+  it('keeps SharedWorker runtime for non-Firefox browsers with SharedWorker', () => {
+    vi.stubGlobal('SharedWorker', class {})
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+      'Mozilla/5.0 Chrome/143.0.0.0 Safari/537.36',
+    )
+
+    expect(shouldForceDedicatedWorkers()).toBe(false)
   })
 })
 
