@@ -408,17 +408,42 @@ async function matchBrowserIndexCache(
   return responseForMethod(request, response)
 }
 
+async function matchRootNavigationCache(
+  request: Request,
+): Promise<Response | null> {
+  const cacheRequest = buildCacheRequest(rootNavigationPath)
+  if (!canCacheRequest(cacheRequest)) {
+    return null
+  }
+  const cache = await getControlCache()
+  const response = await cache.match(cacheRequest)
+  if (!response) {
+    return null
+  }
+  return responseForMethod(request, response)
+}
+
 async function cacheBrowserIndexResponse(response: Response): Promise<void> {
   if (!response.ok) {
     return
   }
   const cache = await getControlCache()
-  for (const path of [browserIndexPath, rootNavigationPath]) {
-    const request = buildCacheRequest(path)
-    if (canCacheRequest(request)) {
-      await cache.put(request, response.clone())
-    }
+  const request = buildCacheRequest(browserIndexPath)
+  if (canCacheRequest(request)) {
+    await cache.put(request, response.clone())
   }
+}
+
+async function cacheRootNavigationResponse(response: Response): Promise<void> {
+  if (!response.ok) {
+    return
+  }
+  const request = buildCacheRequest(rootNavigationPath)
+  if (!canCacheRequest(request)) {
+    return
+  }
+  const cache = await getControlCache()
+  await cache.put(request, response.clone())
 }
 
 // refreshBrowserIndexCache fetches and stores the runtime browser shell.
@@ -764,13 +789,6 @@ export async function swFetch(
       return promotedResponse
     }
 
-    if (requestPath === rootNavigationPath && isNavigationRequest(request)) {
-      const cachedBrowserIndex = await matchBrowserIndexCache(request)
-      if (cachedBrowserIndex) {
-        return cachedBrowserIndex
-      }
-    }
-
     // Check the cache (for e.x. index.html)
     // NOTE: We do not want this, we want the latest index.html if possible.
     /*
@@ -809,6 +827,13 @@ export async function swFetch(
 
     // request failed, attempt to fall back to cache.
     if (!response || response.status < 200 || response.status >= 300) {
+      if (requestPath === rootNavigationPath && isNavigationRequest(request)) {
+        const cachedRoot = await matchRootNavigationCache(request)
+        if (cachedRoot) {
+          return cachedRoot
+        }
+      }
+
       if (requestPath === bootAssetPath) {
         const bootResponse = await matchStableBootAsset(request)
         if (bootResponse) {
@@ -825,6 +850,14 @@ export async function swFetch(
     // finally throw err if any
     if (responseErr) {
       throw responseErr
+    }
+
+    if (
+      requestPath === rootNavigationPath &&
+      isNavigationRequest(request) &&
+      response
+    ) {
+      await cacheRootNavigationResponse(response)
     }
 
     return response!

@@ -393,7 +393,7 @@ describe('service worker fetch release cache routing', () => {
     expect(proxyFetch).toHaveBeenCalledTimes(2)
   })
 
-  it('serves root navigation requests from the cached runtime browser index', async () => {
+  it('uses native fetch for root navigation requests with only the runtime browser index cached', async () => {
     await writeControlCacheResponse(
       globalThis.caches as unknown as FakeCacheStorage,
       '/b/__index.html',
@@ -409,9 +409,49 @@ describe('service worker fetch release cache routing', () => {
       }),
     )
 
-    expect(await response.text()).toBe('runtime index')
-    expect(fetch).not.toHaveBeenCalled()
+    expect(await response.text()).toBe('network root')
+    expect(fetch).toHaveBeenCalledTimes(1)
     expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('serves root navigation requests from the cached root response', async () => {
+    await writeControlCacheResponse(
+      globalThis.caches as unknown as FakeCacheStorage,
+      '/',
+      new Response('cached root', { status: 200 }),
+    )
+    vi.mocked(fetch).mockRejectedValue(new Error('network unavailable'))
+
+    const response = await swFetch(
+      buildFetchOnlyEvent('/', {
+        headers: { Accept: 'text/html' },
+      }),
+    )
+
+    expect(await response.text()).toBe('cached root')
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('caches successful native root navigation responses', async () => {
+    const caches = new FakeCacheStorage()
+    vi.stubGlobal('caches', caches)
+    vi.mocked(fetch).mockResolvedValue(
+      new Response('network root', { status: 200 }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent('/', {
+        headers: { Accept: 'text/html' },
+      }),
+    )
+
+    expect(await response.text()).toBe('network root')
+    const cache = await caches.open('bldr-control')
+    const rootResponse = await cache.match(
+      new Request(new URL('/', self.location.href)),
+    )
+    expect(await rootResponse?.text()).toBe('network root')
   })
 
   it('uses native fetch for root navigation requests on runtime browser index cache miss', async () => {
@@ -531,7 +571,7 @@ describe('service worker messages', () => {
       new Request(new URL('/b/__index.html', self.location.href)),
     )
 
-    expect(await rootResponse?.text()).toBe('runtime index')
+    expect(rootResponse).toBeUndefined()
     expect(await indexResponse?.text()).toBe('runtime index')
     expect(proxyFetch).toHaveBeenCalledWith(
       expect.anything(),
@@ -541,7 +581,7 @@ describe('service worker messages', () => {
     )
   })
 
-  it('updates cached root and browser index content when the browser index cache is refreshed', async () => {
+  it('updates only cached browser index content when the browser index cache is refreshed', async () => {
     const caches = new FakeCacheStorage()
 
     vi.stubGlobal('BLDR_DEBUG', false)
@@ -561,7 +601,7 @@ describe('service worker messages', () => {
       new Request(new URL('/b/__index.html', self.location.href)),
     )
 
-    expect(await rootResponse?.text()).toBe('fresh index')
+    expect(rootResponse).toBeUndefined()
     expect(await indexResponse?.text()).toBe('fresh index')
   })
 })
