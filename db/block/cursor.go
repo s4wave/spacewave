@@ -590,7 +590,10 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		return nil, false, nil
 	}
 
-	bkt, _ := c.GetBlockStore()
+	bkt := readOperationStore(ctx)
+	if bkt == nil {
+		bkt, _ = c.GetBlockStore()
+	}
 	if bkt == nil {
 		return nil, false, ErrBlockStoreUnavailable
 	}

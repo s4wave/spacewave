@@ -246,6 +246,62 @@ func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
 	}
 }
 
+func TestWorldState_QueryGraphPathSeesUncommittedWrite(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ws.Discard()
+
+	if _, err := ws.CreateObject(ctx, "path-pending/a", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := ws.CreateObject(ctx, "path-pending/b", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("path-pending/a", "<path-pending-rel>", "path-pending/b", "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	result, err := ws.QueryGraphPath(ctx, &world.GraphPathQuery{
+		StartKeys: []string{"path-pending/a"},
+		Steps: []world.GraphPathStep{
+			{
+				Direction: world.GraphPathDirectionOut,
+				Predicate: "<path-pending-rel>",
+				Limit:     10,
+			},
+		},
+		ResultLimit:  10,
+		IncludeQuads: true,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(result.ObjectKeys) != 1 || result.ObjectKeys[0] != "path-pending/b" {
+		t.Fatalf("unexpected object keys: %#v", result.ObjectKeys)
+	}
+	if len(result.Quads) != 1 {
+		t.Fatalf("unexpected quads: %#v", result.Quads)
+	}
+}
+
 // TestWorldState_DeleteObject tests the DeleteObject functionality
 func TestWorldState_DeleteObject(t *testing.T) {
 	ctx := context.Background()

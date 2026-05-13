@@ -88,6 +88,70 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 	})
 }
 
+func BenchmarkWorldStateQueryGraphPathRelationshipFanout(b *testing.B) {
+	ctx := context.Background()
+
+	buildQuery := func(roots []string) *world.GraphPathQuery {
+		return &world.GraphPathQuery{
+			StartKeys: roots,
+			Steps: []world.GraphPathStep{
+				{
+					Direction: world.GraphPathDirectionOut,
+					Predicate: "<bench/path-out>",
+					Limit:     16,
+				},
+			},
+			ResultLimit:  uint32(len(roots)), //nolint:gosec
+			IncludeQuads: true,
+		}
+	}
+
+	b.Run("existing-handle", func(b *testing.B) {
+		ws, roots, cleanup := setupGraphPathBenchWorld(ctx, b, 96)
+		defer cleanup()
+		query := buildQuery(roots)
+		b.ResetTimer()
+		b.ReportAllocs()
+		var readCount, readBytes uint64
+		for range b.N {
+			opCtx, counter := block.WithReadCounter(ctx)
+			result, err := world.QueryGraphPathWithLookups(opCtx, ws, query)
+			if err != nil {
+				b.Fatal(err.Error())
+			}
+			if len(result.ObjectKeys) != len(roots) || len(result.Quads) != len(roots) {
+				b.Fatalf("result keys=%d quads=%d, want %d", len(result.ObjectKeys), len(result.Quads), len(roots))
+			}
+			snapshot := counter.Snapshot()
+			readCount += snapshot.BlockReadCount
+			readBytes += snapshot.BlockReadBytes
+		}
+		reportBlockReadMetrics(b, readCount, readBytes)
+	})
+	b.Run("scoped-read-operation", func(b *testing.B) {
+		ws, roots, cleanup := setupGraphPathBenchWorld(ctx, b, 96)
+		defer cleanup()
+		query := buildQuery(roots)
+		b.ResetTimer()
+		b.ReportAllocs()
+		var readCount, readBytes uint64
+		for range b.N {
+			opCtx, counter := block.WithReadCounter(ctx)
+			result, err := ws.QueryGraphPath(opCtx, query)
+			if err != nil {
+				b.Fatal(err.Error())
+			}
+			if len(result.ObjectKeys) != len(roots) || len(result.Quads) != len(roots) {
+				b.Fatalf("result keys=%d quads=%d, want %d", len(result.ObjectKeys), len(result.Quads), len(roots))
+			}
+			snapshot := counter.Snapshot()
+			readCount += snapshot.BlockReadCount
+			readBytes += snapshot.BlockReadBytes
+		}
+		reportBlockReadMetrics(b, readCount, readBytes)
+	})
+}
+
 func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots int) (*world_block.WorldState, []world.GraphQuad, func()) {
 	tb.Helper()
 
@@ -168,6 +232,73 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 		tbed.Release()
 	}
 	return ws, filters, cleanup
+}
+
+func setupGraphPathBenchWorld(ctx context.Context, tb testing.TB, roots int) (*world_block.WorldState, []string, func()) {
+	tb.Helper()
+
+	le := logrus.NewEntry(logrus.New())
+	tbed, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		tb.Fatal(err.Error())
+	}
+	ocs, err := tbed.BuildEmptyCursor(ctx)
+	if err != nil {
+		tbed.Release()
+		tb.Fatal(err.Error())
+	}
+	writeWs, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		ocs.Release()
+		tbed.Release()
+		tb.Fatal(err.Error())
+	}
+
+	rootKeys := make([]string, roots)
+	for i := range roots {
+		rootKey := "bench/path/root/" + strconv.Itoa(i)
+		targetKey := rootKey + "/target"
+		rootKeys[i] = rootKey
+		if _, err := writeWs.CreateObject(ctx, rootKey, nil); err != nil {
+			writeWs.Discard()
+			ocs.Release()
+			tbed.Release()
+			tb.Fatal(err.Error())
+		}
+		if _, err := writeWs.CreateObject(ctx, targetKey, nil); err != nil {
+			writeWs.Discard()
+			ocs.Release()
+			tbed.Release()
+			tb.Fatal(err.Error())
+		}
+		if err := writeWs.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(rootKey, "<bench/path-out>", targetKey, "")); err != nil {
+			writeWs.Discard()
+			ocs.Release()
+			tbed.Release()
+			tb.Fatal(err.Error())
+		}
+	}
+	if err := writeWs.Commit(ctx); err != nil {
+		writeWs.Discard()
+		ocs.Release()
+		tbed.Release()
+		tb.Fatal(err.Error())
+	}
+	ocs.SetRootRef(writeWs.GetRootRef())
+	writeWs.Discard()
+
+	readWs, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
+	if err != nil {
+		ocs.Release()
+		tbed.Release()
+		tb.Fatal(err.Error())
+	}
+	cleanup := func() {
+		readWs.Discard()
+		ocs.Release()
+		tbed.Release()
+	}
+	return readWs, rootKeys, cleanup
 }
 
 func graphQuadStrings(quads []world.GraphQuad) []string {

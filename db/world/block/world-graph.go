@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -103,7 +104,49 @@ func (t *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQ
 	if t.discarded.Load() {
 		return nil, tx.ErrDiscarded
 	}
-	return world.QueryGraphPathWithLookups(ctx, t, query)
+	if !t.write && t.store != nil {
+		store, release, err := t.store.BeginReadOperation(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+		ctx = block.WithReadOperationStore(ctx, store)
+	}
+	return t.queryGraphPath(ctx, t.graphHd, query)
+}
+
+func (t *WorldState) queryGraphPath(ctx context.Context, graphHd world.CayleyHandle, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	graphHd = world.NewReadOperationCayleyHandle(graphHd)
+	graph := &graphPathReadOperation{
+		WorldState: t,
+		graphHd:    graphHd,
+	}
+	return world.QueryGraphPathWithLookups(ctx, graph, query)
+}
+
+type graphPathReadOperation struct {
+	*WorldState
+
+	graphHd world.CayleyHandle
+}
+
+func (g *graphPathReadOperation) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
+	if write {
+		return g.WorldState.AccessCayleyGraph(ctx, write, cb)
+	}
+	return cb(ctx, g.graphHd)
+}
+
+func (g *graphPathReadOperation) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	return lookupGraphQuads(ctx, g.graphHd, filter, limit)
+}
+
+func (g *graphPathReadOperation) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	return lookupGraphQuadsBatch(ctx, g.graphHd, filters, limitPerFilter)
+}
+
+func (g *graphPathReadOperation) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	return world.QueryGraphPathWithLookups(ctx, g, query)
 }
 
 // SetGraphQuad sets a quad in the graph store.
@@ -290,4 +333,7 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 }
 
 // _ is a type assertion
-var _ world.WorldStateGraph = ((*WorldState)(nil))
+var (
+	_ world.WorldStateGraph = ((*WorldState)(nil))
+	_ world.WorldStateGraph = ((*graphPathReadOperation)(nil))
+)
