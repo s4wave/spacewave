@@ -16,6 +16,7 @@ const mockLoginWithEntityKey = vi.hoisted(() => vi.fn())
 const mockUnwrapPemWithPin = vi.hoisted(() => vi.fn())
 const mockBytesToBase64 = vi.hoisted(() => vi.fn())
 const mockSetPendingSSOState = vi.hoisted(() => vi.fn())
+const mockConsumeSSOStartIntent = vi.hoisted(() => vi.fn())
 const mockRuntime = vi.hoisted(() => ({ isDesktop: true }))
 const mockParams = vi.hoisted(() => ({ provider: 'github' }))
 const mockRoot = vi.hoisted(() => ({
@@ -65,6 +66,11 @@ vi.mock('./sso-state.js', () => ({
   },
 }))
 
+vi.mock('./sso-start-intent.js', () => ({
+  consumeSSOStartIntent: (provider: string): boolean =>
+    mockConsumeSSOStartIntent(provider) as boolean,
+}))
+
 vi.mock('./useSpacewaveAuth.js', () => ({
   useCloudProviderConfig: () => ({
     ssoBaseUrl: 'https://account.test/auth/sso',
@@ -108,6 +114,8 @@ describe('SSOWaitPage', () => {
     mockUnwrapPemWithPin.mockReset()
     mockBytesToBase64.mockReset()
     mockSetPendingSSOState.mockReset()
+    mockConsumeSSOStartIntent.mockReset()
+    mockConsumeSSOStartIntent.mockReturnValue(true)
     mockRuntime.isDesktop = true
     mockParams.provider = 'github'
     mockBytesToBase64.mockReturnValue('wrapped-blob')
@@ -188,10 +196,31 @@ describe('SSOWaitPage', () => {
     render(<SSOWaitPage />)
 
     await waitFor(() => {
+      expect(mockConsumeSSOStartIntent).toHaveBeenCalledWith('google')
       expect(replace).toHaveBeenCalledWith(
         'https://account.test/auth/sso/google?origin=http%3A%2F%2Flocalhost%3A3000',
       )
     })
+    expect(mockStartDesktopSSO).not.toHaveBeenCalled()
+  })
+
+  it('returns stale browser SSO wait routes to login without redirecting', async () => {
+    mockRuntime.isDesktop = false
+    mockParams.provider = 'google'
+    mockConsumeSSOStartIntent.mockReturnValue(false)
+    const replace = vi
+      .spyOn(window.location, 'replace')
+      .mockImplementation(() => {})
+
+    render(<SSOWaitPage />)
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith({
+        path: '/login',
+        replace: true,
+      })
+    })
+    expect(replace).not.toHaveBeenCalled()
     expect(mockStartDesktopSSO).not.toHaveBeenCalled()
   })
 })

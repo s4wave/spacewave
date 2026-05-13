@@ -20,6 +20,7 @@ import {
   withSpacewaveProvider,
 } from './auth-flow-shared.js'
 import { bytesToBase64, unwrapPemWithPin } from './keypair-utils.js'
+import { consumeSSOStartIntent } from './sso-start-intent.js'
 import { setPendingSSOState } from './sso-state.js'
 import { SSOUnlockCard } from './SSOUnlockCard.js'
 import { useCloudProviderConfig } from './useSpacewaveAuth.js'
@@ -118,10 +119,14 @@ export function SSOWaitPage() {
     if (isDesktop || !provider) return
     const ssoBaseUrl = cloudProviderConfig?.ssoBaseUrl
     if (!ssoBaseUrl) return
+    if (!consumeSSOStartIntent(provider)) {
+      navigate({ path: '/login', replace: true })
+      return
+    }
     queueMicrotask(() => setState({ step: 'redirecting' }))
     const origin = encodeURIComponent(window.location.origin)
     window.location.replace(`${ssoBaseUrl}/${provider}?origin=${origin}`)
-  }, [cloudProviderConfig, provider])
+  }, [cloudProviderConfig, navigate, provider])
 
   const handleRetry = useCallback(() => {
     setRetryCount((c) => c + 1)

@@ -5,6 +5,7 @@ import { useSpacewaveAuth } from './useSpacewaveAuth.js'
 
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockNavigateToSession = vi.hoisted(() => vi.fn())
+const mockSetSSOStartIntent = vi.hoisted(() => vi.fn())
 
 vi.mock('@aptre/bldr', () => ({
   isDesktop: true,
@@ -53,6 +54,12 @@ vi.mock('@s4wave/sdk/provider/spacewave/spacewave.js', () => ({
   },
 }))
 
+vi.mock('./sso-start-intent.js', () => ({
+  setSSOStartIntent: (provider: string): void => {
+    mockSetSSOStartIntent(provider)
+  },
+}))
+
 function HookHarness() {
   const auth = useSpacewaveAuth(mockNavigateToSession)
   return (
@@ -75,6 +82,7 @@ describe('useSpacewaveAuth SSO', () => {
     cleanup()
     mockNavigate.mockReset()
     mockNavigateToSession.mockReset()
+    mockSetSSOStartIntent.mockReset()
   })
 
   afterEach(() => {
@@ -84,6 +92,7 @@ describe('useSpacewaveAuth SSO', () => {
   it('navigates to the SSO wait page for Google', () => {
     render(<HookHarness />)
     fireEvent.click(screen.getByText('google-sso'))
+    expect(mockSetSSOStartIntent).toHaveBeenCalledWith('google')
     expect(mockNavigate).toHaveBeenCalledWith({ path: '/auth/sso/google' })
     expect(mockNavigateToSession).not.toHaveBeenCalled()
   })
@@ -91,6 +100,7 @@ describe('useSpacewaveAuth SSO', () => {
   it('navigates to the SSO wait page for GitHub', () => {
     render(<HookHarness />)
     fireEvent.click(screen.getByText('github-sso'))
+    expect(mockSetSSOStartIntent).toHaveBeenCalledWith('github')
     expect(mockNavigate).toHaveBeenCalledWith({ path: '/auth/sso/github' })
     expect(mockNavigateToSession).not.toHaveBeenCalled()
   })

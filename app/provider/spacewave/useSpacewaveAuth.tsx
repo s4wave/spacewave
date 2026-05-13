@@ -10,6 +10,7 @@ import { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { CloudProviderConfig } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import type { LoginResult } from '@s4wave/web/ui/login-form.js'
+import { setSSOStartIntent } from './sso-start-intent.js'
 
 // useCloudProviderConfig fetches the pre-auth cloud provider configuration.
 export function useCloudProviderConfig(): CloudProviderConfig | null {
@@ -151,6 +152,7 @@ export function useSpacewaveAuth(
 
       // Navigate to the SSO wait page which handles both desktop (RPC) and
       // web (OAuth redirect) flows.
+      setSSOStartIntent(provider)
       navigate({ path: `/auth/sso/${provider}` })
     },
     [cloudProviderConfig, navigate],
