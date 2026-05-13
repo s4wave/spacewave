@@ -1,5 +1,4 @@
 //go:build js
-// +build js
 
 package message_port
 
@@ -20,10 +19,12 @@ type MessagePort struct {
 	chObj      js.Value
 	chPost     js.Value
 	uint8Array js.Value
+	onMessage  js.Func
 
-	trig   chan struct{}
-	msgs   cqueue.AtomicLIFO[[]byte]
-	closed bool
+	trig         chan struct{}
+	msgs         cqueue.AtomicLIFO[[]byte]
+	closed       bool
+	onMessageSet bool
 }
 
 // NewMessagePort builds a new MessagePort send/receive pair.
@@ -37,8 +38,8 @@ func NewMessagePort(chObj js.Value) *MessagePort {
 		chPost:     chPost,
 		uint8Array: uint8ArrayCtor,
 	}
-	chObj.Set("onmessage", js.FuncOf(
-		func(t js.Value, args []js.Value) interface{} {
+	s.onMessage = js.FuncOf(
+		func(t js.Value, args []js.Value) any {
 			if len(args) < 1 || s.closed {
 				return nil
 			}
@@ -49,6 +50,7 @@ func NewMessagePort(chObj js.Value) *MessagePort {
 			// data == null -> stream closed
 			if dat.IsNull() {
 				s.closed = true
+				defer s.releaseOnMessage()
 			} else {
 				dlen := dat.Length()
 				bin := make([]byte, dlen)
@@ -57,14 +59,13 @@ func NewMessagePort(chObj js.Value) *MessagePort {
 				s.msgs.Push(bin)
 			}
 
-			if s.trig != nil {
-				close(s.trig)
-				s.trig = nil
-			}
+			s.wakeReader()
 
 			return nil
 		},
-	))
+	)
+	s.onMessageSet = true
+	chObj.Set("onmessage", s.onMessage)
 	chObj.Call("start")
 	return s
 }
@@ -112,7 +113,15 @@ func (s *MessagePort) WriteMessage(p []byte) {
 
 // Close closes the channels.
 func (s *MessagePort) Close() error {
+	if s.closed {
+		s.releaseOnMessage()
+		s.wakeReader()
+		return nil
+	}
+
 	s.closed = true
+	s.releaseOnMessage()
+	s.wakeReader()
 	if s.chPost.IsUndefined() || s.chPost.IsNull() || s.chPost.Type() != js.TypeFunction {
 		panic("message port postMessage unavailable during close")
 	}
@@ -124,4 +133,23 @@ func (s *MessagePort) Close() error {
 	s.chPost.Invoke(js.Null())
 	s.chObj.Call("close")
 	return nil
+}
+
+func (s *MessagePort) wakeReader() {
+	if s.trig == nil {
+		return
+	}
+
+	close(s.trig)
+	s.trig = nil
+}
+
+func (s *MessagePort) releaseOnMessage() {
+	if !s.onMessageSet {
+		return
+	}
+
+	s.chObj.Set("onmessage", js.Null())
+	s.onMessage.Release()
+	s.onMessageSet = false
 }

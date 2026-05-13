@@ -227,6 +227,11 @@ type WebWorkerStatus struct {
 	Shared bool `protobuf:"varint,3,opt,name=shared,proto3" json:"shared,omitempty"`
 	// Ready indicates the worker finished startup and registered with WebRuntime.
 	Ready bool `protobuf:"varint,4,opt,name=ready,proto3" json:"ready,omitempty"`
+	// Failed indicates the worker closed because of a runtime failure.
+	// Normal explicit worker removal or browser lifecycle close leaves this unset.
+	Failed bool `protobuf:"varint,5,opt,name=failed,proto3" json:"failed,omitempty"`
+	// FailureReason contains the worker-provided failure reason, if any.
+	FailureReason string `protobuf:"bytes,6,opt,name=failure_reason,json=failureReason,proto3" json:"failureReason,omitempty"`
 }
 
 func (x *WebWorkerStatus) Reset() {
@@ -261,6 +266,20 @@ func (x *WebWorkerStatus) GetReady() bool {
 		return x.Ready
 	}
 	return false
+}
+
+func (x *WebWorkerStatus) GetFailed() bool {
+	if x != nil {
+		return x.Failed
+	}
+	return false
+}
+
+func (x *WebWorkerStatus) GetFailureReason() string {
+	if x != nil {
+		return x.FailureReason
+	}
+	return ""
 }
 
 // CreateWebViewRequest is a request to create a new web view.
@@ -511,6 +530,8 @@ func (m *WebWorkerStatus) CloneVT() *WebWorkerStatus {
 	r.Deleted = m.Deleted
 	r.Shared = m.Shared
 	r.Ready = m.Ready
+	r.Failed = m.Failed
+	r.FailureReason = m.FailureReason
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -746,6 +767,12 @@ func (this *WebWorkerStatus) EqualVT(that *WebWorkerStatus) bool {
 		return false
 	}
 	if this.Ready != that.Ready {
+		return false
+	}
+	if this.Failed != that.Failed {
+		return false
+	}
+	if this.FailureReason != that.FailureReason {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1214,6 +1241,16 @@ func (x *WebWorkerStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ready")
 		s.WriteBool(x.Ready)
 	}
+	if x.Failed || s.HasField("failed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failed")
+		s.WriteBool(x.Failed)
+	}
+	if x.FailureReason != "" || s.HasField("failureReason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failureReason")
+		s.WriteString(x.FailureReason)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1243,6 +1280,12 @@ func (x *WebWorkerStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "ready":
 			s.AddField("ready")
 			x.Ready = s.ReadBool()
+		case "failed":
+			s.AddField("failed")
+			x.Failed = s.ReadBool()
+		case "failure_reason", "failureReason":
+			s.AddField("failure_reason")
+			x.FailureReason = s.ReadString()
 		}
 	})
 }
@@ -1761,6 +1804,23 @@ func (m *WebWorkerStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.FailureReason) > 0 {
+		i -= len(m.FailureReason)
+		copy(dAtA[i:], m.FailureReason)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.FailureReason)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Failed {
+		i--
+		if m.Failed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
 	if m.Ready {
 		i--
 		if m.Ready {
@@ -2168,6 +2228,13 @@ func (m *WebWorkerStatus) SizeVT() (n int) {
 	if m.Ready {
 		n += 2
 	}
+	if m.Failed {
+		n += 2
+	}
+	l = len(m.FailureReason)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2416,6 +2483,20 @@ func (x *WebWorkerStatus) MarshalProtoText() string {
 		}
 		sb.WriteString("ready: ")
 		sb.WriteString(strconv.FormatBool(x.Ready))
+	}
+	if x.Failed != false {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("failed: ")
+		sb.WriteString(strconv.FormatBool(x.Failed))
+	}
+	if x.FailureReason != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("failure_reason: ")
+		sb.WriteString(strconv.Quote(x.FailureReason))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2937,6 +3018,40 @@ func (m *WebWorkerStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Ready = bool(v != 0)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failed", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Failed = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FailureReason", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FailureReason = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

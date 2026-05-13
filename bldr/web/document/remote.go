@@ -59,6 +59,9 @@ type Remote struct {
 	// sorted by ID
 	// do not retain this slice without holding mtx
 	remoteWebWorkers []*remoteWebWorker
+	// remoteWebWorkerFailures contains failed worker removal events that should
+	// be exposed once through the status container.
+	remoteWebWorkerFailures []*WebWorkerStatus
 }
 
 // NewRemote constructs a new browser runtime.
@@ -510,6 +513,8 @@ func (r *Remote) updateStatusSnapshot() {
 				Ready:  remoteWebWorker.ready,
 			})
 		}
+		status.WebWorkers = append(status.WebWorkers, r.remoteWebWorkerFailures...)
+		r.remoteWebWorkerFailures = nil
 	}
 	r.snapshotCtr.SetValue(status)
 }
@@ -595,6 +600,17 @@ func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerSta
 
 		// delete
 		if status.GetDeleted() {
+			if status.GetFailed() {
+				r.remoteWebWorkerFailures = append(r.remoteWebWorkerFailures, &WebWorkerStatus{
+					Id:            webWorkerID,
+					Deleted:       true,
+					Shared:        status.GetShared(),
+					Ready:         status.GetReady(),
+					Failed:        true,
+					FailureReason: status.GetFailureReason(),
+				})
+				dirty = true
+			}
 			if r.removeRemoteWebWorker(webWorkerID) != nil {
 				dirty = true
 			}

@@ -59,6 +59,13 @@ pub struct WebWorkerStatus {
     /// Ready indicates the worker finished startup and registered with WebRuntime.
     #[prost(bool, tag="4")]
     pub ready: bool,
+    /// Failed indicates the worker closed because of a runtime failure.
+    /// Normal explicit worker removal or browser lifecycle close leaves this unset.
+    #[prost(bool, tag="5")]
+    pub failed: bool,
+    /// FailureReason contains the worker-provided failure reason, if any.
+    #[prost(string, tag="6")]
+    pub failure_reason: ::prost::alloc::string::String,
 }
 /// CreateWebViewRequest is a request to create a new web view.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

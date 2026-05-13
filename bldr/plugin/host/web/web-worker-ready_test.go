@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/pkg/errors"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
 )
 
@@ -34,6 +35,29 @@ func TestWaitForWebWorkerReadyReturnsWhenWorkerDeleted(t *testing.T) {
 
 	if err := waitForWebWorkerReady(context.Background(), ctr, "plugin/test"); err == nil {
 		t.Fatal("expected deleted worker error")
+	}
+}
+
+func TestWaitForWebWorkerReadyReturnsWhenWorkerFailed(t *testing.T) {
+	ctr := ccontainer.NewCContainer[*web_document.WebDocumentStatus](nil)
+	ctr.SetValue(&web_document.WebDocumentStatus{
+		WebWorkers: []*web_document.WebWorkerStatus{{
+			Id:            "plugin/test",
+			Deleted:       true,
+			Failed:        true,
+			FailureReason: "fatal wasm exit",
+		}},
+	})
+
+	err := waitForWebWorkerReady(context.Background(), ctr, "plugin/test")
+	if err == nil {
+		t.Fatal("expected failed worker error")
+	}
+	if got, want := err.Error(), "web worker failed before becoming ready: fatal wasm exit"; got != want {
+		t.Fatalf("unexpected error: got %q want %q", got, want)
+	}
+	if !isWebWorkerFailureError(errors.Wrap(err, "track web document")) {
+		t.Fatal("expected wrapped failure to retain worker failure classification")
 	}
 }
 

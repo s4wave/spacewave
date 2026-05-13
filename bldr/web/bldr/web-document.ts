@@ -1485,10 +1485,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     deleted: boolean,
     shared: boolean,
     ready: boolean,
+    failureReason?: string,
   ) {
     if (this.closed) {
       return
     }
+    const failed = !!failureReason
     const webStatus: WebDocumentStatus = {
       snapshot: false,
       closed: false,
@@ -1500,6 +1502,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           deleted,
           shared,
           ready,
+          failed,
+          failureReason,
         },
       ],
     }
@@ -1658,11 +1662,27 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     if (data.close) {
       // Web worker was closed / removed.
+      const failureReason = data.failureReason
       this.closeWorkerBridgeEndpoint(workerID)
       this.closeSabPairsForWorker(workerID, 'worker closed')
       worker.port.close()
       delete this.webWorkers[workerID]
-      this.notifyWebWorkerUpdated(workerID, true, worker.isShared, worker.ready)
+      if (failureReason) {
+        this.notifyWebWorkerUpdated(
+          workerID,
+          true,
+          worker.isShared,
+          worker.ready,
+          failureReason,
+        )
+      } else {
+        this.notifyWebWorkerUpdated(
+          workerID,
+          true,
+          worker.isShared,
+          worker.ready,
+        )
+      }
       return
     }
 

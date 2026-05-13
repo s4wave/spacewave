@@ -585,4 +585,37 @@ describe('WebDocument SAB pair broker', () => {
       },
     })
   })
+
+  it('marks worker close with a failure reason as failed', () => {
+    const doc = buildTestWebDocument()
+    const close = vi.fn()
+    doc.webWorkers = {
+      'worker-a': {
+        isShared: false,
+        ready: true,
+        workerType: WebWorkerType.NATIVE,
+        port: {
+          close,
+        } as unknown as MessagePort,
+      },
+    }
+
+    doc.onWebWorkerMessage('worker-a', {
+      data: {
+        from: 'worker-a',
+        close: true,
+        failureReason: 'fatal wasm exit',
+      },
+    } as MessageEvent)
+
+    expect(doc.webWorkers['worker-a']).toBeUndefined()
+    expect(close).toHaveBeenCalledOnce()
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-a',
+      true,
+      false,
+      true,
+      'fatal wasm exit',
+    )
+  })
 })

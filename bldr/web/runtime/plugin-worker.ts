@@ -71,6 +71,8 @@ export class PluginWorker {
   private startPluginPromise?: Promise<void>
   // lockAbortController aborts the worker liveness lock on shutdown.
   private lockAbortController?: AbortController
+  // failureCloseReported records that this worker has already published a fatal close.
+  private failureCloseReported?: boolean
   // onSnapshotNow is called when the WebDocument requests an urgent snapshot.
   public onSnapshotNow?: SnapshotNowCallback
 
@@ -164,6 +166,12 @@ export class PluginWorker {
     this.global.close()
   }
 
+  public async reportRuntimeFailure(err: unknown) {
+    this.notifyFailureClose(err)
+    await waitPluginStartupFailureShutdownDelay()
+    await this.shutdown()
+  }
+
   // handleStartPlugin handles the message to start the plugin.
   private async handleStartPlugin(
     startInfoBin: Uint8Array,
@@ -201,14 +209,11 @@ export class PluginWorker {
     // Request a WebRTC bridge port from the WebDocument before starting the
     // plugin. The bridge port must be available before patchWorkerBrowserGlobals()
     // runs in GoWasmProcess so the RTCPeerConnection shim can be installed.
-    const bridgePort =
-      await this.webDocumentTracker.requestWebRtcBridge()
+    const bridgePort = await this.webDocumentTracker.requestWebRtcBridge()
     if (bridgePort) {
       setBridgePort(bridgePort)
       installWebRTCShim()
-      console.log(
-        `PluginWorker: ${this.workerId}: WebRTC bridge enabled`,
-      )
+      console.log(`PluginWorker: ${this.workerId}: WebRTC bridge enabled`)
     }
 
     await this.startPlugin({
@@ -227,6 +232,21 @@ export class PluginWorker {
     this.webDocumentTracker.postMessage(msg)
   }
 
+  // notifyFailureClose notifies connected documents that the worker is closing
+  // because plugin startup or runtime execution failed.
+  private notifyFailureClose(err: unknown) {
+    if (this.failureCloseReported) {
+      return
+    }
+    this.failureCloseReported = true
+    const msg: ClientToWebDocument = {
+      from: this.workerId,
+      close: true,
+      failureReason: stringifyError(err),
+    }
+    this.webDocumentTracker.postMessage(msg)
+  }
+
   private handleWorkerMessage(msgEvent: MessageEvent<WebDocumentToWorker>) {
     // Expect the WebDocument to send a WebDocumentToWorker.
     const data: WebDocumentToWorker = msgEvent.data
@@ -239,16 +259,15 @@ export class PluginWorker {
     }
 
     if (data.initData) {
-      this.handleStartPlugin(
-        data.initData,
-        data.workerCommsDetect,
-      ).catch((err) => {
-        console.warn(
-          `PluginWorker: ${this.workerId}: startup failed, exiting!`,
-          err,
-        )
-        void waitPluginStartupFailureShutdownDelay().then(() => this.shutdown())
-      })
+      this.handleStartPlugin(data.initData, data.workerCommsDetect).catch(
+        (err) => {
+          console.warn(
+            `PluginWorker: ${this.workerId}: startup failed, exiting!`,
+            err,
+          )
+          void this.reportRuntimeFailure(err)
+        },
+      )
     }
   }
 }
@@ -260,4 +279,14 @@ function isAbortError(err: unknown): boolean {
     'name' in err &&
     (err as { name?: string }).name === 'AbortError'
   )
+}
+
+function stringifyError(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message || err.toString()
+  }
+  if (typeof err === 'string') {
+    return err
+  }
+  return String(err)
 }

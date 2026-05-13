@@ -5,6 +5,7 @@ package web_runtime_wasm
 import (
 	"context"
 	"strings"
+	"sync"
 	"syscall/js"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -43,7 +44,10 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 		}()
 
 		// (message: Uint8Array) => void
-		jsOnMessage := js.FuncOf(func(this js.Value, args []js.Value) any {
+		var releasePacketCallbacks sync.Once
+		var jsOnMessage js.Func
+		var jsOnClose js.Func
+		jsOnMessage = js.FuncOf(func(this js.Value, args []js.Value) any {
 			// copy packet from Uint8Array to []byte
 			packet := args[0]
 			dlen := packet.Length()
@@ -53,12 +57,16 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 			// call handler and handle error
 			if err := msgHandler(bin); err != nil {
 				closeHandler(err)
+				releasePacketCallbacks.Do(func() {
+					jsOnMessage.Release()
+					jsOnClose.Release()
+				})
 			}
 
 			return nil
 		})
 		// (errMsg?: string) => void,
-		jsOnClose := js.FuncOf(func(this js.Value, args []js.Value) any {
+		jsOnClose = js.FuncOf(func(this js.Value, args []js.Value) any {
 			var errMsg string
 			if len(args) > 0 {
 				errMsgVal := args[0]
@@ -73,21 +81,51 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 			}
 
 			closeHandler(err)
+			releasePacketCallbacks.Do(func() {
+				jsOnMessage.Release()
+				jsOnClose.Release()
+			})
 			return nil
 		})
 
 		sinkPromise := openStreamFunc.Invoke(jsOnMessage, jsOnClose)
 		errCh := make(chan error, 1)
 		doneCh := make(chan srpc.PacketWriter, 1)
-		sinkPromise.Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
+		var releasePromiseCallbacks sync.Once
+		var jsThen js.Func
+		var jsCatch js.Func
+		jsThen = js.FuncOf(func(this js.Value, args []js.Value) any {
+			releasePromiseCallbacks.Do(func() {
+				jsThen.Release()
+				jsCatch.Release()
+			})
 			select {
 			case <-ctx.Done():
 				args[0].Call("end")
+				releasePacketCallbacks.Do(func() {
+					jsOnMessage.Release()
+					jsOnClose.Release()
+				})
 				return nil
-			case doneCh <- NewPushablePacketWriter(args[0]):
+			case doneCh <- srpc.NewPacketWriterWithClose(NewPushablePacketWriter(args[0]), func() error {
+				releasePacketCallbacks.Do(func() {
+					jsOnMessage.Release()
+					jsOnClose.Release()
+				})
+				return nil
+			}):
 				return nil
 			}
-		})).Call("catch", js.FuncOf(func(this js.Value, args []js.Value) any {
+		})
+		jsCatch = js.FuncOf(func(this js.Value, args []js.Value) any {
+			releasePromiseCallbacks.Do(func() {
+				jsThen.Release()
+				jsCatch.Release()
+			})
+			releasePacketCallbacks.Do(func() {
+				jsOnMessage.Release()
+				jsOnClose.Release()
+			})
 			if args[0].Type() == js.TypeObject {
 				// Error
 				errCh <- errors.New(strings.TrimPrefix(args[0].Call("toString").String(), "Error: "))
@@ -96,13 +134,24 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 				errCh <- errors.New(args[0].String())
 			}
 			return nil
-		}))
+		})
+		sinkPromise.Call("then", jsThen).Call("catch", jsCatch)
 
 		select {
 		case prw := <-doneCh:
 			return prw, nil
 		case err := <-errCh:
 			return nil, err
+		case <-ctx.Done():
+			releasePromiseCallbacks.Do(func() {
+				jsThen.Release()
+				jsCatch.Release()
+			})
+			releasePacketCallbacks.Do(func() {
+				jsOnMessage.Release()
+				jsOnClose.Release()
+			})
+			return nil, context.Canceled
 		}
 	}
 }
@@ -175,14 +224,44 @@ func (p *WasmPluginIo) BuildClient() srpc.Client {
 
 // SetAcceptStreams sets the function to call to accept incoming streams.
 func (p *WasmPluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.Invoker) {
+	var activeMtx sync.Mutex
+	activeStreams := map[*message_port.MessagePort]struct{}{}
+	addActiveStream := func(stream *message_port.MessagePort) {
+		activeMtx.Lock()
+		activeStreams[stream] = struct{}{}
+		activeMtx.Unlock()
+	}
+	removeActiveStream := func(stream *message_port.MessagePort) {
+		activeMtx.Lock()
+		delete(activeStreams, stream)
+		activeMtx.Unlock()
+	}
+	closeActiveStreams := func() {
+		activeMtx.Lock()
+		streams := activeStreams
+		activeStreams = map[*message_port.MessagePort]struct{}{}
+		activeMtx.Unlock()
+		for stream := range streams {
+			_ = stream.Close()
+		}
+	}
+
 	// acceptStreamFn is () => MessagePort
 	acceptStreamFn := js.FuncOf(func(this js.Value, args []js.Value) any {
+		if ctx.Err() != nil {
+			return js.Null()
+		}
 		localPort, remotePort := message_port.NewMessageChannel()
 		duplex := message_port.NewMessagePort(localPort)
+		addActiveStream(duplex)
 		stream := message_port.NewMessagePortPacketStream(duplex)
 
 		serverRPC := srpc.NewServerRPC(ctx, invoker, stream)
-		go stream.ReadPump(ctx, serverRPC.HandlePacketData, serverRPC.HandleStreamClose)
+		go func() {
+			defer removeActiveStream(duplex)
+			defer duplex.Close()
+			stream.ReadPump(ctx, serverRPC.HandlePacketData, serverRPC.HandleStreamClose)
+		}()
 		return remotePort
 	})
 	setAcceptStream, err := getGlobalFunc(p.setAcceptStreamName)
@@ -190,4 +269,10 @@ func (p *WasmPluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.Invoke
 		panic(err)
 	}
 	setAcceptStream.Invoke(acceptStreamFn)
+	go func() {
+		<-ctx.Done()
+		setAcceptStream.Invoke(js.Undefined())
+		acceptStreamFn.Release()
+		closeActiveStreams()
+	}()
 }

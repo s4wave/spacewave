@@ -28,6 +28,9 @@ func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContai
 			if worker.GetId() != webWorkerID {
 				continue
 			}
+			if worker.GetFailed() {
+				return webWorkerFailureError(worker, "web worker failed before becoming ready")
+			}
 			if worker.GetDeleted() {
 				return errors.New("web worker was removed before becoming ready")
 			}
@@ -65,4 +68,27 @@ func waitForCreatedWebWorkerReadyWithTimeout(ctx context.Context, docStatusCtr *
 	}
 
 	return true, nil
+}
+
+func webWorkerFailureError(worker *web_document.WebWorkerStatus, message string) error {
+	if failureReason := worker.GetFailureReason(); failureReason != "" {
+		return &webWorkerFailureErr{message: message + ": " + failureReason}
+	}
+	return &webWorkerFailureErr{message: message}
+}
+
+func isWebWorkerFailureError(err error) bool {
+	if err == nil {
+		return false
+	}
+	_, ok := errors.Cause(err).(*webWorkerFailureErr)
+	return ok
+}
+
+type webWorkerFailureErr struct {
+	message string
+}
+
+func (e *webWorkerFailureErr) Error() string {
+	return e.message
 }

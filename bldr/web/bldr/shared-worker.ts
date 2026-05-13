@@ -26,6 +26,10 @@ declare let self: (SharedWorkerGlobalScope | DedicatedWorkerGlobalScope) & {
   name?: string
 }
 
+const pluginWorkerGlobal = globalThis as typeof globalThis & {
+  BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?: (err: unknown) => void
+}
+
 // parseUrlParams parses the URL parameters.
 // Format: ?s=<scriptPath>&t=<workerType>&p=<plugin>
 function parseUrlParams(): {
@@ -149,6 +153,10 @@ if (isPlugin) {
     startPluginCallback,
     handleIncomingStream,
   )
+  pluginWorkerGlobal.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (err: unknown) => {
+    console.warn('shared-worker: native plugin runtime failed:', err)
+    void pluginWorker.reportRuntimeFailure(err)
+  }
 } else {
   // Custom worker mode: import script directly and let it self-manage.
   // Buffer messages that arrive during the async import. The script registers

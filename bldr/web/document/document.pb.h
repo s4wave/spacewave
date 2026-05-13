@@ -340,9 +340,11 @@ class WebWorkerStatus final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kIdFieldNumber = 1,
+    kFailureReasonFieldNumber = 6,
     kDeletedFieldNumber = 2,
     kSharedFieldNumber = 3,
     kReadyFieldNumber = 4,
+    kFailedFieldNumber = 5,
   };
   // string id = 1;
   void clear_id() ;
@@ -357,6 +359,21 @@ class WebWorkerStatus final : public ::google::protobuf::Message
   const ::std::string& _internal_id() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string failure_reason = 6;
+  void clear_failure_reason() ;
+  const ::std::string& failure_reason() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_failure_reason(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_failure_reason();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_failure_reason();
+  void set_allocated_failure_reason(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_failure_reason() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_failure_reason(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_failure_reason();
 
   public:
   // bool deleted = 2;
@@ -389,12 +406,22 @@ class WebWorkerStatus final : public ::google::protobuf::Message
   void _internal_set_ready(bool value);
 
   public:
+  // bool failed = 5;
+  void clear_failed() ;
+  bool failed() const;
+  void set_failed(bool value);
+
+  private:
+  bool _internal_failed() const;
+  void _internal_set_failed(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:web.document.WebWorkerStatus)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   0, 39,
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 53,
                                    2>
       _table_;
 
@@ -416,9 +443,11 @@ class WebWorkerStatus final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr failure_reason_;
     bool deleted_;
     bool shared_;
     bool ready_;
+    bool failed_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2739,7 +2768,7 @@ inline void WebWorkerStatus::clear_deleted() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.deleted_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline bool WebWorkerStatus::deleted() const {
   // @@protoc_insertion_point(field_get:web.document.WebWorkerStatus.deleted)
@@ -2747,7 +2776,7 @@ inline bool WebWorkerStatus::deleted() const {
 }
 inline void WebWorkerStatus::set_deleted(bool value) {
   _internal_set_deleted(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:web.document.WebWorkerStatus.deleted)
 }
 inline bool WebWorkerStatus::_internal_deleted() const {
@@ -2764,7 +2793,7 @@ inline void WebWorkerStatus::clear_shared() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.shared_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline bool WebWorkerStatus::shared() const {
   // @@protoc_insertion_point(field_get:web.document.WebWorkerStatus.shared)
@@ -2772,7 +2801,7 @@ inline bool WebWorkerStatus::shared() const {
 }
 inline void WebWorkerStatus::set_shared(bool value) {
   _internal_set_shared(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:web.document.WebWorkerStatus.shared)
 }
 inline bool WebWorkerStatus::_internal_shared() const {
@@ -2789,7 +2818,7 @@ inline void WebWorkerStatus::clear_ready() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.ready_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline bool WebWorkerStatus::ready() const {
   // @@protoc_insertion_point(field_get:web.document.WebWorkerStatus.ready)
@@ -2797,7 +2826,7 @@ inline bool WebWorkerStatus::ready() const {
 }
 inline void WebWorkerStatus::set_ready(bool value) {
   _internal_set_ready(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:web.document.WebWorkerStatus.ready)
 }
 inline bool WebWorkerStatus::_internal_ready() const {
@@ -2807,6 +2836,96 @@ inline bool WebWorkerStatus::_internal_ready() const {
 inline void WebWorkerStatus::_internal_set_ready(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.ready_ = value;
+}
+
+// bool failed = 5;
+inline void WebWorkerStatus::clear_failed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.failed_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool WebWorkerStatus::failed() const {
+  // @@protoc_insertion_point(field_get:web.document.WebWorkerStatus.failed)
+  return _internal_failed();
+}
+inline void WebWorkerStatus::set_failed(bool value) {
+  _internal_set_failed(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:web.document.WebWorkerStatus.failed)
+}
+inline bool WebWorkerStatus::_internal_failed() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.failed_;
+}
+inline void WebWorkerStatus::_internal_set_failed(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.failed_ = value;
+}
+
+// string failure_reason = 6;
+inline void WebWorkerStatus::clear_failure_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.failure_reason_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& WebWorkerStatus::failure_reason() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:web.document.WebWorkerStatus.failure_reason)
+  return _internal_failure_reason();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WebWorkerStatus::set_failure_reason(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.failure_reason_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:web.document.WebWorkerStatus.failure_reason)
+}
+inline ::std::string* PROTOBUF_NONNULL WebWorkerStatus::mutable_failure_reason()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_failure_reason();
+  // @@protoc_insertion_point(field_mutable:web.document.WebWorkerStatus.failure_reason)
+  return _s;
+}
+inline const ::std::string& WebWorkerStatus::_internal_failure_reason() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.failure_reason_.Get();
+}
+inline void WebWorkerStatus::_internal_set_failure_reason(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.failure_reason_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WebWorkerStatus::_internal_mutable_failure_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.failure_reason_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WebWorkerStatus::release_failure_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:web.document.WebWorkerStatus.failure_reason)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.failure_reason_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.failure_reason_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WebWorkerStatus::set_allocated_failure_reason(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.failure_reason_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.failure_reason_.IsDefault()) {
+    _impl_.failure_reason_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:web.document.WebWorkerStatus.failure_reason)
 }
 
 // -------------------------------------------------------------------

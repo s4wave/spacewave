@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "c62c11288d7b77f4f3b9da8f3fc9a7a95539dd8812733f5ea824ff0f57a5364a",
+  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -616,7 +616,7 @@
       "protoFiles": ["bldr/web/bundler/vite/compiler/compiler.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/document": {
-      "hash": "b48aca9774260fb82eeb2b29d2cbed8bad2ad5c1b18d94330c64cc242acec81b",
+      "hash": "bf4f730cc001470e5493d2f94fcca12c5ee3fd17392894c94e21b996866230aa",
       "generatedFiles": [
         "bldr/web/document/document.pb.cc",
         "bldr/web/document/document.pb.go",
@@ -4148,22 +4148,6 @@
         "sdk/space/space_srpc.pb.ts"
       ],
       "protoFiles": ["sdk/space/space.proto"]
-    },
-    "github.com/s4wave/spacewave/sdk/space/drive": {
-      "hash": "90d7afac764b21280272c69194246d711c2184a2f7c4bed2d36fba0c9e198e91",
-      "generatedFiles": [
-        "sdk/space/drive/drive.pb.cc",
-        "sdk/space/drive/drive.pb.go",
-        "sdk/space/drive/drive.pb.h",
-        "sdk/space/drive/drive.pb.rs",
-        "sdk/space/drive/drive.pb.ts",
-        "sdk/space/drive/drive_srpc.pb.cpp",
-        "sdk/space/drive/drive_srpc.pb.go",
-        "sdk/space/drive/drive_srpc.pb.hpp",
-        "sdk/space/drive/drive_srpc.pb.rs",
-        "sdk/space/drive/drive_srpc.pb.ts"
-      ],
-      "protoFiles": ["sdk/space/drive/drive.proto"]
     },
     "github.com/s4wave/spacewave/sdk/status": {
       "hash": "2c2dad811857c7b40b3745ef952ae173dbaba7f144deabe9763cfafd8c2aea4e",

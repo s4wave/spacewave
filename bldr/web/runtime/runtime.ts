@@ -95,6 +95,8 @@ export interface ClientToWebDocument {
   closeSabPair?: CloseSabPairRequest
   // close indicates the client is closed.
   close?: true
+  // failureReason indicates close was caused by a worker runtime failure.
+  failureReason?: string
   // ready indicates the worker finished startup and registered its runtime client.
   ready?: true
 }

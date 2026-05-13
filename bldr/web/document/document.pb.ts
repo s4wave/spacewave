@@ -169,6 +169,19 @@ export interface WebWorkerStatus {
    * @generated from field: bool ready = 4;
    */
   ready?: boolean
+  /**
+   * Failed indicates the worker closed because of a runtime failure.
+   * Normal explicit worker removal or browser lifecycle close leaves this unset.
+   *
+   * @generated from field: bool failed = 5;
+   */
+  failed?: boolean
+  /**
+   * FailureReason contains the worker-provided failure reason, if any.
+   *
+   * @generated from field: string failure_reason = 6;
+   */
+  failureReason?: string
 }
 
 // WebWorkerStatus contains the message type declaration for WebWorkerStatus.
@@ -179,6 +192,8 @@ export const WebWorkerStatus: MessageType<WebWorkerStatus> = createMessageType({
     { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
     { no: 4, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 5, name: 'failed', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 6, name: 'failure_reason', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -119,7 +119,9 @@ func (h *Harness) newBrowserPage(s *TestSession) (playwright.Page, error) {
 	})
 
 	page.On("pageerror", func(err error) {
-		s.h.le.WithField("browser", true).Error("page error: " + err.Error())
+		msg := "page error: " + err.Error()
+		s.emitConsole(msg)
+		s.h.le.WithField("browser", true).Error(msg)
 	})
 	page.On("response", func(resp playwright.Response) {
 		if resp.Status() >= 400 {

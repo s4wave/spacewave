@@ -35,9 +35,13 @@ inline constexpr WebWorkerStatus::Impl_::Impl_(
         id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        failure_reason_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         deleted_{false},
         shared_{false},
-        ready_{false} {}
+        ready_{false},
+        failed_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR WebWorkerStatus::WebWorkerStatus(::_pbi::ConstantInitialized)
@@ -338,15 +342,19 @@ const ::uint32_t
         3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_._has_bits_),
-        7, // hasbit index offset
+        9, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.id_),
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.deleted_),
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.shared_),
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.ready_),
+        PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.failed_),
+        PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.failure_reason_),
         0,
-        1,
         2,
         3,
+        4,
+        5,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::web::document::CreateWebViewRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -395,12 +403,12 @@ static const ::_pbi::MigrationSchema
         {1, sizeof(::web::document::WebDocumentStatus)},
         {14, sizeof(::web::document::WebViewStatus)},
         {25, sizeof(::web::document::WebWorkerStatus)},
-        {36, sizeof(::web::document::CreateWebViewRequest)},
-        {41, sizeof(::web::document::CreateWebViewResponse)},
-        {46, sizeof(::web::document::CreateWebWorkerRequest)},
-        {59, sizeof(::web::document::CreateWebWorkerResponse)},
-        {66, sizeof(::web::document::RemoveWebWorkerRequest)},
-        {71, sizeof(::web::document::RemoveWebWorkerResponse)},
+        {40, sizeof(::web::document::CreateWebViewRequest)},
+        {45, sizeof(::web::document::CreateWebViewResponse)},
+        {50, sizeof(::web::document::CreateWebWorkerRequest)},
+        {63, sizeof(::web::document::CreateWebWorkerResponse)},
+        {70, sizeof(::web::document::RemoveWebWorkerRequest)},
+        {75, sizeof(::web::document::RemoveWebWorkerResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::web::document::_WatchWebDocumentStatusRequest_default_instance_._instance,
@@ -426,9 +434,10 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "eb_workers\030\004 \003(\0132\035.web.document.WebWorke"
     "rStatus\022\016\n\006closed\030\005 \001(\010\"R\n\rWebViewStatus"
     "\022\n\n\002id\030\001 \001(\t\022\017\n\007deleted\030\002 \001(\010\022\021\n\tparent_"
-    "id\030\003 \001(\t\022\021\n\tpermanent\030\004 \001(\010\"M\n\017WebWorker"
+    "id\030\003 \001(\t\022\021\n\tpermanent\030\004 \001(\010\"u\n\017WebWorker"
     "Status\022\n\n\002id\030\001 \001(\t\022\017\n\007deleted\030\002 \001(\010\022\016\n\006s"
-    "hared\030\003 \001(\010\022\r\n\005ready\030\004 \001(\010\"\"\n\024CreateWebV"
+    "hared\030\003 \001(\010\022\r\n\005ready\030\004 \001(\010\022\016\n\006failed\030\005 \001"
+    "(\010\022\026\n\016failure_reason\030\006 \001(\t\"\"\n\024CreateWebV"
     "iewRequest\022\n\n\002id\030\001 \001(\t\"(\n\025CreateWebViewR"
     "esponse\022\017\n\007created\030\001 \001(\010\"\251\001\n\026CreateWebWo"
     "rkerRequest\022\n\n\002id\030\001 \001(\t\022\014\n\004path\030\002 \001(\t\0220\n"
@@ -467,7 +476,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto = {
     false,
     false,
-    1644,
+    1684,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto,
     "github.com/s4wave/spacewave/bldr/web/document/document.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto_once,
@@ -1455,7 +1464,8 @@ PROTOBUF_NDEBUG_INLINE WebWorkerStatus::Impl_::Impl_(
     [[maybe_unused]] const ::web::document::WebWorkerStatus& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        id_(arena, from.id_) {}
+        id_(arena, from.id_),
+        failure_reason_(arena, from.failure_reason_) {}
 
 WebWorkerStatus::WebWorkerStatus(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1474,9 +1484,9 @@ WebWorkerStatus::WebWorkerStatus(
                offsetof(Impl_, deleted_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, deleted_),
-           offsetof(Impl_, ready_) -
+           offsetof(Impl_, failed_) -
                offsetof(Impl_, deleted_) +
-               sizeof(Impl_::ready_));
+               sizeof(Impl_::failed_));
 
   // @@protoc_insertion_point(copy_constructor:web.document.WebWorkerStatus)
 }
@@ -1484,16 +1494,17 @@ PROTOBUF_NDEBUG_INLINE WebWorkerStatus::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        id_(arena) {}
+        id_(arena),
+        failure_reason_(arena) {}
 
 inline void WebWorkerStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, deleted_),
            0,
-           offsetof(Impl_, ready_) -
+           offsetof(Impl_, failed_) -
                offsetof(Impl_, deleted_) +
-               sizeof(Impl_::ready_));
+               sizeof(Impl_::failed_));
 }
 WebWorkerStatus::~WebWorkerStatus() {
   // @@protoc_insertion_point(destructor:web.document.WebWorkerStatus)
@@ -1507,6 +1518,7 @@ inline void WebWorkerStatus::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.id_.Destroy();
+  this_._impl_.failure_reason_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -1553,16 +1565,16 @@ WebWorkerStatus::GetClassData() const {
   return WebWorkerStatus_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 0, 39, 2>
+const ::_pbi::TcParseTable<3, 6, 0, 53, 2>
 WebWorkerStatus::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    6,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     WebWorkerStatus_class_data_.base(),
@@ -1572,39 +1584,54 @@ WebWorkerStatus::_table_ = {
     ::_pbi::TcParser::GetTable<::web::document::WebWorkerStatus>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // bool ready = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebWorkerStatus, _impl_.ready_), 3>(),
-     {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.ready_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.id_)}},
     // bool deleted = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebWorkerStatus, _impl_.deleted_), 1>(),
-     {16, 1, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebWorkerStatus, _impl_.deleted_), 2>(),
+     {16, 2, 0,
       PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.deleted_)}},
     // bool shared = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebWorkerStatus, _impl_.shared_), 2>(),
-     {24, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebWorkerStatus, _impl_.shared_), 3>(),
+     {24, 3, 0,
       PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.shared_)}},
+    // bool ready = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebWorkerStatus, _impl_.ready_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.ready_)}},
+    // bool failed = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WebWorkerStatus, _impl_.failed_), 5>(),
+     {40, 5, 0,
+      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failed_)}},
+    // string failure_reason = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 1, 0,
+      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failure_reason_)}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // string id = 1;
     {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool deleted = 2;
-    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.deleted_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.deleted_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool shared = 3;
-    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.shared_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.shared_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool ready = 4;
-    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.ready_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.ready_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool failed = 5;
+    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failed_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string failure_reason = 6;
+    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failure_reason_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\34\2\0\0\0\0\0\0"
+    "\34\2\0\0\0\0\16\0"
     "web.document.WebWorkerStatus"
     "id"
+    "failure_reason"
   }},
 };
 PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
@@ -1615,12 +1642,17 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.id_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.failure_reason_.ClearNonDefaultToEmpty();
+    }
   }
   ::memset(&_impl_.deleted_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.ready_) -
-      reinterpret_cast<char*>(&_impl_.deleted_)) + sizeof(_impl_.ready_));
+      reinterpret_cast<char*>(&_impl_.failed_) -
+      reinterpret_cast<char*>(&_impl_.deleted_)) + sizeof(_impl_.failed_));
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1655,7 +1687,7 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
   }
 
   // bool deleted = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (this_._internal_deleted() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -1664,7 +1696,7 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
   }
 
   // bool shared = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_shared() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -1673,11 +1705,30 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
   }
 
   // bool ready = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_ready() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           4, this_._internal_ready(), target);
+    }
+  }
+
+  // bool failed = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_failed() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          5, this_._internal_failed(), target);
+    }
+  }
+
+  // string failure_reason = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_failure_reason().empty()) {
+      const ::std::string& _s = this_._internal_failure_reason();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "web.document.WebWorkerStatus.failure_reason");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
     }
   }
 
@@ -1706,7 +1757,7 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     // string id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_id().empty()) {
@@ -1714,21 +1765,34 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
                                         this_._internal_id());
       }
     }
-    // bool deleted = 2;
+    // string failure_reason = 6;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_failure_reason().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_failure_reason());
+      }
+    }
+    // bool deleted = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (this_._internal_deleted() != 0) {
         total_size += 2;
       }
     }
     // bool shared = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_shared() != 0) {
         total_size += 2;
       }
     }
     // bool ready = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_ready() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool failed = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_failed() != 0) {
         total_size += 2;
       }
     }
@@ -1751,7 +1815,7 @@ void WebWorkerStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_id().empty()) {
         _this->_internal_set_id(from._internal_id());
@@ -1762,18 +1826,32 @@ void WebWorkerStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_failure_reason().empty()) {
+        _this->_internal_set_failure_reason(from._internal_failure_reason());
+      } else {
+        if (_this->_impl_.failure_reason_.IsDefault()) {
+          _this->_internal_set_failure_reason("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (from._internal_deleted() != 0) {
         _this->_impl_.deleted_ = from._impl_.deleted_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (from._internal_shared() != 0) {
         _this->_impl_.shared_ = from._impl_.shared_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_ready() != 0) {
         _this->_impl_.ready_ = from._impl_.ready_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_failed() != 0) {
+        _this->_impl_.failed_ = from._impl_.failed_;
       }
     }
   }
@@ -1797,9 +1875,10 @@ void WebWorkerStatus::InternalSwap(WebWorkerStatus* PROTOBUF_RESTRICT PROTOBUF_N
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.failure_reason_, &other->_impl_.failure_reason_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.ready_)
-      + sizeof(WebWorkerStatus::_impl_.ready_)
+      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failed_)
+      + sizeof(WebWorkerStatus::_impl_.failed_)
       - PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.deleted_)>(
           reinterpret_cast<char*>(&_impl_.deleted_),
           reinterpret_cast<char*>(&other->_impl_.deleted_));

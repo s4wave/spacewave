@@ -6,6 +6,9 @@ import { getBridgePort, installWebRTCShim } from './webrtc-bridge.js'
 export interface GoWasmProcessOpts {
   // abortSignal stops the runtime when aborted.
   abortSignal?: AbortSignal
+  // retry controls whether the process should retry inside this worker.
+  // Defaults to true.
+  retry?: boolean
   // retryOpts are retry options excluding the abort signal
   // set errorCb to catch unexpected errors running the module.
   retryOpts?: Omit<RetryOpts, 'abortSignal'>
@@ -106,11 +109,12 @@ export class GoWasmProcess {
   }
 
   // start starts the Go runtime.
-  public start() {
+  public start(): Promise<void> {
     this.stop()
 
     // build the abort controller
     const abortController = new AbortController()
+    this.abortController = abortController
 
     // handle the parent abort signal if any
     const parentSignal = this.opts?.abortSignal
@@ -118,7 +122,7 @@ export class GoWasmProcess {
     if (parentSignal) {
       if (parentSignal.aborted) {
         // already aborted
-        return
+        return Promise.reject(parentSignal.reason)
       }
       const abortListener = () => {
         abortController.abort()
@@ -130,6 +134,12 @@ export class GoWasmProcess {
       )
     }
 
+    if (this.opts?.retry === false) {
+      const result = this.runGoWasmProcess(abortController.signal)
+      result.catch(() => {})
+      return result
+    }
+
     // start the runtime retry loop
     retry = this.retry = new Retry<void>(
       () => this.runGoWasmProcess(abortController.signal),
@@ -138,6 +148,7 @@ export class GoWasmProcess {
         abortSignal: abortController.signal,
       },
     )
+    return retry.result
   }
 
   // runGoWasmProcess attempts to run the wasm runtime once.

@@ -7,6 +7,7 @@ import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
 interface Global {
   BLDR_BASE_URL: string
+  BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?: (err: unknown) => void
   BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
     onMessage: (message: Uint8Array) => void,
     onClose: (errMsg?: string) => void,
@@ -26,36 +27,106 @@ globalScope.BLDR_BASE_URL = baseURL
 declare const BLDR_PLUGIN_ENTRYPOINT: string
 const pluginEntrypointPath = BLDR_PLUGIN_ENTRYPOINT
 
-// startGoPlugin starts the go wasm process.
-function startGoPlugin(startInfo: PluginStartInfo) {
-  // re-encode the start info to json-base64 for go
-  const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
+class WasmPluginGeneration {
+  private readonly activeAcceptedStreams = new Set<
+    MessagePortDuplex<Uint8Array>
+  >()
+  private terminalError?: Error
 
-  // construct the go wasm process
-  const goProcess = new GoWasmProcess(
-    new URL(pluginEntrypointPath, baseURL).toString(),
-    {
-      argv: ['plugin.wasm'],
-      env: {
-        BLDR_PLUGIN_START_INFO: pluginStartInfoJsonB64,
-      },
-      retryOpts: {
-        errorCb: (err) => {
-          console.warn('plugin-wasm: error executing wasm', err)
-          // TODO: How should errors be propagated back here?
-          // Consider clearing the acceptStreamCtr if the wasm crashes irrecoverably.
-          // api.acceptStreamCtr.set(undefined);
+  public constructor(
+    private readonly api: BackendAPI,
+    private readonly abortSignal?: AbortSignal,
+  ) {}
+
+  public start(startInfo: PluginStartInfo) {
+    const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
+    const goProcess = new GoWasmProcess(
+      new URL(pluginEntrypointPath, baseURL).toString(),
+      {
+        argv: ['plugin.wasm'],
+        env: {
+          BLDR_PLUGIN_START_INFO: pluginStartInfoJsonB64,
         },
+        abortSignal: this.abortSignal,
+        retry: false,
       },
-    },
-  )
+    )
 
-  // start the Go process
-  goProcess.start()
+    const result = goProcess.start()
+    void result.then(
+      () => {
+        if (!this.abortSignal?.aborted) {
+          this.fail(new Error('Go WASM process exited'))
+        }
+      },
+      (err) => {
+        if (!this.abortSignal?.aborted) {
+          this.fail(err)
+        }
+      },
+    )
+  }
+
+  public setAcceptStream(acceptStrm?: () => MessagePort) {
+    if (this.terminalError) {
+      this.installTerminalAcceptHandler(this.terminalError)
+      return
+    }
+    if (!acceptStrm) {
+      this.api.handleStreamCtr.set(undefined)
+      return
+    }
+
+    this.api.handleStreamCtr.set(async (channel: PacketStream) => {
+      if (this.terminalError) {
+        throw this.terminalError
+      }
+
+      const duplex = new MessagePortDuplex<Uint8Array>(acceptStrm())
+      this.activeAcceptedStreams.add(duplex)
+      try {
+        await pipe(channel, duplex, channel)
+      } finally {
+        this.activeAcceptedStreams.delete(duplex)
+        closeMessagePortDuplex(duplex)
+      }
+    })
+  }
+
+  private fail(err: unknown) {
+    if (this.terminalError) {
+      return
+    }
+
+    const terminalError = castToError(err, 'Go WASM process failed')
+    this.terminalError = terminalError
+    console.warn('plugin-wasm: Go WASM process exited', terminalError)
+    this.closeActiveAcceptedStreams()
+    this.installTerminalAcceptHandler(terminalError)
+    globalScope.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?.(terminalError)
+  }
+
+  private closeActiveAcceptedStreams() {
+    for (const duplex of this.activeAcceptedStreams) {
+      closeMessagePortDuplex(duplex)
+    }
+    this.activeAcceptedStreams.clear()
+  }
+
+  private installTerminalAcceptHandler(err: Error) {
+    this.api.handleStreamCtr.set(async () => {
+      throw err
+    })
+  }
 }
 
 // Main function exported by this module.
-export default async function main(api: BackendAPI): Promise<void> {
+export default async function main(
+  api: BackendAPI,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const generation = new WasmPluginGeneration(api, abortSignal)
+
   // The Go runtime will call this function to open outgoing streams.
   globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = async (
     onMessage,
@@ -84,22 +155,17 @@ export default async function main(api: BackendAPI): Promise<void> {
   globalScope.BLDR_PLUGIN_SET_ACCEPT_STREAM = (
     acceptStrm?: () => MessagePort,
   ) => {
-    if (!acceptStrm) {
-      // Unregister the handler from the shared worker side via the API controller
-      api.handleStreamCtr.set(undefined)
-      return
-    }
-
-    // Create the handler function that converts the MessagePort to a PacketStream
-    const handler = async (channel: PacketStream): Promise<void> => {
-      const duplex = new MessagePortDuplex<Uint8Array>(acceptStrm())
-      await pipe(channel, duplex, channel)
-    }
-
-    // Register the handler with the shared worker side via the API controller
-    api.handleStreamCtr.set(handler)
+    generation.setAcceptStream(acceptStrm)
   }
 
   // Start the Go plugin, passing the startInfo from the API
-  startGoPlugin(api.startInfo)
+  generation.start(api.startInfo)
+}
+
+function closeMessagePortDuplex(duplex: MessagePortDuplex<Uint8Array>) {
+  try {
+    duplex.close()
+  } catch {
+    // ignored: the port may already be closed by the pipe.
+  }
 }

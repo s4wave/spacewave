@@ -80,6 +80,11 @@ message WebWorkerStatus {
   bool shared = 3;
   // Ready indicates the worker finished startup and registered with WebRuntime.
   bool ready = 4;
+  // Failed indicates the worker closed because of a runtime failure.
+  // Normal explicit worker removal or browser lifecycle close leaves this unset.
+  bool failed = 5;
+  // FailureReason contains the worker-provided failure reason, if any.
+  string failure_reason = 6;
 }
 
 // CreateWebViewRequest is a request to create a new web view.
