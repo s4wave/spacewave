@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
-	s4wave_git_core "github.com/s4wave/spacewave/core/git"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -959,20 +958,19 @@ func buildGitCloneCommand() *cli.Command {
 			}
 
 			cloneOpts.DisableCheckout = c.Bool("no-checkout")
-			repoRef, err := s4wave_git_core.CloneGitRepoToRef(c.Context, engine, cloneOpts, nil, nil)
-			if err != nil {
-				return err
-			}
-
 			tx, err := engine.NewTransaction(c.Context, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
-			op := git_world.NewGitInitOp(key, repoRef, c.Bool("no-checkout"), nil, nil)
+			op := git_world.NewGitCloneOp(&git_world.GitCloneOp{
+				ObjectKey:       key,
+				CloneOpts:       cloneOpts,
+				DisableCheckout: c.Bool("no-checkout"),
+			})
 			_, _, err = tx.ApplyWorldOp(c.Context, op, "")
 			if err != nil {
-				return errors.Wrap(err, "publish git repo")
+				return errors.Wrap(err, "clone")
 			}
 			if err := tx.Commit(c.Context); err != nil {
 				return errors.Wrap(err, "commit transaction")

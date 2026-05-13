@@ -236,6 +236,11 @@ func (s *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeature_STORE_FEATURE_UNKNOWN
 }
 
+// BeginReadOperation returns the blockshard store as the scoped read handle.
+func (s *BlockStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
 // Flush publishes buffered writes; the shard engine has no durability boundary.
 func (s *BlockStore) Flush(ctx context.Context) error {
 	return nil

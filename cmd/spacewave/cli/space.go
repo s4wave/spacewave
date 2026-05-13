@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
-	s4wave_git_core "github.com/s4wave/spacewave/core/git"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
@@ -521,31 +520,27 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			}
 
 			w.WriteString("cloning " + url + " as " + objectKey + "...\n")
-			repoRef, err := s4wave_git_core.CloneGitRepoToRef(ctx, engine, &git_block.CloneOpts{
-				Url:             url,
-				Ref:             ref,
-				SingleBranch:    singleBranch,
-				Recursive:       recursive,
-				DisableCheckout: disableCheckout && !recursive,
-			}, nil, nil)
-			if err != nil {
-				return err
-			}
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
-			cloneOp := git_world.NewGitInitOp(
-				objectKey,
-				repoRef,
-				disableCheckout && !recursive,
-				nil,
-				unixfs_block.ToTimestamp(time.Now(), false),
-			)
+			disableWorktree := disableCheckout && !recursive
+			cloneOp := git_world.NewGitCloneOp(&git_world.GitCloneOp{
+				ObjectKey: objectKey,
+				CloneOpts: &git_block.CloneOpts{
+					Url:             url,
+					Ref:             ref,
+					SingleBranch:    singleBranch,
+					Recursive:       recursive,
+					DisableCheckout: disableWorktree,
+				},
+				DisableCheckout: disableWorktree,
+				Timestamp:       unixfs_block.ToTimestamp(time.Now(), false),
+			})
 			_, _, err = tx.ApplyWorldOp(ctx, cloneOp, "")
 			if err != nil {
-				return errors.Wrap(err, "publish git repo")
+				return errors.Wrap(err, "clone")
 			}
 			w.WriteString("cloned " + url + " as " + objectKey + "\n")
 			return tx.Commit(ctx)
