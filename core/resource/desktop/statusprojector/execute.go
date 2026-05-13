@@ -65,41 +65,29 @@ func projectRuntimeTrayStatus(
 ) error {
 	var prev *desktop_runtime.DesktopRuntimeState
 	for {
-		snapshot, listenerWaitCh := broker.Snapshot()
-		projection, sessionWaitChs, releases, err := snapshotSessionProjection(ctx, b, sessionCtrl)
+		snapshot, err := snapshotDesktopTraySources(ctx, b, broker, sessionCtrl, launcher)
 		if err != nil {
-			releaseAll(releases)
 			if ctx.Err() != nil {
 				return nil
 			}
-			return errors.Wrap(err, "snapshot session projection")
-		}
-		launcherInfo, launcherWaitCh := launcher.Snapshot()
-		update, updateAttention := buildUpdateProjection(launcherInfo)
-		projection.Update = update
-		if updateAttention != nil {
-			projection.AttentionItems = append(projection.AttentionItems, updateAttention)
+			return errors.Wrap(err, "snapshot desktop tray sources")
 		}
 
-		waitChs := make([]<-chan struct{}, 0, len(sessionWaitChs)+2)
-		waitChs = append(waitChs, listenerWaitCh)
-		waitChs = append(waitChs, launcherWaitCh)
-		waitChs = append(waitChs, sessionWaitChs...)
-
-		current := BuildDesktopRuntimeState(snapshot, projection)
+		current := snapshot.buildRuntimeState()
 		var changed bool
+		previous := prev
 		prev, changed, err = publishDesktopTrayState(ctx, publisher, prev, current)
 		if err != nil {
-			releaseAll(releases)
+			snapshot.release()
 			if ctx.Err() != nil {
 				return nil
 			}
 			return errors.Wrap(err, "publish desktop tray status")
 		}
-		logDesktopTrayProjection(le, current, changed)
+		logDesktopTrayProjection(le, previous, current, changed)
 
-		ctxDone := waitAnyStatusChange(ctx, waitChs)
-		releaseAll(releases)
+		ctxDone := snapshot.wait(ctx)
+		snapshot.release()
 		if ctxDone {
 			return nil
 		}
@@ -124,23 +112,25 @@ func publishDesktopTrayState(
 
 func logDesktopTrayProjection(
 	le *logrus.Entry,
-	state *desktop_runtime.DesktopRuntimeState,
+	prev *desktop_runtime.DesktopRuntimeState,
+	current *desktop_runtime.DesktopRuntimeState,
 	changed bool,
 ) {
-	if le == nil || state == nil {
+	if le == nil || current == nil {
 		return
 	}
 	entry := le.WithFields(logrus.Fields{
 		"changed":         changed,
-		"status-text":     state.GetStatusText(),
-		"sessions":        len(state.GetSessions()),
-		"spaces":          len(state.GetSpaces()),
-		"activity":        len(state.GetActivity()),
-		"attention-items": len(state.GetAttentionItems()),
+		"status-text":     current.GetStatusText(),
+		"sessions":        len(current.GetSessions()),
+		"spaces":          len(current.GetSpaces()),
+		"activity":        len(current.GetActivity()),
+		"attention-items": len(current.GetAttentionItems()),
 	})
-	if changed {
-		entry.Info("published desktop tray projection")
+	decision := classifyDesktopTrayProjectionLog(prev, current, changed)
+	if decision.level == desktopTrayProjectionLogInfo {
+		entry.Info(decision.message)
 		return
 	}
-	entry.Debug("desktop tray projection unchanged")
+	entry.Debug(decision.message)
 }
