@@ -39,7 +39,7 @@ import (
 // Harness boots and manages the bldr start:web:wasm lifecycle for e2e testing.
 // One harness is intended per test package. The harness boots the devtool
 // bus, compiles plugins, and starts the HTTP server once. Individual tests
-// create isolated browser sessions via NewSession.
+// choose NewClean* or NewRetainedState* helpers at the call site.
 type Harness struct {
 	devtool       *devtool.DevtoolBus
 	projConfig    *bldr_project.ProjectConfig
@@ -59,6 +59,12 @@ type Harness struct {
 	pw      *playwright.Playwright
 	browser playwright.Browser
 
+	// Retained-state BrowserContext (lazy init). This is intentionally not used
+	// by NewCleanSession/NewCleanBlankSession, which keep strict isolated
+	// context semantics.
+	retainedStateCtxMu sync.Mutex
+	retainedStateCtx   playwright.BrowserContext
+
 	// Compiled TypeScript test scripts (populated by CompileScripts).
 	scripts CompiledScripts
 
@@ -66,9 +72,13 @@ type Harness struct {
 	peerWatcher     *PeerWatcher
 	peerWatcherOnce sync.Once
 	peerLeaseMu     sync.Mutex
+	peerLeaseWaitCh chan struct{}
 	peerLeases      map[string]*TestSession
 	pageSessionMu   sync.Mutex
 	pageSessions    map[playwright.Page]*TestSession
+
+	retainedStateResourcePeerMu sync.Mutex
+	retainedStateResourcePeer   peer.ID
 
 	cloudEndpointClose func()
 }
@@ -362,6 +372,34 @@ func (h *Harness) leaseBrowserPeer(s *TestSession, p peer.ID) bool {
 	return true
 }
 
+func (h *Harness) waitBrowserPeerLease(ctx context.Context, s *TestSession, p peer.ID) error {
+	key := string(p)
+	for {
+		h.peerLeaseMu.Lock()
+		if h.peerLeases == nil {
+			h.peerLeases = make(map[string]*TestSession)
+		}
+		if h.peerLeaseWaitCh == nil {
+			h.peerLeaseWaitCh = make(chan struct{})
+		}
+
+		owner := h.peerLeases[key]
+		if owner == nil || owner == s {
+			h.peerLeases[key] = s
+			h.peerLeaseMu.Unlock()
+			return nil
+		}
+		waitCh := h.peerLeaseWaitCh
+		h.peerLeaseMu.Unlock()
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-waitCh:
+		}
+	}
+}
+
 func (h *Harness) releaseBrowserPeerLease(s *TestSession, p peer.ID) {
 	if len(p) == 0 {
 		return
@@ -372,7 +410,23 @@ func (h *Harness) releaseBrowserPeerLease(s *TestSession, p peer.ID) {
 
 	if h.peerLeases[key] == s {
 		delete(h.peerLeases, key)
+		if h.peerLeaseWaitCh != nil {
+			close(h.peerLeaseWaitCh)
+			h.peerLeaseWaitCh = make(chan struct{})
+		}
 	}
+}
+
+func (h *Harness) getRetainedStateResourcePeer() peer.ID {
+	h.retainedStateResourcePeerMu.Lock()
+	defer h.retainedStateResourcePeerMu.Unlock()
+	return h.retainedStateResourcePeer
+}
+
+func (h *Harness) setRetainedStateResourcePeer(p peer.ID) {
+	h.retainedStateResourcePeerMu.Lock()
+	defer h.retainedStateResourcePeerMu.Unlock()
+	h.retainedStateResourcePeer = p
 }
 
 // Release tears down the harness: closes the shared browser process,
@@ -380,6 +434,7 @@ func (h *Harness) releaseBrowserPeerLease(s *TestSession, p peer.ID) {
 // and releases all controllers and the devtool bus. Individual test
 // sessions are released via their own cleanup (t.Cleanup).
 func (h *Harness) Release() {
+	h.closeRetainedStateContext()
 	h.closeBrowser()
 	if h.peerWatcher != nil {
 		h.peerWatcher.Release()

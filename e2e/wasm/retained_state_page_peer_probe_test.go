@@ -8,16 +8,17 @@ import (
 	"time"
 )
 
-// TestSharedPagePeerProbe records whether a fresh page opened in a retained
-// BrowserContext gets a new browser peer or can reuse the retained peer.
-func TestSharedPagePeerProbe(t *testing.T) {
+// TestRetainedStatePagePeerProbe records whether a fresh page opened in a
+// retained BrowserContext gets a new browser peer or can reuse the retained
+// peer.
+func TestRetainedStatePagePeerProbe(t *testing.T) {
 	h := testHarness
-	sess := h.NewBlankSession(t)
+	sess := h.NewRetainedStateBlankSession(t)
 	watcher := h.getPeerWatcher()
 
 	firstAfter := watcher.LatestSequence()
 	if err := h.loadAppPageURL(sess, h.BaseURL()+"/#/"); err != nil {
-		t.Fatalf("load first page: %v", err)
+		t.Fatalf("load first retained-state page: %v", err)
 	}
 
 	firstCtx, firstCancel := context.WithTimeout(h.Context(), 2*time.Minute)
@@ -27,13 +28,13 @@ func TestSharedPagePeerProbe(t *testing.T) {
 		t.Fatalf("observe first page browser peer: %v", err)
 	}
 
-	if err := sess.ReplacePageInRetainedContext(); err != nil {
-		t.Fatalf("replace page in retained context: %v", err)
+	if err := sess.ReplacePageInCurrentContext(); err != nil {
+		t.Fatalf("replace page in current retained-state context: %v", err)
 	}
 
 	secondAfter := watcher.LatestSequence()
 	if err := h.loadAppPageURL(sess, h.BaseURL()+"/#/"); err != nil {
-		t.Fatalf("load second page: %v", err)
+		t.Fatalf("load second retained-state page: %v", err)
 	}
 
 	secondCtx, secondCancel := context.WithTimeout(h.Context(), 45*time.Second)
@@ -58,7 +59,7 @@ func TestSharedPagePeerProbe(t *testing.T) {
 	}
 
 	t.Logf(
-		"shared-page peer probe: first_peer=%s first_sequence=%d second_peer=%s second_sequence=%d source=%s reused_retained_peer=%t",
+		"retained-state page peer probe: first_peer=%s first_sequence=%d second_peer=%s second_sequence=%d source=%s reused_retained_peer=%t",
 		firstObs.PeerID,
 		firstObs.Sequence,
 		secondPeer,

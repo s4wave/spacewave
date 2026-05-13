@@ -13,7 +13,7 @@ import (
 // under browser WASM and classifies the console stream for the original
 // fatal-Go-plus-exited-Go-loop recovery pattern.
 func TestQuickstartDriveUploadCrashRecovery(t *testing.T) {
-	sess := testHarness.NewSession(t)
+	sess := testHarness.NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 

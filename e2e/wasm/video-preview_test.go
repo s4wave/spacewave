@@ -168,7 +168,7 @@ func seekVideo(t testing.TB, page playwright.Page, label string, seconds float64
 // TestQuickstartDriveVideoPreview verifies projected mp4/webm previews load,
 // seek, and survive file-viewer navigation without stale player state.
 func TestQuickstartDriveVideoPreview(t *testing.T) {
-	sess := testHarness.NewSession(t)
+	sess := testHarness.NewCleanSession(t)
 	scenario := CreateDriveScenario(t, testHarness, sess)
 	page := scenario.GetSession().Page()
 

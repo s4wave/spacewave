@@ -12,11 +12,11 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-// TestRetainedStateSharedObjectHealthGuard verifies an existing drive still
-// opens with ready health after the page is recreated inside the same retained
-// browser context.
-func TestRetainedStateSharedObjectHealthGuard(t *testing.T) {
-	sess := testHarness.NewSession(t)
+// TestRecreatedPageSharedObjectHealthGuard verifies an existing drive still
+// opens with ready health after the page is recreated inside the same browser
+// context.
+func TestRecreatedPageSharedObjectHealthGuard(t *testing.T) {
+	sess := testHarness.NewCleanSession(t)
 	scenario := CreateDriveScenario(t, testHarness, sess)
 	page := scenario.GetSession().Page()
 
@@ -26,11 +26,11 @@ func TestRetainedStateSharedObjectHealthGuard(t *testing.T) {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
-	if err := sess.ReplacePageInRetainedContext(); err != nil {
-		t.Fatalf("replace page in retained context: %v", err)
+	if err := sess.ReplacePageInCurrentContext(); err != nil {
+		t.Fatalf("replace page in current context: %v", err)
 	}
 	if err := testHarness.loadAppPageURL(sess, testHarness.BaseURL()+"/"+targetHash); err != nil {
-		t.Fatalf("load retained drive route: %v", err)
+		t.Fatalf("load drive route after page replacement: %v", err)
 	}
 
 	page = sess.Page()
@@ -39,7 +39,7 @@ func TestRetainedStateSharedObjectHealthGuard(t *testing.T) {
 	ctx, cancel := context.WithTimeout(testHarness.Context(), 90*time.Second)
 	defer cancel()
 	if err := sess.ConnectResources(ctx); err != nil {
-		t.Fatalf("connect resources after retained route load: %v", err)
+		t.Fatalf("connect resources after recreated page route load: %v", err)
 	}
 	waitForSharedObjectReadyHealth(t, ctx, sess, scenario.GetSessionIndex(), scenario.GetSpaceID())
 
@@ -48,7 +48,7 @@ func TestRetainedStateSharedObjectHealthGuard(t *testing.T) {
 	assertNoSharedObjectHealthCard(t, page)
 
 	t.Logf(
-		"retained shared-object health guard passed: session_index=%d space_id=%s url=%s",
+		"recreated-page shared-object health guard passed: session_index=%d space_id=%s url=%s",
 		scenario.GetSessionIndex(),
 		scenario.GetSpaceID(),
 		page.URL(),
@@ -60,7 +60,7 @@ func assertNoSharedObjectHealthCard(t testing.TB, page playwright.Page) {
 
 	body, err := page.Locator("body").TextContent()
 	if err != nil {
-		t.Fatalf("read retained page text: %v", err)
+		t.Fatalf("read recreated page text: %v", err)
 	}
 	for _, marker := range []string{
 		"Closed - Shared Object",
@@ -76,7 +76,7 @@ func assertNoSharedObjectHealthCard(t testing.TB, page playwright.Page) {
 		"Body configuration invalid",
 	} {
 		if strings.Contains(body, marker) {
-			t.Fatalf("retained route rendered shared-object health card marker %q\nbody: %s", marker, trimPageText(body))
+			t.Fatalf("recreated page route rendered shared-object health card marker %q\nbody: %s", marker, trimPageText(body))
 		}
 	}
 }
@@ -92,13 +92,13 @@ func waitForSharedObjectReadyHealth(
 
 	sdk, err := sess.MountSessionByIdx(ctx, sessionIndex)
 	if err != nil {
-		t.Fatalf("mount retained session %d for health check: %v", sessionIndex, err)
+		t.Fatalf("mount session %d for health check: %v", sessionIndex, err)
 	}
 	defer sdk.Release()
 
 	strm, err := sdk.WatchSharedObjectHealth(ctx, spaceID)
 	if err != nil {
-		t.Fatalf("watch retained shared-object health: %v", err)
+		t.Fatalf("watch shared-object health: %v", err)
 	}
 	defer strm.Close()
 
@@ -106,7 +106,7 @@ func waitForSharedObjectReadyHealth(
 	for {
 		resp, err := strm.Recv()
 		if err != nil {
-			t.Fatalf("recv retained shared-object health: %v (last=%s)", err, sharedObjectHealthSummary(last))
+			t.Fatalf("recv shared-object health: %v (last=%s)", err, sharedObjectHealthSummary(last))
 		}
 		health := resp.GetHealth()
 		last = health
@@ -115,7 +115,7 @@ func waitForSharedObjectReadyHealth(
 			return
 		case sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_CLOSED,
 			sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_DEGRADED:
-			t.Fatalf("retained shared-object health is not ready: %s", sharedObjectHealthSummary(health))
+			t.Fatalf("shared-object health is not ready: %s", sharedObjectHealthSummary(health))
 		}
 	}
 }

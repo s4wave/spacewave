@@ -156,7 +156,7 @@ func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 }
 
 func TestBlogCoexistenceScenario(t *testing.T) {
-	sess := testHarness.NewPageSession(t)
+	sess := testHarness.NewCleanPageSession(t)
 	scenario := createBlogScenario(t, testHarness, sess)
 	page := sess.Page()
 

@@ -5,7 +5,7 @@ package wasm
 import "testing"
 
 func TestLocalOnboardingScenario(t *testing.T) {
-	sess := testHarness.NewSession(t)
+	sess := testHarness.NewCleanSession(t)
 	scenario := CreateLocalOnboardingScenario(t, testHarness, sess)
 
 	if scenario.GetSessionIndex() == 0 {

@@ -8,7 +8,7 @@ import (
 )
 
 func TestBlogQuickstartSetupProbe(t *testing.T) {
-	sess := testHarness.NewPageSession(t)
+	sess := testHarness.NewCleanPageSession(t)
 	page := sess.Page()
 
 	WaitForApp(t, page)

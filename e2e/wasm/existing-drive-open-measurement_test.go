@@ -14,7 +14,7 @@ import (
 // baseline with timings for the route, loading, UnixFS shell, and content-ready
 // layers.
 func TestExistingDriveOpenMeasurement(t *testing.T) {
-	sess := testHarness.NewPageSession(t)
+	sess := testHarness.NewCleanPageSession(t)
 	scenario := CreateDriveScenario(t, testHarness, sess)
 	page := scenario.GetSession().Page()
 

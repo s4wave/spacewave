@@ -42,6 +42,20 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 	startupReloads := 0
 
 	for {
+		if s.retainedState {
+			retainedPeer := h.getRetainedStateResourcePeer()
+			if len(retainedPeer) != 0 {
+				connected, err := h.tryConnectRetainedStatePeer(ctx, s, retainedPeer, startedAt, le)
+				if err != nil {
+					retErr = err
+					return retErr
+				}
+				if connected {
+					return nil
+				}
+			}
+		}
+
 		le.Info("waiting for new browser peer")
 		waitStartedAt := time.Now()
 		peerObs, err := h.getPeerWatcher().WaitForPeerObservationAfter(ctx, afterSeq)
@@ -83,6 +97,9 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 				s.resClient = conn.resClient
 				s.root = conn.root
 				s.browserPeer = browserPeer
+				if s.retainedState {
+					h.setRetainedStateResourcePeer(browserPeer)
+				}
 				le.WithFields(logrus.Fields{
 					"peer":                 browserPeer.String(),
 					"startup-elapsed-ms":   attemptCompletedAt.Sub(startedAt).Milliseconds(),
@@ -138,6 +155,51 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 			}
 		}
 	}
+}
+
+func (h *Harness) tryConnectRetainedStatePeer(
+	ctx context.Context,
+	s *TestSession,
+	browserPeer peer.ID,
+	startedAt time.Time,
+	le *logrus.Entry,
+) (bool, error) {
+	if err := h.waitBrowserPeerLease(ctx, s, browserPeer); err != nil {
+		return false, errors.Wrap(err, "lease retained-state browser peer")
+	}
+
+	attemptTimeout := 15 * time.Second
+	attemptCtx, attemptCancel := context.WithTimeout(ctx, attemptTimeout)
+	clientCtx, clientCancel := context.WithCancel(ctx)
+	attemptStartedAt := time.Now()
+	conn, err := h.tryConnectSessionWithTimeout(attemptCtx, clientCtx, browserPeer)
+	attemptCompletedAt := time.Now()
+	s.recordResourceConnectionAttemptTiming(attemptStartedAt, attemptCompletedAt, browserPeer, err)
+	attemptCancel()
+	if err == nil {
+		s.browserClient = conn.browserClient
+		s.resClient = conn.resClient
+		s.root = conn.root
+		s.browserPeer = browserPeer
+		le.WithFields(logrus.Fields{
+			"peer":               browserPeer.String(),
+			"startup-elapsed-ms": attemptCompletedAt.Sub(startedAt).Milliseconds(),
+			"attempt-elapsed-ms": attemptCompletedAt.Sub(attemptStartedAt).Milliseconds(),
+		}).Info("connected retained-state browser resources")
+		return true, nil
+	}
+	clientCancel()
+	h.releaseBrowserPeerLease(s, browserPeer)
+
+	entry := le.WithField("peer", browserPeer.String()).WithError(err)
+	if shouldAbandonBrowserPeer(err) || isBrowserPeerStartupErr(err) {
+		h.setRetainedStateResourcePeer(peer.ID(""))
+		entry.Info("retained-state browser peer unavailable, waiting for new peer")
+		return false, nil
+	}
+
+	entry.Info("retained-state browser peer connection failed")
+	return false, errors.Wrap(err, "connect retained-state browser peer")
 }
 
 type sessionResourceConnection struct {

@@ -17,18 +17,20 @@ import (
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
-// TestSession holds an isolated browser context and resource connections for
-// a single test. Each test creates its own session via Harness.NewSession so
-// browser state (localStorage, cookies, WASM process, workers) is isolated.
+// TestSession holds one browser page and optional resource connections for a
+// single test. Clean-session helpers allocate a fresh BrowserContext; retained
+// state helpers reuse the harness-owned warm BrowserContext.
 type TestSession struct {
-	h          *Harness
-	browserCtx playwright.BrowserContext
-	page       playwright.Page
-	workersMu  sync.Mutex
-	workers    []playwright.Worker
-	consoleMu  sync.Mutex
-	console    map[chan string]struct{}
-	timingMu   sync.Mutex
+	h              *Harness
+	browserCtx     playwright.BrowserContext
+	ownsBrowserCtx bool
+	retainedState  bool
+	page           playwright.Page
+	workersMu      sync.Mutex
+	workers        []playwright.Worker
+	consoleMu      sync.Mutex
+	console        map[chan string]struct{}
+	timingMu       sync.Mutex
 
 	browserClient  srpc.Client
 	resClient      *resource_client.Client
@@ -38,14 +40,23 @@ type TestSession struct {
 	resourceTiming ResourceConnectionTiming
 }
 
-// NewSession creates an isolated browser session for a single test. A fresh
-// BrowserContext with clean storage is created, the app is loaded, and
-// resources are connected through the devtool bus. The session is released
-// automatically when the test finishes via t.Cleanup.
+// NewSession creates an isolated browser session for a single test.
+//
+// Deprecated: use NewCleanSession so call sites communicate that they require
+// clean browser storage and a dedicated WASM process.
 func (h *Harness) NewSession(t testing.TB) *TestSession {
 	t.Helper()
+	return h.NewCleanSession(t)
+}
 
-	s := h.NewBlankSession(t)
+// NewCleanSession creates a Resource SDK session with a fresh BrowserContext,
+// clean browser storage, a dedicated WASM process, and SDK resource
+// connections through the devtool bus. Use this when the test requires strict
+// browser-state isolation.
+func (h *Harness) NewCleanSession(t testing.TB) *TestSession {
+	t.Helper()
+
+	s := h.NewCleanBlankSession(t)
 	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
@@ -59,9 +70,18 @@ func (h *Harness) NewSession(t testing.TB) *TestSession {
 	return s
 }
 
-// NewBlankSession creates an isolated browser session with a fresh browser
-// context and page, but does not load the app or connect SDK resources.
+// NewBlankSession creates an isolated blank browser session.
+//
+// Deprecated: use NewCleanBlankSession so call sites communicate that they
+// require clean browser storage and a dedicated WASM process.
 func (h *Harness) NewBlankSession(t testing.TB) *TestSession {
+	t.Helper()
+	return h.NewCleanBlankSession(t)
+}
+
+// NewCleanBlankSession creates a fresh BrowserContext and page, but does not
+// load the app or connect SDK resources.
+func (h *Harness) NewCleanBlankSession(t testing.TB) *TestSession {
 	t.Helper()
 
 	s := &TestSession{h: h}
@@ -76,18 +96,99 @@ func (h *Harness) NewBlankSession(t testing.TB) *TestSession {
 	return s
 }
 
-// NewPageSession creates an isolated browser session with only a browser
-// context and page, without connecting SDK resources. Use this for tests
-// that only need browser interaction (e.g. heap profiling, screenshot tests).
+// NewPageSession creates an isolated browser-only session.
+//
+// Deprecated: use NewCleanPageSession so call sites communicate that they
+// require clean browser storage and a dedicated WASM process.
 func (h *Harness) NewPageSession(t testing.TB) *TestSession {
 	t.Helper()
+	return h.NewCleanPageSession(t)
+}
 
-	s := h.NewBlankSession(t)
+// NewCleanPageSession creates a fresh BrowserContext, loads the app, and leaves
+// SDK resources disconnected. Use this for browser-only tests that still
+// require clean storage and a dedicated WASM process.
+func (h *Harness) NewCleanPageSession(t testing.TB) *TestSession {
+	t.Helper()
+
+	s := h.NewCleanBlankSession(t)
 	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
 
 	return s
+}
+
+// NewRetainedStateBlankSession creates a blank page on the package-level warm
+// BrowserContext. Each call creates a fresh Page and registers cleanup for
+// page-owned handles only; the retained context is released by Harness.Release.
+// Use this only when the test can run against retained browser storage and the
+// existing WASM process.
+func (h *Harness) NewRetainedStateBlankSession(t testing.TB) *TestSession {
+	t.Helper()
+
+	s := &TestSession{h: h, retainedState: true}
+	t.Cleanup(s.release)
+
+	page, err := h.newRetainedStateBrowserPage(s)
+	if err != nil {
+		t.Fatalf("new retained-state page: %v", err)
+	}
+	s.page = page
+	h.registerPageSession(page, s)
+	return s
+}
+
+// NewRetainedStatePageSession creates a page-only session on the package-level
+// warm BrowserContext and loads the app. Use this only when the test can run
+// against retained browser storage and the existing WASM process.
+func (h *Harness) NewRetainedStatePageSession(t testing.TB) *TestSession {
+	t.Helper()
+
+	s := h.NewRetainedStateBlankSession(t)
+
+	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
+		t.Fatalf("load app: %v", err)
+	}
+
+	return s
+}
+
+// NewSharedPageSession creates a page-only session on the package-level warm
+// BrowserContext.
+//
+// Deprecated: use NewRetainedStatePageSession so call sites explicitly
+// acknowledge retained browser state.
+func (h *Harness) NewSharedPageSession(t testing.TB) *TestSession {
+	t.Helper()
+	return h.NewRetainedStatePageSession(t)
+}
+
+// NewRetainedStateSession creates a Resource SDK session on the warm retained
+// BrowserContext. This is an opt-in startup optimization helper; clean-session
+// helpers keep strict BrowserContext, storage, and WASM process isolation.
+func (h *Harness) NewRetainedStateSession(t testing.TB) *TestSession {
+	t.Helper()
+
+	s := h.NewRetainedStatePageSession(t)
+
+	ctx, cancel := context.WithCancel(h.ctx)
+	t.Cleanup(cancel)
+	if err := s.ConnectResources(ctx); err != nil {
+		t.Fatalf("connect retained-state resources: %v", err)
+	}
+
+	return s
+}
+
+// NewSharedSession creates a Resource SDK session on the package-level warm
+// BrowserContext.
+//
+// Deprecated: use NewRetainedStateSession so call sites explicitly acknowledge
+// retained browser state.
+func (h *Harness) NewSharedSession(t testing.TB) *TestSession {
+	t.Helper()
+	return h.NewRetainedStateSession(t)
 }
 
 // Page returns the Playwright Page for this session.
@@ -96,9 +197,10 @@ func (s *TestSession) Page() playwright.Page { return s.page }
 // BrowserContext returns the Playwright BrowserContext for this session.
 func (s *TestSession) BrowserContext() playwright.BrowserContext { return s.browserCtx }
 
-// ReplacePageInRetainedContext closes the current page and opens a fresh page
-// in the same BrowserContext.
-func (s *TestSession) ReplacePageInRetainedContext() error {
+// ReplacePageInCurrentContext closes the current page and opens a fresh page in
+// the same BrowserContext. Clean sessions keep their isolated context; retained
+// sessions keep the retained warm context.
+func (s *TestSession) ReplacePageInCurrentContext() error {
 	if s.browserCtx == nil {
 		return errors.New("browser context not initialized")
 	}
@@ -119,6 +221,15 @@ func (s *TestSession) ReplacePageInRetainedContext() error {
 	s.page = page
 	s.h.registerPageSession(page, s)
 	return nil
+}
+
+// ReplacePageInRetainedContext closes the current page and opens a fresh page
+// in the same BrowserContext.
+//
+// Deprecated: use ReplacePageInCurrentContext so clean-session call sites do
+// not imply that they opted into shared retained state.
+func (s *TestSession) ReplacePageInRetainedContext() error {
+	return s.ReplacePageInCurrentContext()
 }
 
 // WatchConsole returns browser and worker console messages emitted after it is
@@ -257,12 +368,18 @@ func (s *TestSession) release() {
 	s.consoleMu.Unlock()
 
 	s.disconnectResources()
-	if s.browserCtx != nil {
-		if s.page != nil {
-			s.h.unregisterPageSession(s.page)
+	if s.page != nil {
+		s.h.unregisterPageSession(s.page)
+		if !s.ownsBrowserCtx {
+			s.page.Close()
 		}
-		s.browserCtx.Close()
-		s.browserCtx = nil
 		s.page = nil
+		s.clearWorkers()
 	}
+	if s.browserCtx != nil && s.ownsBrowserCtx {
+		s.browserCtx.Close()
+	}
+	s.browserCtx = nil
+	s.ownsBrowserCtx = false
+	s.retainedState = false
 }

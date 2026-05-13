@@ -92,7 +92,7 @@ func openDriveDir(t testing.TB, open func(name string), name string) {
 // folder move path to classify whether the current report is stale or a real
 // runtime regression against the implemented same-root move contract.
 func TestQuickstartDriveSingleEntryRowMove(t *testing.T) {
-	sess := testHarness.NewSession(t)
+	sess := testHarness.NewCleanSession(t)
 	scenario := CreateDriveScenario(t, testHarness, sess)
 	page := scenario.GetSession().Page()
 	browser := page.Locator("[data-testid='unixfs-browser']")

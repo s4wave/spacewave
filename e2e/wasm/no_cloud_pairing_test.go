@@ -25,8 +25,8 @@ import (
 // is set by ProviderAccount.OnDirectPairingConnected once the WebRTC data
 // channel is open and the bifrost link is wired up.
 func TestNoCloudPairingDirect(t *testing.T) {
-	sessA := testHarness.NewSession(t)
-	sessB := testHarness.NewSession(t)
+	sessA := testHarness.NewCleanSession(t)
+	sessB := testHarness.NewCleanSession(t)
 
 	ctx, cancel := context.WithTimeout(testHarness.Context(), 90*time.Second)
 	t.Cleanup(cancel)

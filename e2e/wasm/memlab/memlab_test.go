@@ -414,7 +414,7 @@ func logSnapshotSeries(t *testing.T, result *AnalysisResult) {
 // TestDriveScenario tests for memory leaks in the quickstart/drive flow.
 func TestDriveScenario(t *testing.T) {
 	h := testHarness
-	s := h.NewPageSession(t)
+	s := h.NewCleanPageSession(t)
 
 	wasm.WaitForApp(t, s.Page())
 	snaps := NewSnapshotSet(snapshotDir(t))
@@ -462,7 +462,7 @@ func TestDriveScenario(t *testing.T) {
 // TestWatchCleanupScenario tests that watch RPC streams clean up on navigation.
 func TestWatchCleanupScenario(t *testing.T) {
 	h := testHarness
-	s := h.NewPageSession(t)
+	s := h.NewCleanPageSession(t)
 
 	wasm.WaitForApp(t, s.Page())
 	snaps := NewSnapshotSet(snapshotDir(t))
@@ -504,7 +504,7 @@ func TestWatchCleanupScenario(t *testing.T) {
 // TestIdleBaselineScenario tests for background leaks on an idle landing page.
 func TestIdleBaselineScenario(t *testing.T) {
 	h := testHarness
-	s := h.NewPageSession(t)
+	s := h.NewCleanPageSession(t)
 
 	wasm.WaitForApp(t, s.Page())
 	snaps := NewSnapshotSet(snapshotDir(t))
@@ -551,7 +551,7 @@ func TestIdleBaselineScenario(t *testing.T) {
 // to determine whether retained RPC/watch objects continue increasing while idle.
 func TestDriveIdleGrowthScenario(t *testing.T) {
 	h := testHarness
-	s := h.NewPageSession(t)
+	s := h.NewCleanPageSession(t)
 
 	wasm.WaitForApp(t, s.Page())
 	wasm.NavigateHash(t, h, s.Page(), "#/quickstart/drive")

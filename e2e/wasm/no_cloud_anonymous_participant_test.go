@@ -32,8 +32,8 @@ import (
 func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 	t.Skip("no-cloud resource-list discovery is not wired yet; direct pairing coverage lives in TestNoCloudPairingDirect")
 
-	sessA := testHarness.NewSession(t)
-	sessB := testHarness.NewSession(t)
+	sessA := testHarness.NewCleanSession(t)
+	sessB := testHarness.NewCleanSession(t)
 
 	ctx, cancel := context.WithTimeout(testHarness.Context(), 3*time.Minute)
 	t.Cleanup(cancel)

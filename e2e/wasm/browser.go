@@ -12,8 +12,8 @@ import (
 )
 
 // LaunchBrowser starts a Playwright-managed Chromium instance. The browser
-// process is shared across all test sessions; each test creates its own
-// BrowserContext via Harness.NewSession.
+// process is shared across all test sessions. NewClean* helpers create a fresh
+// BrowserContext; NewRetainedState* helpers reuse the harness context.
 //
 // Call this after Boot returns. Headless mode is the default; pass
 // WithHeadless(false) at Boot time to see the browser.
@@ -57,10 +57,38 @@ func (h *Harness) newBrowserContext(s *TestSession) (playwright.Page, error) {
 		return nil, errors.Wrap(err, "new browser context")
 	}
 	s.browserCtx = ctx
+	s.ownsBrowserCtx = true
 
 	page, err := h.newBrowserPage(s)
 	if err != nil {
 		ctx.Close()
+		s.browserCtx = nil
+		s.ownsBrowserCtx = false
+		return nil, err
+	}
+	return page, nil
+}
+
+func (h *Harness) newRetainedStateBrowserPage(s *TestSession) (playwright.Page, error) {
+	if h.browser == nil {
+		return nil, errors.New("browser not launched")
+	}
+
+	h.retainedStateCtxMu.Lock()
+	defer h.retainedStateCtxMu.Unlock()
+
+	if h.retainedStateCtx == nil {
+		ctx, err := h.browser.NewContext()
+		if err != nil {
+			return nil, errors.Wrap(err, "new retained-state browser context")
+		}
+		h.retainedStateCtx = ctx
+	}
+
+	s.browserCtx = h.retainedStateCtx
+	s.ownsBrowserCtx = false
+	page, err := h.newBrowserPage(s)
+	if err != nil {
 		s.browserCtx = nil
 		return nil, err
 	}
@@ -173,6 +201,18 @@ func (h *Harness) loadAppPageURL(s *TestSession, targetURL string) error {
 		return errors.Errorf("app returned HTTP %d", resp.Status())
 	}
 	return nil
+}
+
+// closeRetainedStateContext tears down the warm retained-state context owned by
+// the harness. Individual retained-state sessions close only their own pages.
+func (h *Harness) closeRetainedStateContext() {
+	h.retainedStateCtxMu.Lock()
+	defer h.retainedStateCtxMu.Unlock()
+
+	if h.retainedStateCtx != nil {
+		h.retainedStateCtx.Close()
+		h.retainedStateCtx = nil
+	}
 }
 
 // closeBrowser tears down the shared Playwright browser process.
