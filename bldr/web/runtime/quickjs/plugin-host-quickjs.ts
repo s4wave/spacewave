@@ -216,7 +216,14 @@ export function canUseSynchronousBackendAssetFetch(): boolean {
   return typeof XMLHttpRequest === 'function'
 }
 
+export function shouldPreferBoundedBackendAssetPreload(): boolean {
+  return /\bFirefox\//.test(globalThis.navigator?.userAgent ?? '')
+}
+
 export function selectBackendAssetLoadingMode(): BackendAssetLoadingMode {
+  if (shouldPreferBoundedBackendAssetPreload()) {
+    return 'bounded-preload'
+  }
   return canUseSynchronousBackendAssetFetch() ? 'lazy-http' : 'bounded-preload'
 }
 
@@ -367,11 +374,10 @@ export async function loadBackendAssets(
     entryAssetPaths,
   )
 
-  for (const assetPath of assetPaths) {
-    const resolvedPath = resolveBackendAssetPath(assetPath)
-    if (!resolvedPath) {
-      continue
-    }
+  const resolvedPaths = assetPaths
+    .map((assetPath) => resolveBackendAssetPath(assetPath))
+    .filter((resolvedPath) => resolvedPath !== '')
+  await mapWithConcurrency(resolvedPaths, 8, async (resolvedPath) => {
     const assetURL = api.utils.pluginAssetHttpPath(pluginId, resolvedPath)
     const assetResponse = await fetch(assetURL, { signal })
     if (!assetResponse.ok) {
@@ -382,8 +388,30 @@ export async function loadBackendAssets(
     const data = new Uint8Array(await assetResponse.arrayBuffer())
     cache?.set(resolvedPath, { ok: true, data })
     addAssetToFileSystem(files, resolvedPath, data)
-  }
+  })
   return true
+}
+
+async function mapWithConcurrency<T>(
+  values: T[],
+  concurrency: number,
+  fn: (value: T) => Promise<void>,
+): Promise<void> {
+  let next = 0
+  const workers = Array.from(
+    { length: Math.min(concurrency, values.length) },
+    async () => {
+      for (;;) {
+        const index = next
+        next += 1
+        if (index >= values.length) {
+          return
+        }
+        await fn(values[index])
+      }
+    },
+  )
+  await Promise.all(workers)
 }
 
 // main runs a JavaScript plugin in the QuickJS WASI reactor.

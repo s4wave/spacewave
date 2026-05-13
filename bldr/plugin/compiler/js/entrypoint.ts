@@ -89,17 +89,45 @@ function resolveBackendEntrypointImportPath(
   )
 }
 
+type BackendEntrypointModule = Record<string, unknown>
+export type BackendEntrypointModuleLoader = (
+  importPath: string,
+) => Promise<BackendEntrypointModule>
+
+function importBackendEntrypointModule(
+  importPath: string,
+): Promise<BackendEntrypointModule> {
+  // The import path is relative to the assets FS root (e.g., /p/{plugin-id}/a/).
+  // Example: vite/backend/index.js or esb/backend/index.js
+  // The host environment must resolve these paths relative to the assets base URL.
+  return import(/* @vite-ignore */ importPath)
+}
+
+function observeBackendEntrypointCompletion(
+  entrypointId: string,
+  entrypointPromise: Promise<void> | void,
+): void {
+  Promise.resolve(entrypointPromise)
+    .then(() => {
+      console.debug(`Backend entrypoint finished: ${entrypointId}`)
+    })
+    .catch((error: unknown) => {
+      logError(`Backend entrypoint failed after startup ${entrypointId}`, error)
+    })
+}
+
 /**
  * Loads and executes a single backend entrypoint module.
  * @param entrypoint - The backend entrypoint configuration.
  * @param backendAPI - The backend API object to pass to the entrypoint function.
  * @param abortSignal - The abort signal to pass to the entrypoint function.
- * @returns A promise that resolves when the entrypoint function completes, or rejects on error.
+ * @returns A promise that resolves when the entrypoint function starts, or rejects on startup error.
  */
-async function executeBackendEntrypoint(
+export async function startBackendEntrypoint(
   entrypoint: BackendEntrypoint,
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
+  loadModule: BackendEntrypointModuleLoader = importBackendEntrypointModule,
 ): Promise<void> {
   // Ensure entrypoint and importPath are valid before proceeding.
   if (!entrypoint?.importPath) {
@@ -120,12 +148,8 @@ async function executeBackendEntrypoint(
 
   console.debug(`Importing backend module: ${entrypointId}`)
   try {
-    // The import path is relative to the assets FS root (e.g., /p/{plugin-id}/a/).
-    // Example: vite/backend/index.js or esb/backend/index.js
-    // The host environment must resolve these paths relative to the assets base URL.
-
-    const mod = await import(/* @vite-ignore */ importPath) // note: we use esbuild to bundle this, but let's keep vite-ignore anyway.
-    const modFunc: BackendEntrypointFunc = mod[importName]
+    const mod = await loadModule(importPath)
+    const modFunc = mod[importName]
 
     if (typeof modFunc !== 'function') {
       console.error(
@@ -136,15 +160,14 @@ async function executeBackendEntrypoint(
     }
 
     console.debug(`Executing backend entrypoint: ${entrypointId}`)
-    // Execute the function, passing the PluginAPI.
-    // Wrap the call in Promise.resolve() to handle both Promise<void> and void return values.
-    // Chain a .then() to log completion.
-    return Promise.resolve(modFunc(backendAPI, abortSignal)).then(() => {
-      console.debug(`Backend entrypoint finished: ${entrypointId}`)
-    })
+    const entrypointPromise = (modFunc as BackendEntrypointFunc)(
+      backendAPI,
+      abortSignal,
+    )
+    observeBackendEntrypointCompletion(entrypointId, entrypointPromise)
   } catch (error) {
     logError(
-      `Failed to load or execute backend entrypoint ${entrypointId}`,
+      `Failed to load or start backend entrypoint ${entrypointId}`,
       error,
     )
     return Promise.reject(error)
@@ -169,26 +192,19 @@ async function loadBackendEntrypoints(
 
   console.debug(`Loading ${backendEntrypoints.length} backend entrypoints...`)
 
-  // backendPromises stores promises returned by backend entrypoint functions.
-  const backendPromises: Promise<void>[] = backendEntrypoints.map(
-    (entrypoint) =>
-      // Wrap execution in a promise chain to catch individual errors
-      // without stopping the loading of other entrypoints immediately.
-      // We still want Promise.all to report the aggregate failure.
-      executeBackendEntrypoint(entrypoint, backendAPI, abortSignal),
-  )
-
-  // Wait for all backend entrypoint promises to settle (resolve or reject).
+  // Wait for every backend entrypoint to import and start. The entrypoint
+  // lifecycle promises may intentionally stay pending until plugin shutdown.
   console.debug(
-    `Waiting for ${backendPromises.length} backend entrypoints to complete...`,
+    `Waiting for ${backendEntrypoints.length} backend entrypoints to start...`,
   )
-  try {
-    // Promise.all will reject immediately if any promise rejects.
-    await Promise.all(backendPromises)
-    console.debug('All backend entrypoints completed successfully.')
-  } catch (error) {
-    logError(`One or more backend entrypoints threw errors`, error)
+  for (const entrypoint of backendEntrypoints) {
+    try {
+      await startBackendEntrypoint(entrypoint, backendAPI, abortSignal)
+    } catch (error) {
+      logError(`Backend entrypoint startup threw an error`, error)
+    }
   }
+  console.debug('All backend entrypoints started successfully.')
 }
 
 /**

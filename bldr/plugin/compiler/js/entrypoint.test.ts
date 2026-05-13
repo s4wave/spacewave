@@ -1,7 +1,11 @@
 import { describe, expect, test, vi } from 'vitest'
 import { retryWithAbort } from '@aptre/bldr'
 
-import { entrypointRetryOpts, isEntrypointStreamReset } from './entrypoint.js'
+import {
+  entrypointRetryOpts,
+  isEntrypointStreamReset,
+  startBackendEntrypoint,
+} from './entrypoint.js'
 
 describe('plugin JS entrypoint retry logging', () => {
   test('classifies stream resets as lifecycle retry noise', () => {
@@ -77,6 +81,74 @@ describe('plugin JS entrypoint retry logging', () => {
       controller.abort()
       error.mockRestore()
       vi.useRealTimers()
+    }
+  })
+})
+
+describe('plugin JS backend entrypoint startup', () => {
+  test('does not wait for long-lived backend lifecycle promises before startup resolves', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const backendAPI = {
+      startInfo: { pluginId: 'spacewave-app' },
+      utils: {
+        pluginAssetHttpPath: (_pluginId: string, path: string) =>
+          '/p/spacewave-app/a/' + path,
+      },
+    }
+    const abortController = new AbortController()
+    const entrypointFn = vi.fn(() => new Promise<void>(() => {}))
+
+    try {
+      await expect(
+        startBackendEntrypoint(
+          { importPath: '/assets/backend.js', importName: 'default' },
+          backendAPI as never,
+          abortController.signal,
+          async () => ({ default: entrypointFn }),
+        ),
+      ).resolves.toBeUndefined()
+
+      expect(entrypointFn).toHaveBeenCalledOnce()
+      expect(debug).toHaveBeenCalledWith(
+        'Executing backend entrypoint: /p/spacewave-app/a/backend.js#default',
+      )
+    } finally {
+      abortController.abort()
+      debug.mockRestore()
+    }
+  })
+
+  test('observes backend lifecycle failures after startup', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const backendAPI = {
+      startInfo: { pluginId: 'spacewave-app' },
+      utils: {
+        pluginAssetHttpPath: (_pluginId: string, path: string) =>
+          '/p/spacewave-app/a/' + path,
+      },
+    }
+    const abortController = new AbortController()
+
+    try {
+      await startBackendEntrypoint(
+        { importPath: '/assets/backend.js', importName: 'default' },
+        backendAPI as never,
+        abortController.signal,
+        async () => ({
+          default: () => Promise.reject(new Error('late failure')),
+        }),
+      )
+      await Promise.resolve()
+
+      expect(error).toHaveBeenCalledWith(
+        'Backend entrypoint failed after startup /p/spacewave-app/a/backend.js#default: late failure',
+      )
+      expect(error).toHaveBeenCalledWith(expect.any(Error))
+    } finally {
+      abortController.abort()
+      debug.mockRestore()
+      error.mockRestore()
     }
   })
 })

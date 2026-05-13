@@ -11,12 +11,17 @@ import {
   resolveBackendAssetPath,
   selectBackendAssetLoadingMode,
   shouldPreloadBackendAssets,
+  shouldPreferBoundedBackendAssetPreload,
   type BackendAssetCacheEntry,
 } from './plugin-host-quickjs.js'
 
 describe('plugin-host-quickjs asset helpers', () => {
   const originalXMLHttpRequest = globalThis.XMLHttpRequest
   const originalFetch = globalThis.fetch
+  const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'navigator',
+  )
   const api = {
     startInfo: { pluginId: 'notes' },
     utils: {
@@ -37,6 +42,15 @@ describe('plugin-host-quickjs asset helpers', () => {
       configurable: true,
       writable: true,
     })
+    if (originalNavigatorDescriptor) {
+      Object.defineProperty(
+        globalThis,
+        'navigator',
+        originalNavigatorDescriptor,
+      )
+    } else {
+      Reflect.deleteProperty(globalThis, 'navigator')
+    }
     vi.restoreAllMocks()
   })
 
@@ -255,8 +269,30 @@ describe('plugin-host-quickjs asset helpers', () => {
       configurable: true,
       writable: true,
     })
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { userAgent: 'Chrome/126.0.0.0' },
+      configurable: true,
+      writable: true,
+    })
     expect(canUseSynchronousBackendAssetFetch()).toBe(true)
     expect(selectBackendAssetLoadingMode()).toBe('lazy-http')
+  })
+
+  it('selects bounded backend asset preload for Firefox workers', () => {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
+      value: class MockXMLHttpRequest {},
+      configurable: true,
+      writable: true,
+    })
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { userAgent: 'Mozilla/5.0 Firefox/126.0' },
+      configurable: true,
+      writable: true,
+    })
+
+    expect(canUseSynchronousBackendAssetFetch()).toBe(true)
+    expect(shouldPreferBoundedBackendAssetPreload()).toBe(true)
+    expect(selectBackendAssetLoadingMode()).toBe('bounded-preload')
   })
 
   it('preloads backend assets only for bounded fallback mode', () => {
