@@ -16,6 +16,10 @@ import { timeoutPromise } from './timeout.js'
 import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 import { markStartupBoundary } from './startup-marks.js'
 
+// resumeReadyGateMaxWaitMs gives foreground resume a chance to settle without
+// letting hidden or retained documents block ServiceWorker RPC fetches forever.
+const resumeReadyGateMaxWaitMs = 3000
+
 // OpenChannelFn opens the MessagePort to the WebRuntime.
 export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 
@@ -247,7 +251,10 @@ export class WebRuntimeClient {
 
   private async streamOpenTimeoutPromise(): Promise<void> {
     if (this.waitForStreamOpenTimeoutGate) {
-      await this.waitForStreamOpenTimeoutGate()
+      await Promise.race([
+        this.waitForStreamOpenTimeoutGate(),
+        timeoutPromise(resumeReadyGateMaxWaitMs),
+      ])
     }
     await timeoutPromise(1500)
   }

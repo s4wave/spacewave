@@ -3,6 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import { WebRuntimeClient } from './web-runtime-client.js'
 
+function startStreamOpenTimeout(client: WebRuntimeClient): Promise<void> {
+  const streamOpenTimeout = Reflect.get(client, 'streamOpenTimeoutPromise')
+  if (typeof streamOpenTimeout !== 'function') {
+    throw new Error('streamOpenTimeoutPromise is not callable')
+  }
+  return streamOpenTimeout.call(client)
+}
+
 describe('WebRuntimeClient', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -83,23 +91,45 @@ describe('WebRuntimeClient', () => {
           resolveResumeReady = resolve
         }),
     )
-    const streamOpenTimeoutPromise = (
-      client as unknown as { streamOpenTimeoutPromise: () => Promise<void> }
-    ).streamOpenTimeoutPromise()
-    let timedOut = false
-    streamOpenTimeoutPromise.then(() => {
-      timedOut = true
-    })
+    const streamOpenTimeoutPromise = startStreamOpenTimeout(client)
+    const timedOut = vi.fn()
+    streamOpenTimeoutPromise.then(timedOut)
 
-    await vi.advanceTimersByTimeAsync(3000)
-    expect(timedOut).toBe(false)
+    await vi.advanceTimersByTimeAsync(2999)
+    expect(timedOut).not.toHaveBeenCalled()
 
     resolveResumeReady?.()
     await vi.advanceTimersByTimeAsync(1499)
-    expect(timedOut).toBe(false)
+    expect(timedOut).not.toHaveBeenCalled()
 
     await vi.advanceTimersByTimeAsync(1)
-    expect(timedOut).toBe(true)
+    expect(timedOut).toHaveBeenCalledTimes(1)
+    await expect(streamOpenTimeoutPromise).resolves.toBeUndefined()
+  })
+
+  it('bounds the resume-ready gate wait before applying the stream-open timeout', async () => {
+    vi.useFakeTimers()
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      vi.fn(),
+      null,
+      null,
+      undefined,
+      undefined,
+      () => new Promise<void>(() => {}),
+    )
+
+    const streamOpenTimeoutPromise = startStreamOpenTimeout(client)
+    const timedOut = vi.fn()
+    streamOpenTimeoutPromise.then(timedOut)
+
+    await vi.advanceTimersByTimeAsync(4499)
+    expect(timedOut).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(timedOut).toHaveBeenCalledTimes(1)
     await expect(streamOpenTimeoutPromise).resolves.toBeUndefined()
   })
 
@@ -117,19 +147,15 @@ describe('WebRuntimeClient', () => {
       vi.fn().mockResolvedValue(undefined),
     )
 
-    const streamOpenTimeoutPromise = (
-      client as unknown as { streamOpenTimeoutPromise: () => Promise<void> }
-    ).streamOpenTimeoutPromise()
-    let timedOut = false
-    streamOpenTimeoutPromise.then(() => {
-      timedOut = true
-    })
+    const streamOpenTimeoutPromise = startStreamOpenTimeout(client)
+    const timedOut = vi.fn()
+    streamOpenTimeoutPromise.then(timedOut)
 
     await vi.advanceTimersByTimeAsync(1499)
-    expect(timedOut).toBe(false)
+    expect(timedOut).not.toHaveBeenCalled()
 
     await vi.advanceTimersByTimeAsync(1)
-    expect(timedOut).toBe(true)
+    expect(timedOut).toHaveBeenCalledTimes(1)
     await expect(streamOpenTimeoutPromise).resolves.toBeUndefined()
   })
 })
