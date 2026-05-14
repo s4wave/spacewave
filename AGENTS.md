@@ -7,10 +7,14 @@ company AGENTS rules first, then apply these Spacewave-specific rules.
 
 - Work from the repository root unless a command explicitly belongs in a
   subdirectory.
-- Do not access paths outside the current working directory and its
-  subdirectories.
+- Keep Spacewave source edits inside this repository. Company workflow files
+  such as `~/company/notes/`, `glossary.org`, and `hotlinks.org` remain governed
+  by the shared company AGENTS rules.
 - Do not assume `bldr setup` needs to be run manually. Bldr runs setup
   automatically for almost any operation.
+- Do not manually copy files to `.bldr/src/` or sync source files there.
+  `.bldr/src/` is managed by `bldr setup` and regenerated automatically. Edit
+  source files in their original locations only.
 - Do not assume Tailwind utility pixel sizes such as `h-4` or `h-16`; they
   depend on `var(--spacing)`.
 - Styling uses Tailwind v4 with theme variables in `web/style/app.css`.
@@ -22,16 +26,17 @@ company AGENTS rules first, then apply these Spacewave-specific rules.
 - Keep this file general-purpose. `AGENTS.md` should capture repository rules,
   recurring patterns, and architectural invariants, not task-specific plans or
   implementation notes.
-- Do not push to the `release` branch unless the user explicitly asks. Push
-  commits to `master`; fast-forwarding `release` to `master` happens only on
-  explicit request. `release` must always equal `master` after any update,
-  with no merge commits.
+- Do not push to the `release` branch unless the user explicitly asks. When
+  explicitly asked to push, push commits to `master`; fast-forwarding `release`
+  to `master` happens only on explicit request. `release` must always equal
+  `master` after any update, with no merge commits.
 
 ## Go Modules And Vendoring
 
-- When adding `replace` directives to `go.mod`, use absolute paths such as
-  `replace github.com/foo/bar => /absolute/path/to/company/repos/bar`. Relative
-  paths break when the working directory changes.
+- Temporary local `replace` directives may use absolute paths so commands keep
+  working when run from subdirectories. Do not commit local `replace` paths;
+  before landing, publish the replaced repo or update to a real module version,
+  remove the local `replace`, then tidy and vendor.
 - After any `go.mod` change, including dependencies, replace directives, or
   version bumps, run:
 
@@ -40,6 +45,86 @@ company AGENTS rules first, then apply these Spacewave-specific rules.
   ```
 
 - Keep `vendor/` synchronized with `go.mod`.
+
+## Bldr Build And Runtime
+
+### Code Signing
+
+Bldr's Go compiler (`bldr/util/gocompiler`) signs produced binaries when
+platform-appropriate signing env vars are set. The signing hook runs after
+`go build` and before any wasm post-processing. It is a no-op when the relevant
+identity/profile env vars are unset.
+
+macOS signing env:
+
+| Env var | Meaning |
+| --- | --- |
+| `BLDR_MACOS_SIGN_IDENTITY` | codesign identity. Unset means skip signing. |
+| `BLDR_MACOS_SIGN_ENTITLEMENTS` | Optional path to an entitlements plist. |
+| `BLDR_MACOS_SIGN_OPTIONS` | Comma-separated codesign `--options` values. Defaults to `runtime`. |
+
+When set and `GOOS=darwin`, bldr runs:
+
+```bash
+codesign --force --sign "$IDENTITY" --options "$OPTIONS" [--entitlements "$ENTS"] <binary>
+codesign --verify --strict <binary>
+```
+
+Windows signing env:
+
+| Env var | Meaning |
+| --- | --- |
+| `BLDR_WINDOWS_SIGN_PROFILE` | Trusted Signing certificate profile name. Unset means skip signing. |
+| `BLDR_WINDOWS_SIGN_ACCOUNT` | Trusted Signing signing-account name. Required when profile is set. |
+| `BLDR_WINDOWS_SIGN_ENDPOINT` | Regional endpoint URL. Defaults to `https://wus.codesigning.azure.net/`. |
+| `BLDR_WINDOWS_SIGN_DESCRIPTION` | Authenticode signature description. Defaults to `Spacewave`. |
+
+When set and `GOOS=windows`, bldr shells out to `pwsh` and
+`Invoke-TrustedSigning`. The machine or CI job must have the `TrustedSigning`
+PowerShell module installed and Azure credentials available through
+`DefaultAzureCredential` (`az login` locally or `azure/login` in CI). A non-zero
+signing or verification exit fails the build.
+
+### File Logging
+
+Bldr supports file-based logging through the `--log-file` flag and
+`BLDR_LOG_FILE` environment variable. Implementation lives in
+`bldr/util/logfile/`.
+
+```bash
+bldr --log-file 'level=DEBUG;format=json;path=.bldr/logs/{ts}.log' start web
+BLDR_LOG_FILE='level=WARN;path=.bldr/logs/warn.log' bldr start web
+bldr --log-file '.bldr/logs/{ts}.log' start web
+BLDR_LOG_FILE=none bldr start web
+```
+
+The short form is a path only and defaults to `level=DEBUG;format=text`. In dev
+mode (`--build-type dev`), file logging is auto-enabled with
+`level=DEBUG;path=.bldr/logs/{ts}.log`.
+
+Distribution and CLI entrypoints auto-enable a DEBUG text log file when
+`BLDR_LOG_FILE` is unset or blank. The path is `<storageRoot>/logs/{ts}.log`,
+where `<storageRoot>` is the same directory the binary uses for state, such as
+`~/.spacewave/`. The file stays at DEBUG level regardless of console verbosity.
+
+| Env var | Effect |
+| --- | --- |
+| `BLDR_LOG_FILE=<spec>` | User-specified spec wins; auto-default does not fire. |
+| `BLDR_LOG_FILE=none` | Disables file logging entirely. |
+| `BLDR_LOG_FILE` unset or blank | Auto-default fires at `<storageRoot>/logs/{ts}.log`. |
+| `<PROJECT>_LOG_LEVEL` | Overrides the console level only. |
+| `BLDR_LOG_LEVEL` | Console-level override checked after `<PROJECT>_LOG_LEVEL`. |
+| `<PROJECT>_LOG_RETENTION_DAYS` | Overrides retention; default is `7` days. |
+
+Old `*.log` files in the same directory are pruned at startup before the new
+file is created. Pruning failures emit a warning and never abort startup.
+`EnsureLoggerLevel` decouples console and file levels by raising the underlying
+logger to DEBUG and routing console output through a level-filtered hook.
+
+For `spacewave-cli`, the daemon child process inherits the parent CLI
+environment, so `BLDR_LOG_FILE`, `BLDR_LOG_LEVEL`, `SPACEWAVE_LOG_LEVEL`,
+`SPACEWAVE_LOG_RETENTION_DAYS`, `SPACEWAVE_DATA_DIR`, and `BLDR_STATE_PATH` set
+on `spacewave-cli start` reach the spawned daemon.
 
 ## RPC, Cache, And Resource Lifecycles
 
@@ -653,6 +738,13 @@ import "github.com/s4wave/spacewave/core/session/session.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 ```
 
+External proto files use their external Go module path:
+
+```protobuf
+import "github.com/aperturerobotics/controllerbus/bus/bus.proto";
+import "github.com/aperturerobotics/starpc/srpc/srpc.proto";
+```
+
 Package naming:
 
 - `sdk/` proto files use the full `s4wave.` prefix, such as
@@ -672,6 +764,38 @@ new `.pb.ts` file or TypeScript module is imported by files in `web/electron/`
 or `web/entrypoint/`, it must be explicitly embedded.
 
 ## Testing And Build Commands
+
+### Test Structure
+
+Choose the narrowest tier that covers the behavior.
+
+- Unit tests (`*.test.ts`) run with `vitest run` in the `happy-dom`
+  environment. Co-locate them with the module under test and use them for pure
+  logic, data structures, parsers, protocol helpers, and ring buffers.
+- Browser tests (`*.browser.test.ts`, `*.e2e.test.ts`) run in vitest browser
+  mode with the Playwright provider and headless Chromium. Use them for real
+  browser APIs such as SharedArrayBuffer, Atomics, OPFS, BroadcastChannel, Web
+  Locks, and service workers.
+- E2E tests (`e2e/*.spec.ts`) run with `bun run test:e2e`, using Playwright
+  directly. The Playwright config starts the dev server with
+  `bun run start:web:wasm`. Use these for full application lifecycle coverage:
+  page loads, WASM boot, plugin rendering, and console-error checks.
+- Release E2E tests (`web/entrypoint/browser/*.e2e.spec.ts`) run with
+  `bun run test:release:web`, which builds a release web bundle before testing
+  the static output.
+- Go tests (`*_test.go`) run with `go test ./...` and belong beside the Go
+  package they cover.
+- Do not use prototype directories for production tests. If the company
+  prototype exception explicitly allows a temporary target-repo probe, keep its
+  Playwright config and static fixtures isolated from normal vitest projects
+  and from `bun run test:e2e`.
+
+Quick choice:
+
+- New utility function or data structure: unit test.
+- New browser API integration: browser test.
+- New user-visible feature or startup path: E2E test.
+- New Go package or compiler behavior: Go test.
 
 ### Preferred Test Commands
 
