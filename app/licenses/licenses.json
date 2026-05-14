@@ -1605,7 +1605,7 @@
     },
     {
       "name": "github.com/sirupsen/logrus",
-      "version": "v1.9.5-0.20260508084601-d4a50659cfd6",
+      "version": "=>",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/sirupsen/logrus",
