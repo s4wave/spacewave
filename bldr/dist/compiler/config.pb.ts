@@ -112,11 +112,10 @@ export interface Config {
    */
   enableCgo?: Enabled
   /**
-   * EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
-   * Currently TinyGo fails to build Bldr due to missing implementation internally.
-   * Once compatible, the default will be to use tinygo for the web platform in release mode.
-   * Only applicable for the web platform (WebAssembly) (currently).
-   * NOTE: Currently disabled on default.
+   * EnableTinygo enables using TinyGo instead of the Go compiler.
+   * Explicit enable is experimental and only supported for TinyGo-compatible
+   * WebAssembly targets. The default remains the standard Go compiler until the
+   * browser plugin product proof passes.
    *
    * @generated from field: enabled.Enabled enable_tinygo = 6;
    */

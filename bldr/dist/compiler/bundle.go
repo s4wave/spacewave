@@ -75,9 +75,11 @@ func BuildDistBundle(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	// enable tinygo on the web platform in release mode on default
-	tinygoSupported := false // TODO: TinyGo cannot yet build Bldr successfully.
-	enableTinygo := isWebPlatform && enableTinygoOpt.IsEnabled(isRelease && tinygoSupported)
+	tinygoDefault := false
+	enableTinygo, err := gocompiler.ResolveTinyGoEnabled(buildPlatform, enableTinygoOpt, isWebPlatform && isRelease && tinygoDefault)
+	if err != nil {
+		return err
+	}
 
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()

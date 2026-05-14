@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	space_exec "github.com/s4wave/spacewave/core/forge/exec"
+	space_exec_noop "github.com/s4wave/spacewave/core/forge/exec/noop"
 	"github.com/s4wave/spacewave/db/world"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	forge_job "github.com/s4wave/spacewave/forge/job"
@@ -54,7 +54,7 @@ func (o *ForgeTaskCreateOp) ApplyWorldOp(
 	}
 
 	// Create the task with the default noop exec target.
-	tgt := space_exec.NewNoopTarget()
+	tgt := space_exec_noop.NewTarget()
 	_, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, o.GetName(), tgt, "", 1, o.GetTimestamp())
 	if err != nil {
 		return false, err

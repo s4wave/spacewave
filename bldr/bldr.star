@@ -56,6 +56,11 @@ manifest("bldr-demo",
                 },
             },
         },
+        platformTypes={
+            "web": {
+                "enableTinygo": "ENABLE",
+            },
+        },
     ),
 )
 

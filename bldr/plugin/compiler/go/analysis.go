@@ -5,7 +5,6 @@ package bldr_plugin_compiler_go
 import (
 	"context"
 	"go/ast"
-	"go/build"
 	"os"
 	"path/filepath"
 
@@ -13,6 +12,7 @@ import (
 	"go/token"
 	"go/types"
 	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
@@ -103,13 +103,10 @@ func AnalyzePackages(
 		module:              make(map[string]*packages.Module),
 	}
 
-	builderCtx := build.Default
-
 	// build tags
-	builderCtx.BuildTags = append(builderCtx.BuildTags, "bldr_analyze")
-	builderCtx.BuildTags = append(builderCtx.BuildTags, buildTags...)
-	slices.Sort(builderCtx.BuildTags)
-	builderCtx.BuildTags = slices.Compact(builderCtx.BuildTags)
+	buildTags = append(slices.Clone(buildTags), "bldr_analyze")
+	slices.Sort(buildTags)
+	buildTags = slices.Compact(buildTags)
 
 	var conf packages.Config
 	conf.Context = ctx
@@ -141,6 +138,9 @@ func AnalyzePackages(
 		le.Debugf(format, args...)
 	}
 	conf.BuildFlags = append(conf.BuildFlags, "-mod=readonly")
+	if len(buildTags) != 0 {
+		conf.BuildFlags = append(conf.BuildFlags, "-tags="+strings.Join(buildTags, ","))
+	}
 
 	// Use the target platform's GOOS / GOARCH so build-tag gating during
 	// analysis matches the target compile. Empty inputs fall back to

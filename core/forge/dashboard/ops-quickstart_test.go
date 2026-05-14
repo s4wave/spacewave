@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	space_exec "github.com/s4wave/spacewave/core/forge/exec"
+	space_exec_noop "github.com/s4wave/spacewave/core/forge/exec/noop"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -64,8 +64,8 @@ func TestInitForgeQuickstartSeedsExecutableTargets(t *testing.T) {
 		if target.GetExec().GetDisable() {
 			t.Fatalf("expected executable target for %s", taskKey)
 		}
-		if got := target.GetExec().GetController().GetId(); got != space_exec.NoopConfigID {
-			t.Fatalf("expected %s controller for %s, got %q", space_exec.NoopConfigID, taskKey, got)
+		if got := target.GetExec().GetController().GetId(); got != space_exec_noop.ConfigID {
+			t.Fatalf("expected %s controller for %s, got %q", space_exec_noop.ConfigID, taskKey, got)
 		}
 	}
 }

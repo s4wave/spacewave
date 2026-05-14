@@ -121,6 +121,8 @@ require (
 	github.com/zeebo/blake3 v0.2.4
 )
 
+replace github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d
+
 require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect

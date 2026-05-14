@@ -5,6 +5,7 @@ package entrypoint_browser_bundle
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -75,6 +76,24 @@ func TestServiceWorkerBuildOptsBuildsClassicScript(t *testing.T) {
 	opts := ServiceWorkerBuildOpts(t.TempDir(), false, true)
 	if opts.Format != esbuild.FormatIIFE {
 		t.Fatalf("service worker format=%v want %v", opts.Format, esbuild.FormatIIFE)
+	}
+}
+
+func TestApplyTinyGoNodeFallbacks(t *testing.T) {
+	opts := BrowserBuildOpts(t.TempDir(), false)
+	ApplyTinyGoNodeFallbacks(&opts)
+
+	for _, module := range []string{
+		"fs",
+		"crypto",
+		"util",
+		"node:fs",
+		"node:crypto",
+		"node:util",
+	} {
+		if !slices.Contains(opts.External, module) {
+			t.Fatalf("missing TinyGo external %q in %v", module, opts.External)
+		}
 	}
 }
 

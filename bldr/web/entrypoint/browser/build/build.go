@@ -60,7 +60,7 @@ func BuildWasmRuntimeEntrypoint(
 			return err
 		}
 		opts.Inject = append(opts.Inject, nodeStubsLoc)
-		opts.External = append(opts.External, "fs", "crypto", "util")
+		entrypoint_browser_bundle.ApplyTinyGoNodeFallbacks(&opts)
 	}
 	opts.Inject = append(opts.Inject, wasmExecFile)
 

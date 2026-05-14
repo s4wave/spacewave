@@ -616,7 +616,7 @@ func (ss *session) handleWrite(ctx context.Context, tag uint32, req *V86FsWriteR
 	if err != nil {
 		return nil, err
 	}
-	if len(data) > math.MaxUint32 {
+	if uint64(len(data)) > uint64(math.MaxUint32) {
 		return nil, errors.New("write size exceeds uint32")
 	}
 	return &V86FsMessage{

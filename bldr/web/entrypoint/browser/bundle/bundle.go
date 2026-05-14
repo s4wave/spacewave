@@ -340,6 +340,19 @@ func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
 	}
 }
 
+// ApplyTinyGoNodeFallbacks keeps TinyGo's browser wasm_exec.js Node fallbacks
+// external so the injected browser stubs can provide runtime globals instead.
+func ApplyTinyGoNodeFallbacks(opts *esbuild.BuildOptions) {
+	opts.External = append(opts.External,
+		"fs",
+		"crypto",
+		"util",
+		"node:fs",
+		"node:crypto",
+		"node:util",
+	)
+}
+
 // BrowserEntrypointBuildOpts creates the BuildOpts for the root browser entrypoint
 func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildOptions {
 	buildOpts := BrowserBuildOpts(bldrDistRoot, minify)

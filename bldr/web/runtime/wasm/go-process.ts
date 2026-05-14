@@ -75,11 +75,36 @@ export async function loadWebAssemblyModule(
 // See wasm_exec.js from the Go standard library.
 //
 // wasm_exec.js is combined with this file via esbuild as a build step.
+export interface TinyGoRuntime {
+  importObject: WebAssembly.Imports
+  _inst?: WebAssembly.Instance
+}
+
+interface TinyGoImportObject extends WebAssembly.Imports {
+  gojs?: Record<string, unknown>
+}
+
 declare class Go {
   importObject: WebAssembly.Imports
   env: Record<string, string>
   argv: string[]
-  run(inst: WebAssembly.Module): Promise<void>
+  run(inst: WebAssembly.Instance): Promise<void>
+}
+
+// patchTinyGoRuntimeImports adds imports newer TinyGo output can request before
+// TinyGo's bundled wasm_exec.js has grown matching browser shims.
+export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
+  const gojs = (go.importObject as TinyGoImportObject).gojs
+  if (!gojs || typeof gojs['runtime.getRandomData'] === 'function') {
+    return
+  }
+  gojs['runtime.getRandomData'] = (ptr: number, len: number) => {
+    const memory = go._inst?.exports.memory
+    if (!(memory instanceof WebAssembly.Memory)) {
+      throw new Error('TinyGo runtime memory is not initialized')
+    }
+    crypto.getRandomValues(new Uint8Array(memory.buffer, ptr, len))
+  }
 }
 
 // GoWasmProcess contains an instance of the bldr plugin host (entrypoint) running
@@ -160,6 +185,7 @@ export class GoWasmProcess {
     patchWorkerBrowserGlobals()
 
     const go = new Go()
+    patchTinyGoRuntimeImports(go)
     if (this.opts?.argv) {
       go.argv = this.opts.argv
     }

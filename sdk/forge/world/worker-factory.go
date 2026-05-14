@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package s4wave_forge_world
 
 import (

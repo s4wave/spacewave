@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package execution_controller
 
 import (

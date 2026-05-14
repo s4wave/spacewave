@@ -2,7 +2,6 @@ package transport
 
 import (
 	"context"
-	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -17,8 +16,6 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
-	"github.com/s4wave/spacewave/net/transport/webrtc"
-	"github.com/s4wave/spacewave/net/transport/websocket"
 	"github.com/sirupsen/logrus"
 )
 
@@ -159,8 +156,9 @@ func (t *SessionTransport) Execute(ctx context.Context) error {
 	}
 
 	// Register bifrost transport factories on the child bus.
-	sr.AddFactory(websocket.NewFactory(b))
-	sr.AddFactory(webrtc.NewFactory(b))
+	for _, factory := range sessionTransportFactories(b) {
+		sr.AddFactory(factory)
+	}
 	sr.AddFactory(link_solicit_controller.NewFactory())
 	sr.AddFactory(dex_solicit.NewFactory(b))
 
@@ -175,57 +173,17 @@ func (t *SessionTransport) Execute(ctx context.Context) error {
 	}
 	defer solicitRef.Release()
 
-	// Start signaling and WebRTC if configured.
-	if t.signalingURL != "" {
-		// Acquire JWT ticket for signaling WebSocket.
-		ticket, err := acquireSignalTicket(ctx, t.signalingURL, t.sessionKey, t.peerID, t.signingEnvPfx)
-		if err != nil {
-			return err
-		}
-
-		// Build WebSocket URL from the base URL.
-		wsURL := strings.Replace(t.signalingURL, "https://", "wss://", 1)
-		wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
-		wsURL += "/api/signal/ws?tk=" + ticket
-
-		le.Debug("connecting to signaling")
-
-		// Dial signaling server directly via WebSocket.
-		sigClient, sigConn, sigCleanup, err := dialSignalingClient(ctx, le, wsURL, t.sessionKey)
-		if err != nil {
-			return err
-		}
-		defer sigCleanup()
-
-		// Add signaling controller to the bus.
-		sigCtrl := newWSSignalingCtrl(le, b, sigClient, sigConn, "webrtc", t.peerID)
-		if _, err := b.AddController(ctx, sigCtrl, nil); err != nil {
-			return err
-		}
-
-		// WebRTC transport for peer-to-peer connections.
-		rtcCtrl, _, rtcRef, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
-			ctx, b,
-			resolver.NewLoadControllerWithConfig(&webrtc.Config{
-				SignalingId: "webrtc",
-				WebRtc: &webrtc.WebRtcConfig{
-					IceServers: []*webrtc.IceServerConfig{
-						{Urls: []string{"stun:stun.l.google.com:19302"}},
-					},
-				},
-				AllPeers: true,
-			}),
-			nil,
-		)
-		if err != nil {
-			return err
-		}
-		defer rtcRef.Release()
+	rtcCtrl, releaseRTC, err := t.startWebRTCControllers(ctx, le, b)
+	if err != nil {
+		return err
+	}
+	if releaseRTC != nil {
+		defer releaseRTC()
+	}
+	if rtcCtrl != nil {
 		t.mtx.Lock()
 		t.linkController = rtcCtrl
 		t.mtx.Unlock()
-
-		le.Debug("signaling and webrtc controllers started")
 	}
 
 	// Signal ready after all controllers (including signaling) are started.

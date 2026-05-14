@@ -91,11 +91,10 @@ type Config struct {
 	//
 	// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
 	EnableCgo enabled.Enabled `protobuf:"varint,5,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
-	// EnableTinygo enables using TinyGo instead of the Go compiler in some circumstances.
-	// Currently TinyGo fails to build Bldr due to missing implementation internally.
-	// Once compatible, the default will be to use tinygo for the web platform in release mode.
-	// Only applicable for the web platform (WebAssembly) (currently).
-	// NOTE: Currently disabled on default.
+	// EnableTinygo enables using TinyGo instead of the Go compiler.
+	// Explicit enable is experimental and only supported for TinyGo-compatible
+	// WebAssembly targets. The default remains the standard Go compiler until the
+	// browser plugin product proof passes.
 	EnableTinygo enabled.Enabled `protobuf:"varint,6,opt,name=enable_tinygo,json=enableTinygo,proto3" json:"enableTinygo,omitempty"`
 	// EnableCompression can optionally force-enable or force-disable binary compression.
 	// The default is ENABLE for release-mode only.

@@ -77,6 +77,7 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 			return err
 		}
 		opts.Inject = append(opts.Inject, nodeStubsLoc)
+		entrypoint_browser_bundle.ApplyTinyGoNodeFallbacks(&opts)
 	}
 
 	opts.Inject = append(opts.Inject, wasmExecFile)

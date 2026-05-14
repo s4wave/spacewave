@@ -1,5 +1,3 @@
-//go:build !tinygo
-
 package nethttp
 
 import (

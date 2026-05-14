@@ -47,6 +47,12 @@ func Main(
 			return err
 		}
 
+		if pluginStartInfoJsonB64 == "" {
+			startInfoVal := js.Global().Get("BLDR_PLUGIN_START_INFO")
+			if startInfoVal.Truthy() {
+				pluginStartInfoJsonB64 = startInfoVal.String()
+			}
+		}
 		pluginStartInfo, err := UnmarshalPluginStartInfo(pluginStartInfoJsonB64)
 		if err != nil {
 			return err

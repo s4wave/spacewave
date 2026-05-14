@@ -6,7 +6,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/aperturerobotics/util/enabled"
 	bldr_dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
+	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 )
 
 func TestEvaluateBldr(t *testing.T) {
@@ -37,6 +39,19 @@ func TestEvaluateBldr(t *testing.T) {
 		if conf.GetManifests()[manifestID] == nil {
 			t.Fatalf("missing manifest %q", manifestID)
 		}
+	}
+
+	demo := conf.GetManifests()["bldr-demo"]
+	demoConf := &bldr_plugin_compiler_go.Config{}
+	if err := demoConf.UnmarshalJSON(demo.GetBuilder().GetConfig()); err != nil {
+		t.Fatalf("parse bldr-demo config: %v", err)
+	}
+	webConf := demoConf.GetPlatformTypes()["web"]
+	if webConf == nil {
+		t.Fatal("missing bldr-demo web platform override")
+	}
+	if webConf.GetEnableTinygo() != enabled.Enabled_ENABLE {
+		t.Fatalf("bldr-demo web enableTinygo: got %s, want ENABLE", webConf.GetEnableTinygo())
 	}
 
 	releaseWeb := conf.GetBuild()["release-web"]

@@ -61,6 +61,44 @@ def desktop_status_projector_config_set():
         "desktop-status-projector": config_entry("resource/desktop/status-projector", 1),
     }
 
+def spacewave_core_config(enable_tinygo_web=False):
+    platform_types = {
+        "desktop": {
+            "goPkgs": ["./core/resource/desktop/statusprojector"],
+            "configSet": desktop_status_projector_config_set(),
+        },
+    }
+    if enable_tinygo_web:
+        platform_types["web"] = {
+            "enableTinygo": "ENABLE",
+        }
+    return {
+        "goPkgs": CORE_GO_PKGS,
+        "configSet": core_config_set(),
+        "buildTypes": {
+            "dev": {
+                "goPkgs": ["./core/debug/trace"],
+                "configSet": {
+                    "debug-trace": config_entry("debug/trace", 1),
+                },
+            },
+            "release": {
+                "configSet": {
+                    "resource-listener": config_entry("resource/listener", 1, {
+                        "listenerSocketPath": "~/.spacewave/spacewave.sock",
+                    }),
+                },
+            },
+        },
+        "platformTypes": platform_types,
+        "hostConfigSet": {
+            "fetch-manifest-via-spacewave-core": config_entry(
+                "bldr/manifest/fetch/plugin", 1,
+                {"pluginId": "spacewave-core"},
+            ),
+        },
+    }
+
 # Web packages excluded by JS plugins that consume spacewave-web packages.
 EXCLUDED_WEB_PKGS = [
     web_pkg("@s4wave/web", exclude=True),
@@ -185,37 +223,7 @@ manifest("spacewave-loader",
 manifest("spacewave-core",
     builder="bldr/plugin/compiler/go",
     rev=12,
-    config={
-        "goPkgs": CORE_GO_PKGS,
-        "configSet": core_config_set(),
-        "buildTypes": {
-            "dev": {
-                "goPkgs": ["./core/debug/trace"],
-                "configSet": {
-                    "debug-trace": config_entry("debug/trace", 1),
-                },
-            },
-            "release": {
-                "configSet": {
-                    "resource-listener": config_entry("resource/listener", 1, {
-                        "listenerSocketPath": "~/.spacewave/spacewave.sock",
-                    }),
-                },
-            },
-        },
-        "platformTypes": {
-            "desktop": {
-                "goPkgs": ["./core/resource/desktop/statusprojector"],
-                "configSet": desktop_status_projector_config_set(),
-            },
-        },
-        "hostConfigSet": {
-            "fetch-manifest-via-spacewave-core": config_entry(
-                "bldr/manifest/fetch/plugin", 1,
-                {"pluginId": "spacewave-core"},
-            ),
-        },
-    },
+    config=spacewave_core_config(),
 )
 
 manifest("spacewave-debug",
@@ -376,6 +384,14 @@ build("cli",         manifests=["spacewave"])
 build("plugin-release-browser",
     manifests=REMOTE_WORLD_MANIFESTS,
     targets=["browser"],
+)
+
+build("plugin-release-browser-tinygo",
+    manifests=REMOTE_WORLD_MANIFESTS,
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-core": spacewave_core_config(enable_tinygo_web=True),
+    },
 )
 
 # Per-host release builds. Each (host_key, platform_id) pair drives one
