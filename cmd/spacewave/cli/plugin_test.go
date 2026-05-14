@@ -16,8 +16,6 @@ func TestPluginSubcommandsUseClientFlags(t *testing.T) {
 		cmd  *cli.Command
 	}{
 		{"list", buildPluginListCommand()},
-		{"approve", buildPluginApproveCommand()},
-		{"deny", buildPluginDenyCommand()},
 		{"add", buildPluginAddCommand()},
 		{"remove", buildPluginRemoveCommand()},
 	}

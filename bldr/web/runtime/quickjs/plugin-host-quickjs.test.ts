@@ -70,8 +70,8 @@ describe('plugin-host-quickjs asset helpers', () => {
         '_chunk-lazy-2.mjs': {
           file: 'chunks/lazy-2.mjs',
         },
-        'plugin/vm/backend.ts': {
-          file: 'plugin/vm/backend-def456.mjs',
+        'plugin/v86/backend.ts': {
+          file: 'plugin/v86/backend-def456.mjs',
         },
       },
       ['/assets/v/b/be/plugin/notes/backend-abc123.mjs'],

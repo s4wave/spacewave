@@ -20,7 +20,7 @@ import DocsSidebar from './docs/DocsSidebar.js'
 import DocsToc from './docs/DocsToc.js'
 import NoteContentView from './NoteContentView.js'
 
-// DocsViewer is the viewer for spacewave-notes Documentation objects.
+// DocsViewer is the viewer for Notes Documentation objects.
 // Renders a tree sidebar, content area, and table of contents panel.
 function DocsViewer({
   objectInfo,

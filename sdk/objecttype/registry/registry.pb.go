@@ -18,7 +18,7 @@ import (
 // ObjectTypeRegistration is a registered ObjectType.
 type ObjectTypeRegistration struct {
 	unknownFields []byte
-	// TypeId is the ObjectType ID (e.g. "spacewave-notes/notebook").
+	// TypeId is the ObjectType ID (e.g. "notes/notebook").
 	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
 	// RegistrationId is the server-assigned ID for this registration.
 	RegistrationId uint32 `protobuf:"varint,2,opt,name=registration_id,json=registrationId,proto3" json:"registrationId,omitempty"`

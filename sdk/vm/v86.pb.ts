@@ -144,7 +144,7 @@ export interface V86Config {
   mounts?: VmMount[]
   /**
    * RuntimePluginId is the plugin that hosts the instanced V86 runtime.
-   * Empty defaults to spacewave-app.
+   * Empty defaults to spacewave-v86.
    *
    * @generated from field: string runtime_plugin_id = 7;
    */

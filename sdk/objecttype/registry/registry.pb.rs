@@ -3,7 +3,7 @@
 /// ObjectTypeRegistration is a registered ObjectType.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ObjectTypeRegistration {
-    /// TypeId is the ObjectType ID (e.g. "spacewave-notes/notebook").
+    /// TypeId is the ObjectType ID (e.g. "notes/notebook").
     #[prost(string, tag="1")]
     pub type_id: ::prost::alloc::string::String,
     /// RegistrationId is the server-assigned ID for this registration.

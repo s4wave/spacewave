@@ -63,28 +63,13 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 			continue
 		}
 
-		// Check approval.
-		approved, err := c.checkApproval(ctx, mid)
-		if err != nil {
-			le.WithError(err).WithField("manifest-id", mid).Warn("failed to check approval")
-			continue
-		}
-		if !approved {
-			le.WithField("manifest-id", mid).Debug("manifest not approved, skipping")
-			if entry.emitted != nil {
-				_ = entry.handler.ClearValues()
-				entry.emitted = nil
-			}
-			entry.handler.MarkIdle(true)
-			continue
-		}
-
 		// Determine object keys to search for manifests.
 		objKeys := conf.GetObjectKeys()
 		if len(objKeys) == 0 {
-			objKeys, err = world_types.ListObjectsWithType(ctx, ws, bldr_manifest_world.ManifestTypeID)
-			if err != nil {
-				le.WithError(err).Warn("failed to list manifest objects")
+			var listErr error
+			objKeys, listErr = world_types.ListObjectsWithType(ctx, ws, bldr_manifest_world.ManifestTypeID)
+			if listErr != nil {
+				le.WithError(listErr).Warn("failed to list manifest objects")
 				continue
 			}
 		}

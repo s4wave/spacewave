@@ -13,10 +13,9 @@ import (
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
-// defaultVmPluginID is the plugin ID that hosts the default v86 backend. The vm backend is
-// folded into spacewave-app; each VmV86 object gets its own SharedWorker
-// instance of spacewave-app keyed by the object key.
-const defaultVmPluginID = "spacewave-app"
+// defaultVmPluginID is the plugin ID that hosts the default V86 backend. Each
+// VmV86 object gets its own plugin instance keyed by the object key.
+const defaultVmPluginID = "spacewave-v86"
 
 // v86Resource implements PersistentExecutionService for a VmV86 object.
 type v86Resource struct {
@@ -54,11 +53,11 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 
 	// sentinel means "nothing emitted yet"; any real state will differ.
 	lastEmitted := s4wave_process.ExecutionState(-1)
-	emit := func(s s4wave_process.ExecutionState) error {
+	emit := func(s s4wave_process.ExecutionState, errMsg string) error {
 		if s == lastEmitted {
 			return nil
 		}
-		if err := stream.Send(&s4wave_process.ExecuteStatus{State: s}); err != nil {
+		if err := stream.Send(&s4wave_process.ExecuteStatus{State: s, Error: errMsg}); err != nil {
 			return err
 		}
 		lastEmitted = s
@@ -79,7 +78,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 				rpRef.Release()
 				rpRef = nil
 			}
-			if err := emit(s4wave_process.ExecutionState_ExecutionState_STOPPED); err != nil {
+			if err := emit(s4wave_process.ExecutionState_ExecutionState_STOPPED, ""); err != nil {
 				return err
 			}
 			return nil
@@ -116,18 +115,22 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 		case s4wave_process.ExecutionState_ExecutionState_STARTING,
 			s4wave_process.ExecutionState_ExecutionState_RUNNING:
 			if rpRef == nil {
-				if err := emit(s4wave_process.ExecutionState_ExecutionState_STARTING); err != nil {
+				if err := emit(s4wave_process.ExecutionState_ExecutionState_STARTING, ""); err != nil {
 					return err
 				}
 				if mountErr := r.verifyRootfsMount(ctx); mountErr != nil {
-					if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR); err != nil {
+					if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, mountErr.Error()); err != nil {
 						return err
 					}
 				} else if homeErr := ensureHomeMount(ctx, r.ws, r.objectKey); homeErr != nil {
-					if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR); err != nil {
+					if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, homeErr.Error()); err != nil {
 						return err
 					}
 				} else {
+					_, rev, err = objState.GetRootRef(ctx)
+					if err != nil {
+						return err
+					}
 					// returnIfIdle=true so missing plugin hosts surface as a
 					// nil value rather than blocking the handler forever.
 					plugin, _, newRef, loadErr := bldr_plugin.ExLoadPluginInstanced(ctx, r.b, true, runtimePluginID, r.objectKey, nil)
@@ -135,12 +138,20 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 						if newRef != nil {
 							newRef.Release()
 						}
-						if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR); err != nil {
+						errMsg := "v86 runtime plugin unavailable"
+						if loadErr != nil {
+							errMsg = loadErr.Error()
+						}
+						if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, errMsg); err != nil {
 							return err
 						}
 					} else {
 						rpRef = newRef
-						if err := emit(s4wave_process.ExecutionState_ExecutionState_RUNNING); err != nil {
+						loadedState := desired
+						if storedState == s4wave_vm.VmState_VmState_STARTING {
+							loadedState = s4wave_process.ExecutionState_ExecutionState_STARTING
+						}
+						if err := emit(loadedState, ""); err != nil {
 							rpRef.Release()
 							rpRef = nil
 							return err
@@ -148,7 +159,11 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 					}
 				}
 			} else {
-				if err := emit(s4wave_process.ExecutionState_ExecutionState_RUNNING); err != nil {
+				loadedState := desired
+				if storedState == s4wave_vm.VmState_VmState_STARTING {
+					loadedState = s4wave_process.ExecutionState_ExecutionState_STARTING
+				}
+				if err := emit(loadedState, ""); err != nil {
 					return err
 				}
 			}
@@ -157,7 +172,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 				rpRef.Release()
 				rpRef = nil
 			}
-			if err := emit(desired); err != nil {
+			if err := emit(desired, ""); err != nil {
 				return err
 			}
 		}

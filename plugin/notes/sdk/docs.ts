@@ -5,7 +5,7 @@ import type { Documentation } from '../proto/docs.pb.js'
 import type { WatchDocsResponse } from './docs.pb.js'
 
 // DocsTypeID is the type identifier for documentation objects.
-export const DocsTypeID = 'spacewave-notes/docs'
+export const DocsTypeID = 'notes/docs'
 
 // IDocsHandle contains the DocsHandle interface.
 export interface IDocsHandle {

@@ -18,15 +18,6 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
-import { CREATE_BLOG_OP_ID } from '../../plugin/notes/proto/create-blog.js'
-import { createBlogClientSide } from '../../plugin/notes/blog-seed.js'
-import {
-  buildNotebookUnixfsObjectKey,
-  createDocsClientSide,
-  createNotebookClientSide,
-} from '../../plugin/notes/content-seed.js'
-import { CREATE_DOCS_OP_ID } from '../../plugin/notes/proto/create-docs.js'
-import { INIT_NOTEBOOK_OP_ID } from '../../plugin/notes/proto/init-notebook.js'
 import { normalizeObjectWizards } from './object-wizards.js'
 import {
   lookupCreateOpBuilder,
@@ -173,40 +164,6 @@ export function SpaceCommands({
         name,
         existingObjectKeys,
       )
-      if (wizard.createOpId === INIT_NOTEBOOK_OP_ID) {
-        await createNotebookClientSide(
-          spaceWorld,
-          objectKey,
-          buildNotebookUnixfsObjectKey(objectKey),
-          name,
-          new Date(),
-        )
-        toast.success(`Created ${name}`)
-        navigateToObjects([objectKey])
-        return
-      }
-
-      if (wizard.createOpId === CREATE_DOCS_OP_ID) {
-        await createDocsClientSide(spaceWorld, objectKey, name, '', new Date())
-        toast.success(`Created ${name}`)
-        navigateToObjects([objectKey])
-        return
-      }
-
-      if (wizard.createOpId === CREATE_BLOG_OP_ID) {
-        await createBlogClientSide(
-          spaceWorld,
-          objectKey,
-          name,
-          '',
-          '',
-          new Date(),
-        )
-        toast.success(`Created ${name}`)
-        navigateToObjects([objectKey])
-        return
-      }
-
       const opData = builder(objectKey, name)
       await spaceWorld.applyWorldOp(wizard.createOpId, opData, '')
       toast.success(`Created ${name}`)

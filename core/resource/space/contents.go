@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -38,10 +37,10 @@ type SpaceContentsResource struct {
 	// ctrlRef holds the plugin/space controller reference.
 	// Released when the resource is cleaned up.
 	ctrlRef directive.Reference
-	// ctrl wakes the running plugin/space controller after approval changes.
+	// ctrl wakes the running plugin/space controller after content changes.
 	ctrl *plugin_space.Controller
-	// bcast is broadcast when approval state changes so WatchState re-sends.
-	// Also guards the cached plugin description summary below.
+	// bcast is broadcast when content state changes so WatchState re-sends. It
+	// also guards the cached plugin description summary below.
 	bcast broadcast.Broadcast
 	// descriptionPluginIDs is the plugin ID set for the cached descriptions.
 	descriptionPluginIDs []string
@@ -88,7 +87,7 @@ func (r *SpaceContentsResource) getStoreLocation() (string, string) {
 	}
 	storeID := r.storeID
 	if storeID == "" {
-		storeID = plugin_approval.DefaultObjectStoreID
+		storeID = process_binding.DefaultObjectStoreID
 	}
 	return volumeID, storeID
 }
@@ -104,7 +103,7 @@ func (r *SpaceContentsResource) GetMux() srpc.Invoker {
 	return r.mux
 }
 
-// WatchState streams the current plugin approval states for the space.
+// WatchState streams the current plugin and process state for the space.
 func (r *SpaceContentsResource) WatchState(
 	req *s4wave_space.WatchSpaceContentsStateRequest,
 	strm s4wave_space.SRPCSpaceContentsResourceService_WatchStateStream,
@@ -159,17 +158,11 @@ func (r *SpaceContentsResource) WatchState(
 			}
 		}
 		for _, pid := range pluginIDs {
-			state, err := plugin_approval.GetApprovalState(ctx, r.b, "", "", r.spaceID, pid)
-			if err != nil {
-				r.le.WithError(err).Warnf("failed to get approval state for plugin %s", pid)
-				state = plugin_approval.PluginApprovalState_PluginApprovalState_UNSPECIFIED
-			}
 			_, loaded := loadedIDs[pid]
 			plugins = append(plugins, &s4wave_space.SpacePluginStatus{
-				PluginId:      pid,
-				ApprovalState: state,
-				Loaded:        loaded,
-				Description:   descriptions[pid],
+				PluginId:    pid,
+				Loaded:      loaded,
+				Description: descriptions[pid],
 			})
 		}
 		processBindings, err := r.listProcessBindingInfos(ctx)
@@ -185,7 +178,7 @@ func (r *SpaceContentsResource) WatchState(
 			return err
 		}
 
-		// Wait for world seqno change or approval state change.
+		// Wait for world seqno change, process-binding change, or loaded state change.
 		var ch <-chan struct{}
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
@@ -291,46 +284,7 @@ func (r *SpaceContentsResource) collectPluginDescriptions(
 	return descriptions, nil
 }
 
-// SetPluginApproval sets the approval state for a plugin in this space.
-func (r *SpaceContentsResource) SetPluginApproval(
-	ctx context.Context,
-	req *s4wave_space.SetPluginApprovalRequest,
-) (*s4wave_space.SetPluginApprovalResponse, error) {
-	pid := req.GetPluginId()
-	if pid == "" {
-		return nil, errors.New("plugin_id is required")
-	}
-
-	state := plugin_approval.PluginApprovalState_PluginApprovalState_DENIED
-	if req.GetApproved() {
-		state = plugin_approval.PluginApprovalState_PluginApprovalState_APPROVED
-	}
-
-	volumeID, storeID := r.getStoreLocation()
-	handle, _, ref, err := volume.ExBuildObjectStoreAPI(
-		ctx,
-		r.b,
-		true,
-		storeID,
-		volumeID,
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer ref.Release()
-
-	approval := &plugin_approval.PluginApproval{State: state}
-	if err := plugin_approval.SetPluginApproval(ctx, handle.GetObjectStore(), r.spaceID, pid, approval); err != nil {
-		return nil, err
-	}
-
-	r.notifyChanged()
-	r.notifyController()
-	return &s4wave_space.SetPluginApprovalResponse{}, nil
-}
-
-// SetProcessBinding sets the approval state for a process binding.
+// SetProcessBinding sets the state for a process binding.
 func (r *SpaceContentsResource) SetProcessBinding(
 	ctx context.Context,
 	req *s4wave_space.SetProcessBindingRequest,

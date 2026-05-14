@@ -43,7 +43,6 @@ import {
   ForgeDashboardViewer,
   ForgeDashboardTypeID,
 } from '@s4wave/app/forge/ForgeDashboardViewer.js'
-import { VmV86Viewer, VmV86TypeID } from '@s4wave/app/vm/VmV86Viewer.js'
 import {
   ManifestViewer,
   ManifestTypeID,
@@ -56,12 +55,6 @@ import {
   ChatMessageViewer,
   ChatMessageTypeID,
 } from '@s4wave/app/chat/ChatMessageViewer.js'
-import {
-  NotebookViewer,
-  NotebookTypeID,
-} from '@s4wave/app/notes/NotebookViewer.js'
-import { BlogViewer, BlogTypeID } from '@s4wave/app/notes/BlogViewer.js'
-import { DocsViewer, DocsTypeID } from '@s4wave/app/notes/DocsViewer.js'
 import { OrgViewer, OrganizationTypeID } from '@s4wave/app/org/OrgViewer.js'
 import {
   WizardViewer,
@@ -166,12 +159,6 @@ const staticViewers: ObjectViewerComponent[] = [
     component: ForgeDashboardViewer,
   },
   {
-    typeID: VmV86TypeID,
-    name: 'V86',
-    category: 'VM',
-    component: VmV86Viewer,
-  },
-  {
     typeID: ManifestTypeID,
     name: 'Manifest',
     category: 'Build',
@@ -188,24 +175,6 @@ const staticViewers: ObjectViewerComponent[] = [
     name: 'Chat Message',
     category: 'Chat',
     component: ChatMessageViewer,
-  },
-  {
-    typeID: NotebookTypeID,
-    name: 'Notebook',
-    category: 'Content',
-    component: NotebookViewer,
-  },
-  {
-    typeID: BlogTypeID,
-    name: 'Blog',
-    category: 'Content',
-    component: BlogViewer,
-  },
-  {
-    typeID: DocsTypeID,
-    name: 'Documentation',
-    category: 'Content',
-    component: DocsViewer,
   },
   {
     typeID: OrganizationTypeID,

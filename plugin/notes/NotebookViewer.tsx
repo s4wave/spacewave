@@ -16,7 +16,7 @@ import NotebookSidebar from './NotebookSidebar.js'
 import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
 
-// NotebookViewer is the three-panel viewer for spacewave-notes Notebook objects.
+// NotebookViewer is the three-panel viewer for Notes Notebook objects.
 function NotebookViewer({
   objectInfo,
   worldState,

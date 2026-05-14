@@ -16,10 +16,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// VmV86Type is the ObjectType for spacewave/vm/v86 objects.
+// VmV86Type is the ObjectType for vm/v86 objects.
 var VmV86Type = objecttype.NewObjectType(s4wave_vm.VmV86TypeID, vmV86Factory)
 
-// V86ImageType is the ObjectType for spacewave/vm/image/v86 objects.
+// V86ImageType is the ObjectType for vm/image/v86 objects.
 // V86Image is metadata-only; block state is read through the objectState prop.
 var V86ImageType = objecttype.NewObjectType(s4wave_vm.V86ImageTypeID, v86ImageReadOnlyFactory)
 
@@ -50,21 +50,25 @@ func vmV86Factory(
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
+	resourceWS := ws
+	if engine != nil {
+		resourceWS = world.NewEngineWorldState(engine, true)
+	}
 
 	// Create v86fs server with mount resolver that resolves graph edges to FSHandle.
 	v86fsServer := unixfs_v86fs.NewServer(func(ctx context.Context, name string) (*unixfs.FSHandle, error) {
-		return resolveV86Mount(ctx, ws, objectKey, name)
+		return resolveV86Mount(ctx, resourceWS, objectKey, name)
 	})
 
 	// Pre-populate the v86fs dynamic mount table from V86Config.Mounts so the
 	// guest learns about workspace/home/etc. mounts via MOUNT_NOTIFY frames
 	// when the v86fs session joins.
-	mountCleanup, err := registerV86ConfigMounts(ctx, ws, objectKey, v86fsServer)
+	mountCleanup, err := registerV86ConfigMounts(ctx, resourceWS, objectKey, v86fsServer)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	resource := newV86Resource(objectKey, ws, b)
+	resource := newV86Resource(objectKey, resourceWS, b)
 	mux := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		if err := s4wave_process.SRPCRegisterPersistentExecutionService(mux, resource); err != nil {
 			return err

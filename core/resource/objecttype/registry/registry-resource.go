@@ -51,8 +51,8 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		return nil, ErrPluginIdRequired
 	}
 	// Require a namespace prefix before the first '/'. The prefix need not match
-	// pluginID: a single plugin (e.g. spacewave-app) may serve multiple type
-	// namespaces (e.g. spacewave-notes/*, spacewave/vm/*).
+	// pluginID: a single plugin (e.g. spacewave-v86) may serve multiple type
+	// namespaces (e.g. vm/v86 and vm/image/v86).
 	if !strings.Contains(typeID, "/") {
 		return nil, ErrTypeIdMustHavePluginPrefix
 	}

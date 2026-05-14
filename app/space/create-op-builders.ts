@@ -5,21 +5,14 @@ import {
 } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { INIT_OBJECT_LAYOUT_OP_ID } from '@s4wave/core/space/world/ops/init-object-layout.js'
 import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
-import { INIT_NOTEBOOK_OP_ID } from '../../plugin/notes/proto/init-notebook.js'
-import { InitNotebookOp } from '../../plugin/notes/proto/notebook.pb.js'
 import { CREATE_CHAT_CHANNEL_OP_ID } from '@s4wave/sdk/chat/create-channel.js'
-import { CREATE_DOCS_OP_ID } from '../../plugin/notes/proto/create-docs.js'
-import { CREATE_BLOG_OP_ID } from '../../plugin/notes/proto/create-blog.js'
 import { CREATE_FORGE_DASHBOARD_OP_ID } from '@s4wave/sdk/forge/dashboard/create-forge-dashboard.js'
 import { CreateChatChannelOp } from '@s4wave/sdk/chat/chat.pb.js'
-import { CreateDocumentationOp } from '../../plugin/notes/proto/docs.pb.js'
-import { CreateBlogOp } from '../../plugin/notes/proto/blog.pb.js'
 import { CreateForgeDashboardOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { ClusterCreateOp } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster.pb.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
-import { buildNotebookUnixfsObjectKey } from '../../plugin/notes/content-seed.js'
 
 const CANVAS_INIT_OP_ID = 'space/world/init-canvas'
 
@@ -44,42 +37,12 @@ const createOpBuilders = new Map<string, BuildCreateOpFn>([
     (objectKey) => InitUnixFSOp.toBinary({ objectKey, timestamp: new Date() }),
   ],
   [
-    INIT_NOTEBOOK_OP_ID,
-    (objectKey) =>
-      InitNotebookOp.toBinary({
-        notebookObjectKey: objectKey,
-        unixfsObjectKey: buildNotebookUnixfsObjectKey(objectKey),
-        timestamp: new Date(),
-      }),
-  ],
-  [
     CREATE_CHAT_CHANNEL_OP_ID,
     (objectKey, name) =>
       CreateChatChannelOp.toBinary({
         objectKey,
         name,
         topic: '',
-        timestamp: new Date(),
-      }),
-  ],
-  [
-    CREATE_DOCS_OP_ID,
-    (objectKey, name) =>
-      CreateDocumentationOp.toBinary({
-        objectKey,
-        name,
-        description: '',
-        timestamp: new Date(),
-      }),
-  ],
-  [
-    CREATE_BLOG_OP_ID,
-    (objectKey, name) =>
-      CreateBlogOp.toBinary({
-        objectKey,
-        name,
-        description: '',
-        authorRegistryPath: '',
         timestamp: new Date(),
       }),
   ],

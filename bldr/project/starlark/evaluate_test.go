@@ -299,6 +299,73 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		}
 	}
 
+	app := result.Config.GetManifests()["spacewave-app"]
+	if app == nil {
+		t.Fatal("spacewave-app manifest not found")
+	}
+	appCfg := string(app.GetBuilder().GetConfig())
+	if !strings.Contains(appCfg, `"path":"./app/App.tsx"`) {
+		t.Fatalf("spacewave-app config missing app frontend: %s", appCfg)
+	}
+	for _, oldPath := range []string{
+		`"./plugin/notes/backend.ts"`,
+		`"./plugin/v86/backend.ts"`,
+		`"./plugin/vm/backend.ts"`,
+	} {
+		if strings.Contains(appCfg, oldPath) {
+			t.Fatalf("spacewave-app config still owns split backend %s: %s", oldPath, appCfg)
+		}
+	}
+
+	notes := result.Config.GetManifests()["spacewave-notes"]
+	if notes == nil {
+		t.Fatal("notes manifest not found")
+	}
+	notesCfg := string(notes.GetBuilder().GetConfig())
+	for _, want := range []string{
+		`"path":"./plugin/notes/backend.ts"`,
+		`"path":"./plugin/notes/NotebookViewer.tsx"`,
+		`"path":"./plugin/notes/BlogViewer.tsx"`,
+		`"path":"./plugin/notes/DocsViewer.tsx"`,
+	} {
+		if !strings.Contains(notesCfg, want) {
+			t.Fatalf("notes config missing %s: %s", want, notesCfg)
+		}
+	}
+
+	v86 := result.Config.GetManifests()["spacewave-v86"]
+	if v86 == nil {
+		t.Fatal("v86 manifest not found")
+	}
+	v86Cfg := string(v86.GetBuilder().GetConfig())
+	for _, want := range []string{
+		`"path":"./plugin/v86/backend.ts"`,
+		`"path":"./plugin/v86/VmV86Viewer.tsx"`,
+	} {
+		if !strings.Contains(v86Cfg, want) {
+			t.Fatalf("v86 config missing %s: %s", want, v86Cfg)
+		}
+	}
+	if strings.Contains(v86Cfg, `./plugin/vm/`) {
+		t.Fatalf("v86 config still references old plugin/vm path: %s", v86Cfg)
+	}
+	for _, coldPlugin := range []string{"spacewave-notes", "spacewave-v86"} {
+		if slices.Contains(result.Config.GetStart().GetPlugins(), coldPlugin) {
+			t.Fatalf("project startup unexpectedly eager-loads %s: %v", coldPlugin, result.Config.GetStart().GetPlugins())
+		}
+	}
+	for _, buildName := range []string{"app", "web"} {
+		build := result.Config.GetBuild()[buildName]
+		if build == nil {
+			t.Fatalf("build target %q not found", buildName)
+		}
+		for _, want := range []string{"spacewave-notes", "spacewave-v86"} {
+			if !slices.Contains(build.GetManifests(), want) {
+				t.Fatalf("%s build manifests missing %s: %v", buildName, want, build.GetManifests())
+			}
+		}
+	}
+
 	bc := result.Config.GetBuild()["release-desktop-darwin-arm64"]
 	if bc == nil {
 		t.Fatal("build target 'release-desktop-darwin-arm64' not found")
@@ -306,6 +373,11 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	platformIDs := bc.GetPlatformIds()
 	if len(platformIDs) != 1 || platformIDs[0] != "desktop/darwin/arm64" {
 		t.Fatalf("release desktop platform ids: got %v, want [desktop/darwin/arm64]", platformIDs)
+	}
+	for _, want := range []string{"spacewave-notes", "spacewave-v86"} {
+		if !slices.Contains(bc.GetManifests(), want) {
+			t.Fatalf("release desktop manifests missing %s: %v", want, bc.GetManifests())
+		}
 	}
 
 	override := bc.GetManifestOverrides()["spacewave-dist"]
@@ -326,6 +398,11 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("release desktop override config missing %s: %s", want, cfg)
 		}
 	}
+	for _, coldPlugin := range []string{`"spacewave-notes"`, `"spacewave-v86"`} {
+		if strings.Contains(cfg, coldPlugin) {
+			t.Fatalf("release desktop embed config unexpectedly includes cold plugin %s: %s", coldPlugin, cfg)
+		}
+	}
 
 	browserRelease := result.Config.GetBuild()["release-web"]
 	if browserRelease == nil {
@@ -334,6 +411,11 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	browserManifests := strings.Join(browserRelease.GetManifests(), ",")
 	if strings.Contains(browserManifests, "spacewave-loader") {
 		t.Fatalf("browser release manifests unexpectedly include spacewave-loader: %v", browserRelease.GetManifests())
+	}
+	for _, want := range []string{"spacewave-notes", "spacewave-v86"} {
+		if !slices.Contains(browserRelease.GetManifests(), want) {
+			t.Fatalf("browser release manifests missing %s: %v", want, browserRelease.GetManifests())
+		}
 	}
 	browserOverride := browserRelease.GetManifestOverrides()["spacewave-dist"]
 	if browserOverride == nil {
@@ -352,6 +434,21 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	} {
 		if !strings.Contains(browserCfg, want) {
 			t.Fatalf("browser release override config missing %s: %s", want, browserCfg)
+		}
+	}
+	for _, coldPlugin := range []string{`"spacewave-notes"`, `"spacewave-v86"`} {
+		if strings.Contains(browserCfg, coldPlugin) {
+			t.Fatalf("browser release embed/load config unexpectedly includes cold plugin %s: %s", coldPlugin, browserCfg)
+		}
+	}
+
+	pluginReleaseBrowser := result.Config.GetBuild()["plugin-release-browser"]
+	if pluginReleaseBrowser == nil {
+		t.Fatal("build target 'plugin-release-browser' not found")
+	}
+	for _, want := range []string{"spacewave-notes", "spacewave-v86"} {
+		if !slices.Contains(pluginReleaseBrowser.GetManifests(), want) {
+			t.Fatalf("plugin-release-browser manifests missing %s: %v", want, pluginReleaseBrowser.GetManifests())
 		}
 	}
 
@@ -377,9 +474,19 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		t.Fatalf("release remote js platform ids: got %v, want [js]", jsPlatformIDs)
 	}
 	jsManifests := strings.Join(jsBuild.GetManifests(), ",")
-	for _, want := range []string{"spacewave-web", "spacewave-app"} {
+	for _, want := range []string{"spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86"} {
 		if !strings.Contains(jsManifests, want) {
 			t.Fatalf("release remote js manifests missing %s: %v", want, jsBuild.GetManifests())
+		}
+	}
+
+	publish := result.Config.GetPublish()["spacewave-release"]
+	if publish == nil {
+		t.Fatal("publish target 'spacewave-release' not found")
+	}
+	for _, want := range []string{"spacewave-notes", "spacewave-v86"} {
+		if !slices.Contains(publish.GetManifests(), want) {
+			t.Fatalf("spacewave-release publish manifests missing %s: %v", want, publish.GetManifests())
 		}
 	}
 }

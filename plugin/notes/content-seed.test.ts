@@ -68,7 +68,7 @@ describe('content-seed', () => {
     expect(h.mockSetObjectType).toHaveBeenCalledWith(
       worldState,
       'project-notes',
-      'spacewave-notes/notebook',
+      'notes/notebook',
       undefined,
     )
   })
@@ -101,7 +101,7 @@ describe('content-seed', () => {
     expect(h.mockSetObjectType).toHaveBeenCalledWith(
       worldState,
       'docs/reference',
-      'spacewave-notes/docs',
+      'notes/docs',
       undefined,
     )
   })

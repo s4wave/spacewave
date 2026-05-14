@@ -105,7 +105,7 @@ export async function ensureBlogCompanionNotebook(
     await setObjectType(
       worldState,
       notebookKey,
-      'spacewave-notes/notebook',
+      'notes/notebook',
       abortSignal,
     )
   })
@@ -180,7 +180,7 @@ export async function createBlogClientSide(
       await setObjectType(
         writeState,
         blogObjectKey,
-        'spacewave-notes/blog',
+        'notes/blog',
         abortSignal,
       )
     })

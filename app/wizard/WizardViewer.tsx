@@ -3,10 +3,7 @@ import { useCallback, useMemo } from 'react'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
-import {
-  SpaceContext,
-  SpaceContentsContext,
-} from '@s4wave/web/contexts/contexts.js'
+import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
@@ -15,12 +12,6 @@ import {
   buildObjectKey,
 } from '../space/create-op-builders.js'
 import { normalizeObjectWizards } from '../space/object-wizards.js'
-import { CREATE_BLOG_OP_ID } from '../../plugin/notes/proto/create-blog.js'
-import { createBlogClientSide } from '../../plugin/notes/blog-seed.js'
-import {
-  approveSpacePlugins,
-  ensureSpacePlugins,
-} from '../quickstart/create.js'
 
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
@@ -30,8 +21,6 @@ export const WizardTypePrefix = 'wizard/'
 export function WizardViewer(props: ObjectViewerComponentProps) {
   const spaceResource = SpaceContext.useContext()
   const space = useResourceValue(spaceResource)
-  const spaceContentsResource = SpaceContentsContext.useContext()
-  const spaceContents = useResourceValue(spaceContentsResource)
   const { data: wizards } = usePromise(
     useCallback((signal) => space?.listWizards(signal), [space]),
   )
@@ -75,28 +64,6 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
         name,
         ws.existingObjectKeys,
       )
-      if (targetWizard.createOpId === CREATE_BLOG_OP_ID) {
-        if (!spaceContents) {
-          toast.error('Space plugins are unavailable')
-          return
-        }
-        // eslint-disable-next-line react-doctor/async-parallel
-        await ensureSpacePlugins(ws.spaceWorld, ['spacewave-app'])
-        await approveSpacePlugins(spaceContents, ['spacewave-app'])
-        await createBlogClientSide(
-          ws.spaceWorld,
-          targetKey,
-          name,
-          '',
-          '',
-          new Date(),
-        )
-        await ws.spaceWorld.deleteObject(ws.objectKey)
-        toast.success(`Created ${name}`)
-        ws.navigateToObjects([targetKey])
-        return
-      }
-
       const opData = builder(targetKey, name, state.configData)
       await ws.spaceWorld.applyWorldOp(
         targetWizard.createOpId,
@@ -113,7 +80,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
     } finally {
       ws.setCreating(false)
     }
-  }, [spaceContents, state, targetWizard, ws])
+  }, [state, targetWizard, ws])
 
   const handleFinalizeClick = useCallback(() => {
     void handleFinalize()

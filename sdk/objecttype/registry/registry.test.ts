@@ -63,13 +63,13 @@ describe('ObjectTypeRegistry proto types', () => {
 
   it('ObjectTypeRegistration round-trip serialization', () => {
     const original = ObjectTypeRegistration.create({
-      typeId: 'spacewave-notes/notebook',
+      typeId: 'notes/notebook',
       registrationId: 42,
       pluginId: 'notes-plugin',
     })
     const bytes = ObjectTypeRegistration.toBinary(original)
     const decoded = ObjectTypeRegistration.fromBinary(bytes)
-    expect(decoded.typeId).toBe('spacewave-notes/notebook')
+    expect(decoded.typeId).toBe('notes/notebook')
     expect(decoded.registrationId).toBe(42)
     expect(decoded.pluginId).toBe('notes-plugin')
   })

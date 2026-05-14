@@ -276,14 +276,25 @@ def js_plugin(name, rev, modules, extra_web_pkgs=None):
         },
     )
 
-js_plugin("spacewave-app", rev=222, modules=[
+js_plugin("spacewave-app", rev=223, modules=[
     js_module("JS_MODULE_KIND_FRONTEND", "./app/App.tsx",
               entrypoint=True,
               webViewParentId={"empty": True}),
+])
+
+js_plugin("spacewave-notes", rev=1, modules=[
     js_module("JS_MODULE_KIND_BACKEND", "./plugin/notes/backend.ts",
               entrypoint=True),
-    js_module("JS_MODULE_KIND_BACKEND", "./plugin/vm/backend.ts",
+    js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/NotebookViewer.tsx"),
+    js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/BlogViewer.tsx"),
+    js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/DocsViewer.tsx"),
+    js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/NotesWizardViewer.tsx"),
+])
+
+js_plugin("spacewave-v86", rev=1, modules=[
+    js_module("JS_MODULE_KIND_BACKEND", "./plugin/v86/backend.ts",
               entrypoint=True),
+    js_module("JS_MODULE_KIND_FRONTEND", "./plugin/v86/VmV86Viewer.tsx"),
 ])
 
 DESKTOP_RELEASE_LOAD_PLUGINS = [
@@ -321,19 +332,19 @@ manifest("spacewave-dist",
 
 DEV_MANIFESTS = [
     "web", "spacewave-core", "spacewave-web",
-    "spacewave-app", "spacewave-debug",
+    "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-debug",
 ]
 BROWSER_RELEASE_MANIFESTS = [
     # The browser release should not even build spacewave-loader: it is a
     # native helper-window plugin, and loading it in WASM shows up as an
     # extra shared worker that exits after helper lookup fails.
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
     "spacewave-dist",
 ]
 DESKTOP_RELEASE_MANIFESTS = [
     "spacewave-launcher", "spacewave-loader",
-    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
     "spacewave-dist",
 ]
 # REMOTE_WORLD_MANIFESTS are the manifests that ship in the R2-hosted plugin
@@ -341,7 +352,7 @@ DESKTOP_RELEASE_MANIFESTS = [
 # reliable first boot; plugin-promote can replace them after launch by updating
 # the remote plugin world.
 REMOTE_WORLD_MANIFESTS = [
-    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
 ]
 BROWSER_RELEASE_EMBED_MANIFESTS = [
     {"manifestId": "spacewave-launcher",
@@ -455,7 +466,7 @@ build("release-remote-web",
     platform_ids=["web/js/wasm"],
 )
 build("release-remote-js",
-    manifests=["spacewave-web", "spacewave-app"],
+    manifests=["spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86"],
     platform_ids=["js"],
 )
 

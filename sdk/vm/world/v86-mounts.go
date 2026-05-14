@@ -9,11 +9,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
-	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
@@ -197,16 +195,17 @@ func ensureEmptyFSNodeObject(
 		return nil
 	}
 
-	ts := timestamppb.New(time.Now())
-	root := unixfs_block.NewFSNode(unixfs_block.NodeType_NodeType_DIRECTORY, 0, ts)
-	if _, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(root, true)
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "create fs-node object")
+	op := &unixfs_world.FsInitOp{
+		ObjectKey: objKey,
+		FsType:    unixfs_world.FSType_FSType_FS_NODE,
+		Timestamp: timestamppb.New(time.Now()),
 	}
-	if err := world_types.SetObjectType(ctx, ws, objKey, unixfs_world.FSNodeTypeID); err != nil {
-		return errors.Wrap(err, "set fs-node object type")
+	_, _, err := ws.ApplyWorldOp(ctx, op, "")
+	if errors.Is(err, world.ErrObjectExists) {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "create fs-node object")
 	}
 	return nil
 }

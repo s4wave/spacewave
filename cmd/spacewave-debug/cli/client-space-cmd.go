@@ -27,8 +27,6 @@ type SpaceArgs struct {
 	SpaceID string
 	// PluginID is the target plugin manifest ID.
 	PluginID string
-	// Approved is the approval state for set-plugin-approval.
-	Approved bool
 }
 
 // BuildSpaceCommand returns the space command with subcommands.
@@ -75,25 +73,6 @@ func (a *ClientArgs) BuildSpaceCommand() *appcli.Command {
 						Action: sa.RunRemovePlugin,
 					},
 				},
-			},
-			{
-				Name:  "set-plugin-approval",
-				Usage: "set the approval state for a plugin in this space",
-				Flags: []appcli.Flag{
-					&appcli.StringFlag{
-						Name:        "plugin-id",
-						Usage:       "manifest ID of the plugin",
-						Required:    true,
-						Destination: &sa.PluginID,
-					},
-					&appcli.BoolFlag{
-						Name:        "approved",
-						Usage:       "approval state (true to approve, false to deny)",
-						Value:       true,
-						Destination: &sa.Approved,
-					},
-				},
-				Action: sa.RunSetPluginApproval,
 			},
 			{
 				Name:   "status",
@@ -144,43 +123,6 @@ func (sa *SpaceArgs) RunRemovePlugin(c *appcli.Context) error {
 		return errors.Wrap(err, "remove space plugin")
 	}
 	os.Stdout.WriteString("removed plugin " + sa.PluginID + " from space settings\n")
-	return nil
-}
-
-// RunSetPluginApproval sets the approval state for a plugin.
-func (sa *SpaceArgs) RunSetPluginApproval(c *appcli.Context) error {
-	ctx := c.Context
-	spaceSvc, cleanup, err := sa.mountSpaceResource(ctx)
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-
-	// Mount space contents to get the SpaceContentsResource.
-	contentsResp, err := spaceSvc.MountSpaceContents(ctx, &s4wave_space.MountSpaceContentsRequest{})
-	if err != nil {
-		return errors.Wrap(err, "mount space contents")
-	}
-
-	// Get a client for the contents resource.
-	contentsClient, err := sa.getResourceClient(ctx, contentsResp.GetResourceId())
-	if err != nil {
-		return errors.Wrap(err, "space contents client")
-	}
-	contentsSvc := s4wave_space.NewSRPCSpaceContentsResourceServiceClient(contentsClient)
-
-	_, err = contentsSvc.SetPluginApproval(ctx, &s4wave_space.SetPluginApprovalRequest{
-		PluginId: sa.PluginID,
-		Approved: sa.Approved,
-	})
-	if err != nil {
-		return errors.Wrap(err, "set plugin approval")
-	}
-	state := "approved"
-	if !sa.Approved {
-		state = "denied"
-	}
-	os.Stdout.WriteString("plugin " + sa.PluginID + " " + state + "\n")
 	return nil
 }
 
@@ -273,7 +215,6 @@ func (sa *SpaceArgs) RunPlugins(c *appcli.Context) error {
 	w.WriteString("plugins (" + strconv.Itoa(len(plugins)) + "):\n")
 	for _, p := range plugins {
 		w.WriteString("  - id=" + p.GetPluginId() +
-			" approval=" + p.GetApprovalState().String() +
 			" loaded=" + strconv.FormatBool(p.GetLoaded()) +
 			" desc=" + strconv.Quote(p.GetDescription()) + "\n")
 	}

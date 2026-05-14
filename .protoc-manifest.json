@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
+  "protocFlagsHash": "e995dbce38d6b7314946e26cfb2e26f8899332ca5007d5166cd9facee46c077d",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -1185,17 +1185,6 @@
       ],
       "protoFiles": ["core/node/world/world.proto"]
     },
-    "github.com/s4wave/spacewave/core/plugin/approval": {
-      "hash": "548b5068ae8ac28124d5ba1189e5f25f7c8517c60a4bf8ed122762491e1fdf4f",
-      "generatedFiles": [
-        "core/plugin/approval/approval.pb.cc",
-        "core/plugin/approval/approval.pb.go",
-        "core/plugin/approval/approval.pb.h",
-        "core/plugin/approval/approval.pb.rs",
-        "core/plugin/approval/approval.pb.ts"
-      ],
-      "protoFiles": ["core/plugin/approval/approval.proto"]
-    },
     "github.com/s4wave/spacewave/core/plugin/list": {
       "hash": "834c7e539cbe0a10752998980754176effa75e0ee09c1a6c3883f3a92ac6b3c7",
       "generatedFiles": [
@@ -1208,7 +1197,7 @@
       "protoFiles": ["core/plugin/list/list.proto"]
     },
     "github.com/s4wave/spacewave/core/plugin/space": {
-      "hash": "584d2c8a12f0e10db81138d2077382b704f766fe9d7262a70996de7307e76844",
+      "hash": "6de06b652970c3073b62f87556f1b0140494a082b07cda52d26fbb68f0af6d1a",
       "generatedFiles": [
         "core/plugin/space/config.pb.cc",
         "core/plugin/space/config.pb.go",
@@ -3919,7 +3908,7 @@
       "protoFiles": ["sdk/layout/world/world.proto"]
     },
     "github.com/s4wave/spacewave/sdk/objecttype/registry": {
-      "hash": "e3f3b8dc32a2a36ae76c8109fbc6e7f364eb931a2d99cd41177cbdab2daf486d",
+      "hash": "9d16943e7958478b6e3e62ae480bcf104f3066dd1cda78c0b35b1959f78bac78",
       "generatedFiles": [
         "sdk/objecttype/registry/registry.pb.cc",
         "sdk/objecttype/registry/registry.pb.go",
@@ -4134,7 +4123,7 @@
       "protoFiles": ["sdk/sobject/sobject.proto"]
     },
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "1c81900c062419af0629a36f79706ec9b747bd54be04dfce2c3ddb18f98a20b2",
+      "hash": "a6724577df10d4d961c1869ec4953130577f93e2ceb3f826a0f51083fdf91a8d",
       "generatedFiles": [
         "sdk/space/space.pb.cc",
         "sdk/space/space.pb.go",
@@ -4230,7 +4219,7 @@
       "protoFiles": ["sdk/viewer/registry/registry.proto"]
     },
     "github.com/s4wave/spacewave/sdk/vm": {
-      "hash": "e0adbe0084a8b8af463cb861c4ba557bb63fb6b46d78152709762e2f1355e78f",
+      "hash": "23d01faadf18cebb4471cc9840ef8deb442ab2e923351bac8485fd18c6f53cfa",
       "generatedFiles": [
         "sdk/vm/v86-wizard.pb.cc",
         "sdk/vm/v86-wizard.pb.go",

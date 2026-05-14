@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 	plugin_list "github.com/s4wave/spacewave/core/plugin/list"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -37,7 +36,7 @@ const ControllerID = "plugin/space"
 var Version = semver.MustParse("0.0.1")
 
 // controllerDescrip is the controller description.
-var controllerDescrip = "loads approved plugins and resolves FetchManifest for a Space"
+var controllerDescrip = "loads Space plugins and resolves FetchManifest for a Space"
 
 type processConfig struct {
 	typeID string
@@ -53,20 +52,19 @@ var processRetryBackoff = &backoff.Backoff{
 	},
 }
 
-// Controller loads approved plugins for a Space and resolves FetchManifest
-// directives by watching the Space world with approval gating.
+// Controller loads plugins for a Space and resolves FetchManifest directives by
+// watching the Space world.
 //
 // Watches SpaceSettings in the Space world reactively. When plugin_ids change
-// in SpaceSettings, reconciles LoadPlugin directives: adds directives for
-// newly-approved plugins, releases directives for removed plugins.
+// in SpaceSettings, reconciles LoadPlugin directives: adds directives for new
+// plugins and releases directives for removed plugins.
 //
 // For FetchManifest: resolves FetchManifest directives for manifest IDs
-// matching the current SpaceSettings plugin_ids. Checks approval before
-// returning manifest values. Uses a shared world watch loop with broadcast
-// to handle resolver set changes.
+// matching the current SpaceSettings plugin_ids. Uses a shared world watch
+// loop with broadcast to handle resolver set changes.
 //
-// Also reconciles process bindings: starts approved persistent processes
-// and stops processes that are removed or unapproved.
+// Also reconciles process bindings: starts enabled persistent processes and
+// stops processes that are removed or disabled.
 type Controller struct {
 	*bus.BusController[*Config]
 
@@ -82,7 +80,7 @@ type Controller struct {
 	// loadedPluginIDs is the set of plugin IDs with active LoadPlugin refs.
 	// Protected by bcast.
 	loadedPluginIDs []string
-	// processConfigs tracks the current approved process configuration by object key.
+	// processConfigs tracks the current enabled process configuration by object key.
 	processConfigs map[string]processConfig
 	// processes tracks active process routines by object key.
 	processes *keyed.Keyed[string, processConfig]
@@ -90,7 +88,7 @@ type Controller struct {
 	watchLoop *world_control.WatchLoop
 }
 
-// NotifyChanged wakes the watch loop to reconcile approval-backed state.
+// NotifyChanged wakes the watch loop to reconcile external state changes.
 func (c *Controller) NotifyChanged() {
 	var watchLoop *world_control.WatchLoop
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -302,7 +300,7 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 }
 
 // reconcilePlugins reads SpaceSettings from the world and reconciles
-// LoadPlugin directives based on the current plugin_ids and approval state.
+// LoadPlugin directives based on the current plugin_ids.
 func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, refs map[string]directive.Reference) {
 	le := c.GetLogger()
 
@@ -339,18 +337,9 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		}
 	}
 
-	// Add directives for newly-approved plugins.
+	// Add directives for newly-listed plugins.
 	for _, pid := range ids {
 		if _, ok := refs[pid]; ok {
-			continue
-		}
-
-		approved, err := c.checkApproval(ctx, pid)
-		if err != nil {
-			le.WithError(err).Warn("failed to check plugin approval")
-			continue
-		}
-		if !approved {
 			continue
 		}
 
@@ -363,21 +352,6 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			continue
 		}
 		refs[pid] = ref
-	}
-
-	// Release directives for plugins that lost approval.
-	for pid, ref := range refs {
-		if _, ok := desired[pid]; !ok {
-			continue
-		}
-		approved, err := c.checkApproval(ctx, pid)
-		if err != nil {
-			continue
-		}
-		if !approved {
-			ref.Release()
-			delete(refs, pid)
-		}
 	}
 	loaded := make([]string, 0, len(refs))
 	for _, pid := range ids {
@@ -398,21 +372,8 @@ func (c *Controller) setLoadedPluginIDs(ids []string) {
 	})
 }
 
-// checkApproval checks if a manifest ID is approved for the configured space.
-func (c *Controller) checkApproval(ctx context.Context, mid string) (bool, error) {
-	conf := c.GetConfig()
-	return plugin_approval.CheckApproval(
-		ctx,
-		c.GetBus(),
-		conf.GetVolumeId(),
-		conf.GetObjectStoreId(),
-		conf.GetSpaceId(),
-		mid,
-	)
-}
-
 // reconcileProcesses reads process bindings from the platform-account
-// ObjectStore and starts/stops processes based on their approval state.
+// ObjectStore and starts/stops processes based on their binding state.
 func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState) {
 	le := c.GetLogger()
 	conf := c.GetConfig()
@@ -423,7 +384,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	}
 	objectStoreID := conf.GetObjectStoreId()
 	if objectStoreID == "" {
-		objectStoreID = plugin_approval.DefaultObjectStoreID
+		objectStoreID = "platform-account"
 	}
 
 	handle, _, ref, err := volume.ExBuildObjectStoreAPI(
@@ -447,7 +408,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 		return
 	}
 
-	// Build set of desired approved bindings keyed by objectKey.
+	// Build set of desired enabled bindings keyed by objectKey.
 	desired := make(map[string]processConfig, len(bindings))
 	for _, b := range bindings {
 		if b.GetState() == s4wave_process.ProcessBindingState_ProcessBindingState_APPROVED {
@@ -459,7 +420,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	}
 
 	active := c.processes.GetKeysWithData()
-	le.WithField("approved", len(desired)).WithField("active", len(active)).Debug("reconcileProcesses")
+	le.WithField("enabled", len(desired)).WithField("active", len(active)).Debug("reconcileProcesses")
 
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		c.processConfigs = desired
@@ -472,7 +433,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	added, removed := c.processes.SyncKeys(desiredKeys, false)
 
 	for _, key := range removed {
-		le.WithField("object-key", key).Debug("stopping process (removed or unapproved)")
+		le.WithField("object-key", key).Debug("stopping process (removed or disabled)")
 	}
 	for _, key := range added {
 		cfg := desired[key]
@@ -507,7 +468,7 @@ func (c *Controller) buildProcessRoutine(objectKey string) (keyed.Routine, proce
 	}, cfg
 }
 
-// getProcessConfig returns the current approved process configuration.
+// getProcessConfig returns the current enabled process configuration.
 func (c *Controller) getProcessConfig(objectKey string) processConfig {
 	var cfg processConfig
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {

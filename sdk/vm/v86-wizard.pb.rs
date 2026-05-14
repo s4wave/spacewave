@@ -86,7 +86,7 @@ pub struct V86Config {
     #[prost(message, repeated, tag="6")]
     pub mounts: ::prost::alloc::vec::Vec<VmMount>,
     /// RuntimePluginId is the plugin that hosts the instanced V86 runtime.
-    /// Empty defaults to spacewave-app.
+    /// Empty defaults to spacewave-v86.
     #[prost(string, tag="7")]
     pub runtime_plugin_id: ::prost::alloc::string::String,
 }

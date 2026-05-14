@@ -5,7 +5,7 @@ import type { Blog } from '../proto/blog.pb.js'
 import type { WatchBlogResponse } from './blog.pb.js'
 
 // BlogTypeID is the type identifier for blog objects.
-export const BlogTypeID = 'spacewave-notes/blog'
+export const BlogTypeID = 'notes/blog'
 
 // IBlogHandle contains the BlogHandle interface.
 export interface IBlogHandle {

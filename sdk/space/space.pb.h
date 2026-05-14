@@ -32,7 +32,6 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
-#include "../../core/plugin/approval/approval.pb.h"
 #include "../../core/sobject/sobject.pb.h"
 #include "../../core/space/world/world.pb.h"
 #include "../provider/spacewave/spacewave.pb.h"
@@ -109,14 +108,6 @@ class RemoveSpacePluginResponse;
 struct RemoveSpacePluginResponseDefaultTypeInternal;
 extern RemoveSpacePluginResponseDefaultTypeInternal _RemoveSpacePluginResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull RemoveSpacePluginResponse_class_data_;
-class SetPluginApprovalRequest;
-struct SetPluginApprovalRequestDefaultTypeInternal;
-extern SetPluginApprovalRequestDefaultTypeInternal _SetPluginApprovalRequest_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull SetPluginApprovalRequest_class_data_;
-class SetPluginApprovalResponse;
-struct SetPluginApprovalResponseDefaultTypeInternal;
-extern SetPluginApprovalResponseDefaultTypeInternal _SetPluginApprovalResponse_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull SetPluginApprovalResponse_class_data_;
 class SetProcessBindingRequest;
 struct SetProcessBindingRequestDefaultTypeInternal;
 extern SetProcessBindingRequestDefaultTypeInternal _SetProcessBindingRequest_default_instance_;
@@ -722,7 +713,6 @@ class SpacePluginStatus final : public ::google::protobuf::Message
   enum : int {
     kPluginIdFieldNumber = 1,
     kDescriptionFieldNumber = 4,
-    kApprovalStateFieldNumber = 2,
     kLoadedFieldNumber = 3,
   };
   // string plugin_id = 1;
@@ -755,16 +745,6 @@ class SpacePluginStatus final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_description();
 
   public:
-  // .plugin.approval.PluginApprovalState approval_state = 2;
-  void clear_approval_state() ;
-  ::plugin::approval::PluginApprovalState approval_state() const;
-  void set_approval_state(::plugin::approval::PluginApprovalState value);
-
-  private:
-  ::plugin::approval::PluginApprovalState _internal_approval_state() const;
-  void _internal_set_approval_state(::plugin::approval::PluginApprovalState value);
-
-  public:
   // bool loaded = 3;
   void clear_loaded() ;
   bool loaded() const;
@@ -779,7 +759,7 @@ class SpacePluginStatus final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    0, 59,
                                    2>
       _table_;
@@ -803,7 +783,6 @@ class SpacePluginStatus final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr plugin_id_;
     ::google::protobuf::internal::ArenaStringPtr description_;
-    int approval_state_;
     bool loaded_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1128,7 +1107,7 @@ class SetProcessBindingResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const SetProcessBindingResponse*>(
         &_SetProcessBindingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 22;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(SetProcessBindingResponse& a, SetProcessBindingResponse& b) { a.Swap(&b); }
   inline void Swap(SetProcessBindingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1263,7 +1242,7 @@ class SetProcessBindingRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetProcessBindingRequest*>(
         &_SetProcessBindingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(SetProcessBindingRequest& a, SetProcessBindingRequest& b) { a.Swap(&b); }
   inline void Swap(SetProcessBindingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1432,347 +1411,6 @@ class SetProcessBindingRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SetProcessBindingRequest_class_data_;
 // -------------------------------------------------------------------
 
-class SetPluginApprovalResponse final : public ::google::protobuf::internal::ZeroFieldsBase
-/* @@protoc_insertion_point(class_definition:s4wave.space.SetPluginApprovalResponse) */ {
- public:
-  inline SetPluginApprovalResponse() : SetPluginApprovalResponse(nullptr) {}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(SetPluginApprovalResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(SetPluginApprovalResponse));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR SetPluginApprovalResponse(::google::protobuf::internal::ConstantInitialized);
-
-  inline SetPluginApprovalResponse(const SetPluginApprovalResponse& from) : SetPluginApprovalResponse(nullptr, from) {}
-  inline SetPluginApprovalResponse(SetPluginApprovalResponse&& from) noexcept
-      : SetPluginApprovalResponse(nullptr, ::std::move(from)) {}
-  inline SetPluginApprovalResponse& operator=(const SetPluginApprovalResponse& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline SetPluginApprovalResponse& operator=(SetPluginApprovalResponse&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const SetPluginApprovalResponse& default_instance() {
-    return *reinterpret_cast<const SetPluginApprovalResponse*>(
-        &_SetPluginApprovalResponse_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 16;
-  friend void swap(SetPluginApprovalResponse& a, SetPluginApprovalResponse& b) { a.Swap(&b); }
-  inline void Swap(SetPluginApprovalResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(SetPluginApprovalResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  SetPluginApprovalResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<SetPluginApprovalResponse>(arena);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const SetPluginApprovalResponse& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const SetPluginApprovalResponse& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.space.SetPluginApprovalResponse"; }
-
-  explicit SetPluginApprovalResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  SetPluginApprovalResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetPluginApprovalResponse& from);
-  SetPluginApprovalResponse(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SetPluginApprovalResponse&& from) noexcept
-      : SetPluginApprovalResponse(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  // @@protoc_insertion_point(class_scope:s4wave.space.SetPluginApprovalResponse)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
-                                   0, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull SetPluginApprovalResponse_class_data_;
-// -------------------------------------------------------------------
-
-class SetPluginApprovalRequest final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.space.SetPluginApprovalRequest) */ {
- public:
-  inline SetPluginApprovalRequest() : SetPluginApprovalRequest(nullptr) {}
-  ~SetPluginApprovalRequest() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(SetPluginApprovalRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(SetPluginApprovalRequest));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR SetPluginApprovalRequest(::google::protobuf::internal::ConstantInitialized);
-
-  inline SetPluginApprovalRequest(const SetPluginApprovalRequest& from) : SetPluginApprovalRequest(nullptr, from) {}
-  inline SetPluginApprovalRequest(SetPluginApprovalRequest&& from) noexcept
-      : SetPluginApprovalRequest(nullptr, ::std::move(from)) {}
-  inline SetPluginApprovalRequest& operator=(const SetPluginApprovalRequest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline SetPluginApprovalRequest& operator=(SetPluginApprovalRequest&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const SetPluginApprovalRequest& default_instance() {
-    return *reinterpret_cast<const SetPluginApprovalRequest*>(
-        &_SetPluginApprovalRequest_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 15;
-  friend void swap(SetPluginApprovalRequest& a, SetPluginApprovalRequest& b) { a.Swap(&b); }
-  inline void Swap(SetPluginApprovalRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(SetPluginApprovalRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  SetPluginApprovalRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<SetPluginApprovalRequest>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const SetPluginApprovalRequest& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const SetPluginApprovalRequest& from) { SetPluginApprovalRequest::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(SetPluginApprovalRequest* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.space.SetPluginApprovalRequest"; }
-
-  explicit SetPluginApprovalRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  SetPluginApprovalRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetPluginApprovalRequest& from);
-  SetPluginApprovalRequest(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SetPluginApprovalRequest&& from) noexcept
-      : SetPluginApprovalRequest(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kPluginIdFieldNumber = 1,
-    kApprovedFieldNumber = 2,
-  };
-  // string plugin_id = 1;
-  void clear_plugin_id() ;
-  const ::std::string& plugin_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_plugin_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_plugin_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_plugin_id();
-  void set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_plugin_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_plugin_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_id();
-
-  public:
-  // bool approved = 2;
-  void clear_approved() ;
-  bool approved() const;
-  void set_approved(bool value);
-
-  private:
-  bool _internal_approved() const;
-  void _internal_set_approved(bool value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.space.SetPluginApprovalRequest)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 55,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const SetPluginApprovalRequest& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr plugin_id_;
-    bool approved_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull SetPluginApprovalRequest_class_data_;
-// -------------------------------------------------------------------
-
 class RemoveSpacePluginResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.space.RemoveSpacePluginResponse) */ {
  public:
@@ -1827,7 +1465,7 @@ class RemoveSpacePluginResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const RemoveSpacePluginResponse*>(
         &_RemoveSpacePluginResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 18;
   friend void swap(RemoveSpacePluginResponse& a, RemoveSpacePluginResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveSpacePluginResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1962,7 +1600,7 @@ class RemoveSpacePluginRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpacePluginRequest*>(
         &_RemoveSpacePluginRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 17;
   friend void swap(RemoveSpacePluginRequest& a, RemoveSpacePluginRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveSpacePluginRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2760,7 +2398,7 @@ class AddSpacePluginResponse final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const AddSpacePluginResponse*>(
         &_AddSpacePluginResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(AddSpacePluginResponse& a, AddSpacePluginResponse& b) { a.Swap(&b); }
   inline void Swap(AddSpacePluginResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2895,7 +2533,7 @@ class AddSpacePluginRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddSpacePluginRequest*>(
         &_AddSpacePluginRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(AddSpacePluginRequest& a, AddSpacePluginRequest& b) { a.Swap(&b); }
   inline void Swap(AddSpacePluginRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3635,7 +3273,7 @@ class ProcessBindingInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const ProcessBindingInfo*>(
         &_ProcessBindingInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 23;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(ProcessBindingInfo& a, ProcessBindingInfo& b) { a.Swap(&b); }
   inline void Swap(ProcessBindingInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6487,37 +6125,12 @@ inline void SpacePluginStatus::set_allocated_plugin_id(::std::string* PROTOBUF_N
   // @@protoc_insertion_point(field_set_allocated:s4wave.space.SpacePluginStatus.plugin_id)
 }
 
-// .plugin.approval.PluginApprovalState approval_state = 2;
-inline void SpacePluginStatus::clear_approval_state() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.approval_state_ = 0;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline ::plugin::approval::PluginApprovalState SpacePluginStatus::approval_state() const {
-  // @@protoc_insertion_point(field_get:s4wave.space.SpacePluginStatus.approval_state)
-  return _internal_approval_state();
-}
-inline void SpacePluginStatus::set_approval_state(::plugin::approval::PluginApprovalState value) {
-  _internal_set_approval_state(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:s4wave.space.SpacePluginStatus.approval_state)
-}
-inline ::plugin::approval::PluginApprovalState SpacePluginStatus::_internal_approval_state() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::plugin::approval::PluginApprovalState>(_impl_.approval_state_);
-}
-inline void SpacePluginStatus::_internal_set_approval_state(::plugin::approval::PluginApprovalState value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.approval_state_ = value;
-}
-
 // bool loaded = 3;
 inline void SpacePluginStatus::clear_loaded() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.loaded_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000004U);
 }
 inline bool SpacePluginStatus::loaded() const {
   // @@protoc_insertion_point(field_get:s4wave.space.SpacePluginStatus.loaded)
@@ -6525,7 +6138,7 @@ inline bool SpacePluginStatus::loaded() const {
 }
 inline void SpacePluginStatus::set_loaded(bool value) {
   _internal_set_loaded(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:s4wave.space.SpacePluginStatus.loaded)
 }
 inline bool SpacePluginStatus::_internal_loaded() const {
@@ -6601,104 +6214,6 @@ inline void SpacePluginStatus::set_allocated_description(::std::string* PROTOBUF
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.space.SpacePluginStatus.description)
 }
-
-// -------------------------------------------------------------------
-
-// SetPluginApprovalRequest
-
-// string plugin_id = 1;
-inline void SetPluginApprovalRequest::clear_plugin_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.plugin_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& SetPluginApprovalRequest::plugin_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.space.SetPluginApprovalRequest.plugin_id)
-  return _internal_plugin_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void SetPluginApprovalRequest::set_plugin_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.plugin_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.space.SetPluginApprovalRequest.plugin_id)
-}
-inline ::std::string* PROTOBUF_NONNULL SetPluginApprovalRequest::mutable_plugin_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_plugin_id();
-  // @@protoc_insertion_point(field_mutable:s4wave.space.SetPluginApprovalRequest.plugin_id)
-  return _s;
-}
-inline const ::std::string& SetPluginApprovalRequest::_internal_plugin_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.plugin_id_.Get();
-}
-inline void SetPluginApprovalRequest::_internal_set_plugin_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.plugin_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL SetPluginApprovalRequest::_internal_mutable_plugin_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.plugin_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE SetPluginApprovalRequest::release_plugin_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.space.SetPluginApprovalRequest.plugin_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.plugin_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.plugin_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void SetPluginApprovalRequest::set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.plugin_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.plugin_id_.IsDefault()) {
-    _impl_.plugin_id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.space.SetPluginApprovalRequest.plugin_id)
-}
-
-// bool approved = 2;
-inline void SetPluginApprovalRequest::clear_approved() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.approved_ = false;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline bool SetPluginApprovalRequest::approved() const {
-  // @@protoc_insertion_point(field_get:s4wave.space.SetPluginApprovalRequest.approved)
-  return _internal_approved();
-}
-inline void SetPluginApprovalRequest::set_approved(bool value) {
-  _internal_set_approved(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:s4wave.space.SetPluginApprovalRequest.approved)
-}
-inline bool SetPluginApprovalRequest::_internal_approved() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.approved_;
-}
-inline void SetPluginApprovalRequest::_internal_set_approved(bool value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.approved_ = value;
-}
-
-// -------------------------------------------------------------------
-
-// SetPluginApprovalResponse
 
 // -------------------------------------------------------------------
 

@@ -1,7 +1,6 @@
 syntax = "proto3";
 package s4wave.space;
 
-import "github.com/s4wave/spacewave/core/plugin/approval/approval.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/space/world/world.proto";
 import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
@@ -31,8 +30,6 @@ service SpaceResourceService {
 
 service SpaceContentsResourceService {
   rpc WatchState(WatchSpaceContentsStateRequest) returns (stream SpaceContentsState) {}
-
-  rpc SetPluginApproval(SetPluginApprovalRequest) returns (SetPluginApprovalResponse) {}
 
   rpc SetProcessBinding(SetProcessBindingRequest) returns (SetProcessBindingResponse) {}
 }
@@ -145,32 +142,20 @@ message SpaceContentsState {
   bool ready = 1;
   // Plugins is the list of plugin statuses.
   repeated SpacePluginStatus plugins = 2;
-  // ProcessBindings is the list of process binding approvals.
+  // ProcessBindings is the list of process binding states.
   repeated ProcessBindingInfo process_bindings = 3;
 }
 
-// SpacePluginStatus contains the approval state for a single plugin.
+// SpacePluginStatus contains runtime state for a single plugin.
 message SpacePluginStatus {
   // PluginId is the manifest ID of the plugin.
   string plugin_id = 1;
-  // ApprovalState is the current approval state for this plugin.
-  .plugin.approval.PluginApprovalState approval_state = 2;
+  reserved 2;
   // Loaded indicates whether the plugin is currently running.
   bool loaded = 3;
   // Description is a short description from the plugin manifest metadata.
   string description = 4;
 }
-
-// SetPluginApprovalRequest is a request to set the approval state for a plugin.
-message SetPluginApprovalRequest {
-  // PluginId is the manifest ID of the plugin.
-  string plugin_id = 1;
-  // Approved sets the approval state. True = approved, false = denied.
-  bool approved = 2;
-}
-
-// SetPluginApprovalResponse is the response for SetPluginApproval.
-message SetPluginApprovalResponse {}
 
 // AddSpacePluginRequest is a request to add a plugin to the space settings.
 message AddSpacePluginRequest {
@@ -190,7 +175,7 @@ message RemoveSpacePluginRequest {
 // RemoveSpacePluginResponse is the response for RemoveSpacePlugin.
 message RemoveSpacePluginResponse {}
 
-// SetProcessBindingRequest is a request to set a process binding approval.
+// SetProcessBindingRequest is a request to set a process binding state.
 message SetProcessBindingRequest {
   // ObjectKey is the world object key to bind.
   string object_key = 1;

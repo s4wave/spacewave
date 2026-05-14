@@ -6,7 +6,7 @@ import (
 )
 
 // VmV86TypeID is the type identifier for VmV86 objects.
-const VmV86TypeID = "spacewave/vm/v86"
+const VmV86TypeID = "vm/v86"
 
 // PredV86Image is the graph predicate linking a VmV86 to its V86Image. The
 // V86Image supplies the default WASM/BIOS/kernel/rootfs UnixFS edges via its

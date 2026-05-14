@@ -15,7 +15,6 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	approval "github.com/s4wave/spacewave/core/plugin/approval"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	world "github.com/s4wave/spacewave/core/space/world"
 	transform "github.com/s4wave/spacewave/db/block/transform"
@@ -418,7 +417,7 @@ type SpaceContentsState struct {
 	Ready bool `protobuf:"varint,1,opt,name=ready,proto3" json:"ready,omitempty"`
 	// Plugins is the list of plugin statuses.
 	Plugins []*SpacePluginStatus `protobuf:"bytes,2,rep,name=plugins,proto3" json:"plugins,omitempty"`
-	// ProcessBindings is the list of process binding approvals.
+	// ProcessBindings is the list of process binding states.
 	ProcessBindings []*ProcessBindingInfo `protobuf:"bytes,3,rep,name=process_bindings,json=processBindings,proto3" json:"processBindings,omitempty"`
 }
 
@@ -449,13 +448,11 @@ func (x *SpaceContentsState) GetProcessBindings() []*ProcessBindingInfo {
 	return nil
 }
 
-// SpacePluginStatus contains the approval state for a single plugin.
+// SpacePluginStatus contains runtime state for a single plugin.
 type SpacePluginStatus struct {
 	unknownFields []byte
 	// PluginId is the manifest ID of the plugin.
 	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
-	// ApprovalState is the current approval state for this plugin.
-	ApprovalState approval.PluginApprovalState `protobuf:"varint,2,opt,name=approval_state,json=approvalState,proto3" json:"approvalState,omitempty"`
 	// Loaded indicates whether the plugin is currently running.
 	Loaded bool `protobuf:"varint,3,opt,name=loaded,proto3" json:"loaded,omitempty"`
 	// Description is a short description from the plugin manifest metadata.
@@ -475,13 +472,6 @@ func (x *SpacePluginStatus) GetPluginId() string {
 	return ""
 }
 
-func (x *SpacePluginStatus) GetApprovalState() approval.PluginApprovalState {
-	if x != nil {
-		return x.ApprovalState
-	}
-	return approval.PluginApprovalState(0)
-}
-
 func (x *SpacePluginStatus) GetLoaded() bool {
 	if x != nil {
 		return x.Loaded
@@ -495,46 +485,6 @@ func (x *SpacePluginStatus) GetDescription() string {
 	}
 	return ""
 }
-
-// SetPluginApprovalRequest is a request to set the approval state for a plugin.
-type SetPluginApprovalRequest struct {
-	unknownFields []byte
-	// PluginId is the manifest ID of the plugin.
-	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
-	// Approved sets the approval state. True = approved, false = denied.
-	Approved bool `protobuf:"varint,2,opt,name=approved,proto3" json:"approved,omitempty"`
-}
-
-func (x *SetPluginApprovalRequest) Reset() {
-	*x = SetPluginApprovalRequest{}
-}
-
-func (*SetPluginApprovalRequest) ProtoMessage() {}
-
-func (x *SetPluginApprovalRequest) GetPluginId() string {
-	if x != nil {
-		return x.PluginId
-	}
-	return ""
-}
-
-func (x *SetPluginApprovalRequest) GetApproved() bool {
-	if x != nil {
-		return x.Approved
-	}
-	return false
-}
-
-// SetPluginApprovalResponse is the response for SetPluginApproval.
-type SetPluginApprovalResponse struct {
-	unknownFields []byte
-}
-
-func (x *SetPluginApprovalResponse) Reset() {
-	*x = SetPluginApprovalResponse{}
-}
-
-func (*SetPluginApprovalResponse) ProtoMessage() {}
 
 // AddSpacePluginRequest is a request to add a plugin to the space settings.
 type AddSpacePluginRequest struct {
@@ -598,7 +548,7 @@ func (x *RemoveSpacePluginResponse) Reset() {
 
 func (*RemoveSpacePluginResponse) ProtoMessage() {}
 
-// SetProcessBindingRequest is a request to set a process binding approval.
+// SetProcessBindingRequest is a request to set a process binding state.
 type SetProcessBindingRequest struct {
 	unknownFields []byte
 	// ObjectKey is the world object key to bind.
@@ -987,7 +937,6 @@ func (m *SpacePluginStatus) CloneVT() *SpacePluginStatus {
 	}
 	r := new(SpacePluginStatus)
 	r.PluginId = m.PluginId
-	r.ApprovalState = m.ApprovalState
 	r.Loaded = m.Loaded
 	r.Description = m.Description
 	if len(m.unknownFields) > 0 {
@@ -997,38 +946,6 @@ func (m *SpacePluginStatus) CloneVT() *SpacePluginStatus {
 }
 
 func (m *SpacePluginStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *SetPluginApprovalRequest) CloneVT() *SetPluginApprovalRequest {
-	if m == nil {
-		return (*SetPluginApprovalRequest)(nil)
-	}
-	r := new(SetPluginApprovalRequest)
-	r.PluginId = m.PluginId
-	r.Approved = m.Approved
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *SetPluginApprovalRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *SetPluginApprovalResponse) CloneVT() *SetPluginApprovalResponse {
-	if m == nil {
-		return (*SetPluginApprovalResponse)(nil)
-	}
-	r := new(SetPluginApprovalResponse)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *SetPluginApprovalResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1589,9 +1506,6 @@ func (this *SpacePluginStatus) EqualVT(that *SpacePluginStatus) bool {
 	if this.PluginId != that.PluginId {
 		return false
 	}
-	if this.ApprovalState != that.ApprovalState {
-		return false
-	}
 	if this.Loaded != that.Loaded {
 		return false
 	}
@@ -1603,46 +1517,6 @@ func (this *SpacePluginStatus) EqualVT(that *SpacePluginStatus) bool {
 
 func (this *SpacePluginStatus) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SpacePluginStatus)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *SetPluginApprovalRequest) EqualVT(that *SetPluginApprovalRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.PluginId != that.PluginId {
-		return false
-	}
-	if this.Approved != that.Approved {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *SetPluginApprovalRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SetPluginApprovalRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *SetPluginApprovalResponse) EqualVT(that *SetPluginApprovalResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *SetPluginApprovalResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SetPluginApprovalResponse)
 	if !ok {
 		return false
 	}
@@ -2671,11 +2545,6 @@ func (x *SpacePluginStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pluginId")
 		s.WriteString(x.PluginId)
 	}
-	if x.ApprovalState != 0 || s.HasField("approvalState") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("approvalState")
-		x.ApprovalState.MarshalProtoJSON(s)
-	}
 	if x.Loaded || s.HasField("loaded") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("loaded")
@@ -2706,9 +2575,6 @@ func (x *SpacePluginStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "plugin_id", "pluginId":
 			s.AddField("plugin_id")
 			x.PluginId = s.ReadString()
-		case "approval_state", "approvalState":
-			s.AddField("approval_state")
-			x.ApprovalState.UnmarshalProtoJSON(s)
 		case "loaded":
 			s.AddField("loaded")
 			x.Loaded = s.ReadBool()
@@ -2721,86 +2587,6 @@ func (x *SpacePluginStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SpacePluginStatus from JSON.
 func (x *SpacePluginStatus) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the SetPluginApprovalRequest message to JSON.
-func (x *SetPluginApprovalRequest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.PluginId != "" || s.HasField("pluginId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("pluginId")
-		s.WriteString(x.PluginId)
-	}
-	if x.Approved || s.HasField("approved") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("approved")
-		s.WriteBool(x.Approved)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the SetPluginApprovalRequest to JSON.
-func (x *SetPluginApprovalRequest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the SetPluginApprovalRequest message from JSON.
-func (x *SetPluginApprovalRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "plugin_id", "pluginId":
-			s.AddField("plugin_id")
-			x.PluginId = s.ReadString()
-		case "approved":
-			s.AddField("approved")
-			x.Approved = s.ReadBool()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the SetPluginApprovalRequest from JSON.
-func (x *SetPluginApprovalRequest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the SetPluginApprovalResponse message to JSON.
-func (x *SetPluginApprovalResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the SetPluginApprovalResponse to JSON.
-func (x *SetPluginApprovalResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the SetPluginApprovalResponse message from JSON.
-func (x *SetPluginApprovalResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		// no fields
-	})
-}
-
-// UnmarshalJSON unmarshals the SetPluginApprovalResponse from JSON.
-func (x *SetPluginApprovalResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3874,100 +3660,12 @@ func (m *SpacePluginStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x18
 	}
-	if m.ApprovalState != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ApprovalState))
-		i--
-		dAtA[i] = 0x10
-	}
 	if len(m.PluginId) > 0 {
 		i -= len(m.PluginId)
 		copy(dAtA[i:], m.PluginId)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PluginId)))
 		i--
 		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *SetPluginApprovalRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetPluginApprovalRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SetPluginApprovalRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.Approved {
-		i--
-		if m.Approved {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.PluginId) > 0 {
-		i -= len(m.PluginId)
-		copy(dAtA[i:], m.PluginId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PluginId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *SetPluginApprovalResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SetPluginApprovalResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SetPluginApprovalResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
 	}
 	return len(dAtA) - i, nil
 }
@@ -4551,9 +4249,6 @@ func (m *SpacePluginStatus) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.ApprovalState != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ApprovalState))
-	}
 	if m.Loaded {
 		n += 2
 	}
@@ -4561,33 +4256,6 @@ func (m *SpacePluginStatus) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *SetPluginApprovalRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.PluginId)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Approved {
-		n += 2
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *SetPluginApprovalResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -5126,15 +4794,6 @@ func (x *SpacePluginStatus) MarshalProtoText() string {
 		sb.WriteString("plugin_id: ")
 		sb.WriteString(strconv.Quote(x.PluginId))
 	}
-	if x.ApprovalState != 0 {
-		if sb.Len() > 19 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("approval_state: ")
-		sb.WriteString("\"")
-		sb.WriteString(approval.PluginApprovalState(x.ApprovalState).String())
-		sb.WriteString("\"")
-	}
 	if x.Loaded != false {
 		if sb.Len() > 19 {
 			sb.WriteString(" ")
@@ -5154,42 +4813,6 @@ func (x *SpacePluginStatus) MarshalProtoText() string {
 }
 
 func (x *SpacePluginStatus) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *SetPluginApprovalRequest) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("SetPluginApprovalRequest {")
-	if x.PluginId != "" {
-		if sb.Len() > 26 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("plugin_id: ")
-		sb.WriteString(strconv.Quote(x.PluginId))
-	}
-	if x.Approved != false {
-		if sb.Len() > 26 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("approved: ")
-		sb.WriteString(strconv.FormatBool(x.Approved))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *SetPluginApprovalRequest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *SetPluginApprovalResponse) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("SetPluginApprovalResponse {")
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *SetPluginApprovalResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -6583,17 +6206,6 @@ func (m *SpacePluginStatus) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PluginId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ApprovalState", wireType)
-			}
-			m.ApprovalState = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.ApprovalState = approval.PluginApprovalState(_v)
-			if err != nil {
-				return err
-			}
 		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Loaded", wireType)
@@ -6628,126 +6240,6 @@ func (m *SpacePluginStatus) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Description = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *SetPluginApprovalRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SetPluginApprovalRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetPluginApprovalRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PluginId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Approved", wireType)
-			}
-			var v int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			v = int(_v)
-			if err != nil {
-				return err
-			}
-			m.Approved = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *SetPluginApprovalResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SetPluginApprovalResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SetPluginApprovalResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

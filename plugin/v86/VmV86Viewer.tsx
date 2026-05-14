@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop, react-doctor/no-giant-component */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LuSettings, LuTv } from 'react-icons/lu'
 import { Terminal } from '@xterm/xterm'
@@ -26,7 +25,7 @@ import { VmV86TypeID } from './sdk/vmv86.js'
 
 export { VmV86TypeID }
 
-const SET_V86_STATE_OP_ID = 'spacewave/vm/v86/set-state'
+const SET_V86_STATE_OP_ID = 'vm/v86/set-state'
 
 // V86 graph predicates for per-asset overrides. Mirrors
 // sdk/vm/v86.go PredV86{Kernel,Rootfs,Bios,Wasm}Override. When set, a
@@ -83,7 +82,7 @@ function vmStateBadgeClass(state: VmState | undefined): string {
 
 // VmV86Viewer displays a V86 virtual machine: an xterm-backed serial console,
 // Start/Stop controls bound to SetV86StateOp, a list of configured mounts,
-// and a VM info bar (memory, uptime, state).
+// and a VM info bar.
 export default function VmV86Viewer({
   objectInfo,
   worldState,
@@ -150,19 +149,25 @@ export default function VmV86Viewer({
         bios: '',
         wasm: '',
       }
-      for (const slot of OVERRIDE_SLOTS) {
-        const resp = await world.lookupGraphQuads(
-          subject,
-          OVERRIDE_PREDICATE[slot],
-          undefined,
-          undefined,
-          1,
-          signal,
-        )
-        const quads = resp.quads ?? []
-        if (quads.length > 0 && quads[0].obj) {
-          result[slot] = iriToKey(quads[0].obj)
-        }
+      const entries = await Promise.all(
+        OVERRIDE_SLOTS.map(async (slot): Promise<[OverrideSlot, string]> => {
+          const resp = await world.lookupGraphQuads(
+            subject,
+            OVERRIDE_PREDICATE[slot],
+            undefined,
+            undefined,
+            1,
+            signal,
+          )
+          const quads = resp.quads ?? []
+          if (quads.length > 0 && quads[0].obj) {
+            return [slot, iriToKey(quads[0].obj)]
+          }
+          return [slot, '']
+        }),
+      )
+      for (const [slot, value] of entries) {
+        result[slot] = value
       }
       return result
     },
@@ -210,17 +215,129 @@ export default function VmV86Viewer({
     vmStateValue === VmState.VmState_STARTING
 
   const handleStart = useCallback(() => {
-    void applyVmState(VmState.VmState_RUNNING)
+    void applyVmState(VmState.VmState_STARTING)
   }, [applyVmState])
 
   const handleStop = useCallback(() => {
     void applyVmState(VmState.VmState_STOPPED)
   }, [applyVmState])
 
-  // xterm terminal + BroadcastChannel serial bridge. Guest-emitted bytes
-  // arrive as dir=out frames and are written to the terminal; user input is
-  // posted as dir=in frames back to the backend, which feeds them into COM1.
+  const startedLabel = useMemo(() => {
+    if (!isRunningLike || !createdAtMs) return '-'
+    return new Date(createdAtMs).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }, [isRunningLike, createdAtMs])
+
+  return (
+    <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
+      <VmHeader
+        vmStateValue={vmStateValue}
+        isRunningLike={isRunningLike}
+        showSettings={showSettings}
+        onStart={handleStart}
+        onStop={handleStop}
+        onToggleSettings={toggleSettings}
+      />
+      <SerialTerminal objectKey={objectKey} />
+      <VmInfoBar
+        memoryMb={memoryMb}
+        startedLabel={startedLabel}
+        vmStateValue={vmStateValue}
+      />
+      {showSettings && (
+        <VmSettingsPanel
+          loading={overridesResource.loading}
+          overrides={overrides}
+          unixfsKeys={unixfsKeys}
+          onOverrideChange={applyOverride}
+        />
+      )}
+      {mounts.length > 0 && <VmMountList mounts={mounts} />}
+    </div>
+  )
+}
+
+function VmHeader({
+  vmStateValue,
+  isRunningLike,
+  showSettings,
+  onStart,
+  onStop,
+  onToggleSettings,
+}: {
+  vmStateValue: VmState | undefined
+  isRunningLike: boolean
+  showSettings: boolean
+  onStart: () => void
+  onStop: () => void
+  onToggleSettings: () => void
+}) {
+  return (
+    <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
+      <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
+        <LuTv className="size-4" />
+        <span className="tracking-tight">V86</span>
+        <span
+          className={cn(
+            'rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+            vmStateBadgeClass(vmStateValue),
+          )}
+        >
+          {vmStateLabel(vmStateValue)}
+        </span>
+      </div>
+      <div className="flex items-center gap-1 text-xs">
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={isRunningLike}
+          className={cn(
+            'rounded px-2 py-0.5 transition-colors',
+            isRunningLike ?
+              'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
+            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20',
+          )}
+        >
+          Start
+        </button>
+        <button
+          type="button"
+          onClick={onStop}
+          disabled={!isRunningLike}
+          className={cn(
+            'rounded px-2 py-0.5 transition-colors',
+            !isRunningLike ?
+              'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
+            : 'bg-red-500/10 text-red-500 hover:bg-red-500/20',
+          )}
+        >
+          Stop
+        </button>
+        <button
+          type="button"
+          onClick={onToggleSettings}
+          aria-pressed={showSettings}
+          title="Asset overrides"
+          className={cn(
+            'rounded px-2 py-0.5 transition-colors',
+            showSettings ?
+              'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-muted/40',
+          )}
+        >
+          <LuSettings className="size-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SerialTerminal({ objectKey }: { objectKey: string }) {
   const terminalHostRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
     const host = terminalHostRef.current
     if (!host || !objectKey) return
@@ -271,160 +388,122 @@ export default function VmV86Viewer({
     }
   }, [objectKey])
 
-  // Live-ticking uptime label while the VM is running.
-  const [nowMs, setNowMs] = useState(() => Date.now())
-  useEffect(() => {
-    if (!isRunningLike) return
-    const id = window.setInterval(() => setNowMs(Date.now()), 1000)
-    return () => window.clearInterval(id)
-  }, [isRunningLike])
-  const uptimeLabel = useMemo(() => {
-    if (!isRunningLike || !createdAtMs) return '-'
-    const seconds = Math.max(0, Math.floor((nowMs - createdAtMs) / 1000))
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    if (h > 0) return `${h}h${m}m${s}s`
-    if (m > 0) return `${m}m${s}s`
-    return `${s}s`
-  }, [isRunningLike, createdAtMs, nowMs])
-
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuTv className="size-4" />
-          <span className="tracking-tight">V86</span>
-          <span
-            className={cn(
-              'rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide',
-              vmStateBadgeClass(vmStateValue),
-            )}
-          >
-            {vmStateLabel(vmStateValue)}
-          </span>
-        </div>
-        <div className="flex items-center gap-1 text-xs">
-          <button
-            type="button"
-            onClick={handleStart}
-            disabled={isRunningLike}
-            className={cn(
-              'rounded px-2 py-0.5 transition-colors',
-              isRunningLike
-                ? 'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
-                : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20',
-            )}
-          >
-            Start
-          </button>
-          <button
-            type="button"
-            onClick={handleStop}
-            disabled={!isRunningLike}
-            className={cn(
-              'rounded px-2 py-0.5 transition-colors',
-              !isRunningLike
-                ? 'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
-                : 'bg-red-500/10 text-red-500 hover:bg-red-500/20',
-            )}
-          >
-            Stop
-          </button>
-          <button
-            type="button"
-            onClick={toggleSettings}
-            aria-pressed={showSettings}
-            title="Asset overrides"
-            className={cn(
-              'rounded px-2 py-0.5 transition-colors',
-              showSettings
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-muted/40',
-            )}
-          >
-            <LuSettings className="size-3.5" />
-          </button>
-        </div>
+    <div
+      ref={terminalHostRef}
+      className="min-h-0 flex-1 overflow-hidden bg-zinc-950"
+    />
+  )
+}
+
+function VmInfoBar({
+  memoryMb,
+  startedLabel,
+  vmStateValue,
+}: {
+  memoryMb: number
+  startedLabel: string
+  vmStateValue: VmState | undefined
+}) {
+  return (
+    <div className="border-foreground/8 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1 text-[11px]">
+      <span className="text-muted-foreground">
+        mem{' '}
+        <span className="text-foreground font-medium">{memoryMb || '-'}MB</span>
+      </span>
+      <span className="text-muted-foreground">
+        started{' '}
+        <span className="text-foreground font-medium">{startedLabel}</span>
+      </span>
+      <span className="text-muted-foreground">
+        state{' '}
+        <span className="text-foreground font-medium">
+          {vmStateLabel(vmStateValue)}
+        </span>
+      </span>
+    </div>
+  )
+}
+
+function VmSettingsPanel({
+  loading,
+  overrides,
+  unixfsKeys,
+  onOverrideChange,
+}: {
+  loading: boolean
+  overrides: Record<OverrideSlot, string> | null
+  unixfsKeys: string[]
+  onOverrideChange: (slot: OverrideSlot, nextKey: string) => Promise<void>
+}) {
+  return (
+    <div className="border-foreground/8 shrink-0 border-t px-4 py-2 text-[11px]">
+      <div className="text-muted-foreground mb-1 tracking-wide uppercase">
+        Asset Overrides
       </div>
-      <div ref={terminalHostRef} className="min-h-0 flex-1 overflow-hidden bg-zinc-950" />
-      <div className="border-foreground/8 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1 text-[11px]">
-        <span className="text-muted-foreground">
-          mem <span className="text-foreground font-medium">{memoryMb || '-'}MB</span>
-        </span>
-        <span className="text-muted-foreground">
-          uptime <span className="text-foreground font-medium">{uptimeLabel}</span>
-        </span>
-        <span className="text-muted-foreground">
-          state <span className="text-foreground font-medium">{vmStateLabel(vmStateValue)}</span>
-        </span>
-      </div>
-      {showSettings && (
-        <div className="border-foreground/8 shrink-0 border-t px-4 py-2 text-[11px]">
-          <div className="text-muted-foreground mb-1 uppercase tracking-wide">
-            Asset Overrides
-          </div>
-          {!overrides && (
-            <div className="text-muted-foreground">
-              {overridesResource.loading ? 'loading...' : '-'}
-            </div>
-          )}
-          {overrides && (
-            <div className="flex flex-col gap-1">
-              {OVERRIDE_SLOTS.map((slot) => {
-                const current = overrides[slot]
-                return (
-                  <div
-                    key={slot}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <span className="text-foreground w-16 shrink-0">
-                      {OVERRIDE_LABEL[slot]}
-                    </span>
-                    <select
-                      value={current}
-                      onChange={(e) => {
-                        void applyOverride(slot, e.target.value)
-                      }}
-                      className="bg-muted/40 text-foreground min-w-0 flex-1 rounded px-1 py-0.5 font-mono text-[11px]"
-                    >
-                      <option value="">(use V86Image default)</option>
-                      {current &&
-                        !unixfsKeys.includes(current) && (
-                          <option value={current}>{current}</option>
-                        )}
-                      {unixfsKeys.map((key) => (
-                        <option key={key} value={key}>
-                          {key}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+      {!overrides && (
+        <div className="text-muted-foreground">
+          {loading ? 'loading...' : '-'}
         </div>
       )}
-      {mounts.length > 0 && (
-        <div className="border-foreground/8 shrink-0 border-t px-4 py-1 text-[11px]">
-          <div className="text-muted-foreground mb-0.5 uppercase tracking-wide">Mounts</div>
-          <div className="flex flex-col gap-0.5">
-            {mounts.map((m) => (
+      {overrides && (
+        <div className="flex flex-col gap-1">
+          {OVERRIDE_SLOTS.map((slot) => {
+            const current = overrides[slot]
+            return (
               <div
-                key={`${m.path ?? ''}:${m.objectKey ?? ''}:${m.writable ? 'rw' : 'ro'}`}
-                className="flex items-center justify-between font-mono"
+                key={slot}
+                className="flex items-center justify-between gap-2"
               >
-                <span className="text-foreground">{m.path || '(unset)'}</span>
-                <span className="text-muted-foreground">
-                  {m.objectKey ? m.objectKey.slice(0, 12) : '-'}
-                  {m.writable ? ' rw' : ' ro'}
+                <span className="text-foreground w-16 shrink-0">
+                  {OVERRIDE_LABEL[slot]}
                 </span>
+                <select
+                  value={current}
+                  onChange={(e) => {
+                    void onOverrideChange(slot, e.target.value)
+                  }}
+                  className="bg-muted/40 text-foreground min-w-0 flex-1 rounded px-1 py-0.5 font-mono text-[11px]"
+                >
+                  <option value="">(use V86Image default)</option>
+                  {current && !unixfsKeys.includes(current) && (
+                    <option value={current}>{current}</option>
+                  )}
+                  {unixfsKeys.map((key) => (
+                    <option key={key} value={key}>
+                      {key}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ))}
-          </div>
+            )
+          })}
         </div>
       )}
+    </div>
+  )
+}
+
+function VmMountList({ mounts }: { mounts: VmMount[] }) {
+  return (
+    <div className="border-foreground/8 shrink-0 border-t px-4 py-1 text-[11px]">
+      <div className="text-muted-foreground mb-0.5 tracking-wide uppercase">
+        Mounts
+      </div>
+      <div className="flex flex-col gap-0.5">
+        {mounts.map((m) => (
+          <div
+            key={`${m.path ?? ''}:${m.objectKey ?? ''}:${m.writable ? 'rw' : 'ro'}`}
+            className="flex items-center justify-between font-mono"
+          >
+            <span className="text-foreground">{m.path || '(unset)'}</span>
+            <span className="text-muted-foreground">
+              {m.objectKey ? m.objectKey.slice(0, 12) : '-'}
+              {m.writable ? ' rw' : ' ro'}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

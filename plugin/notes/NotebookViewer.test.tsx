@@ -58,7 +58,7 @@ vi.mock('@s4wave/sdk/space/object-uri.js', () => ({
 import NotebookViewer from './NotebookViewer.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 
-const mockObjectInfo = { key: 'mock-key', typeId: 'spacewave-notes/notebook' }
+const mockObjectInfo = { key: 'mock-key', typeId: 'notes/notebook' }
 const mockWorldState = {
   value: null,
   loading: false,

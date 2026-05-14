@@ -17,7 +17,7 @@ func TestWorldOpRegistryBridgeControllerPreservesEngineID(t *testing.T) {
 	b := inmem.NewBus(cdc.NewController(ctx, le))
 	registry := NewWorldOpRegistryResource()
 	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
-		OperationTypeId: "spacewave-notes/notes/init-notebook",
+		OperationTypeId: "notes/notebook/init",
 		RegistrationId:  1,
 		PluginId:        "spacewave-app",
 	}
@@ -33,7 +33,7 @@ func TestWorldOpRegistryBridgeControllerPreservesEngineID(t *testing.T) {
 		ctx,
 		b,
 		le,
-		"spacewave-notes/notes/init-notebook",
+		"notes/notebook/init",
 		"engine-123",
 	)
 	if err != nil {
@@ -44,7 +44,7 @@ func TestWorldOpRegistryBridgeControllerPreservesEngineID(t *testing.T) {
 		t.Fatalf("expected 1 lookup op, got %d", len(vs))
 	}
 
-	op, err := vs[0](ctx, "spacewave-notes/notes/init-notebook")
+	op, err := vs[0](ctx, "notes/notebook/init")
 	if err != nil {
 		t.Fatalf("lookup op: %v", err)
 	}

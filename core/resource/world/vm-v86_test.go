@@ -5,7 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/blang/semver/v4"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -417,6 +421,91 @@ func TestVmV86TypedObject(t *testing.T) {
 		)
 	})
 
+	t.Run("ExecuteStartingLoadsInstancedSpacewaveV86Plugin", func(t *testing.T) {
+		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
+		defer cleanup()
+
+		pluginCtrl := newTestV86PluginLoadController()
+		releasePluginCtrl, err := tb.Bus.AddController(ctx, pluginCtrl, nil)
+		if err != nil {
+			t.Fatalf("AddController(plugin load): %v", err)
+		}
+		defer releasePluginCtrl()
+
+		vmKey := "vm-v86-test-exec-plugin/vm"
+		rootfsKey := "vm-v86-test-exec-plugin/rootfs"
+		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
+
+		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STARTING, "")
+
+		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
+		defer execCancel()
+
+		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_STARTING)
+
+		req := pluginCtrl.expectLoad(t, ctx)
+		if req.pluginID != "spacewave-v86" {
+			t.Fatalf("plugin id = %q, want spacewave-v86", req.pluginID)
+		}
+		if req.instanceKey != vmKey {
+			t.Fatalf("instance key = %q, want %q", req.instanceKey, vmKey)
+		}
+		if req.inst.CloseIfUnreferenced(false) {
+			t.Fatal("plugin directive closed while VM is still running")
+		}
+
+		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_RUNNING, "")
+		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_RUNNING)
+
+		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STOPPED, "")
+		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_STOPPED)
+		if !req.inst.CloseIfUnreferenced(false) {
+			t.Fatal("plugin directive still referenced after VM stopped")
+		}
+	})
+
+	t.Run("ExecuteReleasesInstancedPluginWhenVmDisappears", func(t *testing.T) {
+		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
+		defer cleanup()
+
+		pluginCtrl := newTestV86PluginLoadController()
+		releasePluginCtrl, err := tb.Bus.AddController(ctx, pluginCtrl, nil)
+		if err != nil {
+			t.Fatalf("AddController(plugin load): %v", err)
+		}
+		defer releasePluginCtrl()
+
+		vmKey := "vm-v86-test-exec-plugin-delete/vm"
+		rootfsKey := "vm-v86-test-exec-plugin-delete/rootfs"
+		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
+
+		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STARTING, "")
+
+		stream, execCancel := openExecuteStream(ctx, t, resClient, engine, vmKey)
+		defer execCancel()
+
+		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_STARTING)
+
+		req := pluginCtrl.expectLoad(t, ctx)
+		if req.pluginID != "spacewave-v86" {
+			t.Fatalf("plugin id = %q, want spacewave-v86", req.pluginID)
+		}
+		if req.instanceKey != vmKey {
+			t.Fatalf("instance key = %q, want %q", req.instanceKey, vmKey)
+		}
+		if req.inst.CloseIfUnreferenced(false) {
+			t.Fatal("plugin directive closed while VM is still running")
+		}
+
+		deleteObject(ctx, t, engine, vmKey)
+		if _, err := stream.Recv(); err == nil {
+			t.Fatal("expected Execute stream to close after VM deletion")
+		}
+		if !req.inst.CloseIfUnreferenced(false) {
+			t.Fatal("plugin directive still referenced after VM deletion")
+		}
+	})
+
 	t.Run("ExecuteReactsToSetStateStopped", func(t *testing.T) {
 		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
 		defer cleanup()
@@ -511,7 +600,7 @@ func expectStatusSequence(
 			t.Fatalf("Recv[%d] failed: %v", i, err)
 		}
 		if got := status.GetState(); got != want {
-			t.Fatalf("status[%d]: want %v, got %v", i, want, got)
+			t.Fatalf("status[%d]: want %v, got %v (error=%q)", i, want, got, status.GetError())
 		}
 	}
 }
@@ -543,6 +632,29 @@ func applySetV86State(
 	if err := tx.Commit(ctx); err != nil {
 		tx.Release()
 		t.Fatalf("Commit (SetV86StateOp %s) failed: %v", state.String(), err)
+	}
+	tx.Release()
+}
+
+// deleteObject deletes an object and commits the write transaction.
+func deleteObject(ctx context.Context, t *testing.T, engine *s4wave_world.Engine, objKey string) {
+	t.Helper()
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("NewTransaction failed: %v", err)
+	}
+	deleted, err := tx.DeleteObject(ctx, objKey)
+	if err != nil {
+		tx.Release()
+		t.Fatalf("DeleteObject(%s) failed: %v", objKey, err)
+	}
+	if !deleted {
+		tx.Release()
+		t.Fatalf("DeleteObject(%s) did not delete an object", objKey)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		tx.Release()
+		t.Fatalf("Commit (DeleteObject %s) failed: %v", objKey, err)
 	}
 	tx.Release()
 }
@@ -701,3 +813,72 @@ func createVmV86WithoutRootfs(ctx context.Context, t *testing.T, engine *s4wave_
 
 	t.Logf("Created VmV86 %s via image %s without rootfs edge", vmKey, imageKey)
 }
+
+type testV86PluginLoadRequest struct {
+	pluginID    string
+	instanceKey string
+	inst        directive.Instance
+}
+
+type testV86PluginLoadController struct {
+	requests chan testV86PluginLoadRequest
+}
+
+func newTestV86PluginLoadController() *testV86PluginLoadController {
+	return &testV86PluginLoadController{
+		requests: make(chan testV86PluginLoadRequest, 4),
+	}
+}
+
+func (c *testV86PluginLoadController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("resource/world/test-v86-plugin-load", semver.MustParse("0.0.1"), "test")
+}
+
+func (c *testV86PluginLoadController) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return nil
+}
+
+func (c *testV86PluginLoadController) HandleDirective(
+	_ context.Context,
+	inst directive.Instance,
+) ([]directive.Resolver, error) {
+	dir, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
+	if !ok {
+		return nil, nil
+	}
+	c.requests <- testV86PluginLoadRequest{
+		pluginID:    dir.LoadPluginID(),
+		instanceKey: dir.LoadPluginInstanceKey(),
+		inst:        inst,
+	}
+	return directive.R(
+		directive.NewValueResolver([]bldr_plugin.LoadPluginValue{
+			bldr_plugin.NewRunningPlugin(nil),
+		}),
+		nil,
+	)
+}
+
+func (c *testV86PluginLoadController) Close() error {
+	return nil
+}
+
+func (c *testV86PluginLoadController) expectLoad(
+	t *testing.T,
+	ctx context.Context,
+) testV86PluginLoadRequest {
+	t.Helper()
+	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	select {
+	case req := <-c.requests:
+		return req
+	case <-waitCtx.Done():
+		t.Fatalf("timed out waiting for plugin load directive: %v", waitCtx.Err())
+		return testV86PluginLoadRequest{}
+	}
+}
+
+// _ is a type assertion
+var _ controller.Controller = ((*testV86PluginLoadController)(nil))

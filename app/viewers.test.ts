@@ -33,4 +33,80 @@ describe('getObjectViewersForType', () => {
       'Debug Viewer',
     ])
   })
+
+  it('does not statically register notes viewers in the app shell', () => {
+    expect(
+      getObjectViewersForType('notes/notebook').map((viewer) => viewer.name),
+    ).toEqual(['Debug Viewer'])
+    expect(
+      getObjectViewersForType('notes/blog').map((viewer) => viewer.name),
+    ).toEqual(['Debug Viewer'])
+    expect(
+      getObjectViewersForType('notes/docs').map((viewer) => viewer.name),
+    ).toEqual(['Debug Viewer'])
+  })
+
+  it('renders notes objects through dynamic plugin viewer registrations', () => {
+    function DynamicViewer() {
+      return null
+    }
+    const dynamicViewers: ObjectViewerComponent[] = [
+      {
+        typeID: 'notes/notebook',
+        name: 'Notebook',
+        component: DynamicViewer,
+      },
+      {
+        typeID: 'notes/blog',
+        name: 'Blog',
+        component: DynamicViewer,
+      },
+      {
+        typeID: 'notes/docs',
+        name: 'Documentation',
+        component: DynamicViewer,
+      },
+    ]
+
+    expect(
+      getObjectViewersForType('notes/notebook', dynamicViewers).map(
+        (viewer) => viewer.name,
+      ),
+    ).toEqual(['Notebook', 'Debug Viewer'])
+    expect(
+      getObjectViewersForType('notes/blog', dynamicViewers).map(
+        (viewer) => viewer.name,
+      ),
+    ).toEqual(['Blog', 'Debug Viewer'])
+    expect(
+      getObjectViewersForType('notes/docs', dynamicViewers).map(
+        (viewer) => viewer.name,
+      ),
+    ).toEqual(['Documentation', 'Debug Viewer'])
+  })
+
+  it('does not statically register the v86 viewer in the app shell', () => {
+    expect(
+      getObjectViewersForType('vm/v86').map((viewer) => viewer.name),
+    ).toEqual(['Debug Viewer'])
+  })
+
+  it('renders v86 objects through dynamic plugin viewer registrations', () => {
+    function DynamicViewer() {
+      return null
+    }
+    const dynamicViewers: ObjectViewerComponent[] = [
+      {
+        typeID: 'vm/v86',
+        name: 'V86',
+        component: DynamicViewer,
+      },
+    ]
+
+    expect(
+      getObjectViewersForType('vm/v86', dynamicViewers).map(
+        (viewer) => viewer.name,
+      ),
+    ).toEqual(['V86', 'Debug Viewer'])
+  })
 })

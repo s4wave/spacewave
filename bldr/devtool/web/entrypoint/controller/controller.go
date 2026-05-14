@@ -19,6 +19,7 @@ import (
 	manifest_fetch_rpc "github.com/s4wave/spacewave/bldr/manifest/fetch/rpc"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	plugin_host_web "github.com/s4wave/spacewave/bldr/plugin/host/web"
 	storage_default "github.com/s4wave/spacewave/bldr/storage/default"
@@ -286,22 +287,16 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 
 	// run the plugin scheduler
-	pluginSchedCtrl := plugin_host_scheduler.NewController(le, b, &plugin_host_scheduler.Config{
-		EngineId:  engineID,
-		ObjectKey: pluginHostObjKey,
-		PeerId:    storageVol.GetPeerID().String(),
-		VolumeId:  storageVol.GetID(),
-
-		// we want FetchManifest directives
-		WatchFetchManifest: true,
-		// we want to use the devtool volume (via websocket) to load assets
-		// no need to copy into the browser storage in devtool mode
-		DisableCopyManifest: true,
-		// fetched manifest refs point at the devtool bucket, so browser-side
-		// hosts should execute them directly instead of storing those refs into
-		// the local plugin-host world and later failing to dereference them.
-		DisableStoreManifest: true,
-	})
+	pluginSchedConf := plugin_host_default.NewSchedulerConfig(
+		engineID,
+		pluginHostObjKey,
+		storageVol.GetID(),
+		storageVol.GetPeerID().String(),
+		true, // we want FetchManifest directives
+		true, // fetched manifest refs point at the devtool bucket
+		true, // no need to copy into browser storage in devtool mode
+	)
+	pluginSchedCtrl := plugin_host_scheduler.NewController(le, b, pluginSchedConf)
 	pluginSchecCtrlRel, err := b.AddController(ctx, pluginSchedCtrl, func(err error) {
 		le.WithError(err).Error("plugin scheduler controller failed")
 	})

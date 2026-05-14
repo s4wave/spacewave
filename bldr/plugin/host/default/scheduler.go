@@ -21,7 +21,7 @@ func StartPluginScheduler(
 	disableStoreManifest,
 	disableCopyManifest bool,
 ) (sched *plugin_host_scheduler.Controller, rel func(), err error) {
-	schedConf := plugin_host_scheduler.NewConfig(
+	schedConf := NewSchedulerConfig(
 		engineID,
 		pluginHostObjectKey,
 		volID,
@@ -40,4 +40,27 @@ func StartPluginScheduler(
 		return nil, nil, err
 	}
 	return schedCtrl, schedCtrlRef.Release, nil
+}
+
+// NewSchedulerConfig builds the default plugin scheduler config.
+func NewSchedulerConfig(
+	engineID,
+	pluginHostObjectKey,
+	volID,
+	peerID string,
+	watchFetchManifest,
+	disableStoreManifest,
+	disableCopyManifest bool,
+) *plugin_host_scheduler.Config {
+	schedConf := plugin_host_scheduler.NewConfig(
+		engineID,
+		pluginHostObjectKey,
+		volID,
+		peerID,
+		watchFetchManifest,
+		disableStoreManifest,
+		disableCopyManifest,
+	)
+	schedConf.PlatformSelectionPolicies = plugin_host_scheduler.SpacewaveDefaultPlatformSelectionPolicies()
+	return schedConf
 }

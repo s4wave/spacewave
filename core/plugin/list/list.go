@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 )
 
 // ListAvailablePlugins is a directive to list available plugins for a Space.
@@ -25,8 +24,6 @@ type ListAvailablePlugins interface {
 type AvailablePlugin struct {
 	// ManifestID is the manifest identifier.
 	ManifestID string
-	// Approved indicates the approval state.
-	Approved plugin_approval.PluginApprovalState
 	// Loaded indicates if the plugin is currently running.
 	Loaded bool
 	// ManifestInfo contains metadata from the plugin manifest.

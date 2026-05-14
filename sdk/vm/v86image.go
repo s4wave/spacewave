@@ -15,7 +15,7 @@ import (
 )
 
 // V86ImageTypeID is the type identifier for V86Image objects.
-const V86ImageTypeID = "spacewave/vm/image/v86"
+const V86ImageTypeID = "vm/image/v86"
 
 // PredV86ImageWasm is the graph predicate for the emulator WASM binary.
 var PredV86ImageWasm = quad.IRI("v86image/wasm")
@@ -59,7 +59,7 @@ func (v *V86Image) Validate() error {
 }
 
 // CreateV86ImageOpId is the operation id for CreateV86ImageOp.
-var CreateV86ImageOpId = "spacewave/vm/image/v86/create"
+var CreateV86ImageOpId = "vm/image/v86/create"
 
 // NewCreateV86ImageOp constructs a new CreateV86ImageOp.
 func NewCreateV86ImageOp(objKey string, img *V86Image, ts time.Time) *CreateV86ImageOp {
@@ -153,7 +153,7 @@ func LookupCreateV86ImageOp(ctx context.Context, operationTypeID string) (world.
 }
 
 // SetV86ImageMetadataOpId is the operation id for SetV86ImageMetadataOp.
-var SetV86ImageMetadataOpId = "spacewave/vm/image/v86/set-metadata"
+var SetV86ImageMetadataOpId = "vm/image/v86/set-metadata"
 
 // NewSetV86ImageMetadataOp constructs a new SetV86ImageMetadataOp.
 func NewSetV86ImageMetadataOp(objKey string, img *V86Image) *SetV86ImageMetadataOp {

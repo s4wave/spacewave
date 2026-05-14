@@ -13,6 +13,9 @@ import (
 // ProcessBindingKeyPrefix is the prefix for process binding keys.
 const ProcessBindingKeyPrefix = "process-binding"
 
+// DefaultObjectStoreID is the default ObjectStore for process bindings.
+const DefaultObjectStoreID = "platform-account"
+
 // ProcessBindingKey returns the KV key for a process binding.
 // Key format: process-binding/{spaceID}/{objectKey}
 func ProcessBindingKey(spaceID, objectKey string) []byte {

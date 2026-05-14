@@ -81,7 +81,7 @@ describe('NotebookSource proto', () => {
 
 describe('NotebookHandle', () => {
   it('has correct typeId', () => {
-    expect(NotebookTypeID).toBe('spacewave-notes/notebook')
+    expect(NotebookTypeID).toBe('notes/notebook')
   })
 
   it('constructs with a mock ClientResourceRef', () => {

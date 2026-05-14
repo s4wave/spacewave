@@ -27,9 +27,11 @@ Communication between plugins and the host is constrained to the starpc RPC inte
 
 ## Built-in vs Third-Party Plugins
 
-Built-in plugins ship with Spacewave and are declared in the main `bldr.yaml` manifest. Built-in plugins are pre-approved and load automatically when a space requires them.
+Built-in plugins ship with Spacewave and are declared in the main `bldr.yaml`
+manifest. They load automatically when a space requires them.
 
-Third-party plugins are distributed as content-addressed manifests stored in the block-DAG. Installing a third-party plugin requires approval. The approval state is tracked per-space in `SpaceSettings`.
+Third-party plugins are distributed as content-addressed manifests stored in the
+block-DAG.
 
 ## Plugin Lifecycle
 

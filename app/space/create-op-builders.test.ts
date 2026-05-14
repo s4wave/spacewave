@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { INIT_NOTEBOOK_OP_ID } from '../../plugin/notes/proto/init-notebook.js'
-import { InitNotebookOp } from '../../plugin/notes/proto/notebook.pb.js'
-
 import {
   buildObjectKey,
   buildWizardObjectKey,
@@ -36,14 +33,9 @@ describe('buildObjectKey', () => {
 })
 
 describe('lookupCreateOpBuilder', () => {
-  it('derives notebook unixfs keys from simple notebook keys', () => {
-    const builder = lookupCreateOpBuilder(INIT_NOTEBOOK_OP_ID)
-    if (!builder) {
-      throw new Error('expected notebook create-op builder')
-    }
-
-    const simple = InitNotebookOp.fromBinary(builder('notebook-1', 'Notebook'))
-    expect(simple.notebookObjectKey).toBe('notebook-1')
-    expect(simple.unixfsObjectKey).toBe('notebook-1-fs')
+  it('does not own plugin-provided notes creation ops', () => {
+    expect(lookupCreateOpBuilder('notes/notebook/init')).toBeUndefined()
+    expect(lookupCreateOpBuilder('notes/docs/create')).toBeUndefined()
+    expect(lookupCreateOpBuilder('notes/blog/create')).toBeUndefined()
   })
 })

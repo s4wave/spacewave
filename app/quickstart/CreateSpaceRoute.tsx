@@ -163,7 +163,12 @@ export function CreateSpaceRoute() {
         if (signal.aborted) return
         dispatch({ type: 'advance', to: 'populate' })
 
-        const fullSetup = { session, spaceResp, ...setup } as QuickstartSetup
+        const fullSetup: QuickstartSetup = {
+          root,
+          session,
+          spaceResp,
+          ...setup,
+        }
         if (isDynamic) {
           await executeDynamicQuickstart(
             root,

@@ -153,10 +153,6 @@ std::pair<std::unique_ptr<SRPCSpaceContentsResourceService_WatchStateClient>, st
   return {std::make_unique<SRPCSpaceContentsResourceService_WatchStateClient>(std::move(strm)), starpc::Error::OK};
 }
 
-starpc::Error SRPCSpaceContentsResourceServiceClientImpl::SetPluginApproval(const s4wave::space::SetPluginApprovalRequest& in, s4wave::space::SetPluginApprovalResponse* out) {
-  return cc_->ExecCall(service_id_, "SetPluginApproval", in, out);
-}
-
 starpc::Error SRPCSpaceContentsResourceServiceClientImpl::SetProcessBinding(const s4wave::space::SetProcessBindingRequest& in, s4wave::space::SetProcessBindingResponse* out) {
   return cc_->ExecCall(service_id_, "SetProcessBinding", in, out);
 }
@@ -164,7 +160,6 @@ starpc::Error SRPCSpaceContentsResourceServiceClientImpl::SetProcessBinding(cons
 std::vector<std::string> SRPCSpaceContentsResourceServiceHandler::GetMethodIDs() const {
   return {
     "WatchState",
-    "SetPluginApproval",
     "SetProcessBinding",
   };
 }
@@ -183,14 +178,6 @@ std::pair<bool, starpc::Error> SRPCSpaceContentsResourceServiceHandler::InvokeMe
     if (err != starpc::Error::OK) return {true, err};
     SRPCSpaceContentsResourceService_WatchStateStream serverStrm(strm);
     return {true, impl_->WatchState(req, &serverStrm)};
-  } else if (method_id == "SetPluginApproval") {
-    s4wave::space::SetPluginApprovalRequest req;
-    starpc::Error err = strm->MsgRecv(&req);
-    if (err != starpc::Error::OK) return {true, err};
-    s4wave::space::SetPluginApprovalResponse resp;
-    err = impl_->SetPluginApproval(req, &resp);
-    if (err != starpc::Error::OK) return {true, err};
-    return {true, strm->MsgSend(resp)};
   } else if (method_id == "SetProcessBinding") {
     s4wave::space::SetProcessBindingRequest req;
     starpc::Error err = strm->MsgRecv(&req);

@@ -26,7 +26,7 @@ import { useWorldObjectMessageState } from './useWorldObjectMessageState.js'
 import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
 
-// BlogViewer is the viewer for spacewave-notes Blog objects.
+// BlogViewer is the viewer for Notes Blog objects.
 // Supports reading mode (blog reading view) and editing mode (NoteList + NoteContentView).
 function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)

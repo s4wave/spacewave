@@ -4,7 +4,7 @@ import { PersistentExecutionServiceClient } from '@s4wave/sdk/process/process_sr
 import type { ExecuteStatus } from '@s4wave/sdk/process/process.pb.js'
 
 // VmV86TypeID is the type identifier for V86 world objects.
-export const VmV86TypeID = 'spacewave/vm/v86'
+export const VmV86TypeID = 'vm/v86'
 
 // IVmV86Handle contains the VmV86Handle interface.
 export interface IVmV86Handle {

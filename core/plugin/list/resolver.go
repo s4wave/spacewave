@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
-	plugin_approval "github.com/s4wave/spacewave/core/plugin/approval"
 )
 
 // checkPluginLoaded checks if a plugin is currently loaded and running.
@@ -72,15 +71,14 @@ type listAvailablePluginsResolver struct {
 	pluginIDs []string
 	// volumeID is the volume ID for the KV store.
 	volumeID string
-	// objectStoreID is the object store ID for approval lookups.
+	// objectStoreID is the object store ID.
 	objectStoreID string
 }
 
 // NewResolver constructs a resolver for ListAvailablePlugins.
 //
 // pluginIDs is the set of manifest IDs declared in the Space.
-// volumeID and objectStoreID configure KV store access for approval lookups.
-// If empty, the defaults from plugin_approval.CheckApproval are used.
+// volumeID and objectStoreID are retained for caller compatibility.
 func NewResolver(
 	b bus.Bus,
 	dir ListAvailablePlugins,
@@ -99,7 +97,6 @@ func NewResolver(
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *listAvailablePluginsResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	spaceID := r.dir.ListAvailablePluginsSpaceID()
 	if len(r.pluginIDs) == 0 {
 		handler.AddValue(&AvailablePluginList{})
 		return nil
@@ -107,23 +104,10 @@ func (r *listAvailablePluginsResolver) Resolve(ctx context.Context, handler dire
 
 	plugins := make([]*AvailablePlugin, 0, len(r.pluginIDs))
 	for _, pid := range r.pluginIDs {
-		state, err := plugin_approval.GetApprovalState(
-			ctx,
-			r.b,
-			r.volumeID,
-			r.objectStoreID,
-			spaceID,
-			pid,
-		)
-		if err != nil {
-			return err
-		}
-
 		loaded := checkPluginLoaded(ctx, r.b, pid)
 		info := fetchManifestInfo(ctx, r.b, pid)
 		plugins = append(plugins, &AvailablePlugin{
 			ManifestID:   pid,
-			Approved:     state,
 			Loaded:       loaded,
 			ManifestInfo: info,
 		})

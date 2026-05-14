@@ -13,8 +13,6 @@ import {
   MountSpaceContentsResponse,
   RemoveSpacePluginRequest,
   RemoveSpacePluginResponse,
-  SetPluginApprovalRequest,
-  SetPluginApprovalResponse,
   SetProcessBindingRequest,
   SetProcessBindingResponse,
   SpaceContentsState,
@@ -352,15 +350,6 @@ export const SpaceContentsResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
-     * @generated from rpc s4wave.space.SpaceContentsResourceService.SetPluginApproval
-     */
-    SetPluginApproval: {
-      name: 'SetPluginApproval',
-      I: SetPluginApprovalRequest,
-      O: SetPluginApprovalResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * @generated from rpc s4wave.space.SpaceContentsResourceService.SetProcessBinding
      */
     SetProcessBinding: {
@@ -385,14 +374,6 @@ export interface SpaceContentsResourceService {
   ): MessageStream<SpaceContentsState>
 
   /**
-   * @generated from rpc s4wave.space.SpaceContentsResourceService.SetPluginApproval
-   */
-  SetPluginApproval(
-    request: SetPluginApprovalRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetPluginApprovalResponse>
-
-  /**
    * @generated from rpc s4wave.space.SpaceContentsResourceService.SetProcessBinding
    */
   SetProcessBinding(
@@ -411,7 +392,6 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
     this.service = opts?.service || SpaceContentsResourceServiceServiceName
     this.rpc = rpc
     this.WatchState = this.WatchState.bind(this)
-    this.SetPluginApproval = this.SetPluginApproval.bind(this)
     this.SetProcessBinding = this.SetProcessBinding.bind(this)
   }
   /**
@@ -429,23 +409,6 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(SpaceContentsState)(result)
-  }
-
-  /**
-   * @generated from rpc s4wave.space.SpaceContentsResourceService.SetPluginApproval
-   */
-  async SetPluginApproval(
-    request: SetPluginApprovalRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetPluginApprovalResponse> {
-    const requestMsg = SetPluginApprovalRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      SpaceContentsResourceServiceDefinition.methods.SetPluginApproval.name,
-      SetPluginApprovalRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return SetPluginApprovalResponse.fromBinary(result)
   }
 
   /**

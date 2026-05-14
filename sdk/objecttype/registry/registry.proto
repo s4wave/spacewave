@@ -15,7 +15,7 @@ service ObjectTypeHandlerService {
 
 // ObjectTypeRegistration is a registered ObjectType.
 message ObjectTypeRegistration {
-  // TypeId is the ObjectType ID (e.g. "spacewave-notes/notebook").
+  // TypeId is the ObjectType ID (e.g. "notes/notebook").
   string type_id = 1;
   // RegistrationId is the server-assigned ID for this registration.
   uint32 registration_id = 2;

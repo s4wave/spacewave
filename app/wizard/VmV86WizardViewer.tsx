@@ -50,10 +50,10 @@ import { WizardShell } from './WizardShell.js'
 import { useWizardState } from './useWizardState.js'
 
 // VmV86WizardTypeID is the wizard block type id for v86 VM creation wizards.
-export const VmV86WizardTypeID = 'wizard/v86'
+export const VmV86WizardTypeID = 'wizard/vm/v86'
 
 // VmV86TypeID mirrors sdk/vm/v86.go VmV86TypeID; keep these aligned.
-const VmV86TypeID = 'spacewave/vm/v86'
+const VmV86TypeID = 'vm/v86'
 
 // V86_IMAGE_PRED mirrors sdk/vm/v86.go PredV86Image; keep aligned.
 const V86_IMAGE_PRED = '<v86/image>'

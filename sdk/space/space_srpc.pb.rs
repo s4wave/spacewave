@@ -351,8 +351,6 @@ pub trait SpaceContentsResourceServiceWatchStateStream: Send + Sync {
 pub trait SpaceContentsResourceServiceClient: Send + Sync {
     /// WatchState.
     async fn watch_state(&self, request: &WatchSpaceContentsStateRequest) -> starpc::Result<Box<dyn SpaceContentsResourceServiceWatchStateStream>>;
-    /// SetPluginApproval.
-    async fn set_plugin_approval(&self, request: &SetPluginApprovalRequest) -> starpc::Result<SetPluginApprovalResponse>;
     /// SetProcessBinding.
     async fn set_process_binding(&self, request: &SetProcessBindingRequest) -> starpc::Result<SetProcessBindingResponse>;
 }
@@ -377,9 +375,6 @@ impl<C: starpc::Client + 'static> SpaceContentsResourceServiceClient for SpaceCo
         let stream = self.client.new_stream("s4wave.space.SpaceContentsResourceService", "WatchState", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(SpaceContentsResourceServiceWatchStateStreamImpl { stream }))
-    }
-    async fn set_plugin_approval(&self, request: &SetPluginApprovalRequest) -> starpc::Result<SetPluginApprovalResponse> {
-        self.client.exec_call("s4wave.space.SpaceContentsResourceService", "SetPluginApproval", request).await
     }
     async fn set_process_binding(&self, request: &SetProcessBindingRequest) -> starpc::Result<SetProcessBindingResponse> {
         self.client.exec_call("s4wave.space.SpaceContentsResourceService", "SetProcessBinding", request).await
@@ -408,15 +403,12 @@ impl SpaceContentsResourceServiceWatchStateStream for SpaceContentsResourceServi
 pub trait SpaceContentsResourceServiceServer: Send + Sync {
     /// WatchState.
     async fn watch_state(&self, request: WatchSpaceContentsStateRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
-    /// SetPluginApproval.
-    async fn set_plugin_approval(&self, request: SetPluginApprovalRequest) -> starpc::Result<SetPluginApprovalResponse>;
     /// SetProcessBinding.
     async fn set_process_binding(&self, request: SetProcessBindingRequest) -> starpc::Result<SetProcessBindingResponse>;
 }
 
 const SPACE_CONTENTS_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchState",
-    "SetPluginApproval",
     "SetProcessBinding",
 ];
 
@@ -452,21 +444,6 @@ impl<S: SpaceContentsResourceServiceServer + 'static> starpc::Invoker for SpaceC
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_state(request, stream).await)
-            }
-            "SetPluginApproval" => {
-                let request: SetPluginApprovalRequest = match stream.msg_recv().await {
-                    Ok(r) => r,
-                    Err(e) => return (true, Err(e)),
-                };
-                match self.server.set_plugin_approval(request).await {
-                    Ok(response) => {
-                        if let Err(e) = stream.msg_send(&response).await {
-                            return (true, Err(e));
-                        }
-                        (true, Ok(()))
-                    }
-                    Err(e) => (true, Err(e)),
-                }
             }
             "SetProcessBinding" => {
                 let request: SetProcessBindingRequest = match stream.msg_recv().await {

@@ -7,10 +7,13 @@ import {
 } from '@aptre/bldr-sdk/resource/index.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
 import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
+import { SetV86StateOp, VmState } from '@s4wave/sdk/vm/v86.pb.js'
 import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
+import { startBrowserV86Runtime } from './browser-runner.js'
 import { createV86fsSrpcAdapter, type V86fsAdapter } from './v86fs-bridge.js'
-import { v86SerialChannelName, type SerialFrame } from './serial-channel.js'
+
+const SET_V86_STATE_OP_ID = 'vm/v86/set-state'
 
 type ViteManifestEntry = {
   file?: string
@@ -63,7 +66,10 @@ async function resolveAssetPath(
   const entry = parsed[key]
   if (entry?.file) {
     const pluginId = api.startInfo.pluginId
-    return api.utils.pluginAssetHttpPath(pluginId!, 'v/b/fe/' + entry.file)
+    if (!pluginId) {
+      throw new Error('missing plugin id in backend start info')
+    }
+    return api.utils.pluginAssetHttpPath(pluginId, 'v/b/fe/' + entry.file)
   }
   return srcPath
 }
@@ -115,12 +121,42 @@ function readV86fsMountRoot(
   })
 }
 
-// main is the vm backend entry point. It runs inside the spacewave-app
-// plugin worker alongside the notes backend and the frontend.
+function formatErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+async function setVmRuntimeState(
+  worldState: WorldStateResource,
+  objectKey: string,
+  state: VmState,
+  errorMessage: string,
+  signal: AbortSignal,
+): Promise<void> {
+  const op = SetV86StateOp.create({
+    objectKey,
+    state,
+    errorMessage,
+  })
+  const { sysErr } = await worldState.applyWorldOp(
+    SET_V86_STATE_OP_ID,
+    SetV86StateOp.toBinary(op),
+    '',
+    signal,
+  )
+  if (sysErr) {
+    throw new Error('set v86 runtime state returned sysErr=true')
+  }
+}
+
+// main is the V86 backend entry point.
 export default async function main(
   api: BackendAPI,
   signal: AbortSignal,
 ): Promise<void> {
+  if (!api.startInfo.pluginId) {
+    throw new Error('missing plugin id in backend start info')
+  }
+
   // Connect to spacewave-core via plugin open stream.
   const coreClient = new SRPCClient(api.buildPluginOpenStream('spacewave-core'))
   const resourcesService = new ResourceServiceClient(coreClient)
@@ -129,7 +165,7 @@ export default async function main(
   // Resolve the V86 viewer script path from the Vite manifest.
   const [rootRef, v86ViewerScript] = await Promise.all([
     resourcesClient.accessRootResource(),
-    resolveAssetPath(api, signal, './plugin/vm/VmV86Viewer.tsx'),
+    resolveAssetPath(api, signal, './plugin/v86/VmV86Viewer.tsx'),
   ])
 
   // Register Viewer for the V86 type.
@@ -137,7 +173,7 @@ export default async function main(
   const viewer = await vrSvc.RegisterViewer(
     {
       registration: {
-        typeId: 'spacewave/vm/v86',
+        typeId: 'vm/v86',
         viewerName: 'V86',
         scriptPath: v86ViewerScript,
       },
@@ -154,7 +190,7 @@ export default async function main(
   // bldr can finish frontend setup.
   const instanceKey = api.startInfo.instanceKey
   if (!instanceKey) {
-    console.log('[spacewave-vm] no instance key, viewer-only mode')
+    console.log('[spacewave-v86] no instance key, viewer-only mode')
     retainUntilAbort(
       signal,
       [rootRef, viewerRef],
@@ -166,88 +202,92 @@ export default async function main(
   using _rootRef = rootRef
   using _viewerRef = viewerRef
 
-  console.log('[spacewave-vm] booting v86 for instance:', instanceKey)
+  console.log('[spacewave-v86] booting v86 for instance:', instanceKey)
 
   // Access the VmV86 world object's typed resource to reach the v86fs service.
   // The Go-side vmV86Factory registered V86FsService on this resource's mux.
   const worldState = new WorldStateResource(rootRef)
   const typedAccess = await worldState.accessTypedObject(instanceKey, signal)
   if (!typedAccess.resourceId) {
-    console.error('[spacewave-vm] failed to access typed object:', instanceKey)
-    return
+    throw new Error('failed to access typed VmV86 object: ' + instanceKey)
   }
 
-  // Create a resource ref to the typed object's mux (has V86FsService).
-  using vmRef = rootRef.createRef(typedAccess.resourceId)
+  let runtime: Awaited<ReturnType<typeof startBrowserV86Runtime>> | undefined
+  try {
+    // Create a resource ref to the typed object's mux (has V86FsService).
+    using vmRef = rootRef.createRef(typedAccess.resourceId)
 
-  // Create v86fs SRPC adapter connected to the Go v86fs server via the typed resource.
-  using v86fsBridge = createV86fsSrpcAdapter(vmRef.client)
+    // Create v86fs SRPC adapter connected to the Go v86fs server via the typed resource.
+    using v86fsBridge = createV86fsSrpcAdapter(vmRef.client)
 
-  console.log('[spacewave-vm] loading v86 binaries from UnixFS...')
+    console.log('[spacewave-v86] loading v86 binaries from UnixFS...')
 
-  // Load wasm/seabios/vgabios/kernel from UnixFS via v86fs mounts resolved
-  // through the VmV86 -> V86Image graph edges. The rootfs mount is resolved
-  // by the guest kernel itself at init time via MOUNT("") once v86 boots.
-  const [wasmBuf, biosBuf, vgaBiosBuf, kernelBuf] = await Promise.all([
-    readV86fsMountRoot(v86fsBridge.adapter, 'wasm'),
-    readV86fsMountRoot(v86fsBridge.adapter, 'seabios'),
-    readV86fsMountRoot(v86fsBridge.adapter, 'vgabios'),
-    readV86fsMountRoot(v86fsBridge.adapter, 'kernel'),
-  ])
+    // Load wasm/seabios/vgabios/kernel from UnixFS via v86fs mounts resolved
+    // through the VmV86 -> V86Image graph edges. The rootfs mount is resolved
+    // by the guest kernel itself at init time via MOUNT("") once v86 boots.
+    const [wasmBuf, biosBuf, vgaBiosBuf, kernelBuf] = await Promise.all([
+      readV86fsMountRoot(v86fsBridge.adapter, 'wasm'),
+      readV86fsMountRoot(v86fsBridge.adapter, 'seabios'),
+      readV86fsMountRoot(v86fsBridge.adapter, 'vgabios'),
+      readV86fsMountRoot(v86fsBridge.adapter, 'kernel'),
+    ])
 
-  console.log(
-    '[spacewave-vm] binaries loaded:',
-    `wasm=${wasmBuf.byteLength}`,
-    `bios=${biosBuf.byteLength}`,
-    `vga=${vgaBiosBuf.byteLength}`,
-    `kernel=${kernelBuf.byteLength}`,
-  )
+    console.log(
+      '[spacewave-v86] binaries loaded:',
+      `wasm=${wasmBuf.byteLength}`,
+      `bios=${biosBuf.byteLength}`,
+      `vga=${vgaBiosBuf.byteLength}`,
+      `kernel=${kernelBuf.byteLength}`,
+    )
 
-  // Import V86 constructor (no type declarations, use dynamic import).
-  const { V86 } = await import('@aptre/v86')
-
-  // Boot v86 headless with v86fs root mount.
-  const emulator = new V86({
-    wasm: { buffer: wasmBuf.buffer },
-    memory_size: 256 * 1024 * 1024,
-    vga_memory_size: 2 * 1024 * 1024,
-    bios: { buffer: biosBuf.buffer },
-    vga_bios: { buffer: vgaBiosBuf.buffer },
-    bzimage: { buffer: kernelBuf.buffer },
-    cmdline: 'rw init=/usr/bin/bash root=v86fs rootfstype=v86fs console=ttyS0',
-    virtio_v86fs: true,
-    virtio_v86fs_adapter: v86fsBridge.adapter,
-    autostart: true,
-  })
-
-  // Serial I/O bridge (IC-5): relay serial bytes between the emulator and
-  // the VmV86Viewer via a BroadcastChannel keyed by the VmV86 object key.
-  // Output bytes are forwarded to every subscriber; input frames posted by a
-  // viewer are fed back into the emulator via serial0_send one at a time.
-  const serialChannelName = v86SerialChannelName(instanceKey)
-  const serialChannel = new BroadcastChannel(serialChannelName)
-  emulator.add_listener('serial0-output-byte', (byte: number) => {
-    serialChannel.postMessage({ dir: 'out', byte })
-  })
-  serialChannel.onmessage = (ev: MessageEvent<SerialFrame>) => {
-    const frame = ev.data
-    if (!frame || frame.dir !== 'in') return
-    if (typeof frame.text === 'string' && frame.text.length > 0) {
-      emulator.serial0_send(frame.text)
+    runtime = await startBrowserV86Runtime({
+      assets: {
+        wasm: wasmBuf,
+        bios: biosBuf,
+        vgaBios: vgaBiosBuf,
+        kernel: kernelBuf,
+      },
+      instanceKey,
+      v86fsAdapter: v86fsBridge.adapter,
+    })
+    await setVmRuntimeState(
+      worldState,
+      instanceKey,
+      VmState.VmState_RUNNING,
+      '',
+      signal,
+    )
+  } catch (err) {
+    const errorMessage = formatErrorMessage(err)
+    console.error('[spacewave-v86] runtime failed:', errorMessage)
+    try {
+      await setVmRuntimeState(
+        worldState,
+        instanceKey,
+        VmState.VmState_ERROR,
+        errorMessage,
+        signal,
+      )
+    } catch (stateErr) {
+      console.error(
+        '[spacewave-v86] failed to report runtime error:',
+        formatErrorMessage(stateErr),
+      )
     }
+    throw err
   }
 
   console.log(
-    '[spacewave-vm] v86 emulator started, serial channel:',
-    serialChannelName,
+    '[spacewave-v86] v86 emulator started, serial channel:',
+    runtime.serialChannelName,
   )
 
   // Block until shutdown, then clean up.
-  await new Promise<void>((resolve) => {
-    signal.addEventListener('abort', () => resolve(), { once: true })
-  })
+  if (!signal.aborted) {
+    await new Promise<void>((resolve) => {
+      signal.addEventListener('abort', () => resolve(), { once: true })
+    })
+  }
 
-  serialChannel.close()
-  emulator.stop()
-  emulator.destroy()
+  runtime?.stop()
 }

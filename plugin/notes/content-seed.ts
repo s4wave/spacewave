@@ -112,7 +112,7 @@ export async function createNotebookClientSide(
       await setObjectType(
         writeState,
         notebookObjectKey,
-        'spacewave-notes/notebook',
+        'notes/notebook',
         abortSignal,
       )
     })
@@ -159,7 +159,7 @@ export async function createDocsClientSide(
       await setObjectType(
         writeState,
         docsObjectKey,
-        'spacewave-notes/docs',
+        'notes/docs',
         abortSignal,
       )
     })

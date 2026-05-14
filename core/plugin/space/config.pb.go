@@ -16,11 +16,11 @@ import (
 )
 
 // Config configures the Space Plugin Controller.
-// Loads approved plugins and resolves FetchManifest directives by watching
-// the Space world with approval gating.
+// Loads plugins and resolves FetchManifest directives by watching the Space
+// world.
 type Config struct {
 	unknownFields []byte
-	// SpaceId is the Space identifier for approval lookups.
+	// SpaceId is the Space identifier.
 	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
 	// PluginIds lists manifest IDs of plugins to load (from SpaceSettings).
 	PluginIds []string `protobuf:"bytes,2,rep,name=plugin_ids,json=pluginIds,proto3" json:"pluginIds,omitempty"`

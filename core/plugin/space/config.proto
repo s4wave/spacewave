@@ -2,10 +2,10 @@ syntax = "proto3";
 package plugin.space;
 
 // Config configures the Space Plugin Controller.
-// Loads approved plugins and resolves FetchManifest directives by watching
-// the Space world with approval gating.
+// Loads plugins and resolves FetchManifest directives by watching the Space
+// world.
 message Config {
-  // SpaceId is the Space identifier for approval lookups.
+  // SpaceId is the Space identifier.
   string space_id = 1;
   // PluginIds lists manifest IDs of plugins to load (from SpaceSettings).
   repeated string plugin_ids = 2;

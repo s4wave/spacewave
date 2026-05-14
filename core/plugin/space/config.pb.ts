@@ -9,14 +9,14 @@ export const protobufPackage = 'plugin.space'
 
 /**
  * Config configures the Space Plugin Controller.
- * Loads approved plugins and resolves FetchManifest directives by watching
- * the Space world with approval gating.
+ * Loads plugins and resolves FetchManifest directives by watching the Space
+ * world.
  *
  * @generated from message plugin.space.Config
  */
 export interface Config {
   /**
-   * SpaceId is the Space identifier for approval lookups.
+   * SpaceId is the Space identifier.
    *
    * @generated from field: string space_id = 1;
    */

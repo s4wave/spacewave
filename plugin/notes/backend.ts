@@ -23,6 +23,11 @@ import {
   WorldOpHandlerServiceDefinition,
   WorldOpRegistryResourceServiceClient,
 } from '@s4wave/sdk/worldop/registry/registry_srpc.pb.js'
+import {
+  QuickstartHandlerServiceDefinition,
+  QuickstartRegistryResourceServiceClient,
+} from '@s4wave/sdk/quickstart/registry/registry_srpc.pb.js'
+import { ObjectWizardRegistryResourceServiceClient } from '@s4wave/sdk/world/wizard/wizard_srpc.pb.js'
 import type {
   ApplyWorldOpRequest,
   ApplyWorldOpResponse,
@@ -31,9 +36,16 @@ import type {
   ValidateOpRequest,
   ValidateOpResponse,
 } from '@s4wave/sdk/worldop/registry/registry.pb.js'
+import type {
+  SeedQuickstartRequest,
+  SeedQuickstartResponse,
+} from '@s4wave/sdk/quickstart/registry/registry.pb.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
+import { Engine } from '@s4wave/sdk/world/engine.js'
+import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
+import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
 import {
@@ -47,9 +59,16 @@ import { NotebookResource } from './notebook-resource.js'
 import { BlogResource } from './blog-resource.js'
 import { DocsResource } from './docs-resource.js'
 import { createBlogClientSide } from './blog-seed.js'
+import {
+  createDocsClientSide,
+  createNotebookClientSide,
+} from './content-seed.js'
 import { createObjectWithBlockData } from './object-block.js'
-import { INIT_NOTEBOOK_OP_ID } from './proto/init-notebook.js'
-import { CREATE_BLOG_OP_ID } from './proto/create-blog.js'
+import {
+  INIT_NOTEBOOK_OP_ID,
+  NOTEBOOK_OBJECT_KEY,
+} from './proto/init-notebook.js'
+import { BLOG_OBJECT_KEY, CREATE_BLOG_OP_ID } from './proto/create-blog.js'
 import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
 import { InitNotebookOp, Notebook } from './proto/notebook.pb.js'
 import { CreateBlogOp } from './proto/blog.pb.js'
@@ -59,6 +78,8 @@ import { uploadSeedTree } from './unixfs-seed.js'
 type ViteManifestEntry = {
   file?: string
 }
+
+const DOCS_QUICKSTART_OBJECT_KEY = 'documentation'
 
 function retainUntilAbort(
   signal: AbortSignal,
@@ -133,7 +154,7 @@ class NotesObjectTypeHandler {
         : undefined
 
       switch (typeId) {
-        case 'spacewave-notes/blog': {
+        case 'notes/blog': {
           const resource = new BlogResource(objectKey, engineRef)
           return {
             mux: newResourceMux(
@@ -145,7 +166,7 @@ class NotesObjectTypeHandler {
             },
           }
         }
-        case 'spacewave-notes/docs': {
+        case 'notes/docs': {
           const resource = new DocsResource(objectKey, engineRef)
           return {
             mux: newResourceMux(
@@ -157,8 +178,7 @@ class NotesObjectTypeHandler {
             },
           }
         }
-        default: {
-          // Default to notebook for backward compatibility.
+        case 'notes/notebook': {
           const resource = new NotebookResource(objectKey, engineRef)
           return {
             mux: newResourceMux(
@@ -170,6 +190,9 @@ class NotesObjectTypeHandler {
             },
           }
         }
+        default:
+          engineRef?.release()
+          throw new Error('unhandled notes object type: ' + typeId)
       }
     })
     return Promise.resolve({ resourceId })
@@ -267,7 +290,7 @@ class NotesWorldOpHandler {
       )
 
       // 4. Set the object type graph quad.
-      await setObjectType(ws, notebookKey, 'spacewave-notes/notebook')
+      await setObjectType(ws, notebookKey, 'notes/notebook')
 
       return {}
     } finally {
@@ -377,7 +400,7 @@ class NotesWorldOpHandler {
       )
 
       // 4. Set the docs object type graph quad.
-      await setObjectType(ws, docsKey, 'spacewave-notes/docs')
+      await setObjectType(ws, docsKey, 'notes/docs')
 
       return {}
     } finally {
@@ -387,18 +410,94 @@ class NotesWorldOpHandler {
   }
 }
 
-// main is the notes backend entry point. It runs inside the spacewave-app
-// plugin worker alongside the vm backend and the frontend.
+class NotesQuickstartHandler {
+  private readonly pluginId: string
+
+  constructor(pluginId: string) {
+    this.pluginId = pluginId
+  }
+
+  async SeedQuickstart(
+    request: SeedQuickstartRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SeedQuickstartResponse> {
+    const engineId = request.attachedEngineResourceId ?? 0
+    if (!engineId) {
+      throw new Error('attachedEngineResourceId is required')
+    }
+
+    const engineRef = getCurrentResourceClient().getAttachedRef(engineId)
+    const engine = new Engine(engineRef)
+    const worldState = new EngineWorldState(engine, true)
+    try {
+      switch (request.quickstartId ?? '') {
+        case 'notebook':
+          await createNotebookClientSide(
+            worldState,
+            NOTEBOOK_OBJECT_KEY,
+            UNIXFS_OBJECT_KEY,
+            'Notes',
+            new Date(),
+            abortSignal,
+          )
+          return {
+            indexPath: NOTEBOOK_OBJECT_KEY,
+            pluginIds: [this.pluginId],
+          }
+        case 'docs':
+          await createDocsClientSide(
+            worldState,
+            DOCS_QUICKSTART_OBJECT_KEY,
+            'Documentation',
+            '',
+            new Date(),
+            abortSignal,
+          )
+          return {
+            indexPath: DOCS_QUICKSTART_OBJECT_KEY,
+            pluginIds: [this.pluginId],
+          }
+        case 'blog':
+          await createBlogClientSide(
+            worldState,
+            BLOG_OBJECT_KEY,
+            'Blog',
+            '',
+            '',
+            new Date(),
+            abortSignal,
+          )
+          return {
+            indexPath: BLOG_OBJECT_KEY,
+            pluginIds: [this.pluginId],
+          }
+        default:
+          throw new Error('unhandled notes quickstart: ' + request.quickstartId)
+      }
+    } finally {
+      engine.release()
+    }
+  }
+}
+
+// main is the notes backend entry point.
 export default async function main(
   api: BackendAPI,
   signal: AbortSignal,
 ): Promise<void> {
+  const pluginId = api.startInfo.pluginId
+  if (!pluginId) {
+    throw new Error('missing plugin id in backend start info')
+  }
+
   // Build root mux with ObjectTypeHandler and WorldOpHandler services.
   const otHandler = new NotesObjectTypeHandler()
   const opHandler = new NotesWorldOpHandler()
+  const quickstartHandler = new NotesQuickstartHandler(pluginId)
   const rootMux = newResourceMux(
     createHandler(ObjectTypeHandlerServiceDefinition, otHandler),
     createHandler(WorldOpHandlerServiceDefinition, opHandler),
+    createHandler(QuickstartHandlerServiceDefinition, quickstartHandler),
   )
 
   // Create ResourceServer with the root mux.
@@ -432,17 +531,17 @@ export default async function main(
   // Register ObjectTypes.
   const otSvc = new ObjectTypeRegistryResourceServiceClient(rootRef.client)
   const notebookType = await otSvc.RegisterObjectType(
-    { typeId: 'spacewave-notes/notebook', pluginId: 'spacewave-app' },
+    { typeId: 'notes/notebook', pluginId },
     signal,
   )
   refs.push(retainRegistration(notebookType.resourceId, 'notebook object type'))
   const blogType = await otSvc.RegisterObjectType(
-    { typeId: 'spacewave-notes/blog', pluginId: 'spacewave-app' },
+    { typeId: 'notes/blog', pluginId },
     signal,
   )
   refs.push(retainRegistration(blogType.resourceId, 'blog object type'))
   const docsType = await otSvc.RegisterObjectType(
-    { typeId: 'spacewave-notes/docs', pluginId: 'spacewave-app' },
+    { typeId: 'notes/docs', pluginId },
     signal,
   )
   refs.push(retainRegistration(docsType.resourceId, 'docs object type'))
@@ -450,38 +549,164 @@ export default async function main(
   // Register WorldOps.
   const woSvc = new WorldOpRegistryResourceServiceClient(rootRef.client)
   const initNotebookOp = await woSvc.RegisterWorldOp(
-    { operationTypeId: INIT_NOTEBOOK_OP_ID, pluginId: 'spacewave-app' },
+    { operationTypeId: INIT_NOTEBOOK_OP_ID, pluginId },
     signal,
   )
   refs.push(
     retainRegistration(initNotebookOp.resourceId, 'init notebook world op'),
   )
   const createBlogOp = await woSvc.RegisterWorldOp(
-    { operationTypeId: CREATE_BLOG_OP_ID, pluginId: 'spacewave-app' },
+    { operationTypeId: CREATE_BLOG_OP_ID, pluginId },
     signal,
   )
   refs.push(retainRegistration(createBlogOp.resourceId, 'create blog world op'))
   const createDocsOp = await woSvc.RegisterWorldOp(
-    { operationTypeId: CREATE_DOCS_OP_ID, pluginId: 'spacewave-app' },
+    { operationTypeId: CREATE_DOCS_OP_ID, pluginId },
     signal,
   )
   refs.push(retainRegistration(createDocsOp.resourceId, 'create docs world op'))
 
+  // Register hidden Quickstarts that back the app-owned public launchers.
+  const qsSvc = new QuickstartRegistryResourceServiceClient(rootRef.client)
+  const notebookQuickstart = await qsSvc.RegisterQuickstart(
+    {
+      registration: {
+        quickstartId: 'notebook',
+        pluginId,
+        name: 'Create a Notebook',
+        description: 'Markdown notes with folders, tags, and sync',
+        category: 'storage',
+        iconName: 'notebook',
+        hidden: true,
+        experimental: true,
+        spaceName: 'My Notebook',
+        requiredPluginIds: [pluginId],
+      },
+    },
+    signal,
+  )
+  refs.push(
+    retainRegistration(notebookQuickstart.resourceId, 'notebook quickstart'),
+  )
+  const docsQuickstart = await qsSvc.RegisterQuickstart(
+    {
+      registration: {
+        quickstartId: 'docs',
+        pluginId,
+        name: 'Create Documentation',
+        description: 'Markdown documentation site',
+        category: 'content',
+        iconName: 'notebook',
+        hidden: true,
+        experimental: true,
+        spaceName: 'My Docs',
+        requiredPluginIds: [pluginId],
+      },
+    },
+    signal,
+  )
+  refs.push(retainRegistration(docsQuickstart.resourceId, 'docs quickstart'))
+  const blogQuickstart = await qsSvc.RegisterQuickstart(
+    {
+      registration: {
+        quickstartId: 'blog',
+        pluginId,
+        name: 'Create a Blog',
+        description: 'Date-based markdown blog',
+        category: 'content',
+        iconName: 'pen',
+        hidden: true,
+        experimental: true,
+        spaceName: 'My Blog',
+        requiredPluginIds: [pluginId],
+      },
+    },
+    signal,
+  )
+  refs.push(retainRegistration(blogQuickstart.resourceId, 'blog quickstart'))
+
+  // Register persistent ObjectWizards for in-space Notes creation.
+  const wizardSvc = new ObjectWizardRegistryResourceServiceClient(
+    rootRef.client,
+  )
+  const notebookWizard = await wizardSvc.RegisterWizard(
+    {
+      wizard: {
+        typeId: 'notes/notebook',
+        pluginId,
+        displayName: 'Notebook',
+        category: 'Content',
+        iconName: 'LuNotebookPen',
+        createOpId: INIT_NOTEBOOK_OP_ID,
+        defaultNamePattern: 'Notebook',
+        keyPrefix: 'notebook/',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/notebook',
+        experimental: true,
+      },
+    },
+    signal,
+  )
+  refs.push(retainRegistration(notebookWizard.resourceId, 'notebook wizard'))
+  const docsWizard = await wizardSvc.RegisterWizard(
+    {
+      wizard: {
+        typeId: 'notes/docs',
+        pluginId,
+        displayName: 'Documentation',
+        category: 'Content',
+        iconName: 'LuBookOpen',
+        createOpId: CREATE_DOCS_OP_ID,
+        defaultNamePattern: 'Documentation',
+        keyPrefix: 'docs/',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/docs',
+        experimental: true,
+      },
+    },
+    signal,
+  )
+  refs.push(retainRegistration(docsWizard.resourceId, 'docs wizard'))
+  const blogWizard = await wizardSvc.RegisterWizard(
+    {
+      wizard: {
+        typeId: 'notes/blog',
+        pluginId,
+        displayName: 'Blog',
+        category: 'Content',
+        iconName: 'LuPenLine',
+        createOpId: CREATE_BLOG_OP_ID,
+        defaultNamePattern: 'Blog',
+        keyPrefix: 'blog/',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/blog',
+        experimental: true,
+      },
+    },
+    signal,
+  )
+  refs.push(retainRegistration(blogWizard.resourceId, 'blog wizard'))
+
   // Resolve viewer script paths from the Vite manifest so the
   // frontend gets the hashed output paths (not the source paths).
-  const [notebookViewerScript, blogViewerScript, docsViewerScript] =
-    await Promise.all([
-      resolveAssetPath(api, signal, './plugin/notes/NotebookViewer.tsx'),
-      resolveAssetPath(api, signal, './plugin/notes/BlogViewer.tsx'),
-      resolveAssetPath(api, signal, './plugin/notes/DocsViewer.tsx'),
-    ])
+  const [
+    notebookViewerScript,
+    blogViewerScript,
+    docsViewerScript,
+    notesWizardViewerScript,
+  ] = await Promise.all([
+    resolveAssetPath(api, signal, './plugin/notes/NotebookViewer.tsx'),
+    resolveAssetPath(api, signal, './plugin/notes/BlogViewer.tsx'),
+    resolveAssetPath(api, signal, './plugin/notes/DocsViewer.tsx'),
+    resolveAssetPath(api, signal, './plugin/notes/NotesWizardViewer.tsx'),
+  ])
 
   // Register Viewers.
   const vrSvc = new ViewerRegistryResourceServiceClient(rootRef.client)
   const notebookViewer = await vrSvc.RegisterViewer(
     {
       registration: {
-        typeId: 'spacewave-notes/notebook',
+        typeId: 'notes/notebook',
         viewerName: 'Notebook',
         scriptPath: notebookViewerScript,
       },
@@ -492,7 +717,7 @@ export default async function main(
   const blogViewer = await vrSvc.RegisterViewer(
     {
       registration: {
-        typeId: 'spacewave-notes/blog',
+        typeId: 'notes/blog',
         viewerName: 'Blog',
         scriptPath: blogViewerScript,
       },
@@ -503,7 +728,7 @@ export default async function main(
   const docsViewer = await vrSvc.RegisterViewer(
     {
       registration: {
-        typeId: 'spacewave-notes/docs',
+        typeId: 'notes/docs',
         viewerName: 'Documentation',
         scriptPath: docsViewerScript,
       },
@@ -511,12 +736,55 @@ export default async function main(
     signal,
   )
   refs.push(retainRegistration(docsViewer.resourceId, 'docs viewer'))
+  const notebookWizardViewer = await vrSvc.RegisterViewer(
+    {
+      registration: {
+        typeId: 'wizard/notes/notebook',
+        viewerName: 'Notebook Wizard',
+        scriptPath: notesWizardViewerScript,
+      },
+    },
+    signal,
+  )
+  refs.push(
+    retainRegistration(
+      notebookWizardViewer.resourceId,
+      'notebook wizard viewer',
+    ),
+  )
+  const docsWizardViewer = await vrSvc.RegisterViewer(
+    {
+      registration: {
+        typeId: 'wizard/notes/docs',
+        viewerName: 'Documentation Wizard',
+        scriptPath: notesWizardViewerScript,
+      },
+    },
+    signal,
+  )
+  refs.push(
+    retainRegistration(docsWizardViewer.resourceId, 'docs wizard viewer'),
+  )
+  const blogWizardViewer = await vrSvc.RegisterViewer(
+    {
+      registration: {
+        typeId: 'wizard/notes/blog',
+        viewerName: 'Blog Wizard',
+        scriptPath: notesWizardViewerScript,
+      },
+    },
+    signal,
+  )
+  refs.push(
+    retainRegistration(blogWizardViewer.resourceId, 'blog wizard viewer'),
+  )
 
   retainUntilAbort(signal, refs, [
     coreClient,
     resourcesClient,
     otHandler,
     opHandler,
+    quickstartHandler,
     rootMux,
     resourceServer,
     outerMux,

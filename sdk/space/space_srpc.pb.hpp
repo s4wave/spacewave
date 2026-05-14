@@ -274,8 +274,6 @@ class SRPCSpaceContentsResourceServiceClient {
 
   // WatchState
   virtual std::pair<std::unique_ptr<SRPCSpaceContentsResourceService_WatchStateClient>, starpc::Error> WatchState(const s4wave::space::WatchSpaceContentsStateRequest& in) = 0;
-  // SetPluginApproval
-  virtual starpc::Error SetPluginApproval(const s4wave::space::SetPluginApprovalRequest& in, s4wave::space::SetPluginApprovalResponse* out) = 0;
   // SetProcessBinding
   virtual starpc::Error SetProcessBinding(const s4wave::space::SetProcessBindingRequest& in, s4wave::space::SetProcessBindingResponse* out) = 0;
 };
@@ -290,8 +288,6 @@ class SRPCSpaceContentsResourceServiceClientImpl : public SRPCSpaceContentsResou
 
   // WatchState
   virtual std::pair<std::unique_ptr<SRPCSpaceContentsResourceService_WatchStateClient>, starpc::Error> WatchState(const s4wave::space::WatchSpaceContentsStateRequest& in) override;
-  // SetPluginApproval
-  virtual starpc::Error SetPluginApproval(const s4wave::space::SetPluginApprovalRequest& in, s4wave::space::SetPluginApprovalResponse* out) override;
   // SetProcessBinding
   virtual starpc::Error SetProcessBinding(const s4wave::space::SetProcessBindingRequest& in, s4wave::space::SetProcessBindingResponse* out) override;
 
@@ -312,8 +308,6 @@ class SRPCSpaceContentsResourceServiceServer {
 
   // WatchState
   virtual starpc::Error WatchState(const s4wave::space::WatchSpaceContentsStateRequest& req, SRPCSpaceContentsResourceService_WatchStateStream* strm) = 0;
-  // SetPluginApproval
-  virtual starpc::Error SetPluginApproval(const s4wave::space::SetPluginApprovalRequest& req, s4wave::space::SetPluginApprovalResponse* resp) = 0;
   // SetProcessBinding
   virtual starpc::Error SetProcessBinding(const s4wave::space::SetProcessBindingRequest& req, s4wave::space::SetProcessBindingResponse* resp) = 0;
 };

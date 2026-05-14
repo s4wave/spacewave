@@ -143,39 +143,22 @@ pub struct SpaceContentsState {
     /// Plugins is the list of plugin statuses.
     #[prost(message, repeated, tag="2")]
     pub plugins: ::prost::alloc::vec::Vec<SpacePluginStatus>,
-    /// ProcessBindings is the list of process binding approvals.
+    /// ProcessBindings is the list of process binding states.
     #[prost(message, repeated, tag="3")]
     pub process_bindings: ::prost::alloc::vec::Vec<ProcessBindingInfo>,
 }
-/// SpacePluginStatus contains the approval state for a single plugin.
+/// SpacePluginStatus contains runtime state for a single plugin.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SpacePluginStatus {
     /// PluginId is the manifest ID of the plugin.
     #[prost(string, tag="1")]
     pub plugin_id: ::prost::alloc::string::String,
-    /// ApprovalState is the current approval state for this plugin.
-    #[prost(enumeration="super::super::plugin::approval::PluginApprovalState", tag="2")]
-    pub approval_state: i32,
     /// Loaded indicates whether the plugin is currently running.
     #[prost(bool, tag="3")]
     pub loaded: bool,
     /// Description is a short description from the plugin manifest metadata.
     #[prost(string, tag="4")]
     pub description: ::prost::alloc::string::String,
-}
-/// SetPluginApprovalRequest is a request to set the approval state for a plugin.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SetPluginApprovalRequest {
-    /// PluginId is the manifest ID of the plugin.
-    #[prost(string, tag="1")]
-    pub plugin_id: ::prost::alloc::string::String,
-    /// Approved sets the approval state. True = approved, false = denied.
-    #[prost(bool, tag="2")]
-    pub approved: bool,
-}
-/// SetPluginApprovalResponse is the response for SetPluginApproval.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SetPluginApprovalResponse {
 }
 /// AddSpacePluginRequest is a request to add a plugin to the space settings.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -199,7 +182,7 @@ pub struct RemoveSpacePluginRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RemoveSpacePluginResponse {
 }
-/// SetProcessBindingRequest is a request to set a process binding approval.
+/// SetProcessBindingRequest is a request to set a process binding state.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetProcessBindingRequest {
     /// ObjectKey is the world object key to bind.

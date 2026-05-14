@@ -92,7 +92,6 @@ inline constexpr SpacePluginStatus::Impl_::Impl_(
         description_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        approval_state_{static_cast< ::plugin::approval::PluginApprovalState >(0)},
         loaded_{false} {}
 
 template <typename>
@@ -196,52 +195,6 @@ struct SetProcessBindingRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetProcessBindingRequestDefaultTypeInternal _SetProcessBindingRequest_default_instance_;
-template <typename>
-PROTOBUF_CONSTEXPR SetPluginApprovalResponse::SetPluginApprovalResponse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(SetPluginApprovalResponse_class_data_.base()){}
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase() {
-}
-#endif  // PROTOBUF_CUSTOM_VTABLE
-struct SetPluginApprovalResponseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR SetPluginApprovalResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~SetPluginApprovalResponseDefaultTypeInternal() {}
-  union {
-    SetPluginApprovalResponse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetPluginApprovalResponseDefaultTypeInternal _SetPluginApprovalResponse_default_instance_;
-
-inline constexpr SetPluginApprovalRequest::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        plugin_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        approved_{false} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR SetPluginApprovalRequest::SetPluginApprovalRequest(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(SetPluginApprovalRequest_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct SetPluginApprovalRequestDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR SetPluginApprovalRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~SetPluginApprovalRequestDefaultTypeInternal() {}
-  union {
-    SetPluginApprovalRequest _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetPluginApprovalRequestDefaultTypeInternal _SetPluginApprovalRequest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR RemoveSpacePluginResponse::RemoveSpacePluginResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -732,23 +685,13 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_._has_bits_),
-        7, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.plugin_id_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.approval_state_),
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.loaded_),
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.description_),
         0,
         2,
-        3,
         1,
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::s4wave::space::SetPluginApprovalRequest, _impl_._has_bits_),
-        5, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::s4wave::space::SetPluginApprovalRequest, _impl_.plugin_id_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::space::SetPluginApprovalRequest, _impl_.approved_),
-        0,
-        1,
-        0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::space::AddSpacePluginRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -801,15 +744,13 @@ static const ::_pbi::MigrationSchema
         {82, sizeof(::s4wave::space::WatchSpaceContentsStateRequest)},
         {83, sizeof(::s4wave::space::SpaceContentsState)},
         {92, sizeof(::s4wave::space::SpacePluginStatus)},
-        {103, sizeof(::s4wave::space::SetPluginApprovalRequest)},
-        {110, sizeof(::s4wave::space::SetPluginApprovalResponse)},
-        {111, sizeof(::s4wave::space::AddSpacePluginRequest)},
-        {116, sizeof(::s4wave::space::AddSpacePluginResponse)},
-        {117, sizeof(::s4wave::space::RemoveSpacePluginRequest)},
-        {122, sizeof(::s4wave::space::RemoveSpacePluginResponse)},
-        {123, sizeof(::s4wave::space::SetProcessBindingRequest)},
-        {132, sizeof(::s4wave::space::SetProcessBindingResponse)},
-        {133, sizeof(::s4wave::space::ProcessBindingInfo)},
+        {101, sizeof(::s4wave::space::AddSpacePluginRequest)},
+        {106, sizeof(::s4wave::space::AddSpacePluginResponse)},
+        {107, sizeof(::s4wave::space::RemoveSpacePluginRequest)},
+        {112, sizeof(::s4wave::space::RemoveSpacePluginResponse)},
+        {113, sizeof(::s4wave::space::SetProcessBindingRequest)},
+        {122, sizeof(::s4wave::space::SetProcessBindingResponse)},
+        {123, sizeof(::s4wave::space::ProcessBindingInfo)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::space::_WatchSpaceStateRequest_default_instance_._instance,
@@ -827,8 +768,6 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::space::_WatchSpaceContentsStateRequest_default_instance_._instance,
     &::s4wave::space::_SpaceContentsState_default_instance_._instance,
     &::s4wave::space::_SpacePluginStatus_default_instance_._instance,
-    &::s4wave::space::_SetPluginApprovalRequest_default_instance_._instance,
-    &::s4wave::space::_SetPluginApprovalResponse_default_instance_._instance,
     &::s4wave::space::_AddSpacePluginRequest_default_instance_._instance,
     &::s4wave::space::_AddSpacePluginResponse_default_instance_._instance,
     &::s4wave::space::_RemoveSpacePluginRequest_default_instance_._instance,
@@ -840,100 +779,91 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n1github.com/s4wave/spacewave/sdk/space/"
-    "space.proto\022\014s4wave.space\032\?github.com/s4"
-    "wave/spacewave/core/plugin/approval/appr"
-    "oval.proto\0326github.com/s4wave/spacewave/"
-    "core/sobject/sobject.proto\0328github.com/s"
-    "4wave/spacewave/core/space/world/world.p"
-    "roto\032Bgithub.com/s4wave/spacewave/sdk/pr"
-    "ovider/spacewave/spacewave.proto\0323github"
-    ".com/s4wave/spacewave/sdk/deploy/deploy."
-    "proto\0323github.com/s4wave/spacewave/sdk/s"
-    "ecret/secret.proto\032>github.com/s4wave/sp"
-    "acewave/db/block/transform/transform.pro"
-    "to\032\037google/protobuf/timestamp.proto\"\030\n\026W"
-    "atchSpaceStateRequest\"\262\001\n\nSpaceState\022\r\n\005"
-    "ready\030\001 \001(\010\0222\n\016world_contents\030\002 \001(\0132\032.sp"
-    "ace.world.WorldContents\022,\n\010settings\030\003 \001("
-    "\0132\032.space.world.SpaceSettings\0223\n\016transfo"
-    "rm_info\030\004 \001(\0132\033.s4wave.space.TransformIn"
-    "fo\"\037\n\035WatchSpaceSharingStateRequest\"\212\001\n\024"
-    "SpaceParticipantInfo\022\022\n\naccount_id\030\001 \001(\t"
-    "\022\021\n\tentity_id\030\002 \001(\t\022\020\n\010peer_ids\030\003 \003(\t\022(\n"
-    "\004role\030\004 \001(\0162\032.sobject.SOParticipantRole\022"
-    "\017\n\007is_self\030\005 \001(\010\"\264\002\n\021SpaceSharingState\0222"
-    "\n\014participants\030\001 \003(\0132\034.sobject.SOPartici"
-    "pantConfig\022\"\n\007invites\030\002 \003(\0132\021.sobject.SO"
-    "Invite\022D\n\017mailbox_entries\030\003 \003(\0132+.s4wave"
-    ".provider.spacewave.MailboxEntryInfo\022/\n\013"
-    "viewer_role\030\004 \001(\0162\032.sobject.SOParticipan"
-    "tRole\022\022\n\ncan_manage\030\005 \001(\010\022<\n\020participant"
-    "_info\030\006 \003(\0132\".s4wave.space.SpaceParticip"
-    "antInfo\"g\n\rTransformInfo\022*\n\005steps\030\001 \003(\0132"
-    "\033.block.transform.StepConfig\022\023\n\013grant_co"
-    "unt\030\002 \001(\r\022\025\n\rstorage_bytes\030\003 \001(\004\"\024\n\022Acce"
-    "ssWorldRequest\"*\n\023AccessWorldResponse\022\023\n"
-    "\013resource_id\030\001 \001(\r\"\033\n\031MountSpaceContents"
-    "Request\"1\n\032MountSpaceContentsResponse\022\023\n"
-    "\013resource_id\030\001 \001(\r\"\221\001\n\023CreateSecretReque"
-    "st\022\022\n\nobject_key\030\001 \001(\t\022\024\n\014display_name\030\002"
-    " \001(\t\022\014\n\004kind\030\003 \001(\t\022\024\n\014content_type\030\004 \001(\t"
-    "\022\r\n\005value\030\005 \001(\014\022\035\n\025reader_public_key_pem"
-    "\030\006 \001(\014\"=\n\024CreateSecretResponse\022%\n\006secret"
-    "\030\001 \001(\0132\025.s4wave.secret.Secret\" \n\036WatchSp"
-    "aceContentsStateRequest\"\221\001\n\022SpaceContent"
-    "sState\022\r\n\005ready\030\001 \001(\010\0220\n\007plugins\030\002 \003(\0132\037"
-    ".s4wave.space.SpacePluginStatus\022:\n\020proce"
-    "ss_bindings\030\003 \003(\0132 .s4wave.space.Process"
-    "BindingInfo\"\211\001\n\021SpacePluginStatus\022\021\n\tplu"
-    "gin_id\030\001 \001(\t\022<\n\016approval_state\030\002 \001(\0162$.p"
-    "lugin.approval.PluginApprovalState\022\016\n\006lo"
-    "aded\030\003 \001(\010\022\023\n\013description\030\004 \001(\t\"\?\n\030SetPl"
-    "uginApprovalRequest\022\021\n\tplugin_id\030\001 \001(\t\022\020"
-    "\n\010approved\030\002 \001(\010\"\033\n\031SetPluginApprovalRes"
-    "ponse\"*\n\025AddSpacePluginRequest\022\021\n\tplugin"
-    "_id\030\001 \001(\t\"\030\n\026AddSpacePluginResponse\"-\n\030R"
-    "emoveSpacePluginRequest\022\021\n\tplugin_id\030\001 \001"
-    "(\t\"\033\n\031RemoveSpacePluginResponse\"Q\n\030SetPr"
-    "ocessBindingRequest\022\022\n\nobject_key\030\001 \001(\t\022"
-    "\017\n\007type_id\030\002 \001(\t\022\020\n\010approved\030\003 \001(\010\"\033\n\031Se"
-    "tProcessBindingResponse\"{\n\022ProcessBindin"
-    "gInfo\022\022\n\nobject_key\030\001 \001(\t\022\017\n\007type_id\030\002 \001"
-    "(\t\022\020\n\010approved\030\003 \001(\010\022.\n\ndecided_at\030\004 \001(\013"
-    "2\032.google.protobuf.Timestamp2\236\006\n\024SpaceRe"
-    "sourceService\022U\n\017WatchSpaceState\022$.s4wav"
-    "e.space.WatchSpaceStateRequest\032\030.s4wave."
-    "space.SpaceState\"\0000\001\022j\n\026WatchSpaceSharin"
-    "gState\022+.s4wave.space.WatchSpaceSharingS"
-    "tateRequest\032\037.s4wave.space.SpaceSharingS"
-    "tate\"\0000\001\022T\n\013AccessWorld\022 .s4wave.space.A"
-    "ccessWorldRequest\032!.s4wave.space.AccessW"
-    "orldResponse\"\000\022i\n\022MountSpaceContents\022\'.s"
-    "4wave.space.MountSpaceContentsRequest\032(."
-    "s4wave.space.MountSpaceContentsResponse\""
-    "\000\022W\n\014CreateSecret\022!.s4wave.space.CreateS"
-    "ecretRequest\032\".s4wave.space.CreateSecret"
-    "Response\"\000\022b\n\016DeployManifest\022$.s4wave.de"
-    "ploy.DeployManifestMessage\032$.s4wave.depl"
-    "oy.DeployManifestMessage\"\000(\0010\001\022]\n\016AddSpa"
-    "cePlugin\022#.s4wave.space.AddSpacePluginRe"
-    "quest\032$.s4wave.space.AddSpacePluginRespo"
-    "nse\"\000\022f\n\021RemoveSpacePlugin\022&.s4wave.spac"
-    "e.RemoveSpacePluginRequest\032\'.s4wave.spac"
-    "e.RemoveSpacePluginResponse\"\0002\320\002\n\034SpaceC"
-    "ontentsResourceService\022`\n\nWatchState\022,.s"
-    "4wave.space.WatchSpaceContentsStateReque"
-    "st\032 .s4wave.space.SpaceContentsState\"\0000\001"
-    "\022f\n\021SetPluginApproval\022&.s4wave.space.Set"
-    "PluginApprovalRequest\032\'.s4wave.space.Set"
-    "PluginApprovalResponse\"\000\022f\n\021SetProcessBi"
+    "space.proto\022\014s4wave.space\0326github.com/s4"
+    "wave/spacewave/core/sobject/sobject.prot"
+    "o\0328github.com/s4wave/spacewave/core/spac"
+    "e/world/world.proto\032Bgithub.com/s4wave/s"
+    "pacewave/sdk/provider/spacewave/spacewav"
+    "e.proto\0323github.com/s4wave/spacewave/sdk"
+    "/deploy/deploy.proto\0323github.com/s4wave/"
+    "spacewave/sdk/secret/secret.proto\032>githu"
+    "b.com/s4wave/spacewave/db/block/transfor"
+    "m/transform.proto\032\037google/protobuf/times"
+    "tamp.proto\"\030\n\026WatchSpaceStateRequest\"\262\001\n"
+    "\nSpaceState\022\r\n\005ready\030\001 \001(\010\0222\n\016world_cont"
+    "ents\030\002 \001(\0132\032.space.world.WorldContents\022,"
+    "\n\010settings\030\003 \001(\0132\032.space.world.SpaceSett"
+    "ings\0223\n\016transform_info\030\004 \001(\0132\033.s4wave.sp"
+    "ace.TransformInfo\"\037\n\035WatchSpaceSharingSt"
+    "ateRequest\"\212\001\n\024SpaceParticipantInfo\022\022\n\na"
+    "ccount_id\030\001 \001(\t\022\021\n\tentity_id\030\002 \001(\t\022\020\n\010pe"
+    "er_ids\030\003 \003(\t\022(\n\004role\030\004 \001(\0162\032.sobject.SOP"
+    "articipantRole\022\017\n\007is_self\030\005 \001(\010\"\264\002\n\021Spac"
+    "eSharingState\0222\n\014participants\030\001 \003(\0132\034.so"
+    "bject.SOParticipantConfig\022\"\n\007invites\030\002 \003"
+    "(\0132\021.sobject.SOInvite\022D\n\017mailbox_entries"
+    "\030\003 \003(\0132+.s4wave.provider.spacewave.Mailb"
+    "oxEntryInfo\022/\n\013viewer_role\030\004 \001(\0162\032.sobje"
+    "ct.SOParticipantRole\022\022\n\ncan_manage\030\005 \001(\010"
+    "\022<\n\020participant_info\030\006 \003(\0132\".s4wave.spac"
+    "e.SpaceParticipantInfo\"g\n\rTransformInfo\022"
+    "*\n\005steps\030\001 \003(\0132\033.block.transform.StepCon"
+    "fig\022\023\n\013grant_count\030\002 \001(\r\022\025\n\rstorage_byte"
+    "s\030\003 \001(\004\"\024\n\022AccessWorldRequest\"*\n\023AccessW"
+    "orldResponse\022\023\n\013resource_id\030\001 \001(\r\"\033\n\031Mou"
+    "ntSpaceContentsRequest\"1\n\032MountSpaceCont"
+    "entsResponse\022\023\n\013resource_id\030\001 \001(\r\"\221\001\n\023Cr"
+    "eateSecretRequest\022\022\n\nobject_key\030\001 \001(\t\022\024\n"
+    "\014display_name\030\002 \001(\t\022\014\n\004kind\030\003 \001(\t\022\024\n\014con"
+    "tent_type\030\004 \001(\t\022\r\n\005value\030\005 \001(\014\022\035\n\025reader"
+    "_public_key_pem\030\006 \001(\014\"=\n\024CreateSecretRes"
+    "ponse\022%\n\006secret\030\001 \001(\0132\025.s4wave.secret.Se"
+    "cret\" \n\036WatchSpaceContentsStateRequest\"\221"
+    "\001\n\022SpaceContentsState\022\r\n\005ready\030\001 \001(\010\0220\n\007"
+    "plugins\030\002 \003(\0132\037.s4wave.space.SpacePlugin"
+    "Status\022:\n\020process_bindings\030\003 \003(\0132 .s4wav"
+    "e.space.ProcessBindingInfo\"Q\n\021SpacePlugi"
+    "nStatus\022\021\n\tplugin_id\030\001 \001(\t\022\016\n\006loaded\030\003 \001"
+    "(\010\022\023\n\013description\030\004 \001(\tJ\004\010\002\020\003\"*\n\025AddSpac"
+    "ePluginRequest\022\021\n\tplugin_id\030\001 \001(\t\"\030\n\026Add"
+    "SpacePluginResponse\"-\n\030RemoveSpacePlugin"
+    "Request\022\021\n\tplugin_id\030\001 \001(\t\"\033\n\031RemoveSpac"
+    "ePluginResponse\"Q\n\030SetProcessBindingRequ"
+    "est\022\022\n\nobject_key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t"
+    "\022\020\n\010approved\030\003 \001(\010\"\033\n\031SetProcessBindingR"
+    "esponse\"{\n\022ProcessBindingInfo\022\022\n\nobject_"
+    "key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t\022\020\n\010approved\030\003"
+    " \001(\010\022.\n\ndecided_at\030\004 \001(\0132\032.google.protob"
+    "uf.Timestamp2\236\006\n\024SpaceResourceService\022U\n"
+    "\017WatchSpaceState\022$.s4wave.space.WatchSpa"
+    "ceStateRequest\032\030.s4wave.space.SpaceState"
+    "\"\0000\001\022j\n\026WatchSpaceSharingState\022+.s4wave."
+    "space.WatchSpaceSharingStateRequest\032\037.s4"
+    "wave.space.SpaceSharingState\"\0000\001\022T\n\013Acce"
+    "ssWorld\022 .s4wave.space.AccessWorldReques"
+    "t\032!.s4wave.space.AccessWorldResponse\"\000\022i"
+    "\n\022MountSpaceContents\022\'.s4wave.space.Moun"
+    "tSpaceContentsRequest\032(.s4wave.space.Mou"
+    "ntSpaceContentsResponse\"\000\022W\n\014CreateSecre"
+    "t\022!.s4wave.space.CreateSecretRequest\032\".s"
+    "4wave.space.CreateSecretResponse\"\000\022b\n\016De"
+    "ployManifest\022$.s4wave.deploy.DeployManif"
+    "estMessage\032$.s4wave.deploy.DeployManifes"
+    "tMessage\"\000(\0010\001\022]\n\016AddSpacePlugin\022#.s4wav"
+    "e.space.AddSpacePluginRequest\032$.s4wave.s"
+    "pace.AddSpacePluginResponse\"\000\022f\n\021RemoveS"
+    "pacePlugin\022&.s4wave.space.RemoveSpacePlu"
+    "ginRequest\032\'.s4wave.space.RemoveSpacePlu"
+    "ginResponse\"\0002\350\001\n\034SpaceContentsResourceS"
+    "ervice\022`\n\nWatchState\022,.s4wave.space.Watc"
+    "hSpaceContentsStateRequest\032 .s4wave.spac"
+    "e.SpaceContentsState\"\0000\001\022f\n\021SetProcessBi"
     "nding\022&.s4wave.space.SetProcessBindingRe"
     "quest\032\'.s4wave.space.SetProcessBindingRe"
     "sponse\"\000b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_deps[8] = {
-        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fplugin_2fapproval_2fapproval_2eproto,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_deps[7] = {
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2ftransform_2eproto,
@@ -946,13 +876,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto = {
     false,
     false,
-    3616,
+    3296,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto,
     "github.com/s4wave/spacewave/sdk/space/space.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_deps,
-    8,
-    24,
+    7,
+    22,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto::offsets,
@@ -4885,13 +4815,7 @@ SpacePluginStatus::SpacePluginStatus(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  ::memcpy(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, approval_state_),
-           reinterpret_cast<const char*>(&from._impl_) +
-               offsetof(Impl_, approval_state_),
-           offsetof(Impl_, loaded_) -
-               offsetof(Impl_, approval_state_) +
-               sizeof(Impl_::loaded_));
+  _impl_.loaded_ = from._impl_.loaded_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.space.SpacePluginStatus)
 }
@@ -4904,12 +4828,7 @@ PROTOBUF_NDEBUG_INLINE SpacePluginStatus::Impl_::Impl_(
 
 inline void SpacePluginStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  ::memset(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, approval_state_),
-           0,
-           offsetof(Impl_, loaded_) -
-               offsetof(Impl_, approval_state_) +
-               sizeof(Impl_::loaded_));
+  _impl_.loaded_ = {};
 }
 SpacePluginStatus::~SpacePluginStatus() {
   // @@protoc_insertion_point(destructor:s4wave.space.SpacePluginStatus)
@@ -4970,16 +4889,16 @@ SpacePluginStatus::GetClassData() const {
   return SpacePluginStatus_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 0, 59, 2>
+const ::_pbi::TcParseTable<2, 3, 0, 59, 2>
 SpacePluginStatus::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_._has_bits_),
     0, // no _extensions_
     4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967282,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     SpacePluginStatus_class_data_.base(),
@@ -4997,29 +4916,24 @@ SpacePluginStatus::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.plugin_id_)}},
-    // .plugin.approval.PluginApprovalState approval_state = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpacePluginStatus, _impl_.approval_state_), 2>(),
-     {16, 2, 0,
-      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.approval_state_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // bool loaded = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SpacePluginStatus, _impl_.loaded_), 3>(),
-     {24, 3, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SpacePluginStatus, _impl_.loaded_), 2>(),
+     {24, 2, 0,
       PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.loaded_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string plugin_id = 1;
     {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.plugin_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .plugin.approval.PluginApprovalState approval_state = 2;
-    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.approval_state_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // bool loaded = 3;
-    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.loaded_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.loaded_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string description = 4;
     {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.description_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\36\11\0\0\13\0\0\0"
+    "\36\11\0\13\0\0\0\0"
     "s4wave.space.SpacePluginStatus"
     "plugin_id"
     "description"
@@ -5041,11 +4955,7 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
       _impl_.description_.ClearNonDefaultToEmpty();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
-    ::memset(&_impl_.approval_state_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.loaded_) -
-        reinterpret_cast<char*>(&_impl_.approval_state_)) + sizeof(_impl_.loaded_));
-  }
+  _impl_.loaded_ = false;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -5079,17 +4989,8 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
     }
   }
 
-  // .plugin.approval.PluginApprovalState approval_state = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-    if (this_._internal_approval_state() != 0) {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteEnumToArray(
-          2, this_._internal_approval_state(), target);
-    }
-  }
-
   // bool loaded = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (this_._internal_loaded() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -5132,7 +5033,7 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // string plugin_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_plugin_id().empty()) {
@@ -5147,15 +5048,8 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
                                         this_._internal_description());
       }
     }
-    // .plugin.approval.PluginApprovalState approval_state = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (this_._internal_approval_state() != 0) {
-        total_size += 1 +
-                      ::_pbi::WireFormatLite::EnumSize(this_._internal_approval_state());
-      }
-    }
     // bool loaded = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (this_._internal_loaded() != 0) {
         total_size += 2;
       }
@@ -5179,7 +5073,7 @@ void SpacePluginStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_plugin_id().empty()) {
         _this->_internal_set_plugin_id(from._internal_plugin_id());
@@ -5199,11 +5093,6 @@ void SpacePluginStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (from._internal_approval_state() != 0) {
-        _this->_impl_.approval_state_ = from._impl_.approval_state_;
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (from._internal_loaded() != 0) {
         _this->_impl_.loaded_ = from._impl_.loaded_;
       }
@@ -5230,433 +5119,11 @@ void SpacePluginStatus::InternalSwap(SpacePluginStatus* PROTOBUF_RESTRICT PROTOB
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.description_, &other->_impl_.description_, arena);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.loaded_)
-      + sizeof(SpacePluginStatus::_impl_.loaded_)
-      - PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.approval_state_)>(
-          reinterpret_cast<char*>(&_impl_.approval_state_),
-          reinterpret_cast<char*>(&other->_impl_.approval_state_));
+  swap(_impl_.loaded_, other->_impl_.loaded_);
 }
 
 ::google::protobuf::Metadata SpacePluginStatus::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class SetPluginApprovalRequest::_Internal {
- public:
-  using HasBits =
-      decltype(::std::declval<SetPluginApprovalRequest>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(SetPluginApprovalRequest, _impl_._has_bits_);
-};
-
-SetPluginApprovalRequest::SetPluginApprovalRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, SetPluginApprovalRequest_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:s4wave.space.SetPluginApprovalRequest)
-}
-PROTOBUF_NDEBUG_INLINE SetPluginApprovalRequest::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::s4wave::space::SetPluginApprovalRequest& from_msg)
-      : _has_bits_{from._has_bits_},
-        _cached_size_{0},
-        plugin_id_(arena, from.plugin_id_) {}
-
-SetPluginApprovalRequest::SetPluginApprovalRequest(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const SetPluginApprovalRequest& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, SetPluginApprovalRequest_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SetPluginApprovalRequest* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.approved_ = from._impl_.approved_;
-
-  // @@protoc_insertion_point(copy_constructor:s4wave.space.SetPluginApprovalRequest)
-}
-PROTOBUF_NDEBUG_INLINE SetPluginApprovalRequest::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0},
-        plugin_id_(arena) {}
-
-inline void SetPluginApprovalRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.approved_ = {};
-}
-SetPluginApprovalRequest::~SetPluginApprovalRequest() {
-  // @@protoc_insertion_point(destructor:s4wave.space.SetPluginApprovalRequest)
-  SharedDtor(*this);
-}
-inline void SetPluginApprovalRequest::SharedDtor(MessageLite& self) {
-  SetPluginApprovalRequest& this_ = static_cast<SetPluginApprovalRequest&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  this_._impl_.plugin_id_.Destroy();
-  this_._impl_.~Impl_();
-}
-
-inline void* PROTOBUF_NONNULL SetPluginApprovalRequest::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) SetPluginApprovalRequest(arena);
-}
-constexpr auto SetPluginApprovalRequest::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SetPluginApprovalRequest),
-                                            alignof(SetPluginApprovalRequest));
-}
-constexpr auto SetPluginApprovalRequest::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_SetPluginApprovalRequest_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &SetPluginApprovalRequest::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<SetPluginApprovalRequest>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &SetPluginApprovalRequest::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<SetPluginApprovalRequest>(), &SetPluginApprovalRequest::ByteSizeLong,
-              &SetPluginApprovalRequest::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(SetPluginApprovalRequest, _impl_._cached_size_),
-          false,
-      },
-      &SetPluginApprovalRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull SetPluginApprovalRequest_class_data_ =
-        SetPluginApprovalRequest::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-SetPluginApprovalRequest::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&SetPluginApprovalRequest_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(SetPluginApprovalRequest_class_data_.tc_table);
-  return SetPluginApprovalRequest_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 55, 2>
-SetPluginApprovalRequest::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(SetPluginApprovalRequest, _impl_._has_bits_),
-    0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    SetPluginApprovalRequest_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::space::SetPluginApprovalRequest>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    // bool approved = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SetPluginApprovalRequest, _impl_.approved_), 1>(),
-     {16, 1, 0,
-      PROTOBUF_FIELD_OFFSET(SetPluginApprovalRequest, _impl_.approved_)}},
-    // string plugin_id = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(SetPluginApprovalRequest, _impl_.plugin_id_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string plugin_id = 1;
-    {PROTOBUF_FIELD_OFFSET(SetPluginApprovalRequest, _impl_.plugin_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // bool approved = 2;
-    {PROTOBUF_FIELD_OFFSET(SetPluginApprovalRequest, _impl_.approved_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
-  }},
-  // no aux_entries
-  {{
-    "\45\11\0\0\0\0\0\0"
-    "s4wave.space.SetPluginApprovalRequest"
-    "plugin_id"
-  }},
-};
-PROTOBUF_NOINLINE void SetPluginApprovalRequest::Clear() {
-// @@protoc_insertion_point(message_clear_start:s4wave.space.SetPluginApprovalRequest)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.plugin_id_.ClearNonDefaultToEmpty();
-  }
-  _impl_.approved_ = false;
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL SetPluginApprovalRequest::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const SetPluginApprovalRequest& this_ = static_cast<const SetPluginApprovalRequest&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL SetPluginApprovalRequest::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const SetPluginApprovalRequest& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:s4wave.space.SetPluginApprovalRequest)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // string plugin_id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!this_._internal_plugin_id().empty()) {
-      const ::std::string& _s = this_._internal_plugin_id();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.space.SetPluginApprovalRequest.plugin_id");
-      target = stream->WriteStringMaybeAliased(1, _s, target);
-    }
-  }
-
-  // bool approved = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    if (this_._internal_approved() != 0) {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          2, this_._internal_approved(), target);
-    }
-  }
-
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:s4wave.space.SetPluginApprovalRequest)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t SetPluginApprovalRequest::ByteSizeLong(const MessageLite& base) {
-  const SetPluginApprovalRequest& this_ = static_cast<const SetPluginApprovalRequest&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t SetPluginApprovalRequest::ByteSizeLong() const {
-  const SetPluginApprovalRequest& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:s4wave.space.SetPluginApprovalRequest)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
-  cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    // string plugin_id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!this_._internal_plugin_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_plugin_id());
-      }
-    }
-    // bool approved = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (this_._internal_approved() != 0) {
-        total_size += 2;
-      }
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void SetPluginApprovalRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<SetPluginApprovalRequest*>(&to_msg);
-  auto& from = static_cast<const SetPluginApprovalRequest&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.space.SetPluginApprovalRequest)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!from._internal_plugin_id().empty()) {
-        _this->_internal_set_plugin_id(from._internal_plugin_id());
-      } else {
-        if (_this->_impl_.plugin_id_.IsDefault()) {
-          _this->_internal_set_plugin_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (from._internal_approved() != 0) {
-        _this->_impl_.approved_ = from._impl_.approved_;
-      }
-    }
-  }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void SetPluginApprovalRequest::CopyFrom(const SetPluginApprovalRequest& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.space.SetPluginApprovalRequest)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-
-void SetPluginApprovalRequest::InternalSwap(SetPluginApprovalRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  auto* arena = GetArena();
-  ABSL_DCHECK_EQ(arena, other->GetArena());
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
-  swap(_impl_.approved_, other->_impl_.approved_);
-}
-
-::google::protobuf::Metadata SetPluginApprovalRequest::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class SetPluginApprovalResponse::_Internal {
- public:
-};
-
-SetPluginApprovalResponse::SetPluginApprovalResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, SetPluginApprovalResponse_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(arena_constructor:s4wave.space.SetPluginApprovalResponse)
-}
-SetPluginApprovalResponse::SetPluginApprovalResponse(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const SetPluginApprovalResponse& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, SetPluginApprovalResponse_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SetPluginApprovalResponse* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-
-  // @@protoc_insertion_point(copy_constructor:s4wave.space.SetPluginApprovalResponse)
-}
-
-inline void* PROTOBUF_NONNULL SetPluginApprovalResponse::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) SetPluginApprovalResponse(arena);
-}
-constexpr auto SetPluginApprovalResponse::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SetPluginApprovalResponse),
-                                            alignof(SetPluginApprovalResponse));
-}
-constexpr auto SetPluginApprovalResponse::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_SetPluginApprovalResponse_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &SetPluginApprovalResponse::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<SetPluginApprovalResponse>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &SetPluginApprovalResponse::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<SetPluginApprovalResponse>(), &SetPluginApprovalResponse::ByteSizeLong,
-              &SetPluginApprovalResponse::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(SetPluginApprovalResponse, _impl_._cached_size_),
-          false,
-      },
-      &SetPluginApprovalResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull SetPluginApprovalResponse_class_data_ =
-        SetPluginApprovalResponse::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-SetPluginApprovalResponse::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&SetPluginApprovalResponse_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(SetPluginApprovalResponse_class_data_.tc_table);
-  return SetPluginApprovalResponse_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
-SetPluginApprovalResponse::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    SetPluginApprovalResponse_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::space::SetPluginApprovalResponse>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-  }}, {{
-    65535, 65535
-  }}, // no field_entries, or aux_entries
-  {{
-  }},
-};
-
-
-
-
-
-
-
-::google::protobuf::Metadata SetPluginApprovalResponse::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

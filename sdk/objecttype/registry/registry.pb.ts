@@ -14,7 +14,7 @@ export const protobufPackage = 's4wave.objecttype.registry'
  */
 export interface ObjectTypeRegistration {
   /**
-   * TypeId is the ObjectType ID (e.g. "spacewave-notes/notebook").
+   * TypeId is the ObjectType ID (e.g. "notes/notebook").
    *
    * @generated from field: string type_id = 1;
    */

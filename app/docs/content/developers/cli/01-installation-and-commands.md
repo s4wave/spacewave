@@ -90,15 +90,15 @@ reaches the running runtime.
 **Plugin management:**
 
 ```bash
-spacewave plugin list              # List plugins and approval state
+spacewave plugin list              # List plugins and load state
 spacewave plugin list --watch      # Stream plugin state changes
 spacewave plugin add <manifest-id> # Add a plugin to a space
 spacewave plugin remove <id>       # Remove a plugin from a space
-spacewave plugin approve <name>    # Approve a pending plugin
-spacewave plugin deny <name>       # Deny a plugin
 ```
 
-Plugin names are resolved by matching against the plugin ID, description, or partial string. The `--watch` flag on `plugin list` streams updates as plugins are loaded, approved, or removed.
+Plugin names are resolved by matching against the plugin ID, description, or
+partial string. The `--watch` flag on `plugin list` streams updates as plugins
+are loaded or removed.
 
 ## Configuration
 

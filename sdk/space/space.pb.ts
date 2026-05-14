@@ -17,8 +17,6 @@ import {
 } from '../../core/sobject/sobject.pb.js'
 import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
 import { Secret } from '../secret/secret.pb.js'
-import type { PluginApprovalState } from '../../core/plugin/approval/approval.pb.js'
-import { PluginApprovalState_Enum } from '../../core/plugin/approval/approval.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 's4wave.space'
@@ -464,7 +462,7 @@ export const WatchSpaceContentsStateRequest: MessageType<WatchSpaceContentsState
   })
 
 /**
- * SpacePluginStatus contains the approval state for a single plugin.
+ * SpacePluginStatus contains runtime state for a single plugin.
  *
  * @generated from message s4wave.space.SpacePluginStatus
  */
@@ -475,12 +473,6 @@ export interface SpacePluginStatus {
    * @generated from field: string plugin_id = 1;
    */
   pluginId?: string
-  /**
-   * ApprovalState is the current approval state for this plugin.
-   *
-   * @generated from field: plugin.approval.PluginApprovalState approval_state = 2;
-   */
-  approvalState?: PluginApprovalState
   /**
    * Loaded indicates whether the plugin is currently running.
    *
@@ -501,12 +493,6 @@ export const SpacePluginStatus: MessageType<SpacePluginStatus> =
     typeName: 's4wave.space.SpacePluginStatus',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 2,
-        name: 'approval_state',
-        kind: 'enum',
-        T: PluginApprovalState_Enum,
-      },
       { no: 3, name: 'loaded', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
@@ -577,7 +563,7 @@ export interface SpaceContentsState {
    */
   plugins?: SpacePluginStatus[]
   /**
-   * ProcessBindings is the list of process binding approvals.
+   * ProcessBindings is the list of process binding states.
    *
    * @generated from field: repeated s4wave.space.ProcessBindingInfo process_bindings = 3;
    */
@@ -605,52 +591,6 @@ export const SpaceContentsState: MessageType<SpaceContentsState> =
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * SetPluginApprovalRequest is a request to set the approval state for a plugin.
- *
- * @generated from message s4wave.space.SetPluginApprovalRequest
- */
-export interface SetPluginApprovalRequest {
-  /**
-   * PluginId is the manifest ID of the plugin.
-   *
-   * @generated from field: string plugin_id = 1;
-   */
-  pluginId?: string
-  /**
-   * Approved sets the approval state. True = approved, false = denied.
-   *
-   * @generated from field: bool approved = 2;
-   */
-  approved?: boolean
-}
-
-// SetPluginApprovalRequest contains the message type declaration for SetPluginApprovalRequest.
-export const SetPluginApprovalRequest: MessageType<SetPluginApprovalRequest> =
-  createMessageType({
-    typeName: 's4wave.space.SetPluginApprovalRequest',
-    fields: [
-      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'approved', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * SetPluginApprovalResponse is the response for SetPluginApproval.
- *
- * @generated from message s4wave.space.SetPluginApprovalResponse
- */
-export interface SetPluginApprovalResponse {}
-
-// SetPluginApprovalResponse contains the message type declaration for SetPluginApprovalResponse.
-export const SetPluginApprovalResponse: MessageType<SetPluginApprovalResponse> =
-  createMessageType({
-    typeName: 's4wave.space.SetPluginApprovalResponse',
-    fields: [] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -733,7 +673,7 @@ export const RemoveSpacePluginResponse: MessageType<RemoveSpacePluginResponse> =
   })
 
 /**
- * SetProcessBindingRequest is a request to set a process binding approval.
+ * SetProcessBindingRequest is a request to set a process binding state.
  *
  * @generated from message s4wave.space.SetProcessBindingRequest
  */

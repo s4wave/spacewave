@@ -80,7 +80,7 @@ type V86Config struct {
 	// Mounts lists workspace/home/other v86fs mounts to attach after boot.
 	Mounts []*VmMount `protobuf:"bytes,6,rep,name=mounts,proto3" json:"mounts,omitempty"`
 	// RuntimePluginId is the plugin that hosts the instanced V86 runtime.
-	// Empty defaults to spacewave-app.
+	// Empty defaults to spacewave-v86.
 	RuntimePluginId string `protobuf:"bytes,7,opt,name=runtime_plugin_id,json=runtimePluginId,proto3" json:"runtimePluginId,omitempty"`
 }
 

@@ -7,7 +7,6 @@ import {
 import {
   WatchSpaceContentsStateRequest,
   SpaceContentsState,
-  SetPluginApprovalResponse,
   SetProcessBindingResponse,
 } from './space.pb.js'
 
@@ -20,7 +19,7 @@ export class SpaceContents extends Resource {
     this.service = new SpaceContentsResourceServiceClient(resourceRef.client)
   }
 
-  // watchState streams the current plugin approval states for the space.
+  // watchState streams the current plugin and process-binding state for the space.
   public watchState(
     req?: WatchSpaceContentsStateRequest,
     abortSignal?: AbortSignal,
@@ -28,16 +27,7 @@ export class SpaceContents extends Resource {
     return this.service.WatchState(req ?? {}, abortSignal)
   }
 
-  // setPluginApproval sets the approval state for a plugin.
-  public async setPluginApproval(
-    pluginId: string,
-    approved: boolean,
-    abortSignal?: AbortSignal,
-  ): Promise<SetPluginApprovalResponse> {
-    return this.service.SetPluginApproval({ pluginId, approved }, abortSignal)
-  }
-
-  // setProcessBinding sets the approval state for a process binding.
+  // setProcessBinding sets the state for a process binding.
   public async setProcessBinding(
     objectKey: string,
     typeId: string,

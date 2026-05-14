@@ -499,8 +499,6 @@ type SRPCSpaceContentsResourceServiceClient interface {
 
 	WatchState(ctx context.Context, in *WatchSpaceContentsStateRequest) (SRPCSpaceContentsResourceService_WatchStateClient, error)
 
-	SetPluginApproval(ctx context.Context, in *SetPluginApprovalRequest) (*SetPluginApprovalResponse, error)
-
 	SetProcessBinding(ctx context.Context, in *SetProcessBindingRequest) (*SetProcessBindingResponse, error)
 }
 
@@ -556,15 +554,6 @@ func (x *srpcSpaceContentsResourceService_WatchStateClient) RecvTo(m *SpaceConte
 	return x.MsgRecv(m)
 }
 
-func (c *srpcSpaceContentsResourceServiceClient) SetPluginApproval(ctx context.Context, in *SetPluginApprovalRequest) (*SetPluginApprovalResponse, error) {
-	out := new(SetPluginApprovalResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "SetPluginApproval", in, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *srpcSpaceContentsResourceServiceClient) SetProcessBinding(ctx context.Context, in *SetProcessBindingRequest) (*SetProcessBindingResponse, error) {
 	out := new(SetProcessBindingResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "SetProcessBinding", in, out)
@@ -576,8 +565,6 @@ func (c *srpcSpaceContentsResourceServiceClient) SetProcessBinding(ctx context.C
 
 type SRPCSpaceContentsResourceServiceServer interface {
 	WatchState(*WatchSpaceContentsStateRequest, SRPCSpaceContentsResourceService_WatchStateStream) error
-
-	SetPluginApproval(context.Context, *SetPluginApprovalRequest) (*SetPluginApprovalResponse, error)
 
 	SetProcessBinding(context.Context, *SetProcessBindingRequest) (*SetProcessBindingResponse, error)
 }
@@ -609,7 +596,6 @@ func (d *SRPCSpaceContentsResourceServiceHandler) GetServiceID() string { return
 func (SRPCSpaceContentsResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchState",
-		"SetPluginApproval",
 		"SetProcessBinding",
 	}
 }
@@ -625,8 +611,6 @@ func (d *SRPCSpaceContentsResourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "WatchState":
 		return true, d.InvokeMethod_WatchState(d.impl, strm)
-	case "SetPluginApproval":
-		return true, d.InvokeMethod_SetPluginApproval(d.impl, strm)
 	case "SetProcessBinding":
 		return true, d.InvokeMethod_SetProcessBinding(d.impl, strm)
 	default:
@@ -641,18 +625,6 @@ func (SRPCSpaceContentsResourceServiceHandler) InvokeMethod_WatchState(impl SRPC
 	}
 	serverStrm := &srpcSpaceContentsResourceService_WatchStateStream{strm}
 	return impl.WatchState(req, serverStrm)
-}
-
-func (SRPCSpaceContentsResourceServiceHandler) InvokeMethod_SetPluginApproval(impl SRPCSpaceContentsResourceServiceServer, strm srpc.Stream) error {
-	req := new(SetPluginApprovalRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	out, err := impl.SetPluginApproval(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
 }
 
 func (SRPCSpaceContentsResourceServiceHandler) InvokeMethod_SetProcessBinding(impl SRPCSpaceContentsResourceServiceServer, strm srpc.Stream) error {
@@ -688,14 +660,6 @@ func (x *srpcSpaceContentsResourceService_WatchStateStream) SendAndClose(m *Spac
 		}
 	}
 	return x.CloseSend()
-}
-
-type SRPCSpaceContentsResourceService_SetPluginApprovalStream interface {
-	srpc.Stream
-}
-
-type srpcSpaceContentsResourceService_SetPluginApprovalStream struct {
-	srpc.Stream
 }
 
 type SRPCSpaceContentsResourceService_SetProcessBindingStream interface {

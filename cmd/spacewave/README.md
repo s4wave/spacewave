@@ -242,9 +242,7 @@ Plugin management for spaces. Plugins extend space functionality (e.g., chat,
 viewers).
 
 ```
-spacewave plugin list                   List plugins and approval state (--watch)
-spacewave plugin approve <name-or-id>   Approve a plugin
-spacewave plugin deny <name-or-id>      Deny a plugin
+spacewave plugin list                   List plugins and load state (--watch)
 spacewave plugin add <manifest-id>      Add a plugin to space settings
 spacewave plugin remove <manifest-id>   Remove a plugin from space settings
 ```

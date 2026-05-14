@@ -14,7 +14,7 @@ import (
 )
 
 // CreateVmV86OpId is the operation id for CreateVmV86Op.
-var CreateVmV86OpId = "spacewave/vm/v86/create"
+var CreateVmV86OpId = "vm/v86/create"
 
 // NewCreateVmV86Op constructs a new CreateVmV86Op. imageObjectKey points at
 // the V86Image that supplies default asset edges and is required.
@@ -135,7 +135,7 @@ func LookupCreateVmV86Op(ctx context.Context, operationTypeID string) (world.Ope
 var _ world.Operation = ((*CreateVmV86Op)(nil))
 
 // SetV86ConfigOpId is the operation id for SetV86ConfigOp.
-var SetV86ConfigOpId = "spacewave/vm/v86/set-config"
+var SetV86ConfigOpId = "vm/v86/set-config"
 
 // NewSetV86ConfigOp constructs a new SetV86ConfigOp.
 func NewSetV86ConfigOp(objKey string, config *V86Config) *SetV86ConfigOp {
@@ -247,7 +247,7 @@ func LookupSetV86ConfigOp(ctx context.Context, operationTypeID string) (world.Op
 var _ world.Operation = ((*SetV86ConfigOp)(nil))
 
 // SetV86StateOpId is the operation id for SetV86StateOp.
-var SetV86StateOpId = "spacewave/vm/v86/set-state"
+var SetV86StateOpId = "vm/v86/set-state"
 
 // IsValidV86StateTransition reports whether transitioning a VmV86 from src to
 // dst is permitted by the state machine. Same-state transitions are rejected

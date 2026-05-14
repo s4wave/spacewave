@@ -51,8 +51,8 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 		return nil, ErrPluginIdRequired
 	}
 	// Require a namespace prefix before the first '/'. The prefix need not match
-	// pluginID: a single plugin (e.g. spacewave-app) may serve multiple op
-	// namespaces folded in from previously-separate plugins.
+	// pluginID: a single plugin (e.g. spacewave-v86) may serve multiple op
+	// namespaces.
 	if !strings.Contains(opTypeID, "/") {
 		return nil, ErrOpTypeIdMustHavePluginPrefix
 	}

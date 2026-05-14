@@ -8,7 +8,7 @@ import type {
 import type { WatchNotebookResponse } from './notebook.pb.js'
 
 // NotebookTypeID is the type identifier for notebook objects.
-export const NotebookTypeID = 'spacewave-notes/notebook'
+export const NotebookTypeID = 'notes/notebook'
 
 // INotebookHandle contains the NotebookHandle interface.
 export interface INotebookHandle {

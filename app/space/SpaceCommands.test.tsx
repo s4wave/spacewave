@@ -36,8 +36,6 @@ const h = vi.hoisted(() => ({
   navigateToObjects: vi.fn((_objectKeys: string[]) => undefined),
   openCommand: vi.fn((_commandId: string) => undefined),
   navigate: vi.fn((_opts: unknown) => undefined),
-  createNotebookClientSide: vi.fn().mockResolvedValue(undefined),
-  createDocsClientSide: vi.fn().mockResolvedValue(undefined),
   wizards: [] as unknown[],
 }))
 
@@ -78,32 +76,40 @@ vi.mock('@s4wave/web/contexts/contexts.js', async (importOriginal) => {
   }
 })
 
-vi.mock('../../plugin/notes/content-seed.js', () => ({
-  buildNotebookUnixfsObjectKey: (objectKey: string) => objectKey + '-fs',
-  createNotebookClientSide: h.createNotebookClientSide,
-  createDocsClientSide: h.createDocsClientSide,
-}))
-
 describe('SpaceCommands', () => {
   const mockSpace = {}
 
   beforeEach(() => {
     h.wizards = [
       {
-        typeId: 'notebook',
+        typeId: 'notes/notebook',
         displayName: 'Notebook',
         category: 'Content',
-        createOpId: 'spacewave-notes/notes/init-notebook',
+        createOpId: 'notes/notebook/init',
         keyPrefix: 'notebook/',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/notebook',
         defaultNamePattern: 'Notebook',
       },
       {
-        typeId: 'docs',
+        typeId: 'notes/docs',
         displayName: 'Documentation',
         category: 'Content',
-        createOpId: 'spacewave-notes/docs/create',
+        createOpId: 'notes/docs/create',
         keyPrefix: 'docs/',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/docs',
         defaultNamePattern: 'Documentation',
+      },
+      {
+        typeId: 'notes/blog',
+        displayName: 'Blog',
+        category: 'Content',
+        createOpId: 'notes/blog/create',
+        keyPrefix: 'blog/',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/blog',
+        defaultNamePattern: 'Blog',
       },
       {
         typeId: 'alpha/object-layout',
@@ -207,54 +213,79 @@ describe('SpaceCommands', () => {
     vi.clearAllMocks()
   })
 
-  it('creates a notebook through the merged spacewave-app client-side path', async () => {
+  it('launches a persistent notes notebook wizard from the create-object command', async () => {
     renderCommands()
 
     const { subItems, handler } = getCreateObjectCommandHandlers()
     const items = await subItems('', new AbortController().signal)
-    expect(items.map((item) => item.id)).toContain('notebook')
+    expect(items.map((item) => item.id)).toContain('notes/notebook')
 
-    handler({ subItemId: 'notebook' })
+    handler({ subItemId: 'notes/notebook' })
 
     await waitFor(() => {
-      expect(h.createNotebookClientSide).toHaveBeenCalledTimes(1)
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
     })
 
-    expect(h.applyWorldOp).not.toHaveBeenCalled()
+    const [opTypeId, opData] = h.applyWorldOp.mock.calls[0]
+    expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
 
-    expect(h.createNotebookClientSide).toHaveBeenCalledWith(
-      expect.anything(),
-      'notebook-1',
-      'notebook-1-fs',
-      'Notebook',
-      expect.any(Date),
-    )
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
+    const decoded = CreateWizardObjectOp.fromBinary(opData)
+    expect(decoded.objectKey).toBe('wizard/notebook-1')
+    expect(decoded.wizardTypeId).toBe('wizard/notes/notebook')
+    expect(decoded.targetTypeId).toBe('notes/notebook')
+    expect(decoded.targetKeyPrefix).toBe('notebook/')
+    expect(decoded.name).toBe('Notebook')
+    expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 
-  it('creates docs through the merged spacewave-app client-side path', async () => {
+  it('launches a persistent notes docs wizard from the create-object command', async () => {
     renderCommands()
 
     const { subItems, handler } = getCreateObjectCommandHandlers()
     const items = await subItems('', new AbortController().signal)
-    expect(items.map((item) => item.id)).toContain('docs')
+    expect(items.map((item) => item.id)).toContain('notes/docs')
 
-    handler({ subItemId: 'docs' })
+    handler({ subItemId: 'notes/docs' })
 
     await waitFor(() => {
-      expect(h.createDocsClientSide).toHaveBeenCalledTimes(1)
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
     })
 
-    expect(h.applyWorldOp).not.toHaveBeenCalled()
+    const [opTypeId, opData] = h.applyWorldOp.mock.calls[0]
+    expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
 
-    expect(h.createDocsClientSide).toHaveBeenCalledWith(
-      expect.anything(),
-      'documentation-1',
-      'Documentation',
-      '',
-      expect.any(Date),
-    )
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['documentation-1'])
+    const decoded = CreateWizardObjectOp.fromBinary(opData)
+    expect(decoded.objectKey).toBe('wizard/documentation-1')
+    expect(decoded.wizardTypeId).toBe('wizard/notes/docs')
+    expect(decoded.targetTypeId).toBe('notes/docs')
+    expect(decoded.targetKeyPrefix).toBe('docs/')
+    expect(decoded.name).toBe('Documentation')
+    expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
+  })
+
+  it('launches a persistent notes blog wizard from the create-object command', async () => {
+    renderCommands()
+
+    const { subItems, handler } = getCreateObjectCommandHandlers()
+    const items = await subItems('', new AbortController().signal)
+    expect(items.map((item) => item.id)).toContain('notes/blog')
+
+    handler({ subItemId: 'notes/blog' })
+
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+
+    const [opTypeId, opData] = h.applyWorldOp.mock.calls[0]
+    expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
+
+    const decoded = CreateWizardObjectOp.fromBinary(opData)
+    expect(decoded.objectKey).toBe('wizard/blog-1')
+    expect(decoded.wizardTypeId).toBe('wizard/notes/blog')
+    expect(decoded.targetTypeId).toBe('notes/blog')
+    expect(decoded.targetKeyPrefix).toBe('blog/')
+    expect(decoded.name).toBe('Blog')
+    expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 
   it('launches a persistent forge job wizard from the create-object command', async () => {
