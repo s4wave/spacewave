@@ -80,10 +80,6 @@ export interface TinyGoRuntime {
   _inst?: WebAssembly.Instance
 }
 
-interface TinyGoImportObject extends WebAssembly.Imports {
-  gojs?: Record<string, unknown>
-}
-
 declare class Go {
   importObject: WebAssembly.Imports
   env: Record<string, string>
@@ -94,7 +90,7 @@ declare class Go {
 // patchTinyGoRuntimeImports adds imports newer TinyGo output can request before
 // TinyGo's bundled wasm_exec.js has grown matching browser shims.
 export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
-  const gojs = (go.importObject as TinyGoImportObject).gojs
+  const gojs = go.importObject['gojs']
   if (!gojs || typeof gojs['runtime.getRandomData'] === 'function') {
     return
   }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { patchTinyGoRuntimeImports } from './go-process.js'
+import { patchTinyGoRuntimeImports, type TinyGoRuntime } from './go-process.js'
 
 describe('patchTinyGoRuntimeImports', () => {
   afterEach(() => {
@@ -15,7 +15,7 @@ describe('patchTinyGoRuntimeImports', () => {
     })
     vi.stubGlobal('crypto', { getRandomValues })
 
-    const go = {
+    const go: TinyGoRuntime = {
       importObject: {
         gojs: {},
       },
@@ -23,15 +23,14 @@ describe('patchTinyGoRuntimeImports', () => {
         exports: {
           memory,
         },
-      } as unknown as WebAssembly.Instance,
+      },
     }
 
     patchTinyGoRuntimeImports(go)
-    const getRandomData = go.importObject.gojs['runtime.getRandomData'] as (
-      ptr: number,
-      len: number,
-      cap: number,
-    ) => void
+    const getRandomData = go.importObject['gojs']?.['runtime.getRandomData']
+    if (typeof getRandomData !== 'function') {
+      throw new Error('runtime.getRandomData was not installed')
+    }
 
     getRandomData(12, 4, 16)
 
@@ -43,7 +42,7 @@ describe('patchTinyGoRuntimeImports', () => {
 
   it('keeps an existing random data import', () => {
     const getRandomData = vi.fn()
-    const go = {
+    const go: TinyGoRuntime = {
       importObject: {
         gojs: {
           'runtime.getRandomData': getRandomData,
@@ -53,6 +52,8 @@ describe('patchTinyGoRuntimeImports', () => {
 
     patchTinyGoRuntimeImports(go)
 
-    expect(go.importObject.gojs['runtime.getRandomData']).toBe(getRandomData)
+    expect(go.importObject['gojs']?.['runtime.getRandomData']).toBe(
+      getRandomData,
+    )
   })
 })
