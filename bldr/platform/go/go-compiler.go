@@ -11,7 +11,7 @@ var (
 	// ErrUnsupportedPlatform indicates the platform is not supported by the Go compiler.
 	ErrUnsupportedPlatform = errors.New("unsupported go-compiler platform")
 	// ErrTinyGoUnsupported indicates the platform does not support TinyGo.
-	ErrTinyGoUnsupported = errors.New("go-compiler platform does not support tinygo")
+	ErrTinyGoUnsupported = errors.New("go-compiler platform does not support tinygo; use web/js/wasm for browser go plugins or js for javascript plugins")
 )
 
 // PlatformToGoEnv builds the Go environment variables for the desired platform.
@@ -36,6 +36,9 @@ func PlatformToGoEnv(plat bldr_platform.Platform) ([]string, error) {
 func PlatformToTinyGoTarget(plat bldr_platform.Platform) (string, error) {
 	switch p := plat.(type) {
 	case *bldr_platform.NativePlatform:
+		if p.GetGOOS() == "js" && p.GetGOARCH() == "wasm" {
+			return "wasm", nil
+		}
 		if p.GetGOOS() == "wasi" && p.GetGOARCH() == "wasm" {
 			return "wasm-unknown", nil
 		}

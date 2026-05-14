@@ -3,13 +3,14 @@ package space_exec
 import (
 	"context"
 
+	space_exec_noop "github.com/s4wave/spacewave/core/forge/exec/noop"
 	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	"github.com/sirupsen/logrus"
 )
 
 // NoopConfigID is the config ID for the noop handler.
-const NoopConfigID = "space-exec/noop"
+const NoopConfigID = space_exec_noop.ConfigID
 
 // noopHandler writes a log line and returns nil.
 type noopHandler struct {

@@ -1,4 +1,4 @@
-//go:build !tinygo
+//go:build tinygo
 
 package objecttypes
 
@@ -17,7 +17,6 @@ import (
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
 	s4wave_forge_world "github.com/s4wave/spacewave/sdk/forge/world"
-	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 	s4wave_org_world "github.com/s4wave/spacewave/sdk/org/world"
@@ -37,12 +36,8 @@ func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType
 		return s4wave_layout_world.ObjectLayoutType, nil
 	case s4wave_unixfs_world.UnixFSTypeID:
 		return s4wave_unixfs_world.UnixFSType, nil
-	case s4wave_git_world.GitRepoTypeID:
-		return s4wave_git_world.GitRepoType, nil
 	case s4wave_canvas_world.CanvasTypeID:
 		return s4wave_canvas_world.CanvasType, nil
-	case s4wave_git_world.GitWorktreeTypeID:
-		return s4wave_git_world.GitWorktreeType, nil
 	case forge_cluster.ClusterTypeID:
 		return s4wave_forge_world.ClusterType, nil
 	case forge_job.JobTypeID:

@@ -3,7 +3,7 @@ package forge_dashboard
 import (
 	"context"
 
-	space_exec "github.com/s4wave/spacewave/core/forge/exec"
+	space_exec_noop "github.com/s4wave/spacewave/core/forge/exec/noop"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -90,9 +90,9 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 	// Create a sample job for the quickstart cluster.
 	jobKey := "sample-job"
 	tasks := map[string]*forge_target.Target{
-		"compile": space_exec.NewNoopTarget(),
-		"link":    space_exec.NewNoopTarget(),
-		"test":    space_exec.NewNoopTarget(),
+		"compile": space_exec_noop.NewTarget(),
+		"link":    space_exec_noop.NewTarget(),
+		"test":    space_exec_noop.NewTarget(),
 	}
 	_, _, err = forge_job.CreateJobWithTasks(ctx, ws, sessionPeerID, jobKey, tasks, "", o.GetTimestamp())
 	if err != nil {

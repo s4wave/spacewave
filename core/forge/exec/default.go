@@ -3,7 +3,7 @@ package space_exec
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	space_exec_noop "github.com/s4wave/spacewave/core/forge/exec/noop"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 )
 
@@ -43,12 +43,5 @@ func BridgeFactories(r *Registry) []controller.Factory {
 
 // NewNoopTarget returns a Forge target that runs through the noop bridge.
 func NewNoopTarget() *forge_target.Target {
-	return &forge_target.Target{
-		Exec: &forge_target.Exec{
-			Controller: &configset_proto.ControllerConfig{
-				Id:  NoopConfigID,
-				Rev: 1,
-			},
-		},
-	}
+	return space_exec_noop.NewTarget()
 }

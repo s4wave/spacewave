@@ -1,4 +1,4 @@
-//go:build !tinygo
+//go:build tinygo
 
 package space_unixfs
 
@@ -7,14 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	git_repofs "github.com/s4wave/spacewave/sdk/git/repofs"
-	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,8 +51,6 @@ func supportsProjectedType(typeID string) bool {
 	switch typeID {
 	case unixfs_world.FSNodeTypeID, unixfs_world.FSObjectTypeID, unixfs_world.FSHostVolumeTypeID:
 		return true
-	case s4wave_git_world.GitRepoTypeID, s4wave_git_world.GitWorktreeTypeID:
-		return true
 	default:
 		return false
 	}
@@ -73,13 +68,6 @@ func openObjectCursor(
 	}
 	if !supportsProjectedType(typeID) {
 		return nil, unixfs_errors.ErrNotExist
-	}
-
-	switch typeID {
-	case s4wave_git_world.GitRepoTypeID:
-		return openGitRepoCursor(ctx, ws, objectKey)
-	case s4wave_git_world.GitWorktreeTypeID:
-		return openGitWorktreeCursor(ctx, le, ws, objectKey)
 	}
 
 	fsType, _, err := unixfs_world.LookupFsType(ctx, ws, objectKey)
@@ -130,21 +118,4 @@ func findExactObjectKey(path []string, objectKeys []string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-func openGitWorktreeCursor(
-	ctx context.Context,
-	le *logrus.Entry,
-	ws world.WorldState,
-	objectKey string,
-) (unixfs.FSCursor, error) {
-	workdirRef, err := git_world.WorktreeLookupWorkdirRef(ctx, ws, objectKey)
-	if err != nil {
-		return nil, err
-	}
-	return unixfs_world.FollowUnixfsRef(ctx, le, ws, workdirRef, "", false)
-}
-
-func openGitRepoCursor(ctx context.Context, ws world.WorldState, objectKey string) (unixfs.FSCursor, error) {
-	return git_repofs.OpenRepoFSCursor(ctx, ws, objectKey, false)
 }

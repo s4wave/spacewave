@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	space_exec "github.com/s4wave/spacewave/core/forge/exec"
+	space_exec_noop "github.com/s4wave/spacewave/core/forge/exec/noop"
 	"github.com/s4wave/spacewave/db/world"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_job "github.com/s4wave/spacewave/forge/job"
@@ -63,7 +63,7 @@ func (o *ForgeJobCreateOp) ApplyWorldOp(
 	// Build the tasks map from the task definitions.
 	tasks := make(map[string]*forge_target.Target, len(o.GetTaskDefs()))
 	for _, td := range o.GetTaskDefs() {
-		tasks[td.GetName()] = space_exec.NewNoopTarget()
+		tasks[td.GetName()] = space_exec_noop.NewTarget()
 	}
 
 	// Create the job with tasks.

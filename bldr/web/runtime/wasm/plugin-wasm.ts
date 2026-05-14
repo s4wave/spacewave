@@ -7,6 +7,7 @@ import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
 interface Global {
   BLDR_BASE_URL: string
+  BLDR_PLUGIN_START_INFO?: string
   BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?: (err: unknown) => void
   BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
     onMessage: (message: Uint8Array) => void,
@@ -40,6 +41,7 @@ class WasmPluginGeneration {
 
   public start(startInfo: PluginStartInfo) {
     const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
+    globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
     const goProcess = new GoWasmProcess(
       new URL(pluginEntrypointPath, baseURL).toString(),
       {

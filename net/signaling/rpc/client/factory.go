@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package signaling_rpc_client
 
 import (

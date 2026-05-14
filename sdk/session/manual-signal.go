@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package s4wave_session
 
 import (

@@ -1,4 +1,4 @@
-//go:build !tinygo
+//go:build tinygo
 
 package space_world_ops
 
@@ -8,8 +8,6 @@ import (
 	forge_dashboard "github.com/s4wave/spacewave/core/forge/dashboard"
 	forge_job_ops "github.com/s4wave/spacewave/core/forge/job"
 	forge_task_ops "github.com/s4wave/spacewave/core/forge/task"
-	s4wave_git "github.com/s4wave/spacewave/core/git"
-	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	forge_world "github.com/s4wave/spacewave/forge/world"
@@ -22,7 +20,6 @@ import (
 func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	return world.LookupOpSlice([]world.LookupOp{
 		unixfs_world.LookupFsOp,
-		git_world.LookupGitOp,
 		LookupSetSpaceSettingsOp,
 		LookupInitUnixFSOp,
 		LookupInitObjectLayoutOp,
@@ -49,6 +46,5 @@ func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error
 		s4wave_org.LookupDeleteOrganizationOp,
 		forge_job_ops.LookupForgeJobCreateOp,
 		forge_task_ops.LookupForgeTaskCreateOp,
-		s4wave_git.LookupCreateGitRepoWizardOp,
 	}).LookupOp(ctx, opTypeID)
 }

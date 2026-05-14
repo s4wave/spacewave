@@ -405,10 +405,11 @@ func (c *Controller) BuildPlugin(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default (isRelease means default value depends on release mode)
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	// enable tinygo on the web platform in release mode on default
-	tinygoSupported := false // TODO: TinyGo cannot yet build Bldr successfully.
-	// Only enable TinyGo if: 1) we're building for web, 2) user explicitly enabled it or it's release mode, 3) TinyGo is supported
-	enableTinygo := isWebBuildPlatform && enableTinygoOpt.IsEnabled(isRelease && tinygoSupported)
+	tinygoDefault := false
+	enableTinygo, err := gocompiler.ResolveTinyGoEnabled(buildPlatform, enableTinygoOpt, isWebBuildPlatform && isRelease && tinygoDefault)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)
@@ -517,7 +518,7 @@ func (c *Controller) BuildPlugin(
 
 	// analyze go packages
 	le.Info("analyzing go packages")
-	buildTagsForAnalyze := gocompiler.NewBuildTags(buildType, enableCgo)
+	buildTagsForAnalyze := newBuildTagsForAnalyze(buildType, enableCgo, enableTinygo)
 	// Match analysis GOOS/GOARCH to the target so factories gated on
 	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
 	// are excluded from the generated factory list when targeting js/wasm.
@@ -978,6 +979,18 @@ func (c *Controller) BuildPlugin(
 	inputManifest.SortFiles()
 
 	return an, inputManifest, nil
+}
+
+func newBuildTagsForAnalyze(
+	buildType bldr_manifest.BuildType,
+	enableCgo bool,
+	enableTinygo bool,
+) []string {
+	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
+	if enableTinygo {
+		buildTags = append(buildTags, "tinygo")
+	}
+	return buildTags
 }
 
 // FastRebuildPlugin compiles the plugin once skipping running the Go compiler if possible.

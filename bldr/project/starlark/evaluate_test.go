@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/util/enabled"
 	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -514,9 +515,30 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 
 	webConf := flattenGoConfigForPlatform(t, coreConf, "web/js/wasm")
 	assertGoConfigOmitsDesktopStatusProjector(t, "web spacewave-core", webConf)
+	if webConf.GetEnableTinygo() != enabled.Enabled_DEFAULT {
+		t.Fatalf("web spacewave-core enableTinygo: got %s, want DEFAULT", webConf.GetEnableTinygo())
+	}
 
 	jsConf := flattenGoConfigForPlatform(t, coreConf, "js")
 	assertGoConfigOmitsDesktopStatusProjector(t, "js spacewave-core", jsConf)
+	if jsConf.GetEnableTinygo() != enabled.Enabled_DEFAULT {
+		t.Fatalf("js spacewave-core enableTinygo: got %s, want DEFAULT", jsConf.GetEnableTinygo())
+	}
+
+	tinygoBuild := result.Config.GetBuild()["plugin-release-browser-tinygo"]
+	if tinygoBuild == nil {
+		t.Fatal("build target 'plugin-release-browser-tinygo' not found")
+	}
+	tinygoOverride := tinygoBuild.GetManifestOverrides()["spacewave-core"]
+	if tinygoOverride == nil {
+		t.Fatal("spacewave-core TinyGo proof override not found")
+	}
+	tinygoCoreConf := mustGoPluginConfig(t, tinygoOverride.GetConfig())
+	tinygoWebConf := flattenGoConfigForPlatform(t, tinygoCoreConf, "web/js/wasm")
+	assertGoConfigOmitsDesktopStatusProjector(t, "TinyGo web spacewave-core", tinygoWebConf)
+	if tinygoWebConf.GetEnableTinygo() != enabled.Enabled_ENABLE {
+		t.Fatalf("TinyGo web spacewave-core enableTinygo: got %s, want ENABLE", tinygoWebConf.GetEnableTinygo())
+	}
 
 	cli := result.Config.GetManifests()["spacewave"]
 	if cli == nil {

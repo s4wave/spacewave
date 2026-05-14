@@ -15,9 +15,9 @@ func TestTinyGoTarget(t *testing.T) {
 	}{
 		{"web/wasi/wasm", "wasm-unknown", false},
 		{"desktop/wasi/wasm", "wasm-unknown", false},
+		{"web/js/wasm", "wasm", false},
 		{"desktop/linux/amd64", "", true},
 		{"js", "", true},
-		{"web/js/wasm", "", true},
 	}
 
 	for _, tc := range testCases {

@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package task_controller
 
 import (

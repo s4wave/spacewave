@@ -21,6 +21,8 @@ describe('plugin-wasm generation lifecycle', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.unstubAllGlobals()
+    delete (globalThis as { BLDR_PLUGIN_START_INFO?: string })
+      .BLDR_PLUGIN_START_INFO
     goProcessState.start.mockReset()
     goProcessState.constructor.mockReset()
     vi.stubGlobal('BLDR_PLUGIN_ENTRYPOINT', 'plugin.wasm')
@@ -42,6 +44,10 @@ describe('plugin-wasm generation lifecycle', () => {
       expect.stringContaining('/plugin.wasm'),
       expect.objectContaining({ retry: false }),
     )
+    expect(
+      (globalThis as { BLDR_PLUGIN_START_INFO?: string })
+        .BLDR_PLUGIN_START_INFO,
+    ).toBe(btoa('{}'))
 
     const err = new Error('fatal heap pointer')
     rejectProcess(err)
