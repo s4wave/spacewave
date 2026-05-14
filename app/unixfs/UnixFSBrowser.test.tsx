@@ -15,9 +15,13 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 
-import { UnixFSBrowser } from './UnixFSBrowser.js'
+import { UnixFSBrowser, type UnixFSBrowserBodyProps } from './UnixFSBrowser.js'
 import { buildUnixFSEntryAppDragEnvelope } from './unixfs-app-drag.js'
 import type { UnixFSMoveItem } from './move.js'
+
+function CustomBrowserBody({ currentPath }: UnixFSBrowserBodyProps) {
+  return <div data-testid="custom-browser-body">{currentPath}</div>
+}
 
 interface RegisteredCommand {
   commandId: string
@@ -604,6 +608,47 @@ describe('UnixFSBrowser drag gating', () => {
     await waitFor(() => {
       expect(h.mockMkdirAll).toHaveBeenCalledWith(['Projects'])
     })
+  })
+
+  it('renders a custom browser body under the toolbar instead of the file list', () => {
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/gallery"
+        worldState={buildResource(null)}
+        browserBody={CustomBrowserBody}
+      />,
+    )
+
+    expect(screen.getByText('Toolbar')).toBeDefined()
+    expect(screen.getByTestId('custom-browser-body').textContent).toBe(
+      '/gallery',
+    )
+    expect(h.latestFileListProps).toBeNull()
+  })
+
+  it('lets a custom browser body replace the file viewer branch', () => {
+    h.mockStat = {
+      info: { isDir: false },
+      mimeType: 'image/png',
+    }
+
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/gallery/logo.png"
+        worldState={buildResource(null)}
+        browserBody={CustomBrowserBody}
+      />,
+    )
+
+    expect(screen.getByText('Toolbar')).toBeDefined()
+    expect(screen.getByTestId('custom-browser-body').textContent).toBe(
+      '/gallery/logo.png',
+    )
+    expect(h.latestFileViewerProps).toBeNull()
   })
 
   it('ignores internal app drags', () => {

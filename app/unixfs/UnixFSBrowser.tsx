@@ -7,11 +7,13 @@ import {
   useReducer,
   type MouseEvent,
   type DragEvent,
+  type ComponentType,
   useRef,
 } from 'react'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { ObjectLayoutTab } from '@s4wave/sdk/layout/world/world.pb.js'
 import { MknodType } from '@s4wave/sdk/unixfs/index.js'
+import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { ObjectInfo, UnixfsObjectInfo } from '@s4wave/web/object/object.pb.js'
 import {
   useUnixFSRootHandle,
@@ -83,6 +85,12 @@ import {
   useSessionSyncStatus,
 } from '../session/SessionSyncStatusContext.js'
 
+export interface UnixFSBrowserBodyProps {
+  rootHandle: Resource<FSHandle>
+  unixfsId: string
+  currentPath: string
+}
+
 // UnixFSBrowserProps are the props passed to the UnixFSBrowser component.
 export interface UnixFSBrowserProps {
   // unixfsId is the identifier for the UnixFS on the bus (the object key).
@@ -95,6 +103,8 @@ export interface UnixFSBrowserProps {
   mimeTypeOverride?: string
   // worldState is the world state resource for accessing typed objects.
   worldState: Resource<IWorldState>
+  // browserBody replaces the browser's default file list/file viewer body.
+  browserBody?: ComponentType<UnixFSBrowserBodyProps>
 }
 
 // joinPath joins path segments, handling leading slashes.
@@ -275,6 +285,7 @@ export function UnixFSBrowser({
   currentPath,
   mimeTypeOverride,
   worldState,
+  browserBody: BrowserBody,
 }: UnixFSBrowserProps) {
   const tabContext = useTabContext()
   const spaceCtx = SpaceContainerContext.useContextSafe()
@@ -1229,7 +1240,6 @@ export function UnixFSBrowser({
       </div>
     </div>
   )
-
   // During directory transitions, keep showing previous entries with a loading indicator
   if (isLoading && deferredFileEntries.length > 0) {
     return (
@@ -1261,19 +1271,26 @@ export function UnixFSBrowser({
           onDragLeave={handleDragLeave}
           onDrop={(e) => void handleDrop(e)}
         >
-          <FileList
-            entries={deferredFileEntries}
-            onOpen={handleOpen}
-            onContextMenu={handleContextMenu}
-            onStateChange={handleListStateChange}
-            loadingId={entriesResource.loading ? pendingName : null}
-            getDragEnvelope={getDragEnvelope}
-            getDownloadDragTarget={getDownloadDragTarget}
-            dropTargetEntryId={folderDropEntryId}
-            onEntryDragOver={handleEntryDragOver}
-            onEntryDragLeave={handleEntryDragLeave}
-            onEntryDrop={handleEntryDrop}
-          />
+          {BrowserBody ?
+            <BrowserBody
+              rootHandle={rootHandle}
+              unixfsId={unixfsId}
+              currentPath={displayPath}
+            />
+          : <FileList
+              entries={deferredFileEntries}
+              onOpen={handleOpen}
+              onContextMenu={handleContextMenu}
+              onStateChange={handleListStateChange}
+              loadingId={entriesResource.loading ? pendingName : null}
+              getDragEnvelope={getDragEnvelope}
+              getDownloadDragTarget={getDownloadDragTarget}
+              dropTargetEntryId={folderDropEntryId}
+              onEntryDragOver={handleEntryDragOver}
+              onEntryDragLeave={handleEntryDragLeave}
+              onEntryDrop={handleEntryDrop}
+            />
+          }
           <div className="border-foreground/5 bg-background/85 pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-md border px-3 py-2 shadow-sm backdrop-blur">
             {loadingDiagnostics}
           </div>
@@ -1384,6 +1401,54 @@ export function UnixFSBrowser({
             Create a drive via quickstart to initialize demo content.
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (BrowserBody) {
+    return (
+      <div
+        role="region"
+        aria-label="File browser"
+        data-testid="unixfs-browser"
+        className="flex h-full w-full flex-col overflow-hidden"
+        onKeyDown={handleKeyDown}
+      >
+        <Toolbar
+          currentPath={displayPath}
+          onPathChange={handlePathChange}
+          onNavigate={handlePathChange}
+          onBack={handleBack}
+          onForward={handleForward}
+          onUp={handleUp}
+          canGoBack={history?.canGoBack ?? false}
+          canGoForward={history?.canGoForward ?? false}
+          canGoUp={displayPath !== '/'}
+          onNewFolder={handleNewFolder}
+          onUploadFiles={handleUploadFiles}
+        />
+
+        <div
+          data-testid="unixfs-upload-drop-target"
+          className="bg-file-back relative flex min-h-0 flex-1 flex-col overflow-hidden"
+          onContextMenu={handleBackgroundContextMenu}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => void handleDrop(e)}
+        >
+          <BrowserBody
+            rootHandle={rootHandle}
+            unixfsId={unixfsId}
+            currentPath={displayPath}
+          />
+          {dragOverlay}
+        </div>
+
+        <UnixFSContextMenu {...contextMenuProps} />
+        <UploadProgressBottomBar uploadManager={uploadManager} />
+        {fileInput}
+        {deleteDialog}
+        {moveDialog}
       </div>
     )
   }
