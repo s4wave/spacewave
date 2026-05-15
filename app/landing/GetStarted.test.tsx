@@ -1,6 +1,7 @@
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 
 import GetStarted from './GetStarted.js'
 
@@ -8,6 +9,10 @@ const mockUseSessionMetadata = vi.hoisted(() => vi.fn())
 const mockAddSpaceRootAlias = vi.hoisted(() => vi.fn())
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseIsStaticMode = vi.hoisted(() => vi.fn(() => false))
+
+declare global {
+  var __swStaticHandoffLinks: boolean | undefined
+}
 
 vi.mock('@s4wave/app/hooks/useAddSpaceRootAlias.js', () => ({
   useAddSpaceRootAlias: () => ({
@@ -91,6 +96,7 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   mockUseIsStaticMode.mockReturnValue(false)
+  globalThis.__swStaticHandoffLinks = undefined
 })
 
 describe('GetStarted', () => {
@@ -144,8 +150,18 @@ describe('GetStarted', () => {
     expect(screen.queryByText('Session 2')).toBeNull()
   })
 
-  it('uses hash links for non-prerendered static quickstart routes', () => {
+  it('keeps prerendered quickstart links crawlable before browser handoff', () => {
     mockUseIsStaticMode.mockReturnValue(true)
+
+    const html = renderToString(<GetStarted />)
+
+    expect(html).toContain('href="#/login"')
+    expect(html).toContain('href="/quickstart/drive"')
+  })
+
+  it('uses hash links for static quickstart routes once boot handoff is active', () => {
+    mockUseIsStaticMode.mockReturnValue(true)
+    globalThis.__swStaticHandoffLinks = true
 
     render(<GetStarted />)
 
@@ -158,7 +174,7 @@ describe('GetStarted', () => {
       screen
         .getByRole('link', { name: /create a drive/i })
         .getAttribute('href'),
-    ).toBe('/quickstart/drive')
+    ).toBe('#/quickstart/drive')
   })
 
   it('adds a local state root action to the interactive quickstart list', () => {

@@ -196,6 +196,12 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "#sw-loading") {
 		t.Fatalf("boot asset missing root loading selector: %s", script)
 	}
+	if !strings.Contains(script, "__swStaticHandoffLinks") {
+		t.Fatalf("boot asset missing static handoff link flag: %s", script)
+	}
+	if !strings.Contains(script, `a[href^="/quickstart/"]`) {
+		t.Fatalf("boot asset missing static quickstart link rewrite selector: %s", script)
+	}
 }
 
 func TestBuildRendererIndexUsesEntrypointPath(t *testing.T) {

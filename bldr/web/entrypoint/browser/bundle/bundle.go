@@ -178,6 +178,15 @@ function canMutateBootStatusTarget(target){
   if(!root)return true;
   return !!target.closest('#sw-loading');
 }
+function rewriteStaticHandoffLinks(){
+  g.__swStaticHandoffLinks=true;
+  const landing=document.getElementById('sw-landing');
+  if(!landing)return;
+  for(const link of landing.querySelectorAll('a[href^="/quickstart/"]')){
+    const href=link.getAttribute('href');
+    if(href)link.setAttribute('href','#'+href);
+  }
+}
 function setBootError(phase,err){
   const msg=err&&err.message?err.message:String(err);
   setBootStatus(phase,msg,'error');
@@ -217,6 +226,7 @@ function primeRelease(){
   return primePromise;
 }
 (function(){
+  rewriteStaticHandoffLinks();
   let readyResolve;
   g.__swReady=new Promise(function(resolve){readyResolve=resolve});
   g.__swReadyResolve=readyResolve;

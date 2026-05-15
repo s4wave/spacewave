@@ -10,6 +10,10 @@ import { Community } from '@s4wave/app/landing/Community.js'
 
 const noop = () => {}
 
+declare global {
+  var __swStaticHandoffLinks: boolean | undefined
+}
+
 // Wraps a component the same way hydrate.tsx does for static pages.
 function StaticTree({
   path,
@@ -34,6 +38,7 @@ describe('Hydration', () => {
   beforeEach(() => {
     localStorage.clear()
     window.location.hash = ''
+    globalThis.__swStaticHandoffLinks = undefined
     container = document.createElement('div')
     Object.assign(container.style, {
       width: '1280px',
@@ -55,6 +60,7 @@ describe('Hydration', () => {
     document.body.removeChild(container)
     restoreConsoleError?.()
     restoreConsoleError = null
+    globalThis.__swStaticHandoffLinks = undefined
   })
 
   function getHydrationErrors(): unknown[][] {
@@ -85,6 +91,33 @@ describe('Hydration', () => {
 
     const errors = getHydrationErrors()
     expect(errors).toHaveLength(0)
+  })
+
+  it('landing page hydrates after boot rewrites quickstart handoff links', async () => {
+    const tree = (
+      <StaticTree path="/">
+        <Landing />
+      </StaticTree>
+    )
+
+    container.innerHTML = renderToString(tree)
+    for (const link of container.querySelectorAll('a[href^="/quickstart/"]')) {
+      const href = link.getAttribute('href')
+      if (href) link.setAttribute('href', `#${href}`)
+    }
+    globalThis.__swStaticHandoffLinks = true
+
+    root = hydrateRoot(container, tree)
+
+    await new Promise((r) => setTimeout(r, 200))
+
+    const errors = getHydrationErrors()
+    expect(errors).toHaveLength(0)
+    expect(
+      container
+        .querySelector('a[href="#/quickstart/drive"]')
+        ?.getAttribute('href'),
+    ).toBe('#/quickstart/drive')
   })
 
   it('pricing page hydrates without errors', async () => {

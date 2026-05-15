@@ -22,12 +22,24 @@ import {
 } from '@s4wave/web/ui/command.js'
 import { useIsStaticMode } from '../prerender/StaticContext.js'
 
+declare global {
+  var __swStaticHandoffLinks: boolean | undefined
+}
+
 const COMMAND_ITEMS = [...VISIBLE_QUICKSTART_OPTIONS]
 
 const CATEGORIES = [...new Set(COMMAND_ITEMS.map((item) => item.category))]
 
-function getStaticQuickstartHref(item: (typeof COMMAND_ITEMS)[number]): string {
+function shouldUseStaticHandoffLinks(): boolean {
+  return globalThis.__swStaticHandoffLinks === true
+}
+
+function getStaticQuickstartHref(
+  item: (typeof COMMAND_ITEMS)[number],
+  useHandoffLinks: boolean,
+): string {
   const path = getQuickstartPath(item)
+  if (useHandoffLinks) return `#${path}`
   return isQuickstartOptionPublic(item, false) ? path : `#${path}`
 }
 
@@ -127,6 +139,7 @@ interface GetStartedProps {
 // cmdk requires React effects to register items, so it shows "No templates
 // found" during SSR. This version is crawlable and clickable without JS.
 function StaticGetStarted({ className }: { className?: string }) {
+  const useHandoffLinks = shouldUseStaticHandoffLinks()
   const itemsByCategory = useMemo(() => {
     return CATEGORIES.map((category) => ({
       category,
@@ -162,7 +175,7 @@ function StaticGetStarted({ className }: { className?: string }) {
             {items.map((item) => (
               <a
                 key={item.id}
-                href={getStaticQuickstartHref(item)}
+                href={getStaticQuickstartHref(item, useHandoffLinks)}
                 className="text-foreground-alt flex items-center gap-3 px-4 py-1.5 no-underline"
               >
                 <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md">
