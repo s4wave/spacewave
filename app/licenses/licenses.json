@@ -822,7 +822,7 @@
     },
     {
       "name": "github.com/aperturerobotics/cayley",
-      "version": "v0.14.0",
+      "version": "v0.14.1-0.20260512101008-8126fdcbc49f",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/cayley",
@@ -838,7 +838,7 @@
     },
     {
       "name": "github.com/aperturerobotics/controllerbus",
-      "version": "v0.53.2",
+      "version": "v0.53.3-0.20260514222015-b0bfe2a40231",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/controllerbus",
@@ -965,7 +965,7 @@
     },
     {
       "name": "github.com/aperturerobotics/util",
-      "version": "v1.34.3",
+      "version": "v1.34.4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/util",
@@ -978,14 +978,6 @@
       "source": "go",
       "repo": "https://github.com/bits-and-blooms/bitset",
       "fullText": "Copyright (c) 2014 Will Fitzgerald. All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n   * Redistributions of source code must retain the above copyright\nnotice, this list of conditions and the following disclaimer.\n   * Redistributions in binary form must reproduce the above\ncopyright notice, this list of conditions and the following disclaimer\nin the documentation and/or other materials provided with the\ndistribution.\n   * Neither the name of Google Inc. nor the names of its\ncontributors may be used to endorse or promote products derived from\nthis software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nOWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
-    },
-    {
-      "name": "github.com/blang/semver/v4",
-      "version": "v4.0.0",
-      "spdx": "MIT",
-      "source": "go",
-      "repo": "https://github.com/blang/semver",
-      "copyrightNotice": "Copyright (c) 2014 Benedikt Lang <github at benediktlang.de>"
     },
     {
       "name": "github.com/bwesterb/go-ristretto",
@@ -1355,13 +1347,6 @@
       "source": "go",
       "repo": "https://github.com/ncruces/julianday",
       "copyrightNotice": "Copyright (c) 2022 Nuno Cruces"
-    },
-    {
-      "name": "github.com/oklog/ulid/v2",
-      "version": "v2.1.1",
-      "spdx": "Apache-2.0",
-      "source": "go",
-      "repo": "https://github.com/oklog/ulid"
     },
     {
       "name": "github.com/paralin/gonum-graph-simple",
