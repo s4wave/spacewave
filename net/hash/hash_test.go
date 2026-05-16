@@ -24,6 +24,12 @@ func TestVerifyData(t *testing.T) {
 	}
 }
 
+func TestRecommendedHashType(t *testing.T) {
+	if RecommendedHashType != HashType_HashType_SHA256 {
+		t.Fatalf("expected RecommendedHashType SHA256, got %s", RecommendedHashType.String())
+	}
+}
+
 // TestJSON tests marshal and unmarshal hash from json.
 func TestJSON(t *testing.T) {
 	h, err := Sum(HashType_HashType_SHA256, []byte("hello world"))

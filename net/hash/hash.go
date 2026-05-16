@@ -28,8 +28,10 @@ var SupportedHashTypes = []HashType{
 }
 
 // RecommendedHashType is the hash type recommended to use.
+// RecommendedHashType defaults to SHA256 because, as of May 16, 2026,
+// SubtleCrypto supports only the SHA-family of hash algorithms.
 // Note: not guaranteed to stay the same between Bifrost versions.
-const RecommendedHashType = HashType_HashType_BLAKE3
+const RecommendedHashType = HashType_HashType_SHA256
 
 // UnmarshalHashJSON unmarshals a hash from json.
 func UnmarshalHashJSON(data []byte) (*Hash, error) {
@@ -93,19 +95,7 @@ func (h HashType) GetHashLen() int {
 
 // Sum takes the sum with the hash type.
 func (h HashType) Sum(data []byte) ([]byte, error) {
-	switch h {
-	case HashType_HashType_SHA256:
-		h := sha256.Sum256(data)
-		return h[:], nil
-	case HashType_HashType_SHA1:
-		h := sha1.Sum(data) //nolint:gosec
-		return h[:], nil
-	case HashType_HashType_BLAKE3:
-		h := blake3.Sum256(data)
-		return h[:], nil
-	default:
-		return nil, errors.Errorf("hash type unknown: %v", h.String())
-	}
+	return sumHashType(h, data)
 }
 
 // CompareHash compares two hashes.
