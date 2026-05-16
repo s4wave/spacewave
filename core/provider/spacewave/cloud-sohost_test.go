@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -14,6 +15,51 @@ import (
 )
 
 const testSharedObjectID = "test-shared-object"
+
+func TestCoalescedTriggerRoutineQueuesSinglePendingRun(t *testing.T) {
+	started := make(chan struct{}, 3)
+	release := make(chan struct{})
+	routine := newCoalescedTriggerRoutine(
+		logrus.New().WithField("test", t.Name()),
+		"test-trigger",
+		func(ctx context.Context) {
+			started <- struct{}{}
+			select {
+			case <-ctx.Done():
+			case <-release:
+			}
+		},
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	routine.SetContext(ctx)
+	defer routine.ClearContext()
+
+	routine.Trigger()
+	waitCoalescedTriggerRun(t, started)
+
+	routine.Trigger()
+	routine.Trigger()
+	release <- struct{}{}
+	waitCoalescedTriggerRun(t, started)
+
+	release <- struct{}{}
+	select {
+	case <-started:
+		t.Fatal("expected duplicate triggers while running to coalesce into one pending run")
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func waitCoalescedTriggerRun(t *testing.T, started <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for coalesced trigger routine")
+	}
+}
 
 func TestApplyChangeLogEntryRootPrunesAcceptedAndRejectedOps(t *testing.T) {
 	validator, err := peer.NewPeer(nil)

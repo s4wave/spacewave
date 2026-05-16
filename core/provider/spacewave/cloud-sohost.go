@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -68,20 +69,22 @@ type cloudSOHost struct {
 	bcast broadcast.Broadcast
 	// writeMu serializes local writes to prevent self-nonce conflicts
 	writeMu csync.Mutex
-	// pullCh signals the pull goroutine to fetch fresh state
-	pullCh chan struct{}
+	// pullRoutine runs coalesced gap-recovery state pulls.
+	pullRoutine *coalescedTriggerRoutine
 	// pullSeed coordinates concurrent pullState callers (cold seed in
-	// Execute, lockFn cold fallback, gap recovery in runPuller, write
+	// Execute, lockFn cold fallback, gap recovery in pullRoutine, write
 	// retries, op-queue cold fallback) so they share one in-flight HTTP
 	// fetch and observe the same error. Guarded by bcast.
 	pullSeed providerSeed
 	// chainSeed coordinates concurrent syncConfigChain callers
-	// (pullState inline recovery and runConfigChainVerifier handler)
+	// (pullState inline recovery and configChangedRoutine handler)
 	// so a single /config-chain fetch covers both verifier triggers.
 	// Guarded by bcast.
 	chainSeed providerSeed
-	// configChangedCh signals that config_chain_hash changed and needs verification
-	configChangedCh chan struct{}
+	// snapDeriver derives SharedObjectStateSnapshot values from stateCtr.
+	snapDeriver *routine.RoutineContainer
+	// configChangedRoutine runs coalesced config-chain verification.
+	configChangedRoutine *coalescedTriggerRoutine
 	// ctxCancel cancels the host context (used for D11 teardown on participant removal)
 	ctxCancel context.CancelFunc
 	// onPeerRevoked is called when a peer is removed from the config chain with
@@ -119,11 +122,13 @@ func newCloudSOHost(
 		tracker:                   tracker,
 		stateCtr:                  ccontainer.NewCContainer[*sobject.SOState](nil),
 		snapCtr:                   ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](nil),
-		pullCh:                    make(chan struct{}, 1),
-		configChangedCh:           make(chan struct{}, 1),
 		persistVerifiedStateCache: persistVerifiedStateCache,
 		forceBlockSync:            forceBlockSync,
 	}
+	h.pullRoutine = newCoalescedTriggerRoutine(le, "so-state-pull", h.pullOnTrigger)
+	h.snapDeriver = newNamedRoutineContainer(le, "so-snapshot-deriver")
+	h.snapDeriver.SetRoutine(h.runSnapDeriver)
+	h.configChangedRoutine = newCoalescedTriggerRoutine(le, "so-config-chain-verifier", h.handleConfigChanged)
 	h.hydrateVerifiedStateCache(verifiedCache)
 
 	// watchFn returns the stateCtr which is updated by pull-on-notify.
@@ -175,14 +180,12 @@ func (h *cloudSOHost) Execute(ctx context.Context) error {
 	h.tracker.RegisterNotifyCallback(h.soID, h.handleSONotify)
 	defer h.tracker.UnregisterNotifyCallback(h.soID)
 
-	// Pull goroutine: processes pull signals without blocking the WS read loop.
-	go h.runPuller(ctx)
-
-	// Snapshot derivation: watches stateCtr and updates snapCtr.
-	go h.runSnapDeriver(ctx)
-
-	// Config chain verifier: checks config chain when hash changes.
-	go h.runConfigChainVerifier(ctx)
+	h.pullRoutine.SetContext(ctx)
+	defer h.pullRoutine.ClearContext()
+	h.snapDeriver.SetContext(ctx, true)
+	defer h.snapDeriver.ClearContext()
+	h.configChangedRoutine.SetContext(ctx)
+	defer h.configChangedRoutine.ClearContext()
 
 	// Seed the local SO state immediately so first mount does not depend on a
 	// later websocket notification to populate the state containers.
@@ -221,12 +224,12 @@ func (h *cloudSOHost) ensureInitialState(ctx context.Context, reason SeedReason)
 }
 
 // runSnapDeriver watches stateCtr and derives SharedObjectStateSnapshot values into snapCtr.
-func (h *cloudSOHost) runSnapDeriver(ctx context.Context) {
+func (h *cloudSOHost) runSnapDeriver(ctx context.Context) error {
 	var prev *sobject.SOState
 	for {
 		next, err := h.stateCtr.WaitValueChange(ctx, prev, nil)
 		if err != nil {
-			return
+			return err
 		}
 		prev = next
 		snap := sobject.NewSOStateParticipantHandle(
@@ -241,30 +244,23 @@ func (h *cloudSOHost) runSnapDeriver(ctx context.Context) {
 	}
 }
 
-// runPuller listens for pull signals and fetches fresh state via HTTP GET.
+// pullOnTrigger fetches fresh state via HTTP GET after a pull signal.
 // With event-carried SO state deltas in place, the only callers that signal
-// pullCh are gap-recovery paths (inline delta apply failed because the
+// pullRoutine are gap-recovery paths (inline delta apply failed because the
 // cache is behind by more than the cloud retains). Cold seed and write
 // retry paths call pullState directly rather than queueing a signal.
-func (h *cloudSOHost) runPuller(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
+func (h *cloudSOHost) pullOnTrigger(ctx context.Context) {
+	if err := h.pullStateSingleflight(ctx, SeedReasonGapRecovery); err != nil {
+		if ctx.Err() != nil {
 			return
-		case <-h.pullCh:
-			if err := h.pullStateSingleflight(ctx, SeedReasonGapRecovery); err != nil {
-				if ctx.Err() != nil {
-					return
-				}
-				h.le.WithError(err).Warn("failed to pull state on notify")
-			}
 		}
+		h.le.WithError(err).Warn("failed to pull state on notify")
 	}
 }
 
 // pullStateSingleflight runs pullState behind providerSeed so concurrent
 // callers (cold-seed in Execute, lockFn no-state fallback, gap recovery in
-// runPuller, write conflict retry, op queue cold fallback) share one
+// pullRoutine, write conflict retry, op queue cold fallback) share one
 // in-flight HTTP fetch and observe the same outcome. reason tags the fan-out
 // origin for the resulting HTTP GET.
 func (h *cloudSOHost) pullStateSingleflight(ctx context.Context, reason SeedReason) error {
@@ -455,14 +451,13 @@ func (h *cloudSOHost) verifyPulledState(state *sobject.SOState) error {
 	return nil
 }
 
-// triggerPull sends a non-blocking signal to the pull goroutine. Use this
+// triggerPull sends a non-blocking signal to the pull routine. Use this
 // only for gap-recovery cases where an inline state apply failed; cold-seed
 // and write-retry callers should invoke pullState directly so the result is
 // observable inline.
 func (h *cloudSOHost) triggerPull() {
-	select {
-	case h.pullCh <- struct{}{}:
-	default:
+	if h.pullRoutine != nil {
+		h.pullRoutine.Trigger()
 	}
 }
 
@@ -1006,22 +1001,8 @@ func (h *cloudSOHost) AccessSharedObjectSnapshot() ccontainer.Watchable[sobject.
 
 // triggerConfigChanged sends a non-blocking signal to the config chain verifier.
 func (h *cloudSOHost) triggerConfigChanged() {
-	select {
-	case h.configChangedCh <- struct{}{}:
-	default:
-	}
-}
-
-// runConfigChainVerifier listens for config changed signals and verifies the config chain.
-// If the local peer is removed from the participant list, it cancels the context to tear down the mount.
-func (h *cloudSOHost) runConfigChainVerifier(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-h.configChangedCh:
-			h.handleConfigChanged(ctx)
-		}
+	if h.configChangedRoutine != nil {
+		h.configChangedRoutine.Trigger()
 	}
 }
 
@@ -1057,7 +1038,7 @@ func (h *cloudSOHost) handleConfigChanged(ctx context.Context) {
 }
 
 // syncConfigChainSingleflight runs syncConfigChain behind chainSeed so the
-// pullState inline recovery and the runConfigChainVerifier handler share one
+// pullState inline recovery and the configChangedRoutine handler share one
 // in-flight /config-chain fetch and observe the same outcome. Both callers
 // drive verification toward the latest hash on the cached SOState; collisions
 // across slightly different hashes are benign because the next config_changed

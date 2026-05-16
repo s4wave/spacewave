@@ -301,17 +301,15 @@ func TestPullStateSkipsConfigChainOnWarmMount(t *testing.T) {
 	if got := configChainHits.Load(); got != 0 {
 		t.Fatalf("/config-chain hits = %d, want 0 (warm cache should short-circuit)", got)
 	}
-	select {
-	case <-host.configChangedCh:
-		t.Fatal("warm mount signaled configChangedCh; verifier would have fetched /config-chain")
-	default:
+	if host.configChangedRoutine.Pending() {
+		t.Fatal("warm mount signaled config verifier; verifier would have fetched /config-chain")
 	}
 }
 
 // TestPullStateTriggersConfigChainOnColdMount is the symmetric counterpart
 // to TestPullStateSkipsConfigChainOnWarmMount: with no hydrated cache the
 // config-chain verifier MUST be signaled so the first /state pull is
-// followed by a /config-chain fetch on the verifier goroutine. This
+// followed by a /config-chain fetch on the verifier routine. This
 // guards against a regression where the warm-skip logic also accidentally
 // suppresses cold-mount verification.
 func TestPullStateTriggersConfigChainOnColdMount(t *testing.T) {
@@ -351,10 +349,8 @@ func TestPullStateTriggersConfigChainOnColdMount(t *testing.T) {
 	if err := host.pullState(context.Background(), SeedReasonColdSeed); err != nil {
 		t.Fatalf("pullState: %v", err)
 	}
-	select {
-	case <-host.configChangedCh:
-	default:
-		t.Fatal("cold mount did not signal configChangedCh; verifier would not run")
+	if !host.configChangedRoutine.Pending() {
+		t.Fatal("cold mount did not signal config verifier; verifier would not run")
 	}
 }
 
@@ -365,7 +361,7 @@ func TestPullStateTriggersConfigChainOnColdMount(t *testing.T) {
 // fell through to triggerPull and fired a redundant GET /state.
 //
 // Contract: handleSONotify must signal the config-chain verifier (so it
-// can fetch /config-chain) and must NOT signal pullCh (the inline state
+// can fetch /config-chain) and must NOT signal the pull routine (the inline state
 // already arrived; the next inline event after the chain syncs carries
 // it forward, or gap recovery rerun a full pull). The HTTP server fails
 // the test if /state is hit at all.
@@ -417,16 +413,12 @@ func TestHandleSONotifyDeferToConfigChainOnInlineDelta(t *testing.T) {
 
 	host.handleSONotify(payload)
 
-	select {
-	case <-host.configChangedCh:
-	default:
-		t.Fatal("configChangedCh was not signaled; config-chain verifier would not run")
+	if !host.configChangedRoutine.Pending() {
+		t.Fatal("config verifier was not signaled; config-chain verifier would not run")
 	}
 
-	select {
-	case <-host.pullCh:
-		t.Fatal("pullCh was signaled; this is the Phase 6 iter 6 regression (redundant GET /state)")
-	default:
+	if host.pullRoutine.Pending() {
+		t.Fatal("pull routine was signaled; this is the redundant GET /state regression")
 	}
 }
 
@@ -454,15 +446,11 @@ func TestHandleSONotifyIgnoresMetadataOnly(t *testing.T) {
 		},
 	})
 
-	select {
-	case <-host.configChangedCh:
-		t.Fatal("metadata-only notify should not signal configChangedCh")
-	default:
+	if host.configChangedRoutine.Pending() {
+		t.Fatal("metadata-only notify should not signal config verifier")
 	}
-	select {
-	case <-host.pullCh:
-		t.Fatal("metadata-only notify should not signal pullCh")
-	default:
+	if host.pullRoutine.Pending() {
+		t.Fatal("metadata-only notify should not signal pull routine")
 	}
 }
 

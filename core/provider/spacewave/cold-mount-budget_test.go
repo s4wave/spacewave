@@ -136,10 +136,8 @@ func TestColdMountBudget(t *testing.T) {
 		if err := host.pullState(context.Background(), SeedReasonColdSeed); err != nil {
 			t.Fatalf("pullState: %v", err)
 		}
-		select {
-		case <-host.configChangedCh:
-		default:
-			t.Fatal("cold mount did not signal configChangedCh; verifier would not run")
+		if !host.configChangedRoutine.Pending() {
+			t.Fatal("cold mount did not signal config verifier; verifier would not run")
 		}
 		host.handleConfigChanged(context.Background())
 
