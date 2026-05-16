@@ -31,7 +31,17 @@ func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 		return nil, tx.ErrDiscarded
 	}
 
-	return t.lookupGraphQuads(ctx, filter, limit)
+	if !t.write && t.store != nil {
+		store, release, err := t.store.BeginReadOperation(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+		ctx = block.WithReadOperationStore(ctx, store)
+	}
+
+	graphHd := world.NewReadOperationCayleyHandle(t.graphHd)
+	return lookupGraphQuads(ctx, graphHd, filter, limit)
 }
 
 // LookupGraphQuadsBatch searches for graph quads for each filter in one graph read.
@@ -50,10 +60,6 @@ func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.
 
 	graphHd := world.NewReadOperationCayleyHandle(t.graphHd)
 	return lookupGraphQuadsBatch(ctx, graphHd, filters, limitPerFilter)
-}
-
-func (t *WorldState) lookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
-	return lookupGraphQuads(ctx, t.graphHd, filter, limit)
 }
 
 func lookupGraphQuads(ctx context.Context, h world.CayleyHandle, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
