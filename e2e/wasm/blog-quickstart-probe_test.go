@@ -7,13 +7,26 @@ import (
 	"testing"
 )
 
+const blogQuickstartSetupTimeoutMs = 240000
+
 func TestBlogQuickstartSetupProbe(t *testing.T) {
 	sess := testHarness.NewCleanPageSession(t)
+	runBlogQuickstartSetupProbe(t, sess)
+}
+
+func TestBlogQuickstartRetainedStateRegistrationProbe(t *testing.T) {
+	sess := testHarness.NewRetainedStatePageSession(t)
+	runBlogQuickstartSetupProbe(t, sess)
+}
+
+func runBlogQuickstartSetupProbe(t *testing.T, sess *TestSession) {
+	t.Helper()
+
 	page := sess.Page()
 
 	WaitForApp(t, page)
 
-	raw, err := page.Evaluate(`async () => {
+	raw, err := page.Evaluate(`async ({ timeoutMs }) => {
 		const waitForDebugContext = async () => {
 			const deadline = Date.now() + 30000
 			for (;;) {
@@ -57,7 +70,7 @@ func TestBlogQuickstartSetupProbe(t *testing.T) {
 									'timeout waiting for createQuickstartSetup(blog)',
 								),
 							),
-						30000,
+						timeoutMs,
 					),
 				),
 			])
@@ -78,7 +91,9 @@ func TestBlogQuickstartSetupProbe(t *testing.T) {
 				} catch {}
 			}
 		}
-	}`, nil)
+	}`, map[string]any{
+		"timeoutMs": blogQuickstartSetupTimeoutMs,
+	})
 	if err != nil {
 		t.Fatalf("probe createQuickstartSetup(blog): %v", err)
 	}

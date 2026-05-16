@@ -58,7 +58,7 @@ import {
 import { type QuickstartSpaceCreateId } from './options.js'
 
 const NOTES_PLUGIN_ID = 'spacewave-notes'
-const QUICKSTART_REGISTRATION_TIMEOUT_MS = 30000
+const QUICKSTART_REGISTRATION_TIMEOUT_MS = import.meta.env?.DEV ? 240000 : 30000
 
 type NotesQuickstartId = Extract<
   QuickstartSpaceCreateId,
