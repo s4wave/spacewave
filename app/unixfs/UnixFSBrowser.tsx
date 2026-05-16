@@ -8,6 +8,7 @@ import {
   type MouseEvent,
   type DragEvent,
   type ComponentType,
+  type ReactNode,
   useRef,
 } from 'react'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -38,8 +39,11 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import {
+  LuBookOpen,
   LuCheck,
   LuCircleAlert,
+  LuFolderPlus,
+  LuHardDrive,
   LuRotateCw,
   LuUpload,
   LuX,
@@ -84,6 +88,9 @@ import {
   type SessionSyncStatusView,
   useSessionSyncStatus,
 } from '../session/SessionSyncStatusContext.js'
+import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
+
+const DRIVE_STARTER_GUIDE_NAME = 'getting-started.md'
 
 export interface UnixFSBrowserBodyProps {
   rootHandle: Resource<FSHandle>
@@ -169,6 +176,83 @@ function UnixFSLoadingDiagnostics({
         Lookup: {status.packLookupLabel}; cache {status.packIndexCacheLabel}
       </div>
     </div>
+  )
+}
+
+function DriveWelcomeSurface({
+  onUploadFiles,
+  onNewFolder,
+  onOpenStarterGuide,
+}: {
+  onUploadFiles: () => void
+  onNewFolder: () => void
+  onOpenStarterGuide?: () => void
+}) {
+  return (
+    <section
+      className="border-foreground/8 bg-background-card/30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3"
+      data-testid="drive-welcome-surface"
+    >
+      <div className="min-w-0">
+        <div className="text-foreground flex items-center gap-2 text-sm font-semibold">
+          <LuHardDrive className="text-brand size-4 shrink-0" />
+          <span>My Drive</span>
+        </div>
+        <p className="text-foreground-alt/60 mt-1 text-xs">
+          Add files, organize folders, or open the starter guide.
+        </p>
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <DriveWelcomeAction
+          icon={<LuUpload className="size-3.5" />}
+          label="Upload files"
+          onClick={onUploadFiles}
+          primary
+        />
+        <DriveWelcomeAction
+          icon={<LuFolderPlus className="size-3.5" />}
+          label="New folder"
+          onClick={onNewFolder}
+        />
+        {onOpenStarterGuide && (
+          <DriveWelcomeAction
+            icon={<LuBookOpen className="size-3.5" />}
+            label="Open guide"
+            onClick={onOpenStarterGuide}
+          />
+        )}
+      </div>
+    </section>
+  )
+}
+
+function DriveWelcomeAction({
+  icon,
+  label,
+  onClick,
+  primary = false,
+}: {
+  icon: ReactNode
+  label: string
+  onClick: () => void
+  primary?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      data-testid={`drive-welcome-${label.toLowerCase().replaceAll(' ', '-')}`}
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors',
+        primary
+          ? 'border-brand/25 bg-brand/10 text-foreground hover:bg-brand/15'
+          : 'border-foreground/10 bg-foreground/5 text-foreground-alt hover:border-foreground/15 hover:bg-foreground/8 hover:text-foreground',
+      )}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   )
 }
 
@@ -514,6 +598,16 @@ export function UnixFSBrowser({
     },
     [displayPath, navigate, tabContext, unixfsId],
   )
+  const starterGuideEntry = useMemo(
+    () =>
+      fileEntries.find((entry) => entry.name === DRIVE_STARTER_GUIDE_NAME) ??
+      null,
+    [fileEntries],
+  )
+  const handleOpenStarterGuide = useCallback(() => {
+    if (!starterGuideEntry) return
+    handleOpen([starterGuideEntry])
+  }, [handleOpen, starterGuideEntry])
 
   // Handle retry for root handle, path handle, stat, and entries
   const handleRetry = useCallback(() => {
@@ -1136,6 +1230,18 @@ export function UnixFSBrowser({
       handleUploadFiles,
     ],
   )
+  const showDriveWelcome =
+    unixfsId === UNIXFS_OBJECT_KEY && normalizedDisplayPath === ''
+  const driveWelcomeSurface =
+    showDriveWelcome && isDir === true ? (
+      <DriveWelcomeSurface
+        onUploadFiles={handleUploadFiles}
+        onNewFolder={handleNewFolder}
+        onOpenStarterGuide={
+          starterGuideEntry ? handleOpenStarterGuide : undefined
+        }
+      />
+    ) : null
 
   // Determine loading state - include stat loading
   const isLoading =
@@ -1508,6 +1614,7 @@ export function UnixFSBrowser({
         onDragLeave={handleDragLeave}
         onDrop={(e) => void handleDrop(e)}
       >
+        {driveWelcomeSurface}
         <FileList
           entries={displayEntries}
           onOpen={handleOpen}

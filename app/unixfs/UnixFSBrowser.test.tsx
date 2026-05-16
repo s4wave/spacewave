@@ -96,6 +96,7 @@ const h = vi.hoisted(() => ({
   mockLookup: vi.fn(),
   mockMkdirAll: vi.fn(),
   mockMknod: vi.fn(),
+  mockNavigate: vi.fn(),
   mockRootHandleResource: null as ReturnType<typeof buildResource> | null,
   mockPathHandleResource: null as ReturnType<typeof buildResource> | null,
   mockEntriesResource: null as ReturnType<typeof buildResource> | null,
@@ -264,7 +265,7 @@ vi.mock('@s4wave/web/object/TabContext.js', () => ({
 }))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => h.mockNavigate,
 }))
 
 vi.mock('@s4wave/web/router/HistoryRouter.js', () => ({
@@ -540,6 +541,7 @@ describe('UnixFSBrowser drag gating', () => {
     h.mockLookup.mockReset()
     h.mockMkdirAll.mockReset()
     h.mockMknod.mockReset()
+    h.mockNavigate.mockReset()
     h.mockRootHandleResource = null
     h.mockPathHandleResource = null
     h.mockEntriesResource = null
@@ -607,6 +609,39 @@ describe('UnixFSBrowser drag gating', () => {
 
     await waitFor(() => {
       expect(h.mockMkdirAll).toHaveBeenCalledWith(['Projects'])
+    })
+  })
+
+  it('renders Drive welcome guidance on the quickstart root without replacing the file list', async () => {
+    const user = userEvent.setup()
+    h.mockFileEntries = [
+      { id: 'guide', name: 'getting-started.md', isDir: false },
+      { id: 'docs', name: 'docs', isDir: true },
+    ]
+
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(screen.getByTestId('drive-welcome-surface')).toBeTruthy()
+    expect(
+      screen.getByText('Add files, organize folders, or open the starter guide.'),
+    ).toBeTruthy()
+    expect(screen.getByTestId('file-entry-guide')).toBeTruthy()
+    expect(screen.getByTestId('file-entry-docs')).toBeTruthy()
+    expect(screen.getByTestId('drive-welcome-upload-files')).toBeTruthy()
+
+    await user.click(screen.getByTestId('drive-welcome-new-folder'))
+    expect(screen.getByPlaceholderText('Folder name')).toBeTruthy()
+
+    await user.click(screen.getByTestId('drive-welcome-open-guide'))
+    expect(h.mockNavigate).toHaveBeenCalledWith({
+      path: './getting-started.md',
     })
   })
 
