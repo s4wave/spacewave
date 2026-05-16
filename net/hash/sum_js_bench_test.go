@@ -69,6 +69,19 @@ func BenchmarkSHA256Browser(b *testing.B) {
 				benchHashArray = sha256.Sum256(data)
 			}
 		})
+
+		b.Run(name+"/routed", func(b *testing.B) {
+			b.ReportAllocs()
+			b.SetBytes(int64(len(data)))
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				var err error
+				benchHashBytes, err = HashType_HashType_SHA256.Sum(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }
 
