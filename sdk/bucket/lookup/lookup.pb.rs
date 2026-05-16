@@ -91,6 +91,47 @@ pub struct PutBlockResponse {
     #[prost(bool, tag="2")]
     pub existed: bool,
 }
+/// PutBlockBatchEntry is one block write operation in a batch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PutBlockBatchEntry {
+    /// Ref is the expected content-addressed block reference.
+    #[prost(message, optional, tag="1")]
+    pub r#ref: ::core::option::Option<super::super::block::BlockRef>,
+    /// Data is the encoded block payload.
+    #[prost(bytes="vec", tag="2")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+    /// Refs are outgoing block references recorded with this write.
+    #[prost(message, repeated, tag="3")]
+    pub refs: ::prost::alloc::vec::Vec<super::super::block::BlockRef>,
+    /// Tombstone marks the block ref as deleted.
+    #[prost(bool, tag="4")]
+    pub tombstone: bool,
+}
+/// PutBlockBatchRequest is the request type for PutBlockBatch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PutBlockBatchRequest {
+    /// Entries are the block write operations.
+    #[prost(message, repeated, tag="1")]
+    pub entries: ::prost::alloc::vec::Vec<PutBlockBatchEntry>,
+}
+/// PutBlockBatchResponse is the response type for PutBlockBatch.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PutBlockBatchResponse {
+}
+/// GetBlockExistsBatchRequest is the request type for GetBlockExistsBatch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetBlockExistsBatchRequest {
+    /// Refs are the block references to check.
+    #[prost(message, repeated, tag="1")]
+    pub refs: ::prost::alloc::vec::Vec<super::super::block::BlockRef>,
+}
+/// GetBlockExistsBatchResponse is the response type for GetBlockExistsBatch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetBlockExistsBatchResponse {
+    /// Found reports whether each requested ref exists.
+    #[prost(bool, repeated, tag="1")]
+    pub found: ::prost::alloc::vec::Vec<bool>,
+}
 /// BuildTransactionRequest is the request type for BuildTransaction.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BuildTransactionRequest {

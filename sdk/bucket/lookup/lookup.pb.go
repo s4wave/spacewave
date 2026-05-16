@@ -276,6 +276,124 @@ func (x *PutBlockResponse) GetExisted() bool {
 	return false
 }
 
+// PutBlockBatchEntry is one block write operation in a batch.
+type PutBlockBatchEntry struct {
+	unknownFields []byte
+	// Ref is the expected content-addressed block reference.
+	Ref *block.BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+	// Data is the encoded block payload.
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// Refs are outgoing block references recorded with this write.
+	Refs []*block.BlockRef `protobuf:"bytes,3,rep,name=refs,proto3" json:"refs,omitempty"`
+	// Tombstone marks the block ref as deleted.
+	Tombstone bool `protobuf:"varint,4,opt,name=tombstone,proto3" json:"tombstone,omitempty"`
+}
+
+func (x *PutBlockBatchEntry) Reset() {
+	*x = PutBlockBatchEntry{}
+}
+
+func (*PutBlockBatchEntry) ProtoMessage() {}
+
+func (x *PutBlockBatchEntry) GetRef() *block.BlockRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+func (x *PutBlockBatchEntry) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *PutBlockBatchEntry) GetRefs() []*block.BlockRef {
+	if x != nil {
+		return x.Refs
+	}
+	return nil
+}
+
+func (x *PutBlockBatchEntry) GetTombstone() bool {
+	if x != nil {
+		return x.Tombstone
+	}
+	return false
+}
+
+// PutBlockBatchRequest is the request type for PutBlockBatch.
+type PutBlockBatchRequest struct {
+	unknownFields []byte
+	// Entries are the block write operations.
+	Entries []*PutBlockBatchEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+}
+
+func (x *PutBlockBatchRequest) Reset() {
+	*x = PutBlockBatchRequest{}
+}
+
+func (*PutBlockBatchRequest) ProtoMessage() {}
+
+func (x *PutBlockBatchRequest) GetEntries() []*PutBlockBatchEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+// PutBlockBatchResponse is the response type for PutBlockBatch.
+type PutBlockBatchResponse struct {
+	unknownFields []byte
+}
+
+func (x *PutBlockBatchResponse) Reset() {
+	*x = PutBlockBatchResponse{}
+}
+
+func (*PutBlockBatchResponse) ProtoMessage() {}
+
+// GetBlockExistsBatchRequest is the request type for GetBlockExistsBatch.
+type GetBlockExistsBatchRequest struct {
+	unknownFields []byte
+	// Refs are the block references to check.
+	Refs []*block.BlockRef `protobuf:"bytes,1,rep,name=refs,proto3" json:"refs,omitempty"`
+}
+
+func (x *GetBlockExistsBatchRequest) Reset() {
+	*x = GetBlockExistsBatchRequest{}
+}
+
+func (*GetBlockExistsBatchRequest) ProtoMessage() {}
+
+func (x *GetBlockExistsBatchRequest) GetRefs() []*block.BlockRef {
+	if x != nil {
+		return x.Refs
+	}
+	return nil
+}
+
+// GetBlockExistsBatchResponse is the response type for GetBlockExistsBatch.
+type GetBlockExistsBatchResponse struct {
+	unknownFields []byte
+	// Found reports whether each requested ref exists.
+	Found []bool `protobuf:"varint,1,rep,packed,name=found,proto3" json:"found,omitempty"`
+}
+
+func (x *GetBlockExistsBatchResponse) Reset() {
+	*x = GetBlockExistsBatchResponse{}
+}
+
+func (*GetBlockExistsBatchResponse) ProtoMessage() {}
+
+func (x *GetBlockExistsBatchResponse) GetFound() []bool {
+	if x != nil {
+		return x.Found
+	}
+	return nil
+}
+
 // BuildTransactionRequest is the request type for BuildTransaction.
 type BuildTransactionRequest struct {
 	unknownFields []byte
@@ -665,6 +783,107 @@ func (m *PutBlockResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *PutBlockBatchEntry) CloneVT() *PutBlockBatchEntry {
+	if m == nil {
+		return (*PutBlockBatchEntry)(nil)
+	}
+	r := new(PutBlockBatchEntry)
+	r.Ref = m.Ref.CloneVT()
+	r.Tombstone = m.Tombstone
+	if rhs := m.Data; rhs != nil {
+		r.Data = slices.Clone(rhs)
+	}
+	if rhs := m.Refs; rhs != nil {
+		r.Refs = make([]*block.BlockRef, len(rhs))
+		for k, v := range rhs {
+			r.Refs[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PutBlockBatchEntry) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PutBlockBatchRequest) CloneVT() *PutBlockBatchRequest {
+	if m == nil {
+		return (*PutBlockBatchRequest)(nil)
+	}
+	r := new(PutBlockBatchRequest)
+	if rhs := m.Entries; rhs != nil {
+		r.Entries = make([]*PutBlockBatchEntry, len(rhs))
+		for k, v := range rhs {
+			r.Entries[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PutBlockBatchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PutBlockBatchResponse) CloneVT() *PutBlockBatchResponse {
+	if m == nil {
+		return (*PutBlockBatchResponse)(nil)
+	}
+	r := new(PutBlockBatchResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PutBlockBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetBlockExistsBatchRequest) CloneVT() *GetBlockExistsBatchRequest {
+	if m == nil {
+		return (*GetBlockExistsBatchRequest)(nil)
+	}
+	r := new(GetBlockExistsBatchRequest)
+	if rhs := m.Refs; rhs != nil {
+		r.Refs = make([]*block.BlockRef, len(rhs))
+		for k, v := range rhs {
+			r.Refs[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetBlockExistsBatchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetBlockExistsBatchResponse) CloneVT() *GetBlockExistsBatchResponse {
+	if m == nil {
+		return (*GetBlockExistsBatchResponse)(nil)
+	}
+	r := new(GetBlockExistsBatchResponse)
+	if rhs := m.Found; rhs != nil {
+		r.Found = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetBlockExistsBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *BuildTransactionRequest) CloneVT() *BuildTransactionRequest {
 	if m == nil {
 		return (*BuildTransactionRequest)(nil)
@@ -1043,6 +1262,160 @@ func (this *PutBlockResponse) EqualVT(that *PutBlockResponse) bool {
 
 func (this *PutBlockResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PutBlockResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PutBlockBatchEntry) EqualVT(that *PutBlockBatchEntry) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Ref.EqualVT(that.Ref) {
+		return false
+	}
+	if string(this.Data) != string(that.Data) {
+		return false
+	}
+	if len(this.Refs) != len(that.Refs) {
+		return false
+	}
+	for i, vx := range this.Refs {
+		vy := that.Refs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &block.BlockRef{}
+			}
+			if q == nil {
+				q = &block.BlockRef{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.Tombstone != that.Tombstone {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PutBlockBatchEntry) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PutBlockBatchEntry)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PutBlockBatchRequest) EqualVT(that *PutBlockBatchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Entries) != len(that.Entries) {
+		return false
+	}
+	for i, vx := range this.Entries {
+		vy := that.Entries[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &PutBlockBatchEntry{}
+			}
+			if q == nil {
+				q = &PutBlockBatchEntry{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PutBlockBatchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PutBlockBatchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PutBlockBatchResponse) EqualVT(that *PutBlockBatchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PutBlockBatchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PutBlockBatchResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetBlockExistsBatchRequest) EqualVT(that *GetBlockExistsBatchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Refs) != len(that.Refs) {
+		return false
+	}
+	for i, vx := range this.Refs {
+		vy := that.Refs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &block.BlockRef{}
+			}
+			if q == nil {
+				q = &block.BlockRef{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetBlockExistsBatchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetBlockExistsBatchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetBlockExistsBatchResponse) EqualVT(that *GetBlockExistsBatchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Found) != len(that.Found) {
+		return false
+	}
+	for i, vx := range this.Found {
+		vy := that.Found[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetBlockExistsBatchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetBlockExistsBatchResponse)
 	if !ok {
 		return false
 	}
@@ -1740,6 +2113,299 @@ func (x *PutBlockResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the PutBlockResponse from JSON.
 func (x *PutBlockResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PutBlockBatchEntry message to JSON.
+func (x *PutBlockBatchEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Ref != nil || s.HasField("ref") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ref")
+		x.Ref.MarshalProtoJSON(s.WithField("ref"))
+	}
+	if len(x.Data) > 0 || s.HasField("data") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("data")
+		s.WriteBytes(x.Data)
+	}
+	if len(x.Refs) > 0 || s.HasField("refs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Refs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("refs"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Tombstone || s.HasField("tombstone") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tombstone")
+		s.WriteBool(x.Tombstone)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PutBlockBatchEntry to JSON.
+func (x *PutBlockBatchEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PutBlockBatchEntry message from JSON.
+func (x *PutBlockBatchEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "ref":
+			if s.ReadNil() {
+				x.Ref = nil
+				return
+			}
+			x.Ref = &block.BlockRef{}
+			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
+		case "data":
+			s.AddField("data")
+			x.Data = s.ReadBytes()
+		case "refs":
+			s.AddField("refs")
+			if s.ReadNil() {
+				x.Refs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Refs = append(x.Refs, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Refs = append(x.Refs, v)
+			})
+		case "tombstone":
+			s.AddField("tombstone")
+			x.Tombstone = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PutBlockBatchEntry from JSON.
+func (x *PutBlockBatchEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PutBlockBatchRequest message to JSON.
+func (x *PutBlockBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Entries) > 0 || s.HasField("entries") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entries")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Entries {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("entries"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PutBlockBatchRequest to JSON.
+func (x *PutBlockBatchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PutBlockBatchRequest message from JSON.
+func (x *PutBlockBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "entries":
+			s.AddField("entries")
+			if s.ReadNil() {
+				x.Entries = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Entries = append(x.Entries, nil)
+					return
+				}
+				v := &PutBlockBatchEntry{}
+				v.UnmarshalProtoJSON(s.WithField("entries", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Entries = append(x.Entries, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PutBlockBatchRequest from JSON.
+func (x *PutBlockBatchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PutBlockBatchResponse message to JSON.
+func (x *PutBlockBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PutBlockBatchResponse to JSON.
+func (x *PutBlockBatchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PutBlockBatchResponse message from JSON.
+func (x *PutBlockBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the PutBlockBatchResponse from JSON.
+func (x *PutBlockBatchResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetBlockExistsBatchRequest message to JSON.
+func (x *GetBlockExistsBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Refs) > 0 || s.HasField("refs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Refs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("refs"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetBlockExistsBatchRequest to JSON.
+func (x *GetBlockExistsBatchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetBlockExistsBatchRequest message from JSON.
+func (x *GetBlockExistsBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "refs":
+			s.AddField("refs")
+			if s.ReadNil() {
+				x.Refs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Refs = append(x.Refs, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Refs = append(x.Refs, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetBlockExistsBatchRequest from JSON.
+func (x *GetBlockExistsBatchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetBlockExistsBatchResponse message to JSON.
+func (x *GetBlockExistsBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Found) > 0 || s.HasField("found") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("found")
+		s.WriteBoolArray(x.Found)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetBlockExistsBatchResponse to JSON.
+func (x *GetBlockExistsBatchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetBlockExistsBatchResponse message from JSON.
+func (x *GetBlockExistsBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "found":
+			s.AddField("found")
+			if s.ReadNil() {
+				x.Found = nil
+				return
+			}
+			x.Found = s.ReadBoolArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetBlockExistsBatchResponse from JSON.
+func (x *GetBlockExistsBatchResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2645,6 +3311,247 @@ func (m *PutBlockResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PutBlockBatchEntry) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PutBlockBatchEntry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PutBlockBatchEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Tombstone {
+		i--
+		if m.Tombstone {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Refs) > 0 {
+		for iNdEx := len(m.Refs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Refs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Data) > 0 {
+		i -= len(m.Data)
+		copy(dAtA[i:], m.Data)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Data)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Ref != nil {
+		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PutBlockBatchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PutBlockBatchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PutBlockBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Entries) > 0 {
+		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Entries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PutBlockBatchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PutBlockBatchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PutBlockBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetBlockExistsBatchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetBlockExistsBatchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetBlockExistsBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Refs) > 0 {
+		for iNdEx := len(m.Refs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Refs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetBlockExistsBatchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetBlockExistsBatchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetBlockExistsBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Found) > 0 {
+		for iNdEx := len(m.Found) - 1; iNdEx >= 0; iNdEx-- {
+			i--
+			if m.Found[iNdEx] {
+				dAtA[i] = 1
+			} else {
+				dAtA[i] = 0
+			}
+		}
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Found)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *BuildTransactionRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3224,6 +4131,88 @@ func (m *PutBlockResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *PutBlockBatchEntry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Ref != nil {
+		l = m.Ref.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Refs) > 0 {
+		for _, e := range m.Refs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Tombstone {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PutBlockBatchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Entries) > 0 {
+		for _, e := range m.Entries {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PutBlockBatchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetBlockExistsBatchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Refs) > 0 {
+		for _, e := range m.Refs {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetBlockExistsBatchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Found) > 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(len(m.Found))) + len(m.Found)*1
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *BuildTransactionRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3589,6 +4578,136 @@ func (x *PutBlockResponse) MarshalProtoText() string {
 }
 
 func (x *PutBlockResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PutBlockBatchEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PutBlockBatchEntry {")
+	if x.Ref != nil {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ref: ")
+		sb.WriteString(x.Ref.MarshalProtoText())
+	}
+	if x.Data != nil {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("data: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Data))
+		sb.WriteString("\"")
+	}
+	if len(x.Refs) > 0 {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("refs: [")
+		for i, v := range x.Refs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.Tombstone != false {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("tombstone: ")
+		sb.WriteString(strconv.FormatBool(x.Tombstone))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PutBlockBatchEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PutBlockBatchRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PutBlockBatchRequest {")
+	if len(x.Entries) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entries: [")
+		for i, v := range x.Entries {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PutBlockBatchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PutBlockBatchResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PutBlockBatchResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PutBlockBatchResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetBlockExistsBatchRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetBlockExistsBatchRequest {")
+	if len(x.Refs) > 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("refs: [")
+		for i, v := range x.Refs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetBlockExistsBatchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetBlockExistsBatchResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetBlockExistsBatchResponse {")
+	if len(x.Found) > 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("found: [")
+		for i, v := range x.Found {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.FormatBool(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetBlockExistsBatchResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4547,6 +5666,411 @@ func (m *PutBlockResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Existed = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PutBlockBatchEntry) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PutBlockBatchEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PutBlockBatchEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Ref == nil {
+				m.Ref = &block.BlockRef{}
+			}
+			if err := m.Ref.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refs", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Refs = append(m.Refs, &block.BlockRef{})
+			if err := m.Refs[len(m.Refs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Tombstone", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Tombstone = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PutBlockBatchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PutBlockBatchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PutBlockBatchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Entries = append(m.Entries, &PutBlockBatchEntry{})
+			if err := m.Entries[len(m.Entries)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PutBlockBatchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PutBlockBatchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PutBlockBatchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetBlockExistsBatchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetBlockExistsBatchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetBlockExistsBatchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refs", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Refs = append(m.Refs, &block.BlockRef{})
+			if err := m.Refs[len(m.Refs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetBlockExistsBatchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetBlockExistsBatchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetBlockExistsBatchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType == 0 {
+				var v int
+				var _v uint64
+				_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				v = int(_v)
+				if err != nil {
+					return err
+				}
+				m.Found = append(m.Found, bool(v != 0))
+			} else if wireType == 2 {
+				var packedLen int
+				var _v uint64
+				_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				packedLen = int(_v)
+				if err != nil {
+					return err
+				}
+				if packedLen < 0 {
+					return protobuf_go_lite.ErrInvalidLength
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return protobuf_go_lite.ErrInvalidLength
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				elementCount = packedLen
+				if elementCount != 0 && len(m.Found) == 0 {
+					m.Found = make([]bool, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v int
+					var _v uint64
+					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					v = int(_v)
+					if err != nil {
+						return err
+					}
+					m.Found = append(m.Found, bool(v != 0))
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Found", wireType)
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

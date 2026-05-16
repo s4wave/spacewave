@@ -107,7 +107,7 @@ func (s *sdkBucketLookupStore) GetHashType() hash.HashType {
 }
 
 func (s *sdkBucketLookupStore) GetSupportedFeatures() block.StoreFeature {
-	return 0
+	return block.StoreFeatureNativeBatchPut | block.StoreFeatureNativeBatchExists
 }
 
 func (s *sdkBucketLookupStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
@@ -138,22 +138,42 @@ func (s *sdkBucketLookupStore) PutBlock(
 }
 
 func (s *sdkBucketLookupStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	for _, entry := range entries {
-		if entry.Tombstone {
-			if err := s.RmBlock(ctx, entry.Ref); err != nil {
+	reqEntries := make([]*s4wave_bucket_lookup.PutBlockBatchEntry, len(entries))
+	for i, entry := range entries {
+		data := entry.Data
+		if !entry.Tombstone && s.xfrm != nil {
+			var err error
+			data = bytes.Clone(data)
+			data, err = s.xfrm.DecodeBlock(data)
+			if err != nil {
 				return err
 			}
-			continue
 		}
-		_, _, err := s.PutBlock(ctx, entry.Data, &block.PutOpts{
-			ForceBlockRef: entry.Ref.Clone(),
-			Refs:          entry.Refs,
-		})
-		if err != nil {
-			return err
+		reqEntries[i] = &s4wave_bucket_lookup.PutBlockBatchEntry{
+			Ref:       entry.Ref,
+			Data:      data,
+			Refs:      entry.Refs,
+			Tombstone: entry.Tombstone,
 		}
 	}
-	return nil
+	_, err := s.service.PutBlockBatch(ctx, &s4wave_bucket_lookup.PutBlockBatchRequest{
+		Entries: reqEntries,
+	})
+	return err
+}
+
+func (s *sdkBucketLookupStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	resp, err := s.service.GetBlockExistsBatch(ctx, &s4wave_bucket_lookup.GetBlockExistsBatchRequest{
+		Refs: refs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	found := resp.GetFound()
+	if len(found) != len(refs) {
+		return nil, errors.Errorf("bucket lookup cursor resource returned %d existence results for %d refs", len(found), len(refs))
+	}
+	return found, nil
 }
 
 func (s *sdkBucketLookupStore) PutBlockBackground(
@@ -185,18 +205,6 @@ func (s *sdkBucketLookupStore) GetBlock(
 func (s *sdkBucketLookupStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	_, found, err := s.GetBlock(ctx, ref)
 	return found, err
-}
-
-func (s *sdkBucketLookupStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := s.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
-	}
-	return out, nil
 }
 
 func (s *sdkBucketLookupStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {

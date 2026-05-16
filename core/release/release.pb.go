@@ -347,9 +347,7 @@ func (m *ChannelEntry) CloneVT() *ChannelEntry {
 	}
 	r := new(ChannelEntry)
 	r.ChannelKey = m.ChannelKey
-	if rhs := m.ReleaseMetadataRef; rhs != nil {
-		r.ReleaseMetadataRef = rhs.CloneVT()
-	}
+	r.ReleaseMetadataRef = m.ReleaseMetadataRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -420,12 +418,10 @@ func (m *BrowserAsset) CloneVT() *BrowserAsset {
 	}
 	r := new(BrowserAsset)
 	r.Path = m.Path
+	r.ContentRef = m.ContentRef.CloneVT()
 	r.Size = m.Size
 	r.ContentType = m.ContentType
 	r.CacheControl = m.CacheControl
-	if rhs := m.ContentRef; rhs != nil {
-		r.ContentRef = rhs.CloneVT()
-	}
 	if rhs := m.Sha256; rhs != nil {
 		r.Sha256 = slices.Clone(rhs)
 	}

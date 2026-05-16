@@ -214,9 +214,7 @@ func (m *BlockCommon) CloneVT() *BlockCommon {
 	r.BucketId = m.BucketId
 	r.VolumeId = m.VolumeId
 	r.BucketConfRev = m.BucketConfRev
-	if rhs := m.BlockRef; rhs != nil {
-		r.BlockRef = rhs.CloneVT()
-	}
+	r.BlockRef = m.BlockRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

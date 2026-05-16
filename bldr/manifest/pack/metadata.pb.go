@@ -184,6 +184,8 @@ func (m *ManifestPackMetadata) CloneVT() *ManifestPackMetadata {
 	r.GitSha = m.GitSha
 	r.BuildType = m.BuildType
 	r.ProducerTarget = m.ProducerTarget
+	r.ManifestBundleRef = m.ManifestBundleRef.CloneVT()
+	r.Pack = m.Pack.CloneVT()
 	r.ReactDev = m.ReactDev
 	r.CacheSchema = m.CacheSchema
 	if rhs := m.Manifests; rhs != nil {
@@ -191,12 +193,6 @@ func (m *ManifestPackMetadata) CloneVT() *ManifestPackMetadata {
 		for k, v := range rhs {
 			r.Manifests[k] = v.CloneVT()
 		}
-	}
-	if rhs := m.ManifestBundleRef; rhs != nil {
-		r.ManifestBundleRef = rhs.CloneVT()
-	}
-	if rhs := m.Pack; rhs != nil {
-		r.Pack = rhs.CloneVT()
 	}
 	if rhs := m.PackSha256; rhs != nil {
 		r.PackSha256 = slices.Clone(rhs)

@@ -195,22 +195,16 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.Path = m.Path
 	r.Table = m.Table
+	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.Verbose = m.Verbose
+	r.VolumeConfig = m.VolumeConfig.CloneVT()
+	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.CacheSize = m.CacheSize
 	r.MmapSize = m.MmapSize
 	r.TempStore = m.TempStore
 	r.PageSize = m.PageSize
-	if rhs := m.KvKeyOpts; rhs != nil {
-		r.KvKeyOpts = rhs.CloneVT()
-	}
-	if rhs := m.VolumeConfig; rhs != nil {
-		r.VolumeConfig = rhs.CloneVT()
-	}
-	if rhs := m.StoreConfig; rhs != nil {
-		r.StoreConfig = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

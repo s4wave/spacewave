@@ -19,6 +19,10 @@ pub trait BucketLookupCursorResourceServiceClient: Send + Sync {
     async fn get_block(&self, request: &GetBlockRequest) -> starpc::Result<GetBlockResponse>;
     /// PutBlock.
     async fn put_block(&self, request: &PutBlockRequest) -> starpc::Result<PutBlockResponse>;
+    /// PutBlockBatch.
+    async fn put_block_batch(&self, request: &PutBlockBatchRequest) -> starpc::Result<PutBlockBatchResponse>;
+    /// GetBlockExistsBatch.
+    async fn get_block_exists_batch(&self, request: &GetBlockExistsBatchRequest) -> starpc::Result<GetBlockExistsBatchResponse>;
     /// BuildTransaction.
     async fn build_transaction(&self, request: &BuildTransactionRequest) -> starpc::Result<BuildTransactionResponse>;
     /// BuildTransactionAtRef.
@@ -57,6 +61,12 @@ impl<C: starpc::Client + 'static> BucketLookupCursorResourceServiceClient for Bu
     async fn put_block(&self, request: &PutBlockRequest) -> starpc::Result<PutBlockResponse> {
         self.client.exec_call("s4wave.bucket_lookup.BucketLookupCursorResourceService", "PutBlock", request).await
     }
+    async fn put_block_batch(&self, request: &PutBlockBatchRequest) -> starpc::Result<PutBlockBatchResponse> {
+        self.client.exec_call("s4wave.bucket_lookup.BucketLookupCursorResourceService", "PutBlockBatch", request).await
+    }
+    async fn get_block_exists_batch(&self, request: &GetBlockExistsBatchRequest) -> starpc::Result<GetBlockExistsBatchResponse> {
+        self.client.exec_call("s4wave.bucket_lookup.BucketLookupCursorResourceService", "GetBlockExistsBatch", request).await
+    }
     async fn build_transaction(&self, request: &BuildTransactionRequest) -> starpc::Result<BuildTransactionResponse> {
         self.client.exec_call("s4wave.bucket_lookup.BucketLookupCursorResourceService", "BuildTransaction", request).await
     }
@@ -85,6 +95,10 @@ pub trait BucketLookupCursorResourceServiceServer: Send + Sync {
     async fn get_block(&self, request: GetBlockRequest) -> starpc::Result<GetBlockResponse>;
     /// PutBlock.
     async fn put_block(&self, request: PutBlockRequest) -> starpc::Result<PutBlockResponse>;
+    /// PutBlockBatch.
+    async fn put_block_batch(&self, request: PutBlockBatchRequest) -> starpc::Result<PutBlockBatchResponse>;
+    /// GetBlockExistsBatch.
+    async fn get_block_exists_batch(&self, request: GetBlockExistsBatchRequest) -> starpc::Result<GetBlockExistsBatchResponse>;
     /// BuildTransaction.
     async fn build_transaction(&self, request: BuildTransactionRequest) -> starpc::Result<BuildTransactionResponse>;
     /// BuildTransactionAtRef.
@@ -102,6 +116,8 @@ const BUCKET_LOOKUP_CURSOR_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "FollowRef",
     "GetBlock",
     "PutBlock",
+    "PutBlockBatch",
+    "GetBlockExistsBatch",
     "BuildTransaction",
     "BuildTransactionAtRef",
     "Clone",
@@ -186,6 +202,36 @@ impl<S: BucketLookupCursorResourceServiceServer + 'static> starpc::Invoker for B
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.put_block(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "PutBlockBatch" => {
+                let request: PutBlockBatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.put_block_batch(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "GetBlockExistsBatch" => {
+                let request: GetBlockExistsBatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_block_exists_batch(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

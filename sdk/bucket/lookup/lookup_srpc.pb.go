@@ -22,6 +22,10 @@ type SRPCBucketLookupCursorResourceServiceClient interface {
 
 	PutBlock(ctx context.Context, in *PutBlockRequest) (*PutBlockResponse, error)
 
+	PutBlockBatch(ctx context.Context, in *PutBlockBatchRequest) (*PutBlockBatchResponse, error)
+
+	GetBlockExistsBatch(ctx context.Context, in *GetBlockExistsBatchRequest) (*GetBlockExistsBatchResponse, error)
+
 	BuildTransaction(ctx context.Context, in *BuildTransactionRequest) (*BuildTransactionResponse, error)
 
 	BuildTransactionAtRef(ctx context.Context, in *BuildTransactionAtRefRequest) (*BuildTransactionAtRefResponse, error)
@@ -87,6 +91,24 @@ func (c *srpcBucketLookupCursorResourceServiceClient) PutBlock(ctx context.Conte
 	return out, nil
 }
 
+func (c *srpcBucketLookupCursorResourceServiceClient) PutBlockBatch(ctx context.Context, in *PutBlockBatchRequest) (*PutBlockBatchResponse, error) {
+	out := new(PutBlockBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "PutBlockBatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcBucketLookupCursorResourceServiceClient) GetBlockExistsBatch(ctx context.Context, in *GetBlockExistsBatchRequest) (*GetBlockExistsBatchResponse, error) {
+	out := new(GetBlockExistsBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetBlockExistsBatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcBucketLookupCursorResourceServiceClient) BuildTransaction(ctx context.Context, in *BuildTransactionRequest) (*BuildTransactionResponse, error) {
 	out := new(BuildTransactionResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "BuildTransaction", in, out)
@@ -141,6 +163,10 @@ type SRPCBucketLookupCursorResourceServiceServer interface {
 
 	PutBlock(context.Context, *PutBlockRequest) (*PutBlockResponse, error)
 
+	PutBlockBatch(context.Context, *PutBlockBatchRequest) (*PutBlockBatchResponse, error)
+
+	GetBlockExistsBatch(context.Context, *GetBlockExistsBatchRequest) (*GetBlockExistsBatchResponse, error)
+
 	BuildTransaction(context.Context, *BuildTransactionRequest) (*BuildTransactionResponse, error)
 
 	BuildTransactionAtRef(context.Context, *BuildTransactionAtRefRequest) (*BuildTransactionAtRefResponse, error)
@@ -182,6 +208,8 @@ func (SRPCBucketLookupCursorResourceServiceHandler) GetMethodIDs() []string {
 		"FollowRef",
 		"GetBlock",
 		"PutBlock",
+		"PutBlockBatch",
+		"GetBlockExistsBatch",
 		"BuildTransaction",
 		"BuildTransactionAtRef",
 		"Clone",
@@ -207,6 +235,10 @@ func (d *SRPCBucketLookupCursorResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetBlock(d.impl, strm)
 	case "PutBlock":
 		return true, d.InvokeMethod_PutBlock(d.impl, strm)
+	case "PutBlockBatch":
+		return true, d.InvokeMethod_PutBlockBatch(d.impl, strm)
+	case "GetBlockExistsBatch":
+		return true, d.InvokeMethod_GetBlockExistsBatch(d.impl, strm)
 	case "BuildTransaction":
 		return true, d.InvokeMethod_BuildTransaction(d.impl, strm)
 	case "BuildTransactionAtRef":
@@ -264,6 +296,30 @@ func (SRPCBucketLookupCursorResourceServiceHandler) InvokeMethod_PutBlock(impl S
 		return err
 	}
 	out, err := impl.PutBlock(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCBucketLookupCursorResourceServiceHandler) InvokeMethod_PutBlockBatch(impl SRPCBucketLookupCursorResourceServiceServer, strm srpc.Stream) error {
+	req := new(PutBlockBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.PutBlockBatch(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCBucketLookupCursorResourceServiceHandler) InvokeMethod_GetBlockExistsBatch(impl SRPCBucketLookupCursorResourceServiceServer, strm srpc.Stream) error {
+	req := new(GetBlockExistsBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetBlockExistsBatch(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -359,6 +415,22 @@ type SRPCBucketLookupCursorResourceService_PutBlockStream interface {
 }
 
 type srpcBucketLookupCursorResourceService_PutBlockStream struct {
+	srpc.Stream
+}
+
+type SRPCBucketLookupCursorResourceService_PutBlockBatchStream interface {
+	srpc.Stream
+}
+
+type srpcBucketLookupCursorResourceService_PutBlockBatchStream struct {
+	srpc.Stream
+}
+
+type SRPCBucketLookupCursorResourceService_GetBlockExistsBatchStream interface {
+	srpc.Stream
+}
+
+type srpcBucketLookupCursorResourceService_GetBlockExistsBatchStream struct {
 	srpc.Stream
 }
 

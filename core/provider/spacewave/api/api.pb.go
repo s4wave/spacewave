@@ -9508,9 +9508,7 @@ func (m *PostRootRequest) CloneVT() *PostRootRequest {
 		return (*PostRootRequest)(nil)
 	}
 	r := new(PostRootRequest)
-	if rhs := m.Root; rhs != nil {
-		r.Root = rhs.CloneVT()
-	}
+	r.Root = m.Root.CloneVT()
 	if rhs := m.RejectedOps; rhs != nil {
 		r.RejectedOps = make([]*sobject.SOOperationRejection, len(rhs))
 		for k, v := range rhs {
@@ -9981,9 +9979,7 @@ func (m *AddKeypairAction) CloneVT() *AddKeypairAction {
 		return (*AddKeypairAction)(nil)
 	}
 	r := new(AddKeypairAction)
-	if rhs := m.Keypair; rhs != nil {
-		r.Keypair = rhs.CloneVT()
-	}
+	r.Keypair = m.Keypair.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -11537,9 +11533,7 @@ func (m *AccountAuthMethod) CloneVT() *AccountAuthMethod {
 	r.Provider = m.Provider
 	r.Label = m.Label
 	r.SecondaryLabel = m.SecondaryLabel
-	if rhs := m.Keypair; rhs != nil {
-		r.Keypair = rhs.CloneVT()
-	}
+	r.Keypair = m.Keypair.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -11702,6 +11696,7 @@ func (m *VerifiedSOStateCache) CloneVT() *VerifiedSOStateCache {
 	}
 	r := new(VerifiedSOStateCache)
 	r.VerifiedConfigChainSeqno = m.VerifiedConfigChainSeqno
+	r.CurrentConfig = m.CurrentConfig.CloneVT()
 	if rhs := m.GenesisHash; rhs != nil {
 		r.GenesisHash = slices.Clone(rhs)
 	}
@@ -11713,9 +11708,6 @@ func (m *VerifiedSOStateCache) CloneVT() *VerifiedSOStateCache {
 		for k, v := range rhs {
 			r.KeyEpochs[k] = v.CloneVT()
 		}
-	}
-	if rhs := m.CurrentConfig; rhs != nil {
-		r.CurrentConfig = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -13157,9 +13149,7 @@ func (m *GetSORecoveryEnvelopeResponse) CloneVT() *GetSORecoveryEnvelopeResponse
 		return (*GetSORecoveryEnvelopeResponse)(nil)
 	}
 	r := new(GetSORecoveryEnvelopeResponse)
-	if rhs := m.Envelope; rhs != nil {
-		r.Envelope = rhs.CloneVT()
-	}
+	r.Envelope = m.Envelope.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -13175,6 +13165,7 @@ func (m *PostConfigStateRequest) CloneVT() *PostConfigStateRequest {
 		return (*PostConfigStateRequest)(nil)
 	}
 	r := new(PostConfigStateRequest)
+	r.KeyEpoch = m.KeyEpoch.CloneVT()
 	if rhs := m.ConfigChange; rhs != nil {
 		r.ConfigChange = slices.Clone(rhs)
 	}
@@ -13183,9 +13174,6 @@ func (m *PostConfigStateRequest) CloneVT() *PostConfigStateRequest {
 		for k, v := range rhs {
 			r.Invites[k] = v.CloneVT()
 		}
-	}
-	if rhs := m.KeyEpoch; rhs != nil {
-		r.KeyEpoch = rhs.CloneVT()
 	}
 	if rhs := m.RecoveryEnvelopes; rhs != nil {
 		r.RecoveryEnvelopes = make([]*sobject.SOEntityRecoveryEnvelope, len(rhs))
@@ -13208,9 +13196,7 @@ func (m *PostKeyEpochRequest) CloneVT() *PostKeyEpochRequest {
 		return (*PostKeyEpochRequest)(nil)
 	}
 	r := new(PostKeyEpochRequest)
-	if rhs := m.KeyEpoch; rhs != nil {
-		r.KeyEpoch = rhs.CloneVT()
-	}
+	r.KeyEpoch = m.KeyEpoch.CloneVT()
 	if rhs := m.RecoveryEnvelopes; rhs != nil {
 		r.RecoveryEnvelopes = make([]*sobject.SOEntityRecoveryEnvelope, len(rhs))
 		for k, v := range rhs {
@@ -13305,12 +13291,10 @@ func (m *SubmitMailboxEntryRequest) CloneVT() *SubmitMailboxEntryRequest {
 	}
 	r := new(SubmitMailboxEntryRequest)
 	r.InviteId = m.InviteId
+	r.JoinResponse = m.JoinResponse.CloneVT()
 	r.TargetedEnvelope = m.TargetedEnvelope.CloneVT()
 	if rhs := m.Token; rhs != nil {
 		r.Token = slices.Clone(rhs)
-	}
-	if rhs := m.JoinResponse; rhs != nil {
-		r.JoinResponse = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -13347,14 +13331,12 @@ func (m *MailboxEntry) CloneVT() *MailboxEntry {
 	r.Id = m.Id
 	r.InviteId = m.InviteId
 	r.PeerId = m.PeerId
+	r.JoinResponse = m.JoinResponse.CloneVT()
 	r.Status = m.Status
 	r.CreatedAt = m.CreatedAt
 	r.AccountId = m.AccountId
 	r.EntityId = m.EntityId
 	r.TargetedEnvelope = m.TargetedEnvelope.CloneVT()
-	if rhs := m.JoinResponse; rhs != nil {
-		r.JoinResponse = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

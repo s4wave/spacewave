@@ -2052,9 +2052,7 @@ func (m *MountSessionRequest) CloneVT() *MountSessionRequest {
 		return (*MountSessionRequest)(nil)
 	}
 	r := new(MountSessionRequest)
-	if rhs := m.SessionRef; rhs != nil {
-		r.SessionRef = rhs.CloneVT()
-	}
+	r.SessionRef = m.SessionRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2103,10 +2101,8 @@ func (m *MountSessionByIdxResponse) CloneVT() *MountSessionByIdxResponse {
 	}
 	r := new(MountSessionByIdxResponse)
 	r.ResourceId = m.ResourceId
+	r.SessionRef = m.SessionRef.CloneVT()
 	r.NotFound = m.NotFound
-	if rhs := m.SessionRef; rhs != nil {
-		r.SessionRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2299,10 +2295,8 @@ func (m *GetSessionMetadataResponse) CloneVT() *GetSessionMetadataResponse {
 		return (*GetSessionMetadataResponse)(nil)
 	}
 	r := new(GetSessionMetadataResponse)
+	r.Metadata = m.Metadata.CloneVT()
 	r.NotFound = m.NotFound
-	if rhs := m.Metadata; rhs != nil {
-		r.Metadata = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2334,10 +2328,8 @@ func (m *WatchSessionMetadataResponse) CloneVT() *WatchSessionMetadataResponse {
 		return (*WatchSessionMetadataResponse)(nil)
 	}
 	r := new(WatchSessionMetadataResponse)
+	r.Metadata = m.Metadata.CloneVT()
 	r.NotFound = m.NotFound
-	if rhs := m.Metadata; rhs != nil {
-		r.Metadata = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2419,9 +2411,7 @@ func (m *ResetSessionByIdxRequest) CloneVT() *ResetSessionByIdxRequest {
 	}
 	r := new(ResetSessionByIdxRequest)
 	r.SessionIdx = m.SessionIdx
-	if rhs := m.Credential; rhs != nil {
-		r.Credential = rhs.CloneVT()
-	}
+	r.Credential = m.Credential.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2452,9 +2442,7 @@ func (m *MarshalHashRequest) CloneVT() *MarshalHashRequest {
 		return (*MarshalHashRequest)(nil)
 	}
 	r := new(MarshalHashRequest)
-	if rhs := m.Hash; rhs != nil {
-		r.Hash = rhs.CloneVT()
-	}
+	r.Hash = m.Hash.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2502,9 +2490,7 @@ func (m *ParseHashResponse) CloneVT() *ParseHashResponse {
 		return (*ParseHashResponse)(nil)
 	}
 	r := new(ParseHashResponse)
-	if rhs := m.Hash; rhs != nil {
-		r.Hash = rhs.CloneVT()
-	}
+	r.Hash = m.Hash.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2539,9 +2525,7 @@ func (m *HashSumResponse) CloneVT() *HashSumResponse {
 		return (*HashSumResponse)(nil)
 	}
 	r := new(HashSumResponse)
-	if rhs := m.Hash; rhs != nil {
-		r.Hash = rhs.CloneVT()
-	}
+	r.Hash = m.Hash.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2557,9 +2541,7 @@ func (m *HashValidateRequest) CloneVT() *HashValidateRequest {
 		return (*HashValidateRequest)(nil)
 	}
 	r := new(HashValidateRequest)
-	if rhs := m.Hash; rhs != nil {
-		r.Hash = rhs.CloneVT()
-	}
+	r.Hash = m.Hash.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2899,13 +2881,9 @@ func (m *SpaceRootRuntimeSession) CloneVT() *SpaceRootRuntimeSession {
 		return (*SpaceRootRuntimeSession)(nil)
 	}
 	r := new(SpaceRootRuntimeSession)
+	r.Session = m.Session.CloneVT()
+	r.Metadata = m.Metadata.CloneVT()
 	r.Error = m.Error
-	if rhs := m.Session; rhs != nil {
-		r.Session = rhs.CloneVT()
-	}
-	if rhs := m.Metadata; rhs != nil {
-		r.Metadata = rhs.CloneVT()
-	}
 	if rhs := m.Spaces; rhs != nil {
 		r.Spaces = make([]*space.SpaceSoListEntry, len(rhs))
 		for k, v := range rhs {
@@ -2942,9 +2920,7 @@ func (m *GetChangelogResponse) CloneVT() *GetChangelogResponse {
 		return (*GetChangelogResponse)(nil)
 	}
 	r := new(GetChangelogResponse)
-	if rhs := m.Changelog; rhs != nil {
-		r.Changelog = rhs.CloneVT()
-	}
+	r.Changelog = m.Changelog.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

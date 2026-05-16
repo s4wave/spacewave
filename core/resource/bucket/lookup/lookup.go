@@ -8,6 +8,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_block_cursor "github.com/s4wave/spacewave/core/resource/block/cursor"
 	resource_block_transaction "github.com/s4wave/spacewave/core/resource/block/transaction"
+	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	"github.com/sirupsen/logrus"
@@ -85,6 +86,32 @@ func (r *BucketLookupCursorResource) PutBlock(ctx context.Context, req *s4wave_b
 		Ref:     ref,
 		Existed: existed,
 	}, nil
+}
+
+// PutBlockBatch puts a batch of blocks.
+func (r *BucketLookupCursorResource) PutBlockBatch(ctx context.Context, req *s4wave_bucket_lookup.PutBlockBatchRequest) (*s4wave_bucket_lookup.PutBlockBatchResponse, error) {
+	entries := make([]*block.PutBatchEntry, len(req.GetEntries()))
+	for i, entry := range req.GetEntries() {
+		entries[i] = &block.PutBatchEntry{
+			Ref:       entry.GetRef(),
+			Data:      entry.GetData(),
+			Refs:      entry.GetRefs(),
+			Tombstone: entry.GetTombstone(),
+		}
+	}
+	if err := r.cursor.PutBlockBatch(ctx, entries); err != nil {
+		return nil, err
+	}
+	return &s4wave_bucket_lookup.PutBlockBatchResponse{}, nil
+}
+
+// GetBlockExistsBatch checks whether each block exists.
+func (r *BucketLookupCursorResource) GetBlockExistsBatch(ctx context.Context, req *s4wave_bucket_lookup.GetBlockExistsBatchRequest) (*s4wave_bucket_lookup.GetBlockExistsBatchResponse, error) {
+	found, err := r.cursor.GetBlockExistsBatch(ctx, req.GetRefs())
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_bucket_lookup.GetBlockExistsBatchResponse{Found: found}, nil
 }
 
 // BuildTransaction builds a transaction at the current position.

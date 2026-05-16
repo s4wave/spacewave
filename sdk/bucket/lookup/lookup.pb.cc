@@ -92,6 +92,24 @@ struct ReleaseRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReleaseRequestDefaultTypeInternal _ReleaseRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR PutBlockBatchResponse::PutBlockBatchResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(PutBlockBatchResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct PutBlockBatchResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PutBlockBatchResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PutBlockBatchResponseDefaultTypeInternal() {}
+  union {
+    PutBlockBatchResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PutBlockBatchResponseDefaultTypeInternal _PutBlockBatchResponse_default_instance_;
 
 inline constexpr MountBucketLookupResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -169,6 +187,31 @@ struct GetBlockResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetBlockResponseDefaultTypeInternal _GetBlockResponse_default_instance_;
+
+inline constexpr GetBlockExistsBatchResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        found_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetBlockExistsBatchResponse::GetBlockExistsBatchResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetBlockExistsBatchResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetBlockExistsBatchResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetBlockExistsBatchResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetBlockExistsBatchResponseDefaultTypeInternal() {}
+  union {
+    GetBlockExistsBatchResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetBlockExistsBatchResponseDefaultTypeInternal _GetBlockExistsBatchResponse_default_instance_;
 
 inline constexpr FollowRefResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -316,6 +359,36 @@ struct PutBlockResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PutBlockResponseDefaultTypeInternal _PutBlockResponse_default_instance_;
 
+inline constexpr PutBlockBatchEntry::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        refs_{},
+        data_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        ref_{nullptr},
+        tombstone_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR PutBlockBatchEntry::PutBlockBatchEntry(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(PutBlockBatchEntry_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct PutBlockBatchEntryDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PutBlockBatchEntryDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PutBlockBatchEntryDefaultTypeInternal() {}
+  union {
+    PutBlockBatchEntry _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PutBlockBatchEntryDefaultTypeInternal _PutBlockBatchEntry_default_instance_;
+
 inline constexpr MountBucketLookupRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -372,6 +445,31 @@ struct GetBlockRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetBlockRequestDefaultTypeInternal _GetBlockRequest_default_instance_;
 
+inline constexpr GetBlockExistsBatchRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        refs_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetBlockExistsBatchRequest::GetBlockExistsBatchRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetBlockExistsBatchRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetBlockExistsBatchRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetBlockExistsBatchRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetBlockExistsBatchRequestDefaultTypeInternal() {}
+  union {
+    GetBlockExistsBatchRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetBlockExistsBatchRequestDefaultTypeInternal _GetBlockExistsBatchRequest_default_instance_;
+
 inline constexpr UnmarshalRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -427,6 +525,31 @@ struct PutBlockRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PutBlockRequestDefaultTypeInternal _PutBlockRequest_default_instance_;
+
+inline constexpr PutBlockBatchRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        entries_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR PutBlockBatchRequest::PutBlockBatchRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(PutBlockBatchRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct PutBlockBatchRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PutBlockBatchRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PutBlockBatchRequestDefaultTypeInternal() {}
+  union {
+    PutBlockBatchRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PutBlockBatchRequestDefaultTypeInternal _PutBlockBatchRequest_default_instance_;
 
 inline constexpr GetRefResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -598,6 +721,33 @@ const ::uint32_t
         0,
         1,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::PutBlockBatchEntry, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::PutBlockBatchEntry, _impl_.ref_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::PutBlockBatchEntry, _impl_.data_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::PutBlockBatchEntry, _impl_.refs_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::PutBlockBatchEntry, _impl_.tombstone_),
+        2,
+        1,
+        0,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::PutBlockBatchRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::PutBlockBatchRequest, _impl_.entries_),
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::GetBlockExistsBatchRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::GetBlockExistsBatchRequest, _impl_.refs_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::GetBlockExistsBatchResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::GetBlockExistsBatchResponse, _impl_.found_),
+        0,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::BuildTransactionRequest, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::BuildTransactionRequest, _impl_.put_opts_),
@@ -659,16 +809,21 @@ static const ::_pbi::MigrationSchema
         {39, sizeof(::s4wave::bucket_lookup::GetBlockResponse)},
         {46, sizeof(::s4wave::bucket_lookup::PutBlockRequest)},
         {53, sizeof(::s4wave::bucket_lookup::PutBlockResponse)},
-        {60, sizeof(::s4wave::bucket_lookup::BuildTransactionRequest)},
-        {65, sizeof(::s4wave::bucket_lookup::BuildTransactionResponse)},
-        {72, sizeof(::s4wave::bucket_lookup::BuildTransactionAtRefRequest)},
-        {79, sizeof(::s4wave::bucket_lookup::BuildTransactionAtRefResponse)},
-        {86, sizeof(::s4wave::bucket_lookup::CloneRequest)},
-        {87, sizeof(::s4wave::bucket_lookup::CloneResponse)},
-        {92, sizeof(::s4wave::bucket_lookup::ReleaseRequest)},
-        {93, sizeof(::s4wave::bucket_lookup::ReleaseResponse)},
-        {94, sizeof(::s4wave::bucket_lookup::UnmarshalRequest)},
-        {101, sizeof(::s4wave::bucket_lookup::UnmarshalResponse)},
+        {60, sizeof(::s4wave::bucket_lookup::PutBlockBatchEntry)},
+        {71, sizeof(::s4wave::bucket_lookup::PutBlockBatchRequest)},
+        {76, sizeof(::s4wave::bucket_lookup::PutBlockBatchResponse)},
+        {77, sizeof(::s4wave::bucket_lookup::GetBlockExistsBatchRequest)},
+        {82, sizeof(::s4wave::bucket_lookup::GetBlockExistsBatchResponse)},
+        {87, sizeof(::s4wave::bucket_lookup::BuildTransactionRequest)},
+        {92, sizeof(::s4wave::bucket_lookup::BuildTransactionResponse)},
+        {99, sizeof(::s4wave::bucket_lookup::BuildTransactionAtRefRequest)},
+        {106, sizeof(::s4wave::bucket_lookup::BuildTransactionAtRefResponse)},
+        {113, sizeof(::s4wave::bucket_lookup::CloneRequest)},
+        {114, sizeof(::s4wave::bucket_lookup::CloneResponse)},
+        {119, sizeof(::s4wave::bucket_lookup::ReleaseRequest)},
+        {120, sizeof(::s4wave::bucket_lookup::ReleaseResponse)},
+        {121, sizeof(::s4wave::bucket_lookup::UnmarshalRequest)},
+        {128, sizeof(::s4wave::bucket_lookup::UnmarshalResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::bucket_lookup::_MountBucketLookupRequest_default_instance_._instance,
@@ -681,6 +836,11 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::bucket_lookup::_GetBlockResponse_default_instance_._instance,
     &::s4wave::bucket_lookup::_PutBlockRequest_default_instance_._instance,
     &::s4wave::bucket_lookup::_PutBlockResponse_default_instance_._instance,
+    &::s4wave::bucket_lookup::_PutBlockBatchEntry_default_instance_._instance,
+    &::s4wave::bucket_lookup::_PutBlockBatchRequest_default_instance_._instance,
+    &::s4wave::bucket_lookup::_PutBlockBatchResponse_default_instance_._instance,
+    &::s4wave::bucket_lookup::_GetBlockExistsBatchRequest_default_instance_._instance,
+    &::s4wave::bucket_lookup::_GetBlockExistsBatchResponse_default_instance_._instance,
     &::s4wave::bucket_lookup::_BuildTransactionRequest_default_instance_._instance,
     &::s4wave::bucket_lookup::_BuildTransactionResponse_default_instance_._instance,
     &::s4wave::bucket_lookup::_BuildTransactionAtRefRequest_default_instance_._instance,
@@ -715,43 +875,57 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fb
     "ckRequest\022\014\n\004data\030\001 \001(\014\022\034\n\004opts\030\002 \001(\0132\016."
     "block.PutOpts\"A\n\020PutBlockResponse\022\034\n\003ref"
     "\030\001 \001(\0132\017.block.BlockRef\022\017\n\007existed\030\002 \001(\010"
-    "\";\n\027BuildTransactionRequest\022 \n\010put_opts\030"
-    "\001 \001(\0132\016.block.PutOpts\"W\n\030BuildTransactio"
-    "nResponse\022\037\n\027transaction_resource_id\030\001 \001"
-    "(\r\022\032\n\022cursor_resource_id\030\002 \001(\r\"^\n\034BuildT"
-    "ransactionAtRefRequest\022 \n\010put_opts\030\001 \001(\013"
-    "2\016.block.PutOpts\022\034\n\003ref\030\002 \001(\0132\017.block.Bl"
-    "ockRef\"\\\n\035BuildTransactionAtRefResponse\022"
-    "\037\n\027transaction_resource_id\030\001 \001(\r\022\032\n\022curs"
-    "or_resource_id\030\002 \001(\r\"\016\n\014CloneRequest\"$\n\r"
-    "CloneResponse\022\023\n\013resource_id\030\001 \001(\r\"\020\n\016Re"
-    "leaseRequest\"\021\n\017ReleaseResponse\"@\n\020Unmar"
-    "shalRequest\022\036\n\003ref\030\001 \001(\0132\021.bucket.Object"
-    "Ref\022\014\n\004data\030\002 \001(\014\"0\n\021UnmarshalResponse\022\014"
-    "\n\004data\030\001 \001(\014\022\r\n\005found\030\002 \001(\0102\212\007\n!BucketLo"
-    "okupCursorResourceService\022S\n\006GetRef\022#.s4"
-    "wave.bucket_lookup.GetRefRequest\032$.s4wav"
-    "e.bucket_lookup.GetRefResponse\022\\\n\tFollow"
-    "Ref\022&.s4wave.bucket_lookup.FollowRefRequ"
-    "est\032\'.s4wave.bucket_lookup.FollowRefResp"
-    "onse\022Y\n\010GetBlock\022%.s4wave.bucket_lookup."
-    "GetBlockRequest\032&.s4wave.bucket_lookup.G"
-    "etBlockResponse\022Y\n\010PutBlock\022%.s4wave.buc"
-    "ket_lookup.PutBlockRequest\032&.s4wave.buck"
-    "et_lookup.PutBlockResponse\022q\n\020BuildTrans"
-    "action\022-.s4wave.bucket_lookup.BuildTrans"
-    "actionRequest\032..s4wave.bucket_lookup.Bui"
-    "ldTransactionResponse\022\200\001\n\025BuildTransacti"
-    "onAtRef\0222.s4wave.bucket_lookup.BuildTran"
-    "sactionAtRefRequest\0323.s4wave.bucket_look"
-    "up.BuildTransactionAtRefResponse\022P\n\005Clon"
-    "e\022\".s4wave.bucket_lookup.CloneRequest\032#."
-    "s4wave.bucket_lookup.CloneResponse\022V\n\007Re"
-    "lease\022$.s4wave.bucket_lookup.ReleaseRequ"
-    "est\032%.s4wave.bucket_lookup.ReleaseRespon"
-    "se\022\\\n\tUnmarshal\022&.s4wave.bucket_lookup.U"
-    "nmarshalRequest\032\'.s4wave.bucket_lookup.U"
-    "nmarshalResponseb\006proto3"
+    "\"r\n\022PutBlockBatchEntry\022\034\n\003ref\030\001 \001(\0132\017.bl"
+    "ock.BlockRef\022\014\n\004data\030\002 \001(\014\022\035\n\004refs\030\003 \003(\013"
+    "2\017.block.BlockRef\022\021\n\ttombstone\030\004 \001(\010\"Q\n\024"
+    "PutBlockBatchRequest\0229\n\007entries\030\001 \003(\0132(."
+    "s4wave.bucket_lookup.PutBlockBatchEntry\""
+    "\027\n\025PutBlockBatchResponse\";\n\032GetBlockExis"
+    "tsBatchRequest\022\035\n\004refs\030\001 \003(\0132\017.block.Blo"
+    "ckRef\",\n\033GetBlockExistsBatchResponse\022\r\n\005"
+    "found\030\001 \003(\010\";\n\027BuildTransactionRequest\022 "
+    "\n\010put_opts\030\001 \001(\0132\016.block.PutOpts\"W\n\030Buil"
+    "dTransactionResponse\022\037\n\027transaction_reso"
+    "urce_id\030\001 \001(\r\022\032\n\022cursor_resource_id\030\002 \001("
+    "\r\"^\n\034BuildTransactionAtRefRequest\022 \n\010put"
+    "_opts\030\001 \001(\0132\016.block.PutOpts\022\034\n\003ref\030\002 \001(\013"
+    "2\017.block.BlockRef\"\\\n\035BuildTransactionAtR"
+    "efResponse\022\037\n\027transaction_resource_id\030\001 "
+    "\001(\r\022\032\n\022cursor_resource_id\030\002 \001(\r\"\016\n\014Clone"
+    "Request\"$\n\rCloneResponse\022\023\n\013resource_id\030"
+    "\001 \001(\r\"\020\n\016ReleaseRequest\"\021\n\017ReleaseRespon"
+    "se\"@\n\020UnmarshalRequest\022\036\n\003ref\030\001 \001(\0132\021.bu"
+    "cket.ObjectRef\022\014\n\004data\030\002 \001(\014\"0\n\021Unmarsha"
+    "lResponse\022\014\n\004data\030\001 \001(\014\022\r\n\005found\030\002 \001(\0102\360"
+    "\010\n!BucketLookupCursorResourceService\022S\n\006"
+    "GetRef\022#.s4wave.bucket_lookup.GetRefRequ"
+    "est\032$.s4wave.bucket_lookup.GetRefRespons"
+    "e\022\\\n\tFollowRef\022&.s4wave.bucket_lookup.Fo"
+    "llowRefRequest\032\'.s4wave.bucket_lookup.Fo"
+    "llowRefResponse\022Y\n\010GetBlock\022%.s4wave.buc"
+    "ket_lookup.GetBlockRequest\032&.s4wave.buck"
+    "et_lookup.GetBlockResponse\022Y\n\010PutBlock\022%"
+    ".s4wave.bucket_lookup.PutBlockRequest\032&."
+    "s4wave.bucket_lookup.PutBlockResponse\022h\n"
+    "\rPutBlockBatch\022*.s4wave.bucket_lookup.Pu"
+    "tBlockBatchRequest\032+.s4wave.bucket_looku"
+    "p.PutBlockBatchResponse\022z\n\023GetBlockExist"
+    "sBatch\0220.s4wave.bucket_lookup.GetBlockEx"
+    "istsBatchRequest\0321.s4wave.bucket_lookup."
+    "GetBlockExistsBatchResponse\022q\n\020BuildTran"
+    "saction\022-.s4wave.bucket_lookup.BuildTran"
+    "sactionRequest\032..s4wave.bucket_lookup.Bu"
+    "ildTransactionResponse\022\200\001\n\025BuildTransact"
+    "ionAtRef\0222.s4wave.bucket_lookup.BuildTra"
+    "nsactionAtRefRequest\0323.s4wave.bucket_loo"
+    "kup.BuildTransactionAtRefResponse\022P\n\005Clo"
+    "ne\022\".s4wave.bucket_lookup.CloneRequest\032#"
+    ".s4wave.bucket_lookup.CloneResponse\022V\n\007R"
+    "elease\022$.s4wave.bucket_lookup.ReleaseReq"
+    "uest\032%.s4wave.bucket_lookup.ReleaseRespo"
+    "nse\022\\\n\tUnmarshal\022&.s4wave.bucket_lookup."
+    "UnmarshalRequest\032\'.s4wave.bucket_lookup."
+    "UnmarshalResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto_deps[3] = {
@@ -763,13 +937,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto = {
     false,
     false,
-    2304,
+    2865,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto,
     "github.com/s4wave/spacewave/sdk/bucket/lookup/lookup.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto_deps,
     3,
-    20,
+    25,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto::offsets,
@@ -3625,6 +3799,1380 @@ void PutBlockResponse::InternalSwap(PutBlockResponse* PROTOBUF_RESTRICT PROTOBUF
 }
 
 ::google::protobuf::Metadata PutBlockResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class PutBlockBatchEntry::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<PutBlockBatchEntry>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_._has_bits_);
+};
+
+void PutBlockBatchEntry::clear_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.ref_ != nullptr) _impl_.ref_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+void PutBlockBatchEntry::clear_refs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.refs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+PutBlockBatchEntry::PutBlockBatchEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, PutBlockBatchEntry_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.bucket_lookup.PutBlockBatchEntry)
+}
+PROTOBUF_NDEBUG_INLINE PutBlockBatchEntry::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::bucket_lookup::PutBlockBatchEntry& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        refs_{visibility, arena, from.refs_},
+        data_(arena, from.data_) {}
+
+PutBlockBatchEntry::PutBlockBatchEntry(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const PutBlockBatchEntry& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, PutBlockBatchEntry_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  PutBlockBatchEntry* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.ref_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.ref_)
+                : nullptr;
+  _impl_.tombstone_ = from._impl_.tombstone_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.bucket_lookup.PutBlockBatchEntry)
+}
+PROTOBUF_NDEBUG_INLINE PutBlockBatchEntry::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        refs_{visibility, arena},
+        data_(arena) {}
+
+inline void PutBlockBatchEntry::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, ref_),
+           0,
+           offsetof(Impl_, tombstone_) -
+               offsetof(Impl_, ref_) +
+               sizeof(Impl_::tombstone_));
+}
+PutBlockBatchEntry::~PutBlockBatchEntry() {
+  // @@protoc_insertion_point(destructor:s4wave.bucket_lookup.PutBlockBatchEntry)
+  SharedDtor(*this);
+}
+inline void PutBlockBatchEntry::SharedDtor(MessageLite& self) {
+  PutBlockBatchEntry& this_ = static_cast<PutBlockBatchEntry&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.data_.Destroy();
+  delete this_._impl_.ref_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL PutBlockBatchEntry::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) PutBlockBatchEntry(arena);
+}
+constexpr auto PutBlockBatchEntry::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.refs_) +
+          decltype(PutBlockBatchEntry::_impl_.refs_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(PutBlockBatchEntry), alignof(PutBlockBatchEntry), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&PutBlockBatchEntry::PlacementNew_,
+                                 sizeof(PutBlockBatchEntry),
+                                 alignof(PutBlockBatchEntry));
+  }
+}
+constexpr auto PutBlockBatchEntry::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_PutBlockBatchEntry_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &PutBlockBatchEntry::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<PutBlockBatchEntry>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &PutBlockBatchEntry::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<PutBlockBatchEntry>(), &PutBlockBatchEntry::ByteSizeLong,
+              &PutBlockBatchEntry::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_._cached_size_),
+          false,
+      },
+      &PutBlockBatchEntry::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull PutBlockBatchEntry_class_data_ =
+        PutBlockBatchEntry::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+PutBlockBatchEntry::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&PutBlockBatchEntry_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(PutBlockBatchEntry_class_data_.tc_table);
+  return PutBlockBatchEntry_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 2, 0, 2>
+PutBlockBatchEntry::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    PutBlockBatchEntry_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::bucket_lookup::PutBlockBatchEntry>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bool tombstone = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(PutBlockBatchEntry, _impl_.tombstone_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.tombstone_)}},
+    // .block.BlockRef ref = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.ref_)}},
+    // bytes data = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.data_)}},
+    // repeated .block.BlockRef refs = 3;
+    {::_pbi::TcParser::FastMtR1,
+     {26, 0, 1,
+      PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.refs_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .block.BlockRef ref = 1;
+    {PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.ref_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes data = 2;
+    {PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.data_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // repeated .block.BlockRef refs = 3;
+    {PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.refs_), _Internal::kHasBitsOffset + 0, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bool tombstone = 4;
+    {PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.tombstone_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::block::BlockRef>()},
+      {::_pbi::TcParser::GetTable<::block::BlockRef>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void PutBlockBatchEntry::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.bucket_lookup.PutBlockBatchEntry)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.refs_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.data_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.ref_ != nullptr);
+      _impl_.ref_->Clear();
+    }
+  }
+  _impl_.tombstone_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL PutBlockBatchEntry::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const PutBlockBatchEntry& this_ = static_cast<const PutBlockBatchEntry&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL PutBlockBatchEntry::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const PutBlockBatchEntry& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.bucket_lookup.PutBlockBatchEntry)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .block.BlockRef ref = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.ref_, this_._impl_.ref_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes data = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_data().empty()) {
+      const ::std::string& _s = this_._internal_data();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // repeated .block.BlockRef refs = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_refs_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_refs().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              3, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // bool tombstone = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_tombstone() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          4, this_._internal_tombstone(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.bucket_lookup.PutBlockBatchEntry)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t PutBlockBatchEntry::ByteSizeLong(const MessageLite& base) {
+  const PutBlockBatchEntry& this_ = static_cast<const PutBlockBatchEntry&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t PutBlockBatchEntry::ByteSizeLong() const {
+  const PutBlockBatchEntry& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.bucket_lookup.PutBlockBatchEntry)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated .block.BlockRef refs = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_refs_size();
+      for (const auto& msg : this_._internal_refs()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // bytes data = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_data().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_data());
+      }
+    }
+    // .block.BlockRef ref = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.ref_);
+    }
+    // bool tombstone = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_tombstone() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void PutBlockBatchEntry::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<PutBlockBatchEntry*>(&to_msg);
+  auto& from = static_cast<const PutBlockBatchEntry&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.bucket_lookup.PutBlockBatchEntry)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_refs()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_refs());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_data().empty()) {
+        _this->_internal_set_data(from._internal_data());
+      } else {
+        if (_this->_impl_.data_.IsDefault()) {
+          _this->_internal_set_data("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.ref_ != nullptr);
+      if (_this->_impl_.ref_ == nullptr) {
+        _this->_impl_.ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.ref_);
+      } else {
+        _this->_impl_.ref_->MergeFrom(*from._impl_.ref_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_tombstone() != 0) {
+        _this->_impl_.tombstone_ = from._impl_.tombstone_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void PutBlockBatchEntry::CopyFrom(const PutBlockBatchEntry& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.bucket_lookup.PutBlockBatchEntry)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void PutBlockBatchEntry::InternalSwap(PutBlockBatchEntry* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.refs_.InternalSwap(&other->_impl_.refs_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.data_, &other->_impl_.data_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.tombstone_)
+      + sizeof(PutBlockBatchEntry::_impl_.tombstone_)
+      - PROTOBUF_FIELD_OFFSET(PutBlockBatchEntry, _impl_.ref_)>(
+          reinterpret_cast<char*>(&_impl_.ref_),
+          reinterpret_cast<char*>(&other->_impl_.ref_));
+}
+
+::google::protobuf::Metadata PutBlockBatchEntry::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class PutBlockBatchRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<PutBlockBatchRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(PutBlockBatchRequest, _impl_._has_bits_);
+};
+
+PutBlockBatchRequest::PutBlockBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, PutBlockBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.bucket_lookup.PutBlockBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE PutBlockBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::bucket_lookup::PutBlockBatchRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        entries_{visibility, arena, from.entries_} {}
+
+PutBlockBatchRequest::PutBlockBatchRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const PutBlockBatchRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, PutBlockBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  PutBlockBatchRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.bucket_lookup.PutBlockBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE PutBlockBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        entries_{visibility, arena} {}
+
+inline void PutBlockBatchRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+PutBlockBatchRequest::~PutBlockBatchRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.bucket_lookup.PutBlockBatchRequest)
+  SharedDtor(*this);
+}
+inline void PutBlockBatchRequest::SharedDtor(MessageLite& self) {
+  PutBlockBatchRequest& this_ = static_cast<PutBlockBatchRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL PutBlockBatchRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) PutBlockBatchRequest(arena);
+}
+constexpr auto PutBlockBatchRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(PutBlockBatchRequest, _impl_.entries_) +
+          decltype(PutBlockBatchRequest::_impl_.entries_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(PutBlockBatchRequest), alignof(PutBlockBatchRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&PutBlockBatchRequest::PlacementNew_,
+                                 sizeof(PutBlockBatchRequest),
+                                 alignof(PutBlockBatchRequest));
+  }
+}
+constexpr auto PutBlockBatchRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_PutBlockBatchRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &PutBlockBatchRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<PutBlockBatchRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &PutBlockBatchRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<PutBlockBatchRequest>(), &PutBlockBatchRequest::ByteSizeLong,
+              &PutBlockBatchRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(PutBlockBatchRequest, _impl_._cached_size_),
+          false,
+      },
+      &PutBlockBatchRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull PutBlockBatchRequest_class_data_ =
+        PutBlockBatchRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+PutBlockBatchRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&PutBlockBatchRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(PutBlockBatchRequest_class_data_.tc_table);
+  return PutBlockBatchRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+PutBlockBatchRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(PutBlockBatchRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    PutBlockBatchRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::bucket_lookup::PutBlockBatchRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .s4wave.bucket_lookup.PutBlockBatchEntry entries = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(PutBlockBatchRequest, _impl_.entries_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.bucket_lookup.PutBlockBatchEntry entries = 1;
+    {PROTOBUF_FIELD_OFFSET(PutBlockBatchRequest, _impl_.entries_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::bucket_lookup::PutBlockBatchEntry>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void PutBlockBatchRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.bucket_lookup.PutBlockBatchRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.entries_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL PutBlockBatchRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const PutBlockBatchRequest& this_ = static_cast<const PutBlockBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL PutBlockBatchRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const PutBlockBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.bucket_lookup.PutBlockBatchRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.bucket_lookup.PutBlockBatchEntry entries = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_entries_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_entries().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.bucket_lookup.PutBlockBatchRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t PutBlockBatchRequest::ByteSizeLong(const MessageLite& base) {
+  const PutBlockBatchRequest& this_ = static_cast<const PutBlockBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t PutBlockBatchRequest::ByteSizeLong() const {
+  const PutBlockBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.bucket_lookup.PutBlockBatchRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .s4wave.bucket_lookup.PutBlockBatchEntry entries = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_entries_size();
+      for (const auto& msg : this_._internal_entries()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void PutBlockBatchRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<PutBlockBatchRequest*>(&to_msg);
+  auto& from = static_cast<const PutBlockBatchRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.bucket_lookup.PutBlockBatchRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_entries()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_entries());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void PutBlockBatchRequest::CopyFrom(const PutBlockBatchRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.bucket_lookup.PutBlockBatchRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void PutBlockBatchRequest::InternalSwap(PutBlockBatchRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.entries_.InternalSwap(&other->_impl_.entries_);
+}
+
+::google::protobuf::Metadata PutBlockBatchRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class PutBlockBatchResponse::_Internal {
+ public:
+};
+
+PutBlockBatchResponse::PutBlockBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, PutBlockBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.bucket_lookup.PutBlockBatchResponse)
+}
+PutBlockBatchResponse::PutBlockBatchResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const PutBlockBatchResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, PutBlockBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  PutBlockBatchResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.bucket_lookup.PutBlockBatchResponse)
+}
+
+inline void* PROTOBUF_NONNULL PutBlockBatchResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) PutBlockBatchResponse(arena);
+}
+constexpr auto PutBlockBatchResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(PutBlockBatchResponse),
+                                            alignof(PutBlockBatchResponse));
+}
+constexpr auto PutBlockBatchResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_PutBlockBatchResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &PutBlockBatchResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<PutBlockBatchResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &PutBlockBatchResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<PutBlockBatchResponse>(), &PutBlockBatchResponse::ByteSizeLong,
+              &PutBlockBatchResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(PutBlockBatchResponse, _impl_._cached_size_),
+          false,
+      },
+      &PutBlockBatchResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull PutBlockBatchResponse_class_data_ =
+        PutBlockBatchResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+PutBlockBatchResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&PutBlockBatchResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(PutBlockBatchResponse_class_data_.tc_table);
+  return PutBlockBatchResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+PutBlockBatchResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    PutBlockBatchResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::bucket_lookup::PutBlockBatchResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata PutBlockBatchResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetBlockExistsBatchRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetBlockExistsBatchRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchRequest, _impl_._has_bits_);
+};
+
+void GetBlockExistsBatchRequest::clear_refs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.refs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+GetBlockExistsBatchRequest::GetBlockExistsBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetBlockExistsBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE GetBlockExistsBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::bucket_lookup::GetBlockExistsBatchRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        refs_{visibility, arena, from.refs_} {}
+
+GetBlockExistsBatchRequest::GetBlockExistsBatchRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetBlockExistsBatchRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetBlockExistsBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetBlockExistsBatchRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE GetBlockExistsBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        refs_{visibility, arena} {}
+
+inline void GetBlockExistsBatchRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+GetBlockExistsBatchRequest::~GetBlockExistsBatchRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+  SharedDtor(*this);
+}
+inline void GetBlockExistsBatchRequest::SharedDtor(MessageLite& self) {
+  GetBlockExistsBatchRequest& this_ = static_cast<GetBlockExistsBatchRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetBlockExistsBatchRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetBlockExistsBatchRequest(arena);
+}
+constexpr auto GetBlockExistsBatchRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchRequest, _impl_.refs_) +
+          decltype(GetBlockExistsBatchRequest::_impl_.refs_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(GetBlockExistsBatchRequest), alignof(GetBlockExistsBatchRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GetBlockExistsBatchRequest::PlacementNew_,
+                                 sizeof(GetBlockExistsBatchRequest),
+                                 alignof(GetBlockExistsBatchRequest));
+  }
+}
+constexpr auto GetBlockExistsBatchRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetBlockExistsBatchRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetBlockExistsBatchRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetBlockExistsBatchRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetBlockExistsBatchRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetBlockExistsBatchRequest>(), &GetBlockExistsBatchRequest::ByteSizeLong,
+              &GetBlockExistsBatchRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchRequest, _impl_._cached_size_),
+          false,
+      },
+      &GetBlockExistsBatchRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetBlockExistsBatchRequest_class_data_ =
+        GetBlockExistsBatchRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetBlockExistsBatchRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetBlockExistsBatchRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetBlockExistsBatchRequest_class_data_.tc_table);
+  return GetBlockExistsBatchRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+GetBlockExistsBatchRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    GetBlockExistsBatchRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::bucket_lookup::GetBlockExistsBatchRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .block.BlockRef refs = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchRequest, _impl_.refs_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .block.BlockRef refs = 1;
+    {PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchRequest, _impl_.refs_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::block::BlockRef>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void GetBlockExistsBatchRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.refs_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetBlockExistsBatchRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetBlockExistsBatchRequest& this_ = static_cast<const GetBlockExistsBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetBlockExistsBatchRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetBlockExistsBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .block.BlockRef refs = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_refs_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_refs().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetBlockExistsBatchRequest::ByteSizeLong(const MessageLite& base) {
+  const GetBlockExistsBatchRequest& this_ = static_cast<const GetBlockExistsBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetBlockExistsBatchRequest::ByteSizeLong() const {
+  const GetBlockExistsBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated .block.BlockRef refs = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_refs_size();
+      for (const auto& msg : this_._internal_refs()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetBlockExistsBatchRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetBlockExistsBatchRequest*>(&to_msg);
+  auto& from = static_cast<const GetBlockExistsBatchRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_refs()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_refs());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetBlockExistsBatchRequest::CopyFrom(const GetBlockExistsBatchRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.bucket_lookup.GetBlockExistsBatchRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetBlockExistsBatchRequest::InternalSwap(GetBlockExistsBatchRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.refs_.InternalSwap(&other->_impl_.refs_);
+}
+
+::google::protobuf::Metadata GetBlockExistsBatchRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetBlockExistsBatchResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetBlockExistsBatchResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchResponse, _impl_._has_bits_);
+};
+
+GetBlockExistsBatchResponse::GetBlockExistsBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetBlockExistsBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetBlockExistsBatchResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::bucket_lookup::GetBlockExistsBatchResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        found_{visibility, arena, from.found_} {}
+
+GetBlockExistsBatchResponse::GetBlockExistsBatchResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetBlockExistsBatchResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetBlockExistsBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetBlockExistsBatchResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetBlockExistsBatchResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        found_{visibility, arena} {}
+
+inline void GetBlockExistsBatchResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+GetBlockExistsBatchResponse::~GetBlockExistsBatchResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+  SharedDtor(*this);
+}
+inline void GetBlockExistsBatchResponse::SharedDtor(MessageLite& self) {
+  GetBlockExistsBatchResponse& this_ = static_cast<GetBlockExistsBatchResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetBlockExistsBatchResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetBlockExistsBatchResponse(arena);
+}
+constexpr auto GetBlockExistsBatchResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchResponse, _impl_.found_) +
+          decltype(GetBlockExistsBatchResponse::_impl_.found_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(GetBlockExistsBatchResponse), alignof(GetBlockExistsBatchResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GetBlockExistsBatchResponse::PlacementNew_,
+                                 sizeof(GetBlockExistsBatchResponse),
+                                 alignof(GetBlockExistsBatchResponse));
+  }
+}
+constexpr auto GetBlockExistsBatchResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetBlockExistsBatchResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetBlockExistsBatchResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetBlockExistsBatchResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetBlockExistsBatchResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetBlockExistsBatchResponse>(), &GetBlockExistsBatchResponse::ByteSizeLong,
+              &GetBlockExistsBatchResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchResponse, _impl_._cached_size_),
+          false,
+      },
+      &GetBlockExistsBatchResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetBlockExistsBatchResponse_class_data_ =
+        GetBlockExistsBatchResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetBlockExistsBatchResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetBlockExistsBatchResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetBlockExistsBatchResponse_class_data_.tc_table);
+  return GetBlockExistsBatchResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+GetBlockExistsBatchResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    GetBlockExistsBatchResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::bucket_lookup::GetBlockExistsBatchResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated bool found = 1;
+    {::_pbi::TcParser::FastV8P1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchResponse, _impl_.found_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated bool found = 1;
+    {PROTOBUF_FIELD_OFFSET(GetBlockExistsBatchResponse, _impl_.found_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kPackedBool)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void GetBlockExistsBatchResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.found_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetBlockExistsBatchResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetBlockExistsBatchResponse& this_ = static_cast<const GetBlockExistsBatchResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetBlockExistsBatchResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetBlockExistsBatchResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated bool found = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_found_size() > 0) {
+      target = stream->WriteFixedPacked(1, this_._internal_found(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetBlockExistsBatchResponse::ByteSizeLong(const MessageLite& base) {
+  const GetBlockExistsBatchResponse& this_ = static_cast<const GetBlockExistsBatchResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetBlockExistsBatchResponse::ByteSizeLong() const {
+  const GetBlockExistsBatchResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated bool found = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      ::size_t data_size = ::size_t{1} *
+          ::_pbi::FromIntSize(this_._internal_found_size());
+      ::size_t tag_size = data_size == 0
+          ? 0
+          : 1 + ::_pbi::WireFormatLite::Int32Size(
+                              static_cast<::int32_t>(data_size));
+      total_size += tag_size + data_size;
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetBlockExistsBatchResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetBlockExistsBatchResponse*>(&to_msg);
+  auto& from = static_cast<const GetBlockExistsBatchResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_found()->MergeFrom(from._internal_found());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetBlockExistsBatchResponse::CopyFrom(const GetBlockExistsBatchResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.bucket_lookup.GetBlockExistsBatchResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetBlockExistsBatchResponse::InternalSwap(GetBlockExistsBatchResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.found_.InternalSwap(&other->_impl_.found_);
+}
+
+::google::protobuf::Metadata GetBlockExistsBatchResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

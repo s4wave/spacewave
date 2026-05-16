@@ -6,6 +6,11 @@ package bldr_plugin
 
 import (
 	fmt "fmt"
+	io "io"
+	slices "slices"
+	strconv "strconv"
+	strings "strings"
+
 	_ "github.com/aperturerobotics/controllerbus/controller/exec"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -13,10 +18,6 @@ import (
 	_ "github.com/aperturerobotics/starpc/rpcstream"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	volume "github.com/s4wave/spacewave/db/volume"
-	io "io"
-	slices "slices"
-	strconv "strconv"
-	strings "strings"
 )
 
 // PluginState is the scheduler state for a plugin instance.
@@ -381,12 +382,8 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 	}
 	r := new(GetPluginInfoResponse)
 	r.PluginId = m.PluginId
-	if rhs := m.ManifestRef; rhs != nil {
-		r.ManifestRef = rhs.CloneVT()
-	}
-	if rhs := m.HostVolumeInfo; rhs != nil {
-		r.HostVolumeInfo = rhs.CloneVT()
-	}
+	r.ManifestRef = m.ManifestRef.CloneVT()
+	r.HostVolumeInfo = m.HostVolumeInfo.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -517,6 +514,7 @@ func (this *PluginStatus) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetPluginInfoRequest) EqualVT(that *GetPluginInfoRequest) bool {
 	if this == that {
 		return true
@@ -533,6 +531,7 @@ func (this *GetPluginInfoRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *GetPluginInfoResponse) EqualVT(that *GetPluginInfoResponse) bool {
 	if this == that {
 		return true
@@ -558,6 +557,7 @@ func (this *GetPluginInfoResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *LoadPluginRequest) EqualVT(that *LoadPluginRequest) bool {
 	if this == that {
 		return true
@@ -580,6 +580,7 @@ func (this *LoadPluginRequest) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *LoadPluginResponse) EqualVT(that *LoadPluginResponse) bool {
 	if this == that {
 		return true
@@ -599,6 +600,7 @@ func (this *LoadPluginResponse) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PluginMeta) EqualVT(that *PluginMeta) bool {
 	if this == that {
 		return true
@@ -627,6 +629,7 @@ func (this *PluginMeta) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PluginStartInfo) EqualVT(that *PluginStartInfo) bool {
 	if this == that {
 		return true
@@ -652,6 +655,7 @@ func (this *PluginStartInfo) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PluginContextInfo) EqualVT(that *PluginContextInfo) bool {
 	if this == that {
 		return true
@@ -1741,6 +1745,7 @@ func (m *PluginContextInfo) SizeVT() (n int) {
 func (x PluginState) MarshalProtoText() string {
 	return x.String()
 }
+
 func (x *PluginStatus) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginStatus {")
@@ -1795,6 +1800,7 @@ func (x *PluginStatus) MarshalProtoText() string {
 func (x *PluginStatus) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetPluginInfoRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetPluginInfoRequest {")
@@ -1805,6 +1811,7 @@ func (x *GetPluginInfoRequest) MarshalProtoText() string {
 func (x *GetPluginInfoRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *GetPluginInfoResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetPluginInfoResponse {")
@@ -1836,6 +1843,7 @@ func (x *GetPluginInfoResponse) MarshalProtoText() string {
 func (x *GetPluginInfoResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *LoadPluginRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("LoadPluginRequest {")
@@ -1860,6 +1868,7 @@ func (x *LoadPluginRequest) MarshalProtoText() string {
 func (x *LoadPluginRequest) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *LoadPluginResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("LoadPluginResponse {")
@@ -1877,6 +1886,7 @@ func (x *LoadPluginResponse) MarshalProtoText() string {
 func (x *LoadPluginResponse) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PluginMeta) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginMeta {")
@@ -1915,6 +1925,7 @@ func (x *PluginMeta) MarshalProtoText() string {
 func (x *PluginMeta) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PluginStartInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginStartInfo {")
@@ -1946,6 +1957,7 @@ func (x *PluginStartInfo) MarshalProtoText() string {
 func (x *PluginStartInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PluginContextInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("PluginContextInfo {")
@@ -1963,6 +1975,7 @@ func (x *PluginContextInfo) MarshalProtoText() string {
 func (x *PluginContextInfo) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *PluginStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2122,6 +2135,7 @@ func (m *PluginStatus) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetPluginInfoRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2164,6 +2178,7 @@ func (m *GetPluginInfoRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *GetPluginInfoResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2284,6 +2299,7 @@ func (m *GetPluginInfoResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *LoadPluginRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2370,6 +2386,7 @@ func (m *LoadPluginRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *LoadPluginResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2440,6 +2457,7 @@ func (m *LoadPluginResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PluginMeta) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2570,6 +2588,7 @@ func (m *PluginMeta) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PluginStartInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2678,6 +2697,7 @@ func (m *PluginStartInfo) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PluginContextInfo) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

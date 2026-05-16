@@ -1,0 +1,81 @@
+syntax = "proto3";
+package s4wave.apt;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/apt;s4wave_apt";
+
+// AptRepositoryState is the index lifecycle state of an AptRepository.
+enum AptRepositoryState {
+  // AptRepositoryState_EMPTY means the repository has no generated index.
+  AptRepositoryState_EMPTY = 0;
+  // AptRepositoryState_INDEXING means index regeneration is in progress.
+  AptRepositoryState_INDEXING = 1;
+  // AptRepositoryState_READY means the repository index is generated and usable.
+  AptRepositoryState_READY = 2;
+  // AptRepositoryState_ERROR means the last index regeneration failed.
+  AptRepositoryState_ERROR = 3;
+}
+
+// AptRepository stores apt repository metadata and index roots.
+message AptRepository {
+  // State is the current repository index lifecycle state.
+  AptRepositoryState state = 1;
+  // Distribution is the apt distribution name, e.g. "stable".
+  string distribution = 2;
+  // Components is the apt component list, e.g. ["main"].
+  repeated string components = 3;
+  // Architectures is the architecture list served by this repository.
+  repeated string architectures = 4;
+  // SigningKeyRef points at the standalone Ed25519 GPG signing key block.
+  .block.BlockRef signing_key_ref = 5;
+  // IndexRef points at the materialized dists/ UnixFS tree.
+  .bucket.ObjectRef index_ref = 6;
+}
+
+// AptPackageState is the publication lifecycle state of an AptPackage.
+enum AptPackageState {
+  // AptPackageState_IMPORTING means the package is being ingested.
+  AptPackageState_IMPORTING = 0;
+  // AptPackageState_BUILT means the package artifact exists but is not indexed.
+  AptPackageState_BUILT = 1;
+  // AptPackageState_PUBLISHED means the package is included in the current index.
+  AptPackageState_PUBLISHED = 2;
+  // AptPackageState_SUPERSEDED means a newer package replaced this package.
+  AptPackageState_SUPERSEDED = 3;
+}
+
+// AptPackageChecksum records a digest for the .deb payload.
+message AptPackageChecksum {
+  // Algorithm is the checksum algorithm name, e.g. "sha256".
+  string algorithm = 1;
+  // Hex is the lowercase hex digest.
+  string hex = 2;
+}
+
+// AptPackage stores apt package metadata and the .deb payload reference.
+message AptPackage {
+  // State is the package publication lifecycle state.
+  AptPackageState state = 1;
+  // Name is the binary package name, e.g. "busybox".
+  string name = 2;
+  // Version is the Debian package version.
+  string version = 3;
+  // Architecture is the Debian architecture, e.g. "i386".
+  string architecture = 4;
+  // Depends is the parsed Depends control field.
+  repeated string depends = 5;
+  // Provides is the parsed Provides control field.
+  repeated string provides = 6;
+  // Conflicts is the parsed Conflicts control field.
+  repeated string conflicts = 7;
+  // Description is the package description from the control file.
+  string description = 8;
+  // Size is the .deb payload size in bytes.
+  uint64 size = 9;
+  // Checksums are the recorded .deb payload digests.
+  repeated AptPackageChecksum checksums = 10;
+  // DebRef points at the stored .deb payload block.
+  .block.BlockRef deb_ref = 11;
+}

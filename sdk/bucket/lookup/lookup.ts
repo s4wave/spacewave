@@ -11,6 +11,10 @@ import {
   GetBlockResponse,
   PutBlockRequest,
   PutBlockResponse,
+  PutBlockBatchRequest,
+  PutBlockBatchResponse,
+  GetBlockExistsBatchRequest,
+  GetBlockExistsBatchResponse,
   BuildTransactionRequest,
   BuildTransactionAtRefRequest,
   CloneRequest,
@@ -74,6 +78,22 @@ export class BucketLookupCursor extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<PutBlockResponse> {
     return await this.service.PutBlock(req, abortSignal)
+  }
+
+  // putBlockBatch puts a batch of blocks.
+  public async putBlockBatch(
+    req: PutBlockBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PutBlockBatchResponse> {
+    return await this.service.PutBlockBatch(req, abortSignal)
+  }
+
+  // getBlockExistsBatch checks whether each block exists.
+  public async getBlockExistsBatch(
+    req: GetBlockExistsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetBlockExistsBatchResponse> {
+    return await this.service.GetBlockExistsBatch(req, abortSignal)
   }
 
   // buildTransaction builds a transaction at the current position.

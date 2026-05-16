@@ -290,6 +290,162 @@ export const PutBlockResponse: MessageType<PutBlockResponse> =
   })
 
 /**
+ * PutBlockBatchEntry is one block write operation in a batch.
+ *
+ * @generated from message s4wave.bucket_lookup.PutBlockBatchEntry
+ */
+export interface PutBlockBatchEntry {
+  /**
+   * Ref is the expected content-addressed block reference.
+   *
+   * @generated from field: block.BlockRef ref = 1;
+   */
+  ref?: BlockRef
+  /**
+   * Data is the encoded block payload.
+   *
+   * @generated from field: bytes data = 2;
+   */
+  data?: Uint8Array
+  /**
+   * Refs are outgoing block references recorded with this write.
+   *
+   * @generated from field: repeated block.BlockRef refs = 3;
+   */
+  refs?: BlockRef[]
+  /**
+   * Tombstone marks the block ref as deleted.
+   *
+   * @generated from field: bool tombstone = 4;
+   */
+  tombstone?: boolean
+}
+
+// PutBlockBatchEntry contains the message type declaration for PutBlockBatchEntry.
+export const PutBlockBatchEntry: MessageType<PutBlockBatchEntry> =
+  createMessageType({
+    typeName: 's4wave.bucket_lookup.PutBlockBatchEntry',
+    fields: [
+      { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+      { no: 4, name: 'tombstone', kind: 'scalar', T: ScalarType.BOOL },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * PutBlockBatchRequest is the request type for PutBlockBatch.
+ *
+ * @generated from message s4wave.bucket_lookup.PutBlockBatchRequest
+ */
+export interface PutBlockBatchRequest {
+  /**
+   * Entries are the block write operations.
+   *
+   * @generated from field: repeated s4wave.bucket_lookup.PutBlockBatchEntry entries = 1;
+   */
+  entries?: PutBlockBatchEntry[]
+}
+
+// PutBlockBatchRequest contains the message type declaration for PutBlockBatchRequest.
+export const PutBlockBatchRequest: MessageType<PutBlockBatchRequest> =
+  createMessageType({
+    typeName: 's4wave.bucket_lookup.PutBlockBatchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'entries',
+        kind: 'message',
+        T: () => PutBlockBatchEntry,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * PutBlockBatchResponse is the response type for PutBlockBatch.
+ *
+ * @generated from message s4wave.bucket_lookup.PutBlockBatchResponse
+ */
+export interface PutBlockBatchResponse {}
+
+// PutBlockBatchResponse contains the message type declaration for PutBlockBatchResponse.
+export const PutBlockBatchResponse: MessageType<PutBlockBatchResponse> =
+  createMessageType({
+    typeName: 's4wave.bucket_lookup.PutBlockBatchResponse',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetBlockExistsBatchRequest is the request type for GetBlockExistsBatch.
+ *
+ * @generated from message s4wave.bucket_lookup.GetBlockExistsBatchRequest
+ */
+export interface GetBlockExistsBatchRequest {
+  /**
+   * Refs are the block references to check.
+   *
+   * @generated from field: repeated block.BlockRef refs = 1;
+   */
+  refs?: BlockRef[]
+}
+
+// GetBlockExistsBatchRequest contains the message type declaration for GetBlockExistsBatchRequest.
+export const GetBlockExistsBatchRequest: MessageType<GetBlockExistsBatchRequest> =
+  createMessageType({
+    typeName: 's4wave.bucket_lookup.GetBlockExistsBatchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetBlockExistsBatchResponse is the response type for GetBlockExistsBatch.
+ *
+ * @generated from message s4wave.bucket_lookup.GetBlockExistsBatchResponse
+ */
+export interface GetBlockExistsBatchResponse {
+  /**
+   * Found reports whether each requested ref exists.
+   *
+   * @generated from field: repeated bool found = 1;
+   */
+  found?: boolean[]
+}
+
+// GetBlockExistsBatchResponse contains the message type declaration for GetBlockExistsBatchResponse.
+export const GetBlockExistsBatchResponse: MessageType<GetBlockExistsBatchResponse> =
+  createMessageType({
+    typeName: 's4wave.bucket_lookup.GetBlockExistsBatchResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'found',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+        repeated: true,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * BuildTransactionRequest is the request type for BuildTransaction.
  *
  * @generated from message s4wave.bucket_lookup.BuildTransactionRequest

@@ -1,6 +1,7 @@
 package bucket_lookup
 
 import (
+	"bytes"
 	"context"
 	"errors"
 
@@ -497,6 +498,32 @@ func (c *Cursor) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 	return c.bkt.PutBlock(ctx, data, opts)
 }
 
+// PutBlockBatch writes a batch into the store, applying any configured transforms.
+func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	if c.xfrm == nil {
+		return c.bkt.PutBlockBatch(ctx, entries)
+	}
+
+	transformed := make([]*block.PutBatchEntry, len(entries))
+	for i, entry := range entries {
+		if entry.Tombstone {
+			transformed[i] = entry
+			continue
+		}
+		data, err := c.xfrm.EncodeBlock(bytes.Clone(entry.Data))
+		if err != nil {
+			return err
+		}
+		transformed[i] = &block.PutBatchEntry{
+			Ref:       entry.Ref,
+			Data:      data,
+			Refs:      entry.Refs,
+			Tombstone: entry.Tombstone,
+		}
+	}
+	return c.bkt.PutBlockBatch(ctx, transformed)
+}
+
 // GetBlock gets a block with a cid reference, applying any configured transforms.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
@@ -512,6 +539,11 @@ func (c *Cursor) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, boo
 		}
 	}
 	return data, true, nil
+}
+
+// GetBlockExistsBatch checks whether all block references exist.
+func (c *Cursor) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return c.bkt.GetBlockExistsBatch(ctx, refs)
 }
 
 // GetRef returns a copy of the current object ref.

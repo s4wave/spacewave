@@ -284,10 +284,8 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.Id = m.Id
 	r.Rev = m.Rev
+	r.PutOpts = m.PutOpts.CloneVT()
 	r.Lookup = m.Lookup.CloneVT()
-	if rhs := m.PutOpts; rhs != nil {
-		r.PutOpts = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -362,16 +360,10 @@ func (m *ObjectRef) CloneVT() *ObjectRef {
 		return (*ObjectRef)(nil)
 	}
 	r := new(ObjectRef)
+	r.RootRef = m.RootRef.CloneVT()
 	r.BucketId = m.BucketId
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
-	if rhs := m.TransformConfRef; rhs != nil {
-		r.TransformConfRef = rhs.CloneVT()
-	}
-	if rhs := m.TransformConf; rhs != nil {
-		r.TransformConf = rhs.CloneVT()
-	}
+	r.TransformConfRef = m.TransformConfRef.CloneVT()
+	r.TransformConf = m.TransformConf.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

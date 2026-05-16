@@ -11,10 +11,14 @@ import {
   CloneResponse,
   FollowRefRequest,
   FollowRefResponse,
+  GetBlockExistsBatchRequest,
+  GetBlockExistsBatchResponse,
   GetBlockRequest,
   GetBlockResponse,
   GetRefRequest,
   GetRefResponse,
+  PutBlockBatchRequest,
+  PutBlockBatchResponse,
   PutBlockRequest,
   PutBlockResponse,
   ReleaseRequest,
@@ -65,6 +69,24 @@ export const BucketLookupCursorResourceServiceDefinition = {
       name: 'PutBlock',
       I: PutBlockRequest,
       O: PutBlockResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.PutBlockBatch
+     */
+    PutBlockBatch: {
+      name: 'PutBlockBatch',
+      I: PutBlockBatchRequest,
+      O: PutBlockBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.GetBlockExistsBatch
+     */
+    GetBlockExistsBatch: {
+      name: 'GetBlockExistsBatch',
+      I: GetBlockExistsBatchRequest,
+      O: GetBlockExistsBatchResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -152,6 +174,22 @@ export interface BucketLookupCursorResourceService {
   ): Promise<PutBlockResponse>
 
   /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.PutBlockBatch
+   */
+  PutBlockBatch(
+    request: PutBlockBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PutBlockBatchResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.GetBlockExistsBatch
+   */
+  GetBlockExistsBatch(
+    request: GetBlockExistsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetBlockExistsBatchResponse>
+
+  /**
    * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.BuildTransaction
    */
   BuildTransaction(
@@ -205,6 +243,8 @@ export class BucketLookupCursorResourceServiceClient implements BucketLookupCurs
     this.FollowRef = this.FollowRef.bind(this)
     this.GetBlock = this.GetBlock.bind(this)
     this.PutBlock = this.PutBlock.bind(this)
+    this.PutBlockBatch = this.PutBlockBatch.bind(this)
+    this.GetBlockExistsBatch = this.GetBlockExistsBatch.bind(this)
     this.BuildTransaction = this.BuildTransaction.bind(this)
     this.BuildTransactionAtRef = this.BuildTransactionAtRef.bind(this)
     this.Clone = this.Clone.bind(this)
@@ -277,6 +317,41 @@ export class BucketLookupCursorResourceServiceClient implements BucketLookupCurs
       abortSignal || undefined,
     )
     return PutBlockResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.PutBlockBatch
+   */
+  async PutBlockBatch(
+    request: PutBlockBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PutBlockBatchResponse> {
+    const requestMsg = PutBlockBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BucketLookupCursorResourceServiceDefinition.methods.PutBlockBatch.name,
+      PutBlockBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PutBlockBatchResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.GetBlockExistsBatch
+   */
+  async GetBlockExistsBatch(
+    request: GetBlockExistsBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetBlockExistsBatchResponse> {
+    const requestMsg = GetBlockExistsBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      BucketLookupCursorResourceServiceDefinition.methods.GetBlockExistsBatch
+        .name,
+      GetBlockExistsBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetBlockExistsBatchResponse.fromBinary(result)
   }
 
   /**

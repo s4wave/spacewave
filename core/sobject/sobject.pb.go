@@ -1882,10 +1882,8 @@ func (m *SharedObjectRef) CloneVT() *SharedObjectRef {
 		return (*SharedObjectRef)(nil)
 	}
 	r := new(SharedObjectRef)
+	r.ProviderResourceRef = m.ProviderResourceRef.CloneVT()
 	r.BlockStoreId = m.BlockStoreId
-	if rhs := m.ProviderResourceRef; rhs != nil {
-		r.ProviderResourceRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2031,13 +2029,11 @@ func (m *SOConfigChange) CloneVT() *SOConfigChange {
 	r := new(SOConfigChange)
 	r.ConfigSeqno = m.ConfigSeqno
 	r.Config = m.Config.CloneVT()
+	r.Signature = m.Signature.CloneVT()
 	r.ChangeType = m.ChangeType
 	r.RevocationInfo = m.RevocationInfo.CloneVT()
 	if rhs := m.SignedBy; rhs != nil {
 		r.SignedBy = slices.Clone(rhs)
-	}
-	if rhs := m.Signature; rhs != nil {
-		r.Signature = rhs.CloneVT()
 	}
 	if rhs := m.PreviousHash; rhs != nil {
 		r.PreviousHash = slices.Clone(rhs)
@@ -2142,11 +2138,9 @@ func (m *SOOperation) CloneVT() *SOOperation {
 		return (*SOOperation)(nil)
 	}
 	r := new(SOOperation)
+	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
-	}
-	if rhs := m.Signature; rhs != nil {
-		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2248,11 +2242,9 @@ func (m *SOOperationRejection) CloneVT() *SOOperationRejection {
 		return (*SOOperationRejection)(nil)
 	}
 	r := new(SOOperationRejection)
+	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
-	}
-	if rhs := m.Signature; rhs != nil {
-		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2307,11 +2299,9 @@ func (m *SOGrant) CloneVT() *SOGrant {
 	}
 	r := new(SOGrant)
 	r.PeerId = m.PeerId
+	r.Signature = m.Signature.CloneVT()
 	if rhs := m.InnerData; rhs != nil {
 		r.InnerData = slices.Clone(rhs)
-	}
-	if rhs := m.Signature; rhs != nil {
-		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2328,9 +2318,7 @@ func (m *SOGrantInner) CloneVT() *SOGrantInner {
 		return (*SOGrantInner)(nil)
 	}
 	r := new(SOGrantInner)
-	if rhs := m.TransformConf; rhs != nil {
-		r.TransformConf = rhs.CloneVT()
-	}
+	r.TransformConf = m.TransformConf.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2485,11 +2473,9 @@ func (m *SOClearOperationResult) CloneVT() *SOClearOperationResult {
 		return (*SOClearOperationResult)(nil)
 	}
 	r := new(SOClearOperationResult)
+	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
-	}
-	if rhs := m.Signature; rhs != nil {
-		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2600,14 +2586,12 @@ func (m *SOInviteMessage) CloneVT() *SOInviteMessage {
 	r.Role = m.Role
 	r.TargetPeerId = m.TargetPeerId
 	r.MaxUses = m.MaxUses
+	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Token; rhs != nil {
 		r.Token = slices.Clone(rhs)
 	}
 	if rhs := m.ExpiresAt; rhs != nil {
 		r.ExpiresAt = rhs.CloneVT()
-	}
-	if rhs := m.Signature; rhs != nil {
-		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2626,11 +2610,9 @@ func (m *SOJoinResponse) CloneVT() *SOJoinResponse {
 	r := new(SOJoinResponse)
 	r.InviteId = m.InviteId
 	r.ResponderPeerId = m.ResponderPeerId
+	r.Signature = m.Signature.CloneVT()
 	if rhs := m.ResponderPubkey; rhs != nil {
 		r.ResponderPubkey = slices.Clone(rhs)
-	}
-	if rhs := m.Signature; rhs != nil {
-		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)

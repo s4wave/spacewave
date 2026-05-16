@@ -24,6 +24,14 @@ starpc::Error SRPCBucketLookupCursorResourceServiceClientImpl::PutBlock(const s4
   return cc_->ExecCall(service_id_, "PutBlock", in, out);
 }
 
+starpc::Error SRPCBucketLookupCursorResourceServiceClientImpl::PutBlockBatch(const s4wave::bucket_lookup::PutBlockBatchRequest& in, s4wave::bucket_lookup::PutBlockBatchResponse* out) {
+  return cc_->ExecCall(service_id_, "PutBlockBatch", in, out);
+}
+
+starpc::Error SRPCBucketLookupCursorResourceServiceClientImpl::GetBlockExistsBatch(const s4wave::bucket_lookup::GetBlockExistsBatchRequest& in, s4wave::bucket_lookup::GetBlockExistsBatchResponse* out) {
+  return cc_->ExecCall(service_id_, "GetBlockExistsBatch", in, out);
+}
+
 starpc::Error SRPCBucketLookupCursorResourceServiceClientImpl::BuildTransaction(const s4wave::bucket_lookup::BuildTransactionRequest& in, s4wave::bucket_lookup::BuildTransactionResponse* out) {
   return cc_->ExecCall(service_id_, "BuildTransaction", in, out);
 }
@@ -50,6 +58,8 @@ std::vector<std::string> SRPCBucketLookupCursorResourceServiceHandler::GetMethod
     "FollowRef",
     "GetBlock",
     "PutBlock",
+    "PutBlockBatch",
+    "GetBlockExistsBatch",
     "BuildTransaction",
     "BuildTransactionAtRef",
     "Clone",
@@ -96,6 +106,22 @@ std::pair<bool, starpc::Error> SRPCBucketLookupCursorResourceServiceHandler::Inv
     if (err != starpc::Error::OK) return {true, err};
     s4wave::bucket_lookup::PutBlockResponse resp;
     err = impl_->PutBlock(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "PutBlockBatch") {
+    s4wave::bucket_lookup::PutBlockBatchRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::bucket_lookup::PutBlockBatchResponse resp;
+    err = impl_->PutBlockBatch(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetBlockExistsBatch") {
+    s4wave::bucket_lookup::GetBlockExistsBatchRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::bucket_lookup::GetBlockExistsBatchResponse resp;
+    err = impl_->GetBlockExistsBatch(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "BuildTransaction") {

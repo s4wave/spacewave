@@ -37,6 +37,10 @@ class SRPCBucketLookupCursorResourceServiceClient {
   virtual starpc::Error GetBlock(const s4wave::bucket_lookup::GetBlockRequest& in, s4wave::bucket_lookup::GetBlockResponse* out) = 0;
   // PutBlock
   virtual starpc::Error PutBlock(const s4wave::bucket_lookup::PutBlockRequest& in, s4wave::bucket_lookup::PutBlockResponse* out) = 0;
+  // PutBlockBatch
+  virtual starpc::Error PutBlockBatch(const s4wave::bucket_lookup::PutBlockBatchRequest& in, s4wave::bucket_lookup::PutBlockBatchResponse* out) = 0;
+  // GetBlockExistsBatch
+  virtual starpc::Error GetBlockExistsBatch(const s4wave::bucket_lookup::GetBlockExistsBatchRequest& in, s4wave::bucket_lookup::GetBlockExistsBatchResponse* out) = 0;
   // BuildTransaction
   virtual starpc::Error BuildTransaction(const s4wave::bucket_lookup::BuildTransactionRequest& in, s4wave::bucket_lookup::BuildTransactionResponse* out) = 0;
   // BuildTransactionAtRef
@@ -65,6 +69,10 @@ class SRPCBucketLookupCursorResourceServiceClientImpl : public SRPCBucketLookupC
   virtual starpc::Error GetBlock(const s4wave::bucket_lookup::GetBlockRequest& in, s4wave::bucket_lookup::GetBlockResponse* out) override;
   // PutBlock
   virtual starpc::Error PutBlock(const s4wave::bucket_lookup::PutBlockRequest& in, s4wave::bucket_lookup::PutBlockResponse* out) override;
+  // PutBlockBatch
+  virtual starpc::Error PutBlockBatch(const s4wave::bucket_lookup::PutBlockBatchRequest& in, s4wave::bucket_lookup::PutBlockBatchResponse* out) override;
+  // GetBlockExistsBatch
+  virtual starpc::Error GetBlockExistsBatch(const s4wave::bucket_lookup::GetBlockExistsBatchRequest& in, s4wave::bucket_lookup::GetBlockExistsBatchResponse* out) override;
   // BuildTransaction
   virtual starpc::Error BuildTransaction(const s4wave::bucket_lookup::BuildTransactionRequest& in, s4wave::bucket_lookup::BuildTransactionResponse* out) override;
   // BuildTransactionAtRef
@@ -99,6 +107,10 @@ class SRPCBucketLookupCursorResourceServiceServer {
   virtual starpc::Error GetBlock(const s4wave::bucket_lookup::GetBlockRequest& req, s4wave::bucket_lookup::GetBlockResponse* resp) = 0;
   // PutBlock
   virtual starpc::Error PutBlock(const s4wave::bucket_lookup::PutBlockRequest& req, s4wave::bucket_lookup::PutBlockResponse* resp) = 0;
+  // PutBlockBatch
+  virtual starpc::Error PutBlockBatch(const s4wave::bucket_lookup::PutBlockBatchRequest& req, s4wave::bucket_lookup::PutBlockBatchResponse* resp) = 0;
+  // GetBlockExistsBatch
+  virtual starpc::Error GetBlockExistsBatch(const s4wave::bucket_lookup::GetBlockExistsBatchRequest& req, s4wave::bucket_lookup::GetBlockExistsBatchResponse* resp) = 0;
   // BuildTransaction
   virtual starpc::Error BuildTransaction(const s4wave::bucket_lookup::BuildTransactionRequest& req, s4wave::bucket_lookup::BuildTransactionResponse* resp) = 0;
   // BuildTransactionAtRef

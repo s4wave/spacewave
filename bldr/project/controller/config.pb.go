@@ -208,12 +208,10 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.SourcePath = m.SourcePath
 	r.WorkingPath = m.WorkingPath
+	r.ProjectConfig = m.ProjectConfig.CloneVT()
 	r.Watch = m.Watch
 	r.Start = m.Start
 	r.FetchManifestRemote = m.FetchManifestRemote
-	if rhs := m.ProjectConfig; rhs != nil {
-		r.ProjectConfig = rhs.CloneVT()
-	}
 	if rhs := m.BuildBackoff; rhs != nil {
 		r.BuildBackoff = rhs.CloneVT()
 	}
@@ -257,12 +255,8 @@ func (m *ManifestBuilderResult) CloneVT() *ManifestBuilderResult {
 		return (*ManifestBuilderResult)(nil)
 	}
 	r := new(ManifestBuilderResult)
-	if rhs := m.BuilderConfig; rhs != nil {
-		r.BuilderConfig = rhs.CloneVT()
-	}
-	if rhs := m.BuilderResult; rhs != nil {
-		r.BuilderResult = rhs.CloneVT()
-	}
+	r.BuilderConfig = m.BuilderConfig.CloneVT()
+	r.BuilderResult = m.BuilderResult.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

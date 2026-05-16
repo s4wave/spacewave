@@ -130,12 +130,10 @@ func (m *Config) CloneVT() *Config {
 	r.BlockStoreId = m.BlockStoreId
 	r.BlockStoreOverlayMode = m.BlockStoreOverlayMode
 	r.BlockStoreWritebackTimeoutDur = m.BlockStoreWritebackTimeoutDur
+	r.BlockStoreWritebackPutOpts = m.BlockStoreWritebackPutOpts.CloneVT()
 	r.GcIntervalDur = m.GcIntervalDur
 	if rhs := m.VolumeIdAlias; rhs != nil {
 		r.VolumeIdAlias = slices.Clone(rhs)
-	}
-	if rhs := m.BlockStoreWritebackPutOpts; rhs != nil {
-		r.BlockStoreWritebackPutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)

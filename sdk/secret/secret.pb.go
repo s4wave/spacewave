@@ -481,10 +481,8 @@ func (m *Secret) CloneVT() *Secret {
 	r.DisplayName = m.DisplayName
 	r.Kind = m.Kind
 	r.NestedSharedObjectId = m.NestedSharedObjectId
+	r.Ref = m.Ref.CloneVT()
 	r.ValueHash = m.ValueHash
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
 	if rhs := m.CreatedAt; rhs != nil {
 		r.CreatedAt = rhs.CloneVT()
 	}
@@ -551,9 +549,7 @@ func (m *SecretState) CloneVT() *SecretState {
 	r := new(SecretState)
 	r.Secret = m.Secret.CloneVT()
 	r.GrantStatus = m.GrantStatus.CloneVT()
-	if rhs := m.Health; rhs != nil {
-		r.Health = rhs.CloneVT()
-	}
+	r.Health = m.Health.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -668,9 +664,7 @@ func (m *ReadPayloadRequest) CloneVT() *ReadPayloadRequest {
 	}
 	r := new(ReadPayloadRequest)
 	r.ChallengeId = m.ChallengeId
-	if rhs := m.Signature; rhs != nil {
-		r.Signature = rhs.CloneVT()
-	}
+	r.Signature = m.Signature.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

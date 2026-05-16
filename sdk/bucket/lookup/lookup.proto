@@ -79,6 +79,39 @@ message PutBlockResponse {
   bool existed = 2;
 }
 
+// PutBlockBatchEntry is one block write operation in a batch.
+message PutBlockBatchEntry {
+  // Ref is the expected content-addressed block reference.
+  .block.BlockRef ref = 1;
+  // Data is the encoded block payload.
+  bytes data = 2;
+  // Refs are outgoing block references recorded with this write.
+  repeated .block.BlockRef refs = 3;
+  // Tombstone marks the block ref as deleted.
+  bool tombstone = 4;
+}
+
+// PutBlockBatchRequest is the request type for PutBlockBatch.
+message PutBlockBatchRequest {
+  // Entries are the block write operations.
+  repeated PutBlockBatchEntry entries = 1;
+}
+
+// PutBlockBatchResponse is the response type for PutBlockBatch.
+message PutBlockBatchResponse {}
+
+// GetBlockExistsBatchRequest is the request type for GetBlockExistsBatch.
+message GetBlockExistsBatchRequest {
+  // Refs are the block references to check.
+  repeated .block.BlockRef refs = 1;
+}
+
+// GetBlockExistsBatchResponse is the response type for GetBlockExistsBatch.
+message GetBlockExistsBatchResponse {
+  // Found reports whether each requested ref exists.
+  repeated bool found = 1;
+}
+
 // BuildTransactionRequest is the request type for BuildTransaction.
 message BuildTransactionRequest {
   // PutOpts are the default put options for the transaction.
@@ -149,6 +182,10 @@ service BucketLookupCursorResourceService {
   rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
   
   rpc PutBlock(PutBlockRequest) returns (PutBlockResponse);
+
+  rpc PutBlockBatch(PutBlockBatchRequest) returns (PutBlockBatchResponse);
+
+  rpc GetBlockExistsBatch(GetBlockExistsBatchRequest) returns (GetBlockExistsBatchResponse);
   
   rpc BuildTransaction(BuildTransactionRequest) returns (BuildTransactionResponse);
   
