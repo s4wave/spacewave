@@ -46,7 +46,7 @@ func (k *KVTxBlock) GetHashType() hash.HashType {
 
 // GetSupportedFeatures returns the native feature bitmask for the store.
 func (k *KVTxBlock) GetSupportedFeatures() block.StoreFeature {
-	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+	return block.StoreFeatureNativeBatchPut | block.StoreFeatureNativeBatchExists
 }
 
 // BeginReadOperation opens one read-only kvtx transaction for a bounded read scope.
@@ -130,27 +130,54 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	return ref, false, err
 }
 
-// PutBlockBatch loops calling PutBlock or RmBlock per entry.
+// PutBlockBatch writes all entries in one lower kvtx transaction.
 func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	ctx, task := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch")
+	defer task.End()
+
+	ops := make([]putBlockBatchOp, 0, len(entries))
 	for _, entry := range entries {
-		if entry.Tombstone {
-			if err := k.RmBlock(ctx, entry.Ref); err != nil {
+		op, err := k.preparePutBlockBatchOp(entry)
+		if err != nil {
+			return err
+		}
+		ops = append(ops, op)
+	}
+	if len(ops) == 0 {
+		return nil
+	}
+
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/new-transaction")
+	tx, err := k.store.NewTransaction(taskCtx, true)
+	subtask.End()
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	for _, op := range ops {
+		if op.tombstone {
+			if err := tx.Delete(ctx, op.key); err != nil {
 				return err
 			}
 			continue
 		}
-		var ref *block.BlockRef
-		if entry.Ref != nil {
-			ref = entry.Ref.Clone()
+		exists, err := tx.Exists(ctx, op.key)
+		if err != nil {
+			return err
 		}
-		if _, _, err := k.PutBlock(ctx, entry.Data, &block.PutOpts{
-			ForceBlockRef: ref,
-			Refs:          block.CloneBlockRefs(entry.Refs),
-		}); err != nil {
+		if exists {
+			continue
+		}
+		if err := tx.Set(ctx, op.key, op.data); err != nil {
 			return err
 		}
 	}
-	return nil
+
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/commit")
+	err = tx.Commit(taskCtx)
+	subtask.End()
+	return err
 }
 
 // PutBlockBackground forwards to PutBlock.
@@ -174,11 +201,10 @@ func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.Bloc
 		return nil, false, err
 	}
 
-	rm, err := ref.MarshalKey()
+	key, err := k.blockKey(ref)
 	if err != nil {
 		return nil, false, err
 	}
-	key := k.kvkey.GetBlockKey(rm)
 
 	data, found, err := tx.Get(ctx, key)
 	if err != nil || !found {
@@ -249,15 +275,12 @@ func (r *readOperation) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 }
 
 func (r *readOperation) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := r.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	if r.closed {
+		return nil, ErrReadOperationClosed
 	}
-	return out, nil
+	return r.parent.getBlockExistsBatch(ctx, r.tx, refs)
 }
 
 func (r *readOperation) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
@@ -304,20 +327,31 @@ func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 }
 
 func (k *KVTxBlock) getBlockExists(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (bool, error) {
-	rm, err := ref.MarshalKey()
+	key, err := k.blockKey(ref)
 	if err != nil {
 		return false, err
 	}
-	key := k.kvkey.GetBlockKey(rm)
 
 	return tx.Exists(ctx, key)
 }
 
-// GetBlockExistsBatch loops calling GetBlockExists per ref.
+// GetBlockExistsBatch checks all refs in one lower kvtx transaction.
 func (k *KVTxBlock) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if len(refs) == 0 {
+		return []bool{}, nil
+	}
+	tx, err := k.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	return k.getBlockExistsBatch(ctx, tx, refs)
+}
+
+func (k *KVTxBlock) getBlockExistsBatch(ctx context.Context, tx kvtx.TxOps, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
-		found, err := k.GetBlockExists(ctx, ref)
+		found, err := k.getBlockExists(ctx, tx, ref)
 		if err != nil {
 			return nil, err
 		}
@@ -338,11 +372,10 @@ func (k *KVTxBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.
 }
 
 func (k *KVTxBlock) statBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (*block.BlockStat, error) {
-	rm, err := ref.MarshalKey()
+	key, err := k.blockKey(ref)
 	if err != nil {
 		return nil, err
 	}
-	key := k.kvkey.GetBlockKey(rm)
 
 	exists, err := tx.Exists(ctx, key)
 	if err != nil || !exists {
@@ -360,11 +393,10 @@ func (k *KVTxBlock) statBlock(ctx context.Context, tx kvtx.TxOps, ref *block.Blo
 // RmBlock deletes a block from the store.
 // Should not return an error if the block did not exist.
 func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	rm, err := ref.MarshalKey()
+	key, err := k.blockKey(ref)
 	if err != nil {
 		return err
 	}
-	key := k.kvkey.GetBlockKey(rm)
 
 	tx, err := k.store.NewTransaction(ctx, true)
 	if err != nil {
@@ -390,6 +422,59 @@ func (k *KVTxBlock) BeginDeferFlush() {}
 // EndDeferFlush closes a no-op defer-flush scope.
 func (k *KVTxBlock) EndDeferFlush(context.Context) error {
 	return nil
+}
+
+type putBlockBatchOp struct {
+	key       []byte
+	data      []byte
+	tombstone bool
+}
+
+func (k *KVTxBlock) preparePutBlockBatchOp(entry *block.PutBatchEntry) (putBlockBatchOp, error) {
+	if entry.Tombstone {
+		key, err := k.blockKey(entry.Ref)
+		if err != nil {
+			return putBlockBatchOp{}, err
+		}
+		return putBlockBatchOp{key: key, tombstone: true}, nil
+	}
+
+	var ref *block.BlockRef
+	if entry.Ref != nil {
+		ref = entry.Ref.Clone()
+	}
+	opts := &block.PutOpts{
+		ForceBlockRef: ref,
+		Refs:          block.CloneBlockRefs(entry.Refs),
+	}
+	opts.HashType = opts.SelectHashType(k.hashType)
+
+	actual, err := block.BuildBlockRef(entry.Data, opts)
+	if err != nil {
+		return putBlockBatchOp{}, err
+	}
+	if forceBlockRef := opts.GetForceBlockRef(); !forceBlockRef.GetEmpty() {
+		if !actual.EqualsRef(forceBlockRef) {
+			return putBlockBatchOp{}, block.ErrBlockRefMismatch
+		}
+	}
+	if len(entry.Data) == 0 {
+		return putBlockBatchOp{}, block.ErrEmptyBlock
+	}
+
+	key, err := k.blockKey(actual)
+	if err != nil {
+		return putBlockBatchOp{}, err
+	}
+	return putBlockBatchOp{key: key, data: entry.Data}, nil
+}
+
+func (k *KVTxBlock) blockKey(ref *block.BlockRef) ([]byte, error) {
+	rm, err := ref.MarshalKey()
+	if err != nil {
+		return nil, err
+	}
+	return k.kvkey.GetBlockKey(rm), nil
 }
 
 // _ is a type assertion
