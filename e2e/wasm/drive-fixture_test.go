@@ -76,3 +76,22 @@ func waitForGettingStartedContentView(t testing.TB, page playwright.Page) {
 		)
 	}
 }
+
+func assertDriveRoute(t testing.TB, page playwright.Page, sessionIndex uint32, spaceID string) {
+	t.Helper()
+
+	gotSessionIndex, gotSpaceID, err := parseQuickstartRoute(page.URL())
+	if err != nil {
+		t.Fatalf("parse drive route: %v", err)
+	}
+	if gotSessionIndex != sessionIndex || gotSpaceID != spaceID {
+		t.Fatalf(
+			"expected drive route to remain session %d space %q, got session %d space %q at %s",
+			sessionIndex,
+			spaceID,
+			gotSessionIndex,
+			gotSpaceID,
+			page.URL(),
+		)
+	}
+}

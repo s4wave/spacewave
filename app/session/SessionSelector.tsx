@@ -94,7 +94,10 @@ export function SessionSelector() {
   }
 
   return (
-    <div className="bg-background-landing relative flex h-full w-full flex-col overflow-x-hidden overflow-y-auto">
+    <div
+      className="bg-background-landing relative flex h-full w-full flex-col overflow-x-hidden overflow-y-auto"
+      data-testid="session-selector"
+    >
       <BackButton floating onClick={handleHome}>
         Home
       </BackButton>
@@ -422,6 +425,8 @@ function SessionCard(props: {
     <div
       role="button"
       tabIndex={0}
+      data-testid="session-card"
+      data-session-index={props.session.sessionIndex ?? ''}
       onClick={handleSessionSelect}
       onKeyDown={handleSessionSelectKeyDown}
       className={cn(

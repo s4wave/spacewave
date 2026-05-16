@@ -970,6 +970,36 @@ func TestDriveScenarioSequence(t *testing.T) {
 			t.Fatalf("expected owned drive route after navigate up, got %q", url)
 		}
 	})
+
+	t.Run("history", func(t *testing.T) {
+		WaitForDriveReady(t, testHarness, page)
+
+		if err := page.Locator("button[title='Back']").First().Click(); err != nil {
+			t.Fatalf("click back to file content: %v", err)
+		}
+		waitForGettingStartedContentView(t, page)
+		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
+
+		if err := page.Locator("button[title='Back']").First().Click(); err != nil {
+			t.Fatalf("click back to root listing: %v", err)
+		}
+		WaitForDriveReady(t, testHarness, page)
+		waitForDriveEntry(t, page, gettingStartedFileName)
+		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
+
+		if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
+			t.Fatalf("click forward to file content: %v", err)
+		}
+		waitForGettingStartedContentView(t, page)
+		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
+
+		if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
+			t.Fatalf("click forward to root listing: %v", err)
+		}
+		WaitForDriveReady(t, testHarness, page)
+		waitForDriveEntry(t, page, gettingStartedFileName)
+		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
+	})
 }
 
 // TestQuickstartDriveNavigateHomeFromNestedDir reproduces navigating into

@@ -299,6 +299,7 @@ export function SessionContainer(props: {
         selected={selected}
         onClick={onClick}
         className={className}
+        data-testid="session-account-menu-button"
         aria-label={selected ? 'Close account menu' : 'Open account menu'}
       >
         {selected ? (
@@ -309,6 +310,7 @@ export function SessionContainer(props: {
         <div className="max-w-36 truncate">{accountLabel}</div>
         {props.metadata && (
           <span
+            data-testid="session-account-provider-badge"
             className={cn(
               'ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase',
               badgeClass,

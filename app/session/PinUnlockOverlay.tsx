@@ -88,6 +88,7 @@ export function PinUnlockOverlay({
   return (
     <div
       role="group"
+      data-testid="pin-unlock-overlay"
       className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 outline-none md:p-10"
       onKeyDown={handleKeyDown}
       tabIndex={-1}
@@ -128,6 +129,7 @@ export function PinUnlockOverlay({
                   <input
                     ref={handlePinInputRef}
                     id={pinInputId}
+                    data-testid="pin-unlock-input"
                     type="password"
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
@@ -149,6 +151,7 @@ export function PinUnlockOverlay({
                 )}
 
                 <button
+                  data-testid="pin-unlock-submit"
                   onClick={() => void handleUnlock()}
                   disabled={unlocking || pin.length === 0}
                   className={cn(
