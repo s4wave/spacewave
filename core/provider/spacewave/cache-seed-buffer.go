@@ -66,10 +66,11 @@ func (b *CacheSeedBuffer) Record(reason SeedReason, path string) {
 		record := cacheSeedRecord{seq: b.nextSeq, entry: entry}
 		if len(b.entries) < b.cap {
 			b.entries = append(b.entries, record)
-		} else {
-			copy(b.entries, b.entries[1:])
-			b.entries[len(b.entries)-1] = record
+			broadcast()
+			return
 		}
+		copy(b.entries, b.entries[1:])
+		b.entries[len(b.entries)-1] = record
 		broadcast()
 	})
 }

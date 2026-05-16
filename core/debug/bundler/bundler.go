@@ -178,6 +178,7 @@ func (b *Bundler) startViteLocked(_ context.Context) (bldr_vite.SRPCViteBundlerC
 	b.vite.SetRoutine(func(ctx context.Context) error {
 		return b.runVite(ctx, ready)
 	})
+	// The Vite subprocess is owned by the Bundler and outlives any one Bundle call.
 	b.vite.SetContext(context.Background(), true)
 
 	result := <-ready
