@@ -605,7 +605,7 @@ body,
 }
 
 #root {
-  @apply min-h-screen;
+  @apply flex min-h-0;
 }
 
 /* Base styles */

@@ -61,9 +61,10 @@ describe('ErrorState', () => {
     const { container } = render(
       <ErrorState message="Failed" variant="fullscreen" />,
     )
-    expect(
-      container.firstElementChild?.classList.contains('min-h-screen'),
-    ).toBe(true)
+    expect(container.firstElementChild?.classList.contains('h-full')).toBe(true)
+    expect(container.firstElementChild?.classList.contains('min-h-0')).toBe(
+      true,
+    )
   })
 
   it('applies custom className', () => {

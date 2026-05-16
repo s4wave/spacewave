@@ -18,7 +18,7 @@ export function QuickstartLoading() {
 
   if (!option) {
     return (
-      <div className="flex min-h-screen flex-1 items-center justify-center bg-[var(--color-neutral-950)]">
+      <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center bg-[var(--color-neutral-950)]">
         <p className="text-[var(--color-neutral-400)]">
           Unknown quickstart option.
         </p>

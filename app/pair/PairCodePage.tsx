@@ -192,7 +192,7 @@ export function PairCodePage(props: PairCodePageProps) {
   }, [])
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center p-4">
       <div className="border-foreground/20 bg-background-get-started w-full max-w-sm rounded-lg border p-6 shadow-lg backdrop-blur-sm">
         <div className="p-0">
           {step === 'enter' && (

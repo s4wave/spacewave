@@ -157,7 +157,7 @@ function AppAPIInner({
 
   if (rootResource.loading || !rootResource.value) {
     return (
-      <div className="bg-background/80 flex min-h-screen w-full items-center justify-center p-6 backdrop-blur-sm">
+      <div className="bg-background/80 flex h-full min-h-0 w-full flex-1 items-center justify-center p-6 backdrop-blur-sm">
         <div className="w-full max-w-sm">
           <LoadingCard
             view={{

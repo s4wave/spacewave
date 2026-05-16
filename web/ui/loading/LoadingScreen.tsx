@@ -34,7 +34,7 @@ interface LoadingScreenProps {
 }
 
 const defaultContainerClassName =
-  'bg-background relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden'
+  'bg-background relative flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center overflow-hidden'
 
 // LoadingScreen is the full-viewport boot surface. Keeps the animated logo
 // slot and shine border while driving title / detail / progress from a

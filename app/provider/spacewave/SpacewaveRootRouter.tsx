@@ -21,7 +21,7 @@ function RouterLoadingGate({ detail }: { detail: string }) {
   return (
     <div
       data-testid="session-loading"
-      className="flex min-h-screen w-full items-center justify-center p-6"
+      className="flex h-full min-h-0 w-full flex-1 items-center justify-center p-6"
     >
       <div className="w-full max-w-sm">
         <LoadingCard

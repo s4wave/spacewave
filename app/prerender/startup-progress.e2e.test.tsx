@@ -24,7 +24,7 @@ function setBootPhase(phase: string, state: 'loading' | 'error' = 'loading') {
 
 async function renderSurface(children: ReactNode) {
   await render(
-    <div className="bg-background text-foreground min-h-screen">
+    <div className="bg-background text-foreground h-full min-h-0">
       {children}
     </div>,
   )

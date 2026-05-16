@@ -107,7 +107,7 @@ export function ErrorState({
     return (
       <div
         className={cn(
-          'flex min-h-screen flex-col items-center justify-center p-4',
+          'flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center p-4',
           className,
         )}
       >

@@ -447,7 +447,7 @@ async function buildRootTemplate(ctx: PrerenderContext) {
   // based on hasSession/hash. No separate inline script needed.
   const body = `<div id="sw-landing" style="display:flex;flex-direction:column;flex:1;min-height:0">${landingHtml}</div>
       <div id="sw-loading" data-sw-boot-state="loading" style="${ROOT_LOADING_STYLE}">
-        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;background:var(--color-background,#0a0a0a);color:var(--color-foreground,#fafafa);overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:center;flex:1 1 0%;height:100%;min-height:0;width:100%;background:var(--color-background,#0a0a0a);color:var(--color-foreground,#fafafa);overflow:hidden">
           <div style="display:flex;width:min(30rem,calc(100vw - 2rem));flex-direction:column;align-items:center;gap:1.25rem;text-align:center">
             <div style="display:flex;height:5rem;width:5rem;align-items:center;justify-content:center;border-radius:1rem;background:color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 10%,transparent);box-shadow:0 0 42px color-mix(in srgb,var(--color-brand,var(--color-logo-blue,#4f8cff)) 22%,transparent)">
               <img src="${ctx.iconUrl}" alt="" width="44" height="44" style="display:block;height:2.75rem;width:2.75rem;border-radius:0.75rem"/>
