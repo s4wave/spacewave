@@ -3,6 +3,7 @@
 package hash
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"strconv"
 	"testing"
@@ -16,7 +17,22 @@ var (
 func BenchmarkSHA256Browser(b *testing.B) {
 	sizes := []int{
 		1024,
+		2 * 1024,
+		4 * 1024,
+		8 * 1024,
+		10 * 1024,
+		12 * 1024,
+		14 * 1024,
+		16 * 1024,
+		24 * 1024,
+		32 * 1024,
+		48 * 1024,
 		64 * 1024,
+		96 * 1024,
+		128 * 1024,
+		192 * 1024,
+		256 * 1024,
+		512 * 1024,
 		1024 * 1024,
 	}
 
@@ -25,12 +41,12 @@ func BenchmarkSHA256Browser(b *testing.B) {
 		name := strconv.Itoa(size)
 
 		b.Run(name+"/subtlecrypto", func(b *testing.B) {
-			got, err := HashType_HashType_SHA256.Sum(data)
+			got, err := subtleCryptoDigest("SHA-256", data)
 			if err != nil {
 				b.Fatal(err)
 			}
 			want := sha256.Sum256(data)
-			if string(got) != string(want[:]) {
+			if !bytes.Equal(got, want[:]) {
 				b.Fatal("SubtleCrypto SHA256 mismatch")
 			}
 
@@ -38,7 +54,7 @@ func BenchmarkSHA256Browser(b *testing.B) {
 			b.SetBytes(int64(len(data)))
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				benchHashBytes, err = HashType_HashType_SHA256.Sum(data)
+				benchHashBytes, err = subtleCryptoDigest("SHA-256", data)
 				if err != nil {
 					b.Fatal(err)
 				}
