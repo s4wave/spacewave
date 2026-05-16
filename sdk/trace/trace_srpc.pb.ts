@@ -5,6 +5,8 @@
 import {
   CaptureCPUProfileRequest,
   CaptureCPUProfileResponse,
+  CaptureMemoryProfileRequest,
+  CaptureMemoryProfileResponse,
   StartTraceRequest,
   StartTraceResponse,
   StopTraceRequest,
@@ -46,6 +48,15 @@ export const TraceServiceDefinition = {
       O: CaptureCPUProfileResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * @generated from rpc s4wave.trace.TraceService.CaptureMemoryProfile
+     */
+    CaptureMemoryProfile: {
+      name: 'CaptureMemoryProfile',
+      I: CaptureMemoryProfileRequest,
+      O: CaptureMemoryProfileResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -76,6 +87,14 @@ export interface TraceService {
     request: CaptureCPUProfileRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<CaptureCPUProfileResponse>
+
+  /**
+   * @generated from rpc s4wave.trace.TraceService.CaptureMemoryProfile
+   */
+  CaptureMemoryProfile(
+    request: CaptureMemoryProfileRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<CaptureMemoryProfileResponse>
 }
 
 export const TraceServiceServiceName = TraceServiceDefinition.typeName
@@ -89,6 +108,7 @@ export class TraceServiceClient implements TraceService {
     this.StartTrace = this.StartTrace.bind(this)
     this.StopTrace = this.StopTrace.bind(this)
     this.CaptureCPUProfile = this.CaptureCPUProfile.bind(this)
+    this.CaptureMemoryProfile = this.CaptureMemoryProfile.bind(this)
   }
   /**
    * @generated from rpc s4wave.trace.TraceService.StartTrace
@@ -139,5 +159,22 @@ export class TraceServiceClient implements TraceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(CaptureCPUProfileResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.trace.TraceService.CaptureMemoryProfile
+   */
+  CaptureMemoryProfile(
+    request: CaptureMemoryProfileRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<CaptureMemoryProfileResponse> {
+    const requestMsg = CaptureMemoryProfileRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      TraceServiceDefinition.methods.CaptureMemoryProfile.name,
+      CaptureMemoryProfileRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(CaptureMemoryProfileResponse)(result)
   }
 }

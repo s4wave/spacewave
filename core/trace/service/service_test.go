@@ -252,3 +252,31 @@ func TestTraceServiceCaptureCPUProfile(t *testing.T) {
 		t.Fatal("expected non-empty CPU profile data")
 	}
 }
+
+func TestTraceServiceCaptureMemoryProfile(t *testing.T) {
+	ctx := context.Background()
+	client := newTestTraceClient(t, NewService())
+
+	strm, err := client.CaptureMemoryProfile(ctx, &s4wave_trace.CaptureMemoryProfileRequest{
+		Profile: "allocs",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var profileData []byte
+	for {
+		msg, err := strm.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		profileData = append(profileData, msg.GetData()...)
+	}
+
+	if len(profileData) == 0 {
+		t.Fatal("expected non-empty memory profile data")
+	}
+}

@@ -30,6 +30,17 @@ pub trait TraceServiceCaptureCPUProfileStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for TraceService.CaptureMemoryProfile.
+#[starpc::async_trait]
+pub trait TraceServiceCaptureMemoryProfileStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<CaptureMemoryProfileResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for TraceService.
 #[starpc::async_trait]
 pub trait TraceServiceClient: Send + Sync {
@@ -39,6 +50,8 @@ pub trait TraceServiceClient: Send + Sync {
     async fn stop_trace(&self, request: &StopTraceRequest) -> starpc::Result<Box<dyn TraceServiceStopTraceStream>>;
     /// CaptureCPUProfile.
     async fn capture_c_p_u_profile(&self, request: &CaptureCPUProfileRequest) -> starpc::Result<Box<dyn TraceServiceCaptureCPUProfileStream>>;
+    /// CaptureMemoryProfile.
+    async fn capture_memory_profile(&self, request: &CaptureMemoryProfileRequest) -> starpc::Result<Box<dyn TraceServiceCaptureMemoryProfileStream>>;
 }
 
 /// Client implementation for TraceService.
@@ -71,6 +84,13 @@ impl<C: starpc::Client + 'static> TraceServiceClient for TraceServiceClientImpl<
         let stream = self.client.new_stream("s4wave.trace.TraceService", "CaptureCPUProfile", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(TraceServiceCaptureCPUProfileStreamImpl { stream }))
+    }
+    async fn capture_memory_profile(&self, request: &CaptureMemoryProfileRequest) -> starpc::Result<Box<dyn TraceServiceCaptureMemoryProfileStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.trace.TraceService", "CaptureMemoryProfile", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(TraceServiceCaptureMemoryProfileStreamImpl { stream }))
     }
 }
 
@@ -108,6 +128,23 @@ impl TraceServiceCaptureCPUProfileStream for TraceServiceCaptureCPUProfileStream
     }
 }
 
+struct TraceServiceCaptureMemoryProfileStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl TraceServiceCaptureMemoryProfileStream for TraceServiceCaptureMemoryProfileStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<CaptureMemoryProfileResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for TraceService.
 #[starpc::async_trait]
 pub trait TraceServiceServer: Send + Sync {
@@ -117,12 +154,15 @@ pub trait TraceServiceServer: Send + Sync {
     async fn stop_trace(&self, request: StopTraceRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// CaptureCPUProfile.
     async fn capture_c_p_u_profile(&self, request: CaptureCPUProfileRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// CaptureMemoryProfile.
+    async fn capture_memory_profile(&self, request: CaptureMemoryProfileRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const TRACE_SERVICE_METHOD_IDS: &[&str] = &[
     "StartTrace",
     "StopTrace",
     "CaptureCPUProfile",
+    "CaptureMemoryProfile",
 ];
 
 /// Handler for TraceService.
@@ -179,6 +219,13 @@ impl<S: TraceServiceServer + 'static> starpc::Invoker for TraceServiceHandler<S>
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.capture_c_p_u_profile(request, stream).await)
+            }
+            "CaptureMemoryProfile" => {
+                let request: CaptureMemoryProfileRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.capture_memory_profile(request, stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

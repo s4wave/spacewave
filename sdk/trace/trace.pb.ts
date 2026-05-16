@@ -139,3 +139,65 @@ export const CaptureCPUProfileResponse: MessageType<CaptureCPUProfileResponse> =
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * CaptureMemoryProfileRequest is the request for CaptureMemoryProfile.
+ *
+ * @generated from message s4wave.trace.CaptureMemoryProfileRequest
+ */
+export interface CaptureMemoryProfileRequest {
+  /**
+   * Profile is the runtime/pprof memory profile name: "heap" or "allocs".
+   *
+   * @generated from field: string profile = 1;
+   */
+  profile?: string
+  /**
+   * Gc forces a garbage collection before capturing the profile.
+   *
+   * @generated from field: bool gc = 2;
+   */
+  gc?: boolean
+  /**
+   * Debug is the pprof output debug level.
+   *
+   * @generated from field: int32 debug = 3;
+   */
+  debug?: number
+}
+
+// CaptureMemoryProfileRequest contains the message type declaration for CaptureMemoryProfileRequest.
+export const CaptureMemoryProfileRequest: MessageType<CaptureMemoryProfileRequest> =
+  createMessageType({
+    typeName: 's4wave.trace.CaptureMemoryProfileRequest',
+    fields: [
+      { no: 1, name: 'profile', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'gc', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'debug', kind: 'scalar', T: ScalarType.INT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CaptureMemoryProfileResponse is a streamed response chunk for CaptureMemoryProfile.
+ *
+ * @generated from message s4wave.trace.CaptureMemoryProfileResponse
+ */
+export interface CaptureMemoryProfileResponse {
+  /**
+   * Data is a chunk of the raw pprof memory profile bytes.
+   *
+   * @generated from field: bytes data = 1;
+   */
+  data?: Uint8Array
+}
+
+// CaptureMemoryProfileResponse contains the message type declaration for CaptureMemoryProfileResponse.
+export const CaptureMemoryProfileResponse: MessageType<CaptureMemoryProfileResponse> =
+  createMessageType({
+    typeName: 's4wave.trace.CaptureMemoryProfileResponse',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

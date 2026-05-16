@@ -15,6 +15,9 @@ type testTraceService struct {
 	stopCalls      int
 	cpuProfileData [][]byte
 	cpuProfileCall int
+	memProfileData [][]byte
+	memProfileReq  *CaptureMemoryProfileRequest
+	memProfileCall int
 }
 
 func (t *testTraceService) StartTrace(_ context.Context, req *StartTraceRequest) (*StartTraceResponse, error) {
@@ -42,6 +45,17 @@ func (t *testTraceService) CaptureCPUProfile(_ *CaptureCPUProfileRequest, strm S
 	return nil
 }
 
+func (t *testTraceService) CaptureMemoryProfile(req *CaptureMemoryProfileRequest, strm SRPCTraceService_CaptureMemoryProfileStream) error {
+	t.memProfileCall++
+	t.memProfileReq = req
+	for _, chunk := range t.memProfileData {
+		if err := strm.Send(&CaptureMemoryProfileResponse{Data: chunk}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func newTestTraceClient(t *testing.T, impl SRPCTraceServiceServer) SRPCTraceServiceClient {
 	t.Helper()
 
@@ -58,6 +72,9 @@ func newTestTraceClient(t *testing.T, impl SRPCTraceServiceServer) SRPCTraceServ
 	if !mux.HasServiceMethod(SRPCTraceServiceServiceID, "CaptureCPUProfile") {
 		t.Fatal("expected CaptureCPUProfile to be registered")
 	}
+	if !mux.HasServiceMethod(SRPCTraceServiceServiceID, "CaptureMemoryProfile") {
+		t.Fatal("expected CaptureMemoryProfile to be registered")
+	}
 
 	server := srpc.NewServer(mux)
 	client := srpc.NewClient(srpc.NewServerPipe(server))
@@ -73,6 +90,10 @@ func TestTraceServiceContract(t *testing.T) {
 		},
 		cpuProfileData: [][]byte{
 			[]byte("cpu-"),
+			[]byte("profile"),
+		},
+		memProfileData: [][]byte{
+			[]byte("mem-"),
 			[]byte("profile"),
 		},
 	}
@@ -130,5 +151,30 @@ func TestTraceServiceContract(t *testing.T) {
 	}
 	if !bytes.Equal(cpuData, []byte("cpu-profile")) {
 		t.Fatalf("expected streamed CPU profile %q, got %q", []byte("cpu-profile"), cpuData)
+	}
+
+	memStrm, err := client.CaptureMemoryProfile(ctx, &CaptureMemoryProfileRequest{Profile: "allocs"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var memData []byte
+	for {
+		msg, err := memStrm.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		memData = append(memData, msg.GetData()...)
+	}
+	if impl.memProfileCall != 1 {
+		t.Fatalf("expected 1 CaptureMemoryProfile call, got %d", impl.memProfileCall)
+	}
+	if impl.memProfileReq.GetProfile() != "allocs" {
+		t.Fatalf("expected memory profile %q, got %q", "allocs", impl.memProfileReq.GetProfile())
+	}
+	if !bytes.Equal(memData, []byte("mem-profile")) {
+		t.Fatalf("expected streamed memory profile %q, got %q", []byte("mem-profile"), memData)
 	}
 }

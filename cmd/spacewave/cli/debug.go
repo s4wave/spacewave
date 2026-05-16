@@ -26,6 +26,7 @@ func newDebugCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Subcommands: []*cli.Command{
 			newDebugTraceCommand(),
 			newDebugCPUProfileCommand(),
+			newDebugMemoryProfileCommand(),
 		},
 	}
 }
@@ -113,6 +114,54 @@ func newDebugCPUProfileCommand() *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			return runDebugCPUProfile(c, statePath, socketPath, outputPath, duration, label, c.String("output"))
+		},
+	}
+}
+
+func newDebugMemoryProfileCommand() *cli.Command {
+	var statePath string
+	var socketPath string
+	var outputPath string
+	var profile string
+	var gc bool
+	var debug int
+	return &cli.Command{
+		Name:    "mem-profile",
+		Aliases: []string{"mem"},
+		Usage:   "capture a Go memory profile from the running daemon",
+		Flags: []cli.Flag{
+			statePathFlag(&statePath),
+			&cli.StringFlag{
+				Name:        "socket-path",
+				Usage:       "connect to an existing daemon socket at this exact path",
+				EnvVars:     socketPathEnvVars,
+				Destination: &socketPath,
+			},
+			&cli.StringFlag{
+				Name:        "out",
+				Aliases:     []string{"o"},
+				Usage:       "memory profile output path",
+				Destination: &outputPath,
+			},
+			&cli.StringFlag{
+				Name:        "profile",
+				Usage:       "runtime/pprof memory profile: allocs or heap",
+				Value:       "allocs",
+				Destination: &profile,
+			},
+			&cli.BoolFlag{
+				Name:        "gc",
+				Usage:       "force a garbage collection before capture",
+				Destination: &gc,
+			},
+			&cli.IntFlag{
+				Name:        "debug",
+				Usage:       "pprof output debug level",
+				Destination: &debug,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return runDebugMemoryProfile(c, statePath, socketPath, outputPath, profile, gc, debug, c.String("output"))
 		},
 	}
 }
@@ -247,6 +296,87 @@ func runDebugCPUProfile(
 	return nil
 }
 
+func runDebugMemoryProfile(
+	c *cli.Context,
+	statePath string,
+	socketPath string,
+	outputPath string,
+	profile string,
+	gc bool,
+	debug int,
+	outputFormat string,
+) error {
+	switch profile {
+	case "":
+		profile = "allocs"
+	case "heap", "allocs":
+	default:
+		return errors.Errorf("memory profile must be heap or allocs, got %q", profile)
+	}
+	if debug < 0 {
+		return errors.New("debug must be greater than or equal to zero")
+	}
+	if outputPath == "" {
+		outputPath = defaultDebugMemoryProfileOutputPath(time.Now(), profile)
+	}
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+		return errors.Wrap(err, "create memory profile output directory")
+	}
+
+	client, err := connectDebugTraceDaemon(c.Context, c, statePath, socketPath)
+	if err != nil {
+		return errors.Wrap(err, "connect daemon")
+	}
+	defer client.close()
+
+	f, err := os.Create(outputPath)
+	if err != nil {
+		return errors.Wrap(err, "create memory profile output")
+	}
+	defer f.Close()
+
+	traceClient := s4wave_trace.NewSRPCTraceServiceClient(client.srpc)
+	byteCount, err := captureDaemonMemoryProfile(c.Context, traceClient, f, profile, gc, int32(debug))
+	if err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return errors.Wrap(err, "close memory profile output")
+	}
+
+	if outputFormat == "json" || outputFormat == "yaml" {
+		buf, ms := newMarshalBuf()
+		ms.WriteObjectStart()
+		var first bool
+		ms.WriteMoreIf(&first)
+		ms.WriteObjectField("path")
+		ms.WriteString(outputPath)
+		ms.WriteMoreIf(&first)
+		ms.WriteObjectField("profile")
+		ms.WriteString(profile)
+		ms.WriteMoreIf(&first)
+		ms.WriteObjectField("gc")
+		ms.WriteBool(gc)
+		ms.WriteMoreIf(&first)
+		ms.WriteObjectField("debug")
+		ms.WriteInt64(int64(debug))
+		ms.WriteMoreIf(&first)
+		ms.WriteObjectField("bytes")
+		ms.WriteInt64(byteCount)
+		ms.WriteObjectEnd()
+		return formatOutput(buf.Bytes(), outputFormat)
+	}
+
+	writeFields(os.Stdout, [][2]string{
+		{"Memory Profile", outputPath},
+		{"Profile", profile},
+		{"GC", strconv.FormatBool(gc)},
+		{"Debug", strconv.Itoa(debug)},
+		{"Bytes", strconv.FormatInt(byteCount, 10)},
+	})
+	return nil
+}
+
 func connectDebugTraceDaemon(
 	ctx context.Context,
 	c *cli.Context,
@@ -269,6 +399,13 @@ func defaultDebugTraceOutputPath(now time.Time) string {
 
 func defaultDebugCPUProfileOutputPath(now time.Time) string {
 	return filepath.Join(".tmp", "spacewave-daemon-"+now.Format("20060102-150405")+".pprof")
+}
+
+func defaultDebugMemoryProfileOutputPath(now time.Time, profile string) string {
+	if profile == "" {
+		profile = "memory"
+	}
+	return filepath.Join(".tmp", "spacewave-daemon-"+now.Format("20060102-150405")+"-"+profile+".pprof")
 }
 
 func captureDaemonRuntimeTrace(
@@ -329,6 +466,51 @@ func captureDaemonCPUProfile(
 	})
 	if err != nil {
 		return 0, errors.Wrap(err, "capture daemon CPU profile")
+	}
+	defer strm.Close()
+
+	var byteCount int64
+	for {
+		resp, err := strm.Recv()
+		if err == io.EOF {
+			return byteCount, nil
+		}
+		if err != nil {
+			return byteCount, err
+		}
+		data := resp.GetData()
+		if len(data) == 0 {
+			continue
+		}
+		n, err := out.Write(data)
+		byteCount += int64(n)
+		if err != nil {
+			return byteCount, err
+		}
+		if n != len(data) {
+			return byteCount, io.ErrShortWrite
+		}
+	}
+}
+
+func captureDaemonMemoryProfile(
+	ctx context.Context,
+	traceClient s4wave_trace.SRPCTraceServiceClient,
+	out io.Writer,
+	profile string,
+	gc bool,
+	debug int32,
+) (int64, error) {
+	if debug < 0 {
+		return 0, errors.New("debug must be greater than or equal to zero")
+	}
+	strm, err := traceClient.CaptureMemoryProfile(ctx, &s4wave_trace.CaptureMemoryProfileRequest{
+		Profile: profile,
+		Gc:      gc,
+		Debug:   debug,
+	})
+	if err != nil {
+		return 0, errors.Wrap(err, "capture daemon memory profile")
 	}
 	defer strm.Close()
 

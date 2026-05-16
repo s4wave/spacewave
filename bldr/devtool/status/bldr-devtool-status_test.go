@@ -5,6 +5,7 @@ package status
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/starpc/srpc"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
@@ -143,6 +145,168 @@ func TestBldrDevtoolStatusProducerUpdateStatus(t *testing.T) {
 	}
 }
 
+func TestBldrDevtoolStatusServiceWatchEmitsInitialSnapshot(t *testing.T) {
+	producer := NewBldrDevtoolStatusProducer(NewBldrDevtoolStatus(
+		BldrDevtoolCommandStatus{
+			Name:    "start web",
+			State:   BldrDevtoolCommandStateRunning,
+			Summary: "serving",
+			Error:   "command warning",
+			LogFile: ".bldr/logs/run.log",
+		},
+		[]BldrDevtoolManifestFetchRow{{
+			ID:                  "fetch:web",
+			ManifestID:          "web",
+			PlatformID:          "js,native/js/wasm",
+			BuildType:           "dev",
+			RemoteID:            "devtool",
+			State:               BldrDevtoolManifestStateRunning,
+			ReadyRefCount:       2,
+			ReadyRefs:           "ref-a,ref-b",
+			LocalBuildIDs:       "build:web",
+			BlockedOnLocalBuild: true,
+			Summary:             "fetching",
+			Error:               "fetch warning",
+		}},
+		[]BldrDevtoolManifestBuildRow{{
+			ID:                      "build:web",
+			BuildTargets:            "browser",
+			ManifestID:              "web",
+			PlatformID:              "js",
+			TargetPlatformIDs:       "js,native/js/wasm",
+			BuildType:               "dev",
+			RemoteID:                "devtool",
+			State:                   BldrDevtoolManifestStateReady,
+			CacheHit:                true,
+			FullRebuild:             true,
+			HotRebuild:              false,
+			WatchedFileCount:        12,
+			DependencyRebuildReason: "source changed",
+			Summary:                 "ready",
+			Error:                   "build warning",
+		}},
+		[]BldrDevtoolPluginRow{{
+			ID:          "plugin:spacewave",
+			PluginID:    "spacewave",
+			InstanceKey: "main",
+			State:       BldrDevtoolPluginStateErrored,
+			Summary:     "failed",
+			Error:       "plugin failed",
+			LastErrorAt: "2026-05-16T09:48:00Z",
+		}},
+		[]BldrDevtoolControllerRow{{
+			ID:           "controller:bldr/project",
+			ControllerID: "bldr/project",
+			Kind:         "exec",
+			State:        BldrDevtoolControllerStateIdle,
+			Summary:      "idle",
+			Error:        "controller warning",
+		}},
+		[]BldrDevtoolAttentionRow{{
+			ID:       "attention:plugin",
+			Source:   "plugin",
+			Message:  "plugin failed",
+			Detail:   "last error",
+			Severity: BldrDevtoolAttentionSeverityError,
+		}},
+	))
+	stream := watchDevtoolStatusForTest(t, context.Background(), producer)
+
+	resp, err := stream.Recv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := resp.GetSnapshot()
+	if snapshot.GetCommand().GetState() != DevtoolCommandState_DEVTOOL_COMMAND_STATE_RUNNING ||
+		snapshot.GetCommand().GetLogFile() != ".bldr/logs/run.log" ||
+		snapshot.GetCommand().GetError() != "command warning" {
+		t.Fatalf("unexpected command status: %#v", snapshot.GetCommand())
+	}
+
+	fetchRows := snapshot.GetManifestFetchRows()
+	if len(fetchRows) != 1 ||
+		fetchRows[0].GetId() != "fetch:web" ||
+		fetchRows[0].GetState() != DevtoolManifestState_DEVTOOL_MANIFEST_STATE_RUNNING ||
+		fetchRows[0].GetError() != "fetch warning" ||
+		!fetchRows[0].GetBlockedOnLocalBuild() {
+		t.Fatalf("unexpected fetch rows: %#v", fetchRows)
+	}
+	buildRows := snapshot.GetManifestBuildRows()
+	if len(buildRows) != 1 ||
+		buildRows[0].GetId() != "build:web" ||
+		buildRows[0].GetState() != DevtoolManifestState_DEVTOOL_MANIFEST_STATE_READY ||
+		buildRows[0].GetWatchedFileCount() != 12 ||
+		buildRows[0].GetError() != "build warning" {
+		t.Fatalf("unexpected build rows: %#v", buildRows)
+	}
+	pluginRows := snapshot.GetPluginRows()
+	if len(pluginRows) != 1 ||
+		pluginRows[0].GetId() != "plugin:spacewave" ||
+		pluginRows[0].GetState() != DevtoolPluginState_DEVTOOL_PLUGIN_STATE_ERRORED ||
+		pluginRows[0].GetError() != "plugin failed" {
+		t.Fatalf("unexpected plugin rows: %#v", pluginRows)
+	}
+	controllerRows := snapshot.GetControllerRows()
+	if len(controllerRows) != 1 ||
+		controllerRows[0].GetId() != "controller:bldr/project" ||
+		controllerRows[0].GetState() != DevtoolControllerState_DEVTOOL_CONTROLLER_STATE_IDLE ||
+		controllerRows[0].GetError() != "controller warning" {
+		t.Fatalf("unexpected controller rows: %#v", controllerRows)
+	}
+	attentionRows := snapshot.GetAttentionRows()
+	if len(attentionRows) != 1 ||
+		attentionRows[0].GetId() != "attention:plugin" ||
+		attentionRows[0].GetSeverity() != DevtoolAttentionSeverity_DEVTOOL_ATTENTION_SEVERITY_ERROR {
+		t.Fatalf("unexpected attention rows: %#v", attentionRows)
+	}
+}
+
+func TestBldrDevtoolStatusServiceWatchEmitsChanges(t *testing.T) {
+	producer := NewBldrDevtoolStatusProducer(nil)
+	stream := watchDevtoolStatusForTest(t, context.Background(), producer)
+
+	initial, err := stream.Recv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if initial.GetSnapshot().GetCommand().GetState() != DevtoolCommandState_DEVTOOL_COMMAND_STATE_UNSPECIFIED {
+		t.Fatalf("expected empty initial command, got %#v", initial.GetSnapshot().GetCommand())
+	}
+
+	producer.SetStatus(producer.GetStatus().WithCommand(BldrDevtoolCommandStatus{
+		Name:  "build",
+		State: BldrDevtoolCommandStateDone,
+	}))
+
+	changed, err := stream.Recv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed.GetSnapshot().GetCommand().GetName() != "build" ||
+		changed.GetSnapshot().GetCommand().GetState() != DevtoolCommandState_DEVTOOL_COMMAND_STATE_DONE {
+		t.Fatalf("expected changed command snapshot, got %#v", changed.GetSnapshot().GetCommand())
+	}
+}
+
+func TestBldrDevtoolStatusServiceWatchStopsOnCancellation(t *testing.T) {
+	producer := NewBldrDevtoolStatusProducer(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	stream := watchDevtoolStatusForTest(t, ctx, producer)
+
+	if _, err := stream.Recv(); err != nil {
+		t.Fatal(err)
+	}
+
+	cancel()
+	_, err := stream.Recv()
+	if err == nil {
+		t.Fatal("expected canceled stream")
+	}
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
+		t.Fatalf("expected context cancellation or closed stream, got %v", err)
+	}
+}
+
 func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
 	producer := NewBldrDevtoolStatusProducer(nil)
 	adapter := &manifestBuildStatusAdapter{producer: producer}
@@ -222,6 +386,28 @@ func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
 	if row.State != BldrDevtoolManifestStateCanceled {
 		t.Fatalf("expected canceled row, got %#v", row)
 	}
+}
+
+func watchDevtoolStatusForTest(
+	t *testing.T,
+	ctx context.Context,
+	producer *BldrDevtoolStatusProducer,
+) SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient {
+	t.Helper()
+
+	mux := srpc.NewMux()
+	if err := SRPCRegisterBldrDevtoolStatusService(mux, NewBldrDevtoolStatusService(producer)); err != nil {
+		t.Fatal(err)
+	}
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
+	stream, err := NewSRPCBldrDevtoolStatusServiceClient(client).WatchDevtoolStatus(
+		ctx,
+		&WatchDevtoolStatusRequest{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return stream
 }
 
 func TestManifestFetchRowsJoinRelatedLocalBuildRows(t *testing.T) {

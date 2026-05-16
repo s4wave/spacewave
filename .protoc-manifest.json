@@ -73,6 +73,24 @@
         "bldr/desktop/tray/tray.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/devtool/status": {
+      "hash": "1a00e5d8d901d4d871f76b084aef55fb489c3b3b9c6f361cf8a2a03060ff466b",
+      "generatedFiles": [
+        "bldr/devtool/status/status.pb.cc",
+        "bldr/devtool/status/status.pb.go",
+        "bldr/devtool/status/status.pb.h",
+        "bldr/devtool/status/status.pb.rs",
+        "bldr/devtool/status/status.pb.ts",
+        "bldr/devtool/status/status_srpc.pb.cpp",
+        "bldr/devtool/status/status_srpc.pb.go",
+        "bldr/devtool/status/status_srpc.pb.hpp",
+        "bldr/devtool/status/status_srpc.pb.rs",
+        "bldr/devtool/status/status_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/devtool/status/status.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/devtool/web": {
       "hash": "5c769040e039f1ffb10193454ee1ee6d8c732be26cdaaf2236be7dc0fb27208a",
       "generatedFiles": [
@@ -4851,7 +4869,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/trace": {
-      "hash": "c1b7d07ad568deba064ac078c67ee748487ffbdfcbb04cf0a47b5974ac46d7e6",
+      "hash": "3fa94a40da16f0d249a26b7c934cf3e69d60313f896d4db4d6897fc62570910c",
       "generatedFiles": [
         "sdk/trace/trace.pb.cc",
         "sdk/trace/trace.pb.go",

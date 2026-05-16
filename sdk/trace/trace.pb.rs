@@ -39,4 +39,24 @@ pub struct CaptureCpuProfileResponse {
     #[prost(bytes="vec", tag="1")]
     pub data: ::prost::alloc::vec::Vec<u8>,
 }
+/// CaptureMemoryProfileRequest is the request for CaptureMemoryProfile.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CaptureMemoryProfileRequest {
+    /// Profile is the runtime/pprof memory profile name: "heap" or "allocs".
+    #[prost(string, tag="1")]
+    pub profile: ::prost::alloc::string::String,
+    /// Gc forces a garbage collection before capturing the profile.
+    #[prost(bool, tag="2")]
+    pub gc: bool,
+    /// Debug is the pprof output debug level.
+    #[prost(int32, tag="3")]
+    pub debug: i32,
+}
+/// CaptureMemoryProfileResponse is a streamed response chunk for CaptureMemoryProfile.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CaptureMemoryProfileResponse {
+    /// Data is a chunk of the raw pprof memory profile bytes.
+    #[prost(bytes="vec", tag="1")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+}
 // @@protoc_insertion_point(module)

@@ -3,6 +3,7 @@ package trace_service
 import (
 	"bytes"
 	"context"
+	"runtime"
 	"runtime/pprof"
 	runtime_trace "runtime/trace"
 	"sync"
@@ -128,6 +129,49 @@ func (s *Service) CaptureCPUProfile(
 		}
 		data = data[len(chunk):]
 		if err := strm.Send(&s4wave_trace.CaptureCPUProfileResponse{Data: chunk}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CaptureMemoryProfile captures a pprof memory profile in the current process.
+func (s *Service) CaptureMemoryProfile(
+	req *s4wave_trace.CaptureMemoryProfileRequest,
+	strm s4wave_trace.SRPCTraceService_CaptureMemoryProfileStream,
+) error {
+	profile := req.GetProfile()
+	switch profile {
+	case "":
+		profile = "heap"
+	case "heap", "allocs":
+	default:
+		return errors.Errorf("unsupported memory profile %q", profile)
+	}
+	debug := req.GetDebug()
+	if debug < 0 {
+		return errors.New("debug must be greater than or equal to zero")
+	}
+	if req.GetGc() {
+		runtime.GC()
+	}
+	prof := pprof.Lookup(profile)
+	if prof == nil {
+		return errors.Errorf("memory profile %q not available", profile)
+	}
+
+	var buf bytes.Buffer
+	if err := prof.WriteTo(&buf, int(debug)); err != nil {
+		return errors.Wrap(err, "write memory profile")
+	}
+	data := bytes.Clone(buf.Bytes())
+	for len(data) > 0 {
+		chunk := data
+		if len(chunk) > maxChunkSize {
+			chunk = chunk[:maxChunkSize]
+		}
+		data = data[len(chunk):]
+		if err := strm.Send(&s4wave_trace.CaptureMemoryProfileResponse{Data: chunk}); err != nil {
 			return err
 		}
 	}

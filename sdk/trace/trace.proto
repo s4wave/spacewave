@@ -5,6 +5,7 @@ service TraceService {
   rpc StartTrace(StartTraceRequest) returns (StartTraceResponse);
   rpc StopTrace(StopTraceRequest) returns (stream StopTraceResponse);
   rpc CaptureCPUProfile(CaptureCPUProfileRequest) returns (stream CaptureCPUProfileResponse);
+  rpc CaptureMemoryProfile(CaptureMemoryProfileRequest) returns (stream CaptureMemoryProfileResponse);
 }
 
 // StartTraceRequest is the request for StartTrace.
@@ -36,5 +37,21 @@ message CaptureCPUProfileRequest {
 // CaptureCPUProfileResponse is a streamed response chunk for CaptureCPUProfile.
 message CaptureCPUProfileResponse {
   // Data is a chunk of the raw pprof CPU profile bytes.
+  bytes data = 1;
+}
+
+// CaptureMemoryProfileRequest is the request for CaptureMemoryProfile.
+message CaptureMemoryProfileRequest {
+  // Profile is the runtime/pprof memory profile name: "heap" or "allocs".
+  string profile = 1;
+  // Gc forces a garbage collection before capturing the profile.
+  bool gc = 2;
+  // Debug is the pprof output debug level.
+  int32 debug = 3;
+}
+
+// CaptureMemoryProfileResponse is a streamed response chunk for CaptureMemoryProfile.
+message CaptureMemoryProfileResponse {
+  // Data is a chunk of the raw pprof memory profile bytes.
   bytes data = 1;
 }

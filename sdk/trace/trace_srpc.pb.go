@@ -19,6 +19,8 @@ type SRPCTraceServiceClient interface {
 	StopTrace(ctx context.Context, in *StopTraceRequest) (SRPCTraceService_StopTraceClient, error)
 
 	CaptureCPUProfile(ctx context.Context, in *CaptureCPUProfileRequest) (SRPCTraceService_CaptureCPUProfileClient, error)
+
+	CaptureMemoryProfile(ctx context.Context, in *CaptureMemoryProfileRequest) (SRPCTraceService_CaptureMemoryProfileClient, error)
 }
 
 type srpcTraceServiceClient struct {
@@ -116,12 +118,48 @@ func (x *srpcTraceService_CaptureCPUProfileClient) RecvTo(m *CaptureCPUProfileRe
 	return x.MsgRecv(m)
 }
 
+func (c *srpcTraceServiceClient) CaptureMemoryProfile(ctx context.Context, in *CaptureMemoryProfileRequest) (SRPCTraceService_CaptureMemoryProfileClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "CaptureMemoryProfile", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcTraceService_CaptureMemoryProfileClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCTraceService_CaptureMemoryProfileClient interface {
+	srpc.Stream
+	Recv() (*CaptureMemoryProfileResponse, error)
+	RecvTo(*CaptureMemoryProfileResponse) error
+}
+
+type srpcTraceService_CaptureMemoryProfileClient struct {
+	srpc.Stream
+}
+
+func (x *srpcTraceService_CaptureMemoryProfileClient) Recv() (*CaptureMemoryProfileResponse, error) {
+	m := new(CaptureMemoryProfileResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcTraceService_CaptureMemoryProfileClient) RecvTo(m *CaptureMemoryProfileResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCTraceServiceServer interface {
 	StartTrace(context.Context, *StartTraceRequest) (*StartTraceResponse, error)
 
 	StopTrace(*StopTraceRequest, SRPCTraceService_StopTraceStream) error
 
 	CaptureCPUProfile(*CaptureCPUProfileRequest, SRPCTraceService_CaptureCPUProfileStream) error
+
+	CaptureMemoryProfile(*CaptureMemoryProfileRequest, SRPCTraceService_CaptureMemoryProfileStream) error
 }
 
 const SRPCTraceServiceServiceID = "s4wave.trace.TraceService"
@@ -153,6 +191,7 @@ func (SRPCTraceServiceHandler) GetMethodIDs() []string {
 		"StartTrace",
 		"StopTrace",
 		"CaptureCPUProfile",
+		"CaptureMemoryProfile",
 	}
 }
 
@@ -171,6 +210,8 @@ func (d *SRPCTraceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_StopTrace(d.impl, strm)
 	case "CaptureCPUProfile":
 		return true, d.InvokeMethod_CaptureCPUProfile(d.impl, strm)
+	case "CaptureMemoryProfile":
+		return true, d.InvokeMethod_CaptureMemoryProfile(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -204,6 +245,15 @@ func (SRPCTraceServiceHandler) InvokeMethod_CaptureCPUProfile(impl SRPCTraceServ
 	}
 	serverStrm := &srpcTraceService_CaptureCPUProfileStream{strm}
 	return impl.CaptureCPUProfile(req, serverStrm)
+}
+
+func (SRPCTraceServiceHandler) InvokeMethod_CaptureMemoryProfile(impl SRPCTraceServiceServer, strm srpc.Stream) error {
+	req := new(CaptureMemoryProfileRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcTraceService_CaptureMemoryProfileStream{strm}
+	return impl.CaptureMemoryProfile(req, serverStrm)
 }
 
 type SRPCTraceService_StartTraceStream interface {
@@ -252,6 +302,29 @@ func (x *srpcTraceService_CaptureCPUProfileStream) Send(m *CaptureCPUProfileResp
 }
 
 func (x *srpcTraceService_CaptureCPUProfileStream) SendAndClose(m *CaptureCPUProfileResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCTraceService_CaptureMemoryProfileStream interface {
+	srpc.Stream
+	Send(*CaptureMemoryProfileResponse) error
+	SendAndClose(*CaptureMemoryProfileResponse) error
+}
+
+type srpcTraceService_CaptureMemoryProfileStream struct {
+	srpc.Stream
+}
+
+func (x *srpcTraceService_CaptureMemoryProfileStream) Send(m *CaptureMemoryProfileResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcTraceService_CaptureMemoryProfileStream) SendAndClose(m *CaptureMemoryProfileResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

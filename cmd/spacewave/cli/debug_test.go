@@ -57,6 +57,14 @@ func TestDefaultDebugCPUProfileOutputPath(t *testing.T) {
 	}
 }
 
+func TestDefaultDebugMemoryProfileOutputPath(t *testing.T) {
+	got := defaultDebugMemoryProfileOutputPath(time.Date(2026, 5, 11, 18, 20, 30, 0, time.UTC), "allocs")
+	want := ".tmp/spacewave-daemon-20260511-182030-allocs.pprof"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
 func TestCaptureDaemonCPUProfileWritesProfile(t *testing.T) {
 	ctx := context.Background()
 	traceClient := newDebugTraceTestClient(t)
@@ -74,6 +82,23 @@ func TestCaptureDaemonCPUProfileWritesProfile(t *testing.T) {
 	}
 	if byteCount == 0 {
 		t.Fatal("expected CPU profile bytes")
+	}
+	if int64(out.Len()) != byteCount {
+		t.Fatalf("expected %d bytes, got %d", byteCount, out.Len())
+	}
+}
+
+func TestCaptureDaemonMemoryProfileWritesProfile(t *testing.T) {
+	ctx := context.Background()
+	traceClient := newDebugTraceTestClient(t)
+	var out bytes.Buffer
+
+	byteCount, err := captureDaemonMemoryProfile(ctx, traceClient, &out, "allocs", false, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byteCount == 0 {
+		t.Fatal("expected memory profile bytes")
 	}
 	if int64(out.Len()) != byteCount {
 		t.Fatalf("expected %d bytes, got %d", byteCount, out.Len())

@@ -36,11 +36,24 @@ std::pair<std::unique_ptr<SRPCTraceService_CaptureCPUProfileClient>, starpc::Err
   return {std::make_unique<SRPCTraceService_CaptureCPUProfileClient>(std::move(strm)), starpc::Error::OK};
 }
 
+std::pair<std::unique_ptr<SRPCTraceService_CaptureMemoryProfileClient>, starpc::Error> SRPCTraceServiceClientImpl::CaptureMemoryProfile(const s4wave::trace::CaptureMemoryProfileRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "CaptureMemoryProfile", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCTraceService_CaptureMemoryProfileClient>(std::move(strm)), starpc::Error::OK};
+}
+
 std::vector<std::string> SRPCTraceServiceHandler::GetMethodIDs() const {
   return {
     "StartTrace",
     "StopTrace",
     "CaptureCPUProfile",
+    "CaptureMemoryProfile",
   };
 }
 
@@ -72,6 +85,12 @@ std::pair<bool, starpc::Error> SRPCTraceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCTraceService_CaptureCPUProfileStream serverStrm(strm);
     return {true, impl_->CaptureCPUProfile(req, &serverStrm)};
+  } else if (method_id == "CaptureMemoryProfile") {
+    s4wave::trace::CaptureMemoryProfileRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCTraceService_CaptureMemoryProfileStream serverStrm(strm);
+    return {true, impl_->CaptureMemoryProfile(req, &serverStrm)};
   }
 
   return {false, starpc::Error::OK};
