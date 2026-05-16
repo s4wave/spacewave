@@ -1281,6 +1281,84 @@ func TestRemoveKeypair_Success(t *testing.T) {
 	}
 }
 
+// TestRevokeSession_Success verifies RevokeSession uses the threshold-aware
+// account multi-sig route, not the removed legacy entity-signed revoke route.
+func TestRevokeSession_Success(t *testing.T) {
+	priv, pid := generateTestKeypair(t)
+	sessionPeerID := "12D3KooWSessionPeer1"
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		expectedPath := "/api/account/acct-789/session/" + sessionPeerID
+		if r.URL.Path != expectedPath {
+			t.Errorf("unexpected path: got %s, want %s", r.URL.Path, expectedPath)
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read request body: %v", err)
+		}
+		req := &api.MultiSigRequest{}
+		if err := req.UnmarshalVT(body); err != nil {
+			t.Fatalf("unmarshal multi-sig request: %v", err)
+		}
+
+		env := &api.MultiSigActionEnvelope{}
+		if err := env.UnmarshalVT(req.GetEnvelope()); err != nil {
+			t.Fatalf("unmarshal envelope: %v", err)
+		}
+		if env.GetAccountId() != "acct-789" {
+			t.Errorf("unexpected envelope account_id: %s", env.GetAccountId())
+		}
+		if env.GetKind() != api.MultiSigActionKind_MULTI_SIG_ACTION_KIND_REVOKE_SESSION {
+			t.Errorf("unexpected envelope kind: %v", env.GetKind())
+		}
+		if env.GetMethod() != http.MethodDelete {
+			t.Errorf("unexpected envelope method: %s", env.GetMethod())
+		}
+		if env.GetPath() != expectedPath {
+			t.Errorf("unexpected envelope path: %s", env.GetPath())
+		}
+
+		action := &api.RevokeSessionAction{}
+		if err := action.UnmarshalVT(env.GetPayload()); err != nil {
+			t.Fatalf("unmarshal payload: %v", err)
+		}
+		if action.GetSessionPeerId() != sessionPeerID {
+			t.Errorf("unexpected session peer_id: %s", action.GetSessionPeerId())
+		}
+
+		respBody, err := (&api.MultiSigActionResponse{
+			Result: &api.MultiSigActionResponse_SessionRevoke{
+				SessionRevoke: &api.SessionRevokeResult{Revoked: true},
+			},
+		}).MarshalVT()
+		if err != nil {
+			t.Fatalf("marshal response: %v", err)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(respBody)
+	}))
+	defer srv.Close()
+
+	cli := NewEntityClientDirect(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid)
+	result, err := cli.RevokeSession(
+		context.Background(),
+		"acct-789",
+		sessionPeerID,
+		[]crypto.PrivKey{priv},
+		[]string{pid.String()},
+	)
+	if err != nil {
+		t.Fatalf("RevokeSession: %v", err)
+	}
+	if !result.GetRevoked() {
+		t.Fatalf("expected revoked=true, got %v", result.GetRevoked())
+	}
+}
+
 func TestEnsureAccountSObjectBinding_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
