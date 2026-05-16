@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -48,7 +47,7 @@ func ParsePeerAddressMap(addressesWithPeerIDs []string) (map[string][]string, []
 		peers[pidString] = append(peers[pidString], tptaddr)
 	}
 	for k, sl := range peers {
-		sort.Strings(sl)
+		slices.Sort(sl)
 		sl = slices.Compact(sl)
 		peers[k] = sl
 	}

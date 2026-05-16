@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"math"
 	"slices"
@@ -383,12 +384,12 @@ func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockC
 // setIndexEntriesLocked sorts and stores index entries. Must be called with bcast held.
 func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
 	byOff := slices.Clone(entries)
-	sort.Slice(byOff, func(i, j int) bool {
-		return byOff[i].GetOffset() < byOff[j].GetOffset()
+	slices.SortFunc(byOff, func(a, b *kvfile.IndexEntry) int {
+		return cmp.Compare(a.GetOffset(), b.GetOffset())
 	})
 	byKey := slices.Clone(entries)
-	sort.Slice(byKey, func(i, j int) bool {
-		return bytes.Compare(byKey[i].GetKey(), byKey[j].GetKey()) < 0
+	slices.SortFunc(byKey, func(a, b *kvfile.IndexEntry) int {
+		return bytes.Compare(a.GetKey(), b.GetKey())
 	})
 	e.entriesByOff = byOff
 	e.entriesByKey = byKey
