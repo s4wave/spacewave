@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Root } from 'react-dom/client'
 
+import { ROOT_LOADING_STYLE } from './root-loading-shell.js'
+
 const mockHydrateRoot = vi.hoisted(() =>
   vi.fn(() => ({ render: vi.fn(), unmount: vi.fn() })),
 )
@@ -31,7 +33,7 @@ function renderRootShell() {
   document.body.innerHTML = `
     <div id="bldr-root" data-prerendered="true" role="main">
       <div id="sw-landing" style="display:flex"></div>
-      <div id="sw-loading" style="display:none">
+      <div id="sw-loading" style="${ROOT_LOADING_STYLE}">
         <p data-sw-boot-status>Loading application...</p>
       </div>
     </div>
@@ -79,7 +81,11 @@ describe('hydrate root hash boot', () => {
     window.dispatchEvent(new HashChangeEvent('hashchange'))
 
     expect(document.getElementById('sw-landing')?.style.display).toBe('none')
-    expect(document.getElementById('sw-loading')?.style.display).toBe('')
+    const loading = document.getElementById('sw-loading')
+    expect(loading?.style.display).toBe('')
+    expect(loading?.style.flex).toBe('1 1 0%')
+    expect(loading?.style.width).toBe('100%')
+    expect(loading?.style.minWidth).toBe('0')
 
     const boot = vi.fn()
     globalThis.__swBoot = boot
