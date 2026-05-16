@@ -143,6 +143,45 @@ func TestGCStoreOps_NestedDeferFlushFlushesOnce(t *testing.T) {
 	}
 }
 
+func TestGCStoreOps_FlushPendingNormalizesDuplicateEdges(t *testing.T) {
+	ctx := context.Background()
+	refGraph := &recordingRefGraph{}
+	gcStore := NewGCStoreOps(block.NopStoreOps{}, refGraph)
+
+	gcStore.mu.Lock()
+	gcStore.pendingUnref = append(gcStore.pendingUnref, "block:a", "block:a", "block:b")
+	gcStore.pendingRefs = append(
+		gcStore.pendingRefs,
+		pendingRef{"block:a", "block:b"},
+		pendingRef{"block:a", "block:b"},
+		pendingRef{"block:c", "block:d"},
+	)
+	gcStore.pendingUnunref = append(gcStore.pendingUnunref, "block:b", "block:b")
+	gcStore.mu.Unlock()
+
+	if err := gcStore.FlushPending(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if refGraph.applyCount != 1 {
+		t.Fatalf("ApplyRefBatch called %d times, want 1", refGraph.applyCount)
+	}
+
+	wantAdds := []RefEdge{
+		{Subject: NodeUnreferenced, Object: "block:a"},
+		{Subject: "block:a", Object: "block:b"},
+		{Subject: "block:c", Object: "block:d"},
+	}
+	wantRemoves := []RefEdge{
+		{Subject: NodeUnreferenced, Object: "block:b"},
+	}
+	if !slices.Equal(refGraph.adds, wantAdds) {
+		t.Fatalf("adds = %#v, want %#v", refGraph.adds, wantAdds)
+	}
+	if !slices.Equal(refGraph.removes, wantRemoves) {
+		t.Fatalf("removes = %#v, want %#v", refGraph.removes, wantRemoves)
+	}
+}
+
 // TestGCStoreOps_RecordRefsRemovesUnrefEdge tests that recording refs
 // removes the unreferenced edge from the target.
 func TestGCStoreOps_RecordRefsRemovesUnrefEdge(t *testing.T) {
@@ -667,3 +706,67 @@ func TestGCStoreOps_PutBlockBatch_NewBlockAddsUnrefEdge(t *testing.T) {
 		t.Fatalf("expected 2 unreferenced nodes from batch, got %d", len(nodes))
 	}
 }
+
+type recordingRefGraph struct {
+	adds       []RefEdge
+	removes    []RefEdge
+	applyCount int
+}
+
+func (r *recordingRefGraph) AddRef(context.Context, string, string) error {
+	return nil
+}
+
+func (r *recordingRefGraph) RemoveRef(context.Context, string, string) error {
+	return nil
+}
+
+func (r *recordingRefGraph) ApplyRefBatch(_ context.Context, adds, removes []RefEdge) error {
+	r.applyCount++
+	r.adds = append([]RefEdge(nil), adds...)
+	r.removes = append([]RefEdge(nil), removes...)
+	return nil
+}
+
+func (r *recordingRefGraph) RemoveNodeRefs(context.Context, string, bool) ([]string, error) {
+	return nil, nil
+}
+
+func (r *recordingRefGraph) HasIncomingRefs(context.Context, string) (bool, error) {
+	return false, nil
+}
+
+func (r *recordingRefGraph) HasIncomingRefsExcluding(context.Context, string, ...string) (bool, error) {
+	return false, nil
+}
+
+func (r *recordingRefGraph) GetOutgoingRefs(context.Context, string) ([]string, error) {
+	return nil, nil
+}
+
+func (r *recordingRefGraph) GetIncomingRefs(context.Context, string) ([]string, error) {
+	return nil, nil
+}
+
+func (r *recordingRefGraph) GetUnreferencedNodes(context.Context) ([]string, error) {
+	return nil, nil
+}
+
+func (r *recordingRefGraph) AddBlockRef(context.Context, *block.BlockRef, *block.BlockRef) error {
+	return nil
+}
+
+func (r *recordingRefGraph) AddObjectRoot(context.Context, string, *block.BlockRef) error {
+	return nil
+}
+
+func (r *recordingRefGraph) RemoveObjectRoot(context.Context, string, *block.BlockRef) error {
+	return nil
+}
+
+func (r *recordingRefGraph) Close() error {
+	return nil
+}
+
+// _ is a type assertion
+var _ RefGraphOps = ((*recordingRefGraph)(nil))

@@ -426,6 +426,10 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	for _, iri := range ununrefs {
 		removes = append(removes, RefEdge{Subject: parent, Object: iri})
 	}
+	adds, removes = normalizeRefEdges(adds, removes)
+	if len(adds) == 0 && len(removes) == 0 {
+		return nil
+	}
 
 	if g.wal != nil {
 		if err := g.wal.Append(ctx, adds, removes); err != nil {
@@ -444,6 +448,39 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		return errors.Wrap(err, "flush ref batch")
 	}
 	return nil
+}
+
+type refEdgeKey struct {
+	subject string
+	object  string
+}
+
+func normalizeRefEdges(adds, removes []RefEdge) ([]RefEdge, []RefEdge) {
+	removeKeys := make(map[refEdgeKey]struct{}, len(removes))
+	normalizedRemoves := make([]RefEdge, 0, len(removes))
+	for _, edge := range removes {
+		key := refEdgeKey{subject: edge.Subject, object: edge.Object}
+		if _, ok := removeKeys[key]; ok {
+			continue
+		}
+		removeKeys[key] = struct{}{}
+		normalizedRemoves = append(normalizedRemoves, edge)
+	}
+
+	addKeys := make(map[refEdgeKey]struct{}, len(adds))
+	normalizedAdds := make([]RefEdge, 0, len(adds))
+	for _, edge := range adds {
+		key := refEdgeKey{subject: edge.Subject, object: edge.Object}
+		if _, removed := removeKeys[key]; removed {
+			continue
+		}
+		if _, ok := addKeys[key]; ok {
+			continue
+		}
+		addKeys[key] = struct{}{}
+		normalizedAdds = append(normalizedAdds, edge)
+	}
+	return normalizedAdds, normalizedRemoves
 }
 
 // AddGCRef adds a gc/ref edge from subject to object and removes
