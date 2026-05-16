@@ -43,8 +43,8 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.49.9 // latest
-	github.com/aperturerobotics/util v1.34.4 // latest
+	github.com/aperturerobotics/starpc v0.49.10-0.20260516181237-9e1060da0bbf // latest
+	github.com/aperturerobotics/util v1.34.5-0.20260515183346-68f9eac1d69f // latest
 )
 
 require (
