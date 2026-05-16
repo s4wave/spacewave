@@ -2,13 +2,13 @@ package pass_controller
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/db/block"
 	world_control "github.com/s4wave/spacewave/db/world/control"
@@ -48,11 +48,8 @@ type Controller struct {
 	// syncExecutionsCh is pushed to trigger syncing executions to the pass.
 	syncExecutionsCh chan struct{}
 
-	// mtx guards below fields
-	mtx sync.Mutex
-	// execWatchers is the current running set of watchers
-	// keyed by object key
-	execWatchers map[string]*execWatcher
+	// execWatchers owns the current running set of execution state watchers.
+	execWatchers *keyed.Keyed[execWatcherKey, *execWatcher]
 }
 
 // NewController constructs a new controller.
@@ -62,7 +59,7 @@ func NewController(
 	conf *Config,
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
-	return &Controller{
+	c := &Controller{
 		le:        le,
 		bus:       bus,
 		conf:      conf,
@@ -71,9 +68,10 @@ func NewController(
 		peerIDStr: peerID.String(),
 
 		watchExecStatesCh: make(chan []*forge_pass.ExecState, 1),
-		execWatchers:      make(map[string]*execWatcher, 1),
 		syncExecutionsCh:  make(chan struct{}, 1),
 	}
+	c.execWatchers = keyed.NewKeyedWithLogger(c.newExecWatcher, le.WithField("tracker", "exec-watcher"))
+	return c
 }
 
 // StartControllerWithConfig starts a controller with a config.
@@ -115,6 +113,8 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
+	c.execWatchers.SetContext(ctx, true)
+	defer c.execWatchers.ClearContext()
 
 	errCh := make(chan error, 2)
 	loop, busEngine, ws := world_control.NewBusWatchLoop(
@@ -166,41 +166,20 @@ func (c *Controller) Execute(rctx context.Context) error {
 func (c *Controller) syncWatchExecStates(ctx context.Context, execStates []*forge_pass.ExecState) error {
 	// build map of watchers that should be running
 	// skip any executions that are in a terminal state
-	watchers := make(map[string]*forge_pass.ExecState, len(execStates))
+	watchers := make(map[string]execWatcherKey, len(execStates))
 	for _, state := range execStates {
 		if state.GetExecutionState() == forge_execution.State_ExecutionState_COMPLETE {
 			continue
 		}
 
-		stateObjKey := state.GetObjectKey()
-		watchers[stateObjKey] = state
+		watchers[state.GetObjectKey()] = newExecWatcherKey(state)
 	}
 
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	// remove any outdated existing watchers
-	for key, exw := range c.execWatchers {
-		var rmWatcher bool
-		nw := watchers[key]
-		if nw != nil {
-			rmWatcher = !exw.execState.Equals(nw)
-		} else {
-			rmWatcher = true
-		}
-		if rmWatcher {
-			exw.cancel()
-			delete(c.execWatchers, key)
-		} else {
-			// watcher exists already
-			delete(watchers, key)
-		}
+	keys := make([]execWatcherKey, 0, len(watchers))
+	for _, key := range watchers {
+		keys = append(keys, key)
 	}
-
-	// add any new watchers
-	for _, nw := range watchers {
-		_ = c.startExecWatcher(ctx, nw)
-	}
+	c.execWatchers.SyncKeys(keys, true)
 
 	return nil
 }
@@ -213,6 +192,7 @@ func (c *Controller) HandleDirective(ctx context.Context, inst directive.Instanc
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
+	c.execWatchers.ClearContext()
 	return nil
 }
 

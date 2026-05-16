@@ -3,6 +3,8 @@ package pass_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
@@ -12,49 +14,73 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// execWatcherKey identifies the execution snapshot a watcher is validating.
+type execWatcherKey struct {
+	objectKey      string
+	executionState forge_execution.State
+	peerID         string
+	timestampSecs  int64
+	timestampNanos int32
+}
+
 // execWatcher watches a Execution instance for completion.
 type execWatcher struct {
 	// c is the controller
 	c *Controller
-	// cancel is the context cancel func
-	cancel context.CancelFunc
-	// objKey is the object key from execState
-	objKey string
-	// execState is the previous state to compare against
-	execState *forge_pass.ExecState
+	// key is the execution snapshot this watcher validates.
+	key execWatcherKey
 }
 
-// startExecWatcher launches a new execution instance watcher.
-//
-// expects caller to have locked c.mtx
-func (c *Controller) startExecWatcher(
-	ctx context.Context,
-	execState *forge_pass.ExecState,
-) *execWatcher {
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	objKey := execState.GetObjectKey()
+func newExecWatcherKey(execState *forge_pass.ExecState) execWatcherKey {
+	timestampSecs, timestampNanos := splitExecTimestamp(execState.GetTimestamp())
+	return execWatcherKey{
+		objectKey:      execState.GetObjectKey(),
+		executionState: execState.GetExecutionState(),
+		peerID:         execState.GetPeerId(),
+		timestampSecs:  timestampSecs,
+		timestampNanos: timestampNanos,
+	}
+}
+
+func splitExecTimestamp(ts *timestamppb.Timestamp) (int64, int32) {
+	if ts == nil {
+		return 0, 0
+	}
+	return ts.Seconds, ts.Nanos
+}
+
+func (k execWatcherKey) String() string {
+	return k.objectKey
+}
+
+func (k execWatcherKey) matchesExecution(exec *forge_execution.Execution) bool {
+	timestampSecs, timestampNanos := splitExecTimestamp(exec.GetTimestamp())
+	switch {
+	case k.executionState != exec.GetExecutionState():
+	case k.peerID != exec.GetPeerId():
+	case k.timestampSecs != timestampSecs:
+	case k.timestampNanos != timestampNanos:
+	default:
+		return true
+	}
+	return false
+}
+
+// newExecWatcher constructs an execution instance watcher.
+func (c *Controller) newExecWatcher(key execWatcherKey) (keyed.Routine, *execWatcher) {
 	exc := &execWatcher{
-		c:         c,
-		cancel:    subCtxCancel,
-		objKey:    objKey,
-		execState: execState,
+		c:   c,
+		key: key,
 	}
-	if v := c.execWatchers[objKey]; v != nil {
-		v.cancel()
-	}
-	c.execWatchers[objKey] = exc
-	go exc.execute(subCtx)
-	return exc
+	return exc.execute, exc
 }
 
 // execute executes the Execution watcher.
-func (e *execWatcher) execute(ctx context.Context) {
-	defer e.cancel()
-
-	execObjKey := e.objKey
+func (e *execWatcher) execute(ctx context.Context) error {
+	execObjKey := e.key.objectKey
 	e.c.le.
 		WithField("exec-object-key", execObjKey).
-		WithField("exec-state", e.execState.GetExecutionState().String()).
+		WithField("exec-state", e.key.executionState.String()).
 		Debug("watching execution object for changes")
 	loop, _, ws := world_control.NewBusWatchLoop(
 		ctx,
@@ -65,15 +91,7 @@ func (e *execWatcher) execute(ctx context.Context) {
 		execObjKey,
 		e.processState,
 	)
-	if err := loop.Execute(ctx, ws); err != context.Canceled && err != nil {
-		e.c.le.WithError(err).Warn("exec watcher exited with error")
-	}
-
-	e.c.mtx.Lock()
-	if v := e.c.execWatchers[execObjKey]; v == e {
-		delete(e.c.execWatchers, execObjKey)
-	}
-	e.c.mtx.Unlock()
+	return loop.Execute(ctx, ws)
 }
 
 // processState implements the state watcher loop.
@@ -102,7 +120,7 @@ func (e *execWatcher) processState(
 	}
 
 	// check if the execution state matches the ExecState
-	if e.execState.MatchesExecution(exState) {
+	if e.key.matchesExecution(exState) {
 		// matches, continue to watch
 		return true, nil
 	}
