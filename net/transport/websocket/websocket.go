@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	websocket "github.com/aperturerobotics/go-websocket"
 	httplog "github.com/aperturerobotics/util/httplog"
-	"github.com/blang/semver/v4"
 	"github.com/quic-go/quic-go"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -26,7 +26,7 @@ const TransportType = "ws"
 const ControllerID = "bifrost/websocket"
 
 // Version is the version of the implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // WebSocket implements a WebSocket transport.
 type WebSocket struct {

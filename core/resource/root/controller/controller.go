@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -36,7 +35,7 @@ import (
 const ControllerID = "resource/root"
 
 // Version is the component version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "s4wave core resource root server controller"

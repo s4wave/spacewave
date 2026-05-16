@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/bldr/util/valuelist"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
@@ -14,7 +13,7 @@ import (
 const ManifestFetchViaBusControllerID = "bldr/manifest/fetch-via-bus"
 
 // ManifestFetchViaBusVersion is the controller version used for ManifestFetchViaBus.
-var ManifestFetchViaBusVersion = semver.MustParse("0.0.1")
+var ManifestFetchViaBusVersion = controller.MustParseVersion("0.0.1")
 
 // ManifestFetchViaBus implements the ManifestFetch service.
 type ManifestFetchViaBus struct {

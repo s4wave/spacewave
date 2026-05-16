@@ -2,7 +2,7 @@ package volume_sqlite
 
 import (
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 )
 
@@ -10,7 +10,7 @@ import (
 const ControllerID = "hydra/volume/sqlite"
 
 // Version is the version of the sqlite implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ConfigID is the id attached to the config objects.
 var ConfigID = ControllerID

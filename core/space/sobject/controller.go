@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
@@ -16,7 +15,7 @@ import (
 const ControllerID = "space/sobject"
 
 // Version is the component version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "loads controllers for space shared objects"

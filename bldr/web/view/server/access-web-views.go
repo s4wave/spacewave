@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
@@ -17,7 +16,7 @@ import (
 const AccessWebViewsViaBusControllerID = "bldr/web/view/access/via-bus"
 
 // AccessWebViewsViaBusVersion is the controller version used for AccessWebViewsViaBus.
-var AccessWebViewsViaBusVersion = semver.MustParse("0.0.1")
+var AccessWebViewsViaBusVersion = controller.MustParseVersion("0.0.1")
 
 // AccessWebViewsViaBus implements the AccessWebViews service.
 type AccessWebViewsViaBus struct {

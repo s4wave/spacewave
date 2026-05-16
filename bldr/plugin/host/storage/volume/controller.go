@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/promise"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
@@ -27,7 +26,7 @@ import (
 const ControllerID = "bldr/plugin/host/storage/volume"
 
 // Version is the component version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "plugin host storage volume"

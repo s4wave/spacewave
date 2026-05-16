@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/util/backoff"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver/v4"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -24,7 +23,7 @@ import (
 const ControllerID = "bldr/web/pkg/rpc/server"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // defServiceIDPrefix is the default service id prefix.
 const defServiceIDPrefix = web_pkg_rpc.SRPCAccessWebPkgServiceID + "/"

@@ -14,7 +14,6 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/scrub"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/db/object"
@@ -25,7 +24,7 @@ import (
 const ControllerID = "session"
 
 // Version is the component version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "session list controller"

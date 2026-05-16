@@ -21,7 +21,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
@@ -29,7 +28,7 @@ import (
 const ControllerID = "debug/trace"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 const controllerDescrip = "debug runtime trace and pprof http endpoint"

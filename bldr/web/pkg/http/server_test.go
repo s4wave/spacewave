@@ -12,7 +12,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	httplog "github.com/aperturerobotics/util/httplog"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/bldr/core"
 	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
 	web_pkg_mock "github.com/s4wave/spacewave/bldr/web/pkg/mock"
@@ -28,7 +27,7 @@ func TestWebPkgHttpServer(t *testing.T) {
 	mockWebPkg := web_pkg_mock.NewMockWebPkg()
 	ctrl := web_pkg_controller.NewControllerWithWebPkg(
 		le,
-		controller.NewInfo("web/pkg/static/test", semver.MustParse("0.0.1"), "test web pkg"),
+		controller.NewInfo("web/pkg/static/test", controller.MustParseVersion("0.0.1"), "test web pkg"),
 		mockWebPkg,
 	)
 

@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/sirupsen/logrus"
 )
@@ -16,7 +15,7 @@ import (
 const ControllerID = "bldr/manifest/fetch/plugin"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller fetches Manifests via the ManifestFetch service on a loaded plugin.
 type Controller struct {

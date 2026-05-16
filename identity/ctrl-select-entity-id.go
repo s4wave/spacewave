@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 )
 
 // SelectEntityIdController is a controller that resolves SelectEntityId.
@@ -21,7 +20,7 @@ func NewSelectEntityIdController(entityID string) *SelectEntityIdController {
 
 // GetControllerInfo returns information about the controller.
 func (c *SelectEntityIdController) GetControllerInfo() *controller.Info {
-	return controller.NewInfo("identity/select-entity-id", semver.MustParse("0.0.1"), "static select-entity-id resolver")
+	return controller.NewInfo("identity/select-entity-id", controller.MustParseVersion("0.0.1"), "static select-entity-id resolver")
 }
 
 // Execute executes the controller goroutine.

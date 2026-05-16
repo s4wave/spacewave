@@ -3,7 +3,7 @@ package volume_badger
 import (
 	"context"
 
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -18,7 +18,7 @@ import (
 const ControllerID = "hydra/volume/badger"
 
 // Version is the version of the badger implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Badger implements a BadgerDB backed volume.
 type Badger = kvtx.Volume

@@ -12,12 +12,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/blang/semver/v4"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	"github.com/s4wave/spacewave/db/dex"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
@@ -1147,7 +1146,7 @@ func (startupManifestBlockingLookupController) Execute(ctx context.Context) erro
 func (startupManifestBlockingLookupController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		"test/startup-manifest-blocking-lookup",
-		semver.MustParse("0.0.1"),
+		controller.MustParseVersion("0.0.1"),
 		"",
 	)
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/sirupsen/logrus"
 )
@@ -15,7 +14,7 @@ import (
 const ControllerID = "bifrost/tptaddr/controller"
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the tptaddr dialer controller.
 // Resolves EstablishLinkWithPeer directives by creating LookupTptAddr and DialTptAddr directives.

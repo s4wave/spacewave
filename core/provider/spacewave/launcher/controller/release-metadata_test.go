@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
+	"github.com/aperturerobotics/controllerbus/controller"
 	controller_info "github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	cdc "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
-	"github.com/blang/semver/v4"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	spacewave_release "github.com/s4wave/spacewave/core/release"
@@ -372,7 +372,7 @@ type releaseWorldLookupTestController struct {
 }
 
 func (c *releaseWorldLookupTestController) GetControllerInfo() *controller_info.Info {
-	return controller_info.NewInfo("release-world-test", semver.MustParse("0.0.1"), "release world test")
+	return controller_info.NewInfo("release-world-test", controller.MustParseVersion("0.0.1"), "release world test")
 }
 
 func (c *releaseWorldLookupTestController) Execute(context.Context) error { return nil }

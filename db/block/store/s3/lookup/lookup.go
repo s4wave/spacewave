@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	httplog "github.com/aperturerobotics/util/httplog"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/dex"
@@ -20,7 +19,7 @@ import (
 const ControllerID = "hydra/block/store/s3/lookup"
 
 // Version is the API version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller looks up blocks via an S3 HTTP service for LookupBlockFromNetwork directives.
 type Controller struct {

@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +20,7 @@ func startMockHandler(t *testing.T, tb *testbed.Testbed) func() {
 
 	// attach it to the bus
 	handlerCtrl := NewRpcServiceController(
-		controller.NewInfo("bifrost/rpc/test-handler", semver.MustParse("0.0.1"), "test handler"),
+		controller.NewInfo("bifrost/rpc/test-handler", controller.MustParseVersion("0.0.1"), "test handler"),
 		NewRpcServiceBuilder(mux),
 		[]string{"/foo/"},
 		true,

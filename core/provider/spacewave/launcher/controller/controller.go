@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
-	"github.com/blang/semver/v4"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/net/peer"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -22,7 +21,7 @@ import (
 const ControllerID = "spacewave/launcher/controller"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller manages running the launcher.
 type Controller struct {

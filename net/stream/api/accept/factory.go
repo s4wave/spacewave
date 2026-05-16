@@ -6,14 +6,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 )
 
 // ControllerID identifies the accept controller.
 const ControllerID = "bifrost/stream/accept"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Factory constructs a controller
 type Factory struct {
@@ -55,7 +54,7 @@ func (t *Factory) Construct(
 }
 
 // GetVersion returns the version of this controller.
-func (t *Factory) GetVersion() semver.Version {
+func (t *Factory) GetVersion() controller.Version {
 	return Version
 }
 

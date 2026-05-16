@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 )
 
 // QuickJSConfigID is the config identifier for the QuickJS plugin host.
@@ -55,7 +54,7 @@ func (t *QuickJSFactory) Construct(
 }
 
 // GetVersion returns the version of this controller.
-func (t *QuickJSFactory) GetVersion() semver.Version {
+func (t *QuickJSFactory) GetVersion() controller.Version {
 	return Version
 }
 

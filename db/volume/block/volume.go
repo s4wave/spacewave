@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -24,7 +23,7 @@ import (
 const ControllerID = "hydra/volume/block"
 
 // Version is the version of the KVTxInmem implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Volume implements a block-graph kvtx backed volume.
 type Volume struct {

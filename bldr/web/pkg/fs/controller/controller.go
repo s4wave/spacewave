@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
@@ -22,7 +21,7 @@ import (
 const ControllerID = "bldr/web/pkg/fs/controller"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller uses AccessUnixFS to resolve LookupWebPkg directives.
 type Controller = web_pkg_controller.Controller

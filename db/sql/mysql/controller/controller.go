@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -22,7 +21,7 @@ import (
 const ControllerID = "hydra/sql/mysql"
 
 // Version is the API version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "access object store backed sql db"

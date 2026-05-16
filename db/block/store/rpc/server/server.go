@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -17,7 +16,7 @@ import (
 const ControllerID = "hydra/block/store/rpc/server"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description
 var controllerDescrip = "serves block store via rpc"

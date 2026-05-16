@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	store_test "github.com/s4wave/spacewave/db/store/test"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/volume"
@@ -69,7 +68,7 @@ func TestRPCVolume(t *testing.T) {
 	rpcClientCtrl := bifrost_rpc.NewClientController(
 		le,
 		tb2.Bus,
-		controller.NewInfo("volume/rpc/test/client", semver.MustParse("0.0.1"), "test rpc client"),
+		controller.NewInfo("volume/rpc/test/client", controller.MustParseVersion("0.0.1"), "test rpc client"),
 		rpcClient,
 		[]string{hostServicePrefix},
 	)

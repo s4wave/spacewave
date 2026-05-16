@@ -15,7 +15,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/go-git/go-billy/v6/memfs"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
@@ -85,7 +84,7 @@ func newTestStartupCacheBuilderFactory(b bus.Bus) controller.Factory {
 		b,
 		testStartupCacheBuilderConfigID,
 		testStartupCacheBuilderConfigID,
-		semver.MustParse("0.0.1"),
+		controller.MustParseVersion("0.0.1"),
 		"test startup cache builder",
 		func() *testStartupCacheBuilderConfig { return &testStartupCacheBuilderConfig{} },
 		func(base *bus.BusController[*testStartupCacheBuilderConfig]) (*testStartupCacheBuilder, error) {
@@ -131,7 +130,7 @@ func (startupCacheBlockingLookupController) Execute(ctx context.Context) error {
 func (startupCacheBlockingLookupController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		"test/startup-cache-blocking-lookup",
-		semver.MustParse("0.0.1"),
+		controller.MustParseVersion("0.0.1"),
 		"",
 	)
 }

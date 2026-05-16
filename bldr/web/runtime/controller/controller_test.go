@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	"github.com/go-git/go-billy/v6/memfs"
 	billy_util "github.com/go-git/go-billy/v6/util"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -94,7 +93,7 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 	accessCtrl := unixfs_access.NewController(
 		tb.Logger,
 		tb.Bus,
-		controller.NewInfo("bldr/web/runtime/test-assets", semver.MustParse("0.0.1"), "test plugin assets access"),
+		controller.NewInfo("bldr/web/runtime/test-assets", controller.MustParseVersion("0.0.1"), "test plugin assets access"),
 		[]string{unixFsID},
 		rotating.AccessUnixFS,
 	)

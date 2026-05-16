@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
@@ -831,7 +830,7 @@ func newTestV86PluginLoadController() *testV86PluginLoadController {
 }
 
 func (c *testV86PluginLoadController) GetControllerInfo() *controller.Info {
-	return controller.NewInfo("resource/world/test-v86-plugin-load", semver.MustParse("0.0.1"), "test")
+	return controller.NewInfo("resource/world/test-v86-plugin-load", controller.MustParseVersion("0.0.1"), "test")
 }
 
 func (c *testV86PluginLoadController) Execute(ctx context.Context) error {

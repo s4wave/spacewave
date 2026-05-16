@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	web_view_handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 	"github.com/sirupsen/logrus"
@@ -15,7 +14,7 @@ import (
 const ControllerID = "bldr/web/view/handler"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller is the web view handler controller.
 type Controller struct {

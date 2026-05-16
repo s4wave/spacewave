@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -32,7 +31,7 @@ func TestPluginServerResourceServiceFallsThroughToBus(t *testing.T) {
 	ctrl := bifrost_rpc.NewInvokerController(
 		le,
 		b,
-		controller.NewInfo("bldr/plugin/test-resource-service", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("bldr/plugin/test-resource-service", controller.MustParseVersion("0.0.1"), ""),
 		targetMux,
 		[]string{resource.SRPCResourceServiceServiceID},
 	)

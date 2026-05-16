@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -23,7 +22,7 @@ import (
 const ControllerID = "hydra/unixfs/world/access"
 
 // Version is the component version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "access world-backed unixfs"

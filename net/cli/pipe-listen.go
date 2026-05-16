@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
@@ -71,7 +70,7 @@ type pipeAcceptController struct {
 const pipeAcceptControllerID = "bifrost/pipe/accept"
 
 // pipeAcceptControllerVersion is the controller version.
-var pipeAcceptControllerVersion = semver.MustParse("0.0.1")
+var pipeAcceptControllerVersion = controller.MustParseVersion("0.0.1")
 
 // newPipeAcceptController creates a new pipe accept controller.
 func newPipeAcceptController(

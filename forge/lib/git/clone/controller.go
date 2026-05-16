@@ -16,13 +16,12 @@ import (
 	git_urls "github.com/whilp/git-urls"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/lib/git/clone"

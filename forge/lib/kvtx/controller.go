@@ -13,13 +13,12 @@ import (
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/lib/kvtx"

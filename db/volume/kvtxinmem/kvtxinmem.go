@@ -3,7 +3,7 @@ package volume_kvtxinmem
 import (
 	"context"
 
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sinmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -17,7 +17,7 @@ import (
 const ControllerID = "hydra/volume/kvtxinmem"
 
 // Version is the version of the KVTxInmem implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // KVTxInmem implements a in-memory key/value tx store volume.
 type KVTxInmem = common_kvtx.Volume

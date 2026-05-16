@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/refcount"
-	"github.com/blang/semver/v4"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
@@ -58,7 +57,7 @@ func NewStaticBlockStore(
 
 // GetControllerInfo returns information about the controller.
 func (c *StaticBlockStore) GetControllerInfo() *controller.Info {
-	return controller.NewInfo("entrypoint/static", semver.MustParse("0.0.1"), "entrypoint static block store loader")
+	return controller.NewInfo("entrypoint/static", controller.MustParseVersion("0.0.1"), "entrypoint static block store loader")
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -72,7 +71,7 @@ func (c *StaticBlockStore) Execute(ctx context.Context) error {
 		c.le,
 		controller.NewInfo(
 			"entrypoint/static/block-store",
-			semver.MustParse("0.0.1"),
+			controller.MustParseVersion("0.0.1"),
 			"entrypoint static block store",
 		),
 		func(ctx context.Context, released func()) (block_store.Store, func(), error) {

@@ -1,7 +1,7 @@
 package provider_local
 
 import (
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_controller "github.com/s4wave/spacewave/core/provider/controller"
 )
@@ -10,7 +10,7 @@ import (
 const ControllerID = "provider/local"
 
 // Version is the controller version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "local provider"

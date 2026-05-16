@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/blang/semver/v4"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 )
 
@@ -15,7 +14,7 @@ import (
 const ControllerID = "bldr/web/view/observer"
 
 // Version is the controller version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "resolves LookupWebView"

@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	cbc "github.com/aperturerobotics/controllerbus/core"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/stream"
@@ -29,7 +28,7 @@ func TestLinkLossBroadcastsSnapshotWaiters(t *testing.T) {
 	c := NewController(
 		le,
 		b,
-		controller.NewInfo("test", semver.MustParse("0.0.0"), "test"),
+		controller.NewInfo("test", controller.MustParseVersion("0.0.0"), "test"),
 		localPeer,
 		false,
 		nil,

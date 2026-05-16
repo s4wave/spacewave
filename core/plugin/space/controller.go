@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -33,7 +32,7 @@ import (
 const ControllerID = "plugin/space"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "loads Space plugins and resolves FetchManifest for a Space"

@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/aperturerobotics/util/scrub"
-	"github.com/blang/semver/v4"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/volume"
@@ -22,7 +21,7 @@ import (
 const ControllerID = "object/peer"
 
 // Version is the component version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "stores a peer private key in an object store"

@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 )
 
@@ -15,7 +15,7 @@ const ControllerID = "bldr/plugin/host/process"
 const ConfigID = ControllerID
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.

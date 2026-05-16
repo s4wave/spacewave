@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bldr_core "github.com/s4wave/spacewave/bldr/core"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
@@ -168,7 +167,7 @@ func TestSaucerInProcess(t *testing.T) {
 	}
 	pkgCtrl := web_pkg_controller.NewControllerWithWebPkgMap(
 		le,
-		controller.NewInfo("e2e/web-pkgs", semver.MustParse("0.0.1"), "e2e mock web packages"),
+		controller.NewInfo("e2e/web-pkgs", controller.MustParseVersion("0.0.1"), "e2e mock web packages"),
 		pkgMap,
 	)
 	if err := b.ExecuteController(ctx, pkgCtrl); err != nil {
@@ -255,7 +254,7 @@ func TestSaucerInProcess(t *testing.T) {
 			)
 		},
 		"e2e/saucer",
-		semver.MustParse("0.0.1"),
+		controller.MustParseVersion("0.0.1"),
 	)
 
 	// Execute the runtime controller on the bus.

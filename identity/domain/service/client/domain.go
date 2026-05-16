@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/identity"
 	identity_domain "github.com/s4wave/spacewave/identity/domain"
 	"github.com/s4wave/spacewave/net/peer"
@@ -16,7 +16,7 @@ import (
 const ControllerID = "identity/client"
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Domain is the service client backed identity domain.
 type Domain struct {

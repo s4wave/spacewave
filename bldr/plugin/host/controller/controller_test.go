@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_logs "github.com/s4wave/spacewave/bldr/plugin/host/logs"
@@ -51,7 +50,7 @@ func TestControllerOwnsProcessLifetimeHostRoot(t *testing.T) {
 	ctrl := NewController(
 		logrus.NewEntry(logrus.New()),
 		nil,
-		controller.NewInfo("test", semver.MustParse("0.0.1"), "test"),
+		controller.NewInfo("test", controller.MustParseVersion("0.0.1"), "test"),
 		&testPluginHost{},
 	)
 	defer func() {
@@ -97,7 +96,7 @@ func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
 	ctrlA := NewController(
 		le,
 		b,
-		controller.NewInfo("test-a", semver.MustParse("0.0.1"), "test"),
+		controller.NewInfo("test-a", controller.MustParseVersion("0.0.1"), "test"),
 		&testPluginHost{},
 	)
 	if got := len(log.Hooks[logrus.WarnLevel]); got != 1 {
@@ -107,7 +106,7 @@ func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
 	ctrlB := NewController(
 		le,
 		b,
-		controller.NewInfo("test-b", semver.MustParse("0.0.1"), "test"),
+		controller.NewInfo("test-b", controller.MustParseVersion("0.0.1"), "test"),
 		&testPluginHost{},
 	)
 	if got := len(log.Hooks[logrus.WarnLevel]); got != 1 {
@@ -157,7 +156,7 @@ func TestControllerHostLogrusHookDoesNotRetainHistoryAfterViewRelease(t *testing
 	ctrl := NewController(
 		le,
 		b,
-		controller.NewInfo("test", semver.MustParse("0.0.1"), "test"),
+		controller.NewInfo("test", controller.MustParseVersion("0.0.1"), "test"),
 		&testPluginHost{},
 	)
 	defer func() {

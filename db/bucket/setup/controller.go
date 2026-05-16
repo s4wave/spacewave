@@ -9,12 +9,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 
-	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "hydra/bucket/setup"

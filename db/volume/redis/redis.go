@@ -3,7 +3,7 @@ package volume_redis
 import (
 	"context"
 
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
@@ -15,7 +15,7 @@ import (
 const ControllerID = "hydra/volume/redis"
 
 // Version is the version of the redis implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Redis implements a RedisDB backed volume.
 type Redis = kvtx.Volume

@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/echo"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
@@ -86,7 +85,7 @@ func TestStarpc(t *testing.T) {
 		le,
 		controller.NewInfo(
 			string(ProtocolID)+"/server",
-			semver.MustParse("0.0.1"),
+			controller.MustParseVersion("0.0.1"),
 			"test of srpc server",
 		),
 		[]stream_srpc_server.RegisterFn{mockServer.Register},

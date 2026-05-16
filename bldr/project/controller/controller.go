@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/routine"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
@@ -21,7 +20,7 @@ import (
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = ConfigID

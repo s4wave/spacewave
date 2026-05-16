@@ -17,7 +17,6 @@ import (
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver/v4"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/sirupsen/logrus"
 )
@@ -163,8 +162,8 @@ func (f *launcherConfigSetTestFactory) Construct(
 	return &launcherConfigSetTestController{factory: f}, nil
 }
 
-func (f *launcherConfigSetTestFactory) GetVersion() semver.Version {
-	return semver.MustParse("0.0.1")
+func (f *launcherConfigSetTestFactory) GetVersion() controller.Version {
+	return controller.MustParseVersion("0.0.1")
 }
 
 type launcherConfigSetTestController struct {
@@ -174,7 +173,7 @@ type launcherConfigSetTestController struct {
 func (c *launcherConfigSetTestController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		(&config.Placeholder{}).GetConfigID(),
-		semver.MustParse("0.0.1"),
+		controller.MustParseVersion("0.0.1"),
 		"launcher config set test controller",
 	)
 }

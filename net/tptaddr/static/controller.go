@@ -9,7 +9,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/tptaddr"
 )
@@ -18,7 +17,7 @@ import (
 const ControllerID = "bifrost/tptaddr/static"
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the static tptaddr address list controller.
 // Resolves LookupTptAddr directives with a static list of addresses.

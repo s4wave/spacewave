@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/identity"
 	identity_domain_service "github.com/s4wave/spacewave/identity/domain/service"
@@ -20,7 +19,7 @@ import (
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "identity/server"

@@ -19,7 +19,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/daemon"
 	"github.com/s4wave/spacewave/net/keypem/keyfile"
@@ -83,7 +82,7 @@ type chatHandler struct {
 
 // GetControllerInfo returns information about the controller.
 func (h *chatHandler) GetControllerInfo() *controller.Info {
-	return controller.NewInfo("mesh-chat/handler", semver.MustParse("0.0.1"), "chat handler")
+	return controller.NewInfo("mesh-chat/handler", controller.MustParseVersion("0.0.1"), "chat handler")
 }
 
 // Execute executes the controller.

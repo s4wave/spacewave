@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	block_store_http_server "github.com/s4wave/spacewave/db/block/store/http/server"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -17,7 +16,7 @@ import (
 const ControllerID = "hydra/bucket/http/server"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description
 var controllerDescrip = "serves bucket via http"

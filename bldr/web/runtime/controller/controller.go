@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	quickjs_wasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
@@ -47,7 +46,7 @@ type Controller struct {
 	// runtimeID is the controller id to use
 	runtimeID string
 	// runtimeVersion is the version
-	runtimeVersion semver.Version
+	runtimeVersion controller.Version
 
 	// pkgServer is the web pkg server
 	pkgServer *web_pkg_http.Server
@@ -64,7 +63,7 @@ func NewController(
 	bus bus.Bus,
 	ctor Constructor,
 	runtimeID string,
-	runtimeVersion semver.Version,
+	runtimeVersion controller.Version,
 ) *Controller {
 	return &Controller{
 		le:   le,

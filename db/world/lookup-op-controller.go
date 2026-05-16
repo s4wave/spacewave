@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 )
 
 // LookupOpController implements LookupWorldOp on a bus.
@@ -16,7 +15,7 @@ type LookupOpController struct {
 }
 
 // LookupOpControllerVersion is the version of the LookupOpController.
-var LookupOpControllerVersion = semver.MustParse("0.0.1")
+var LookupOpControllerVersion = controller.MustParseVersion("0.0.1")
 
 // NewLookupOpController builds a new operation controller with the handlers.
 // controllerID is the id of the operation controller on the bus.

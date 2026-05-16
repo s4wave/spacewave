@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -28,7 +28,7 @@ import (
 )
 
 // DevtoolWsVersion is the version to report for the ws-backed devtool runtime.
-var DevtoolWsVersion = semver.MustParse("0.0.1")
+var DevtoolWsVersion = controller.MustParseVersion("0.0.1")
 
 // ExecuteWebWsProject starts the devtool bus and project as a web server with a
 // WebSocket. Plugins run as native binaries under the devtool process.

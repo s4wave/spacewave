@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	cdc "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -87,7 +86,7 @@ type testPluginLoadController struct {
 }
 
 func (c *testPluginLoadController) GetControllerInfo() *controller.Info {
-	return controller.NewInfo("test/plugin-load", semver.MustParse("0.0.1"), "test plugin load")
+	return controller.NewInfo("test/plugin-load", controller.MustParseVersion("0.0.1"), "test plugin load")
 }
 
 func (c *testPluginLoadController) Execute(ctx context.Context) error {

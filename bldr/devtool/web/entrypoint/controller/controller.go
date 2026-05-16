@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -45,7 +44,7 @@ import (
 const ControllerID = "bldr/devtool/web/entrypoint"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller manages the devtool web entrypoint.
 type Controller struct {

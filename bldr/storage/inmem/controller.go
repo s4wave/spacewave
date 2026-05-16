@@ -2,7 +2,6 @@ package storage_inmem
 
 import (
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/bldr/storage"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 )
@@ -11,7 +10,7 @@ import (
 const ControllerID = "bldr/storage/inmem"
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller is the storage controller.
 type Controller = storage_controller.StorageController

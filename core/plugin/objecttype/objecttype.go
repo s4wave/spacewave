@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
@@ -13,7 +12,7 @@ import (
 const ControllerID = "plugin/objecttype"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "resolves LookupObjectType directives for plugin-provided types"

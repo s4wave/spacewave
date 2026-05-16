@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	"github.com/sirupsen/logrus"
@@ -18,7 +17,7 @@ import (
 const ControllerID = "bldr/web/plugin/handle-web-view-rpc"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller calls the web plugin to enable forwarding web rpcs to the handler plugin.
 type Controller struct {

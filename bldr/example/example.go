@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
-	"github.com/blang/semver/v4"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
@@ -39,7 +38,7 @@ var ExampleEntrypoint bldr_web_bundler.WebBundlerOutput
 var AssetPath string
 
 // Version is the controller version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "demo controller"

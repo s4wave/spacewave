@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
 	web_pkg_mock "github.com/s4wave/spacewave/bldr/web/pkg/mock"
@@ -46,7 +45,7 @@ func TestWebPkgRpc(t *testing.T) {
 	testPkgID, testPkgIDPrefix := web_pkg_mock.MockWebPkgID, web_pkg_mock.MockWebPkgIDPrefix
 	mockCtrl := web_pkg_controller.NewControllerWithWebPkg(
 		le,
-		controller.NewInfo("web/pkg/rpc/e2e/static-pkg", semver.MustParse("0.0.1"), "static pkg"),
+		controller.NewInfo("web/pkg/rpc/e2e/static-pkg", controller.MustParseVersion("0.0.1"), "static pkg"),
 		web_pkg_mock.NewMockWebPkg(),
 	)
 	relMock, err := tb2.Bus.AddController(ctx, mockCtrl, nil)
@@ -87,7 +86,7 @@ func TestWebPkgRpc(t *testing.T) {
 	clientCtrl := bifrost_rpc.NewClientController(
 		le,
 		tb1.Bus,
-		controller.NewInfo("web/pkg/rpc/e2e/client", semver.MustParse("0.0.1"), "rpc e2e client"),
+		controller.NewInfo("web/pkg/rpc/e2e/client", controller.MustParseVersion("0.0.1"), "rpc e2e client"),
 		client,
 		[]string{testServiceIDPrefix},
 	)

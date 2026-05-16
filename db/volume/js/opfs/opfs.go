@@ -5,7 +5,7 @@ package volume_opfs
 import (
 	"context"
 
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/block/gc/gcgraph"
@@ -27,7 +27,7 @@ import (
 const ControllerID = "hydra/volume/opfs"
 
 // Version is the version of the OPFS volume implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Opfs implements an OPFS-backed volume.
 type Opfs = kvtx.Volume

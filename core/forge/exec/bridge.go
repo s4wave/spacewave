@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	forge_target "github.com/s4wave/spacewave/forge/target"
@@ -14,7 +13,7 @@ import (
 )
 
 // bridgeVersion is the version for bridge factories and controllers.
-var bridgeVersion = semver.MustParse("0.0.1")
+var bridgeVersion = controller.MustParseVersion("0.0.1")
 
 // BridgeFactory creates a bus-compatible controller factory from a
 // SpaceExecRegistry handler. This adapts space-aware handlers (no bus.Bus
@@ -81,7 +80,7 @@ func (f *BridgeFactory) Construct(
 }
 
 // GetVersion returns the bridge factory version.
-func (f *BridgeFactory) GetVersion() semver.Version {
+func (f *BridgeFactory) GetVersion() controller.Version {
 	return bridgeVersion
 }
 

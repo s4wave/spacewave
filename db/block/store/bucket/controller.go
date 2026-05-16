@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
-	"github.com/blang/semver/v4"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
 )
@@ -16,7 +15,7 @@ import (
 const ControllerID = "hydra/block/store/bucket"
 
 // Version is the component version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "block-store backed bucket"

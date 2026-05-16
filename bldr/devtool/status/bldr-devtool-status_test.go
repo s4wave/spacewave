@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	cb_controller "github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/blang/semver/v4"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
@@ -647,7 +647,7 @@ func TestBldrDevtoolStatusObserverCloseReleasesStateCallbacks(t *testing.T) {
 type testFetchManifestController struct{}
 
 func (c *testFetchManifestController) GetControllerInfo() *cb_controller.Info {
-	return cb_controller.NewInfo("bldr/devtool/status/test-fetch-manifest", semver.MustParse("0.0.1"), "test")
+	return cb_controller.NewInfo("bldr/devtool/status/test-fetch-manifest", controller.MustParseVersion("0.0.1"), "test")
 }
 
 func (c *testFetchManifestController) Execute(ctx context.Context) error {

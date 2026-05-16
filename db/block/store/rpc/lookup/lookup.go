@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	"github.com/s4wave/spacewave/db/dex"
 	"github.com/sirupsen/logrus"
@@ -16,7 +15,7 @@ import (
 const ControllerID = "hydra/block/store/rpc/lookup"
 
 // Version is the API version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller looks up blocks via an RPC service.
 type Controller struct {

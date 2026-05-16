@@ -4,7 +4,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/peer"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	stream_srpc_server "github.com/s4wave/spacewave/net/stream/srpc/server"
@@ -13,7 +12,7 @@ import (
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "bifrost/stream/srpc/server/lookup"

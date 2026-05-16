@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_mount "github.com/s4wave/spacewave/db/unixfs/mount"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
@@ -19,7 +18,7 @@ import (
 const ControllerID = "hydra/unixfs/mount/checkout"
 
 // Version is the version of the implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the mount controller.
 type Controller struct {

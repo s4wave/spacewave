@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	web_view_client "github.com/s4wave/spacewave/bldr/web/view/client"
 	web_view_handler "github.com/s4wave/spacewave/bldr/web/view/handler"
@@ -18,7 +17,7 @@ import (
 const HandleWebViewViaBusControllerID = "bldr/web/view/handler/via-bus"
 
 // HandleWebViewViaBusVersion is the controller version used for HandleWebViewViaBus.
-var HandleWebViewViaBusVersion = semver.MustParse("0.0.1")
+var HandleWebViewViaBusVersion = controller.MustParseVersion("0.0.1")
 
 // HandleWebViewViaBus implements the HandleWebView service.
 type HandleWebViewViaBus struct {

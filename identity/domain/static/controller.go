@@ -4,14 +4,14 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	identity_domain "github.com/s4wave/spacewave/identity/domain"
 	identity_domain_controller "github.com/s4wave/spacewave/identity/domain/controller"
 	"github.com/sirupsen/logrus"
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "identity/domain/static"

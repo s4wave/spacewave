@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	prototype_webworker_rpcstream_common "github.com/s4wave/spacewave/bldr/prototypes/webworker-rpcstream/common"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -19,7 +18,7 @@ import (
 const ControllerID = "app1"
 
 // Version is the controller version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "app1 controller"

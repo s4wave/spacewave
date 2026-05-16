@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/storage"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
@@ -156,7 +155,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	storageCtrl := storage_controller.BuildStorageController(
 		storageID,
 		storages,
-		controller.NewInfo("storage/testbed", semver.MustParse("0.0.1"), "testbed storage"),
+		controller.NewInfo("storage/testbed", controller.MustParseVersion("0.0.1"), "testbed storage"),
 	)
 	storageCtrlRel, err := b.AddController(ctx, storageCtrl, nil)
 	if err != nil {

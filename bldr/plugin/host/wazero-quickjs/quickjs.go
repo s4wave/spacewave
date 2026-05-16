@@ -16,7 +16,6 @@ import (
 	quickjs "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/refcount"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -41,7 +40,7 @@ const ControllerID = "bldr/plugin/host/wazero-quickjs"
 type Controller = host_controller.Controller
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 var (
 	// BootFsMount is the path we mount the quickjs vm entrypoint.

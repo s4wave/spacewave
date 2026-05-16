@@ -3,14 +3,13 @@ package statusprojector
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 )
 
 // ControllerID is the controller identifier.
 const ControllerID = "resource/desktop/status-projector"
 
 // Version is the component version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 var controllerDescrip = "desktop runtime status projector controller"
 

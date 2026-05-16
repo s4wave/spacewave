@@ -11,7 +11,6 @@ import (
 	ws "github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/routine"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -103,7 +102,7 @@ func newWSSignalingCtrl(
 func (c *wsSignalingCtrl) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		"aperture/transport/ws-signaling",
-		semver.MustParse("0.0.1"),
+		controller.MustParseVersion("0.0.1"),
 		"WebSocket signaling client",
 	)
 }

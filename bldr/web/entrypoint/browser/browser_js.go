@@ -8,8 +8,8 @@ import (
 	"syscall/js"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	message_port "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/message-port"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	"github.com/sirupsen/logrus"
@@ -19,7 +19,7 @@ import (
 const ControllerID = "bldr/web/entrypoint/browser"
 
 // Version is the version of the runtime implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ReadInitMessage reads the bldr init message from the global.
 //

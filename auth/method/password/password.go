@@ -3,7 +3,7 @@ package auth_method_password
 import (
 	"context"
 
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	auth_method "github.com/s4wave/spacewave/auth/method"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -17,7 +17,7 @@ const MethodID = "password"
 const ControllerID = "auth/method/" + MethodID
 
 // Version is the version of the password method implementation.
-var Version = semver.MustParse("0.1.0")
+var Version = controller.MustParseVersion("0.1.0")
 
 // PasswordMethod implements password-based auth via scrypt+blake3 KDF.
 type PasswordMethod struct{}

@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/sirupsen/logrus"
 )
@@ -14,7 +13,7 @@ import (
 const ControllerID = "bldr/plugin/load"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 var controllerDescrip = "load plugin"
 

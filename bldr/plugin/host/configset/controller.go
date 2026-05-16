@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
-	"github.com/blang/semver/v4"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
@@ -17,7 +16,7 @@ import (
 const ControllerID = "bldr/plugin/host/configset"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller applies a config set to the plugin host.
 type Controller struct {

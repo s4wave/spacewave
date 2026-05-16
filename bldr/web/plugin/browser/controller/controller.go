@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_web_plugin_browser "github.com/s4wave/spacewave/bldr/web/plugin/browser"
 	bldr_web_plugin_controller "github.com/s4wave/spacewave/bldr/web/plugin/controller"
@@ -20,7 +19,7 @@ import (
 const ControllerID = "bldr/web/plugin/browser/controller"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller manages running the web plugin browser host.
 // Serves the WebPluginBrowserHost RPC service.

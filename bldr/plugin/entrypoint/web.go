@@ -9,9 +9,9 @@ import (
 	"syscall/js"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	fetch "github.com/aperturerobotics/util/js/fetch"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	web_runtime_wasm "github.com/s4wave/spacewave/bldr/web/runtime/wasm"
@@ -19,7 +19,7 @@ import (
 )
 
 // Version is the entrypoint version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Main runs the default main entrypoint for a plugin.
 func Main(

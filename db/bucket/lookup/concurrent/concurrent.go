@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/conc"
 	"github.com/aperturerobotics/util/refcount"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -26,7 +25,7 @@ import (
 const ControllerID = "hydra/lookup/concurrent"
 
 // Version is the version of the concurrent implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // LookupController implements the concurrent lookup controller.
 type LookupController struct {

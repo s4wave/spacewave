@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -20,7 +19,7 @@ import (
 const bridgeControllerID = "resource/worldop-registry-bridge"
 
 // bridgeControllerVersion is the controller version.
-var bridgeControllerVersion = semver.MustParse("0.0.1")
+var bridgeControllerVersion = controller.MustParseVersion("0.0.1")
 
 // WorldOpRegistryBridgeController resolves LookupWorldOp directives for
 // registry-registered types by proxying to the source TS plugin.

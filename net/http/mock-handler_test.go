@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/testbed"
 )
 
@@ -25,7 +24,7 @@ func startMockHandler(t *testing.T, tb *testbed.Testbed) func() {
 
 	// attach it to the bus
 	handlerCtrl := NewHTTPHandlerController(
-		controller.NewInfo("bifrost/http/test-handler", semver.MustParse("0.0.1"), "test handler"),
+		controller.NewInfo("bifrost/http/test-handler", controller.MustParseVersion("0.0.1"), "test handler"),
 		NewHTTPHandlerBuilder(handler),
 		[]string{"/foo"},
 		true,

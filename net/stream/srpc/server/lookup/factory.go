@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 )
 
 // Factory constructs a lookup SRPC server controller.
@@ -47,7 +46,7 @@ func (t *Factory) Construct(
 }
 
 // GetVersion returns the version of this controller.
-func (t *Factory) GetVersion() semver.Version {
+func (t *Factory) GetVersion() controller.Version {
 	return Version
 }
 

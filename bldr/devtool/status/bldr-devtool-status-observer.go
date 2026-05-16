@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
 
@@ -20,7 +19,7 @@ import (
 const BldrDevtoolStatusObserverControllerID = "bldr/devtool/status/observer"
 
 // BldrDevtoolStatusObserverVersion is the observer controller version.
-var BldrDevtoolStatusObserverVersion = semver.MustParse("0.0.1")
+var BldrDevtoolStatusObserverVersion = controller.MustParseVersion("0.0.1")
 
 // BldrDevtoolStatusObserver observes ControllerBus directives and publishes status.
 type BldrDevtoolStatusObserver struct {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/core"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
@@ -45,7 +44,7 @@ func TestStaticWebPkg(t *testing.T) {
 	}
 	ctrl := web_pkg_controller.NewControllerWithWebPkg(
 		le,
-		controller.NewInfo("web/pkg/static/test", semver.MustParse("0.0.1"), "test web pkg"),
+		controller.NewInfo("web/pkg/static/test", controller.MustParseVersion("0.0.1"), "test web pkg"),
 		staticWebPkg,
 	)
 

@@ -3,7 +3,6 @@ package storage_default
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 )
 
@@ -14,7 +13,7 @@ const StorageID = "default"
 const ControllerID = "bldr/storage/default"
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller is the storage/default controller.
 type Controller = storage_controller.StorageController

@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
@@ -13,7 +12,7 @@ import (
 const ControllerID = "hydra/unixfs/access/http"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller serves AccessUnixFS to LookupHTTPHandler directives.
 type Controller = bifrost_http.HTTPHandlerController

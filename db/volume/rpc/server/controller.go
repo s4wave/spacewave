@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	volume "github.com/s4wave/spacewave/db/volume"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
@@ -23,7 +22,7 @@ import (
 const ControllerID = "hydra/volume/rpc/server"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the rpc volume server.
 type Controller struct {

@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
 )
@@ -15,7 +14,7 @@ import (
 const ControllerID = "plugin/assets/http"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller responds to LookupHTTPHandler with the plugin Assets FS.
 type Controller = unixfs_access_http.Controller

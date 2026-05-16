@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
@@ -43,7 +42,7 @@ func TestAccessRpcService(t *testing.T) {
 	invokerCtrl := bifrost_rpc.NewInvokerController(
 		le,
 		serverBus,
-		controller.NewInfo("bifrost/rpc/access/invoker", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("bifrost/rpc/access/invoker", controller.MustParseVersion("0.0.1"), ""),
 		targetMux,
 		nil,
 	)
@@ -63,7 +62,7 @@ func TestAccessRpcService(t *testing.T) {
 	client := srpc.NewClient(openClientStream)
 	clientCtrl := NewClientController(
 		le,
-		controller.NewInfo("bifrost/rpc/access/client", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("bifrost/rpc/access/client", controller.MustParseVersion("0.0.1"), ""),
 		NewAccessClientFunc(NewSRPCAccessRpcServiceClient(client)),
 		nil,
 		nil,

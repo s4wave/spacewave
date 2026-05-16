@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/transport"
@@ -24,7 +23,7 @@ const TransportType = "inproc"
 const ControllerID = "bifrost/inproc"
 
 // Version is the version of the inproc implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Inproc implements a Inproc transport.
 type Inproc struct {

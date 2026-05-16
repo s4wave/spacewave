@@ -20,10 +20,10 @@ require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260426060333-d8dbc50ec0cb // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.14.0 // latest
+	github.com/aperturerobotics/cayley v0.14.1-0.20260512101008-8126fdcbc49f // latest
 	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/common v0.33.0 // latest
-	github.com/aperturerobotics/controllerbus v0.53.2 // latest
+	github.com/aperturerobotics/controllerbus v0.53.3-0.20260514222015-b0bfe2a40231 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.1
@@ -44,7 +44,7 @@ require (
 	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.9 // latest
-	github.com/aperturerobotics/util v1.34.3 // latest
+	github.com/aperturerobotics/util v1.34.4 // latest
 )
 
 require (
@@ -74,7 +74,6 @@ require (
 
 require (
 	github.com/bits-and-blooms/bitset v1.24.4
-	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudflare/circl v1.6.3
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.9.1
@@ -158,7 +157,6 @@ require (
 	github.com/ncruces/go-sqlite3-wasm/v2 v2.2.35301 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
-	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
 	github.com/pion/dtls/v3 v3.1.2 // indirect
 	github.com/pion/ice/v4 v4.2.5 // indirect

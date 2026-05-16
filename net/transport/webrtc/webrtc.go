@@ -7,10 +7,10 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver/v4"
 	"github.com/pion/webrtc/v4"
 	"github.com/s4wave/spacewave/net/crypto"
 	p2ptls "github.com/s4wave/spacewave/net/crypto/tls"
@@ -34,7 +34,7 @@ const ControllerID = "bifrost/webrtc"
 var SignalingProtocolID protocol.ID = signaling.ProtocolID
 
 // Version is the version of the implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // WebRTC implements a WebRTC transport.
 type WebRTC struct {

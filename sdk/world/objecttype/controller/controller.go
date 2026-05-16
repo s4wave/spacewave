@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
@@ -27,7 +26,7 @@ func NewController(lookupFunc LookupObjectTypeFunc) *Controller {
 func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		"objecttype",
-		semver.MustParse("1.0.0"),
+		controller.MustParseVersion("1.0.0"),
 		"resolves object type lookups",
 	)
 }

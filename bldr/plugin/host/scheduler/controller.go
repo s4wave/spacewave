@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver/v4"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
@@ -36,7 +35,7 @@ import (
 const ControllerID = "bldr/plugin/host/scheduler"
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the plugin host scheduler controller.
 //

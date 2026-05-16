@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	backoff "github.com/aperturerobotics/util/backoff/cbackoff"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bifrost_rpc_access "github.com/s4wave/spacewave/net/rpc/access"
 	"github.com/sirupsen/logrus"
@@ -16,7 +15,7 @@ import (
 const ControllerID = "bldr/plugin/forward-rpc-service"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller forwards RPC services to a remote plugin.
 type Controller struct {

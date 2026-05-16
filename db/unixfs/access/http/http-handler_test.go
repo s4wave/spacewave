@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/testbed"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
@@ -60,7 +59,7 @@ func TestHTTPHandlerController(t *testing.T) {
 	accessCtrl := unixfs_access.NewControllerWithHandle(
 		tb.Logger,
 		tb.Bus,
-		controller.NewInfo("hydra/unixfs/access/test", semver.MustParse("0.0.1"), "access test unixfs"),
+		controller.NewInfo("hydra/unixfs/access/test", controller.MustParseVersion("0.0.1"), "access test unixfs"),
 		[]string{unixFsID},
 		rootRef,
 	)
@@ -73,7 +72,7 @@ func TestHTTPHandlerController(t *testing.T) {
 	// construct the http handler
 	handlerCtrl := NewController(
 		tb.Bus,
-		controller.NewInfo("hydra/unixfs/access/test-handler", semver.MustParse("0.0.1"), "test handler"),
+		controller.NewInfo("hydra/unixfs/access/test-handler", controller.MustParseVersion("0.0.1"), "test handler"),
 		[]string{"/foo/"},
 		true,
 		nil,

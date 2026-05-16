@@ -5,7 +5,6 @@ import (
 	"net/textproto"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -16,7 +15,7 @@ import (
 const ControllerID = "hydra/block/store/kvfile/http"
 
 // Version is the version of the block store implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the kvfile http block store controller.
 type Controller = block_store_controller.Controller

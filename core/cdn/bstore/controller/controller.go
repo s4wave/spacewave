@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
@@ -17,7 +16,7 @@ import (
 const ControllerID = "spacewave/cdn/bstore"
 
 // Version is the version of the block store implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the anonymous CDN block store controller.
 type Controller = block_store_controller.Controller

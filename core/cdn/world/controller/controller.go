@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver/v4"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
@@ -20,7 +19,7 @@ import (
 const ControllerID = "spacewave/cdn/world"
 
 // Version is the version of the world implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller exposes a read-only CDN-backed world engine.
 type Controller struct {

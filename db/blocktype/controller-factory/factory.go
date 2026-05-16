@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 )
@@ -15,7 +14,7 @@ import (
 const ControllerID = "db/blocktype"
 
 // Version is the component version.
-var Version = semver.MustParse("1.0.0")
+var Version = controller.MustParseVersion("1.0.0")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "resolves block type lookups"

@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	auth_method "github.com/s4wave/spacewave/auth/method"
 	"github.com/sirupsen/logrus"
 )
@@ -35,7 +34,7 @@ type Controller struct {
 	// methodID is the method identifier.
 	methodID string
 	// methodVersion is the method version
-	methodVersion semver.Version
+	methodVersion controller.Version
 }
 
 // NewController constructs a new transport controller.
@@ -44,7 +43,7 @@ func NewController(
 	bus bus.Bus,
 	ctor MethodConstructor,
 	methodID string,
-	methodVersion semver.Version,
+	methodVersion controller.Version,
 ) *Controller {
 	return &Controller{
 		le: le.WithField("auth-method-id", methodID).

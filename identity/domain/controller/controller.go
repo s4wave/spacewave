@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/identity"
 	identity_domain "github.com/s4wave/spacewave/identity/domain"
 	"github.com/sirupsen/logrus"
@@ -41,7 +40,7 @@ type Controller struct {
 	// controllerID is the controller id
 	controllerID string
 	// ver is the controller version
-	controllerVer semver.Version
+	controllerVer controller.Version
 
 	// domainCh holds the domain like a bucket
 	domainCh chan identity_domain.Domain
@@ -55,7 +54,7 @@ func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
 	controllerID string,
-	controllerVer semver.Version,
+	controllerVer controller.Version,
 	domainInfo *identity_domain.DomainInfo,
 	resolveSelectIdentityDomain bool,
 	ctor Constructor,

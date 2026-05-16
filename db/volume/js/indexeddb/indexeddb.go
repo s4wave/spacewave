@@ -5,8 +5,8 @@ package volume_indexeddb
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/go-indexeddb/idb"
-	"github.com/blang/semver/v4"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sindexeddb "github.com/s4wave/spacewave/db/store/kvtx/js/indexeddb"
@@ -20,7 +20,7 @@ import (
 const ControllerID = "hydra/volume/indexeddb"
 
 // Version is the version of the indexeddb implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // IndexedDB implements a IndexedDB backed volume.
 type IndexedDB = kvtx.Volume

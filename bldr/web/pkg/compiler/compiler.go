@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	"github.com/blang/semver/v4"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -22,7 +21,7 @@ import (
 const ControllerID = ConfigID
 
 // Version is the controller version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "web pkg plugin compiler controller"

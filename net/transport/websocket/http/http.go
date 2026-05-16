@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/crypto"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 	"github.com/s4wave/spacewave/net/transport"
@@ -20,7 +19,7 @@ import (
 const ControllerID = "bifrost/websocket/http"
 
 // Version is the version of the implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // NewWebSocketHttp builds a new WebSocket http handler controller.
 type WebSocketHttp struct {

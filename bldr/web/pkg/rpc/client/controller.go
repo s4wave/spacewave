@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
 	"github.com/sirupsen/logrus"
@@ -19,7 +18,7 @@ import (
 const ControllerID = "bldr/web/pkg/rpc/client"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the web pkg rpc client.
 type Controller struct {

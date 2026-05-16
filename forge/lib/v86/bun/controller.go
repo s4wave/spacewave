@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/autobun"
 	"github.com/aperturerobotics/util/pipesock"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -27,7 +26,7 @@ import (
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/lib/v86/bun"

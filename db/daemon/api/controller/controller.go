@@ -9,14 +9,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	hydra_api "github.com/s4wave/spacewave/db/daemon/api"
 	bapi "github.com/s4wave/spacewave/net/daemon/api"
 	"github.com/sirupsen/logrus"
 )
 
 // Version is the API version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the API controller. The controller looks up the Node,
 // acquires its identity, listens and responds to incoming API calls.

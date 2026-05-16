@@ -3,7 +3,6 @@ package stream_srpc_client_controller
 import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/net/protocol"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	stream_srpc_client "github.com/s4wave/spacewave/net/stream/srpc/client"
@@ -14,7 +13,7 @@ import (
 const ControllerID = "bifrost/stream/srpc/client"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller mounts a bifrost stream srpc client to a bus.
 type Controller struct {

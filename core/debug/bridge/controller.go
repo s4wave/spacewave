@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	debug_projectroot "github.com/s4wave/spacewave/core/debug/projectroot"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
@@ -30,7 +29,7 @@ const DebugBridgeWebViewID = "debug-bridge"
 const defaultSocketPath = ".bldr/spacewave-debug.sock"
 
 // Version is the component version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "debug bridge unix socket rpc controller"

@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
@@ -43,7 +42,7 @@ func NewBridgeController(
 func (c *BridgeController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		"resource/objecttype-registry-bridge",
-		semver.MustParse("0.0.1"),
+		controller.MustParseVersion("0.0.1"),
 		"resolves LookupObjectType for plugin-registered types",
 	)
 }

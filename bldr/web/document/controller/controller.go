@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	"github.com/sirupsen/logrus"
@@ -38,7 +37,7 @@ type Controller struct {
 	// webDocumentId is the controller id to use
 	webDocumentId string
 	// webDocumentVersion is the version
-	webDocumentVersion semver.Version
+	webDocumentVersion controller.Version
 }
 
 // NewController constructs a new WebDocument controller.
@@ -46,7 +45,7 @@ func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
 	webDocumentId string,
-	webDocumentVersion semver.Version,
+	webDocumentVersion controller.Version,
 	ctor Constructor,
 ) (*Controller, error) {
 	ctrl := &Controller{

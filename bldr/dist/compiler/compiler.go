@@ -17,7 +17,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/fsutil"
-	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -37,7 +36,7 @@ import (
 const ControllerID = ConfigID
 
 // Version is the controller version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "dist compiler controller"

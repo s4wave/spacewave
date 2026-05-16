@@ -18,7 +18,6 @@ import (
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	protobuf_go_lite_json "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/aperturerobotics/util/fsutil"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -46,7 +45,7 @@ import (
 const ControllerID = ConfigID
 
 // Version is the controller version
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "js plugin compiler controller"

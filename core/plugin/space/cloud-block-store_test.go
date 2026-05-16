@@ -11,7 +11,6 @@ import (
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/go-git/go-billy/v6/memfs"
 	"github.com/pkg/errors"
 	bldr_core "github.com/s4wave/spacewave/bldr/core"
@@ -220,7 +219,7 @@ func addFakePluginHost(t *testing.T, ctx context.Context, le *logrus.Entry, plug
 	ctrl := bifrost_rpc.NewClientController(
 		le,
 		pluginBus,
-		controller.NewInfo("test/plugin-host-client", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("test/plugin-host-client", controller.MustParseVersion("0.0.1"), ""),
 		client,
 		[]string{bldr_plugin.HostServiceIDPrefix},
 	)
@@ -239,7 +238,7 @@ func addPluginClientOnHost(t *testing.T, ctx context.Context, le *logrus.Entry, 
 	ctrl := bifrost_rpc.NewClientController(
 		le,
 		hostBus,
-		controller.NewInfo("test/spacewave-core-client", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("test/spacewave-core-client", controller.MustParseVersion("0.0.1"), ""),
 		client,
 		[]string{bldr_plugin.PluginServiceID(testHostPluginID, "")},
 	)

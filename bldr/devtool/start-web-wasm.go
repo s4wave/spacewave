@@ -15,7 +15,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -215,7 +214,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		le,
 		controller.NewInfo(
 			"devtool/web/rpc-server",
-			semver.MustParse("0.0.1"),
+			controller.MustParseVersion("0.0.1"),
 			"listens for incoming requests from the web frontend",
 		),
 		[]stream_srpc_server.RegisterFn{

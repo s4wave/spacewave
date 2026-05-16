@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver/v4"
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
@@ -57,7 +56,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 	rpcCtrl := bifrost_rpc.NewClientController(
 		le,
 		b,
-		controller.NewInfo("test/plugin-host-resource-client", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("test/plugin-host-resource-client", controller.MustParseVersion("0.0.1"), ""),
 		hostClient,
 		[]string{bldr_plugin.HostServiceIDPrefix},
 	)
@@ -141,7 +140,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 	rpcCtrl := bifrost_rpc.NewClientController(
 		le,
 		b,
-		controller.NewInfo("test/plugin-host-resource-client", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("test/plugin-host-resource-client", controller.MustParseVersion("0.0.1"), ""),
 		hostClient,
 		[]string{bldr_plugin.HostServiceIDPrefix},
 	)

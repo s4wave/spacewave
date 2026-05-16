@@ -4,7 +4,7 @@ import (
 	"context"
 	"net"
 
-	"github.com/blang/semver/v4"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/transport"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
@@ -19,7 +19,7 @@ const TransportType = "udp"
 const ControllerID = "bifrost/udp"
 
 // Version is the version of the udp implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ExtendedSockBuf is the sockbuf parameter to set on udp sockets.
 var ExtendedSockBuf = 16777217

@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	rc "github.com/s4wave/spacewave/bldr/web/runtime/controller"
@@ -81,7 +80,7 @@ func (t *Factory) Construct(
 }
 
 // GetVersion returns the version of this controller.
-func (t *Factory) GetVersion() semver.Version {
+func (t *Factory) GetVersion() controller.Version {
 	return Version
 }
 

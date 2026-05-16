@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/db/block"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	"github.com/s4wave/spacewave/net/peer"
@@ -17,7 +16,7 @@ import (
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // ControllerID is the ID of the controller.
 const ControllerID = "forge/worker"

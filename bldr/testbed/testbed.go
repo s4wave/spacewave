@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/go-git/go-billy/v6"
 	"github.com/s4wave/spacewave/bldr/core"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -239,7 +238,7 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 
 	// register the rpc service controller
 	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(
-		controller.NewInfo("testbed/rpc-host", semver.MustParse("0.0.1"), "rpc host for testbed"),
+		controller.NewInfo("testbed/rpc-host", controller.MustParseVersion("0.0.1"), "rpc host for testbed"),
 		func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
 			return mux, nil, nil
 		},

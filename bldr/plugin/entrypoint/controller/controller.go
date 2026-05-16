@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -19,7 +18,7 @@ import (
 const ControllerID = "bldr/plugin/entrypoint/controller"
 
 // Version is the version of this controller.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the plugin entrypoint controller.
 // Handles directives from the plugin bus forwarding RPCs to the host.

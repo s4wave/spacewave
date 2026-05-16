@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/blang/semver/v4"
 )
 
 // Factory constructs the CDN world controller.
@@ -48,7 +47,7 @@ func (f *Factory) Construct(
 }
 
 // GetVersion returns the version of this controller.
-func (f *Factory) GetVersion() semver.Version {
+func (f *Factory) GetVersion() controller.Version {
 	return Version
 }
 

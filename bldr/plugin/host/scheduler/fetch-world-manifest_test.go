@@ -15,7 +15,6 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/aperturerobotics/util/routine"
-	"github.com/blang/semver/v4"
 	"github.com/go-git/go-billy/v6/memfs"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -1419,7 +1418,7 @@ func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) 
 	remoteStore := block_store.NewStore("test/release-world-cdn", remote.store)
 	storeCtrl := block_store_controller.NewController(
 		le,
-		controller.NewInfo("test/release-world-cdn-store", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("test/release-world-cdn-store", controller.MustParseVersion("0.0.1"), ""),
 		block_store_controller.NewBlockStoreBuilder(remoteStore),
 		nil,
 		true,
@@ -1465,7 +1464,7 @@ func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) 
 	hostCtrl := plugin_host_controller.NewController(
 		le,
 		tb.Bus,
-		controller.NewInfo("test/plugin-host", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("test/plugin-host", controller.MustParseVersion("0.0.1"), ""),
 		host,
 	)
 	hostRel, err := tb.Bus.AddController(ctx, hostCtrl, nil)

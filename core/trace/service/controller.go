@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
@@ -16,7 +15,7 @@ import (
 const ControllerID = "trace/service"
 
 // Version is the component version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 const controllerDescrip = "runtime trace rpc service controller"

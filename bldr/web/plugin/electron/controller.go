@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver/v4"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	runtime_controller "github.com/s4wave/spacewave/bldr/web/runtime/controller"
 	"github.com/sirupsen/logrus"
@@ -22,7 +21,7 @@ import (
 const ControllerID = "bldr/web/plugin/electron"
 
 // Version is the API version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 const quitWaitTimeout = 2 * time.Second
 

@@ -6,10 +6,10 @@ import (
 	"sort"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/bldr/util/cstate"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	web_worker "github.com/s4wave/spacewave/bldr/web/worker"
@@ -18,7 +18,7 @@ import (
 )
 
 // RemoteVersion is the Version of the web_document.Remote implementation.
-var RemoteVersion = semver.MustParse("0.0.1")
+var RemoteVersion = controller.MustParseVersion("0.0.1")
 
 // Remote is a remote instance of a WebDocument.
 //

@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/storage"
 	"github.com/s4wave/spacewave/db/volume"
@@ -20,7 +19,7 @@ import (
 const ControllerID = "bldr/storage/volume"
 
 // Version is the version of the redis implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // BuildVolumeControllerConfig builds a new storage volume config by accessing the Storage on the bus.
 func BuildVolumeControllerConfig(

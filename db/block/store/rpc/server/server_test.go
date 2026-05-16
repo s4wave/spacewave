@@ -8,7 +8,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -70,7 +69,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	clientCtrl := bifrost_rpc.NewClientController(
 		clientTb.Logger,
 		clientTb.Bus,
-		controller.NewInfo("test/store/client", semver.MustParse("0.0.1"), ""),
+		controller.NewInfo("test/store/client", controller.MustParseVersion("0.0.1"), ""),
 		srpcClient,
 		[]string{"test-server/"},
 	)

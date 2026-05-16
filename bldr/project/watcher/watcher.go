@@ -15,7 +15,6 @@ import (
 	"github.com/aperturerobotics/fsnotify"
 	"github.com/aperturerobotics/util/ccontainer"
 	debounce_fswatcher "github.com/aperturerobotics/util/debounce-fswatcher"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
@@ -23,7 +22,7 @@ import (
 )
 
 // Version is the version of the controller implementation.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "bldr project config file watcher"

@@ -6,7 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/s4wave/spacewave/net/sim/graph"
@@ -55,7 +54,7 @@ func TestLookup(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	rpcCtrl := bifrost_rpc.NewRpcServiceController(
-		controller.NewInfo("test/echo-rpc", semver.MustParse("0.0.1"), "echo rpc service"),
+		controller.NewInfo("test/echo-rpc", controller.MustParseVersion("0.0.1"), "echo rpc service"),
 		bifrost_rpc.NewRpcServiceBuilder(mux),
 		nil,
 		true,

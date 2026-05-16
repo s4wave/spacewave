@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	bldr_dist_entrypoint "github.com/s4wave/spacewave/bldr/dist/entrypoint"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -25,7 +24,7 @@ import (
 const ControllerID = "spacewave/loader/controller"
 
 // Version is the controller version.
-var Version = semver.MustParse("0.0.1")
+var Version = controller.MustParseVersion("0.0.1")
 
 // defaultHelperBinaryName is the default helper binary name on non-Windows.
 const defaultHelperBinaryName = "spacewave-helper"
