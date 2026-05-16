@@ -1,9 +1,12 @@
 package provider_spacewave
 
 import (
+	"context"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/aperturerobotics/util/broadcast"
 )
 
 // DefaultCacheSeedBufferCapacity is the default ring buffer size for the
@@ -27,11 +30,15 @@ type CacheSeedEntry struct {
 // tagged HTTP call the provider issues. Subscribers receive a snapshot of the
 // current buffer plus any future appends until they stop reading.
 type CacheSeedBuffer struct {
-	mu          sync.Mutex
-	cap         int
-	entries     []CacheSeedEntry
-	nextSeq     uint64
-	subscribers map[chan CacheSeedEntry]struct{}
+	bcast   broadcast.Broadcast
+	cap     int
+	entries []cacheSeedRecord
+	nextSeq uint64
+}
+
+type cacheSeedRecord struct {
+	seq   uint64
+	entry CacheSeedEntry
 }
 
 // NewCacheSeedBuffer constructs a new CacheSeedBuffer with the given capacity.
@@ -41,9 +48,8 @@ func NewCacheSeedBuffer(capacity int) *CacheSeedBuffer {
 		capacity = DefaultCacheSeedBufferCapacity
 	}
 	return &CacheSeedBuffer{
-		cap:         capacity,
-		entries:     make([]CacheSeedEntry, 0, capacity),
-		subscribers: make(map[chan CacheSeedEntry]struct{}),
+		cap:     capacity,
+		entries: make([]cacheSeedRecord, 0, capacity),
 	}
 }
 
@@ -55,35 +61,29 @@ func (b *CacheSeedBuffer) Record(reason SeedReason, path string) {
 		Reason:      reason,
 		Path:        path,
 	}
-	b.mu.Lock()
-	if len(b.entries) < b.cap {
-		b.entries = append(b.entries, entry)
-	} else {
-		copy(b.entries, b.entries[1:])
-		b.entries[len(b.entries)-1] = entry
-	}
-	b.nextSeq++
-	subs := make([]chan CacheSeedEntry, 0, len(b.subscribers))
-	for ch := range b.subscribers {
-		subs = append(subs, ch)
-	}
-	b.mu.Unlock()
-
-	for _, ch := range subs {
-		select {
-		case ch <- entry:
-		default:
+	b.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		b.nextSeq++
+		record := cacheSeedRecord{seq: b.nextSeq, entry: entry}
+		if len(b.entries) < b.cap {
+			b.entries = append(b.entries, record)
+		} else {
+			copy(b.entries, b.entries[1:])
+			b.entries[len(b.entries)-1] = record
 		}
-	}
+		broadcast()
+	})
 }
 
 // Snapshot returns a copy of the current buffer contents in insertion order
 // (oldest first).
 func (b *CacheSeedBuffer) Snapshot() []CacheSeedEntry {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	out := make([]CacheSeedEntry, len(b.entries))
-	copy(out, b.entries)
+	var out []CacheSeedEntry
+	b.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		out = make([]CacheSeedEntry, 0, len(b.entries))
+		for _, record := range b.entries {
+			out = append(out, record.entry)
+		}
+	})
 	return out
 }
 
@@ -99,19 +99,53 @@ func (b *CacheSeedBuffer) Capacity() int {
 // rather than blocking the producer.
 func (b *CacheSeedBuffer) Subscribe() (snapshot []CacheSeedEntry, updates <-chan CacheSeedEntry, release func()) {
 	ch := make(chan CacheSeedEntry, b.cap)
-	b.mu.Lock()
-	snap := make([]CacheSeedEntry, len(b.entries))
-	copy(snap, b.entries)
-	b.subscribers[ch] = struct{}{}
-	b.mu.Unlock()
-
-	return snap, ch, func() {
-		b.mu.Lock()
-		if _, ok := b.subscribers[ch]; ok {
-			delete(b.subscribers, ch)
-			close(ch)
+	var seq uint64
+	b.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		snapshot = make([]CacheSeedEntry, 0, len(b.entries))
+		for _, record := range b.entries {
+			snapshot = append(snapshot, record.entry)
 		}
-		b.mu.Unlock()
+		seq = b.nextSeq
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		defer close(ch)
+		b.watchCacheSeedUpdates(ctx, seq, ch)
+	}()
+
+	var once sync.Once
+	return snapshot, ch, func() {
+		once.Do(func() {
+			cancel()
+			<-done
+		})
+	}
+}
+
+func (b *CacheSeedBuffer) watchCacheSeedUpdates(ctx context.Context, seq uint64, ch chan<- CacheSeedEntry) {
+	for {
+		var records []cacheSeedRecord
+		if err := b.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+			for _, record := range b.entries {
+				if record.seq > seq {
+					records = append(records, record)
+				}
+			}
+			return len(records) != 0, nil
+		}); err != nil {
+			return
+		}
+
+		for _, record := range records {
+			seq = record.seq
+			select {
+			case ch <- record.entry:
+			default:
+			}
+		}
 	}
 }
 
