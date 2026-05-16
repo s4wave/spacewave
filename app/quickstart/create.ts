@@ -842,6 +842,16 @@ async function initNotesQuickstart(
   if (!setup.root) {
     throw new Error('Root resource is required for Notes quickstart seeding')
   }
+  await prepareNotesQuickstart(setup.root, setup, quickstartId, abortSignal)
+  await executeDynamicQuickstart(setup.root, quickstartId, setup, abortSignal)
+}
+
+async function prepareNotesQuickstart(
+  root: Root,
+  setup: QuickstartSetup,
+  quickstartId: NotesQuickstartId,
+  abortSignal?: AbortSignal,
+): Promise<void> {
   await ensureSpacePlugins(
     setup.spaceWorld,
     [NOTES_PLUGIN_ID],
@@ -849,12 +859,11 @@ async function initNotesQuickstart(
     abortSignal,
   )
   await waitForQuickstartRegistration(
-    setup.root,
+    root,
     quickstartId,
     NOTES_PLUGIN_ID,
     abortSignal,
   )
-  await executeDynamicQuickstart(setup.root, quickstartId, setup, abortSignal)
 }
 
 // createDrive sets up a drive with UnixFS content.

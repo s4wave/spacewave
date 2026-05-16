@@ -94,7 +94,7 @@ export function SubscriptionLapseBanner() {
   ) {
     return (
       <div className="border-warning/20 bg-warning/5 flex items-center gap-2 border-b px-3 py-1.5">
-        <LuTriangleAlert className="text-warning h-3.5 w-3.5 shrink-0" />
+        <LuTriangleAlert className="text-warning size-3.5 shrink-0" />
         <p className="text-foreground/80 text-xs font-medium">
           Your subscription ends on {formatDate(cancelAt)}.
         </p>
@@ -141,7 +141,7 @@ export function SubscriptionLapseBanner() {
     return (
       <div className="border-destructive/20 bg-destructive/5 flex items-center border-b">
         <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
-          <LuTriangleAlert className="text-destructive h-3.5 w-3.5 shrink-0" />
+          <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
           <div className="min-w-0">
             <p className="text-foreground/80 text-xs font-medium">{message}</p>
             {error && (
@@ -163,7 +163,7 @@ export function SubscriptionLapseBanner() {
       className="border-destructive/20 bg-destructive/5 hover:bg-destructive/8 flex w-full items-center border-b text-left transition-colors disabled:cursor-default"
     >
       <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
-        <LuTriangleAlert className="text-destructive h-3.5 w-3.5 shrink-0" />
+        <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
         <div className="min-w-0">
           <p className="text-foreground/80 text-xs font-medium">{message}</p>
           {error && (
@@ -175,7 +175,7 @@ export function SubscriptionLapseBanner() {
         <span className="text-foreground/70 group-hover:text-foreground text-xs font-medium transition-colors">
           {resolving ? 'Opening billing...' : actionLabel}
         </span>
-        <LuArrowRight className="text-foreground-alt group-hover:text-foreground h-3 w-3 shrink-0 transition-colors" />
+        <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
       </div>
     </button>
   )

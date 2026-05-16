@@ -44,16 +44,16 @@ export function CommandLineSetupPage() {
           onClick={handleBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors"
         >
-          <LuArrowLeft className="h-4 w-4" />
+          <LuArrowLeft className="size-4" />
           Back to dashboard
         </button>
 
         <div className="mb-6 flex items-start gap-3">
-          <div className="bg-brand/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
-            <LuTerminal className="text-brand h-4 w-4" />
+          <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-md">
+            <LuTerminal className="text-brand size-4" />
           </div>
           <div>
-            <h1 className="text-foreground text-lg font-bold tracking-wide">
+            <h1 className="text-foreground text-lg font-semibold tracking-wide">
               Command Line
             </h1>
             <p className="text-foreground-alt mt-1 text-sm">
@@ -221,7 +221,7 @@ function CommandStep({
 }) {
   return (
     <li className="flex items-start gap-3">
-      <div className="bg-brand/10 text-brand flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+      <div className="bg-brand/10 text-brand flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
         {index}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -296,7 +296,7 @@ function ListenerStatusChip() {
           </span>
           {listening && (
             <span className="text-foreground-alt inline-flex items-center gap-1 text-[0.65rem]">
-              <LuUsers className="h-3 w-3" />
+              <LuUsers className="size-3" />
               {status?.connectedClients ?? 0} connected
             </span>
           )}

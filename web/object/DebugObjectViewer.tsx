@@ -9,6 +9,8 @@ import { getObjectType } from '@s4wave/sdk/world/types/types.js'
 import type { ObjectViewerComponentProps } from './object.js'
 import { getObjectKey, getTypeID } from './object.js'
 
+type WorldStateValue = ObjectViewerComponentProps['worldState']['value']
+
 // DebugObjectViewer displays debug information about an object.
 // Registered as the wildcard viewer ('*'), so it also handles untyped world
 // objects (objects that exist in the world graph without a type predicate).
@@ -21,11 +23,11 @@ export function DebugObjectViewer({
   const hintTypeID = getTypeID(objectInfo)
 
   const resolveTypeID = useCallback(
-    async (world: typeof worldState.value, signal: AbortSignal) => {
+    async (world: WorldStateValue, signal: AbortSignal) => {
       if (!world || !objectKey) return ''
       return getObjectType(world, objectKey, signal)
     },
-    [objectKey, worldState],
+    [objectKey],
   )
 
   const resolvedTypeIDResource = useResource(worldState, resolveTypeID, [
