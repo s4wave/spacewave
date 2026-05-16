@@ -3,7 +3,7 @@ package mysql
 import (
 	"bytes"
 	"math/rand/v2"
-	"sort"
+	"slices"
 	"testing"
 )
 
@@ -24,8 +24,8 @@ func TestTableRowKeySortable(t *testing.T) {
 		vals[i] = k
 	})
 	// sort again
-	sort.Slice(vals, func(i, j int) bool {
-		return bytes.Compare(vals[i], vals[j]) < 0
+	slices.SortFunc(vals, func(a, b []byte) int {
+		return bytes.Compare(a, b)
 	})
 	t.Log("expected", valsExpected)
 	t.Log("actual", vals)

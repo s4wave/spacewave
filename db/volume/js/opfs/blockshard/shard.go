@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall/js"
 	"time"
@@ -284,10 +285,7 @@ func (s *Shard) shouldUseAsyncWrite(name string) bool {
 }
 
 func isSegmentFilename(name string) bool {
-	if len(name) < 4 || name[len(name)-4:] != ".sst" {
-		return false
-	}
-	return true
+	return strings.HasSuffix(name, ".sst")
 }
 
 // AcquirePublishLock acquires the exclusive per-shard publish WebLock.

@@ -179,8 +179,3 @@ func validateBlockRef(ref *block.BlockRef) error {
 func blockRefPresent(ref *block.BlockRef) bool {
 	return ref != nil && !ref.GetEmpty()
 }
-
-func isPlatformKey(key string) bool {
-	parts := strings.Split(key, "/")
-	return len(parts) == 2 && strings.TrimSpace(parts[0]) != "" && strings.TrimSpace(parts[1]) != ""
-}

@@ -74,7 +74,7 @@ func (t *Tree) Get(key []byte) ([]byte, bool, error) {
 			if err != nil {
 				return nil, false, err
 			}
-			pageID = findChild(entries, key)
+			pageID = entries[findChildIndex(entries, key)].ChildID
 
 		default:
 			return nil, false, errors.Errorf("unexpected page type %d", h.Type)
@@ -393,17 +393,12 @@ func (t *Tree) scanFrom(pageID PageID, prefix []byte, fn func(key, value []byte)
 	}
 }
 
-// findChild returns the child page for a given key in a branch page.
-func findChild(entries []BranchEntry, key []byte) PageID {
-	return entries[findChildIndex(entries, key)].ChildID
-}
-
 // findChildIndex returns the child entry index for a given key in a branch page.
 func findChildIndex(entries []BranchEntry, key []byte) int {
 	// Linear search (branch pages are small).
 	childIdx := 0
 	for i := 1; i < len(entries); i++ {
-		if string(key) >= string(entries[i].Key) {
+		if bytes.Compare(key, entries[i].Key) >= 0 {
 			childIdx = i
 		} else {
 			break

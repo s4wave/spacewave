@@ -374,17 +374,12 @@ func (e *PackReader) smoothWindow(current, target int) int {
 // binarySearchEntriesByKey returns the index entry matching key in sorted-by-key entries.
 func binarySearchEntriesByKey(entries []*kvfile.IndexEntry, key []byte) (*kvfile.IndexEntry, bool) {
 	i := sort.Search(len(entries), func(i int) bool {
-		return compareKey(entries[i].GetKey(), key) >= 0
+		return bytes.Compare(entries[i].GetKey(), key) >= 0
 	})
-	if i < len(entries) && compareKey(entries[i].GetKey(), key) == 0 {
+	if i < len(entries) && bytes.Compare(entries[i].GetKey(), key) == 0 {
 		return entries[i], true
 	}
 	return nil, false
-}
-
-// compareKey is bytes.Compare on two byte keys.
-func compareKey(a, b []byte) int {
-	return bytes.Compare(a, b)
 }
 
 // _ is a type assertion

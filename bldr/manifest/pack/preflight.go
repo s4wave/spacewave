@@ -58,7 +58,13 @@ func verifyImportedManifestRoot(
 		return errors.Wrapf(err, "collect manifests from %s", root)
 	}
 	if len(manifestErrs) != 0 {
-		return errors.Errorf("collect manifests from %s had skipped manifests: %s", root, joinErrors(manifestErrs))
+		parts := make([]string, 0, len(manifestErrs))
+		for _, err := range manifestErrs {
+			if err != nil {
+				parts = append(parts, err.Error())
+			}
+		}
+		return errors.Errorf("collect manifests from %s had skipped manifests: %s", root, strings.Join(parts, "; "))
 	}
 	if len(collected) != 1 {
 		return errors.Errorf("manifest tuple %s@%s not found from %s", tuple.GetManifestId(), tuple.GetPlatformId(), root)
@@ -71,15 +77,4 @@ func verifyImportedManifestRoot(
 		return errors.Errorf("manifest tuple %s@%s from %s has unexpected root ref", tuple.GetManifestId(), tuple.GetPlatformId(), root)
 	}
 	return nil
-}
-
-func joinErrors(errs []error) string {
-	parts := make([]string, 0, len(errs))
-	for _, err := range errs {
-		if err == nil {
-			continue
-		}
-		parts = append(parts, err.Error())
-	}
-	return strings.Join(parts, "; ")
 }

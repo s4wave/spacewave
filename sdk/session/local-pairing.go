@@ -56,16 +56,6 @@ func EncodeLocalPairingAnswer(answer *LocalPairingAnswer) (string, error) {
 	return b58.Encode(compressed), nil
 }
 
-// ParsePeerID parses the peer ID from a LocalPairingOffer.
-func (o *LocalPairingOffer) ParsePeerID() (peer.ID, error) {
-	return confparse.ParsePeerID(o.GetPeerId())
-}
-
-// ParsePeerID parses the peer ID from a LocalPairingAnswer.
-func (a *LocalPairingAnswer) ParsePeerID() (peer.ID, error) {
-	return confparse.ParsePeerID(a.GetPeerId())
-}
-
 // DecodeLocalPairingAnswer decodes a base58 string into a LocalPairingAnswer.
 func DecodeLocalPairingAnswer(encoded string) (*LocalPairingAnswer, error) {
 	compressed, err := b58.Decode(encoded)
@@ -81,6 +71,16 @@ func DecodeLocalPairingAnswer(encoded string) (*LocalPairingAnswer, error) {
 		return nil, errors.Wrap(err, "unmarshal answer")
 	}
 	return answer, nil
+}
+
+// ParsePeerID parses the peer ID from a LocalPairingOffer.
+func (o *LocalPairingOffer) ParsePeerID() (peer.ID, error) {
+	return confparse.ParsePeerID(o.GetPeerId())
+}
+
+// ParsePeerID parses the peer ID from a LocalPairingAnswer.
+func (a *LocalPairingAnswer) ParsePeerID() (peer.ID, error) {
+	return confparse.ParsePeerID(a.GetPeerId())
 }
 
 // compressLocalPairingPayload compresses a payload with DEFLATE.

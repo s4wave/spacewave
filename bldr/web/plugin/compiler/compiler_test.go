@@ -50,12 +50,3 @@ func TestGetElectronDesktopPresencePolicy(t *testing.T) {
 		t.Fatalf("tray background desktop presence policy = %v, want %v", got, electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND)
 	}
 }
-
-func TestGetNativeAppSourcePath(t *testing.T) {
-	if got := getNativeAppSourcePath("/src", ""); got != "" {
-		t.Fatalf("empty native path = %q, want empty", got)
-	}
-	if got := getNativeAppSourcePath("/src", "assets/tray.png"); got != "/src/assets/tray.png" {
-		t.Fatalf("native source path = %q, want %q", got, "/src/assets/tray.png")
-	}
-}

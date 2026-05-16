@@ -1,10 +1,11 @@
 package segment
 
 import (
+	"bytes"
 	"encoding/binary"
 	"hash/crc32"
 	"io"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -65,8 +66,8 @@ func (w *Writer) Build(dst io.Writer) (int64, error) {
 		return 0, errors.New("no entries")
 	}
 
-	sort.Slice(w.entries, func(i, j int) bool {
-		return string(w.entries[i].Key) < string(w.entries[j].Key)
+	slices.SortFunc(w.entries, func(a, b Entry) int {
+		return bytes.Compare(a.Key, b.Key)
 	})
 
 	// Encode the data block and build sparse index simultaneously.

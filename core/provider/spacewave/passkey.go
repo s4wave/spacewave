@@ -134,16 +134,6 @@ func (c *SessionClient) PasskeyRegisterVerify(
 	return resp.GetCredentialId(), nil
 }
 
-func doPasskeyPostJSON(
-	ctx context.Context,
-	httpCli *http.Client,
-	endpoint string,
-	path string,
-	body []byte,
-) ([]byte, error) {
-	return doPasskeyPost(ctx, httpCli, endpoint, path, body, "application/json")
-}
-
 func doPasskeyPostBinary(
 	ctx context.Context,
 	httpCli *http.Client,

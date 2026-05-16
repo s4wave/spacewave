@@ -5,10 +5,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
 )
 

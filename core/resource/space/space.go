@@ -2,7 +2,8 @@ package resource_space
 
 import (
 	"context"
-	"sort"
+	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -609,8 +610,8 @@ func buildSpaceParticipantInfo(
 		return nil
 	}
 
-	sort.SliceStable(keys, func(i, j int) bool {
-		return participantSortLabel(rows[keys[i]]) < participantSortLabel(rows[keys[j]])
+	slices.SortStableFunc(keys, func(a, b string) int {
+		return strings.Compare(participantSortLabel(rows[a]), participantSortLabel(rows[b]))
 	})
 
 	out := make([]*s4wave_space.SpaceParticipantInfo, 0, len(keys))

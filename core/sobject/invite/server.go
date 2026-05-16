@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
@@ -15,8 +16,6 @@ import (
 	stream_srpc_server "github.com/s4wave/spacewave/net/stream/srpc/server"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
-
-	"github.com/s4wave/spacewave/core/sobject"
 )
 
 // ProtocolID is the bifrost protocol ID for the SO invite handshake.

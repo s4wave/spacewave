@@ -44,22 +44,6 @@ func buildActivityProjection(rows []*activityProjectionRow) []*desktop_runtime.D
 	return items
 }
 
-func appendActivityProjectionRow(
-	rows []*activityProjectionRow,
-	sessionIndex uint32,
-	sessionLabel string,
-	status *s4wave_session.WatchSyncStatusResponse,
-) []*activityProjectionRow {
-	if status == nil {
-		return rows
-	}
-	return append(rows, &activityProjectionRow{
-		sessionIndex: sessionIndex,
-		sessionLabel: sessionLabel,
-		status:       status,
-	})
-}
-
 func buildActivityItem(row *activityProjectionRow) *desktop_runtime.DesktopRuntimeActivityItem {
 	if row == nil || row.status == nil {
 		return nil

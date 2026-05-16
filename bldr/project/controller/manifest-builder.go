@@ -483,7 +483,9 @@ func (c *Controller) addManifestBuilderBuildTarget(conf *ManifestBuilderConfig, 
 	}
 	key := conf.MarshalB58()
 	c.statusSinkMtx.Lock()
-	c.manifestBuilderBuildTargets[key] = appendUniqueString(c.manifestBuilderBuildTargets[key], target)
+	if !slices.Contains(c.manifestBuilderBuildTargets[key], target) {
+		c.manifestBuilderBuildTargets[key] = append(c.manifestBuilderBuildTargets[key], target)
+	}
 	c.statusSinkMtx.Unlock()
 }
 
@@ -492,13 +494,6 @@ func (c *Controller) getManifestBuilderBuildTargets(key string) []string {
 	targets := slices.Clone(c.manifestBuilderBuildTargets[key])
 	c.statusSinkMtx.Unlock()
 	return targets
-}
-
-func appendUniqueString(values []string, value string) []string {
-	if slices.Contains(values, value) {
-		return values
-	}
-	return append(values, value)
 }
 
 // _ is a type assertion

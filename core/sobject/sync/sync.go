@@ -6,12 +6,11 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/s4wave/spacewave/core/sobject"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
-
-	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/sirupsen/logrus"
 )
 

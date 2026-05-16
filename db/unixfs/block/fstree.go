@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/fs"
 	"slices"
-	"sort"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/bits-and-blooms/bitset"
@@ -403,7 +402,7 @@ func (f *FSTree) Remove(
 	} else {
 		namesSorted = make([]string, len(names))
 		copy(namesSorted, names)
-		sort.Strings(namesSorted)
+		slices.Sort(namesSorted)
 	}
 	any, err := dslice.RemoveDirents(namesSorted)
 	if any && ts != nil {

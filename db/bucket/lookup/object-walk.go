@@ -2,7 +2,7 @@ package bucket_lookup
 
 import (
 	"context"
-	"sort"
+	"slices"
 
 	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
@@ -266,8 +266,14 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState)
 			return
 		}
 
-		sort.SliceStable(toEnqueue, func(i, j int) bool {
-			return toEnqueue[i].RefID < toEnqueue[j].RefID
+		slices.SortStableFunc(toEnqueue, func(a, b *WalkObjectBlocksEntry) int {
+			if a.RefID < b.RefID {
+				return -1
+			}
+			if a.RefID > b.RefID {
+				return 1
+			}
+			return 0
 		})
 
 		enqFns := make([]func(), len(toEnqueue))

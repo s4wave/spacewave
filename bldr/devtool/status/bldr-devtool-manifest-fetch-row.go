@@ -1,8 +1,9 @@
 package status
 
-import "slices"
-
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // BldrDevtoolManifestState describes manifest fetch and build progress.
 type BldrDevtoolManifestState int32
@@ -97,7 +98,9 @@ func enrichManifestFetchRow(
 			continue
 		}
 		buildIDs = append(buildIDs, buildRow.ID)
-		remoteIDs = appendUniqueString(remoteIDs, buildRow.RemoteID)
+		if buildRow.RemoteID != "" && !slices.Contains(remoteIDs, buildRow.RemoteID) {
+			remoteIDs = append(remoteIDs, buildRow.RemoteID)
+		}
 		if row.ReadyRefCount == 0 &&
 			(buildRow.State == BldrDevtoolManifestStateQueued ||
 				buildRow.State == BldrDevtoolManifestStateRunning) {
@@ -147,14 +150,4 @@ func manifestFetchBuildTypeMatches(fetchBuildTypes string, buildType string) boo
 		return buildType == "release"
 	}
 	return strings.TrimSpace(buildTypes[0]) == buildType
-}
-
-func appendUniqueString(vals []string, val string) []string {
-	if val == "" {
-		return vals
-	}
-	if slices.Contains(vals, val) {
-		return vals
-	}
-	return append(vals, val)
 }

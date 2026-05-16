@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
@@ -13,8 +14,6 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
-
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/s4wave/spacewave/testbed"
 )
 

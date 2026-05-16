@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"sort"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -745,7 +745,7 @@ func buildLatencyStats(durs []time.Duration) latencyStats {
 		return latencyStats{}
 	}
 	sorted := append([]time.Duration(nil), durs...)
-	sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+	slices.Sort(sorted)
 	var total time.Duration
 	for _, dur := range durs {
 		total += dur

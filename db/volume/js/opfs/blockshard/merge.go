@@ -2,7 +2,7 @@ package blockshard
 
 import (
 	"bytes"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
@@ -29,12 +29,18 @@ func MergeSegments(readers []*segment.Reader) ([]segment.Entry, error) {
 	}
 
 	// Sort by key, then by segment index descending (newest first for dedup).
-	sort.SliceStable(all, func(i, j int) bool {
-		cmp := bytes.Compare(all[i].entry.Key, all[j].entry.Key)
+	slices.SortStableFunc(all, func(a, b indexedEntry) int {
+		cmp := bytes.Compare(a.entry.Key, b.entry.Key)
 		if cmp != 0 {
-			return cmp < 0
+			return cmp
 		}
-		return all[i].segIndex > all[j].segIndex
+		if a.segIndex > b.segIndex {
+			return -1
+		}
+		if a.segIndex < b.segIndex {
+			return 1
+		}
+		return 0
 	})
 
 	// Deduplicate: keep newest per key.

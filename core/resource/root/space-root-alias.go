@@ -6,7 +6,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -206,8 +206,8 @@ func (s *CoreRootServer) snapshotSpaceRootAliases(
 		return nil, err
 	}
 
-	sort.Slice(records, func(i, j int) bool {
-		return records[i].GetAliasId() < records[j].GetAliasId()
+	slices.SortFunc(records, func(a, b *s4wave_root.SpaceRootAliasRecord) int {
+		return strings.Compare(a.GetAliasId(), b.GetAliasId())
 	})
 	return records, nil
 }
@@ -283,7 +283,10 @@ func validateExistingSpaceRootPath(path string) error {
 		return errors.Errorf("selected path is not a directory: %s", path)
 	}
 
-	if exists(filepath.Join(path, "plugin")) || exists(filepath.Join(path, "logs")) {
+	if _, err := os.Stat(filepath.Join(path, "plugin")); err == nil {
+		return nil
+	}
+	if _, err := os.Stat(filepath.Join(path, "logs")); err == nil {
 		return nil
 	}
 	matches, err := filepath.Glob(filepath.Join(path, "*.s4wave"))
@@ -347,11 +350,6 @@ func readSpaceRootAliasRecord(
 
 func spaceRootAliasKey(aliasID string) []byte {
 	return []byte("alias/" + aliasID)
-}
-
-func exists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
 }
 
 func (s *CoreRootServer) snapshotSpaceRootAliasWaitCh() (func(), <-chan struct{}) {

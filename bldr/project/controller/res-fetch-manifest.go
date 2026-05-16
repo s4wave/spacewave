@@ -35,7 +35,7 @@ func (c *Controller) resolveFetchManifest(di directive.Instance, dir bldr_manife
 
 	// we need to know a platform id
 	if len(dir.GetPlatformIds()) == 0 {
-		c.le.Debugf("not building manifest %s because list of platform ids is emptyt", manifestID)
+		c.le.Debugf("not building manifest %s because list of platform ids is empty", manifestID)
 		return nil
 	}
 
@@ -113,9 +113,8 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 			if err != nil {
 				if !watch {
 					return err
-				} else {
-					le.WithError(err).Warn("FetchManifest: manifest builder failed")
 				}
+				le.WithError(err).Warn("FetchManifest: manifest builder failed")
 			} else if result == nil {
 				// waitChanged closed
 				continue

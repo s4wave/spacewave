@@ -37,22 +37,15 @@ func MinifySDP(sdp string) string {
 		if line == "" {
 			continue
 		}
-		if shouldKeepSDPLine(line) {
-			kept = append(kept, line)
+		for _, prefix := range sdpKeepPrefixes {
+			if strings.HasPrefix(line, prefix) {
+				kept = append(kept, line)
+				break
+			}
 		}
 	}
 	if len(kept) == 0 {
 		return sdp
 	}
 	return strings.Join(kept, "\r\n") + "\r\n"
-}
-
-// shouldKeepSDPLine checks if an SDP line matches any of the keep prefixes.
-func shouldKeepSDPLine(line string) bool {
-	for _, prefix := range sdpKeepPrefixes {
-		if strings.HasPrefix(line, prefix) {
-			return true
-		}
-	}
-	return false
 }

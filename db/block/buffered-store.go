@@ -555,7 +555,15 @@ func (s *BufferedStore) getPending(ref *BlockRef) (*pendingBlock, error) {
 
 func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending *pendingBlock) error {
 	prev := s.pending[key]
-	nextBytes := s.pendingBytes - lenPendingData(prev) + lenPendingData(pending)
+	prevBytes := 0
+	if prev != nil {
+		prevBytes = len(prev.data)
+	}
+	pendingBytes := 0
+	if pending != nil {
+		pendingBytes = len(pending.data)
+	}
+	nextBytes := s.pendingBytes - prevBytes + pendingBytes
 	if prev == nil && s.maxPendingBlocks > 0 && len(s.pending) >= s.maxPendingBlocks {
 		return ErrBufferedStoreFull
 	}
@@ -573,13 +581,6 @@ func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending
 		broadcastFn()
 	}
 	return nil
-}
-
-func lenPendingData(pending *pendingBlock) int {
-	if pending == nil {
-		return 0
-	}
-	return len(pending.data)
 }
 
 // _ is a type assertion.

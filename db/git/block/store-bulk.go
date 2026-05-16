@@ -3,7 +3,7 @@ package git_block
 import (
 	"bytes"
 	"iter"
-	"sort"
+	"slices"
 
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/s4wave/spacewave/db/block"
@@ -44,8 +44,8 @@ func (r *Store) lookupBulkObject(h plumbing.Hash) *block.Cursor {
 
 // bulkSortedIter returns an iter.Seq2 over sorted bulk entries.
 func bulkSortedIter(entries []bulkEntry) iter.Seq2[[]byte, *block.BlockRef] {
-	sort.Slice(entries, func(i, j int) bool {
-		return bytes.Compare(entries[i].key, entries[j].key) < 0
+	slices.SortFunc(entries, func(a, b bulkEntry) int {
+		return bytes.Compare(a.key, b.key)
 	})
 	return func(yield func([]byte, *block.BlockRef) bool) {
 		for _, e := range entries {

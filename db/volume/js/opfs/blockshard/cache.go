@@ -8,10 +8,9 @@ import (
 	"slices"
 	"sync"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 )
 
@@ -71,8 +70,8 @@ func (f *cachedSegmentFile) ReadAt(p []byte, off int64) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		blockStart := maxInt64(off, blockOff)
-		blockEnd := minInt64(readEnd, blockOff+int64(len(block)))
+		blockStart := max(off, blockOff)
+		blockEnd := min(readEnd, blockOff+int64(len(block)))
 		copyStart := blockStart - off
 		copyEnd := blockEnd - off
 		if copyEnd <= copyStart {
@@ -99,7 +98,7 @@ func (f *cachedSegmentFile) getBlock(blockOff int64) ([]byte, error) {
 	}
 	f.mu.Unlock()
 
-	blockEnd := minInt64(blockOff+cachedSegmentBlockSize, f.size)
+	blockEnd := min(blockOff+cachedSegmentBlockSize, f.size)
 	if blockEnd <= blockOff {
 		return nil, io.EOF
 	}
@@ -280,18 +279,4 @@ func cloneIndex(idx []segment.IndexEntry) []segment.IndexEntry {
 
 func alignSegmentOffset(off int64) int64 {
 	return (off / cachedSegmentBlockSize) * cachedSegmentBlockSize
-}
-
-func minInt64(a, b int64) int64 {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func maxInt64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
 }

@@ -36,22 +36,6 @@ func buildSpaceProjection(rows []*spaceProjectionRow) []*desktop_runtime.Desktop
 	return out
 }
 
-func appendSpaceProjectionRows(
-	rows []*spaceProjectionRow,
-	sessionIndex uint32,
-	sessionLabel string,
-	spaces []*space.SpaceSoListEntry,
-) []*spaceProjectionRow {
-	for _, sp := range spaces {
-		rows = append(rows, &spaceProjectionRow{
-			sessionIndex: sessionIndex,
-			sessionLabel: sessionLabel,
-			space:        sp,
-		})
-	}
-	return rows
-}
-
 func spaceID(sp *space.SpaceSoListEntry) string {
 	return sp.GetEntry().GetRef().GetProviderResourceRef().GetId()
 }

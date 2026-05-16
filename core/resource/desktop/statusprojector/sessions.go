@@ -78,18 +78,21 @@ func snapshotSessionProjection(
 			selfEnrollment: runtime.account.selfEnrollment,
 		}
 		rows = append(rows, row)
-		spaceRows = appendSpaceProjectionRows(
-			spaceRows,
-			entry.GetSessionIndex(),
-			sessionLabel(row),
-			runtime.spaces,
-		)
-		activityRows = appendActivityProjectionRow(
-			activityRows,
-			entry.GetSessionIndex(),
-			sessionLabel(row),
-			runtime.sync,
-		)
+		label := sessionLabel(row)
+		for _, sp := range runtime.spaces {
+			spaceRows = append(spaceRows, &spaceProjectionRow{
+				sessionIndex: entry.GetSessionIndex(),
+				sessionLabel: label,
+				space:        sp,
+			})
+		}
+		if runtime.sync != nil {
+			activityRows = append(activityRows, &activityProjectionRow{
+				sessionIndex: entry.GetSessionIndex(),
+				sessionLabel: label,
+				status:       runtime.sync,
+			})
+		}
 	}
 
 	projection := buildSessionProjection(rows)

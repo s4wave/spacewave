@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"math"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -276,16 +276,19 @@ func (b *BatchFSWriter) sortedPendingDirs() []*pendingDir {
 	for _, pd := range b.pending {
 		dirs = append(dirs, pd)
 	}
-	sort.SliceStable(dirs, func(i, j int) bool {
-		if len(dirs[i].parentPath) != len(dirs[j].parentPath) {
-			return len(dirs[i].parentPath) < len(dirs[j].parentPath)
+	slices.SortStableFunc(dirs, func(a, b *pendingDir) int {
+		if len(a.parentPath) != len(b.parentPath) {
+			return len(a.parentPath) - len(b.parentPath)
 		}
-		for k := range dirs[i].parentPath {
-			if dirs[i].parentPath[k] != dirs[j].parentPath[k] {
-				return dirs[i].parentPath[k] < dirs[j].parentPath[k]
+		for k := range a.parentPath {
+			if a.parentPath[k] < b.parentPath[k] {
+				return -1
+			}
+			if a.parentPath[k] > b.parentPath[k] {
+				return 1
 			}
 		}
-		return false
+		return 0
 	})
 	return dirs
 }

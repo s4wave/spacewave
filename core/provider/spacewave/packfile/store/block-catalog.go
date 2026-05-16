@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"context"
 	"math"
 	"slices"
@@ -360,7 +361,7 @@ func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockC
 		if len(key) == 0 {
 			return errors.Errorf("empty index key at %d", i)
 		}
-		if prev != nil && compareKey(prev, key) >= 0 {
+		if prev != nil && bytes.Compare(prev, key) >= 0 {
 			return errors.Errorf("duplicate or unsorted index key at %d", i)
 		}
 		prev = key
@@ -387,7 +388,7 @@ func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
 	})
 	byKey := slices.Clone(entries)
 	sort.Slice(byKey, func(i, j int) bool {
-		return compareKey(byKey[i].GetKey(), byKey[j].GetKey()) < 0
+		return bytes.Compare(byKey[i].GetKey(), byKey[j].GetKey()) < 0
 	})
 	e.entriesByOff = byOff
 	e.entriesByKey = byKey

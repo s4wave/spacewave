@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -117,14 +118,15 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, er
 		for _, entry := range contained {
 			off := int64(entry.GetOffset())
 			end := off + int64(entry.GetSize())
-			job, ok := e.admitBlockLocked(entry, off, end, compareKey(entry.GetKey(), key) == 0)
+			isTarget := bytes.Equal(entry.GetKey(), key)
+			job, ok := e.admitBlockLocked(entry, off, end, isTarget)
 			if !ok {
 				continue
 			}
 			if job != nil {
 				jobs = append(jobs, job)
 			}
-			if compareKey(entry.GetKey(), key) == 0 {
+			if isTarget {
 				firstMiss = e.blocks[string(entry.GetKey())]
 			}
 		}

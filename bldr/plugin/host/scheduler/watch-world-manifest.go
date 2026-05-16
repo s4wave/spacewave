@@ -309,8 +309,7 @@ func addManifestSelectionFields(
 	ref := manifest.GetManifestRef()
 	if ref == nil {
 		fields[prefix+"-manifest-ref"] = "none"
-	}
-	if ref != nil {
+	} else {
 		fields[prefix+"-manifest-ref"] = ref.MarshalB58()
 	}
 	if manifest.GetManifest() == nil || manifest.GetManifest().GetMeta() == nil {

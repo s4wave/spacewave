@@ -12,10 +12,9 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/hash"
 	s4wave_deploy "github.com/s4wave/spacewave/sdk/deploy"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
-
-	"github.com/s4wave/spacewave/net/hash"
 )
 
 // DeployManifest handles the bidirectional deploy manifest stream.

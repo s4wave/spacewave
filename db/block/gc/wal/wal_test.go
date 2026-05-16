@@ -4,7 +4,7 @@ package block_gc_wal
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"sync"
 	"testing"
 
@@ -136,7 +136,7 @@ func TestWALConcurrentAppend(t *testing.T) {
 	for i, e := range entries {
 		seqs[i] = e.GetSequence()
 	}
-	if !sort.SliceIsSorted(seqs, func(i, j int) bool { return seqs[i] < seqs[j] }) {
+	if !slices.IsSorted(seqs) {
 		t.Errorf("sequences not sorted: %v", seqs)
 	}
 	seen := make(map[uint64]bool)

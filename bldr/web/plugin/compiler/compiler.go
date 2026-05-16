@@ -75,13 +75,6 @@ func getElectronDesktopPresencePolicy(nativeApp *NativeAppConfig) electron.Deskt
 	}
 }
 
-func getNativeAppSourcePath(sourcePath string, nativePath string) string {
-	if nativePath == "" {
-		return ""
-	}
-	return filepath.Join(sourcePath, nativePath)
-}
-
 // controllerDescrip is the controller description.
 var controllerDescrip = "web runtime plugin compiler controller"
 
@@ -331,14 +324,12 @@ func (c *Controller) BundleElectronHook(
 			electronConf.DevTools = true
 		}
 		electronConf.ThemeSource = nativeApp.GetThemeSource()
-		electronConf.TrayIconPath = getNativeAppSourcePath(
-			builderConf.GetSourcePath(),
-			nativeApp.GetTrayIconPath(),
-		)
-		electronConf.MacosTemplateTrayIconPath = getNativeAppSourcePath(
-			builderConf.GetSourcePath(),
-			nativeApp.GetMacosTemplateTrayIconPath(),
-		)
+		if trayIconPath := nativeApp.GetTrayIconPath(); trayIconPath != "" {
+			electronConf.TrayIconPath = filepath.Join(builderConf.GetSourcePath(), trayIconPath)
+		}
+		if macosTemplateTrayIconPath := nativeApp.GetMacosTemplateTrayIconPath(); macosTemplateTrayIconPath != "" {
+			electronConf.MacosTemplateTrayIconPath = filepath.Join(builderConf.GetSourcePath(), macosTemplateTrayIconPath)
+		}
 	}
 
 	electronCtrlConf, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, electronConf), false)

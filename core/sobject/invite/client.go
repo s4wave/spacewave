@@ -6,13 +6,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
 	"github.com/zeebo/blake3"
-
-	"github.com/s4wave/spacewave/core/sobject"
 )
 
 // JoinResult contains the result of a successful invite join.

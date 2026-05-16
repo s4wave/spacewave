@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -84,7 +84,7 @@ func canonicalRequestHeaders(req *http.Request) (signed string, canonical string
 		keys = append(keys, lname)
 		headers[lname] = strings.TrimSpace(strings.Join(vals, ","))
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 	var hb, sb strings.Builder
 	for i, k := range keys {
 		hb.WriteString(k)

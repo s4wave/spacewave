@@ -5,6 +5,8 @@ package devtool
 import (
 	"context"
 	"os"
+
+	"github.com/mattn/go-isatty"
 )
 
 // DevtoolUIMode describes how devtool command status should be presented.
@@ -68,5 +70,9 @@ func (a *DevtoolArgs) runStatusCommand(ctx context.Context, execute func(context
 }
 
 func devtoolFileIsTerminal(f *os.File) bool {
-	return devtoolFileDescriptorIsTerminal(f)
+	if f == nil {
+		return false
+	}
+	fd := f.Fd()
+	return isatty.IsTerminal(fd) || isatty.IsCygwinTerminal(fd)
 }
