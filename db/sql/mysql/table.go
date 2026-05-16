@@ -237,6 +237,11 @@ func (t *Table) Inserter(sqlCtx *sql.Context) sql.RowInserter {
 	return t.NewTableEditor(sqlCtx)
 }
 
+// Updater returns a row updater for the table.
+func (t *Table) Updater(sqlCtx *sql.Context) sql.RowUpdater {
+	return t.NewTableEditor(sqlCtx)
+}
+
 // PeekNextAutoIncrementValue peeks at the next AUTO_INCREMENT value
 func (t *Table) PeekNextAutoIncrementValue(*sql.Context) (uint64, error) {
 	return t.autoIncVal, nil
@@ -296,9 +301,9 @@ var (
 	_ sql.PrimaryKeyTable    = (*Table)(nil)
 	_ sql.PartitionCounter   = (*Table)(nil)
 	_ sql.InsertableTable    = (*Table)(nil)
+	_ sql.UpdatableTable     = (*Table)(nil)
 	_ sql.AutoIncrementTable = (*Table)(nil)
 	/*
-		_ sql.UpdatableTable           = (*Table)(nil)
 		_ sql.DeletableTable           = (*Table)(nil)
 		_ sql.ReplaceableTable         = (*Table)(nil)
 		_ sql.TruncateableTable        = (*Table)(nil)

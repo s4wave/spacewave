@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
+	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -262,5 +263,76 @@ func TestMysqlReadInsertedRowBeforeCommit(t *testing.T) {
 	}
 	if root.GetEmpty() {
 		t.Fatal("expected database root")
+	}
+}
+
+func TestMysqlUpdateSingleTableWhere(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	sq := NewMysql(oc, nil)
+	tx, err := sq.NewMysqlTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := tx.OpenDatabase(ctx, "probe", true); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	db := hydra_sql.NewSqlDb(sq, "/probe")
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	for _, query := range []string{
+		"CREATE TABLE update_items (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL, qty BIGINT NOT NULL)",
+		"INSERT INTO update_items (id, name, qty) VALUES (1, 'alpha', 7)",
+		"INSERT INTO update_items (id, name, qty) VALUES (2, 'beta', 3)",
+		"UPDATE update_items SET qty = 11, name = 'alpha-updated' WHERE id = 1",
+	} {
+		if _, err := db.ExecContext(ctx, query); err != nil {
+			t.Fatalf("%s: %v", query, err)
+		}
+	}
+
+	var name string
+	var qty int64
+	if err := db.QueryRowContext(ctx, "SELECT name, qty FROM update_items WHERE id = 1").Scan(&name, &qty); err != nil {
+		t.Fatal(err.Error())
+	}
+	if name != "alpha-updated" || qty != 11 {
+		t.Fatalf("unexpected updated row: name=%q qty=%d", name, qty)
+	}
+
+	if err := db.QueryRowContext(ctx, "SELECT name, qty FROM update_items WHERE id = 2").Scan(&name, &qty); err != nil {
+		t.Fatal(err.Error())
+	}
+	if name != "beta" || qty != 3 {
+		t.Fatalf("unexpected untouched row: name=%q qty=%d", name, qty)
+	}
+
+	db.Close()
+	db = hydra_sql.NewSqlDb(sq, "/probe")
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	if err := db.QueryRowContext(ctx, "SELECT name, qty FROM update_items WHERE id = 1").Scan(&name, &qty); err != nil {
+		t.Fatal(err.Error())
+	}
+	if name != "alpha-updated" || qty != 11 {
+		t.Fatalf("unexpected reopened row: name=%q qty=%d", name, qty)
 	}
 }

@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"io"
 
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/types"
@@ -130,6 +131,107 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	return nil
 }
 
+// Update updates the old row to the new row.
+func (i *TableEditor) Update(sqlCtx *sql.Context, oldRow, newRow sql.Row) error {
+	cctx := i.ctx
+	if sqlCtx != nil && sqlCtx.Context != nil {
+		cctx = sqlCtx.Context
+	}
+	checkCtx := sqlCtx
+	if checkCtx == nil {
+		checkCtx = sql.NewContext(cctx)
+	}
+	schema := i.t.schema.Schema
+	if len(oldRow) != len(schema) {
+		return sql.ErrInvalidColumnNumber.New(len(schema), len(oldRow))
+	}
+	if len(newRow) != len(schema) {
+		return sql.ErrInvalidColumnNumber.New(len(schema), len(newRow))
+	}
+	if err := schema.CheckRow(checkCtx, oldRow); err != nil {
+		return err
+	}
+	if err := schema.CheckRow(checkCtx, newRow); err != nil {
+		return err
+	}
+
+	pt, rowKey, err := i.findRowKey(checkCtx, oldRow)
+	if err != nil {
+		return err
+	}
+	tx, err := pt.BuildTreeTx(cctx, false, true)
+	if err != nil {
+		return err
+	}
+	rootCursor := tx.GetCursor()
+	rowCursor := rootCursor.Detach(false)
+	rowCursor.ClearAllRefs()
+	if _, err := BuildTableRow(cctx, rowCursor, newRow, i.buildBlobOpts); err != nil {
+		return err
+	}
+	return tx.SetCursorAtKey(cctx, rowKey, rowCursor, false)
+}
+
+func (i *TableEditor) findRowKey(sqlCtx *sql.Context, row sql.Row) (*TablePartition, []byte, error) {
+	cctx := i.ctx
+	if sqlCtx != nil && sqlCtx.Context != nil {
+		cctx = sqlCtx.Context
+	}
+	partIter, err := i.t.Partitions(sqlCtx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer partIter.Close(sqlCtx)
+
+	for {
+		part, err := partIter.Next(sqlCtx)
+		if err == io.EOF {
+			return nil, nil, sql.ErrDeleteRowNotFound.New()
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		pt, ok := part.(*TablePartition)
+		if !ok {
+			return nil, nil, ErrUnexpectedType
+		}
+		tx, err := pt.BuildTreeTx(cctx, false, false)
+		if err != nil {
+			return nil, nil, err
+		}
+		rowIter, err := NewTablePartitionRowIter(cctx, tx, i.t.schema.Schema)
+		if err != nil {
+			tx.Discard()
+			return nil, nil, err
+		}
+		for {
+			next, err := rowIter.Next(sqlCtx)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				rowIter.Close(sqlCtx)
+				tx.Discard()
+				return nil, nil, err
+			}
+			equals, err := row.Equals(sqlCtx, next, i.t.schema.Schema)
+			if err != nil {
+				rowIter.Close(sqlCtx)
+				tx.Discard()
+				return nil, nil, err
+			}
+			if equals {
+				rowKey := append([]byte(nil), rowIter.it.Key()...)
+				rowIter.Close(sqlCtx)
+				tx.Discard()
+				return pt, rowKey, nil
+			}
+		}
+		rowIter.Close(sqlCtx)
+		tx.Discard()
+	}
+}
+
 // SetAutoIncrementValue sets a new AUTO_INCREMENT value.
 func (i *TableEditor) SetAutoIncrementValue(sqlCtx *sql.Context, val uint64) error {
 	cctx := i.ctx
@@ -176,4 +278,5 @@ func (i *TableEditor) Close(sqlCtx *sql.Context) error {
 var (
 	_ sql.AutoIncrementSetter = ((*TableEditor)(nil))
 	_ sql.RowInserter         = ((*TableEditor)(nil))
+	_ sql.RowUpdater          = ((*TableEditor)(nil))
 )
