@@ -173,7 +173,7 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 	}
 
 	outPredicates := []string{
-		"<bench/workfront-attractor>",
+		"<bench/workfront-goal>",
 		"<bench/workfront-session>",
 		"<bench/workfront-job>",
 		"<bench/workfront-evidence>",
