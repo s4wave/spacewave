@@ -36,6 +36,7 @@ func NewTestProviderAccount(t *testing.T, endpoint string) *ProviderAccount {
 		sfs:           prov.sfs,
 		soListCtr:     ccontainer.NewCContainer[*sobject.SharedObjectList](nil),
 	}
+	acc.sessionClient = acc.configureSessionClient(cli)
 	acc.gcCleanupRunner = provider_gccleanup.NewRunner(
 		le.WithField("component", "gc-cleanup-runner"),
 		"GC swept nodes after provider account cleanup",

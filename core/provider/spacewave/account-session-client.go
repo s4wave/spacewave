@@ -17,16 +17,32 @@ func (a *ProviderAccount) configureSessionClient(cli *SessionClient) *SessionCli
 	return cli
 }
 
+func (a *ProviderAccount) currentSessionClient() *SessionClient {
+	cli, _ := a.sessionClientSnapshot()
+	return cli
+}
+
+func (a *ProviderAccount) sessionClientSnapshot() (*SessionClient, string) {
+	var cli *SessionClient
+	var sessionID string
+	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		cli = a.sessionClient
+		sessionID = a.sessionClientSessionID
+	})
+	return cli, sessionID
+}
+
 // getReadySessionClient returns a signing-capable session client for this
 // account. If the cached session client is missing its private key, it falls
 // back to any mounted unlocked session and repairs the cached client.
 func (a *ProviderAccount) getReadySessionClient(ctx context.Context) (*SessionClient, crypto.PrivKey, peer.ID, error) {
-	if cli := a.sessionClient; cli != nil && cli.priv != nil && cli.peerID != "" && a.sessionClientSessionID == "" {
-		return a.configureSessionClient(cli), cli.priv, cli.peerID, nil
+	cli, sessionID := a.sessionClientSnapshot()
+	if cli != nil && cli.priv != nil && cli.peerID != "" && sessionID == "" {
+		return cli, cli.priv, cli.peerID, nil
 	}
 
 	entries := a.sessions.GetKeysWithData()
-	if cli, priv, pid, ok := a.getReadySessionClientForSession(ctx, entries, a.sessionClientSessionID); ok {
+	if cli, priv, pid, ok := a.getReadySessionClientForSession(ctx, entries, sessionID); ok {
 		return cli, priv, pid, nil
 	}
 	for _, entry := range entries {
@@ -70,8 +86,10 @@ func (a *ProviderAccount) getReadySessionClientForSession(
 			sess.sessionPid.String(),
 		)
 		cli = a.configureSessionClient(cli)
-		a.sessionClient = cli
-		a.sessionClientSessionID = entry.Key
+		a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			a.sessionClient = cli
+			a.sessionClientSessionID = entry.Key
+		})
 		return cli, sess.sessionPriv, sess.sessionPid, true
 	}
 	return nil, nil, "", false
@@ -82,16 +100,21 @@ func (a *ProviderAccount) maybeSetSessionClient(sessionID string, cli *SessionCl
 		return
 	}
 	cli = a.configureSessionClient(cli)
-	if a.sessionClientSessionID != "" && a.sessionClientSessionID != sessionID {
-		return
-	}
 	var rejoinState *selfRejoinSweepState
+	var updated bool
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if a.sessionClientSessionID != "" && a.sessionClientSessionID != sessionID {
+			return
+		}
 		a.sessionClient = cli
 		a.sessionClientSessionID = sessionID
 		rejoinState = a.buildSelfRejoinSweepStateLocked()
+		updated = true
 		broadcast()
 	})
+	if !updated {
+		return
+	}
 	a.setSelfRejoinSweepState(rejoinState)
 	a.refreshSelfEnrollmentSummary(context.Background())
 }

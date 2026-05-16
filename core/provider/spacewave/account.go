@@ -54,9 +54,11 @@ type ProviderAccount struct {
 	vol volume.Volume
 	// entityCli is the entity client for registration flows
 	entityCli *EntityClient
-	// sessionClient is the session client for authenticated API
+	// sessionClient is the session client for authenticated API.
+	// Guarded by accountBcast after ProviderAccount construction.
 	sessionClient *SessionClient
 	// sessionClientSessionID is the mounted session that owns sessionClient.
+	// Guarded by accountBcast after ProviderAccount construction.
 	sessionClientSessionID string
 	// sessionTransport is the running session-scoped transport for direct P2P.
 	sessionTransport *sessionTransportState
@@ -352,6 +354,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		soListCtr:      t.p.getSOListCtr(t.accountID),
 		entityKeyStore: entityKeyStore,
 	}
+	acc.sessionClient = acc.configureSessionClient(sessionCli)
 	acc.selfEnrollmentRun = newSelfEnrollmentRunState(acc)
 	acc.soListCtr.SetValue(nil)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
@@ -415,7 +418,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 
 	acc.checkoutWatcher = newCheckoutWatcher(
 		le.WithField("component", "checkout-watcher"),
-		func() *SessionClient { return acc.sessionClient },
+		acc.currentSessionClient,
 		func() {
 			// Checkout completed: bump epoch to trigger a fresh fetch of the
 			// updated subscription status from the cloud.
@@ -425,7 +428,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 
 	acc.wsTracker = newWSTracker(
 		le.WithField("component", "session-tracker"),
-		func() *SessionClient { return acc.sessionClient },
+		acc.currentSessionClient,
 	)
 	acc.wsTracker.accountBcast = &acc.accountBcast
 	acc.wsTracker.onAccountChanged = func(epoch uint64) {
@@ -716,14 +719,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 
 // GetSessionClient returns the session client for authenticated API calls.
 func (a *ProviderAccount) GetSessionClient() *SessionClient {
-	var cli *SessionClient
-	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		cli = a.sessionClient
-	})
+	cli := a.currentSessionClient()
 	if cli == nil || cli.priv == nil || cli.peerID == "" {
 		return nil
 	}
-	return a.configureSessionClient(cli)
+	return cli
 }
 
 // ReplaceSessionClient replaces the session client with a new one.
