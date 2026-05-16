@@ -16,6 +16,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/bun"
 	"github.com/aperturerobotics/util/pipesock"
+	"github.com/aperturerobotics/util/routine"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
@@ -38,8 +39,12 @@ type Bundler struct {
 	mu      sync.Mutex
 	webPkgs []*bldr_web_bundler.WebPkgRefConfig
 	client  bldr_vite.SRPCViteBundlerClient
-	cancel  context.CancelFunc
-	done    chan struct{}
+	vite    *routine.RoutineContainer
+}
+
+type viteStartResult struct {
+	client bldr_vite.SRPCViteBundlerClient
+	err    error
 }
 
 // NewBundler creates a new eval bundler.
@@ -53,6 +58,7 @@ func NewBundler(le *logrus.Entry, distPath, sourcePath, workingPath string) *Bun
 		distPath:    distPath,
 		sourcePath:  sourcePath,
 		workingPath: workingPath,
+		vite:        routine.NewRoutineContainerWithLogger(le.WithField("routine", "vite-bundler")),
 	}
 }
 
@@ -168,9 +174,25 @@ func (b *Bundler) ensureVite(ctx context.Context) (bldr_vite.SRPCViteBundlerClie
 // Caller must hold b.mu.
 func (b *Bundler) startViteLocked(_ context.Context) (bldr_vite.SRPCViteBundlerClient, error) {
 	b.le.Debug("starting vite bundler subprocess")
+	ready := make(chan viteStartResult, 1)
+	b.vite.SetRoutine(func(ctx context.Context) error {
+		return b.runVite(ctx, ready)
+	})
+	b.vite.SetContext(context.Background(), true)
 
+	result := <-ready
+	if result.err != nil {
+		return nil, result.err
+	}
+	b.client = result.client
+	return result.client, nil
+}
+
+func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult) error {
 	if err := os.MkdirAll(b.workingPath, 0o755); err != nil {
-		return nil, errors.Wrap(err, "create working dir")
+		err = errors.Wrap(err, "create working dir")
+		ready <- viteStartResult{err: err}
+		return err
 	}
 
 	// Derive a deterministic pipe UUID from paths, plus a random suffix.
@@ -203,19 +225,16 @@ func (b *Bundler) startViteLocked(_ context.Context) (bldr_vite.SRPCViteBundlerC
 		Write:         true,
 	})
 	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		return nil, errors.Wrap(err, "compile vite.ts")
+		ready <- viteStartResult{err: errors.Wrap(err, "compile vite.ts")}
+		return errors.Wrap(err, "compile vite.ts")
 	}
 
 	// Create pipe listener for IPC.
 	pipeListener, err := pipesock.BuildPipeListener(b.le, b.workingPath, pipeUuid)
 	if err != nil {
-		return nil, errors.Wrap(err, "create pipe listener")
+		ready <- viteStartResult{err: errors.Wrap(err, "create pipe listener")}
+		return errors.Wrap(err, "create pipe listener")
 	}
-
-	// Create a long-lived context for the subprocess. Uses context.Background()
-	// intentionally: the Vite subprocess persists across multiple Bundle() calls
-	// and must outlive any individual caller's context.
-	viteCtx, viteCancel := context.WithCancel(context.Background())
 
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(viteCtx, true)
 	go smc.AcceptPump(pipeListener)
@@ -227,8 +246,8 @@ func (b *Bundler) startViteLocked(_ context.Context) (bldr_vite.SRPCViteBundlerC
 	if err != nil {
 		smc.Close()
 		pipeListener.Close()
-		viteCancel()
-		return nil, errors.Wrap(err, "create bun command")
+		ready <- viteStartResult{err: errors.Wrap(err, "create bun command")}
+		return errors.Wrap(err, "create bun command")
 	}
 	cmd.Env = os.Environ()
 	cmd.Dir = filepath.Dir(viteScriptPath)
@@ -238,8 +257,8 @@ func (b *Bundler) startViteLocked(_ context.Context) (bldr_vite.SRPCViteBundlerC
 	if err := cmd.Start(); err != nil {
 		smc.Close()
 		pipeListener.Close()
-		viteCancel()
-		return nil, errors.Wrap(err, "start bun subprocess")
+		ready <- viteStartResult{err: errors.Wrap(err, "start bun subprocess")}
+		return errors.Wrap(err, "start bun subprocess")
 	}
 
 	// Wait for the subprocess to connect via IPC.
@@ -249,50 +268,41 @@ func (b *Bundler) startViteLocked(_ context.Context) (bldr_vite.SRPCViteBundlerC
 	b.le.Debug("waiting for vite subprocess to connect")
 	_, err = smc.WaitConn(timeoutCtx)
 	if err != nil {
-		viteCancel()
 		_ = cmd.Wait()
 		smc.Close()
 		pipeListener.Close()
-		return nil, errors.Wrap(err, "vite subprocess did not connect")
+		ready <- viteStartResult{err: errors.Wrap(err, "vite subprocess did not connect")}
+		return errors.Wrap(err, "vite subprocess did not connect")
 	}
 
 	client := bldr_vite.NewSRPCViteBundlerClient(srpc.NewClientWithMuxedConn(smc))
 	b.le.Debug("vite bundler subprocess connected")
 
-	b.client = client
-	b.cancel = viteCancel
-	b.done = make(chan struct{})
+	ready <- viteStartResult{client: client}
 
-	// Background goroutine: waits for process exit, clears client.
-	go func() {
-		defer close(b.done)
-		defer pipeListener.Close()
-		defer smc.Close()
-		_ = cmd.Wait()
-		b.mu.Lock()
-		if b.client == client {
-			b.client = nil
-		}
-		b.mu.Unlock()
-	}()
-
-	return client, nil
+	defer pipeListener.Close()
+	defer smc.Close()
+	_ = cmd.Wait()
+	b.mu.Lock()
+	if b.client == client {
+		b.client = nil
+	}
+	b.mu.Unlock()
+	if viteCtx.Err() != nil {
+		return context.Canceled
+	}
+	return nil
 }
 
 // Close shuts down the Vite subprocess and waits for cleanup.
 func (b *Bundler) Close() {
 	b.mu.Lock()
-	cancel := b.cancel
-	done := b.done
 	b.client = nil
-	b.cancel = nil
-	b.done = nil
+	waitCh, _ := b.vite.SetRoutine(nil)
+	b.vite.ClearContext()
 	b.mu.Unlock()
 
-	if cancel != nil {
-		cancel()
-	}
-	if done != nil {
-		<-done
+	if waitCh != nil {
+		<-waitCh
 	}
 }
