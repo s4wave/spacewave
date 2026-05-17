@@ -4,7 +4,6 @@ package spacewave_cli
 
 import (
 	"context"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	trace_capture "github.com/s4wave/spacewave/core/trace/capture"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
 
@@ -198,7 +198,11 @@ func runDebugTrace(
 	defer f.Close()
 
 	traceClient := s4wave_trace.NewSRPCTraceServiceClient(client.srpc)
-	byteCount, err := captureDaemonRuntimeTrace(c.Context, traceClient, f, duration, label)
+	byteCount, err := trace_capture.CaptureRuntimeTrace(c.Context, traceClient, f, trace_capture.RuntimeTraceArgs{
+		Duration:    duration,
+		Label:       label,
+		StopTimeout: debugTraceStopTimeout,
+	})
 	if err != nil {
 		return err
 	}
@@ -263,7 +267,10 @@ func runDebugCPUProfile(
 	defer f.Close()
 
 	traceClient := s4wave_trace.NewSRPCTraceServiceClient(client.srpc)
-	byteCount, err := captureDaemonCPUProfile(c.Context, traceClient, f, duration, label)
+	byteCount, err := trace_capture.CaptureCPUProfile(c.Context, traceClient, f, trace_capture.CPUProfileArgs{
+		Duration: duration,
+		Label:    label,
+	})
 	if err != nil {
 		return err
 	}
@@ -336,7 +343,11 @@ func runDebugMemoryProfile(
 	defer f.Close()
 
 	traceClient := s4wave_trace.NewSRPCTraceServiceClient(client.srpc)
-	byteCount, err := captureDaemonMemoryProfile(c.Context, traceClient, f, profile, gc, int32(debug))
+	byteCount, err := trace_capture.CaptureMemoryProfile(c.Context, traceClient, f, trace_capture.MemoryProfileArgs{
+		Profile: profile,
+		GC:      gc,
+		Debug:   int32(debug),
+	})
 	if err != nil {
 		return err
 	}
@@ -406,169 +417,4 @@ func defaultDebugMemoryProfileOutputPath(now time.Time, profile string) string {
 		profile = "memory"
 	}
 	return filepath.Join(".tmp", "spacewave-daemon-"+now.Format("20060102-150405")+"-"+profile+".pprof")
-}
-
-func captureDaemonRuntimeTrace(
-	ctx context.Context,
-	traceClient s4wave_trace.SRPCTraceServiceClient,
-	out io.Writer,
-	duration time.Duration,
-	label string,
-) (int64, error) {
-	if _, err := traceClient.StartTrace(ctx, &s4wave_trace.StartTraceRequest{Label: label}); err != nil {
-		return 0, errors.Wrap(err, "start daemon trace")
-	}
-
-	timer := time.NewTimer(duration)
-	var waitErr error
-	select {
-	case <-ctx.Done():
-		waitErr = ctx.Err()
-	case <-timer.C:
-	}
-	if !timer.Stop() {
-		select {
-		case <-timer.C:
-		default:
-		}
-	}
-
-	stopCtx := ctx
-	var cancel context.CancelFunc
-	if waitErr != nil {
-		stopCtx, cancel = context.WithTimeout(context.Background(), debugTraceStopTimeout)
-		defer cancel()
-	}
-	byteCount, err := stopDaemonRuntimeTrace(stopCtx, traceClient, out)
-	if err != nil {
-		return byteCount, errors.Wrap(err, "stop daemon trace")
-	}
-	return byteCount, waitErr
-}
-
-func captureDaemonCPUProfile(
-	ctx context.Context,
-	traceClient s4wave_trace.SRPCTraceServiceClient,
-	out io.Writer,
-	duration time.Duration,
-	label string,
-) (int64, error) {
-	if duration <= 0 {
-		return 0, errors.New("duration must be greater than zero")
-	}
-	durationMillis := uint32(duration / time.Millisecond)
-	if durationMillis == 0 {
-		durationMillis = 1
-	}
-	strm, err := traceClient.CaptureCPUProfile(ctx, &s4wave_trace.CaptureCPUProfileRequest{
-		DurationMillis: durationMillis,
-		Label:          label,
-	})
-	if err != nil {
-		return 0, errors.Wrap(err, "capture daemon CPU profile")
-	}
-	defer strm.Close()
-
-	var byteCount int64
-	for {
-		resp, err := strm.Recv()
-		if err == io.EOF {
-			return byteCount, nil
-		}
-		if err != nil {
-			return byteCount, err
-		}
-		data := resp.GetData()
-		if len(data) == 0 {
-			continue
-		}
-		n, err := out.Write(data)
-		byteCount += int64(n)
-		if err != nil {
-			return byteCount, err
-		}
-		if n != len(data) {
-			return byteCount, io.ErrShortWrite
-		}
-	}
-}
-
-func captureDaemonMemoryProfile(
-	ctx context.Context,
-	traceClient s4wave_trace.SRPCTraceServiceClient,
-	out io.Writer,
-	profile string,
-	gc bool,
-	debug int32,
-) (int64, error) {
-	if debug < 0 {
-		return 0, errors.New("debug must be greater than or equal to zero")
-	}
-	strm, err := traceClient.CaptureMemoryProfile(ctx, &s4wave_trace.CaptureMemoryProfileRequest{
-		Profile: profile,
-		Gc:      gc,
-		Debug:   debug,
-	})
-	if err != nil {
-		return 0, errors.Wrap(err, "capture daemon memory profile")
-	}
-	defer strm.Close()
-
-	var byteCount int64
-	for {
-		resp, err := strm.Recv()
-		if err == io.EOF {
-			return byteCount, nil
-		}
-		if err != nil {
-			return byteCount, err
-		}
-		data := resp.GetData()
-		if len(data) == 0 {
-			continue
-		}
-		n, err := out.Write(data)
-		byteCount += int64(n)
-		if err != nil {
-			return byteCount, err
-		}
-		if n != len(data) {
-			return byteCount, io.ErrShortWrite
-		}
-	}
-}
-
-func stopDaemonRuntimeTrace(
-	ctx context.Context,
-	traceClient s4wave_trace.SRPCTraceServiceClient,
-	out io.Writer,
-) (int64, error) {
-	strm, err := traceClient.StopTrace(ctx, &s4wave_trace.StopTraceRequest{})
-	if err != nil {
-		return 0, err
-	}
-	defer strm.Close()
-
-	var byteCount int64
-	for {
-		resp, err := strm.Recv()
-		if err == io.EOF {
-			return byteCount, nil
-		}
-		if err != nil {
-			return byteCount, err
-		}
-		data := resp.GetData()
-		if len(data) == 0 {
-			continue
-		}
-		n, err := out.Write(data)
-		byteCount += int64(n)
-		if err != nil {
-			return byteCount, err
-		}
-		if n != len(data) {
-			return byteCount, io.ErrShortWrite
-		}
-	}
 }

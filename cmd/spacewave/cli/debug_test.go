@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	trace_capture "github.com/s4wave/spacewave/core/trace/capture"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
@@ -23,12 +24,15 @@ func TestCaptureDaemonRuntimeTraceWritesTrace(t *testing.T) {
 	trace.Log(ctx, "phase", "capture")
 	task.End()
 
-	byteCount, err := captureDaemonRuntimeTrace(
+	byteCount, err := trace_capture.CaptureRuntimeTrace(
 		ctx,
 		traceClient,
 		&out,
-		time.Millisecond,
-		"debug-trace-test",
+		trace_capture.RuntimeTraceArgs{
+			Duration:    time.Millisecond,
+			Label:       "debug-trace-test",
+			StopTimeout: debugTraceStopTimeout,
+		},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -70,12 +74,14 @@ func TestCaptureDaemonCPUProfileWritesProfile(t *testing.T) {
 	traceClient := newDebugTraceTestClient(t)
 	var out bytes.Buffer
 
-	byteCount, err := captureDaemonCPUProfile(
+	byteCount, err := trace_capture.CaptureCPUProfile(
 		ctx,
 		traceClient,
 		&out,
-		100*time.Millisecond,
-		"debug-cpu-profile-test",
+		trace_capture.CPUProfileArgs{
+			Duration: 100 * time.Millisecond,
+			Label:    "debug-cpu-profile-test",
+		},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -93,7 +99,7 @@ func TestCaptureDaemonMemoryProfileWritesProfile(t *testing.T) {
 	traceClient := newDebugTraceTestClient(t)
 	var out bytes.Buffer
 
-	byteCount, err := captureDaemonMemoryProfile(ctx, traceClient, &out, "allocs", false, 0)
+	byteCount, err := trace_capture.CaptureMemoryProfile(ctx, traceClient, &out, trace_capture.MemoryProfileArgs{Profile: "allocs"})
 	if err != nil {
 		t.Fatal(err)
 	}
