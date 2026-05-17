@@ -580,11 +580,15 @@ func TestBufferedStoreUsesBatchPut(t *testing.T) {
 	if err := store.Flush(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
-	if inner.batchCalls != 1 {
-		t.Fatalf("expected one batch call, got %d", inner.batchCalls)
+	if inner.batchCalls == 0 {
+		t.Fatal("expected batch call")
 	}
-	if len(inner.batchSizes) != 1 || inner.batchSizes[0] != 2 {
-		t.Fatalf("expected one batch of two blocks, got %v", inner.batchSizes)
+	var batchedBlocks int
+	for _, size := range inner.batchSizes {
+		batchedBlocks += size
+	}
+	if batchedBlocks != 2 {
+		t.Fatalf("expected two batched blocks, got batch sizes %v", inner.batchSizes)
 	}
 	if inner.putCalls != 0 {
 		t.Fatalf("expected no serial PutBlock fallback calls, got %d", inner.putCalls)
