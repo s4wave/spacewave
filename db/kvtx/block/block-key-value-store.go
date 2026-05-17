@@ -10,6 +10,11 @@ func NewKeyValueStoreBlock() block.Block {
 	return &KeyValueStore{}
 }
 
+// DecodedBlockCacheTypeKey returns the decoded-block cache type key.
+func (k *KeyValueStore) DecodedBlockCacheTypeKey() string {
+	return "db/kvtx/block.KeyValueStore"
+}
+
 // NewKeyValueStoreSubBlockCtor returns the sub-block constructor.
 func NewKeyValueStoreSubBlockCtor(r **KeyValueStore) block.SubBlockCtor {
 	return block.NewSubBlockCtor(r, func() *KeyValueStore { return &KeyValueStore{} })
@@ -78,6 +83,7 @@ func (k *KeyValueStore) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*KeyValueStore)(nil))
-	_ block.BlockWithSubBlocks = ((*KeyValueStore)(nil))
+	_ block.Block                 = ((*KeyValueStore)(nil))
+	_ block.DecodedBlockCacheable = ((*KeyValueStore)(nil))
+	_ block.BlockWithSubBlocks    = ((*KeyValueStore)(nil))
 )

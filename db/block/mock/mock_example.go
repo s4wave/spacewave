@@ -16,6 +16,11 @@ func NewExampleBlock() block.Block {
 	return &Example{}
 }
 
+// DecodedBlockCacheTypeKey returns the decoded-block cache type key.
+func (e *Example) DecodedBlockCacheTypeKey() string {
+	return "db/block/mock.Example"
+}
+
 // UnmarshalExample unmarshals the example block.
 // Returns nil, nil if empty
 func UnmarshalExample(ctx context.Context, bcs *block.Cursor) (*Example, error) {
@@ -35,4 +40,7 @@ func (e *Example) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Example)(nil))
+var (
+	_ block.Block                 = ((*Example)(nil))
+	_ block.DecodedBlockCacheable = ((*Example)(nil))
+)

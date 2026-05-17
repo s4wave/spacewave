@@ -15,6 +15,11 @@ func NewNodeBlock() block.Block {
 	return &Node{}
 }
 
+// DecodedBlockCacheTypeKey returns the decoded-block cache type key.
+func (n *Node) DecodedBlockCacheTypeKey() string {
+	return "db/kvtx/block/iavl.Node"
+}
+
 // loadNode follows the node cursor.
 // may return nil
 func loadNode(ctx context.Context, cursor *block.Cursor) (*Node, error) {
@@ -201,8 +206,9 @@ func (n *Node) GetBlockGraphAttributes() []encoding.Attribute {
 
 // _ is a type assertion
 var (
-	_ block.Block               = ((*Node)(nil))
-	_ block.BlockWithAttributes = ((*Node)(nil))
-	_ block.BlockWithRefs       = ((*Node)(nil))
-	_ block.BlockWithSubBlocks  = ((*Node)(nil))
+	_ block.Block                 = ((*Node)(nil))
+	_ block.DecodedBlockCacheable = ((*Node)(nil))
+	_ block.BlockWithAttributes   = ((*Node)(nil))
+	_ block.BlockWithRefs         = ((*Node)(nil))
+	_ block.BlockWithSubBlocks    = ((*Node)(nil))
 )

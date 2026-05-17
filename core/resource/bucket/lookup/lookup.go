@@ -70,6 +70,7 @@ func (r *BucketLookupCursorResource) GetBlock(ctx context.Context, req *s4wave_b
 	if err != nil {
 		return nil, err
 	}
+	block.RecordResourceGetBlock(ctx, req.GetRef(), found, len(data))
 	return &s4wave_bucket_lookup.GetBlockResponse{
 		Data:  data,
 		Found: found,

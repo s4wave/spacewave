@@ -6,21 +6,19 @@ import (
 	"github.com/s4wave/spacewave/db/block/bloom"
 )
 
-// bloomRef is a strong reference to a bloom filter.
+// bloomRef is an always-miss weak reference fallback.
 //
-// TinyGo's linker is missing weak.runtime_makeStrongFromWeak, so this
-// build retains cached filters strongly. Filters live as long as the
-// store's bloom map entry.
-type bloomRef struct {
-	bf *bloom.Filter
+// TinyGo's linker is missing weak.runtime_makeStrongFromWeak, so this build
+// excludes weak behavior instead of retaining cached filters strongly in
+// browser memory.
+type bloomRef struct{}
+
+// makeBloomRef drops bf from the weak cache fallback.
+func makeBloomRef(_ *bloom.Filter) bloomRef {
+	return bloomRef{}
 }
 
-// makeBloomRef wraps bf in a strong reference.
-func makeBloomRef(bf *bloom.Filter) bloomRef {
-	return bloomRef{bf: bf}
-}
-
-// Value returns the underlying bloom filter.
+// Value returns nil because TinyGo cannot use the weak cache.
 func (r bloomRef) Value() *bloom.Filter {
-	return r.bf
+	return nil
 }

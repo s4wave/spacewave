@@ -193,6 +193,7 @@ func (s *sdkBucketLookupStore) GetBlock(
 		return nil, false, err
 	}
 	data := resp.GetData()
+	block.RecordResourceGetBlock(ctx, ref, resp.GetFound(), len(data))
 	if resp.GetFound() && s.xfrm != nil {
 		data, err = s.xfrm.EncodeBlock(data)
 		if err != nil {

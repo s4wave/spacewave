@@ -590,10 +590,7 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		return nil, false, nil
 	}
 
-	bkt := readOperationStore(ctx)
-	if bkt == nil {
-		bkt, _ = c.GetBlockStore()
-	}
+	bkt := c.readStore(ctx)
 	if bkt == nil {
 		return nil, false, ErrBlockStoreUnavailable
 	}
@@ -647,6 +644,30 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		return b, nil
 	}
 
+	// note: ctor is called before fetch so the read-operation cache can key by
+	// exact block type before deciding whether storage must be touched.
+	b = ctor()
+	if b == nil {
+		return nil, nil
+	}
+	cache := decodedBlockCacheFromContext(ctx)
+	cacheKey, cacheable := decodedBlockCacheKeyFor(c.pos.ref, b, c.transformer())
+	useCache := cache != nil && cacheable
+	if cache != nil && !cacheable {
+		RecordDecodedBlockUncacheable(ctx)
+	}
+	if useCache {
+		cached, ok, err := cache.Lookup(ctx, cacheKey)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			return c.setUnmarshaledBlock(cached)
+		}
+	} else if cache == nil {
+		recordDecodedBlockCacheMiss(ctx)
+	}
+
 	// returns nil, false, nil if reference was empty.
 	// returns nil, false, ErrNotFound if reference was not found.
 	dat, datFound, err := c.Fetch(ctx)
@@ -654,20 +675,40 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		return nil, err
 	}
 
-	// note: we call fetch before ctor to catch any storage errors.
-	// (if ctor == nil Unmarshal will assert value exists in storage)
-	b = ctor()
-	if b == nil {
-		return nil, nil
-	}
-
 	if datFound {
+		recordDecodedBlockUnmarshal(ctx, len(dat))
 		err := b.UnmarshalBlock(dat)
 		if err != nil {
 			return nil, err
 		}
+		if useCache {
+			if err := cache.Store(ctx, cacheKey, b); err != nil {
+				return nil, err
+			}
+		}
 	}
 
+	return c.setUnmarshaledBlock(b)
+}
+
+func (c *Cursor) readStore(ctx context.Context) StoreOps {
+	bkt := readOperationStore(ctx)
+	if bkt != nil {
+		return bkt
+	}
+	bkt, _ = c.GetBlockStore()
+	return bkt
+}
+
+func (c *Cursor) transformer() Transformer {
+	if c == nil || c.t == nil {
+		return nil
+	}
+	return c.t.xfrm
+}
+
+func (c *Cursor) setUnmarshaledBlock(b Block) (Block, error) {
+	var err error
 	if c.t != nil {
 		c.t.mtx.Lock()
 	}

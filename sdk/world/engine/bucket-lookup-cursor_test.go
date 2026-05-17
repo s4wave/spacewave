@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 )
 
@@ -79,11 +80,100 @@ func TestSDKBucketLookupStoreGetBlockExistsBatchUsesRemoteBatch(t *testing.T) {
 	}
 }
 
+func TestSDKBucketLookupStoreGetBlockRecordsResourceCounter(t *testing.T) {
+	ctx := context.Background()
+	data := []byte("resource block data")
+	ref := testSDKBlockRef(t, data)
+	service := &bucketLookupBatchService{
+		getBlockResponse: &s4wave_bucket_lookup.GetBlockResponse{
+			Data:  data,
+			Found: true,
+		},
+	}
+	store := &sdkBucketLookupStore{service: service}
+
+	opCtx, counter := block.WithReadCounter(ctx)
+	got, found, err := store.GetBlock(opCtx, ref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found || !bytes.Equal(got, data) {
+		t.Fatalf("GetBlock found=%v data=%q, want true %q", found, got, data)
+	}
+	if service.getBlockCalls != 1 {
+		t.Fatalf("GetBlock calls = %d, want 1", service.getBlockCalls)
+	}
+	snapshot := counter.Snapshot()
+	if snapshot.ResourceGetBlockCount != 1 ||
+		snapshot.ResourceGetBlockRefCount != 1 ||
+		snapshot.ResourceGetBlockBytes != uint64(len(data)) ||
+		snapshot.ResourceGetBlockMissCount != 0 {
+		t.Fatalf("unexpected resource GetBlock counters: %+v", snapshot)
+	}
+}
+
+func TestSDKBucketLookupStoreReadOperationReusesDecodedBlocks(t *testing.T) {
+	ctx := context.Background()
+	encoded, err := (&block_mock.Example{Msg: "resource decoded"}).MarshalBlock()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref := testSDKBlockRef(t, encoded)
+	service := &bucketLookupBatchService{
+		getBlockResponse: &s4wave_bucket_lookup.GetBlockResponse{
+			Data:  encoded,
+			Found: true,
+		},
+	}
+	store := &sdkBucketLookupStore{service: service}
+	_, first := block.NewTransaction(store, nil, ref, nil)
+	_, second := block.NewTransaction(store, nil, ref, nil)
+	ctor := func() block.Block { return &block_mock.Example{} }
+
+	opCtx, counter := block.WithReadCounter(ctx)
+	scopedStore, release, err := store.BeginReadOperation(opCtx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer release()
+	opCtx = block.WithReadOperationStore(opCtx, scopedStore)
+
+	firstBlock, err := first.Unmarshal(opCtx, ctor)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	firstExample := firstBlock.(*block_mock.Example)
+	firstExample.Msg = "mutated"
+
+	secondBlock, err := second.Unmarshal(opCtx, ctor)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	secondExample := secondBlock.(*block_mock.Example)
+	if secondExample.GetMsg() != "resource decoded" {
+		t.Fatalf("cached resource block message = %q, want resource decoded", secondExample.GetMsg())
+	}
+	if firstExample == secondExample {
+		t.Fatal("resource cache hit returned the first decoded block instance")
+	}
+	if service.getBlockCalls != 1 {
+		t.Fatalf("GetBlock calls = %d, want 1", service.getBlockCalls)
+	}
+	snapshot := counter.Snapshot()
+	if snapshot.ResourceGetBlockCount != 1 ||
+		snapshot.DecodedBlockUnmarshalCount != 1 ||
+		snapshot.DecodedBlockCacheHitCount != 1 ||
+		snapshot.DecodedBlockCloneCount != 1 {
+		t.Fatalf("unexpected resource decoded cache counters: %+v", snapshot)
+	}
+}
+
 type bucketLookupBatchService struct {
 	putBlockCalls       int
 	putBatchCalls       int
 	putBatchRequest     *s4wave_bucket_lookup.PutBlockBatchRequest
 	getBlockCalls       int
+	getBlockResponse    *s4wave_bucket_lookup.GetBlockResponse
 	existsBatchCalls    int
 	existsBatchRequest  *s4wave_bucket_lookup.GetBlockExistsBatchRequest
 	existsBatchResponse *s4wave_bucket_lookup.GetBlockExistsBatchResponse
@@ -101,6 +191,9 @@ func (s *bucketLookupBatchService) FollowRef(context.Context, *s4wave_bucket_loo
 
 func (s *bucketLookupBatchService) GetBlock(context.Context, *s4wave_bucket_lookup.GetBlockRequest) (*s4wave_bucket_lookup.GetBlockResponse, error) {
 	s.getBlockCalls++
+	if s.getBlockResponse != nil {
+		return s.getBlockResponse, nil
+	}
 	return nil, errors.New("unexpected GetBlock")
 }
 

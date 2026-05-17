@@ -21,6 +21,11 @@ func NewObjectBlock() block.Block {
 	return &Object{}
 }
 
+// DecodedBlockCacheTypeKey returns the decoded-block cache type key.
+func (o *Object) DecodedBlockCacheTypeKey() string {
+	return "db/world/block.Object"
+}
+
 // UnmarshalObject unmarshals a Object block from a cursor.
 // If empty, returns nil, nil
 func UnmarshalObject(ctx context.Context, bcs *block.Cursor) (*Object, error) {
@@ -78,6 +83,7 @@ func (o *Object) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Object)(nil))
-	_ block.BlockWithSubBlocks = ((*Object)(nil))
+	_ block.Block                 = ((*Object)(nil))
+	_ block.DecodedBlockCacheable = ((*Object)(nil))
+	_ block.BlockWithSubBlocks    = ((*Object)(nil))
 )

@@ -17,6 +17,11 @@ func NewWorldBlock() block.Block {
 	return &World{}
 }
 
+// DecodedBlockCacheTypeKey returns the decoded-block cache type key.
+func (w *World) DecodedBlockCacheTypeKey() string {
+	return "db/world/block.World"
+}
+
 // UnmarshalWorld unmarshals a world block from a cursor.
 // If empty, returns nil, nil
 func UnmarshalWorld(ctx context.Context, bcs *block.Cursor) (*World, error) {
@@ -105,6 +110,7 @@ func (w *World) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*World)(nil))
-	_ block.BlockWithSubBlocks = ((*World)(nil))
+	_ block.Block                 = ((*World)(nil))
+	_ block.DecodedBlockCacheable = ((*World)(nil))
+	_ block.BlockWithSubBlocks    = ((*World)(nil))
 )

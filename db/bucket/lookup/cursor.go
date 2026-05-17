@@ -35,6 +35,8 @@ type Cursor struct {
 	xfrm block.Transformer
 	// transformConf is the transform conf used for xfrm
 	transformConf *block_transform.Config
+	// decodedBlocks reuses decoded blocks for this cursor resource lifetime.
+	decodedBlocks *block.DecodedBlockCache
 	// rel is a release function
 	rel func()
 }
@@ -101,6 +103,7 @@ func NewCursorWithRelease(
 		ref:           ref,
 		opArgs:        opArgs,
 		transformConf: transformConf,
+		decodedBlocks: block.NewDecodedBlockCache(),
 		rel:           rel,
 	}
 }
@@ -145,6 +148,7 @@ func BuildCursor(
 		opArgs:        &bucket.BucketOpArgs{VolumeId: volumeID},
 		xfrm:          xfrm,
 		transformConf: transformConf,
+		decodedBlocks: block.NewDecodedBlockCache(),
 	}
 	refBucketID := ref.GetBucketId()
 	if !ref.GetEmpty() && refBucketID == "" {
@@ -599,36 +603,18 @@ func (c *Cursor) Unmarshal(
 	if rr.GetEmpty() {
 		return nil, nil
 	}
-
-	data, ok, err := c.bkt.GetBlock(ctx, rr)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, nil
-	}
-
-	if c.xfrm != nil {
-		data, err = c.xfrm.DecodeBlock(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	b := ctor()
-	if b == nil {
-		return nil, nil
-	}
-	if err := b.UnmarshalBlock(data); err != nil {
-		return nil, err
-	}
-
-	return b, nil
+	ctx = block.WithDecodedBlockCache(ctx, c.decodedBlocks)
+	_, cursor := c.BuildTransactionAtRef(nil, rr)
+	return cursor.Unmarshal(ctx, ctor)
 }
 
 // Release releases cursor resources.
 func (c *Cursor) Release() {
-	if c != nil && c.rel != nil {
+	if c == nil {
+		return
+	}
+	c.decodedBlocks = nil
+	if c.rel != nil {
 		c.rel()
 	}
 }
@@ -644,5 +630,6 @@ func (c *Cursor) clone() *Cursor {
 		xfrm:          c.xfrm,
 		ref:           c.ref.Clone(),
 		opArgs:        c.opArgs.CloneVT(),
+		decodedBlocks: c.decodedBlocks,
 	}
 }
