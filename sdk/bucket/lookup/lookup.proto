@@ -164,6 +164,9 @@ message UnmarshalRequest {
   // Data is the raw block data to unmarshal.
   // If empty, will fetch the block first.
   bytes data = 2;
+  // BlockType is the optional block type identifier for server-side decode.
+  // Empty preserves the legacy raw-byte fetch behavior.
+  string block_type = 3;
 }
 
 // UnmarshalResponse is the response type for Unmarshal.

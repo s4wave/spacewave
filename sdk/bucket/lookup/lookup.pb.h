@@ -3679,6 +3679,7 @@ class UnmarshalRequest final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kDataFieldNumber = 2,
+    kBlockTypeFieldNumber = 3,
     kRefFieldNumber = 1,
   };
   // bytes data = 2;
@@ -3694,6 +3695,21 @@ class UnmarshalRequest final : public ::google::protobuf::Message
   const ::std::string& _internal_data() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_data(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_data();
+
+  public:
+  // string block_type = 3;
+  void clear_block_type() ;
+  const ::std::string& block_type() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_block_type(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_block_type();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_block_type();
+  void set_allocated_block_type(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_block_type() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_block_type(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_block_type();
 
   public:
   // .bucket.ObjectRef ref = 1;
@@ -3715,8 +3731,8 @@ class UnmarshalRequest final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 56,
                                    2>
       _table_;
 
@@ -3738,6 +3754,7 @@ class UnmarshalRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr data_;
+    ::google::protobuf::internal::ArenaStringPtr block_type_;
     ::bucket::ObjectRef* PROTOBUF_NULLABLE ref_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -6904,7 +6921,7 @@ inline void CloneResponse::_internal_set_resource_id(::uint32_t value) {
 
 // .bucket.ObjectRef ref = 1;
 inline bool UnmarshalRequest::has_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.ref_ != nullptr);
   return value;
 }
@@ -6925,16 +6942,16 @@ inline void UnmarshalRequest::unsafe_arena_set_allocated_ref(
   }
   _impl_.ref_ = reinterpret_cast<::bucket::ObjectRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.bucket_lookup.UnmarshalRequest.ref)
 }
 inline ::bucket::ObjectRef* PROTOBUF_NULLABLE UnmarshalRequest::release_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bucket::ObjectRef* released = _impl_.ref_;
   _impl_.ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -6954,7 +6971,7 @@ inline ::bucket::ObjectRef* PROTOBUF_NULLABLE UnmarshalRequest::unsafe_arena_rel
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.bucket_lookup.UnmarshalRequest.ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bucket::ObjectRef* temp = _impl_.ref_;
   _impl_.ref_ = nullptr;
   return temp;
@@ -6969,7 +6986,7 @@ inline ::bucket::ObjectRef* PROTOBUF_NONNULL UnmarshalRequest::_internal_mutable
 }
 inline ::bucket::ObjectRef* PROTOBUF_NONNULL UnmarshalRequest::mutable_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::bucket::ObjectRef* _msg = _internal_mutable_ref();
   // @@protoc_insertion_point(field_mutable:s4wave.bucket_lookup.UnmarshalRequest.ref)
   return _msg;
@@ -6986,9 +7003,9 @@ inline void UnmarshalRequest::set_allocated_ref(::bucket::ObjectRef* PROTOBUF_NU
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
 
   _impl_.ref_ = reinterpret_cast<::bucket::ObjectRef*>(value);
@@ -7058,6 +7075,71 @@ inline void UnmarshalRequest::set_allocated_data(::std::string* PROTOBUF_NULLABL
     _impl_.data_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.bucket_lookup.UnmarshalRequest.data)
+}
+
+// string block_type = 3;
+inline void UnmarshalRequest::clear_block_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_type_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& UnmarshalRequest::block_type() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.bucket_lookup.UnmarshalRequest.block_type)
+  return _internal_block_type();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void UnmarshalRequest::set_block_type(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.block_type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.bucket_lookup.UnmarshalRequest.block_type)
+}
+inline ::std::string* PROTOBUF_NONNULL UnmarshalRequest::mutable_block_type()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_block_type();
+  // @@protoc_insertion_point(field_mutable:s4wave.bucket_lookup.UnmarshalRequest.block_type)
+  return _s;
+}
+inline const ::std::string& UnmarshalRequest::_internal_block_type() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.block_type_.Get();
+}
+inline void UnmarshalRequest::_internal_set_block_type(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_type_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL UnmarshalRequest::_internal_mutable_block_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.block_type_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE UnmarshalRequest::release_block_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.bucket_lookup.UnmarshalRequest.block_type)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.block_type_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.block_type_.Set("", GetArena());
+  }
+  return released;
+}
+inline void UnmarshalRequest::set_allocated_block_type(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.block_type_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.block_type_.IsDefault()) {
+    _impl_.block_type_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.bucket_lookup.UnmarshalRequest.block_type)
 }
 
 // -------------------------------------------------------------------

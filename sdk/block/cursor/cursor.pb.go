@@ -285,6 +285,9 @@ func (x *GetBlockResponse) GetIsSubBlock() bool {
 // UnmarshalRequest is the request type for Unmarshal.
 type UnmarshalRequest struct {
 	unknownFields []byte
+	// BlockType is the optional block type identifier for server-side decode.
+	// Empty preserves the legacy raw-byte fetch behavior.
+	BlockType string `protobuf:"bytes,1,opt,name=block_type,json=blockType,proto3" json:"blockType,omitempty"`
 }
 
 func (x *UnmarshalRequest) Reset() {
@@ -292,6 +295,13 @@ func (x *UnmarshalRequest) Reset() {
 }
 
 func (*UnmarshalRequest) ProtoMessage() {}
+
+func (x *UnmarshalRequest) GetBlockType() string {
+	if x != nil {
+		return x.BlockType
+	}
+	return ""
+}
 
 // UnmarshalResponse is the response type for Unmarshal.
 type UnmarshalResponse struct {
@@ -1026,6 +1036,7 @@ func (m *UnmarshalRequest) CloneVT() *UnmarshalRequest {
 		return (*UnmarshalRequest)(nil)
 	}
 	r := new(UnmarshalRequest)
+	r.BlockType = m.BlockType
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1717,6 +1728,9 @@ func (this *UnmarshalRequest) EqualVT(that *UnmarshalRequest) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.BlockType != that.BlockType {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2795,6 +2809,12 @@ func (x *UnmarshalRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.BlockType != "" || s.HasField("blockType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockType")
+		s.WriteString(x.BlockType)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2809,7 +2829,13 @@ func (x *UnmarshalRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "block_type", "blockType":
+			s.AddField("block_type")
+			x.BlockType = s.ReadString()
+		}
 	})
 }
 
@@ -4470,6 +4496,13 @@ func (m *UnmarshalRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.BlockType) > 0 {
+		i -= len(m.BlockType)
+		copy(dAtA[i:], m.BlockType)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BlockType)))
+		i--
+		dAtA[i] = 0xa
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -5658,6 +5691,10 @@ func (m *UnmarshalRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	l = len(m.BlockType)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -6235,6 +6272,13 @@ func (x *GetBlockResponse) String() string {
 func (x *UnmarshalRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("UnmarshalRequest {")
+	if x.BlockType != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_type: ")
+		sb.WriteString(strconv.Quote(x.BlockType))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -7556,6 +7600,28 @@ func (m *UnmarshalRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: UnmarshalRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockType", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BlockType = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

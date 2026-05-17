@@ -198,6 +198,10 @@ pub struct UnmarshalRequest {
     /// If empty, will fetch the block first.
     #[prost(bytes="vec", tag="2")]
     pub data: ::prost::alloc::vec::Vec<u8>,
+    /// BlockType is the optional block type identifier for server-side decode.
+    /// Empty preserves the legacy raw-byte fetch behavior.
+    #[prost(string, tag="3")]
+    pub block_type: ::prost::alloc::string::String,
 }
 /// UnmarshalResponse is the response type for Unmarshal.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

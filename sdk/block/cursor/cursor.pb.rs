@@ -95,8 +95,12 @@ pub struct GetBlockResponse {
     pub is_sub_block: bool,
 }
 /// UnmarshalRequest is the request type for Unmarshal.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UnmarshalRequest {
+    /// BlockType is the optional block type identifier for server-side decode.
+    /// Empty preserves the legacy raw-byte fetch behavior.
+    #[prost(string, tag="1")]
+    pub block_type: ::prost::alloc::string::String,
 }
 /// UnmarshalResponse is the response type for Unmarshal.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

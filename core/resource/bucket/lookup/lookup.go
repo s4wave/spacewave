@@ -5,10 +5,12 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_block_cursor "github.com/s4wave/spacewave/core/resource/block/cursor"
 	resource_block_transaction "github.com/s4wave/spacewave/core/resource/block/transaction"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/blocktype"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	"github.com/sirupsen/logrus"
@@ -197,6 +199,48 @@ func (r *BucketLookupCursorResource) Release(ctx context.Context, req *s4wave_bu
 func (r *BucketLookupCursorResource) Unmarshal(ctx context.Context, req *s4wave_bucket_lookup.UnmarshalRequest) (*s4wave_bucket_lookup.UnmarshalResponse, error) {
 	data := req.GetData()
 	ref := req.GetRef()
+	blockTypeID := req.GetBlockType()
+
+	if blockTypeID != "" && len(data) == 0 {
+		bt, btRef, err := blocktype.ExLookupBlockType(ctx, r.b, blockTypeID)
+		if err != nil {
+			return nil, err
+		}
+		if bt == nil {
+			return nil, errors.New("block type not found: " + blockTypeID)
+		}
+		if btRef != nil {
+			defer btRef.Release()
+		}
+
+		cursor := r.cursor
+		if ref != nil && !ref.GetEmpty() {
+			followed, err := r.cursor.FollowRef(ctx, ref)
+			if err != nil {
+				return nil, err
+			}
+			defer followed.Release()
+			cursor = followed
+		}
+		if cursor.GetRef().GetRootRef().GetEmpty() {
+			return &s4wave_bucket_lookup.UnmarshalResponse{Found: false}, nil
+		}
+		blk, err := cursor.Unmarshal(ctx, bt.Constructor)
+		if err != nil {
+			return nil, err
+		}
+		if blk == nil {
+			return &s4wave_bucket_lookup.UnmarshalResponse{Found: false}, nil
+		}
+		data, err := blk.MarshalBlock()
+		if err != nil {
+			return nil, err
+		}
+		return &s4wave_bucket_lookup.UnmarshalResponse{
+			Data:  data,
+			Found: true,
+		}, nil
+	}
 
 	// If no data provided, fetch the block
 	if len(data) == 0 {

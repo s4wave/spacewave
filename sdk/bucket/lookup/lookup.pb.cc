@@ -476,6 +476,9 @@ inline constexpr UnmarshalRequest::Impl_::Impl_(
         data_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        block_type_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         ref_{nullptr} {}
 
 template <typename>
@@ -783,11 +786,13 @@ const ::uint32_t
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::UnmarshalRequest, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::UnmarshalRequest, _impl_.ref_),
         PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::UnmarshalRequest, _impl_.data_),
-        1,
+        PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::UnmarshalRequest, _impl_.block_type_),
+        2,
         0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::bucket_lookup::UnmarshalResponse, _impl_._has_bits_),
         5, // hasbit index offset
@@ -823,7 +828,7 @@ static const ::_pbi::MigrationSchema
         {119, sizeof(::s4wave::bucket_lookup::ReleaseRequest)},
         {120, sizeof(::s4wave::bucket_lookup::ReleaseResponse)},
         {121, sizeof(::s4wave::bucket_lookup::UnmarshalRequest)},
-        {128, sizeof(::s4wave::bucket_lookup::UnmarshalResponse)},
+        {130, sizeof(::s4wave::bucket_lookup::UnmarshalResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::bucket_lookup::_MountBucketLookupRequest_default_instance_._instance,
@@ -894,38 +899,39 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fb
     "\001(\r\022\032\n\022cursor_resource_id\030\002 \001(\r\"\016\n\014Clone"
     "Request\"$\n\rCloneResponse\022\023\n\013resource_id\030"
     "\001 \001(\r\"\020\n\016ReleaseRequest\"\021\n\017ReleaseRespon"
-    "se\"@\n\020UnmarshalRequest\022\036\n\003ref\030\001 \001(\0132\021.bu"
-    "cket.ObjectRef\022\014\n\004data\030\002 \001(\014\"0\n\021Unmarsha"
-    "lResponse\022\014\n\004data\030\001 \001(\014\022\r\n\005found\030\002 \001(\0102\360"
-    "\010\n!BucketLookupCursorResourceService\022S\n\006"
-    "GetRef\022#.s4wave.bucket_lookup.GetRefRequ"
-    "est\032$.s4wave.bucket_lookup.GetRefRespons"
-    "e\022\\\n\tFollowRef\022&.s4wave.bucket_lookup.Fo"
-    "llowRefRequest\032\'.s4wave.bucket_lookup.Fo"
-    "llowRefResponse\022Y\n\010GetBlock\022%.s4wave.buc"
-    "ket_lookup.GetBlockRequest\032&.s4wave.buck"
-    "et_lookup.GetBlockResponse\022Y\n\010PutBlock\022%"
-    ".s4wave.bucket_lookup.PutBlockRequest\032&."
-    "s4wave.bucket_lookup.PutBlockResponse\022h\n"
-    "\rPutBlockBatch\022*.s4wave.bucket_lookup.Pu"
-    "tBlockBatchRequest\032+.s4wave.bucket_looku"
-    "p.PutBlockBatchResponse\022z\n\023GetBlockExist"
-    "sBatch\0220.s4wave.bucket_lookup.GetBlockEx"
-    "istsBatchRequest\0321.s4wave.bucket_lookup."
-    "GetBlockExistsBatchResponse\022q\n\020BuildTran"
-    "saction\022-.s4wave.bucket_lookup.BuildTran"
-    "sactionRequest\032..s4wave.bucket_lookup.Bu"
-    "ildTransactionResponse\022\200\001\n\025BuildTransact"
-    "ionAtRef\0222.s4wave.bucket_lookup.BuildTra"
-    "nsactionAtRefRequest\0323.s4wave.bucket_loo"
-    "kup.BuildTransactionAtRefResponse\022P\n\005Clo"
-    "ne\022\".s4wave.bucket_lookup.CloneRequest\032#"
-    ".s4wave.bucket_lookup.CloneResponse\022V\n\007R"
-    "elease\022$.s4wave.bucket_lookup.ReleaseReq"
-    "uest\032%.s4wave.bucket_lookup.ReleaseRespo"
-    "nse\022\\\n\tUnmarshal\022&.s4wave.bucket_lookup."
-    "UnmarshalRequest\032\'.s4wave.bucket_lookup."
-    "UnmarshalResponseb\006proto3"
+    "se\"T\n\020UnmarshalRequest\022\036\n\003ref\030\001 \001(\0132\021.bu"
+    "cket.ObjectRef\022\014\n\004data\030\002 \001(\014\022\022\n\nblock_ty"
+    "pe\030\003 \001(\t\"0\n\021UnmarshalResponse\022\014\n\004data\030\001 "
+    "\001(\014\022\r\n\005found\030\002 \001(\0102\360\010\n!BucketLookupCurso"
+    "rResourceService\022S\n\006GetRef\022#.s4wave.buck"
+    "et_lookup.GetRefRequest\032$.s4wave.bucket_"
+    "lookup.GetRefResponse\022\\\n\tFollowRef\022&.s4w"
+    "ave.bucket_lookup.FollowRefRequest\032\'.s4w"
+    "ave.bucket_lookup.FollowRefResponse\022Y\n\010G"
+    "etBlock\022%.s4wave.bucket_lookup.GetBlockR"
+    "equest\032&.s4wave.bucket_lookup.GetBlockRe"
+    "sponse\022Y\n\010PutBlock\022%.s4wave.bucket_looku"
+    "p.PutBlockRequest\032&.s4wave.bucket_lookup"
+    ".PutBlockResponse\022h\n\rPutBlockBatch\022*.s4w"
+    "ave.bucket_lookup.PutBlockBatchRequest\032+"
+    ".s4wave.bucket_lookup.PutBlockBatchRespo"
+    "nse\022z\n\023GetBlockExistsBatch\0220.s4wave.buck"
+    "et_lookup.GetBlockExistsBatchRequest\0321.s"
+    "4wave.bucket_lookup.GetBlockExistsBatchR"
+    "esponse\022q\n\020BuildTransaction\022-.s4wave.buc"
+    "ket_lookup.BuildTransactionRequest\032..s4w"
+    "ave.bucket_lookup.BuildTransactionRespon"
+    "se\022\200\001\n\025BuildTransactionAtRef\0222.s4wave.bu"
+    "cket_lookup.BuildTransactionAtRefRequest"
+    "\0323.s4wave.bucket_lookup.BuildTransaction"
+    "AtRefResponse\022P\n\005Clone\022\".s4wave.bucket_l"
+    "ookup.CloneRequest\032#.s4wave.bucket_looku"
+    "p.CloneResponse\022V\n\007Release\022$.s4wave.buck"
+    "et_lookup.ReleaseRequest\032%.s4wave.bucket"
+    "_lookup.ReleaseResponse\022\\\n\tUnmarshal\022&.s"
+    "4wave.bucket_lookup.UnmarshalRequest\032\'.s"
+    "4wave.bucket_lookup.UnmarshalResponseb\006p"
+    "roto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto_deps[3] = {
@@ -937,7 +943,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto = {
     false,
     false,
-    2865,
+    2885,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto,
     "github.com/s4wave/spacewave/sdk/bucket/lookup/lookup.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fbucket_2flookup_2flookup_2eproto_once,
@@ -6960,7 +6966,7 @@ void UnmarshalRequest::clear_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.ref_ != nullptr) _impl_.ref_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 UnmarshalRequest::UnmarshalRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -6977,7 +6983,8 @@ PROTOBUF_NDEBUG_INLINE UnmarshalRequest::Impl_::Impl_(
     [[maybe_unused]] const ::s4wave::bucket_lookup::UnmarshalRequest& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        data_(arena, from.data_) {}
+        data_(arena, from.data_),
+        block_type_(arena, from.block_type_) {}
 
 UnmarshalRequest::UnmarshalRequest(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -6993,7 +7000,7 @@ UnmarshalRequest::UnmarshalRequest(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.ref_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+  _impl_.ref_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.ref_)
                 : nullptr;
 
@@ -7003,7 +7010,8 @@ PROTOBUF_NDEBUG_INLINE UnmarshalRequest::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        data_(arena) {}
+        data_(arena),
+        block_type_(arena) {}
 
 inline void UnmarshalRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -7021,6 +7029,7 @@ inline void UnmarshalRequest::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.data_.Destroy();
+  this_._impl_.block_type_.Destroy();
   delete this_._impl_.ref_;
   this_._impl_.~Impl_();
 }
@@ -7068,16 +7077,16 @@ UnmarshalRequest::GetClassData() const {
   return UnmarshalRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 1, 56, 2>
 UnmarshalRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     UnmarshalRequest_class_data_.base(),
@@ -7087,26 +7096,36 @@ UnmarshalRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::bucket_lookup::UnmarshalRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .bucket.ObjectRef ref = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.ref_)}},
     // bytes data = 2;
     {::_pbi::TcParser::FastBS1,
      {18, 0, 0,
       PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.data_)}},
-    // .bucket.ObjectRef ref = 1;
-    {::_pbi::TcParser::FastMtS1,
-     {10, 1, 0,
-      PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.ref_)}},
+    // string block_type = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.block_type_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .bucket.ObjectRef ref = 1;
-    {PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.ref_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.ref_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // bytes data = 2;
     {PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.data_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // string block_type = 3;
+    {PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.block_type_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bucket::ObjectRef>()},
   }},
   {{
+    "\45\0\0\12\0\0\0\0"
+    "s4wave.bucket_lookup.UnmarshalRequest"
+    "block_type"
   }},
 };
 PROTOBUF_NOINLINE void UnmarshalRequest::Clear() {
@@ -7117,11 +7136,14 @@ PROTOBUF_NOINLINE void UnmarshalRequest::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.data_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.block_type_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.ref_ != nullptr);
       _impl_.ref_->Clear();
     }
@@ -7150,7 +7172,7 @@ PROTOBUF_NOINLINE void UnmarshalRequest::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .bucket.ObjectRef ref = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.ref_, this_._impl_.ref_->GetCachedSize(), target,
         stream);
@@ -7161,6 +7183,16 @@ PROTOBUF_NOINLINE void UnmarshalRequest::Clear() {
     if (!this_._internal_data().empty()) {
       const ::std::string& _s = this_._internal_data();
       target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string block_type = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_block_type().empty()) {
+      const ::std::string& _s = this_._internal_block_type();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.bucket_lookup.UnmarshalRequest.block_type");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
 
@@ -7189,7 +7221,7 @@ PROTOBUF_NOINLINE void UnmarshalRequest::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // bytes data = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_data().empty()) {
@@ -7197,8 +7229,15 @@ PROTOBUF_NOINLINE void UnmarshalRequest::Clear() {
                                         this_._internal_data());
       }
     }
-    // .bucket.ObjectRef ref = 1;
+    // string block_type = 3;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_block_type().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_block_type());
+      }
+    }
+    // .bucket.ObjectRef ref = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.ref_);
     }
@@ -7222,7 +7261,7 @@ void UnmarshalRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_data().empty()) {
         _this->_internal_set_data(from._internal_data());
@@ -7233,6 +7272,15 @@ void UnmarshalRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_block_type().empty()) {
+        _this->_internal_set_block_type(from._internal_block_type());
+      } else {
+        if (_this->_impl_.block_type_.IsDefault()) {
+          _this->_internal_set_block_type("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(from._impl_.ref_ != nullptr);
       if (_this->_impl_.ref_ == nullptr) {
         _this->_impl_.ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.ref_);
@@ -7261,6 +7309,7 @@ void UnmarshalRequest::InternalSwap(UnmarshalRequest* PROTOBUF_RESTRICT PROTOBUF
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.data_, &other->_impl_.data_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.block_type_, &other->_impl_.block_type_, arena);
   swap(_impl_.ref_, other->_impl_.ref_);
 }
 

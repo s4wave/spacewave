@@ -57,14 +57,23 @@ struct UnmarshalResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UnmarshalResponseDefaultTypeInternal _UnmarshalResponse_default_instance_;
+
+inline constexpr UnmarshalRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        block_type_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
 template <typename>
 PROTOBUF_CONSTEXPR UnmarshalRequest::UnmarshalRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(UnmarshalRequest_class_data_.base()){}
+    : ::google::protobuf::Message(UnmarshalRequest_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase() {
-}
+    : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
 struct UnmarshalRequestDefaultTypeInternal {
   PROTOBUF_CONSTEXPR UnmarshalRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~UnmarshalRequestDefaultTypeInternal() {}
@@ -1018,7 +1027,11 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::block::cursor::GetBlockResponse, _impl_.is_sub_block_),
         0,
         1,
-        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::block::cursor::UnmarshalRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::block::cursor::UnmarshalRequest, _impl_.block_type_),
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::block::cursor::UnmarshalResponse, _impl_._has_bits_),
         5, // hasbit index offset
@@ -1148,32 +1161,32 @@ static const ::_pbi::MigrationSchema
         {44, sizeof(::s4wave::block::cursor::GetBlockRequest)},
         {45, sizeof(::s4wave::block::cursor::GetBlockResponse)},
         {52, sizeof(::s4wave::block::cursor::UnmarshalRequest)},
-        {53, sizeof(::s4wave::block::cursor::UnmarshalResponse)},
-        {60, sizeof(::s4wave::block::cursor::IsSubBlockRequest)},
-        {61, sizeof(::s4wave::block::cursor::IsSubBlockResponse)},
-        {66, sizeof(::s4wave::block::cursor::FollowSubBlockRequest)},
-        {71, sizeof(::s4wave::block::cursor::FollowSubBlockResponse)},
-        {76, sizeof(::s4wave::block::cursor::SetAsSubBlockRequest)},
-        {83, sizeof(::s4wave::block::cursor::SetAsSubBlockResponse)},
-        {84, sizeof(::s4wave::block::cursor::ClearRefRequest)},
-        {89, sizeof(::s4wave::block::cursor::ClearRefResponse)},
-        {90, sizeof(::s4wave::block::cursor::ClearAllRefsRequest)},
-        {91, sizeof(::s4wave::block::cursor::ClearAllRefsResponse)},
-        {92, sizeof(::s4wave::block::cursor::SetRefRequest)},
-        {99, sizeof(::s4wave::block::cursor::SetRefResponse)},
-        {100, sizeof(::s4wave::block::cursor::GetExistingRefRequest)},
-        {105, sizeof(::s4wave::block::cursor::GetExistingRefResponse)},
-        {110, sizeof(::s4wave::block::cursor::GetAllRefsRequest)},
-        {115, sizeof(::s4wave::block::cursor::GetAllRefsResponse_RefsEntry_DoNotUse)},
-        {122, sizeof(::s4wave::block::cursor::GetAllRefsResponse)},
-        {127, sizeof(::s4wave::block::cursor::DetachRequest)},
-        {132, sizeof(::s4wave::block::cursor::DetachResponse)},
-        {137, sizeof(::s4wave::block::cursor::DetachTransactionRequest)},
-        {138, sizeof(::s4wave::block::cursor::DetachTransactionResponse)},
-        {143, sizeof(::s4wave::block::cursor::DetachRecursiveRequest)},
-        {152, sizeof(::s4wave::block::cursor::DetachRecursiveResponse)},
-        {157, sizeof(::s4wave::block::cursor::ParentsRequest)},
-        {158, sizeof(::s4wave::block::cursor::ParentsResponse)},
+        {57, sizeof(::s4wave::block::cursor::UnmarshalResponse)},
+        {64, sizeof(::s4wave::block::cursor::IsSubBlockRequest)},
+        {65, sizeof(::s4wave::block::cursor::IsSubBlockResponse)},
+        {70, sizeof(::s4wave::block::cursor::FollowSubBlockRequest)},
+        {75, sizeof(::s4wave::block::cursor::FollowSubBlockResponse)},
+        {80, sizeof(::s4wave::block::cursor::SetAsSubBlockRequest)},
+        {87, sizeof(::s4wave::block::cursor::SetAsSubBlockResponse)},
+        {88, sizeof(::s4wave::block::cursor::ClearRefRequest)},
+        {93, sizeof(::s4wave::block::cursor::ClearRefResponse)},
+        {94, sizeof(::s4wave::block::cursor::ClearAllRefsRequest)},
+        {95, sizeof(::s4wave::block::cursor::ClearAllRefsResponse)},
+        {96, sizeof(::s4wave::block::cursor::SetRefRequest)},
+        {103, sizeof(::s4wave::block::cursor::SetRefResponse)},
+        {104, sizeof(::s4wave::block::cursor::GetExistingRefRequest)},
+        {109, sizeof(::s4wave::block::cursor::GetExistingRefResponse)},
+        {114, sizeof(::s4wave::block::cursor::GetAllRefsRequest)},
+        {119, sizeof(::s4wave::block::cursor::GetAllRefsResponse_RefsEntry_DoNotUse)},
+        {126, sizeof(::s4wave::block::cursor::GetAllRefsResponse)},
+        {131, sizeof(::s4wave::block::cursor::DetachRequest)},
+        {136, sizeof(::s4wave::block::cursor::DetachResponse)},
+        {141, sizeof(::s4wave::block::cursor::DetachTransactionRequest)},
+        {142, sizeof(::s4wave::block::cursor::DetachTransactionResponse)},
+        {147, sizeof(::s4wave::block::cursor::DetachRecursiveRequest)},
+        {156, sizeof(::s4wave::block::cursor::DetachRecursiveResponse)},
+        {161, sizeof(::s4wave::block::cursor::ParentsRequest)},
+        {162, sizeof(::s4wave::block::cursor::ParentsResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::block::cursor::_FetchRequest_default_instance_._instance,
@@ -1235,83 +1248,84 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fb
     "\" \n\017IsDirtyResponse\022\r\n\005dirty\030\001 \001(\010\"\022\n\020Ma"
     "rkDirtyRequest\"\023\n\021MarkDirtyResponse\"\021\n\017G"
     "etBlockRequest\"6\n\020GetBlockResponse\022\014\n\004da"
-    "ta\030\001 \001(\014\022\024\n\014is_sub_block\030\002 \001(\010\"\022\n\020Unmars"
-    "halRequest\"0\n\021UnmarshalResponse\022\014\n\004data\030"
-    "\001 \001(\014\022\r\n\005found\030\002 \001(\010\"\023\n\021IsSubBlockReques"
-    "t\"*\n\022IsSubBlockResponse\022\024\n\014is_sub_block\030"
-    "\001 \001(\010\"\'\n\025FollowSubBlockRequest\022\016\n\006ref_id"
-    "\030\001 \001(\r\"-\n\026FollowSubBlockResponse\022\023\n\013reso"
-    "urce_id\030\001 \001(\r\"B\n\024SetAsSubBlockRequest\022\016\n"
-    "\006ref_id\030\001 \001(\r\022\032\n\022parent_resource_id\030\002 \001("
-    "\r\"\027\n\025SetAsSubBlockResponse\"!\n\017ClearRefRe"
-    "quest\022\016\n\006ref_id\030\001 \001(\r\"\022\n\020ClearRefRespons"
-    "e\"\025\n\023ClearAllRefsRequest\"\026\n\024ClearAllRefs"
-    "Response\";\n\rSetRefRequest\022\016\n\006ref_id\030\001 \001("
-    "\r\022\032\n\022target_resource_id\030\002 \001(\r\"\020\n\016SetRefR"
-    "esponse\"\'\n\025GetExistingRefRequest\022\016\n\006ref_"
-    "id\030\001 \001(\r\"-\n\026GetExistingRefResponse\022\023\n\013re"
-    "source_id\030\001 \001(\r\"*\n\021GetAllRefsRequest\022\025\n\r"
-    "existing_only\030\001 \001(\010\"\202\001\n\022GetAllRefsRespon"
-    "se\022\?\n\004refs\030\001 \003(\01321.s4wave.block.cursor.G"
-    "etAllRefsResponse.RefsEntry\032+\n\tRefsEntry"
-    "\022\013\n\003key\030\001 \001(\r\022\r\n\005value\030\002 \001(\r:\0028\001\"\"\n\rDeta"
-    "chRequest\022\021\n\tkeep_refs\030\001 \001(\010\"%\n\016DetachRe"
-    "sponse\022\023\n\013resource_id\030\001 \001(\r\"\032\n\030DetachTra"
-    "nsactionRequest\"0\n\031DetachTransactionResp"
-    "onse\022\023\n\013resource_id\030\001 \001(\r\"U\n\026DetachRecur"
-    "siveRequest\022\021\n\tdetach_tx\030\001 \001(\010\022\024\n\014clone_"
-    "blocks\030\002 \001(\010\022\022\n\nmark_dirty\030\003 \001(\010\".\n\027Deta"
-    "chRecursiveResponse\022\023\n\013resource_id\030\001 \001(\r"
-    "\"\020\n\016ParentsRequest\".\n\017ParentsResponse\022\033\n"
-    "\023parent_resource_ids\030\001 \003(\r2\363\016\n\032BlockCurs"
-    "orResourceService\022N\n\005Fetch\022!.s4wave.bloc"
-    "k.cursor.FetchRequest\032\".s4wave.block.cur"
-    "sor.FetchResponse\022W\n\010SetBlock\022$.s4wave.b"
-    "lock.cursor.SetBlockRequest\032%.s4wave.blo"
-    "ck.cursor.SetBlockResponse\022Z\n\tFollowRef\022"
-    "%.s4wave.block.cursor.FollowRefRequest\032&"
-    ".s4wave.block.cursor.FollowRefResponse\022Q"
-    "\n\006GetRef\022\".s4wave.block.cursor.GetRefReq"
-    "uest\032#.s4wave.block.cursor.GetRefRespons"
-    "e\022T\n\007IsDirty\022#.s4wave.block.cursor.IsDir"
-    "tyRequest\032$.s4wave.block.cursor.IsDirtyR"
-    "esponse\022Z\n\tMarkDirty\022%.s4wave.block.curs"
-    "or.MarkDirtyRequest\032&.s4wave.block.curso"
-    "r.MarkDirtyResponse\022W\n\010GetBlock\022$.s4wave"
-    ".block.cursor.GetBlockRequest\032%.s4wave.b"
-    "lock.cursor.GetBlockResponse\022Z\n\tUnmarsha"
-    "l\022%.s4wave.block.cursor.UnmarshalRequest"
-    "\032&.s4wave.block.cursor.UnmarshalResponse"
-    "\022]\n\nIsSubBlock\022&.s4wave.block.cursor.IsS"
-    "ubBlockRequest\032\'.s4wave.block.cursor.IsS"
-    "ubBlockResponse\022i\n\016FollowSubBlock\022*.s4wa"
-    "ve.block.cursor.FollowSubBlockRequest\032+."
-    "s4wave.block.cursor.FollowSubBlockRespon"
-    "se\022f\n\rSetAsSubBlock\022).s4wave.block.curso"
-    "r.SetAsSubBlockRequest\032*.s4wave.block.cu"
-    "rsor.SetAsSubBlockResponse\022W\n\010ClearRef\022$"
-    ".s4wave.block.cursor.ClearRefRequest\032%.s"
-    "4wave.block.cursor.ClearRefResponse\022c\n\014C"
-    "learAllRefs\022(.s4wave.block.cursor.ClearA"
-    "llRefsRequest\032).s4wave.block.cursor.Clea"
-    "rAllRefsResponse\022Q\n\006SetRef\022\".s4wave.bloc"
-    "k.cursor.SetRefRequest\032#.s4wave.block.cu"
-    "rsor.SetRefResponse\022i\n\016GetExistingRef\022*."
-    "s4wave.block.cursor.GetExistingRefReques"
-    "t\032+.s4wave.block.cursor.GetExistingRefRe"
-    "sponse\022]\n\nGetAllRefs\022&.s4wave.block.curs"
-    "or.GetAllRefsRequest\032\'.s4wave.block.curs"
-    "or.GetAllRefsResponse\022Q\n\006Detach\022\".s4wave"
-    ".block.cursor.DetachRequest\032#.s4wave.blo"
-    "ck.cursor.DetachResponse\022r\n\021DetachTransa"
-    "ction\022-.s4wave.block.cursor.DetachTransa"
-    "ctionRequest\032..s4wave.block.cursor.Detac"
-    "hTransactionResponse\022l\n\017DetachRecursive\022"
-    "+.s4wave.block.cursor.DetachRecursiveReq"
-    "uest\032,.s4wave.block.cursor.DetachRecursi"
-    "veResponse\022T\n\007Parents\022#.s4wave.block.cur"
-    "sor.ParentsRequest\032$.s4wave.block.cursor"
-    ".ParentsResponseb\006proto3"
+    "ta\030\001 \001(\014\022\024\n\014is_sub_block\030\002 \001(\010\"&\n\020Unmars"
+    "halRequest\022\022\n\nblock_type\030\001 \001(\t\"0\n\021Unmars"
+    "halResponse\022\014\n\004data\030\001 \001(\014\022\r\n\005found\030\002 \001(\010"
+    "\"\023\n\021IsSubBlockRequest\"*\n\022IsSubBlockRespo"
+    "nse\022\024\n\014is_sub_block\030\001 \001(\010\"\'\n\025FollowSubBl"
+    "ockRequest\022\016\n\006ref_id\030\001 \001(\r\"-\n\026FollowSubB"
+    "lockResponse\022\023\n\013resource_id\030\001 \001(\r\"B\n\024Set"
+    "AsSubBlockRequest\022\016\n\006ref_id\030\001 \001(\r\022\032\n\022par"
+    "ent_resource_id\030\002 \001(\r\"\027\n\025SetAsSubBlockRe"
+    "sponse\"!\n\017ClearRefRequest\022\016\n\006ref_id\030\001 \001("
+    "\r\"\022\n\020ClearRefResponse\"\025\n\023ClearAllRefsReq"
+    "uest\"\026\n\024ClearAllRefsResponse\";\n\rSetRefRe"
+    "quest\022\016\n\006ref_id\030\001 \001(\r\022\032\n\022target_resource"
+    "_id\030\002 \001(\r\"\020\n\016SetRefResponse\"\'\n\025GetExisti"
+    "ngRefRequest\022\016\n\006ref_id\030\001 \001(\r\"-\n\026GetExist"
+    "ingRefResponse\022\023\n\013resource_id\030\001 \001(\r\"*\n\021G"
+    "etAllRefsRequest\022\025\n\rexisting_only\030\001 \001(\010\""
+    "\202\001\n\022GetAllRefsResponse\022\?\n\004refs\030\001 \003(\01321.s"
+    "4wave.block.cursor.GetAllRefsResponse.Re"
+    "fsEntry\032+\n\tRefsEntry\022\013\n\003key\030\001 \001(\r\022\r\n\005val"
+    "ue\030\002 \001(\r:\0028\001\"\"\n\rDetachRequest\022\021\n\tkeep_re"
+    "fs\030\001 \001(\010\"%\n\016DetachResponse\022\023\n\013resource_i"
+    "d\030\001 \001(\r\"\032\n\030DetachTransactionRequest\"0\n\031D"
+    "etachTransactionResponse\022\023\n\013resource_id\030"
+    "\001 \001(\r\"U\n\026DetachRecursiveRequest\022\021\n\tdetac"
+    "h_tx\030\001 \001(\010\022\024\n\014clone_blocks\030\002 \001(\010\022\022\n\nmark"
+    "_dirty\030\003 \001(\010\".\n\027DetachRecursiveResponse\022"
+    "\023\n\013resource_id\030\001 \001(\r\"\020\n\016ParentsRequest\"."
+    "\n\017ParentsResponse\022\033\n\023parent_resource_ids"
+    "\030\001 \003(\r2\363\016\n\032BlockCursorResourceService\022N\n"
+    "\005Fetch\022!.s4wave.block.cursor.FetchReques"
+    "t\032\".s4wave.block.cursor.FetchResponse\022W\n"
+    "\010SetBlock\022$.s4wave.block.cursor.SetBlock"
+    "Request\032%.s4wave.block.cursor.SetBlockRe"
+    "sponse\022Z\n\tFollowRef\022%.s4wave.block.curso"
+    "r.FollowRefRequest\032&.s4wave.block.cursor"
+    ".FollowRefResponse\022Q\n\006GetRef\022\".s4wave.bl"
+    "ock.cursor.GetRefRequest\032#.s4wave.block."
+    "cursor.GetRefResponse\022T\n\007IsDirty\022#.s4wav"
+    "e.block.cursor.IsDirtyRequest\032$.s4wave.b"
+    "lock.cursor.IsDirtyResponse\022Z\n\tMarkDirty"
+    "\022%.s4wave.block.cursor.MarkDirtyRequest\032"
+    "&.s4wave.block.cursor.MarkDirtyResponse\022"
+    "W\n\010GetBlock\022$.s4wave.block.cursor.GetBlo"
+    "ckRequest\032%.s4wave.block.cursor.GetBlock"
+    "Response\022Z\n\tUnmarshal\022%.s4wave.block.cur"
+    "sor.UnmarshalRequest\032&.s4wave.block.curs"
+    "or.UnmarshalResponse\022]\n\nIsSubBlock\022&.s4w"
+    "ave.block.cursor.IsSubBlockRequest\032\'.s4w"
+    "ave.block.cursor.IsSubBlockResponse\022i\n\016F"
+    "ollowSubBlock\022*.s4wave.block.cursor.Foll"
+    "owSubBlockRequest\032+.s4wave.block.cursor."
+    "FollowSubBlockResponse\022f\n\rSetAsSubBlock\022"
+    ").s4wave.block.cursor.SetAsSubBlockReque"
+    "st\032*.s4wave.block.cursor.SetAsSubBlockRe"
+    "sponse\022W\n\010ClearRef\022$.s4wave.block.cursor"
+    ".ClearRefRequest\032%.s4wave.block.cursor.C"
+    "learRefResponse\022c\n\014ClearAllRefs\022(.s4wave"
+    ".block.cursor.ClearAllRefsRequest\032).s4wa"
+    "ve.block.cursor.ClearAllRefsResponse\022Q\n\006"
+    "SetRef\022\".s4wave.block.cursor.SetRefReque"
+    "st\032#.s4wave.block.cursor.SetRefResponse\022"
+    "i\n\016GetExistingRef\022*.s4wave.block.cursor."
+    "GetExistingRefRequest\032+.s4wave.block.cur"
+    "sor.GetExistingRefResponse\022]\n\nGetAllRefs"
+    "\022&.s4wave.block.cursor.GetAllRefsRequest"
+    "\032\'.s4wave.block.cursor.GetAllRefsRespons"
+    "e\022Q\n\006Detach\022\".s4wave.block.cursor.Detach"
+    "Request\032#.s4wave.block.cursor.DetachResp"
+    "onse\022r\n\021DetachTransaction\022-.s4wave.block"
+    ".cursor.DetachTransactionRequest\032..s4wav"
+    "e.block.cursor.DetachTransactionResponse"
+    "\022l\n\017DetachRecursive\022+.s4wave.block.curso"
+    "r.DetachRecursiveRequest\032,.s4wave.block."
+    "cursor.DetachRecursiveResponse\022T\n\007Parent"
+    "s\022#.s4wave.block.cursor.ParentsRequest\032$"
+    ".s4wave.block.cursor.ParentsResponseb\006pr"
+    "oto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fblock_2fcursor_2fcursor_2eproto_deps[1] = {
@@ -1321,7 +1335,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fblock_2fcursor_2fcursor_2eproto = {
     false,
     false,
-    3664,
+    3684,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fblock_2fcursor_2fcursor_2eproto,
     "github.com/s4wave/spacewave/sdk/block/cursor/cursor.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fblock_2fcursor_2fcursor_2eproto_once,
@@ -4149,30 +4163,67 @@ void GetBlockResponse::InternalSwap(GetBlockResponse* PROTOBUF_RESTRICT PROTOBUF
 
 class UnmarshalRequest::_Internal {
  public:
+  using HasBits =
+      decltype(::std::declval<UnmarshalRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_._has_bits_);
 };
 
 UnmarshalRequest::UnmarshalRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, UnmarshalRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, UnmarshalRequest_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:s4wave.block.cursor.UnmarshalRequest)
 }
+PROTOBUF_NDEBUG_INLINE UnmarshalRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::block::cursor::UnmarshalRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        block_type_(arena, from.block_type_) {}
+
 UnmarshalRequest::UnmarshalRequest(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
     const UnmarshalRequest& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, UnmarshalRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, UnmarshalRequest_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   UnmarshalRequest* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
 
   // @@protoc_insertion_point(copy_constructor:s4wave.block.cursor.UnmarshalRequest)
+}
+PROTOBUF_NDEBUG_INLINE UnmarshalRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        block_type_(arena) {}
+
+inline void UnmarshalRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+UnmarshalRequest::~UnmarshalRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.block.cursor.UnmarshalRequest)
+  SharedDtor(*this);
+}
+inline void UnmarshalRequest::SharedDtor(MessageLite& self) {
+  UnmarshalRequest& this_ = static_cast<UnmarshalRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.block_type_.Destroy();
+  this_._impl_.~Impl_();
 }
 
 inline void* PROTOBUF_NONNULL UnmarshalRequest::PlacementNew_(
@@ -4181,7 +4232,7 @@ inline void* PROTOBUF_NONNULL UnmarshalRequest::PlacementNew_(
   return ::new (mem) UnmarshalRequest(arena);
 }
 constexpr auto UnmarshalRequest::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(UnmarshalRequest),
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(UnmarshalRequest),
                                             alignof(UnmarshalRequest));
 }
 constexpr auto UnmarshalRequest::InternalGenerateClassData_() {
@@ -4192,10 +4243,10 @@ constexpr auto UnmarshalRequest::InternalGenerateClassData_() {
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
           &UnmarshalRequest::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<UnmarshalRequest>(),
+          ::google::protobuf::Message::GetNewImpl<UnmarshalRequest>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
           &UnmarshalRequest::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<UnmarshalRequest>(), &UnmarshalRequest::ByteSizeLong,
+          ::google::protobuf::Message::GetClearImpl<UnmarshalRequest>(), &UnmarshalRequest::ByteSizeLong,
               &UnmarshalRequest::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
           PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_._cached_size_),
@@ -4218,16 +4269,16 @@ UnmarshalRequest::GetClassData() const {
   return UnmarshalRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+const ::_pbi::TcParseTable<0, 1, 0, 55, 2>
 UnmarshalRequest::_table_ = {
   {
-    0,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_._has_bits_),
     0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
+    1, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     UnmarshalRequest_class_data_.base(),
@@ -4237,22 +4288,151 @@ UnmarshalRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::block::cursor::UnmarshalRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // string block_type = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.block_type_)}},
   }}, {{
     65535, 65535
-  }}, // no field_entries, or aux_entries
+  }}, {{
+    // string block_type = 1;
+    {PROTOBUF_FIELD_OFFSET(UnmarshalRequest, _impl_.block_type_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
   {{
+    "\44\12\0\0\0\0\0\0"
+    "s4wave.block.cursor.UnmarshalRequest"
+    "block_type"
   }},
 };
+PROTOBUF_NOINLINE void UnmarshalRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.block.cursor.UnmarshalRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.block_type_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL UnmarshalRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const UnmarshalRequest& this_ = static_cast<const UnmarshalRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL UnmarshalRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const UnmarshalRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.block.cursor.UnmarshalRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string block_type = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_block_type().empty()) {
+      const ::std::string& _s = this_._internal_block_type();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.block.cursor.UnmarshalRequest.block_type");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.block.cursor.UnmarshalRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t UnmarshalRequest::ByteSizeLong(const MessageLite& base) {
+  const UnmarshalRequest& this_ = static_cast<const UnmarshalRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t UnmarshalRequest::ByteSizeLong() const {
+  const UnmarshalRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.block.cursor.UnmarshalRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string block_type = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_block_type().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_block_type());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void UnmarshalRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<UnmarshalRequest*>(&to_msg);
+  auto& from = static_cast<const UnmarshalRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.block.cursor.UnmarshalRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_block_type().empty()) {
+      _this->_internal_set_block_type(from._internal_block_type());
+    } else {
+      if (_this->_impl_.block_type_.IsDefault()) {
+        _this->_internal_set_block_type("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void UnmarshalRequest::CopyFrom(const UnmarshalRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.block.cursor.UnmarshalRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
 
 
-
-
-
-
+void UnmarshalRequest::InternalSwap(UnmarshalRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.block_type_, &other->_impl_.block_type_, arena);
+}
 
 ::google::protobuf::Metadata UnmarshalRequest::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

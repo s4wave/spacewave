@@ -562,6 +562,9 @@ type UnmarshalRequest struct {
 	// Data is the raw block data to unmarshal.
 	// If empty, will fetch the block first.
 	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// BlockType is the optional block type identifier for server-side decode.
+	// Empty preserves the legacy raw-byte fetch behavior.
+	BlockType string `protobuf:"bytes,3,opt,name=block_type,json=blockType,proto3" json:"blockType,omitempty"`
 }
 
 func (x *UnmarshalRequest) Reset() {
@@ -582,6 +585,13 @@ func (x *UnmarshalRequest) GetData() []byte {
 		return x.Data
 	}
 	return nil
+}
+
+func (x *UnmarshalRequest) GetBlockType() string {
+	if x != nil {
+		return x.BlockType
+	}
+	return ""
 }
 
 // UnmarshalResponse is the response type for Unmarshal.
@@ -1018,6 +1028,7 @@ func (m *UnmarshalRequest) CloneVT() *UnmarshalRequest {
 	}
 	r := new(UnmarshalRequest)
 	r.Ref = m.Ref.CloneVT()
+	r.BlockType = m.BlockType
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
 	}
@@ -1592,6 +1603,9 @@ func (this *UnmarshalRequest) EqualVT(that *UnmarshalRequest) bool {
 		return false
 	}
 	if string(this.Data) != string(that.Data) {
+		return false
+	}
+	if this.BlockType != that.BlockType {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2763,6 +2777,11 @@ func (x *UnmarshalRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("data")
 		s.WriteBytes(x.Data)
 	}
+	if x.BlockType != "" || s.HasField("blockType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockType")
+		s.WriteString(x.BlockType)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2790,6 +2809,9 @@ func (x *UnmarshalRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "data":
 			s.AddField("data")
 			x.Data = s.ReadBytes()
+		case "block_type", "blockType":
+			s.AddField("block_type")
+			x.BlockType = s.ReadString()
 		}
 	})
 }
@@ -3901,6 +3923,13 @@ func (m *UnmarshalRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.BlockType) > 0 {
+		i -= len(m.BlockType)
+		copy(dAtA[i:], m.BlockType)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BlockType)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.Data) > 0 {
 		i -= len(m.Data)
 		copy(dAtA[i:], m.Data)
@@ -4331,6 +4360,10 @@ func (m *UnmarshalRequest) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.BlockType)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -4873,6 +4906,13 @@ func (x *UnmarshalRequest) MarshalProtoText() string {
 		sb.WriteString("\"")
 		sb.WriteString(base64.StdEncoding.EncodeToString(x.Data))
 		sb.WriteString("\"")
+	}
+	if x.BlockType != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_type: ")
+		sb.WriteString(strconv.Quote(x.BlockType))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -6640,6 +6680,28 @@ func (m *UnmarshalRequest) UnmarshalVT(dAtA []byte) error {
 			if m.Data == nil {
 				m.Data = []byte{}
 			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockType", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BlockType = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

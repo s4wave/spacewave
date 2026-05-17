@@ -79,7 +79,11 @@ message GetBlockResponse {
 }
 
 // UnmarshalRequest is the request type for Unmarshal.
-message UnmarshalRequest {}
+message UnmarshalRequest {
+  // BlockType is the optional block type identifier for server-side decode.
+  // Empty preserves the legacy raw-byte fetch behavior.
+  string block_type = 1;
+}
 
 // UnmarshalResponse is the response type for Unmarshal.
 message UnmarshalResponse {

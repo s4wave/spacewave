@@ -54,4 +54,19 @@ func TestCursorUnmarshalReusesDecodedBlocksForResourceLifetime(t *testing.T) {
 		snapshot.DecodedBlockCloneCount != 1 {
 		t.Fatalf("unexpected decoded cache counters: %+v", snapshot)
 	}
+
+	cursor.Release()
+	opCtx, counter = block.WithReadCounter(ctx)
+	if _, err := cursor.Unmarshal(opCtx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := cursor.Unmarshal(opCtx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	snapshot = counter.Snapshot()
+	if snapshot.BlockReadCount != 2 ||
+		snapshot.DecodedBlockUnmarshalCount != 2 ||
+		snapshot.DecodedBlockCacheHitCount != 0 {
+		t.Fatalf("decoded cache should be released: %+v", snapshot)
+	}
 }

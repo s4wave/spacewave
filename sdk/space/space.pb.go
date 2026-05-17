@@ -723,13 +723,9 @@ func (m *SpaceState) CloneVT() *SpaceState {
 	}
 	r := new(SpaceState)
 	r.Ready = m.Ready
+	r.WorldContents = m.WorldContents.CloneVT()
+	r.Settings = m.Settings.CloneVT()
 	r.TransformInfo = m.TransformInfo.CloneVT()
-	if rhs := m.WorldContents; rhs != nil {
-		r.WorldContents = rhs.CloneVT()
-	}
-	if rhs := m.Settings; rhs != nil {
-		r.Settings = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -933,9 +929,7 @@ func (m *CreateSecretResponse) CloneVT() *CreateSecretResponse {
 		return (*CreateSecretResponse)(nil)
 	}
 	r := new(CreateSecretResponse)
-	if rhs := m.Secret; rhs != nil {
-		r.Secret = rhs.CloneVT()
-	}
+	r.Secret = m.Secret.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -968,12 +962,8 @@ func (m *ReadSecretPayloadResponse) CloneVT() *ReadSecretPayloadResponse {
 		return (*ReadSecretPayloadResponse)(nil)
 	}
 	r := new(ReadSecretPayloadResponse)
-	if rhs := m.Secret; rhs != nil {
-		r.Secret = rhs.CloneVT()
-	}
-	if rhs := m.Payload; rhs != nil {
-		r.Payload = rhs.CloneVT()
-	}
+	r.Secret = m.Secret.CloneVT()
+	r.Payload = m.Payload.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

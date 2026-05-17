@@ -315,13 +315,23 @@ export const GetBlockResponse: MessageType<GetBlockResponse> =
  *
  * @generated from message s4wave.block.cursor.UnmarshalRequest
  */
-export interface UnmarshalRequest {}
+export interface UnmarshalRequest {
+  /**
+   * BlockType is the optional block type identifier for server-side decode.
+   * Empty preserves the legacy raw-byte fetch behavior.
+   *
+   * @generated from field: string block_type = 1;
+   */
+  blockType?: string
+}
 
 // UnmarshalRequest contains the message type declaration for UnmarshalRequest.
 export const UnmarshalRequest: MessageType<UnmarshalRequest> =
   createMessageType({
     typeName: 's4wave.block.cursor.UnmarshalRequest',
-    fields: [] as readonly PartialFieldInfo[],
+    fields: [
+      { no: 1, name: 'block_type', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 

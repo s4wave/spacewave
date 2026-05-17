@@ -143,6 +143,39 @@ func (r *BlockCursorResource) GetBlock(ctx context.Context, req *s4wave_block_cu
 
 // Unmarshal fetches and unmarshals the data to a block.
 func (r *BlockCursorResource) Unmarshal(ctx context.Context, req *s4wave_block_cursor.UnmarshalRequest) (*s4wave_block_cursor.UnmarshalResponse, error) {
+	blockTypeID := req.GetBlockType()
+	if blockTypeID != "" {
+		if r.cursor.GetRef().GetEmpty() {
+			return &s4wave_block_cursor.UnmarshalResponse{Found: false}, nil
+		}
+		bt, btRef, err := blocktype.ExLookupBlockType(ctx, r.b, blockTypeID)
+		if err != nil {
+			return nil, err
+		}
+		if bt == nil {
+			return nil, errors.New("block type not found: " + blockTypeID)
+		}
+		if btRef != nil {
+			defer btRef.Release()
+		}
+
+		blk, err := r.cursor.Unmarshal(ctx, bt.Constructor)
+		if err != nil {
+			return nil, err
+		}
+		if blk == nil {
+			return &s4wave_block_cursor.UnmarshalResponse{Found: false}, nil
+		}
+		data, err := blk.MarshalBlock()
+		if err != nil {
+			return nil, err
+		}
+		return &s4wave_block_cursor.UnmarshalResponse{
+			Data:  data,
+			Found: true,
+		}, nil
+	}
+
 	data, found, err := r.cursor.Fetch(ctx)
 	if err != nil {
 		return nil, err

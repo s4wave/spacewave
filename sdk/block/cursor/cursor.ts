@@ -11,6 +11,7 @@ import {
   GetRefResponse,
   IsDirtyResponse,
   GetBlockResponse,
+  UnmarshalRequest,
   UnmarshalResponse,
   IsSubBlockResponse,
   FollowSubBlockRequest,
@@ -78,9 +79,10 @@ export class BlockCursor extends Resource {
 
   // unmarshal fetches and unmarshals the data to a block.
   public async unmarshal(
+    req: UnmarshalRequest = {},
     abortSignal?: AbortSignal,
   ): Promise<UnmarshalResponse> {
-    return await this.service.Unmarshal({}, abortSignal)
+    return await this.service.Unmarshal(req, abortSignal)
   }
 
   // isSubBlock indicates if the cursor is at a sub-block position.
