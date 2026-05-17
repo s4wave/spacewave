@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	runtime_trace "runtime/trace"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,88 @@ type blockingTraceStream struct {
 	release   chan struct{}
 	firstCopy []byte
 	firstMsg  []byte
+}
+
+type testCPUProfileStream struct {
+	ctx       context.Context
+	sendErr   error
+	byteCount int
+}
+
+func (s *testCPUProfileStream) Context() context.Context {
+	if s.ctx == nil {
+		return context.Background()
+	}
+	return s.ctx
+}
+
+func (s *testCPUProfileStream) MsgSend(msg srpc.Message) error {
+	resp, ok := msg.(*s4wave_trace.CaptureCPUProfileResponse)
+	if !ok {
+		return errors.New("unexpected CPU profile response message")
+	}
+	return s.Send(resp)
+}
+
+func (s *testCPUProfileStream) MsgRecv(srpc.Message) error { return io.EOF }
+
+func (s *testCPUProfileStream) CloseSend() error { return nil }
+
+func (s *testCPUProfileStream) Close() error { return nil }
+
+func (s *testCPUProfileStream) Send(resp *s4wave_trace.CaptureCPUProfileResponse) error {
+	if s.sendErr != nil {
+		return s.sendErr
+	}
+	s.byteCount += len(resp.GetData())
+	return nil
+}
+
+func (s *testCPUProfileStream) SendAndClose(resp *s4wave_trace.CaptureCPUProfileResponse) error {
+	if resp != nil {
+		return s.Send(resp)
+	}
+	return nil
+}
+
+type testMemoryProfileStream struct {
+	ctx     context.Context
+	sendErr error
+}
+
+func (s *testMemoryProfileStream) Context() context.Context {
+	if s.ctx == nil {
+		return context.Background()
+	}
+	return s.ctx
+}
+
+func (s *testMemoryProfileStream) MsgSend(msg srpc.Message) error {
+	resp, ok := msg.(*s4wave_trace.CaptureMemoryProfileResponse)
+	if !ok {
+		return errors.New("unexpected memory profile response message")
+	}
+	return s.Send(resp)
+}
+
+func (s *testMemoryProfileStream) MsgRecv(srpc.Message) error { return io.EOF }
+
+func (s *testMemoryProfileStream) CloseSend() error { return nil }
+
+func (s *testMemoryProfileStream) Close() error { return nil }
+
+func (s *testMemoryProfileStream) Send(resp *s4wave_trace.CaptureMemoryProfileResponse) error {
+	if s.sendErr != nil {
+		return s.sendErr
+	}
+	return nil
+}
+
+func (s *testMemoryProfileStream) SendAndClose(resp *s4wave_trace.CaptureMemoryProfileResponse) error {
+	if resp != nil {
+		return s.Send(resp)
+	}
+	return nil
 }
 
 func newBlockingTraceStream(ctx context.Context) *blockingTraceStream {
@@ -253,6 +336,51 @@ func TestTraceServiceCaptureCPUProfile(t *testing.T) {
 	}
 }
 
+func TestTraceServiceRejectsBusyCPUProfile(t *testing.T) {
+	service := NewService()
+	service.mu.Lock()
+	service.profileBusy = true
+	service.mu.Unlock()
+
+	err := service.CaptureCPUProfile(&s4wave_trace.CaptureCPUProfileRequest{DurationMillis: 1}, &testCPUProfileStream{})
+	if err == nil || !strings.Contains(err.Error(), "already active") {
+		t.Fatalf("expected busy CPU profile error, got %v", err)
+	}
+
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	if !service.profileBusy {
+		t.Fatal("busy rejection cleared the active profile owner")
+	}
+	service.profileBusy = false
+}
+
+func TestTraceServiceCPUProfileCancelClearsBusy(t *testing.T) {
+	service := NewService()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := service.CaptureCPUProfile(&s4wave_trace.CaptureCPUProfileRequest{DurationMillis: 1000}, &testCPUProfileStream{ctx: ctx})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context canceled, got %v", err)
+	}
+
+	service.mu.Lock()
+	busy := service.profileBusy
+	service.mu.Unlock()
+	if busy {
+		t.Fatal("canceled CPU profile left profileBusy set")
+	}
+
+	strm := &testCPUProfileStream{}
+	if err := service.CaptureCPUProfile(&s4wave_trace.CaptureCPUProfileRequest{DurationMillis: 1}, strm); err != nil {
+		t.Fatal(err)
+	}
+	if strm.byteCount == 0 {
+		t.Fatal("expected follow-up CPU profile bytes after cancellation cleanup")
+	}
+}
+
 func TestTraceServiceCaptureMemoryProfile(t *testing.T) {
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
@@ -278,5 +406,16 @@ func TestTraceServiceCaptureMemoryProfile(t *testing.T) {
 
 	if len(profileData) == 0 {
 		t.Fatal("expected non-empty memory profile data")
+	}
+}
+
+func TestTraceServiceReturnsStreamingErrors(t *testing.T) {
+	sendErr := errors.New("send memory profile chunk")
+	err := NewService().CaptureMemoryProfile(
+		&s4wave_trace.CaptureMemoryProfileRequest{Profile: "allocs"},
+		&testMemoryProfileStream{sendErr: sendErr},
+	)
+	if !errors.Is(err, sendErr) {
+		t.Fatalf("expected streaming error, got %v", err)
 	}
 }
