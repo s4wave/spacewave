@@ -79,3 +79,53 @@ message AptPackage {
   // DebRef points at the stored .deb payload block.
   .block.BlockRef deb_ref = 11;
 }
+
+// AptBuildConfig stores build options for an AptBuildSpec.
+message AptBuildConfig {
+  // Env contains environment variables for the package build.
+  map<string, string> env = 1;
+  // CrossCompilePrefix is the toolchain prefix, e.g. "i686-linux-gnu-".
+  string cross_compile_prefix = 2;
+}
+
+// AptBuildSpec stores the build recipe for an apt source package.
+message AptBuildSpec {
+  // SourcePackage is the Debian source package name, e.g. "busybox".
+  string source_package = 1;
+  // SourceRef points at the source tree used for builds.
+  .bucket.ObjectRef source_ref = 2;
+  // BuildConfig contains build-time configuration for the Forge target.
+  AptBuildConfig build_config = 3;
+  // Architectures are the Debian architectures to build from this spec.
+  repeated string architectures = 4;
+  // BuildDeps are source packages that must build before this spec.
+  repeated string build_deps = 5;
+}
+
+// CreateAptRepositoryOp creates a new AptRepository world object.
+message CreateAptRepositoryOp {
+  // ObjectKey is the key to create the repository at.
+  string object_key = 1;
+  // Repository carries the metadata for the new AptRepository.
+  AptRepository repository = 2;
+}
+
+// AddAptPackageOp creates an AptPackage and links it to an AptRepository.
+message AddAptPackageOp {
+  // RepositoryKey is the AptRepository object key.
+  string repository_key = 1;
+  // PackageKey is the key to create the AptPackage at.
+  string package_key = 2;
+  // AptPackage carries the metadata for the new package.
+  AptPackage apt_package = 3;
+}
+
+// AddAptBuildSpecOp creates an AptBuildSpec and links it to an AptRepository.
+message AddAptBuildSpecOp {
+  // RepositoryKey is the AptRepository object key.
+  string repository_key = 1;
+  // BuildSpecKey is the key to create the AptBuildSpec at.
+  string build_spec_key = 2;
+  // BuildSpec carries the build recipe for the new spec.
+  AptBuildSpec build_spec = 3;
+}

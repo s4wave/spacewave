@@ -30,6 +30,10 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/map.h"  // IWYU pragma: export
+#include "google/protobuf/map_type_handler.h"  // IWYU pragma: export
+#include "google/protobuf/map_entry.h"
+#include "google/protobuf/map_field.h"
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../db/block/block.pb.h"
@@ -63,6 +67,26 @@ enum AptPackageState : int;
 extern const uint32_t AptPackageState_internal_data_[];
 enum AptRepositoryState : int;
 extern const uint32_t AptRepositoryState_internal_data_[];
+class AddAptBuildSpecOp;
+struct AddAptBuildSpecOpDefaultTypeInternal;
+extern AddAptBuildSpecOpDefaultTypeInternal _AddAptBuildSpecOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AddAptBuildSpecOp_class_data_;
+class AddAptPackageOp;
+struct AddAptPackageOpDefaultTypeInternal;
+extern AddAptPackageOpDefaultTypeInternal _AddAptPackageOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AddAptPackageOp_class_data_;
+class AptBuildConfig;
+struct AptBuildConfigDefaultTypeInternal;
+extern AptBuildConfigDefaultTypeInternal _AptBuildConfig_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AptBuildConfig_class_data_;
+class AptBuildConfig_EnvEntry_DoNotUse;
+struct AptBuildConfig_EnvEntry_DoNotUseDefaultTypeInternal;
+extern AptBuildConfig_EnvEntry_DoNotUseDefaultTypeInternal _AptBuildConfig_EnvEntry_DoNotUse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AptBuildConfig_EnvEntry_DoNotUse_class_data_;
+class AptBuildSpec;
+struct AptBuildSpecDefaultTypeInternal;
+extern AptBuildSpecDefaultTypeInternal _AptBuildSpec_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AptBuildSpec_class_data_;
 class AptPackage;
 struct AptPackageDefaultTypeInternal;
 extern AptPackageDefaultTypeInternal _AptPackage_default_instance_;
@@ -75,6 +99,10 @@ class AptRepository;
 struct AptRepositoryDefaultTypeInternal;
 extern AptRepositoryDefaultTypeInternal _AptRepository_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AptRepository_class_data_;
+class CreateAptRepositoryOp;
+struct CreateAptRepositoryOpDefaultTypeInternal;
+extern CreateAptRepositoryOpDefaultTypeInternal _CreateAptRepositoryOp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateAptRepositoryOp_class_data_;
 }  // namespace apt
 }  // namespace s4wave
 namespace google {
@@ -382,6 +410,260 @@ class AptPackageChecksum final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AptPackageChecksum_class_data_;
+// -------------------------------------------------------------------
+
+class AptBuildConfig_EnvEntry_DoNotUse final
+    : public ::google::protobuf::internal::MapEntry<::std::string, ::std::string,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING> {
+ public:
+  using SuperType =
+      ::google::protobuf::internal::MapEntry<::std::string, ::std::string,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING>;
+  AptBuildConfig_EnvEntry_DoNotUse();
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AptBuildConfig_EnvEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
+  explicit AptBuildConfig_EnvEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
+    return &_AptBuildConfig_EnvEntry_DoNotUse_default_instance_;
+  }
+
+
+  static constexpr auto InternalGenerateClassData_();
+
+ private:
+  friend class ::google::protobuf::MessageLite;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fapt_2frepository_2eproto;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 51,
+                                   2>
+      _table_;
+
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+};
+extern const ::google::protobuf::internal::ClassDataFull AptBuildConfig_EnvEntry_DoNotUse_class_data_;
+// -------------------------------------------------------------------
+
+class AptBuildConfig final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.apt.AptBuildConfig) */ {
+ public:
+  inline AptBuildConfig() : AptBuildConfig(nullptr) {}
+  ~AptBuildConfig() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AptBuildConfig* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AptBuildConfig));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AptBuildConfig(::google::protobuf::internal::ConstantInitialized);
+
+  inline AptBuildConfig(const AptBuildConfig& from) : AptBuildConfig(nullptr, from) {}
+  inline AptBuildConfig(AptBuildConfig&& from) noexcept
+      : AptBuildConfig(nullptr, ::std::move(from)) {}
+  inline AptBuildConfig& operator=(const AptBuildConfig& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AptBuildConfig& operator=(AptBuildConfig&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AptBuildConfig& default_instance() {
+    return *reinterpret_cast<const AptBuildConfig*>(
+        &_AptBuildConfig_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(AptBuildConfig& a, AptBuildConfig& b) { a.Swap(&b); }
+  inline void Swap(AptBuildConfig* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AptBuildConfig* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AptBuildConfig* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AptBuildConfig>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AptBuildConfig& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AptBuildConfig& from) { AptBuildConfig::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AptBuildConfig* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.apt.AptBuildConfig"; }
+
+  explicit AptBuildConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AptBuildConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AptBuildConfig& from);
+  AptBuildConfig(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AptBuildConfig&& from) noexcept
+      : AptBuildConfig(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCrossCompilePrefixFieldNumber = 2,
+    kEnvFieldNumber = 1,
+  };
+  // string cross_compile_prefix = 2;
+  void clear_cross_compile_prefix() ;
+  const ::std::string& cross_compile_prefix() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_cross_compile_prefix(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_cross_compile_prefix();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_cross_compile_prefix();
+  void set_allocated_cross_compile_prefix(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_cross_compile_prefix() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_cross_compile_prefix(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_cross_compile_prefix();
+
+  public:
+  // map<string, string> env = 1;
+  int env_size() const;
+  private:
+  int _internal_env_size() const;
+
+  public:
+  void clear_env() ;
+  const ::google::protobuf::Map<::std::string, ::std::string>& env() const;
+  ::google::protobuf::Map<::std::string, ::std::string>* PROTOBUF_NONNULL mutable_env();
+
+  private:
+  const ::google::protobuf::Map<::std::string, ::std::string>& _internal_env() const;
+  ::google::protobuf::Map<::std::string, ::std::string>* PROTOBUF_NONNULL _internal_mutable_env();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.apt.AptBuildConfig)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 2,
+                                   1, 57,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AptBuildConfig& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr cross_compile_prefix_;
+    ::google::protobuf::internal::MapField<AptBuildConfig_EnvEntry_DoNotUse, ::std::string, ::std::string,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING>
+        env_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fapt_2frepository_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AptBuildConfig_class_data_;
 // -------------------------------------------------------------------
 
 class AptPackage final : public ::google::protobuf::Message
@@ -1049,6 +1331,953 @@ class AptRepository final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AptRepository_class_data_;
+// -------------------------------------------------------------------
+
+class AptBuildSpec final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.apt.AptBuildSpec) */ {
+ public:
+  inline AptBuildSpec() : AptBuildSpec(nullptr) {}
+  ~AptBuildSpec() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AptBuildSpec* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AptBuildSpec));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AptBuildSpec(::google::protobuf::internal::ConstantInitialized);
+
+  inline AptBuildSpec(const AptBuildSpec& from) : AptBuildSpec(nullptr, from) {}
+  inline AptBuildSpec(AptBuildSpec&& from) noexcept
+      : AptBuildSpec(nullptr, ::std::move(from)) {}
+  inline AptBuildSpec& operator=(const AptBuildSpec& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AptBuildSpec& operator=(AptBuildSpec&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AptBuildSpec& default_instance() {
+    return *reinterpret_cast<const AptBuildSpec*>(
+        &_AptBuildSpec_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(AptBuildSpec& a, AptBuildSpec& b) { a.Swap(&b); }
+  inline void Swap(AptBuildSpec* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AptBuildSpec* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AptBuildSpec* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AptBuildSpec>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AptBuildSpec& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AptBuildSpec& from) { AptBuildSpec::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AptBuildSpec* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.apt.AptBuildSpec"; }
+
+  explicit AptBuildSpec(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AptBuildSpec(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AptBuildSpec& from);
+  AptBuildSpec(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AptBuildSpec&& from) noexcept
+      : AptBuildSpec(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kArchitecturesFieldNumber = 4,
+    kBuildDepsFieldNumber = 5,
+    kSourcePackageFieldNumber = 1,
+    kSourceRefFieldNumber = 2,
+    kBuildConfigFieldNumber = 3,
+  };
+  // repeated string architectures = 4;
+  int architectures_size() const;
+  private:
+  int _internal_architectures_size() const;
+
+  public:
+  void clear_architectures() ;
+  const ::std::string& architectures(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_architectures(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_architectures(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_architectures();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_architectures(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& architectures() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_architectures();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_architectures() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_architectures();
+
+  public:
+  // repeated string build_deps = 5;
+  int build_deps_size() const;
+  private:
+  int _internal_build_deps_size() const;
+
+  public:
+  void clear_build_deps() ;
+  const ::std::string& build_deps(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_build_deps(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_build_deps(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_build_deps();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_build_deps(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& build_deps() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_build_deps();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_build_deps() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_build_deps();
+
+  public:
+  // string source_package = 1;
+  void clear_source_package() ;
+  const ::std::string& source_package() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_source_package(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_source_package();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_source_package();
+  void set_allocated_source_package(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_source_package() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_source_package(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_source_package();
+
+  public:
+  // .bucket.ObjectRef source_ref = 2;
+  bool has_source_ref() const;
+  void clear_source_ref() ;
+  const ::bucket::ObjectRef& source_ref() const;
+  [[nodiscard]] ::bucket::ObjectRef* PROTOBUF_NULLABLE release_source_ref();
+  ::bucket::ObjectRef* PROTOBUF_NONNULL mutable_source_ref();
+  void set_allocated_source_ref(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_source_ref(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  ::bucket::ObjectRef* PROTOBUF_NULLABLE unsafe_arena_release_source_ref();
+
+  private:
+  const ::bucket::ObjectRef& _internal_source_ref() const;
+  ::bucket::ObjectRef* PROTOBUF_NONNULL _internal_mutable_source_ref();
+
+  public:
+  // .s4wave.apt.AptBuildConfig build_config = 3;
+  bool has_build_config() const;
+  void clear_build_config() ;
+  const ::s4wave::apt::AptBuildConfig& build_config() const;
+  [[nodiscard]] ::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE release_build_config();
+  ::s4wave::apt::AptBuildConfig* PROTOBUF_NONNULL mutable_build_config();
+  void set_allocated_build_config(::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_build_config(::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE value);
+  ::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE unsafe_arena_release_build_config();
+
+  private:
+  const ::s4wave::apt::AptBuildConfig& _internal_build_config() const;
+  ::s4wave::apt::AptBuildConfig* PROTOBUF_NONNULL _internal_mutable_build_config();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.apt.AptBuildSpec)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   2, 69,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AptBuildSpec& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> architectures_;
+    ::google::protobuf::RepeatedPtrField<::std::string> build_deps_;
+    ::google::protobuf::internal::ArenaStringPtr source_package_;
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE source_ref_;
+    ::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE build_config_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fapt_2frepository_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AptBuildSpec_class_data_;
+// -------------------------------------------------------------------
+
+class AddAptPackageOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.apt.AddAptPackageOp) */ {
+ public:
+  inline AddAptPackageOp() : AddAptPackageOp(nullptr) {}
+  ~AddAptPackageOp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AddAptPackageOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AddAptPackageOp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AddAptPackageOp(::google::protobuf::internal::ConstantInitialized);
+
+  inline AddAptPackageOp(const AddAptPackageOp& from) : AddAptPackageOp(nullptr, from) {}
+  inline AddAptPackageOp(AddAptPackageOp&& from) noexcept
+      : AddAptPackageOp(nullptr, ::std::move(from)) {}
+  inline AddAptPackageOp& operator=(const AddAptPackageOp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AddAptPackageOp& operator=(AddAptPackageOp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AddAptPackageOp& default_instance() {
+    return *reinterpret_cast<const AddAptPackageOp*>(
+        &_AddAptPackageOp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(AddAptPackageOp& a, AddAptPackageOp& b) { a.Swap(&b); }
+  inline void Swap(AddAptPackageOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AddAptPackageOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AddAptPackageOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AddAptPackageOp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AddAptPackageOp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AddAptPackageOp& from) { AddAptPackageOp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AddAptPackageOp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.apt.AddAptPackageOp"; }
+
+  explicit AddAptPackageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AddAptPackageOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AddAptPackageOp& from);
+  AddAptPackageOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AddAptPackageOp&& from) noexcept
+      : AddAptPackageOp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRepositoryKeyFieldNumber = 1,
+    kPackageKeyFieldNumber = 2,
+    kAptPackageFieldNumber = 3,
+  };
+  // string repository_key = 1;
+  void clear_repository_key() ;
+  const ::std::string& repository_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_repository_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_repository_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_repository_key();
+  void set_allocated_repository_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_repository_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_repository_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_repository_key();
+
+  public:
+  // string package_key = 2;
+  void clear_package_key() ;
+  const ::std::string& package_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_package_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_package_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_package_key();
+  void set_allocated_package_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_package_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_package_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_package_key();
+
+  public:
+  // .s4wave.apt.AptPackage apt_package = 3;
+  bool has_apt_package() const;
+  void clear_apt_package() ;
+  const ::s4wave::apt::AptPackage& apt_package() const;
+  [[nodiscard]] ::s4wave::apt::AptPackage* PROTOBUF_NULLABLE release_apt_package();
+  ::s4wave::apt::AptPackage* PROTOBUF_NONNULL mutable_apt_package();
+  void set_allocated_apt_package(::s4wave::apt::AptPackage* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_apt_package(::s4wave::apt::AptPackage* PROTOBUF_NULLABLE value);
+  ::s4wave::apt::AptPackage* PROTOBUF_NULLABLE unsafe_arena_release_apt_package();
+
+  private:
+  const ::s4wave::apt::AptPackage& _internal_apt_package() const;
+  ::s4wave::apt::AptPackage* PROTOBUF_NONNULL _internal_mutable_apt_package();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.apt.AddAptPackageOp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 60,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AddAptPackageOp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr repository_key_;
+    ::google::protobuf::internal::ArenaStringPtr package_key_;
+    ::s4wave::apt::AptPackage* PROTOBUF_NULLABLE apt_package_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fapt_2frepository_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AddAptPackageOp_class_data_;
+// -------------------------------------------------------------------
+
+class CreateAptRepositoryOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.apt.CreateAptRepositoryOp) */ {
+ public:
+  inline CreateAptRepositoryOp() : CreateAptRepositoryOp(nullptr) {}
+  ~CreateAptRepositoryOp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateAptRepositoryOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateAptRepositoryOp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateAptRepositoryOp(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateAptRepositoryOp(const CreateAptRepositoryOp& from) : CreateAptRepositoryOp(nullptr, from) {}
+  inline CreateAptRepositoryOp(CreateAptRepositoryOp&& from) noexcept
+      : CreateAptRepositoryOp(nullptr, ::std::move(from)) {}
+  inline CreateAptRepositoryOp& operator=(const CreateAptRepositoryOp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateAptRepositoryOp& operator=(CreateAptRepositoryOp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateAptRepositoryOp& default_instance() {
+    return *reinterpret_cast<const CreateAptRepositoryOp*>(
+        &_CreateAptRepositoryOp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(CreateAptRepositoryOp& a, CreateAptRepositoryOp& b) { a.Swap(&b); }
+  inline void Swap(CreateAptRepositoryOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateAptRepositoryOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateAptRepositoryOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateAptRepositoryOp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateAptRepositoryOp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateAptRepositoryOp& from) { CreateAptRepositoryOp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateAptRepositoryOp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.apt.CreateAptRepositoryOp"; }
+
+  explicit CreateAptRepositoryOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateAptRepositoryOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateAptRepositoryOp& from);
+  CreateAptRepositoryOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateAptRepositoryOp&& from) noexcept
+      : CreateAptRepositoryOp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeyFieldNumber = 1,
+    kRepositoryFieldNumber = 2,
+  };
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // .s4wave.apt.AptRepository repository = 2;
+  bool has_repository() const;
+  void clear_repository() ;
+  const ::s4wave::apt::AptRepository& repository() const;
+  [[nodiscard]] ::s4wave::apt::AptRepository* PROTOBUF_NULLABLE release_repository();
+  ::s4wave::apt::AptRepository* PROTOBUF_NONNULL mutable_repository();
+  void set_allocated_repository(::s4wave::apt::AptRepository* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_repository(::s4wave::apt::AptRepository* PROTOBUF_NULLABLE value);
+  ::s4wave::apt::AptRepository* PROTOBUF_NULLABLE unsafe_arena_release_repository();
+
+  private:
+  const ::s4wave::apt::AptRepository& _internal_repository() const;
+  ::s4wave::apt::AptRepository* PROTOBUF_NONNULL _internal_mutable_repository();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.apt.CreateAptRepositoryOp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 51,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateAptRepositoryOp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::s4wave::apt::AptRepository* PROTOBUF_NULLABLE repository_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fapt_2frepository_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateAptRepositoryOp_class_data_;
+// -------------------------------------------------------------------
+
+class AddAptBuildSpecOp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.apt.AddAptBuildSpecOp) */ {
+ public:
+  inline AddAptBuildSpecOp() : AddAptBuildSpecOp(nullptr) {}
+  ~AddAptBuildSpecOp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AddAptBuildSpecOp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AddAptBuildSpecOp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AddAptBuildSpecOp(::google::protobuf::internal::ConstantInitialized);
+
+  inline AddAptBuildSpecOp(const AddAptBuildSpecOp& from) : AddAptBuildSpecOp(nullptr, from) {}
+  inline AddAptBuildSpecOp(AddAptBuildSpecOp&& from) noexcept
+      : AddAptBuildSpecOp(nullptr, ::std::move(from)) {}
+  inline AddAptBuildSpecOp& operator=(const AddAptBuildSpecOp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AddAptBuildSpecOp& operator=(AddAptBuildSpecOp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AddAptBuildSpecOp& default_instance() {
+    return *reinterpret_cast<const AddAptBuildSpecOp*>(
+        &_AddAptBuildSpecOp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(AddAptBuildSpecOp& a, AddAptBuildSpecOp& b) { a.Swap(&b); }
+  inline void Swap(AddAptBuildSpecOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AddAptBuildSpecOp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AddAptBuildSpecOp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AddAptBuildSpecOp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AddAptBuildSpecOp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AddAptBuildSpecOp& from) { AddAptBuildSpecOp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AddAptBuildSpecOp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.apt.AddAptBuildSpecOp"; }
+
+  explicit AddAptBuildSpecOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AddAptBuildSpecOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AddAptBuildSpecOp& from);
+  AddAptBuildSpecOp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AddAptBuildSpecOp&& from) noexcept
+      : AddAptBuildSpecOp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRepositoryKeyFieldNumber = 1,
+    kBuildSpecKeyFieldNumber = 2,
+    kBuildSpecFieldNumber = 3,
+  };
+  // string repository_key = 1;
+  void clear_repository_key() ;
+  const ::std::string& repository_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_repository_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_repository_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_repository_key();
+  void set_allocated_repository_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_repository_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_repository_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_repository_key();
+
+  public:
+  // string build_spec_key = 2;
+  void clear_build_spec_key() ;
+  const ::std::string& build_spec_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_build_spec_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_build_spec_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_build_spec_key();
+  void set_allocated_build_spec_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_build_spec_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_build_spec_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_build_spec_key();
+
+  public:
+  // .s4wave.apt.AptBuildSpec build_spec = 3;
+  bool has_build_spec() const;
+  void clear_build_spec() ;
+  const ::s4wave::apt::AptBuildSpec& build_spec() const;
+  [[nodiscard]] ::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE release_build_spec();
+  ::s4wave::apt::AptBuildSpec* PROTOBUF_NONNULL mutable_build_spec();
+  void set_allocated_build_spec(::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_build_spec(::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE value);
+  ::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE unsafe_arena_release_build_spec();
+
+  private:
+  const ::s4wave::apt::AptBuildSpec& _internal_build_spec() const;
+  ::s4wave::apt::AptBuildSpec* PROTOBUF_NONNULL _internal_mutable_build_spec();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.apt.AddAptBuildSpecOp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 65,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AddAptBuildSpecOp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr repository_key_;
+    ::google::protobuf::internal::ArenaStringPtr build_spec_key_;
+    ::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE build_spec_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fapt_2frepository_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AddAptBuildSpecOp_class_data_;
 
 // ===================================================================
 
@@ -2297,6 +3526,1148 @@ inline void AptPackage::set_allocated_deb_ref(::block::BlockRef* PROTOBUF_NULLAB
 
   _impl_.deb_ref_ = reinterpret_cast<::block::BlockRef*>(value);
   // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AptPackage.deb_ref)
+}
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// AptBuildConfig
+
+// map<string, string> env = 1;
+inline int AptBuildConfig::_internal_env_size() const {
+  return _internal_env().size();
+}
+inline int AptBuildConfig::env_size() const {
+  return _internal_env_size();
+}
+inline void AptBuildConfig::clear_env() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.env_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::google::protobuf::Map<::std::string, ::std::string>& AptBuildConfig::_internal_env() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.env_.GetMap();
+}
+inline const ::google::protobuf::Map<::std::string, ::std::string>& AptBuildConfig::env() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_map:s4wave.apt.AptBuildConfig.env)
+  return _internal_env();
+}
+inline ::google::protobuf::Map<::std::string, ::std::string>* PROTOBUF_NONNULL AptBuildConfig::_internal_mutable_env() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.env_.MutableMap();
+}
+inline ::google::protobuf::Map<::std::string, ::std::string>* PROTOBUF_NONNULL AptBuildConfig::mutable_env()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_map:s4wave.apt.AptBuildConfig.env)
+  return _internal_mutable_env();
+}
+
+// string cross_compile_prefix = 2;
+inline void AptBuildConfig::clear_cross_compile_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cross_compile_prefix_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AptBuildConfig::cross_compile_prefix() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AptBuildConfig.cross_compile_prefix)
+  return _internal_cross_compile_prefix();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AptBuildConfig::set_cross_compile_prefix(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.cross_compile_prefix_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.apt.AptBuildConfig.cross_compile_prefix)
+}
+inline ::std::string* PROTOBUF_NONNULL AptBuildConfig::mutable_cross_compile_prefix()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_cross_compile_prefix();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AptBuildConfig.cross_compile_prefix)
+  return _s;
+}
+inline const ::std::string& AptBuildConfig::_internal_cross_compile_prefix() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.cross_compile_prefix_.Get();
+}
+inline void AptBuildConfig::_internal_set_cross_compile_prefix(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cross_compile_prefix_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AptBuildConfig::_internal_mutable_cross_compile_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.cross_compile_prefix_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AptBuildConfig::release_cross_compile_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AptBuildConfig.cross_compile_prefix)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.cross_compile_prefix_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.cross_compile_prefix_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AptBuildConfig::set_allocated_cross_compile_prefix(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.cross_compile_prefix_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.cross_compile_prefix_.IsDefault()) {
+    _impl_.cross_compile_prefix_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AptBuildConfig.cross_compile_prefix)
+}
+
+// -------------------------------------------------------------------
+
+// AptBuildSpec
+
+// string source_package = 1;
+inline void AptBuildSpec::clear_source_package() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.source_package_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& AptBuildSpec::source_package() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AptBuildSpec.source_package)
+  return _internal_source_package();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AptBuildSpec::set_source_package(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.source_package_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.apt.AptBuildSpec.source_package)
+}
+inline ::std::string* PROTOBUF_NONNULL AptBuildSpec::mutable_source_package()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_source_package();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AptBuildSpec.source_package)
+  return _s;
+}
+inline const ::std::string& AptBuildSpec::_internal_source_package() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.source_package_.Get();
+}
+inline void AptBuildSpec::_internal_set_source_package(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.source_package_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AptBuildSpec::_internal_mutable_source_package() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.source_package_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AptBuildSpec::release_source_package() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AptBuildSpec.source_package)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.source_package_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.source_package_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AptBuildSpec::set_allocated_source_package(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.source_package_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.source_package_.IsDefault()) {
+    _impl_.source_package_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AptBuildSpec.source_package)
+}
+
+// .bucket.ObjectRef source_ref = 2;
+inline bool AptBuildSpec::has_source_ref() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.source_ref_ != nullptr);
+  return value;
+}
+inline const ::bucket::ObjectRef& AptBuildSpec::_internal_source_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bucket::ObjectRef* p = _impl_.source_ref_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bucket::ObjectRef&>(::bucket::_ObjectRef_default_instance_);
+}
+inline const ::bucket::ObjectRef& AptBuildSpec::source_ref() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AptBuildSpec.source_ref)
+  return _internal_source_ref();
+}
+inline void AptBuildSpec::unsafe_arena_set_allocated_source_ref(
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.source_ref_);
+  }
+  _impl_.source_ref_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.apt.AptBuildSpec.source_ref)
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE AptBuildSpec::release_source_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bucket::ObjectRef* released = _impl_.source_ref_;
+  _impl_.source_ref_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE AptBuildSpec::unsafe_arena_release_source_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AptBuildSpec.source_ref)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bucket::ObjectRef* temp = _impl_.source_ref_;
+  _impl_.source_ref_ = nullptr;
+  return temp;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL AptBuildSpec::_internal_mutable_source_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.source_ref_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bucket::ObjectRef>(GetArena());
+    _impl_.source_ref_ = reinterpret_cast<::bucket::ObjectRef*>(p);
+  }
+  return _impl_.source_ref_;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL AptBuildSpec::mutable_source_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bucket::ObjectRef* _msg = _internal_mutable_source_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AptBuildSpec.source_ref)
+  return _msg;
+}
+inline void AptBuildSpec::set_allocated_source_ref(::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.source_ref_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.source_ref_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AptBuildSpec.source_ref)
+}
+
+// .s4wave.apt.AptBuildConfig build_config = 3;
+inline bool AptBuildSpec::has_build_config() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.build_config_ != nullptr);
+  return value;
+}
+inline void AptBuildSpec::clear_build_config() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.build_config_ != nullptr) _impl_.build_config_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::s4wave::apt::AptBuildConfig& AptBuildSpec::_internal_build_config() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::apt::AptBuildConfig* p = _impl_.build_config_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::apt::AptBuildConfig&>(::s4wave::apt::_AptBuildConfig_default_instance_);
+}
+inline const ::s4wave::apt::AptBuildConfig& AptBuildSpec::build_config() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AptBuildSpec.build_config)
+  return _internal_build_config();
+}
+inline void AptBuildSpec::unsafe_arena_set_allocated_build_config(
+    ::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.build_config_);
+  }
+  _impl_.build_config_ = reinterpret_cast<::s4wave::apt::AptBuildConfig*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.apt.AptBuildSpec.build_config)
+}
+inline ::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE AptBuildSpec::release_build_config() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::apt::AptBuildConfig* released = _impl_.build_config_;
+  _impl_.build_config_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE AptBuildSpec::unsafe_arena_release_build_config() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AptBuildSpec.build_config)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::apt::AptBuildConfig* temp = _impl_.build_config_;
+  _impl_.build_config_ = nullptr;
+  return temp;
+}
+inline ::s4wave::apt::AptBuildConfig* PROTOBUF_NONNULL AptBuildSpec::_internal_mutable_build_config() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.build_config_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::apt::AptBuildConfig>(GetArena());
+    _impl_.build_config_ = reinterpret_cast<::s4wave::apt::AptBuildConfig*>(p);
+  }
+  return _impl_.build_config_;
+}
+inline ::s4wave::apt::AptBuildConfig* PROTOBUF_NONNULL AptBuildSpec::mutable_build_config()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::apt::AptBuildConfig* _msg = _internal_mutable_build_config();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AptBuildSpec.build_config)
+  return _msg;
+}
+inline void AptBuildSpec::set_allocated_build_config(::s4wave::apt::AptBuildConfig* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.build_config_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.build_config_ = reinterpret_cast<::s4wave::apt::AptBuildConfig*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AptBuildSpec.build_config)
+}
+
+// repeated string architectures = 4;
+inline int AptBuildSpec::_internal_architectures_size() const {
+  return _internal_architectures().size();
+}
+inline int AptBuildSpec::architectures_size() const {
+  return _internal_architectures_size();
+}
+inline void AptBuildSpec::clear_architectures() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.architectures_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL AptBuildSpec::add_architectures()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_architectures()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.apt.AptBuildSpec.architectures)
+  return _s;
+}
+inline const ::std::string& AptBuildSpec::architectures(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AptBuildSpec.architectures)
+  return _internal_architectures().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL AptBuildSpec::mutable_architectures(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AptBuildSpec.architectures)
+  return _internal_mutable_architectures()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void AptBuildSpec::set_architectures(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_architectures()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.apt.AptBuildSpec.architectures)
+}
+template <typename Arg_, typename... Args_>
+inline void AptBuildSpec::add_architectures(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_architectures(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.apt.AptBuildSpec.architectures)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& AptBuildSpec::architectures()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.apt.AptBuildSpec.architectures)
+  return _internal_architectures();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+AptBuildSpec::mutable_architectures() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.apt.AptBuildSpec.architectures)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_architectures();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+AptBuildSpec::_internal_architectures() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.architectures_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+AptBuildSpec::_internal_mutable_architectures() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.architectures_;
+}
+
+// repeated string build_deps = 5;
+inline int AptBuildSpec::_internal_build_deps_size() const {
+  return _internal_build_deps().size();
+}
+inline int AptBuildSpec::build_deps_size() const {
+  return _internal_build_deps_size();
+}
+inline void AptBuildSpec::clear_build_deps() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.build_deps_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::std::string* PROTOBUF_NONNULL AptBuildSpec::add_build_deps()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_build_deps()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.apt.AptBuildSpec.build_deps)
+  return _s;
+}
+inline const ::std::string& AptBuildSpec::build_deps(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AptBuildSpec.build_deps)
+  return _internal_build_deps().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL AptBuildSpec::mutable_build_deps(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AptBuildSpec.build_deps)
+  return _internal_mutable_build_deps()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void AptBuildSpec::set_build_deps(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_build_deps()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.apt.AptBuildSpec.build_deps)
+}
+template <typename Arg_, typename... Args_>
+inline void AptBuildSpec::add_build_deps(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_build_deps(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:s4wave.apt.AptBuildSpec.build_deps)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& AptBuildSpec::build_deps()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.apt.AptBuildSpec.build_deps)
+  return _internal_build_deps();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+AptBuildSpec::mutable_build_deps() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.apt.AptBuildSpec.build_deps)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_build_deps();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+AptBuildSpec::_internal_build_deps() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.build_deps_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+AptBuildSpec::_internal_mutable_build_deps() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.build_deps_;
+}
+
+// -------------------------------------------------------------------
+
+// CreateAptRepositoryOp
+
+// string object_key = 1;
+inline void CreateAptRepositoryOp::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CreateAptRepositoryOp::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.CreateAptRepositoryOp.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateAptRepositoryOp::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.apt.CreateAptRepositoryOp.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateAptRepositoryOp::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.CreateAptRepositoryOp.object_key)
+  return _s;
+}
+inline const ::std::string& CreateAptRepositoryOp::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void CreateAptRepositoryOp::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateAptRepositoryOp::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateAptRepositoryOp::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.CreateAptRepositoryOp.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateAptRepositoryOp::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.CreateAptRepositoryOp.object_key)
+}
+
+// .s4wave.apt.AptRepository repository = 2;
+inline bool CreateAptRepositoryOp::has_repository() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.repository_ != nullptr);
+  return value;
+}
+inline void CreateAptRepositoryOp::clear_repository() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.repository_ != nullptr) _impl_.repository_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::s4wave::apt::AptRepository& CreateAptRepositoryOp::_internal_repository() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::apt::AptRepository* p = _impl_.repository_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::apt::AptRepository&>(::s4wave::apt::_AptRepository_default_instance_);
+}
+inline const ::s4wave::apt::AptRepository& CreateAptRepositoryOp::repository() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.CreateAptRepositoryOp.repository)
+  return _internal_repository();
+}
+inline void CreateAptRepositoryOp::unsafe_arena_set_allocated_repository(
+    ::s4wave::apt::AptRepository* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.repository_);
+  }
+  _impl_.repository_ = reinterpret_cast<::s4wave::apt::AptRepository*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.apt.CreateAptRepositoryOp.repository)
+}
+inline ::s4wave::apt::AptRepository* PROTOBUF_NULLABLE CreateAptRepositoryOp::release_repository() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::apt::AptRepository* released = _impl_.repository_;
+  _impl_.repository_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::apt::AptRepository* PROTOBUF_NULLABLE CreateAptRepositoryOp::unsafe_arena_release_repository() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.CreateAptRepositoryOp.repository)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::apt::AptRepository* temp = _impl_.repository_;
+  _impl_.repository_ = nullptr;
+  return temp;
+}
+inline ::s4wave::apt::AptRepository* PROTOBUF_NONNULL CreateAptRepositoryOp::_internal_mutable_repository() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.repository_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::apt::AptRepository>(GetArena());
+    _impl_.repository_ = reinterpret_cast<::s4wave::apt::AptRepository*>(p);
+  }
+  return _impl_.repository_;
+}
+inline ::s4wave::apt::AptRepository* PROTOBUF_NONNULL CreateAptRepositoryOp::mutable_repository()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::apt::AptRepository* _msg = _internal_mutable_repository();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.CreateAptRepositoryOp.repository)
+  return _msg;
+}
+inline void CreateAptRepositoryOp::set_allocated_repository(::s4wave::apt::AptRepository* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.repository_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.repository_ = reinterpret_cast<::s4wave::apt::AptRepository*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.CreateAptRepositoryOp.repository)
+}
+
+// -------------------------------------------------------------------
+
+// AddAptPackageOp
+
+// string repository_key = 1;
+inline void AddAptPackageOp::clear_repository_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.repository_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AddAptPackageOp::repository_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AddAptPackageOp.repository_key)
+  return _internal_repository_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AddAptPackageOp::set_repository_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.repository_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.apt.AddAptPackageOp.repository_key)
+}
+inline ::std::string* PROTOBUF_NONNULL AddAptPackageOp::mutable_repository_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_repository_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AddAptPackageOp.repository_key)
+  return _s;
+}
+inline const ::std::string& AddAptPackageOp::_internal_repository_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.repository_key_.Get();
+}
+inline void AddAptPackageOp::_internal_set_repository_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.repository_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AddAptPackageOp::_internal_mutable_repository_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.repository_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AddAptPackageOp::release_repository_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AddAptPackageOp.repository_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.repository_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.repository_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AddAptPackageOp::set_allocated_repository_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.repository_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.repository_key_.IsDefault()) {
+    _impl_.repository_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AddAptPackageOp.repository_key)
+}
+
+// string package_key = 2;
+inline void AddAptPackageOp::clear_package_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.package_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& AddAptPackageOp::package_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AddAptPackageOp.package_key)
+  return _internal_package_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AddAptPackageOp::set_package_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.package_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.apt.AddAptPackageOp.package_key)
+}
+inline ::std::string* PROTOBUF_NONNULL AddAptPackageOp::mutable_package_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_package_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AddAptPackageOp.package_key)
+  return _s;
+}
+inline const ::std::string& AddAptPackageOp::_internal_package_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.package_key_.Get();
+}
+inline void AddAptPackageOp::_internal_set_package_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.package_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AddAptPackageOp::_internal_mutable_package_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.package_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AddAptPackageOp::release_package_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AddAptPackageOp.package_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.package_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.package_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AddAptPackageOp::set_allocated_package_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.package_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.package_key_.IsDefault()) {
+    _impl_.package_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AddAptPackageOp.package_key)
+}
+
+// .s4wave.apt.AptPackage apt_package = 3;
+inline bool AddAptPackageOp::has_apt_package() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.apt_package_ != nullptr);
+  return value;
+}
+inline void AddAptPackageOp::clear_apt_package() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.apt_package_ != nullptr) _impl_.apt_package_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::s4wave::apt::AptPackage& AddAptPackageOp::_internal_apt_package() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::apt::AptPackage* p = _impl_.apt_package_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::apt::AptPackage&>(::s4wave::apt::_AptPackage_default_instance_);
+}
+inline const ::s4wave::apt::AptPackage& AddAptPackageOp::apt_package() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AddAptPackageOp.apt_package)
+  return _internal_apt_package();
+}
+inline void AddAptPackageOp::unsafe_arena_set_allocated_apt_package(
+    ::s4wave::apt::AptPackage* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.apt_package_);
+  }
+  _impl_.apt_package_ = reinterpret_cast<::s4wave::apt::AptPackage*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.apt.AddAptPackageOp.apt_package)
+}
+inline ::s4wave::apt::AptPackage* PROTOBUF_NULLABLE AddAptPackageOp::release_apt_package() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::apt::AptPackage* released = _impl_.apt_package_;
+  _impl_.apt_package_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::apt::AptPackage* PROTOBUF_NULLABLE AddAptPackageOp::unsafe_arena_release_apt_package() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AddAptPackageOp.apt_package)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::apt::AptPackage* temp = _impl_.apt_package_;
+  _impl_.apt_package_ = nullptr;
+  return temp;
+}
+inline ::s4wave::apt::AptPackage* PROTOBUF_NONNULL AddAptPackageOp::_internal_mutable_apt_package() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.apt_package_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::apt::AptPackage>(GetArena());
+    _impl_.apt_package_ = reinterpret_cast<::s4wave::apt::AptPackage*>(p);
+  }
+  return _impl_.apt_package_;
+}
+inline ::s4wave::apt::AptPackage* PROTOBUF_NONNULL AddAptPackageOp::mutable_apt_package()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::apt::AptPackage* _msg = _internal_mutable_apt_package();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AddAptPackageOp.apt_package)
+  return _msg;
+}
+inline void AddAptPackageOp::set_allocated_apt_package(::s4wave::apt::AptPackage* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.apt_package_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.apt_package_ = reinterpret_cast<::s4wave::apt::AptPackage*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AddAptPackageOp.apt_package)
+}
+
+// -------------------------------------------------------------------
+
+// AddAptBuildSpecOp
+
+// string repository_key = 1;
+inline void AddAptBuildSpecOp::clear_repository_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.repository_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AddAptBuildSpecOp::repository_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AddAptBuildSpecOp.repository_key)
+  return _internal_repository_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AddAptBuildSpecOp::set_repository_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.repository_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.apt.AddAptBuildSpecOp.repository_key)
+}
+inline ::std::string* PROTOBUF_NONNULL AddAptBuildSpecOp::mutable_repository_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_repository_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AddAptBuildSpecOp.repository_key)
+  return _s;
+}
+inline const ::std::string& AddAptBuildSpecOp::_internal_repository_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.repository_key_.Get();
+}
+inline void AddAptBuildSpecOp::_internal_set_repository_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.repository_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AddAptBuildSpecOp::_internal_mutable_repository_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.repository_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AddAptBuildSpecOp::release_repository_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AddAptBuildSpecOp.repository_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.repository_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.repository_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AddAptBuildSpecOp::set_allocated_repository_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.repository_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.repository_key_.IsDefault()) {
+    _impl_.repository_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AddAptBuildSpecOp.repository_key)
+}
+
+// string build_spec_key = 2;
+inline void AddAptBuildSpecOp::clear_build_spec_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.build_spec_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& AddAptBuildSpecOp::build_spec_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AddAptBuildSpecOp.build_spec_key)
+  return _internal_build_spec_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AddAptBuildSpecOp::set_build_spec_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.build_spec_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.apt.AddAptBuildSpecOp.build_spec_key)
+}
+inline ::std::string* PROTOBUF_NONNULL AddAptBuildSpecOp::mutable_build_spec_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_build_spec_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AddAptBuildSpecOp.build_spec_key)
+  return _s;
+}
+inline const ::std::string& AddAptBuildSpecOp::_internal_build_spec_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.build_spec_key_.Get();
+}
+inline void AddAptBuildSpecOp::_internal_set_build_spec_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.build_spec_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AddAptBuildSpecOp::_internal_mutable_build_spec_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.build_spec_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AddAptBuildSpecOp::release_build_spec_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AddAptBuildSpecOp.build_spec_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.build_spec_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.build_spec_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AddAptBuildSpecOp::set_allocated_build_spec_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.build_spec_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.build_spec_key_.IsDefault()) {
+    _impl_.build_spec_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AddAptBuildSpecOp.build_spec_key)
+}
+
+// .s4wave.apt.AptBuildSpec build_spec = 3;
+inline bool AddAptBuildSpecOp::has_build_spec() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.build_spec_ != nullptr);
+  return value;
+}
+inline void AddAptBuildSpecOp::clear_build_spec() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.build_spec_ != nullptr) _impl_.build_spec_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::s4wave::apt::AptBuildSpec& AddAptBuildSpecOp::_internal_build_spec() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::apt::AptBuildSpec* p = _impl_.build_spec_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::apt::AptBuildSpec&>(::s4wave::apt::_AptBuildSpec_default_instance_);
+}
+inline const ::s4wave::apt::AptBuildSpec& AddAptBuildSpecOp::build_spec() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.apt.AddAptBuildSpecOp.build_spec)
+  return _internal_build_spec();
+}
+inline void AddAptBuildSpecOp::unsafe_arena_set_allocated_build_spec(
+    ::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.build_spec_);
+  }
+  _impl_.build_spec_ = reinterpret_cast<::s4wave::apt::AptBuildSpec*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.apt.AddAptBuildSpecOp.build_spec)
+}
+inline ::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE AddAptBuildSpecOp::release_build_spec() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::apt::AptBuildSpec* released = _impl_.build_spec_;
+  _impl_.build_spec_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE AddAptBuildSpecOp::unsafe_arena_release_build_spec() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.apt.AddAptBuildSpecOp.build_spec)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::apt::AptBuildSpec* temp = _impl_.build_spec_;
+  _impl_.build_spec_ = nullptr;
+  return temp;
+}
+inline ::s4wave::apt::AptBuildSpec* PROTOBUF_NONNULL AddAptBuildSpecOp::_internal_mutable_build_spec() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.build_spec_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::apt::AptBuildSpec>(GetArena());
+    _impl_.build_spec_ = reinterpret_cast<::s4wave::apt::AptBuildSpec*>(p);
+  }
+  return _impl_.build_spec_;
+}
+inline ::s4wave::apt::AptBuildSpec* PROTOBUF_NONNULL AddAptBuildSpecOp::mutable_build_spec()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::apt::AptBuildSpec* _msg = _internal_mutable_build_spec();
+  // @@protoc_insertion_point(field_mutable:s4wave.apt.AddAptBuildSpecOp.build_spec)
+  return _msg;
+}
+inline void AddAptBuildSpecOp::set_allocated_build_spec(::s4wave::apt::AptBuildSpec* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.build_spec_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.build_spec_ = reinterpret_cast<::s4wave::apt::AptBuildSpec*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.apt.AddAptBuildSpecOp.build_spec)
 }
 
 #ifdef __GNUC__
