@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -30,7 +29,10 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	"github.com/s4wave/spacewave/db/dex"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -325,24 +327,20 @@ func parseReleaseCDNFallbackRange(header string, size int64) (int64, int64, erro
 }
 
 type releaseCDNFallbackWritebackStore struct {
-	mtx   sync.Mutex
-	data  map[string][]byte
+	block.StoreOps
 	putCh chan struct{}
 }
 
 func newReleaseCDNFallbackWritebackStore() *releaseCDNFallbackWritebackStore {
 	return &releaseCDNFallbackWritebackStore{
-		data:  make(map[string][]byte),
+		StoreOps: block_store_inmem.NewInmemBlock(
+			store_kvkey.NewDefaultKVKey(),
+			store_kvtx_inmem.NewStore(),
+			hash.HashType_HashType_SHA256,
+			false,
+		),
 		putCh: make(chan struct{}, 1),
 	}
-}
-
-func (s *releaseCDNFallbackWritebackStore) GetHashType() hash.HashType {
-	return hash.HashType_HashType_SHA256
-}
-
-func (s *releaseCDNFallbackWritebackStore) GetSupportedFeatures() block.StoreFeature {
-	return 0
 }
 
 func (s *releaseCDNFallbackWritebackStore) PutBlock(
@@ -350,44 +348,18 @@ func (s *releaseCDNFallbackWritebackStore) PutBlock(
 	data []byte,
 	opts *block.PutOpts,
 ) (*block.BlockRef, bool, error) {
-	ref := opts.GetForceBlockRef()
-	if ref.GetEmpty() {
-		h, err := hash.Sum(s.GetHashType(), data)
-		if err != nil {
-			return nil, false, err
-		}
-		ref = &block.BlockRef{Hash: h}
-	}
-	key := ref.GetHash().String()
-	s.mtx.Lock()
-	_, existed := s.data[key]
-	if !existed {
-		s.data[key] = bytes.Clone(data)
-	}
-	s.mtx.Unlock()
-	select {
-	case s.putCh <- struct{}{}:
-	default:
-	}
-	return ref, existed, nil
+	ref, existed, err := s.StoreOps.PutBlock(ctx, data, opts)
+	s.notifyPut(err)
+	return ref, existed, err
 }
 
 func (s *releaseCDNFallbackWritebackStore) PutBlockBatch(
 	ctx context.Context,
 	entries []*block.PutBatchEntry,
 ) error {
-	for _, entry := range entries {
-		if entry.Tombstone {
-			continue
-		}
-		_, _, err := s.PutBlock(ctx, entry.Data, &block.PutOpts{
-			ForceBlockRef: entry.Ref,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	err := s.StoreOps.PutBlockBatch(ctx, entries)
+	s.notifyPut(err)
+	return err
 }
 
 func (s *releaseCDNFallbackWritebackStore) PutBlockBackground(
@@ -395,74 +367,19 @@ func (s *releaseCDNFallbackWritebackStore) PutBlockBackground(
 	data []byte,
 	opts *block.PutOpts,
 ) (*block.BlockRef, bool, error) {
-	return s.PutBlock(ctx, data, opts)
+	ref, existed, err := s.StoreOps.PutBlockBackground(ctx, data, opts)
+	s.notifyPut(err)
+	return ref, existed, err
 }
 
-func (s *releaseCDNFallbackWritebackStore) GetBlock(
-	ctx context.Context,
-	ref *block.BlockRef,
-) ([]byte, bool, error) {
-	key := ref.GetHash().String()
-	s.mtx.Lock()
-	data, ok := s.data[key]
-	s.mtx.Unlock()
-	return bytes.Clone(data), ok, nil
-}
-
-func (s *releaseCDNFallbackWritebackStore) GetBlockExists(
-	ctx context.Context,
-	ref *block.BlockRef,
-) (bool, error) {
-	_, ok, err := s.GetBlock(ctx, ref)
-	return ok, err
-}
-
-func (s *releaseCDNFallbackWritebackStore) GetBlockExistsBatch(
-	ctx context.Context,
-	refs []*block.BlockRef,
-) ([]bool, error) {
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		ok, err := s.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = ok
+func (s *releaseCDNFallbackWritebackStore) notifyPut(err error) {
+	if err != nil {
+		return
 	}
-	return out, nil
-}
-
-func (s *releaseCDNFallbackWritebackStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
-	return s, func() {}, nil
-}
-
-func (s *releaseCDNFallbackWritebackStore) StatBlock(
-	ctx context.Context,
-	ref *block.BlockRef,
-) (*block.BlockStat, error) {
-	data, ok, err := s.GetBlock(ctx, ref)
-	if err != nil || !ok {
-		return nil, err
+	select {
+	case s.putCh <- struct{}{}:
+	default:
 	}
-	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
-}
-
-func (s *releaseCDNFallbackWritebackStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	key := ref.GetHash().String()
-	s.mtx.Lock()
-	delete(s.data, key)
-	s.mtx.Unlock()
-	return nil
-}
-
-func (s *releaseCDNFallbackWritebackStore) Flush(ctx context.Context) error {
-	return nil
-}
-
-func (s *releaseCDNFallbackWritebackStore) BeginDeferFlush() {}
-
-func (s *releaseCDNFallbackWritebackStore) EndDeferFlush(ctx context.Context) error {
-	return nil
 }
 
 func (s *releaseCDNFallbackWritebackStore) waitPut(ctx context.Context) error {

@@ -6,48 +6,43 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
-	"github.com/s4wave/spacewave/net/hash"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
 
 type batchForwardTestStore struct {
-	block.NopStoreOps
-	id                string
+	block_store.Store
 	putBlockBatchHits int
 	backgroundHits    int
 	existsBatchHits   int
 }
 
-func (s *batchForwardTestStore) GetID() string              { return s.id }
-func (s *batchForwardTestStore) GetHashType() hash.HashType { return 0 }
-func (s *batchForwardTestStore) PutBlock(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, nil
+func newBatchForwardTestStore() *batchForwardTestStore {
+	ops := block_store_inmem.NewInmemBlock(
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		0,
+		false,
+	)
+	return &batchForwardTestStore{
+		Store: block_store.NewStore("test", ops),
+	}
 }
 
-func (s *batchForwardTestStore) GetBlock(_ context.Context, _ *block.BlockRef) ([]byte, bool, error) {
-	return nil, false, nil
-}
-
-func (s *batchForwardTestStore) GetBlockExists(_ context.Context, _ *block.BlockRef) (bool, error) {
-	return false, nil
-}
-
-func (s *batchForwardTestStore) StatBlock(_ context.Context, _ *block.BlockRef) (*block.BlockStat, error) {
-	return nil, nil
-}
-func (s *batchForwardTestStore) RmBlock(_ context.Context, _ *block.BlockRef) error { return nil }
-func (s *batchForwardTestStore) PutBlockBatch(_ context.Context, _ []*block.PutBatchEntry) error {
+func (s *batchForwardTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	s.putBlockBatchHits++
-	return nil
+	return s.Store.PutBlockBatch(ctx, entries)
 }
 
-func (s *batchForwardTestStore) PutBlockBackground(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
+func (s *batchForwardTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.backgroundHits++
-	return nil, false, nil
+	return s.Store.PutBlockBackground(ctx, data, opts)
 }
 
-func (s *batchForwardTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+func (s *batchForwardTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.existsBatchHits++
-	return make([]bool, len(refs)), nil
+	return s.Store.GetBlockExistsBatch(ctx, refs)
 }
 
 var (
@@ -57,10 +52,15 @@ var (
 
 func TestBlockStoreForwardsBatchAndBackground(t *testing.T) {
 	ctx := context.Background()
-	inner := &batchForwardTestStore{id: "test"}
+	inner := newBatchForwardTestStore()
 	store := &BlockStore{store: inner}
+	batchData := []byte("batch")
+	batchRef, err := block.BuildBlockRef(batchData, &block.PutOpts{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: &block.BlockRef{}}}); err != nil {
+	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: batchRef, Data: batchData}}); err != nil {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}
 	if inner.putBlockBatchHits != 1 {
@@ -74,7 +74,7 @@ func TestBlockStoreForwardsBatchAndBackground(t *testing.T) {
 		t.Fatalf("expected 1 PutBlockBackground call, got %d", inner.backgroundHits)
 	}
 
-	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{{}}); err != nil {
+	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{batchRef}); err != nil {
 		t.Fatalf("GetBlockExistsBatch failed: %v", err)
 	}
 	if inner.existsBatchHits != 1 {
