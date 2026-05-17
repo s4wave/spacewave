@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
@@ -19,6 +20,33 @@ type payloadReadChallenge struct {
 	data      []byte
 	challenge *ReadPayloadChallenge
 	expiresAt time.Time
+}
+
+// ReadSecretPayloadForPeer reads a Secret payload after checking kind and reader grant.
+func ReadSecretPayloadForPeer(
+	ctx context.Context,
+	b bus.Bus,
+	secret *Secret,
+	expectedKind string,
+	readerPeerID string,
+) (*SecretPayload, error) {
+	if readerPeerID == "" {
+		return nil, peer.ErrEmptyPeerID
+	}
+	if _, err := peer.IDB58Decode(readerPeerID); err != nil {
+		return nil, err
+	}
+	if secret == nil || secret.GetRef() == nil {
+		return nil, ErrMissingSecretRef
+	}
+	if expectedKind != "" && secret.GetKind() != expectedKind {
+		return nil, ErrSecretKindMismatch
+	}
+	r := &SecretResource{b: b}
+	if err := r.checkReaderGrant(ctx, secret, readerPeerID); err != nil {
+		return nil, err
+	}
+	return ReadSecretPayload(ctx, b, secret)
 }
 
 // BeginReadPayload starts a peer-authenticated Secret payload read.

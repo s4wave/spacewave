@@ -21,6 +21,8 @@ service SpaceResourceService {
 
   rpc CreateSecret(CreateSecretRequest) returns (CreateSecretResponse) {}
 
+  rpc ReadSecretPayload(ReadSecretPayloadRequest) returns (ReadSecretPayloadResponse) {}
+
   rpc DeployManifest(stream .s4wave.deploy.DeployManifestMessage) returns (stream .s4wave.deploy.DeployManifestMessage) {}
 
   rpc AddSpacePlugin(AddSpacePluginRequest) returns (AddSpacePluginResponse) {}
@@ -131,6 +133,22 @@ message CreateSecretRequest {
 message CreateSecretResponse {
   // Secret is the created parent Secret object metadata.
   .s4wave.secret.Secret secret = 1;
+}
+
+// ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.
+message ReadSecretPayloadRequest {
+  // ObjectKey is the parent Secret object key.
+  string object_key = 1;
+  // ExpectedKind rejects the read if the Secret kind has drifted.
+  string expected_kind = 2;
+}
+
+// ReadSecretPayloadResponse returns Secret metadata and payload bytes.
+message ReadSecretPayloadResponse {
+  // Secret is the redacted parent Secret object metadata.
+  .s4wave.secret.Secret secret = 1;
+  // Payload is the nested SharedObject payload readable by the mounted session.
+  .s4wave.secret.SecretPayload payload = 2;
 }
 
 // WatchSpaceContentsStateRequest is a request to watch the space contents state.

@@ -56,6 +56,8 @@ pub trait SpaceResourceServiceClient: Send + Sync {
     async fn mount_space_contents(&self, request: &MountSpaceContentsRequest) -> starpc::Result<MountSpaceContentsResponse>;
     /// CreateSecret.
     async fn create_secret(&self, request: &CreateSecretRequest) -> starpc::Result<CreateSecretResponse>;
+    /// ReadSecretPayload.
+    async fn read_secret_payload(&self, request: &ReadSecretPayloadRequest) -> starpc::Result<ReadSecretPayloadResponse>;
     /// DeployManifest.
     async fn deploy_manifest(&self) -> starpc::Result<Box<dyn SpaceResourceServiceDeployManifestStream>>;
     /// AddSpacePlugin.
@@ -100,6 +102,9 @@ impl<C: starpc::Client + 'static> SpaceResourceServiceClient for SpaceResourceSe
     }
     async fn create_secret(&self, request: &CreateSecretRequest) -> starpc::Result<CreateSecretResponse> {
         self.client.exec_call("s4wave.space.SpaceResourceService", "CreateSecret", request).await
+    }
+    async fn read_secret_payload(&self, request: &ReadSecretPayloadRequest) -> starpc::Result<ReadSecretPayloadResponse> {
+        self.client.exec_call("s4wave.space.SpaceResourceService", "ReadSecretPayload", request).await
     }
     async fn deploy_manifest(&self) -> starpc::Result<Box<dyn SpaceResourceServiceDeployManifestStream>> {
         let stream = self.client.new_stream("s4wave.space.SpaceResourceService", "DeployManifest", None).await?;
@@ -180,6 +185,8 @@ pub trait SpaceResourceServiceServer: Send + Sync {
     async fn mount_space_contents(&self, request: MountSpaceContentsRequest) -> starpc::Result<MountSpaceContentsResponse>;
     /// CreateSecret.
     async fn create_secret(&self, request: CreateSecretRequest) -> starpc::Result<CreateSecretResponse>;
+    /// ReadSecretPayload.
+    async fn read_secret_payload(&self, request: ReadSecretPayloadRequest) -> starpc::Result<ReadSecretPayloadResponse>;
     /// DeployManifest.
     async fn deploy_manifest(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// AddSpacePlugin.
@@ -194,6 +201,7 @@ const SPACE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "AccessWorld",
     "MountSpaceContents",
     "CreateSecret",
+    "ReadSecretPayload",
     "DeployManifest",
     "AddSpacePlugin",
     "RemoveSpacePlugin",
@@ -275,6 +283,21 @@ impl<S: SpaceResourceServiceServer + 'static> starpc::Invoker for SpaceResourceS
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.create_secret(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ReadSecretPayload" => {
+                let request: ReadSecretPayloadRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.read_secret_payload(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

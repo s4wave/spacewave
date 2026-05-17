@@ -11,6 +11,8 @@ import {
   CreateSecretResponse,
   MountSpaceContentsRequest,
   MountSpaceContentsResponse,
+  ReadSecretPayloadRequest,
+  ReadSecretPayloadResponse,
   RemoveSpacePluginRequest,
   RemoveSpacePluginResponse,
   SetProcessBindingRequest,
@@ -80,6 +82,15 @@ export const SpaceResourceServiceDefinition = {
       name: 'CreateSecret',
       I: CreateSecretRequest,
       O: CreateSecretResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
+     */
+    ReadSecretPayload: {
+      name: 'ReadSecretPayload',
+      I: ReadSecretPayloadRequest,
+      O: ReadSecretPayloadResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -157,6 +168,14 @@ export interface SpaceResourceService {
   ): Promise<CreateSecretResponse>
 
   /**
+   * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
+   */
+  ReadSecretPayload(
+    request: ReadSecretPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReadSecretPayloadResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifest
    */
   DeployManifest(
@@ -195,6 +214,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.AccessWorld = this.AccessWorld.bind(this)
     this.MountSpaceContents = this.MountSpaceContents.bind(this)
     this.CreateSecret = this.CreateSecret.bind(this)
+    this.ReadSecretPayload = this.ReadSecretPayload.bind(this)
     this.DeployManifest = this.DeployManifest.bind(this)
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
     this.RemoveSpacePlugin = this.RemoveSpacePlugin.bind(this)
@@ -282,6 +302,23 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return CreateSecretResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
+   */
+  async ReadSecretPayload(
+    request: ReadSecretPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReadSecretPayloadResponse> {
+    const requestMsg = ReadSecretPayloadRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.ReadSecretPayload.name,
+      ReadSecretPayloadRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReadSecretPayloadResponse.fromBinary(result)
   }
 
   /**

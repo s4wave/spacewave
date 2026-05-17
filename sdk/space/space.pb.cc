@@ -241,6 +241,36 @@ struct RemoveSpacePluginRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RemoveSpacePluginRequestDefaultTypeInternal _RemoveSpacePluginRequest_default_instance_;
 
+inline constexpr ReadSecretPayloadRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expected_kind_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReadSecretPayloadRequest::ReadSecretPayloadRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReadSecretPayloadRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReadSecretPayloadRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReadSecretPayloadRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReadSecretPayloadRequestDefaultTypeInternal() {}
+  union {
+    ReadSecretPayloadRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReadSecretPayloadRequestDefaultTypeInternal _ReadSecretPayloadRequest_default_instance_;
+
 inline constexpr MountSpaceContentsResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -558,6 +588,32 @@ struct SpaceContentsStateDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceContentsStateDefaultTypeInternal _SpaceContentsState_default_instance_;
 
+inline constexpr ReadSecretPayloadResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        secret_{nullptr},
+        payload_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReadSecretPayloadResponse::ReadSecretPayloadResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReadSecretPayloadResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReadSecretPayloadResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReadSecretPayloadResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReadSecretPayloadResponseDefaultTypeInternal() {}
+  union {
+    ReadSecretPayloadResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReadSecretPayloadResponseDefaultTypeInternal _ReadSecretPayloadResponse_default_instance_;
+
 inline constexpr CreateSecretResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -673,6 +729,20 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::space::CreateSecretResponse, _impl_.secret_),
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::ReadSecretPayloadRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::ReadSecretPayloadRequest, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::ReadSecretPayloadRequest, _impl_.expected_kind_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::ReadSecretPayloadResponse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::ReadSecretPayloadResponse, _impl_.secret_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::ReadSecretPayloadResponse, _impl_.payload_),
+        0,
+        1,
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpaceContentsState, _impl_._has_bits_),
@@ -741,16 +811,18 @@ static const ::_pbi::MigrationSchema
         {57, sizeof(::s4wave::space::MountSpaceContentsResponse)},
         {62, sizeof(::s4wave::space::CreateSecretRequest)},
         {77, sizeof(::s4wave::space::CreateSecretResponse)},
-        {82, sizeof(::s4wave::space::WatchSpaceContentsStateRequest)},
-        {83, sizeof(::s4wave::space::SpaceContentsState)},
-        {92, sizeof(::s4wave::space::SpacePluginStatus)},
-        {101, sizeof(::s4wave::space::AddSpacePluginRequest)},
-        {106, sizeof(::s4wave::space::AddSpacePluginResponse)},
-        {107, sizeof(::s4wave::space::RemoveSpacePluginRequest)},
-        {112, sizeof(::s4wave::space::RemoveSpacePluginResponse)},
-        {113, sizeof(::s4wave::space::SetProcessBindingRequest)},
-        {122, sizeof(::s4wave::space::SetProcessBindingResponse)},
-        {123, sizeof(::s4wave::space::ProcessBindingInfo)},
+        {82, sizeof(::s4wave::space::ReadSecretPayloadRequest)},
+        {89, sizeof(::s4wave::space::ReadSecretPayloadResponse)},
+        {96, sizeof(::s4wave::space::WatchSpaceContentsStateRequest)},
+        {97, sizeof(::s4wave::space::SpaceContentsState)},
+        {106, sizeof(::s4wave::space::SpacePluginStatus)},
+        {115, sizeof(::s4wave::space::AddSpacePluginRequest)},
+        {120, sizeof(::s4wave::space::AddSpacePluginResponse)},
+        {121, sizeof(::s4wave::space::RemoveSpacePluginRequest)},
+        {126, sizeof(::s4wave::space::RemoveSpacePluginResponse)},
+        {127, sizeof(::s4wave::space::SetProcessBindingRequest)},
+        {136, sizeof(::s4wave::space::SetProcessBindingResponse)},
+        {137, sizeof(::s4wave::space::ProcessBindingInfo)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::space::_WatchSpaceStateRequest_default_instance_._instance,
@@ -765,6 +837,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::space::_MountSpaceContentsResponse_default_instance_._instance,
     &::s4wave::space::_CreateSecretRequest_default_instance_._instance,
     &::s4wave::space::_CreateSecretResponse_default_instance_._instance,
+    &::s4wave::space::_ReadSecretPayloadRequest_default_instance_._instance,
+    &::s4wave::space::_ReadSecretPayloadResponse_default_instance_._instance,
     &::s4wave::space::_WatchSpaceContentsStateRequest_default_instance_._instance,
     &::s4wave::space::_SpaceContentsState_default_instance_._instance,
     &::s4wave::space::_SpacePluginStatus_default_instance_._instance,
@@ -818,49 +892,56 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "tent_type\030\004 \001(\t\022\r\n\005value\030\005 \001(\014\022\035\n\025reader"
     "_public_key_pem\030\006 \001(\014\"=\n\024CreateSecretRes"
     "ponse\022%\n\006secret\030\001 \001(\0132\025.s4wave.secret.Se"
-    "cret\" \n\036WatchSpaceContentsStateRequest\"\221"
-    "\001\n\022SpaceContentsState\022\r\n\005ready\030\001 \001(\010\0220\n\007"
-    "plugins\030\002 \003(\0132\037.s4wave.space.SpacePlugin"
-    "Status\022:\n\020process_bindings\030\003 \003(\0132 .s4wav"
-    "e.space.ProcessBindingInfo\"Q\n\021SpacePlugi"
-    "nStatus\022\021\n\tplugin_id\030\001 \001(\t\022\016\n\006loaded\030\003 \001"
-    "(\010\022\023\n\013description\030\004 \001(\tJ\004\010\002\020\003\"*\n\025AddSpac"
-    "ePluginRequest\022\021\n\tplugin_id\030\001 \001(\t\"\030\n\026Add"
-    "SpacePluginResponse\"-\n\030RemoveSpacePlugin"
-    "Request\022\021\n\tplugin_id\030\001 \001(\t\"\033\n\031RemoveSpac"
-    "ePluginResponse\"Q\n\030SetProcessBindingRequ"
-    "est\022\022\n\nobject_key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t"
-    "\022\020\n\010approved\030\003 \001(\010\"\033\n\031SetProcessBindingR"
-    "esponse\"{\n\022ProcessBindingInfo\022\022\n\nobject_"
+    "cret\"E\n\030ReadSecretPayloadRequest\022\022\n\nobje"
+    "ct_key\030\001 \001(\t\022\025\n\rexpected_kind\030\002 \001(\t\"q\n\031R"
+    "eadSecretPayloadResponse\022%\n\006secret\030\001 \001(\013"
+    "2\025.s4wave.secret.Secret\022-\n\007payload\030\002 \001(\013"
+    "2\034.s4wave.secret.SecretPayload\" \n\036WatchS"
+    "paceContentsStateRequest\"\221\001\n\022SpaceConten"
+    "tsState\022\r\n\005ready\030\001 \001(\010\0220\n\007plugins\030\002 \003(\0132"
+    "\037.s4wave.space.SpacePluginStatus\022:\n\020proc"
+    "ess_bindings\030\003 \003(\0132 .s4wave.space.Proces"
+    "sBindingInfo\"Q\n\021SpacePluginStatus\022\021\n\tplu"
+    "gin_id\030\001 \001(\t\022\016\n\006loaded\030\003 \001(\010\022\023\n\013descript"
+    "ion\030\004 \001(\tJ\004\010\002\020\003\"*\n\025AddSpacePluginRequest"
+    "\022\021\n\tplugin_id\030\001 \001(\t\"\030\n\026AddSpacePluginRes"
+    "ponse\"-\n\030RemoveSpacePluginRequest\022\021\n\tplu"
+    "gin_id\030\001 \001(\t\"\033\n\031RemoveSpacePluginRespons"
+    "e\"Q\n\030SetProcessBindingRequest\022\022\n\nobject_"
     "key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t\022\020\n\010approved\030\003"
-    " \001(\010\022.\n\ndecided_at\030\004 \001(\0132\032.google.protob"
-    "uf.Timestamp2\236\006\n\024SpaceResourceService\022U\n"
-    "\017WatchSpaceState\022$.s4wave.space.WatchSpa"
-    "ceStateRequest\032\030.s4wave.space.SpaceState"
-    "\"\0000\001\022j\n\026WatchSpaceSharingState\022+.s4wave."
-    "space.WatchSpaceSharingStateRequest\032\037.s4"
-    "wave.space.SpaceSharingState\"\0000\001\022T\n\013Acce"
-    "ssWorld\022 .s4wave.space.AccessWorldReques"
-    "t\032!.s4wave.space.AccessWorldResponse\"\000\022i"
-    "\n\022MountSpaceContents\022\'.s4wave.space.Moun"
-    "tSpaceContentsRequest\032(.s4wave.space.Mou"
-    "ntSpaceContentsResponse\"\000\022W\n\014CreateSecre"
-    "t\022!.s4wave.space.CreateSecretRequest\032\".s"
-    "4wave.space.CreateSecretResponse\"\000\022b\n\016De"
-    "ployManifest\022$.s4wave.deploy.DeployManif"
-    "estMessage\032$.s4wave.deploy.DeployManifes"
-    "tMessage\"\000(\0010\001\022]\n\016AddSpacePlugin\022#.s4wav"
-    "e.space.AddSpacePluginRequest\032$.s4wave.s"
-    "pace.AddSpacePluginResponse\"\000\022f\n\021RemoveS"
-    "pacePlugin\022&.s4wave.space.RemoveSpacePlu"
-    "ginRequest\032\'.s4wave.space.RemoveSpacePlu"
-    "ginResponse\"\0002\350\001\n\034SpaceContentsResourceS"
-    "ervice\022`\n\nWatchState\022,.s4wave.space.Watc"
-    "hSpaceContentsStateRequest\032 .s4wave.spac"
-    "e.SpaceContentsState\"\0000\001\022f\n\021SetProcessBi"
-    "nding\022&.s4wave.space.SetProcessBindingRe"
-    "quest\032\'.s4wave.space.SetProcessBindingRe"
-    "sponse\"\000b\006proto3"
+    " \001(\010\"\033\n\031SetProcessBindingResponse\"{\n\022Pro"
+    "cessBindingInfo\022\022\n\nobject_key\030\001 \001(\t\022\017\n\007t"
+    "ype_id\030\002 \001(\t\022\020\n\010approved\030\003 \001(\010\022.\n\ndecide"
+    "d_at\030\004 \001(\0132\032.google.protobuf.Timestamp2\206"
+    "\007\n\024SpaceResourceService\022U\n\017WatchSpaceSta"
+    "te\022$.s4wave.space.WatchSpaceStateRequest"
+    "\032\030.s4wave.space.SpaceState\"\0000\001\022j\n\026WatchS"
+    "paceSharingState\022+.s4wave.space.WatchSpa"
+    "ceSharingStateRequest\032\037.s4wave.space.Spa"
+    "ceSharingState\"\0000\001\022T\n\013AccessWorld\022 .s4wa"
+    "ve.space.AccessWorldRequest\032!.s4wave.spa"
+    "ce.AccessWorldResponse\"\000\022i\n\022MountSpaceCo"
+    "ntents\022\'.s4wave.space.MountSpaceContents"
+    "Request\032(.s4wave.space.MountSpaceContent"
+    "sResponse\"\000\022W\n\014CreateSecret\022!.s4wave.spa"
+    "ce.CreateSecretRequest\032\".s4wave.space.Cr"
+    "eateSecretResponse\"\000\022f\n\021ReadSecretPayloa"
+    "d\022&.s4wave.space.ReadSecretPayloadReques"
+    "t\032\'.s4wave.space.ReadSecretPayloadRespon"
+    "se\"\000\022b\n\016DeployManifest\022$.s4wave.deploy.D"
+    "eployManifestMessage\032$.s4wave.deploy.Dep"
+    "loyManifestMessage\"\000(\0010\001\022]\n\016AddSpacePlug"
+    "in\022#.s4wave.space.AddSpacePluginRequest\032"
+    "$.s4wave.space.AddSpacePluginResponse\"\000\022"
+    "f\n\021RemoveSpacePlugin\022&.s4wave.space.Remo"
+    "veSpacePluginRequest\032\'.s4wave.space.Remo"
+    "veSpacePluginResponse\"\0002\350\001\n\034SpaceContent"
+    "sResourceService\022`\n\nWatchState\022,.s4wave."
+    "space.WatchSpaceContentsStateRequest\032 .s"
+    "4wave.space.SpaceContentsState\"\0000\001\022f\n\021Se"
+    "tProcessBinding\022&.s4wave.space.SetProces"
+    "sBindingRequest\032\'.s4wave.space.SetProces"
+    "sBindingResponse\"\000b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_deps[7] = {
@@ -876,13 +957,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto = {
     false,
     false,
-    3296,
+    3586,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto,
     "github.com/s4wave/spacewave/sdk/space/space.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_deps,
     7,
-    22,
+    24,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto::offsets,
@@ -4302,6 +4383,659 @@ void CreateSecretResponse::InternalSwap(CreateSecretResponse* PROTOBUF_RESTRICT 
 }
 
 ::google::protobuf::Metadata CreateSecretResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReadSecretPayloadRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReadSecretPayloadRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReadSecretPayloadRequest, _impl_._has_bits_);
+};
+
+ReadSecretPayloadRequest::ReadSecretPayloadRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadSecretPayloadRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.space.ReadSecretPayloadRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReadSecretPayloadRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::space::ReadSecretPayloadRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_key_(arena, from.object_key_),
+        expected_kind_(arena, from.expected_kind_) {}
+
+ReadSecretPayloadRequest::ReadSecretPayloadRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReadSecretPayloadRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadSecretPayloadRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReadSecretPayloadRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.space.ReadSecretPayloadRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReadSecretPayloadRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_key_(arena),
+        expected_kind_(arena) {}
+
+inline void ReadSecretPayloadRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ReadSecretPayloadRequest::~ReadSecretPayloadRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.space.ReadSecretPayloadRequest)
+  SharedDtor(*this);
+}
+inline void ReadSecretPayloadRequest::SharedDtor(MessageLite& self) {
+  ReadSecretPayloadRequest& this_ = static_cast<ReadSecretPayloadRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.object_key_.Destroy();
+  this_._impl_.expected_kind_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReadSecretPayloadRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReadSecretPayloadRequest(arena);
+}
+constexpr auto ReadSecretPayloadRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReadSecretPayloadRequest),
+                                            alignof(ReadSecretPayloadRequest));
+}
+constexpr auto ReadSecretPayloadRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReadSecretPayloadRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReadSecretPayloadRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReadSecretPayloadRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReadSecretPayloadRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReadSecretPayloadRequest>(), &ReadSecretPayloadRequest::ByteSizeLong,
+              &ReadSecretPayloadRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReadSecretPayloadRequest, _impl_._cached_size_),
+          false,
+      },
+      &ReadSecretPayloadRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReadSecretPayloadRequest_class_data_ =
+        ReadSecretPayloadRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReadSecretPayloadRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReadSecretPayloadRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReadSecretPayloadRequest_class_data_.tc_table);
+  return ReadSecretPayloadRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 69, 2>
+ReadSecretPayloadRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReadSecretPayloadRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ReadSecretPayloadRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::space::ReadSecretPayloadRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string expected_kind = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ReadSecretPayloadRequest, _impl_.expected_kind_)}},
+    // string object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReadSecretPayloadRequest, _impl_.object_key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(ReadSecretPayloadRequest, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string expected_kind = 2;
+    {PROTOBUF_FIELD_OFFSET(ReadSecretPayloadRequest, _impl_.expected_kind_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\45\12\15\0\0\0\0\0"
+    "s4wave.space.ReadSecretPayloadRequest"
+    "object_key"
+    "expected_kind"
+  }},
+};
+PROTOBUF_NOINLINE void ReadSecretPayloadRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.space.ReadSecretPayloadRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.expected_kind_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReadSecretPayloadRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReadSecretPayloadRequest& this_ = static_cast<const ReadSecretPayloadRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReadSecretPayloadRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReadSecretPayloadRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.space.ReadSecretPayloadRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.space.ReadSecretPayloadRequest.object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string expected_kind = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_expected_kind().empty()) {
+      const ::std::string& _s = this_._internal_expected_kind();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.space.ReadSecretPayloadRequest.expected_kind");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.space.ReadSecretPayloadRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReadSecretPayloadRequest::ByteSizeLong(const MessageLite& base) {
+  const ReadSecretPayloadRequest& this_ = static_cast<const ReadSecretPayloadRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReadSecretPayloadRequest::ByteSizeLong() const {
+  const ReadSecretPayloadRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.space.ReadSecretPayloadRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // string expected_kind = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_expected_kind().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_expected_kind());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReadSecretPayloadRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReadSecretPayloadRequest*>(&to_msg);
+  auto& from = static_cast<const ReadSecretPayloadRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.space.ReadSecretPayloadRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_expected_kind().empty()) {
+        _this->_internal_set_expected_kind(from._internal_expected_kind());
+      } else {
+        if (_this->_impl_.expected_kind_.IsDefault()) {
+          _this->_internal_set_expected_kind("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReadSecretPayloadRequest::CopyFrom(const ReadSecretPayloadRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.space.ReadSecretPayloadRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReadSecretPayloadRequest::InternalSwap(ReadSecretPayloadRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.expected_kind_, &other->_impl_.expected_kind_, arena);
+}
+
+::google::protobuf::Metadata ReadSecretPayloadRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReadSecretPayloadResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReadSecretPayloadResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_._has_bits_);
+};
+
+void ReadSecretPayloadResponse::clear_secret() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.secret_ != nullptr) _impl_.secret_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+void ReadSecretPayloadResponse::clear_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.payload_ != nullptr) _impl_.payload_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+ReadSecretPayloadResponse::ReadSecretPayloadResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadSecretPayloadResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.space.ReadSecretPayloadResponse)
+}
+PROTOBUF_NDEBUG_INLINE ReadSecretPayloadResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::space::ReadSecretPayloadResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+ReadSecretPayloadResponse::ReadSecretPayloadResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReadSecretPayloadResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReadSecretPayloadResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReadSecretPayloadResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.secret_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.secret_)
+                : nullptr;
+  _impl_.payload_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.payload_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.space.ReadSecretPayloadResponse)
+}
+PROTOBUF_NDEBUG_INLINE ReadSecretPayloadResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void ReadSecretPayloadResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, secret_),
+           0,
+           offsetof(Impl_, payload_) -
+               offsetof(Impl_, secret_) +
+               sizeof(Impl_::payload_));
+}
+ReadSecretPayloadResponse::~ReadSecretPayloadResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.space.ReadSecretPayloadResponse)
+  SharedDtor(*this);
+}
+inline void ReadSecretPayloadResponse::SharedDtor(MessageLite& self) {
+  ReadSecretPayloadResponse& this_ = static_cast<ReadSecretPayloadResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.secret_;
+  delete this_._impl_.payload_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReadSecretPayloadResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReadSecretPayloadResponse(arena);
+}
+constexpr auto ReadSecretPayloadResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ReadSecretPayloadResponse),
+                                            alignof(ReadSecretPayloadResponse));
+}
+constexpr auto ReadSecretPayloadResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReadSecretPayloadResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReadSecretPayloadResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReadSecretPayloadResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReadSecretPayloadResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReadSecretPayloadResponse>(), &ReadSecretPayloadResponse::ByteSizeLong,
+              &ReadSecretPayloadResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_._cached_size_),
+          false,
+      },
+      &ReadSecretPayloadResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReadSecretPayloadResponse_class_data_ =
+        ReadSecretPayloadResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReadSecretPayloadResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReadSecretPayloadResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReadSecretPayloadResponse_class_data_.tc_table);
+  return ReadSecretPayloadResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 2, 0, 2>
+ReadSecretPayloadResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ReadSecretPayloadResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::space::ReadSecretPayloadResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.secret.SecretPayload payload = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 1,
+      PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_.payload_)}},
+    // .s4wave.secret.Secret secret = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_.secret_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.secret.Secret secret = 1;
+    {PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_.secret_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.secret.SecretPayload payload = 2;
+    {PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_.payload_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::secret::Secret>()},
+      {::_pbi::TcParser::GetTable<::s4wave::secret::SecretPayload>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void ReadSecretPayloadResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.space.ReadSecretPayloadResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(_impl_.secret_ != nullptr);
+      _impl_.secret_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.payload_ != nullptr);
+      _impl_.payload_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReadSecretPayloadResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReadSecretPayloadResponse& this_ = static_cast<const ReadSecretPayloadResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReadSecretPayloadResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReadSecretPayloadResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.space.ReadSecretPayloadResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.secret.Secret secret = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.secret_, this_._impl_.secret_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .s4wave.secret.SecretPayload payload = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.payload_, this_._impl_.payload_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.space.ReadSecretPayloadResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReadSecretPayloadResponse::ByteSizeLong(const MessageLite& base) {
+  const ReadSecretPayloadResponse& this_ = static_cast<const ReadSecretPayloadResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReadSecretPayloadResponse::ByteSizeLong() const {
+  const ReadSecretPayloadResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.space.ReadSecretPayloadResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // .s4wave.secret.Secret secret = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.secret_);
+    }
+    // .s4wave.secret.SecretPayload payload = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.payload_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReadSecretPayloadResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReadSecretPayloadResponse*>(&to_msg);
+  auto& from = static_cast<const ReadSecretPayloadResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.space.ReadSecretPayloadResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(from._impl_.secret_ != nullptr);
+      if (_this->_impl_.secret_ == nullptr) {
+        _this->_impl_.secret_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.secret_);
+      } else {
+        _this->_impl_.secret_->MergeFrom(*from._impl_.secret_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.payload_ != nullptr);
+      if (_this->_impl_.payload_ == nullptr) {
+        _this->_impl_.payload_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.payload_);
+      } else {
+        _this->_impl_.payload_->MergeFrom(*from._impl_.payload_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReadSecretPayloadResponse::CopyFrom(const ReadSecretPayloadResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.space.ReadSecretPayloadResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReadSecretPayloadResponse::InternalSwap(ReadSecretPayloadResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_.payload_)
+      + sizeof(ReadSecretPayloadResponse::_impl_.payload_)
+      - PROTOBUF_FIELD_OFFSET(ReadSecretPayloadResponse, _impl_.secret_)>(
+          reinterpret_cast<char*>(&_impl_.secret_),
+          reinterpret_cast<char*>(&other->_impl_.secret_));
+}
+
+::google::protobuf::Metadata ReadSecretPayloadResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

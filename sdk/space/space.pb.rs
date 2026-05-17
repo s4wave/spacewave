@@ -130,6 +130,26 @@ pub struct CreateSecretResponse {
     #[prost(message, optional, tag="1")]
     pub secret: ::core::option::Option<super::secret::Secret>,
 }
+/// ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadSecretPayloadRequest {
+    /// ObjectKey is the parent Secret object key.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// ExpectedKind rejects the read if the Secret kind has drifted.
+    #[prost(string, tag="2")]
+    pub expected_kind: ::prost::alloc::string::String,
+}
+/// ReadSecretPayloadResponse returns Secret metadata and payload bytes.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadSecretPayloadResponse {
+    /// Secret is the redacted parent Secret object metadata.
+    #[prost(message, optional, tag="1")]
+    pub secret: ::core::option::Option<super::secret::Secret>,
+    /// Payload is the nested SharedObject payload readable by the mounted session.
+    #[prost(message, optional, tag="2")]
+    pub payload: ::core::option::Option<super::secret::SecretPayload>,
+}
 /// WatchSpaceContentsStateRequest is a request to watch the space contents state.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchSpaceContentsStateRequest {

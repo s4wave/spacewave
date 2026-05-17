@@ -44,6 +44,10 @@ starpc::Error SRPCSpaceResourceServiceClientImpl::CreateSecret(const s4wave::spa
   return cc_->ExecCall(service_id_, "CreateSecret", in, out);
 }
 
+starpc::Error SRPCSpaceResourceServiceClientImpl::ReadSecretPayload(const s4wave::space::ReadSecretPayloadRequest& in, s4wave::space::ReadSecretPayloadResponse* out) {
+  return cc_->ExecCall(service_id_, "ReadSecretPayload", in, out);
+}
+
 std::pair<std::unique_ptr<SRPCSpaceResourceService_DeployManifestClient>, starpc::Error> SRPCSpaceResourceServiceClientImpl::DeployManifest() {
   auto [strm, err] = cc_->NewStream(service_id_, "DeployManifest", nullptr);
   if (err != starpc::Error::OK) {
@@ -67,6 +71,7 @@ std::vector<std::string> SRPCSpaceResourceServiceHandler::GetMethodIDs() const {
     "AccessWorld",
     "MountSpaceContents",
     "CreateSecret",
+    "ReadSecretPayload",
     "DeployManifest",
     "AddSpacePlugin",
     "RemoveSpacePlugin",
@@ -115,6 +120,14 @@ std::pair<bool, starpc::Error> SRPCSpaceResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     s4wave::space::CreateSecretResponse resp;
     err = impl_->CreateSecret(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ReadSecretPayload") {
+    s4wave::space::ReadSecretPayloadRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::space::ReadSecretPayloadResponse resp;
+    err = impl_->ReadSecretPayload(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "DeployManifest") {

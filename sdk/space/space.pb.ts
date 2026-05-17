@@ -16,7 +16,7 @@ import {
   SOParticipantRole_Enum,
 } from '../../core/sobject/sobject.pb.js'
 import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
-import { Secret } from '../secret/secret.pb.js'
+import { Secret, SecretPayload } from '../secret/secret.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 's4wave.space'
@@ -442,6 +442,68 @@ export const CreateSecretResponse: MessageType<CreateSecretResponse> =
     typeName: 's4wave.space.CreateSecretResponse',
     fields: [
       { no: 1, name: 'secret', kind: 'message', T: () => Secret },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.
+ *
+ * @generated from message s4wave.space.ReadSecretPayloadRequest
+ */
+export interface ReadSecretPayloadRequest {
+  /**
+   * ObjectKey is the parent Secret object key.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * ExpectedKind rejects the read if the Secret kind has drifted.
+   *
+   * @generated from field: string expected_kind = 2;
+   */
+  expectedKind?: string
+}
+
+// ReadSecretPayloadRequest contains the message type declaration for ReadSecretPayloadRequest.
+export const ReadSecretPayloadRequest: MessageType<ReadSecretPayloadRequest> =
+  createMessageType({
+    typeName: 's4wave.space.ReadSecretPayloadRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'expected_kind', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReadSecretPayloadResponse returns Secret metadata and payload bytes.
+ *
+ * @generated from message s4wave.space.ReadSecretPayloadResponse
+ */
+export interface ReadSecretPayloadResponse {
+  /**
+   * Secret is the redacted parent Secret object metadata.
+   *
+   * @generated from field: s4wave.secret.Secret secret = 1;
+   */
+  secret?: Secret
+  /**
+   * Payload is the nested SharedObject payload readable by the mounted session.
+   *
+   * @generated from field: s4wave.secret.SecretPayload payload = 2;
+   */
+  payload?: SecretPayload
+}
+
+// ReadSecretPayloadResponse contains the message type declaration for ReadSecretPayloadResponse.
+export const ReadSecretPayloadResponse: MessageType<ReadSecretPayloadResponse> =
+  createMessageType({
+    typeName: 's4wave.space.ReadSecretPayloadResponse',
+    fields: [
+      { no: 1, name: 'secret', kind: 'message', T: () => Secret },
+      { no: 2, name: 'payload', kind: 'message', T: () => SecretPayload },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

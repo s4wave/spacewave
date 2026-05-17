@@ -399,6 +399,64 @@ func (x *CreateSecretResponse) GetSecret() *secret.Secret {
 	return nil
 }
 
+// ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.
+type ReadSecretPayloadRequest struct {
+	unknownFields []byte
+	// ObjectKey is the parent Secret object key.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// ExpectedKind rejects the read if the Secret kind has drifted.
+	ExpectedKind string `protobuf:"bytes,2,opt,name=expected_kind,json=expectedKind,proto3" json:"expectedKind,omitempty"`
+}
+
+func (x *ReadSecretPayloadRequest) Reset() {
+	*x = ReadSecretPayloadRequest{}
+}
+
+func (*ReadSecretPayloadRequest) ProtoMessage() {}
+
+func (x *ReadSecretPayloadRequest) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ReadSecretPayloadRequest) GetExpectedKind() string {
+	if x != nil {
+		return x.ExpectedKind
+	}
+	return ""
+}
+
+// ReadSecretPayloadResponse returns Secret metadata and payload bytes.
+type ReadSecretPayloadResponse struct {
+	unknownFields []byte
+	// Secret is the redacted parent Secret object metadata.
+	Secret *secret.Secret `protobuf:"bytes,1,opt,name=secret,proto3" json:"secret,omitempty"`
+	// Payload is the nested SharedObject payload readable by the mounted session.
+	Payload *secret.SecretPayload `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+}
+
+func (x *ReadSecretPayloadResponse) Reset() {
+	*x = ReadSecretPayloadResponse{}
+}
+
+func (*ReadSecretPayloadResponse) ProtoMessage() {}
+
+func (x *ReadSecretPayloadResponse) GetSecret() *secret.Secret {
+	if x != nil {
+		return x.Secret
+	}
+	return nil
+}
+
+func (x *ReadSecretPayloadResponse) GetPayload() *secret.SecretPayload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
 // WatchSpaceContentsStateRequest is a request to watch the space contents state.
 type WatchSpaceContentsStateRequest struct {
 	unknownFields []byte
@@ -665,9 +723,13 @@ func (m *SpaceState) CloneVT() *SpaceState {
 	}
 	r := new(SpaceState)
 	r.Ready = m.Ready
-	r.WorldContents = m.WorldContents.CloneVT()
-	r.Settings = m.Settings.CloneVT()
 	r.TransformInfo = m.TransformInfo.CloneVT()
+	if rhs := m.WorldContents; rhs != nil {
+		r.WorldContents = rhs.CloneVT()
+	}
+	if rhs := m.Settings; rhs != nil {
+		r.Settings = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -871,7 +933,9 @@ func (m *CreateSecretResponse) CloneVT() *CreateSecretResponse {
 		return (*CreateSecretResponse)(nil)
 	}
 	r := new(CreateSecretResponse)
-	r.Secret = m.Secret.CloneVT()
+	if rhs := m.Secret; rhs != nil {
+		r.Secret = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -879,6 +943,44 @@ func (m *CreateSecretResponse) CloneVT() *CreateSecretResponse {
 }
 
 func (m *CreateSecretResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadSecretPayloadRequest) CloneVT() *ReadSecretPayloadRequest {
+	if m == nil {
+		return (*ReadSecretPayloadRequest)(nil)
+	}
+	r := new(ReadSecretPayloadRequest)
+	r.ObjectKey = m.ObjectKey
+	r.ExpectedKind = m.ExpectedKind
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadSecretPayloadRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadSecretPayloadResponse) CloneVT() *ReadSecretPayloadResponse {
+	if m == nil {
+		return (*ReadSecretPayloadResponse)(nil)
+	}
+	r := new(ReadSecretPayloadResponse)
+	if rhs := m.Secret; rhs != nil {
+		r.Secret = rhs.CloneVT()
+	}
+	if rhs := m.Payload; rhs != nil {
+		r.Payload = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadSecretPayloadResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1414,6 +1516,52 @@ func (this *CreateSecretResponse) EqualVT(that *CreateSecretResponse) bool {
 
 func (this *CreateSecretResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CreateSecretResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadSecretPayloadRequest) EqualVT(that *ReadSecretPayloadRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.ExpectedKind != that.ExpectedKind {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadSecretPayloadRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadSecretPayloadRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadSecretPayloadResponse) EqualVT(that *ReadSecretPayloadResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Secret.EqualVT(that.Secret) {
+		return false
+	}
+	if !this.Payload.EqualVT(that.Payload) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadSecretPayloadResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadSecretPayloadResponse)
 	if !ok {
 		return false
 	}
@@ -2393,6 +2541,114 @@ func (x *CreateSecretResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the CreateSecretResponse from JSON.
 func (x *CreateSecretResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadSecretPayloadRequest message to JSON.
+func (x *ReadSecretPayloadRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.ExpectedKind != "" || s.HasField("expectedKind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedKind")
+		s.WriteString(x.ExpectedKind)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadSecretPayloadRequest to JSON.
+func (x *ReadSecretPayloadRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadSecretPayloadRequest message from JSON.
+func (x *ReadSecretPayloadRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "expected_kind", "expectedKind":
+			s.AddField("expected_kind")
+			x.ExpectedKind = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadSecretPayloadRequest from JSON.
+func (x *ReadSecretPayloadRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadSecretPayloadResponse message to JSON.
+func (x *ReadSecretPayloadResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Secret != nil || s.HasField("secret") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("secret")
+		x.Secret.MarshalProtoJSON(s.WithField("secret"))
+	}
+	if x.Payload != nil || s.HasField("payload") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payload")
+		x.Payload.MarshalProtoJSON(s.WithField("payload"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadSecretPayloadResponse to JSON.
+func (x *ReadSecretPayloadResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadSecretPayloadResponse message from JSON.
+func (x *ReadSecretPayloadResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "secret":
+			if s.ReadNil() {
+				x.Secret = nil
+				return
+			}
+			x.Secret = &secret.Secret{}
+			x.Secret.UnmarshalProtoJSON(s.WithField("secret", true))
+		case "payload":
+			if s.ReadNil() {
+				x.Payload = nil
+				return
+			}
+			x.Payload = &secret.SecretPayload{}
+			x.Payload.UnmarshalProtoJSON(s.WithField("payload", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadSecretPayloadResponse from JSON.
+func (x *ReadSecretPayloadResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3507,6 +3763,106 @@ func (m *CreateSecretResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *ReadSecretPayloadRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadSecretPayloadRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadSecretPayloadRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ExpectedKind) > 0 {
+		i -= len(m.ExpectedKind)
+		copy(dAtA[i:], m.ExpectedKind)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ExpectedKind)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadSecretPayloadResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadSecretPayloadResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadSecretPayloadResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Payload != nil {
+		size, err := m.Payload.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Secret != nil {
+		size, err := m.Secret.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchSpaceContentsStateRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4198,6 +4554,42 @@ func (m *CreateSecretResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *ReadSecretPayloadRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ExpectedKind)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadSecretPayloadResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Secret != nil {
+		l = m.Secret.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Payload != nil {
+		l = m.Payload.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchSpaceContentsStateRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4720,6 +5112,56 @@ func (x *CreateSecretResponse) MarshalProtoText() string {
 }
 
 func (x *CreateSecretResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadSecretPayloadRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReadSecretPayloadRequest {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.ExpectedKind != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("expected_kind: ")
+		sb.WriteString(strconv.Quote(x.ExpectedKind))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReadSecretPayloadRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadSecretPayloadResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReadSecretPayloadResponse {")
+	if x.Secret != nil {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("secret: ")
+		sb.WriteString(x.Secret.MarshalProtoText())
+	}
+	if x.Payload != nil {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("payload: ")
+		sb.WriteString(x.Payload.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReadSecretPayloadResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5982,6 +6424,192 @@ func (m *CreateSecretResponse) UnmarshalVT(dAtA []byte) error {
 				m.Secret = &secret.Secret{}
 			}
 			if err := m.Secret.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadSecretPayloadRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadSecretPayloadRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadSecretPayloadRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedKind", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExpectedKind = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadSecretPayloadResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadSecretPayloadResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadSecretPayloadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Secret", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Secret == nil {
+				m.Secret = &secret.Secret{}
+			}
+			if err := m.Secret.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Payload == nil {
+				m.Payload = &secret.SecretPayload{}
+			}
+			if err := m.Payload.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

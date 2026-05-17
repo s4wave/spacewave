@@ -3,6 +3,7 @@ package resource_space
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -83,6 +84,67 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 	}
 }
 
+func TestSpaceResourceReadSecretPayloadUsesMountedSessionGrant(t *testing.T) {
+	ctx := t.Context()
+	tb, resource, release := setupSecretSpaceResourceTest(ctx, t)
+	defer release()
+
+	readerPub, err := tb.Volume.GetPeerID().ExtractPublicKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	readerPubPEM, err := keypem.MarshalPubKeyPem(readerPub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{
+		ObjectKey:          "secrets/matrix/session-token",
+		DisplayName:        "Matrix access token",
+		Kind:               s4wave_secret.SecretKindMatrixAccessToken,
+		ContentType:        s4wave_secret.MatrixAccessTokenContentType,
+		Value:              []byte("session-matrix-token"),
+		ReaderPublicKeyPem: readerPubPEM,
+	}); err != nil {
+		t.Fatalf("CreateSecret: %v", err)
+	}
+
+	read, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{
+		ObjectKey:    "secrets/matrix/session-token",
+		ExpectedKind: s4wave_secret.SecretKindMatrixAccessToken,
+	})
+	if err != nil {
+		t.Fatalf("ReadSecretPayload: %v", err)
+	}
+	if read.GetSecret().GetKind() != s4wave_secret.SecretKindMatrixAccessToken {
+		t.Fatalf("secret kind: got %q", read.GetSecret().GetKind())
+	}
+	if got := string(read.GetPayload().GetValue()); got != "session-matrix-token" {
+		t.Fatalf("payload mismatch: %q", got)
+	}
+	if _, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{
+		ObjectKey:    "secrets/matrix/session-token",
+		ExpectedKind: "other",
+	}); !errors.Is(err, s4wave_secret.ErrSecretKindMismatch) {
+		t.Fatalf("expected kind mismatch, got %v", err)
+	}
+
+	otherPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherPeerID, err := peer.IDFromPrivateKey(otherPriv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource.sessionPeerID = otherPeerID.String()
+	if _, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{
+		ObjectKey:    "secrets/matrix/session-token",
+		ExpectedKind: s4wave_secret.SecretKindMatrixAccessToken,
+	}); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
+		t.Fatalf("expected payload access denied, got %v", err)
+	}
+}
+
 type secretSpaceBody struct {
 	ref    *sobject.SharedObjectRef
 	engine world.Engine
@@ -159,9 +221,10 @@ func setupSecretSpaceResourceTest(
 	}
 
 	resource := &SpaceResource{
-		le:    tb.Logger,
-		b:     tb.Bus,
-		space: &secretSpaceBody{ref: spaceRef, engine: tb.BusEngine},
+		le:            tb.Logger,
+		b:             tb.Bus,
+		space:         &secretSpaceBody{ref: spaceRef, engine: tb.BusEngine},
+		sessionPeerID: tb.Volume.GetPeerID().String(),
 	}
 	return tb, resource, func() {
 		provAccRef.Release()

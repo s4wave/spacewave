@@ -6,6 +6,8 @@ import (
 	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
@@ -92,4 +94,45 @@ func (r *SpaceResource) CreateSecret(
 		}
 	}
 	return &s4wave_space.CreateSecretResponse{Secret: secret}, nil
+}
+
+// ReadSecretPayload reads a Secret payload under the mounted session authority.
+func (r *SpaceResource) ReadSecretPayload(
+	ctx context.Context,
+	req *s4wave_space.ReadSecretPayloadRequest,
+) (*s4wave_space.ReadSecretPayloadResponse, error) {
+	if req.GetObjectKey() == "" {
+		return nil, errors.New("object_key cannot be empty")
+	}
+	if r.sessionPeerID == "" {
+		return nil, errors.New("space session peer id is unavailable")
+	}
+
+	wtx, err := r.space.GetWorldEngine().NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer wtx.Discard()
+
+	if err := world_types.CheckObjectType(ctx, wtx, req.GetObjectKey(), s4wave_secret.SecretTypeID); err != nil {
+		return nil, err
+	}
+	secret, _, err := world.LookupObject[*s4wave_secret.Secret](ctx, wtx, req.GetObjectKey(), s4wave_secret.NewSecretBlock)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := s4wave_secret.ReadSecretPayloadForPeer(
+		ctx,
+		r.b,
+		secret,
+		req.GetExpectedKind(),
+		r.sessionPeerID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_space.ReadSecretPayloadResponse{
+		Secret:  secret.CloneVT(),
+		Payload: payload,
+	}, nil
 }
