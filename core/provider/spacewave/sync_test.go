@@ -877,11 +877,6 @@ func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
 	}
 }
 
-type syncFlushTestStore struct {
-	block.NopStoreOps
-	blocks map[string][]byte
-}
-
 type syncPackTransport struct {
 	data []byte
 }
@@ -902,38 +897,9 @@ func (t *syncErrorTransport) Fetch(context.Context, int64, int) ([]byte, error) 
 	return nil, t.err
 }
 
-func (s *syncFlushTestStore) GetHashType() hash.HashType {
-	return hash.RecommendedHashType
+func newSyncTestBlockStore() block.StoreOps {
+	return newProviderSpacewaveTestBlockStore(hash.RecommendedHashType)
 }
-
-func (s *syncFlushTestStore) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, nil
-}
-
-func (s *syncFlushTestStore) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	data, ok := s.blocks[ref.GetHash().MarshalString()]
-	return data, ok, nil
-}
-
-func (s *syncFlushTestStore) GetBlockExists(_ context.Context, ref *block.BlockRef) (bool, error) {
-	_, ok := s.blocks[ref.GetHash().MarshalString()]
-	return ok, nil
-}
-
-func (s *syncFlushTestStore) RmBlock(context.Context, *block.BlockRef) error {
-	return nil
-}
-
-func (s *syncFlushTestStore) StatBlock(_ context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	data, ok := s.blocks[ref.GetHash().MarshalString()]
-	if !ok {
-		return nil, nil
-	}
-	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
-}
-
-// _ is a type assertion
-var _ block.StoreOps = ((*syncFlushTestStore)(nil))
 
 func newSyncTestLowerPackfileStore(t *testing.T, blocks map[string][]byte) *packfile_store.PackfileStore {
 	t.Helper()
@@ -1088,24 +1054,23 @@ func addSyncDirtyBlock(
 	t *testing.T,
 	ctx context.Context,
 	wtx kvtx.Tx,
-	upper *syncFlushTestStore,
+	upper block.StoreOps,
 	body string,
 ) *block.BlockRef {
 	t.Helper()
 	data := []byte(body)
-	h, err := hash.Sum(hash.RecommendedHashType, data)
+	ref, _, err := upper.PutBlock(ctx, data, nil)
 	if err != nil {
-		t.Fatalf("sum block hash: %v", err)
+		t.Fatalf("put upper block: %v", err)
 	}
-	upper.blocks[h.MarshalString()] = data
 	if err := wtx.Set(
 		ctx,
-		[]byte("dirty/"+h.MarshalString()),
+		[]byte("dirty/"+ref.GetHash().MarshalString()),
 		[]byte(strconv.Itoa(len(data))),
 	); err != nil {
 		t.Fatalf("set dirty key: %v", err)
 	}
-	return block.NewBlockRef(h)
+	return ref
 }
 
 func newDirtySyncExecuteTestController(
@@ -1122,7 +1087,7 @@ func newDirtySyncExecuteTestController(
 		t.Fatalf("new manifest: %v", err)
 	}
 
-	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 1)}
+	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
@@ -1189,7 +1154,7 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		return fn("ticket-push")
 	}
 
-	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 3)}
+	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
@@ -1197,14 +1162,13 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	defer wtx.Discard()
 	for i := range 3 {
 		data := bytes.Repeat([]byte{byte(i + 1)}, 24*1024*1024)
-		h, err := hash.Sum(hash.RecommendedHashType, data)
+		ref, _, err := upper.PutBlock(ctx, data, nil)
 		if err != nil {
-			t.Fatalf("sum block hash: %v", err)
+			t.Fatalf("put upper block: %v", err)
 		}
-		upper.blocks[h.MarshalString()] = data
 		if err := wtx.Set(
 			ctx,
-			[]byte("dirty/"+h.MarshalString()),
+			[]byte("dirty/"+ref.GetHash().MarshalString()),
 			[]byte(strconv.Itoa(len(data))),
 		); err != nil {
 			t.Fatalf("set dirty key: %v", err)
@@ -1300,7 +1264,7 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 		return fn("ticket-push")
 	}
 
-	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 2)}
+	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
@@ -1394,7 +1358,7 @@ func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
 		return fn("ticket-push")
 	}
 
-	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 2)}
+	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
@@ -1472,7 +1436,7 @@ func TestSyncControllerFlushDuplicateProbeErrorPreservesDirty(t *testing.T) {
 
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, "https://example.invalid", DefaultSigningEnvPrefix, priv, pid.String())
-	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 1)}
+	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
@@ -1550,7 +1514,7 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 		return fn("ticket-push")
 	}
 
-	upper := &syncFlushTestStore{blocks: make(map[string][]byte, 4)}
+	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
@@ -1640,7 +1604,7 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 	}
 
 	blockCount := int(writer.DefaultMaxBlocksPerPack) + 1
-	upper := &syncFlushTestStore{blocks: make(map[string][]byte, blockCount)}
+	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
@@ -1648,14 +1612,13 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 	defer wtx.Discard()
 	for i := range blockCount {
 		data := []byte("small dirty block " + strconv.Itoa(i))
-		h, err := hash.Sum(hash.RecommendedHashType, data)
+		ref, _, err := upper.PutBlock(ctx, data, nil)
 		if err != nil {
-			t.Fatalf("sum block hash: %v", err)
+			t.Fatalf("put upper block: %v", err)
 		}
-		upper.blocks[h.MarshalString()] = data
 		if err := wtx.Set(
 			ctx,
-			[]byte("dirty/"+h.MarshalString()),
+			[]byte("dirty/"+ref.GetHash().MarshalString()),
 			[]byte(strconv.Itoa(len(data))),
 		); err != nil {
 			t.Fatalf("set dirty key: %v", err)

@@ -5,11 +5,14 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 type kvtxBlockTestStore struct {
-	block.NopStoreOps
+	block.StoreOps
 
 	putCalls         int
 	rmCalls          int
@@ -20,61 +23,60 @@ type kvtxBlockTestStore struct {
 	endCalls         int
 }
 
-func (s *kvtxBlockTestStore) GetHashType() hash.HashType {
-	return hash.HashType_HashType_BLAKE3
+func newKVTxBlockTestStore() *kvtxBlockTestStore {
+	return &kvtxBlockTestStore{
+		StoreOps: block_store_inmem.NewInmemBlock(
+			store_kvkey.NewDefaultKVKey(),
+			store_kvtx_inmem.NewStore(),
+			hash.HashType_HashType_BLAKE3,
+			false,
+		),
+	}
 }
 
-func (s *kvtxBlockTestStore) PutBlock(_ context.Context, _ []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (s *kvtxBlockTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.putCalls++
-	return opts.GetForceBlockRef(), false, nil
+	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
-func (s *kvtxBlockTestStore) GetBlock(context.Context, *block.BlockRef) ([]byte, bool, error) {
-	return nil, false, nil
-}
-
-func (s *kvtxBlockTestStore) GetBlockExists(context.Context, *block.BlockRef) (bool, error) {
-	return false, nil
-}
-
-func (s *kvtxBlockTestStore) StatBlock(context.Context, *block.BlockRef) (*block.BlockStat, error) {
-	return nil, nil
-}
-
-func (s *kvtxBlockTestStore) RmBlock(context.Context, *block.BlockRef) error {
+func (s *kvtxBlockTestStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	s.rmCalls++
-	return nil
+	return s.StoreOps.RmBlock(ctx, ref)
 }
 
-func (s *kvtxBlockTestStore) PutBlockBatch(_ context.Context, _ []*block.PutBatchEntry) error {
+func (s *kvtxBlockTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	s.batchCalls++
-	return nil
+	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
 
-func (s *kvtxBlockTestStore) PutBlockBackground(_ context.Context, _ []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (s *kvtxBlockTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.backgroundCalls++
-	return opts.GetForceBlockRef(), false, nil
+	return s.StoreOps.PutBlockBackground(ctx, data, opts)
 }
 
-func (s *kvtxBlockTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+func (s *kvtxBlockTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.existsBatchCalls++
-	return make([]bool, len(refs)), nil
+	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
 }
 
 func (s *kvtxBlockTestStore) BeginDeferFlush() {
 	s.beginCalls++
+	s.StoreOps.BeginDeferFlush()
 }
 
-func (s *kvtxBlockTestStore) EndDeferFlush(context.Context) error {
+func (s *kvtxBlockTestStore) EndDeferFlush(ctx context.Context) error {
 	s.endCalls++
-	return nil
+	return s.StoreOps.EndDeferFlush(ctx)
 }
 
 func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
 	ctx := context.Background()
-	inner := &kvtxBlockTestStore{}
+	inner := newKVTxBlockTestStore()
 	k := &KVTx{blk: inner}
-	ref := &block.BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{1})}
+	ref, err := block.BuildBlockRef([]byte("hello"), &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	if err := k.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())

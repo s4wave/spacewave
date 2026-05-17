@@ -7,11 +7,14 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 type bucketRWTestStore struct {
-	block.NopStoreOps
+	block.StoreOps
 
 	mtx              sync.Mutex
 	putCalls         int
@@ -22,56 +25,51 @@ type bucketRWTestStore struct {
 	existsBatchCalls int
 }
 
-func (s *bucketRWTestStore) GetHashType() hash.HashType {
-	return hash.HashType_HashType_BLAKE3
+func newBucketRWTestStore() *bucketRWTestStore {
+	return &bucketRWTestStore{
+		StoreOps: block_store_inmem.NewInmemBlock(
+			store_kvkey.NewDefaultKVKey(),
+			store_kvtx_inmem.NewStore(),
+			hash.HashType_HashType_BLAKE3,
+			false,
+		),
+	}
 }
 
-func (s *bucketRWTestStore) PutBlock(_ context.Context, _ []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (s *bucketRWTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.mtx.Lock()
 	s.putCalls++
 	s.mtx.Unlock()
-	return opts.GetForceBlockRef(), false, nil
+	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
-func (s *bucketRWTestStore) GetBlock(context.Context, *block.BlockRef) ([]byte, bool, error) {
-	return nil, false, nil
-}
-
-func (s *bucketRWTestStore) GetBlockExists(context.Context, *block.BlockRef) (bool, error) {
-	return false, nil
-}
-
-func (s *bucketRWTestStore) StatBlock(context.Context, *block.BlockRef) (*block.BlockStat, error) {
-	return nil, nil
-}
-
-func (s *bucketRWTestStore) RmBlock(context.Context, *block.BlockRef) error {
+func (s *bucketRWTestStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	s.mtx.Lock()
 	s.rmCalls++
 	s.mtx.Unlock()
-	return nil
+	return s.StoreOps.RmBlock(ctx, ref)
 }
 
-func (s *bucketRWTestStore) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) error {
+func (s *bucketRWTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	s.mtx.Lock()
 	s.batchCalls++
 	s.batchEntries += len(entries)
 	s.mtx.Unlock()
-	return nil
+	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
 
-func (s *bucketRWTestStore) PutBlockBackground(_ context.Context, _ []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (s *bucketRWTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.mtx.Lock()
 	s.backgroundCalls++
 	s.mtx.Unlock()
-	return opts.GetForceBlockRef(), false, nil
+	return s.StoreOps.PutBlockBackground(ctx, data, opts)
 }
 
-func (s *bucketRWTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+func (s *bucketRWTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.mtx.Lock()
 	s.existsBatchCalls++
 	s.mtx.Unlock()
-	return make([]bool, len(refs)), nil
+	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
 }
 
 func (s *bucketRWTestStore) getCounts() (int, int, int, int, int, int) {
@@ -91,8 +89,8 @@ func (b *bucketRWTestBucket) GetBucketConfig() *Config {
 
 func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 	ctx := context.Background()
-	readStore := &bucketRWTestStore{}
-	writeStore := &bucketRWTestStore{}
+	readStore := newBucketRWTestStore()
+	writeStore := newBucketRWTestStore()
 	readBucket := &bucketRWTestBucket{
 		bucketRWTestStore: readStore,
 		conf:              &Config{Id: "bucket"},
@@ -102,7 +100,10 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 		conf:              &Config{Id: "bucket"},
 	}
 	b := NewBucketRW(readBucket, writeBucket)
-	ref := &block.BlockRef{Hash: hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{1})}
+	ref, err := block.BuildBlockRef([]byte("hello"), &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	if err := b.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())
@@ -131,8 +132,8 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 
 func TestBucketRWTransactionWriteUsesBatchPut(t *testing.T) {
 	ctx := context.Background()
-	readStore := &bucketRWTestStore{}
-	writeStore := &bucketRWTestStore{}
+	readStore := newBucketRWTestStore()
+	writeStore := newBucketRWTestStore()
 	readBucket := &bucketRWTestBucket{
 		bucketRWTestStore: readStore,
 		conf:              &Config{Id: "bucket"},

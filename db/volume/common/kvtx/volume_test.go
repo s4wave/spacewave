@@ -5,52 +5,44 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
-	bifrost_hash "github.com/s4wave/spacewave/net/hash"
 )
 
 type countingBatchStore struct {
-	block.NopStoreOps
+	block.StoreOps
 
 	putCalls         int
 	putBatchCalls    int
 	existsBatchCalls int
 }
 
-func (s *countingBatchStore) GetHashType() bifrost_hash.HashType { return 0 }
+func newCountingBatchStore() *countingBatchStore {
+	return &countingBatchStore{
+		StoreOps: block_store_inmem.NewInmemBlock(
+			store_kvkey.NewDefaultKVKey(),
+			store_kvtx_inmem.NewStore(),
+			0,
+			false,
+		),
+	}
+}
 
-func (s *countingBatchStore) PutBlock(_ context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (s *countingBatchStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.putCalls++
-	ref, err := block.BuildBlockRef(data, opts)
-	return ref, false, err
+	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
-func (s *countingBatchStore) GetBlock(_ context.Context, _ *block.BlockRef) ([]byte, bool, error) {
-	return nil, false, nil
-}
-
-func (s *countingBatchStore) GetBlockExists(_ context.Context, _ *block.BlockRef) (bool, error) {
-	return false, nil
-}
-
-func (s *countingBatchStore) StatBlock(_ context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	return &block.BlockStat{Ref: ref}, nil
-}
-
-func (s *countingBatchStore) RmBlock(_ context.Context, _ *block.BlockRef) error {
-	return nil
-}
-
-func (s *countingBatchStore) PutBlockBatch(_ context.Context, _ []*block.PutBatchEntry) error {
+func (s *countingBatchStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	s.putBatchCalls++
-	return nil
+	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
 
-func (s *countingBatchStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+func (s *countingBatchStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.existsBatchCalls++
-	return make([]bool, len(refs)), nil
+	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
 }
 
 var _ block.StoreOps = ((*countingBatchStore)(nil))
@@ -62,7 +54,7 @@ func TestVolumeForwardsBatchPut(t *testing.T) {
 		t.Fatalf("NewKVKey failed: %v", err)
 	}
 
-	inner := &countingBatchStore{}
+	inner := newCountingBatchStore()
 	vol, err := NewVolumeWithBlockStore(
 		ctx,
 		"hydra/test-volume",

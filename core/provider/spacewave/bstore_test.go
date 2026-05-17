@@ -14,6 +14,9 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
 
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
@@ -24,11 +27,28 @@ import (
 )
 
 type wrapperForwardTestStore struct {
-	block.NopStoreOps
+	block.StoreOps
 	id                string
+	putBlockHits      int
 	putBlockBatchHits int
 	backgroundHits    int
 	existsBatchHits   int
+}
+
+func newProviderSpacewaveTestBlockStore(hashType hash.HashType) block.StoreOps {
+	return block_store_inmem.NewInmemBlock(
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		hashType,
+		false,
+	)
+}
+
+func newWrapperForwardTestStore(id string, hashType hash.HashType) *wrapperForwardTestStore {
+	return &wrapperForwardTestStore{
+		StoreOps: newProviderSpacewaveTestBlockStore(hashType),
+		id:       id,
+	}
 }
 
 func TestBstoreTrackerDetectsPublicReadSpaceBlockStore(t *testing.T) {
@@ -93,37 +113,26 @@ func TestPublicReadRemoteRefreshUsesAnonymousCdnManifest(t *testing.T) {
 	}
 }
 
-func (s *wrapperForwardTestStore) GetID() string              { return s.id }
-func (s *wrapperForwardTestStore) GetHashType() hash.HashType { return 0 }
-func (s *wrapperForwardTestStore) PutBlock(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, nil
+func (s *wrapperForwardTestStore) GetID() string { return s.id }
+
+func (s *wrapperForwardTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	s.putBlockHits++
+	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
-func (s *wrapperForwardTestStore) GetBlock(_ context.Context, _ *block.BlockRef) ([]byte, bool, error) {
-	return nil, false, nil
-}
-
-func (s *wrapperForwardTestStore) GetBlockExists(_ context.Context, _ *block.BlockRef) (bool, error) {
-	return false, nil
-}
-
-func (s *wrapperForwardTestStore) StatBlock(_ context.Context, _ *block.BlockRef) (*block.BlockStat, error) {
-	return nil, nil
-}
-func (s *wrapperForwardTestStore) RmBlock(_ context.Context, _ *block.BlockRef) error { return nil }
-func (s *wrapperForwardTestStore) PutBlockBatch(_ context.Context, _ []*block.PutBatchEntry) error {
+func (s *wrapperForwardTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	s.putBlockBatchHits++
-	return nil
+	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
 
-func (s *wrapperForwardTestStore) PutBlockBackground(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
+func (s *wrapperForwardTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.backgroundHits++
-	return nil, false, nil
+	return s.StoreOps.PutBlockBackground(ctx, data, opts)
 }
 
-func (s *wrapperForwardTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+func (s *wrapperForwardTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.existsBatchHits++
-	return make([]bool, len(refs)), nil
+	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
 }
 
 var (
@@ -133,10 +142,14 @@ var (
 
 func TestBlockStoreForwardsBatchAndBackground(t *testing.T) {
 	ctx := context.Background()
-	inner := &wrapperForwardTestStore{id: "test"}
+	inner := newWrapperForwardTestStore("test", 0)
 	store := &BlockStore{store: inner}
+	ref, err := block.BuildBlockRef([]byte("batch"), nil)
+	if err != nil {
+		t.Fatalf("BuildBlockRef failed: %v", err)
+	}
 
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: &block.BlockRef{}}}); err != nil {
+	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("batch")}}); err != nil {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}
 	if inner.putBlockBatchHits != 1 {
@@ -150,7 +163,7 @@ func TestBlockStoreForwardsBatchAndBackground(t *testing.T) {
 		t.Fatalf("expected 1 PutBlockBackground call, got %d", inner.backgroundHits)
 	}
 
-	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{{}}); err != nil {
+	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
 		t.Fatalf("GetBlockExistsBatch failed: %v", err)
 	}
 	if inner.existsBatchHits != 1 {
@@ -189,49 +202,9 @@ func TestBlockStoreForceSyncDetachesCancellation(t *testing.T) {
 	}
 }
 
-type dirtyBatchTestStore struct {
-	block.NopStoreOps
-	putBlockBatchHits int
-	existsBatchHits   int
-	exists            []bool
-}
-
-func (s *dirtyBatchTestStore) GetHashType() hash.HashType { return 0 }
-func (s *dirtyBatchTestStore) PutBlock(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, nil
-}
-
-func (s *dirtyBatchTestStore) GetBlock(_ context.Context, _ *block.BlockRef) ([]byte, bool, error) {
-	return nil, false, nil
-}
-
-func (s *dirtyBatchTestStore) GetBlockExists(_ context.Context, _ *block.BlockRef) (bool, error) {
-	return false, nil
-}
-
-func (s *dirtyBatchTestStore) StatBlock(_ context.Context, _ *block.BlockRef) (*block.BlockStat, error) {
-	return nil, nil
-}
-func (s *dirtyBatchTestStore) RmBlock(_ context.Context, _ *block.BlockRef) error { return nil }
-func (s *dirtyBatchTestStore) PutBlockBatch(_ context.Context, _ []*block.PutBatchEntry) error {
-	s.putBlockBatchHits++
-	return nil
-}
-
-func (s *dirtyBatchTestStore) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
-	s.existsBatchHits++
-	if s.exists != nil {
-		return slices.Clone(s.exists), nil
-	}
-	return make([]bool, len(refs)), nil
-}
-
-// _ is a type assertion
-var _ block.StoreOps = ((*dirtyBatchTestStore)(nil))
-
 func TestDirtyTrackingStoreForwardsBatch(t *testing.T) {
 	ctx := context.Background()
-	inner := &dirtyBatchTestStore{}
+	inner := newWrapperForwardTestStore("", 0)
 	var dirtyMarks int
 	store := &dirtyTrackingStore{
 		store: inner,
@@ -265,7 +238,7 @@ func TestDirtyTrackingStoreForwardsBatch(t *testing.T) {
 		t.Fatalf("expected 1 advisory GetBlockExistsBatch call, got %d", inner.existsBatchHits)
 	}
 
-	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{{}}); err != nil {
+	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{ref1}); err != nil {
 		t.Fatalf("GetBlockExistsBatch failed: %v", err)
 	}
 	if inner.existsBatchHits != 2 {
@@ -275,7 +248,7 @@ func TestDirtyTrackingStoreForwardsBatch(t *testing.T) {
 
 func TestDirtyTrackingStoreBatchSkipsExistingBlocks(t *testing.T) {
 	ctx := context.Background()
-	inner := &dirtyBatchTestStore{exists: []bool{true, false}}
+	inner := newWrapperForwardTestStore("", 0)
 	var dirty []string
 	store := &dirtyTrackingStore{
 		store: inner,
@@ -287,6 +260,9 @@ func TestDirtyTrackingStoreBatchSkipsExistingBlocks(t *testing.T) {
 	existing, err := block.BuildBlockRef([]byte("existing"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef existing failed: %v", err)
+	}
+	if _, _, err := inner.PutBlock(ctx, []byte("existing"), nil); err != nil {
+		t.Fatalf("seed existing block: %v", err)
 	}
 	fresh, err := block.BuildBlockRef([]byte("fresh"), nil)
 	if err != nil {
@@ -537,75 +513,16 @@ func parseHTTPRangeHeader(h string, size int64) (start, end int64, ok bool) {
 	return reqStart, reqEnd + 1, true
 }
 
-type lowerReadTestStore struct {
-	block.NopStoreOps
-	ref  *block.BlockRef
-	data []byte
-}
-
-func (s *lowerReadTestStore) GetHashType() hash.HashType { return hash.HashType_HashType_SHA256 }
-func (s *lowerReadTestStore) PutBlock(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, nil
-}
-
-func (s *lowerReadTestStore) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	if s.ref != nil && s.ref.EqualsRef(ref) {
-		return bytes.Clone(s.data), true, nil
-	}
-	return nil, false, nil
-}
-
-func (s *lowerReadTestStore) GetBlockExists(_ context.Context, ref *block.BlockRef) (bool, error) {
-	return s.ref != nil && s.ref.EqualsRef(ref), nil
-}
-
-func (s *lowerReadTestStore) StatBlock(_ context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	if s.ref != nil && s.ref.EqualsRef(ref) {
-		return &block.BlockStat{Ref: ref, Size: int64(len(s.data))}, nil
-	}
-	return nil, nil
-}
-func (s *lowerReadTestStore) RmBlock(_ context.Context, _ *block.BlockRef) error { return nil }
-
-type upperPutRecorder struct {
-	block.NopStoreOps
-	puts int
-}
-
-func (s *upperPutRecorder) GetHashType() hash.HashType { return hash.HashType_HashType_SHA256 }
-func (s *upperPutRecorder) PutBlock(_ context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	s.puts++
-	ref, err := block.BuildBlockRef(data, opts)
-	if err != nil {
-		return nil, false, err
-	}
-	return ref, false, nil
-}
-
-func (s *upperPutRecorder) GetBlock(_ context.Context, _ *block.BlockRef) ([]byte, bool, error) {
-	return nil, false, nil
-}
-
-func (s *upperPutRecorder) GetBlockExists(_ context.Context, _ *block.BlockRef) (bool, error) {
-	return false, nil
-}
-
-func (s *upperPutRecorder) StatBlock(_ context.Context, _ *block.BlockRef) (*block.BlockStat, error) {
-	return nil, nil
-}
-func (s *upperPutRecorder) RmBlock(_ context.Context, _ *block.BlockRef) error { return nil }
-
 func TestNewCloudOverlayDoesNotDirtyLowerReads(t *testing.T) {
+	ctx := context.Background()
 	data := []byte("alpha")
-	ref, err := block.BuildBlockRef(data, &block.PutOpts{
-		HashType: hash.HashType_HashType_SHA256,
-	})
+	lower := newProviderSpacewaveTestBlockStore(hash.HashType_HashType_SHA256)
+	ref, _, err := lower.PutBlock(ctx, data, nil)
 	if err != nil {
-		t.Fatalf("BuildBlockRef failed: %v", err)
+		t.Fatalf("seed lower block: %v", err)
 	}
 
-	lower := &lowerReadTestStore{ref: ref, data: data}
-	upper := &upperPutRecorder{}
+	upper := newWrapperForwardTestStore("", hash.HashType_HashType_SHA256)
 	var dirtyMarks int
 	dirtyUpper := &dirtyTrackingStore{
 		store: upper,
@@ -614,16 +531,16 @@ func TestNewCloudOverlayDoesNotDirtyLowerReads(t *testing.T) {
 		},
 	}
 
-	overlay := newCloudOverlay(context.Background(), nil, lower, dirtyUpper)
-	got, found, err := overlay.GetBlock(context.Background(), ref)
+	overlay := newCloudOverlay(ctx, nil, lower, dirtyUpper)
+	got, found, err := overlay.GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatalf("GetBlock returned error: %v", err)
 	}
 	if !found || !bytes.Equal(got, data) {
 		t.Fatalf("expected lower read hit, got found=%v data=%q", found, string(got))
 	}
-	if upper.puts != 0 {
-		t.Fatalf("expected no upper writeback on lower read, got %d puts", upper.puts)
+	if upper.putBlockHits != 0 {
+		t.Fatalf("expected no upper writeback on lower read, got %d puts", upper.putBlockHits)
 	}
 	if dirtyMarks != 0 {
 		t.Fatalf("expected no dirty marks from lower read, got %d", dirtyMarks)

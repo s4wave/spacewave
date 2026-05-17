@@ -15,6 +15,9 @@ import (
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -113,42 +116,38 @@ func (t *bytesTransport) callAt(i int) fetchCall {
 
 // writebackStore records PutBlock calls for testing co-block writeback.
 type writebackStore struct {
-	block.NopStoreOps
+	block.StoreOps
 	mu   sync.Mutex
 	puts []*block.PutBatchEntry
-	// blockFn optionally blocks PutBlock until ctx is cancelled.
+	// blockFn optionally gates PutBlock for concurrency tests.
 	blockFn func()
 }
 
-func (w *writebackStore) GetHashType() hash.HashType { return hash.HashType_HashType_SHA256 }
+func newWritebackStore(blockFn func()) *writebackStore {
+	return &writebackStore{
+		StoreOps: block_store_inmem.NewInmemBlock(
+			store_kvkey.NewDefaultKVKey(),
+			store_kvtx_inmem.NewStore(),
+			hash.HashType_HashType_SHA256,
+			false,
+		),
+		blockFn: blockFn,
+	}
+}
 
-func (w *writebackStore) PutBlock(_ context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+func (w *writebackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if w.blockFn != nil {
 		w.blockFn()
 	}
-	ref, err := block.BuildBlockRef(data, opts)
+	ref, existed, err := w.StoreOps.PutBlock(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.puts = append(w.puts, &block.PutBatchEntry{Ref: ref, Data: bytes.Clone(data)})
-	return ref, false, nil
+	return ref, existed, nil
 }
-
-func (w *writebackStore) GetBlock(_ context.Context, _ *block.BlockRef) ([]byte, bool, error) {
-	return nil, false, nil
-}
-
-func (w *writebackStore) GetBlockExists(_ context.Context, _ *block.BlockRef) (bool, error) {
-	return false, nil
-}
-
-func (w *writebackStore) StatBlock(_ context.Context, _ *block.BlockRef) (*block.BlockStat, error) {
-	return nil, nil
-}
-
-func (w *writebackStore) RmBlock(_ context.Context, _ *block.BlockRef) error { return nil }
 
 func (w *writebackStore) putCount() int {
 	w.mu.Lock()
@@ -333,7 +332,7 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 		t.Fatal("expected index load fetch")
 	}
 
-	wb := &writebackStore{}
+	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 0)
 	exists, err = store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
 	if err != nil {
@@ -427,7 +426,7 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wb := &writebackStore{}
+	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 0)
 	found, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{
 		{Hash: missing},
@@ -509,7 +508,7 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wb := &writebackStore{}
+	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 0)
 	exists, err := store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
 	if err != nil {
@@ -989,7 +988,7 @@ func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
-	wb := &writebackStore{}
+	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 1<<20)
 
 	alphaHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
@@ -1142,7 +1141,7 @@ func TestPackfileStoreCoBlockWriteback(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
-	wb := &writebackStore{}
+	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 1<<20)
 
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
@@ -1201,7 +1200,7 @@ func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
-	wb := &writebackStore{}
+	wb := newWritebackStore(nil)
 	// Window of 1 means target-only semantic alignment; but the trailer
 	// fetch already covered everything so promotion should still publish
 	// all blocks.
@@ -1310,7 +1309,7 @@ func TestPackfileStoreColdReadReturnsBeforePersistence(t *testing.T) {
 	}})
 
 	blocked := make(chan struct{})
-	wb := &writebackStore{blockFn: func() { <-blocked }}
+	wb := newWritebackStore(func() { <-blocked })
 	store.SetWriteback(ctx, wb, 1<<20)
 
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
@@ -1346,7 +1345,7 @@ func TestPackfileStoreSecondReadWaitsForVerify(t *testing.T) {
 	}})
 
 	blocked := make(chan struct{})
-	wb := &writebackStore{blockFn: func() { <-blocked }}
+	wb := newWritebackStore(func() { <-blocked })
 	store.SetWriteback(ctx, wb, 1<<20)
 
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
@@ -1587,7 +1586,7 @@ func TestPackfileStoreKeepsPinnedBlocksResident(t *testing.T) {
 	}})
 
 	blocked := make(chan struct{})
-	wb := &writebackStore{blockFn: func() { <-blocked }}
+	wb := newWritebackStore(func() { <-blocked })
 	store.SetWriteback(ctx, wb, 0)
 	store.SetRangeCacheMaxBytes(1)
 

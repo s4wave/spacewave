@@ -2120,7 +2120,7 @@ func newTestExternalManifestRefWithDistAssets(
 		t.Fatal(err.Error())
 	}
 	ops := block_store_kvtx.NewKVTxBlock(kvk, store_kvtx_inmem.NewStore(), 0, true)
-	store := &countingBlockStore{store: ops}
+	store := &countingBlockStore{store: ops, gets: &atomic.Uint32{}}
 	meta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_RELEASE, platformID, rev)
 	btx, bcs := block.NewTransaction(store, nil, nil, nil)
 	manifest, err := bldr_manifest.CreateManifestWithBilly(ctx, bcs, meta, entrypoint, distFS, assetsFS, timestamppb.Now())
@@ -2144,7 +2144,7 @@ func newTestExternalManifestRefWithDistAssets(
 
 type countingBlockStore struct {
 	store block.StoreOps
-	gets  atomic.Uint32
+	gets  *atomic.Uint32
 }
 
 func (s *countingBlockStore) GetHashType() hash.HashType {
@@ -2155,8 +2155,12 @@ func (s *countingBlockStore) GetSupportedFeatures() block.StoreFeature {
 	return s.store.GetSupportedFeatures()
 }
 
-func (s *countingBlockStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
-	return s, func() {}, nil
+func (s *countingBlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := s.store.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &countingBlockStore{store: store, gets: s.gets}, release, nil
 }
 
 func (s *countingBlockStore) PutBlock(

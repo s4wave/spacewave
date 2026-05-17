@@ -8,11 +8,13 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
 
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
@@ -380,62 +382,32 @@ func TestCdnBlockStoreWritesRejected(t *testing.T) {
 }
 
 type writebackReadStore struct {
-	block.NopStoreOps
-	mu    sync.Mutex
-	data  map[string][]byte
+	block.StoreOps
 	putCh chan struct{}
 }
 
 func newWritebackReadStore() *writebackReadStore {
 	return &writebackReadStore{
-		data:  make(map[string][]byte),
+		StoreOps: block_store_inmem.NewInmemBlock(
+			store_kvkey.NewDefaultKVKey(),
+			store_kvtx_inmem.NewStore(),
+			hash.HashType_HashType_SHA256,
+			false,
+		),
 		putCh: make(chan struct{}, 1),
 	}
 }
 
-func (w *writebackReadStore) GetHashType() hash.HashType {
-	return hash.HashType_HashType_SHA256
-}
-
-func (w *writebackReadStore) PutBlock(_ context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	ref, err := block.BuildBlockRef(data, opts)
+func (w *writebackReadStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	ref, existed, err := w.StoreOps.PutBlock(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
-	key := ref.MarshalString()
-	w.mu.Lock()
-	_, existed := w.data[key]
-	w.data[key] = bytes.Clone(data)
-	w.mu.Unlock()
 	select {
 	case w.putCh <- struct{}{}:
 	default:
 	}
 	return ref, existed, nil
-}
-
-func (w *writebackReadStore) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	data, ok := w.data[ref.MarshalString()]
-	return bytes.Clone(data), ok, nil
-}
-
-func (w *writebackReadStore) GetBlockExists(_ context.Context, ref *block.BlockRef) (bool, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	_, ok := w.data[ref.MarshalString()]
-	return ok, nil
-}
-
-func (w *writebackReadStore) StatBlock(_ context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	data, ok := w.data[ref.MarshalString()]
-	if !ok {
-		return nil, nil
-	}
-	return &block.BlockStat{Ref: ref.CloneVT(), Size: int64(len(data))}, nil
 }
 
 func (w *writebackReadStore) waitPut(ctx context.Context) error {
