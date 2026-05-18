@@ -239,6 +239,8 @@ Spacewave solves this problem with a local-first p2p architecture. Regardless of
 internet latency or equipment failure, users can access their workspaces and
 apps, without the need for cloud, servers, or on-call engineers.
 
+Peer-to-peer networking works even when the internet doesn't.
+
 ## License
 
 Spacewave is licensed under the permissive Apache-2.0 license.
