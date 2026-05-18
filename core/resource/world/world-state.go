@@ -515,7 +515,8 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 		return nil, world.ErrUnhandledOp
 	}
 
-	op, err := r.lookupOp(ctx, req.GetOpTypeId())
+	opTypeID := req.GetOpTypeId()
+	op, err := r.lookupOp(ctx, opTypeID)
 	if err == nil && op == nil {
 		err = world.ErrUnhandledOp
 	}

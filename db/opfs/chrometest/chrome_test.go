@@ -19,6 +19,7 @@ import (
 const (
 	runEnv        = "RUN_OPFS_CHROME_TEST"
 	profileEnv    = "RUN_OPFS_CHROME_PROFILE"
+	tinyGoEnv     = "RUN_OPFS_CHROME_TINYGO"
 	chromeSmoke   = "smoke"
 	chromeStress  = "stress"
 	defaultShards = 4
@@ -207,6 +208,100 @@ func TestOpfsChromeManifestBloomSplitSafety(t *testing.T) {
 		scenario: "meta-manifest-bloom-verify",
 		root:     root,
 		shards:   defaultShards,
+	})
+}
+
+func TestOpfsChromeClassifiesPromiseRejection(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-reject-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "missing-delete-classify",
+		root:     root,
+	})
+}
+
+func TestOpfsChromeReadFileHelperLoop(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-read-helper-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "read-file-helper-loop",
+		root:       root,
+		iterations: 64,
+	})
+}
+
+func TestOpfsChromeTinyGoLargeWriteReadList(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo OPFS helper ABI", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-large-write-read-list-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "large-write-read-list",
+		root:       root,
+		iterations: 68056093,
+		batch:      64,
+	})
+}
+
+func TestOpfsChromeReadAtHelperLoop(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-read-at-helper-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "read-at-helper-loop",
+		root:       root,
+		iterations: 64,
+	})
+}
+
+func TestOpfsChromeGCWalWriteLoop(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-gc-wal-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "gc-wal-write-loop",
+		root:       root,
+		iterations: 16,
 	})
 }
 
@@ -647,6 +742,24 @@ func TestOpfsChromeVolumeRuntimeSlice(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeWorldInitUnixFS(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-unixfs-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "world-init-unixfs",
+		root:     root,
+		shards:   defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
@@ -915,11 +1028,20 @@ func buildAssets(dir string) error {
 }
 
 func buildWasm(out string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 	root, err := repoRoot()
 	if err != nil {
 		return err
+	}
+	if os.Getenv(tinyGoEnv) == "1" || strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		cmd := exec.CommandContext(ctx, "tinygo", "build", "-target", "wasm", "-scheduler=asyncify", "-o", out, "./db/opfs/chrometest/testprog")
+		cmd.Dir = root
+		data, err := cmd.CombinedOutput()
+		if err != nil {
+			return errors.Errorf("tinygo build js/wasm failed: %v\n%s", err, data)
+		}
+		return nil
 	}
 	cmd := exec.CommandContext(ctx, "go", "build", "-o", out, "./db/opfs/chrometest/testprog")
 	cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
@@ -932,6 +1054,20 @@ func buildWasm(out string) error {
 }
 
 func wasmExecPath() (string, error) {
+	if os.Getenv(tinyGoEnv) == "1" || strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "tinygo", "env", "TINYGOROOT")
+		data, err := cmd.Output()
+		if err != nil {
+			return "", errors.Wrap(err, "tinygo env TINYGOROOT")
+		}
+		tinyGoRoot := strings.TrimSpace(string(data))
+		if tinyGoRoot == "" {
+			return "", errors.New("tinygo env TINYGOROOT returned empty path")
+		}
+		return filepath.Join(tinyGoRoot, "targets", "wasm_exec.js"), nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "go", "env", "GOROOT")
@@ -1240,6 +1376,182 @@ const indexHTML = `<!doctype html>
 
 const workerJS = `importScripts('/wasm_exec.js')
 
+self.__BLDR_TINYGO_STORED_BYTES = new Map()
+self.__BLDR_TINYGO_STORED_BYTES_NEXT_ID = 1
+self.__BLDR_TINYGO_MEMORY_VIEW = (ptr, len) => {
+  const memory = self.__BLDR_TINYGO_MEMORY
+  if (!(memory instanceof WebAssembly.Memory)) {
+    throw new Error('TinyGo runtime memory is not initialized')
+  }
+  return new Uint8Array(memory.buffer, ptr, len)
+}
+self.__BLDR_TINYGO_STORE_BYTES = (bytes) => {
+  const id = self.__BLDR_TINYGO_STORED_BYTES_NEXT_ID++
+  self.__BLDR_TINYGO_STORED_BYTES.set(id, bytes)
+  return id
+}
+self.BLDR_TINYGO_JS_CALL ??= (target, method, ...args) => {
+  const fn = target[method]
+  if (typeof fn !== 'function') {
+    throw new TypeError('method ' + String(method) + ' is not callable')
+  }
+  return fn.apply(target, args)
+}
+self.BLDR_TINYGO_JS_NEW ??= (ctor, ...args) => new ctor(...args)
+self.BLDR_TINYGO_PROMISE_ERROR_CODE ??= (reason) => {
+  let name = ''
+  if (reason && typeof reason === 'object') {
+    if (typeof reason.name === 'string') {
+      name = reason.name
+    }
+    if (!name && reason.constructor && typeof reason.constructor.name === 'string') {
+      name = reason.constructor.name
+    }
+  }
+  if (!name) {
+    name = String(reason)
+  }
+  if (name.includes('NotFoundError')) {
+    return 1
+  }
+  if (name.includes('NoModificationAllowedError')) {
+    return 2
+  }
+  return 0
+}
+self.BLDR_TINYGO_PROMISE_AWAIT ??= (promise, resolve, reject) => {
+  promise.then(resolve).catch((reason) => reject(self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+}
+self.BLDR_TINYGO_COPY_STORED_BYTES ??= (id, ptr, len) => {
+  const bytes = self.__BLDR_TINYGO_STORED_BYTES.get(id)
+  self.__BLDR_TINYGO_STORED_BYTES.delete(id)
+  if (!bytes) {
+    return 0
+  }
+  const n = Math.min(len, bytes.byteLength)
+  self.__BLDR_TINYGO_MEMORY_VIEW(ptr, n).set(bytes.subarray(0, n))
+  return n
+}
+self.BLDR_TINYGO_PUSH_BYTES ??= (sink, ptr, len) => {
+  const msg = new Uint8Array(len)
+  msg.set(self.__BLDR_TINYGO_MEMORY_VIEW(ptr, len))
+  sink.push(msg)
+}
+self.BLDR_TINYGO_POST_BYTES ??= (port, ptr, len) => {
+  const msg = new Uint8Array(len)
+  msg.set(self.__BLDR_TINYGO_MEMORY_VIEW(ptr, len))
+  port.postMessage(msg)
+}
+self.__BLDR_TINYGO_ENCODE_NAMES ??= (names) => {
+  const encoder = new TextEncoder()
+  const encoded = names.map((name) => encoder.encode(name))
+  let size = 4
+  for (const name of encoded) {
+    size += 4 + name.byteLength
+  }
+  const bytes = new Uint8Array(size)
+  const writeUint32 = (off, value) => {
+    bytes[off] = (value >>> 24) & 0xff
+    bytes[off + 1] = (value >>> 16) & 0xff
+    bytes[off + 2] = (value >>> 8) & 0xff
+    bytes[off + 3] = value & 0xff
+    return off + 4
+  }
+  let off = writeUint32(0, encoded.length)
+  for (const name of encoded) {
+    off = writeUint32(off, name.byteLength)
+    bytes.set(name, off)
+    off += name.byteLength
+  }
+  return bytes
+}
+self.BLDR_OPFS_READ_FILE ??= (dir, name, opID, resolve, reject) => {
+  dir.getFileHandle(name)
+    .then((handle) => handle.getFile())
+    .then((file) => file.arrayBuffer())
+    .then((buf) => {
+      const bytes = new Uint8Array(buf)
+      resolve(opID, self.__BLDR_TINYGO_STORE_BYTES(bytes), bytes.byteLength)
+    })
+    .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+}
+self.BLDR_OPFS_READ_AT ??= (handle, ptr, len, off, opID, resolve, reject) => {
+  handle.getFile()
+    .then(async (file) => {
+      if (off >= file.size || len === 0) {
+        resolve(opID, 0)
+        return
+      }
+      const end = Math.min(off + len, file.size)
+      const buf = await file.slice(off, end).arrayBuffer()
+      const bytes = new Uint8Array(buf)
+      if (bytes.byteLength !== 0) {
+        self.__BLDR_TINYGO_MEMORY_VIEW(ptr, bytes.byteLength).set(bytes)
+      }
+      resolve(opID, bytes.byteLength)
+    })
+    .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+}
+self.BLDR_OPFS_LIST_DIRECTORY ??= (dir, opID, resolve, reject) => {
+  ;(async () => {
+    const names = []
+    for await (const [name] of dir.entries()) {
+      names.push(name)
+    }
+    const bytes = self.__BLDR_TINYGO_ENCODE_NAMES(names)
+    resolve(opID, self.__BLDR_TINYGO_STORE_BYTES(bytes), bytes.byteLength)
+  })().catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+}
+self.BLDR_OPFS_WRITE_AT ??= (handle, ptr, len, off, keepExisting, opID, resolve, reject) => {
+  const data = new Uint8Array(len)
+  if (len !== 0) {
+    data.set(self.__BLDR_TINYGO_MEMORY_VIEW(ptr, len))
+  }
+  let writable
+  const opts = keepExisting ? { keepExistingData: true } : undefined
+  const writablePromise = opts ? handle.createWritable(opts) : handle.createWritable()
+  writablePromise
+    .then(async (next) => {
+      writable = next
+      if (off !== 0) {
+        await writable.seek(off)
+      }
+      if (len !== 0) {
+        await writable.write(data)
+      }
+      await writable.close()
+      resolve(opID, len)
+    })
+    .catch((reason) => {
+      if (writable) {
+        void writable.close().catch(() => {})
+      }
+      reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
+    })
+}
+self.BLDR_OPFS_WRITE_FILE ??= (dir, name, ptr, len, opID, resolve, reject) => {
+  const data = new Uint8Array(len)
+  if (len !== 0) {
+    data.set(self.__BLDR_TINYGO_MEMORY_VIEW(ptr, len))
+  }
+  let writable
+  dir.getFileHandle(name, { create: true })
+    .then(async (handle) => {
+      writable = await handle.createWritable()
+      if (len !== 0) {
+        await writable.write(data)
+      }
+      await writable.close()
+      resolve(opID, len)
+    })
+    .catch((reason) => {
+      if (writable) {
+        void writable.close().catch(() => {})
+      }
+      reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
+    })
+}
+
 self.onmessage = async (event) => {
   const args = event.data
   const go = new Go()
@@ -1253,7 +1565,18 @@ self.onmessage = async (event) => {
     String(args.batch ?? 1),
     String(args.shards ?? 4),
   ]
+  self.__OPFS_CHROMETEST_ARGS = go.argv
+  if (go.importObject.gojs && typeof go.importObject.gojs['runtime.getRandomData'] !== 'function') {
+    go.importObject.gojs['runtime.getRandomData'] = (ptr, len) => {
+      const memory = go._inst?.exports.memory
+      if (!(memory instanceof WebAssembly.Memory)) {
+        throw new Error('TinyGo runtime memory is not initialized')
+      }
+      crypto.getRandomValues(new Uint8Array(memory.buffer, ptr, len))
+    }
+  }
   const res = await WebAssembly.instantiateStreaming(fetch('/testprog.wasm'), go.importObject)
+  self.__BLDR_TINYGO_MEMORY = res.instance.exports.memory
   await go.run(res.instance)
 }
 `

@@ -69,6 +69,17 @@ pub struct CreateSpaceResponse {
     /// SharedObjectMeta is the metadata for the created SharedObject.
     #[prost(message, optional, tag="2")]
     pub shared_object_meta: ::core::option::Option<super::super::sobject::SharedObjectMeta>,
+    /// MountedSharedObject is the mounted SharedObject resource created as part of
+    /// space initialization. Callers may use it instead of immediately remounting
+    /// the same SharedObject by id.
+    #[prost(message, optional, tag="3")]
+    pub mounted_shared_object: ::core::option::Option<MountSharedObjectResponse>,
+    /// SharedObjectBodyResourceId is the resource id of the mounted Space body.
+    #[prost(uint32, tag="4")]
+    pub shared_object_body_resource_id: u32,
+    /// SpaceWorldResourceId is the resource id of the mounted Space world engine.
+    #[prost(uint32, tag="5")]
+    pub space_world_resource_id: u32,
 }
 /// DeleteSpaceRequest is the request type for DeleteSpace.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

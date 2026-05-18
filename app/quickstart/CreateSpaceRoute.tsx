@@ -24,6 +24,7 @@ import {
   type QuickstartSpaceCreateId,
 } from './options.js'
 import {
+  buildQuickstartSpaceRoutePath,
   createQuickstartSetupFromSession,
   executeDynamicQuickstart,
   getQuickstartSpaceName,
@@ -161,6 +162,7 @@ export function CreateSpaceRoute() {
           spaceResp,
           abortSignal: signal,
           cleanup,
+          mountContents: staticQuickstartId !== 'drive',
         })
         if (signal.aborted) return
         dispatch({ type: 'advance', to: 'populate' })
@@ -184,7 +186,12 @@ export function CreateSpaceRoute() {
         if (signal.aborted) return
 
         dispatch({ type: 'advance', to: 'done' })
-        const spacePath = orgId ? `org/${orgId}/so/${spaceId}` : `so/${spaceId}`
+        const spaceBasePath = orgId
+          ? `org/${orgId}/so/${spaceId}`
+          : `so/${spaceId}`
+        const spacePath = staticQuickstartId
+          ? buildQuickstartSpaceRoutePath(spaceBasePath, staticQuickstartId)
+          : spaceBasePath
         navigateSession({ path: spacePath, replace: true })
       }
 

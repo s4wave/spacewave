@@ -520,6 +520,14 @@ type CreateSpaceResponse struct {
 	SharedObjectRef *sobject.SharedObjectRef `protobuf:"bytes,1,opt,name=shared_object_ref,json=sharedObjectRef,proto3" json:"sharedObjectRef,omitempty"`
 	// SharedObjectMeta is the metadata for the created SharedObject.
 	SharedObjectMeta *sobject.SharedObjectMeta `protobuf:"bytes,2,opt,name=shared_object_meta,json=sharedObjectMeta,proto3" json:"sharedObjectMeta,omitempty"`
+	// MountedSharedObject is the mounted SharedObject resource created as part of
+	// space initialization. Callers may use it instead of immediately remounting
+	// the same SharedObject by id.
+	MountedSharedObject *MountSharedObjectResponse `protobuf:"bytes,3,opt,name=mounted_shared_object,json=mountedSharedObject,proto3" json:"mountedSharedObject,omitempty"`
+	// SharedObjectBodyResourceId is the resource id of the mounted Space body.
+	SharedObjectBodyResourceId uint32 `protobuf:"varint,4,opt,name=shared_object_body_resource_id,json=sharedObjectBodyResourceId,proto3" json:"sharedObjectBodyResourceId,omitempty"`
+	// SpaceWorldResourceId is the resource id of the mounted Space world engine.
+	SpaceWorldResourceId uint32 `protobuf:"varint,5,opt,name=space_world_resource_id,json=spaceWorldResourceId,proto3" json:"spaceWorldResourceId,omitempty"`
 }
 
 func (x *CreateSpaceResponse) Reset() {
@@ -540,6 +548,27 @@ func (x *CreateSpaceResponse) GetSharedObjectMeta() *sobject.SharedObjectMeta {
 		return x.SharedObjectMeta
 	}
 	return nil
+}
+
+func (x *CreateSpaceResponse) GetMountedSharedObject() *MountSharedObjectResponse {
+	if x != nil {
+		return x.MountedSharedObject
+	}
+	return nil
+}
+
+func (x *CreateSpaceResponse) GetSharedObjectBodyResourceId() uint32 {
+	if x != nil {
+		return x.SharedObjectBodyResourceId
+	}
+	return 0
+}
+
+func (x *CreateSpaceResponse) GetSpaceWorldResourceId() uint32 {
+	if x != nil {
+		return x.SpaceWorldResourceId
+	}
+	return 0
 }
 
 // DeleteSpaceRequest is the request type for DeleteSpace.
@@ -2576,9 +2605,11 @@ func (m *GetSessionInfoResponse) CloneVT() *GetSessionInfoResponse {
 		return (*GetSessionInfoResponse)(nil)
 	}
 	r := new(GetSessionInfoResponse)
-	r.SessionRef = m.SessionRef.CloneVT()
 	r.PeerId = m.PeerId
 	r.CryptoInfo = m.CryptoInfo.CloneVT()
+	if rhs := m.SessionRef; rhs != nil {
+		r.SessionRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2668,8 +2699,15 @@ func (m *CreateSpaceResponse) CloneVT() *CreateSpaceResponse {
 		return (*CreateSpaceResponse)(nil)
 	}
 	r := new(CreateSpaceResponse)
-	r.SharedObjectRef = m.SharedObjectRef.CloneVT()
-	r.SharedObjectMeta = m.SharedObjectMeta.CloneVT()
+	r.MountedSharedObject = m.MountedSharedObject.CloneVT()
+	r.SharedObjectBodyResourceId = m.SharedObjectBodyResourceId
+	r.SpaceWorldResourceId = m.SpaceWorldResourceId
+	if rhs := m.SharedObjectRef; rhs != nil {
+		r.SharedObjectRef = rhs.CloneVT()
+	}
+	if rhs := m.SharedObjectMeta; rhs != nil {
+		r.SharedObjectMeta = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2765,11 +2803,13 @@ func (m *MountSharedObjectResponse) CloneVT() *MountSharedObjectResponse {
 	}
 	r := new(MountSharedObjectResponse)
 	r.ResourceId = m.ResourceId
-	r.SharedObjectMeta = m.SharedObjectMeta.CloneVT()
 	r.PeerId = m.PeerId
 	r.SharedObjectId = m.SharedObjectId
 	r.BlockStoreId = m.BlockStoreId
 	r.HashType = m.HashType
+	if rhs := m.SharedObjectMeta; rhs != nil {
+		r.SharedObjectMeta = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2801,7 +2841,9 @@ func (m *WatchSharedObjectHealthResponse) CloneVT() *WatchSharedObjectHealthResp
 		return (*WatchSharedObjectHealthResponse)(nil)
 	}
 	r := new(WatchSharedObjectHealthResponse)
-	r.Health = m.Health.CloneVT()
+	if rhs := m.Health; rhs != nil {
+		r.Health = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3412,7 +3454,9 @@ func (m *WatchTransferProgressResponse) CloneVT() *WatchTransferProgressResponse
 		return (*WatchTransferProgressResponse)(nil)
 	}
 	r := new(WatchTransferProgressResponse)
-	r.State = m.State.CloneVT()
+	if rhs := m.State; rhs != nil {
+		r.State = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3587,8 +3631,10 @@ func (m *CreateSpaceInviteResponse) CloneVT() *CreateSpaceInviteResponse {
 		return (*CreateSpaceInviteResponse)(nil)
 	}
 	r := new(CreateSpaceInviteResponse)
-	r.InviteMessage = m.InviteMessage.CloneVT()
 	r.ShortCode = m.ShortCode
+	if rhs := m.InviteMessage; rhs != nil {
+		r.InviteMessage = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3743,7 +3789,9 @@ func (m *JoinSpaceViaInviteRequest) CloneVT() *JoinSpaceViaInviteRequest {
 		return (*JoinSpaceViaInviteRequest)(nil)
 	}
 	r := new(JoinSpaceViaInviteRequest)
-	r.InviteMessage = m.InviteMessage.CloneVT()
+	if rhs := m.InviteMessage; rhs != nil {
+		r.InviteMessage = rhs.CloneVT()
+	}
 	if rhs := m.TargetedInvitationEnvelope; rhs != nil {
 		r.TargetedInvitationEnvelope = slices.Clone(rhs)
 	}
@@ -3796,7 +3844,9 @@ func (m *GetTransferStatusResponse) CloneVT() *GetTransferStatusResponse {
 	r := new(GetTransferStatusResponse)
 	r.Active = m.Active
 	r.HasCheckpoint = m.HasCheckpoint
-	r.State = m.State.CloneVT()
+	if rhs := m.State; rhs != nil {
+		r.State = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4098,6 +4148,15 @@ func (this *CreateSpaceResponse) EqualVT(that *CreateSpaceResponse) bool {
 		return false
 	}
 	if !this.SharedObjectMeta.EqualVT(that.SharedObjectMeta) {
+		return false
+	}
+	if !this.MountedSharedObject.EqualVT(that.MountedSharedObject) {
+		return false
+	}
+	if this.SharedObjectBodyResourceId != that.SharedObjectBodyResourceId {
+		return false
+	}
+	if this.SpaceWorldResourceId != that.SpaceWorldResourceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6402,6 +6461,21 @@ func (x *CreateSpaceResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sharedObjectMeta")
 		x.SharedObjectMeta.MarshalProtoJSON(s.WithField("sharedObjectMeta"))
 	}
+	if x.MountedSharedObject != nil || s.HasField("mountedSharedObject") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("mountedSharedObject")
+		x.MountedSharedObject.MarshalProtoJSON(s.WithField("mountedSharedObject"))
+	}
+	if x.SharedObjectBodyResourceId != 0 || s.HasField("sharedObjectBodyResourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectBodyResourceId")
+		s.WriteUint32(x.SharedObjectBodyResourceId)
+	}
+	if x.SpaceWorldResourceId != 0 || s.HasField("spaceWorldResourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceWorldResourceId")
+		s.WriteUint32(x.SpaceWorldResourceId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -6433,6 +6507,19 @@ func (x *CreateSpaceResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.SharedObjectMeta = &sobject.SharedObjectMeta{}
 			x.SharedObjectMeta.UnmarshalProtoJSON(s.WithField("shared_object_meta", true))
+		case "mounted_shared_object", "mountedSharedObject":
+			if s.ReadNil() {
+				x.MountedSharedObject = nil
+				return
+			}
+			x.MountedSharedObject = &MountSharedObjectResponse{}
+			x.MountedSharedObject.UnmarshalProtoJSON(s.WithField("mounted_shared_object", true))
+		case "shared_object_body_resource_id", "sharedObjectBodyResourceId":
+			s.AddField("shared_object_body_resource_id")
+			x.SharedObjectBodyResourceId = s.ReadUint32()
+		case "space_world_resource_id", "spaceWorldResourceId":
+			s.AddField("space_world_resource_id")
+			x.SpaceWorldResourceId = s.ReadUint32()
 		}
 	})
 }
@@ -10325,6 +10412,26 @@ func (m *CreateSpaceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SpaceWorldResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SpaceWorldResourceId))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.SharedObjectBodyResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SharedObjectBodyResourceId))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.MountedSharedObject != nil {
+		size, err := m.MountedSharedObject.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.SharedObjectMeta != nil {
 		size, err := m.SharedObjectMeta.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -13803,6 +13910,16 @@ func (m *CreateSpaceResponse) SizeVT() (n int) {
 		l = m.SharedObjectMeta.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.MountedSharedObject != nil {
+		l = m.MountedSharedObject.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.SharedObjectBodyResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.SharedObjectBodyResourceId))
+	}
+	if m.SpaceWorldResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.SpaceWorldResourceId))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -15205,6 +15322,27 @@ func (x *CreateSpaceResponse) MarshalProtoText() string {
 		}
 		sb.WriteString("shared_object_meta: ")
 		sb.WriteString(x.SharedObjectMeta.MarshalProtoText())
+	}
+	if x.MountedSharedObject != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("mounted_shared_object: ")
+		sb.WriteString(x.MountedSharedObject.MarshalProtoText())
+	}
+	if x.SharedObjectBodyResourceId != 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("shared_object_body_resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.SharedObjectBodyResourceId), 10))
+	}
+	if x.SpaceWorldResourceId != 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("space_world_resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.SpaceWorldResourceId), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -17616,6 +17754,52 @@ func (m *CreateSpaceResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MountedSharedObject", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.MountedSharedObject == nil {
+				m.MountedSharedObject = &MountSharedObjectResponse{}
+			}
+			if err := m.MountedSharedObject.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectBodyResourceId", wireType)
+			}
+			m.SharedObjectBodyResourceId = 0
+			m.SharedObjectBodyResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceWorldResourceId", wireType)
+			}
+			m.SpaceWorldResourceId = 0
+			m.SpaceWorldResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

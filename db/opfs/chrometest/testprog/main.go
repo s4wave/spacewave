@@ -14,15 +14,23 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc_wal "github.com/s4wave/spacewave/db/block/gc/wal"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
+	unixfs_sdk "github.com/s4wave/spacewave/db/unixfs"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	volume_opfs "github.com/s4wave/spacewave/db/volume/js/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/metashard"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
+	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
 )
 
@@ -79,11 +87,27 @@ var manifestBloomCases = []manifestBloomCase{
 
 func main() {
 	start := time.Now()
-	c, err := parseConfig(os.Args)
+	c, err := parseConfig(testArgs())
 	if err == nil {
 		err = run(context.Background(), c)
 	}
 	postResult(c, time.Since(start), err)
+}
+
+func testArgs() []string {
+	if len(os.Args) >= 8 {
+		return os.Args
+	}
+	val := js.Global().Get("__OPFS_CHROMETEST_ARGS")
+	if val.IsUndefined() || val.IsNull() {
+		return os.Args
+	}
+	n := val.Get("length").Int()
+	args := make([]string, n)
+	for i := range n {
+		args[i] = val.Index(i).String()
+	}
+	return args
 }
 
 func parseConfig(args []string) (*config, error) {
@@ -125,6 +149,16 @@ func run(ctx context.Context, c *config) error {
 	switch c.scenario {
 	case "clear":
 		return clearRoot(c.root)
+	case "missing-delete-classify":
+		return runMissingDeleteClassify(c)
+	case "read-file-helper-loop":
+		return runReadFileHelperLoop(c)
+	case "large-write-read-list":
+		return runLargeWriteReadList(c)
+	case "read-at-helper-loop":
+		return runReadAtHelperLoop(c)
+	case "gc-wal-write-loop":
+		return runGCWalWriteLoop(ctx, c)
 	case "block-writer":
 		return runBlockWriter(ctx, c)
 	case "block-reader":
@@ -173,6 +207,8 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeRuntimeWrite(ctx, c)
 	case "volume-runtime-verify":
 		return runVolumeRuntimeVerify(ctx, c)
+	case "world-init-unixfs":
+		return runWorldInitUnixFS(ctx, c)
 	default:
 		return errors.Errorf("unknown scenario %q", c.scenario)
 	}
@@ -189,6 +225,207 @@ func clearRoot(rootName string) error {
 	}
 	_, err = opfs.GetDirectory(root, rootName, true)
 	return err
+}
+
+func runMissingDeleteClassify(c *config) error {
+	root, err := opfs.GetRoot()
+	if err != nil {
+		return err
+	}
+	dir, err := opfs.GetDirectory(root, c.root, true)
+	if err != nil {
+		return err
+	}
+	err = opfs.DeleteFile(dir, "missing-delete-classify")
+	if !opfs.IsNotFound(err) {
+		return errors.Errorf("expected NotFoundError from missing delete, got %v", err)
+	}
+	return nil
+}
+
+func runReadFileHelperLoop(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"read-helper"})
+	if err != nil {
+		return err
+	}
+	want := []byte("tinygo-opfs-read-file-helper")
+	if err := opfs.WriteFile(dir, "manifest-a", want); err != nil {
+		return err
+	}
+	for i := 0; i < c.iterations; i++ {
+		got, err := opfs.ReadFile(dir, "manifest-a")
+		if err != nil {
+			return errors.Wrap(err, "read manifest-a")
+		}
+		if !bytes.Equal(got, want) {
+			return errors.Errorf("read helper mismatch iteration=%d got=%x want=%x", i, got, want)
+		}
+	}
+	return nil
+}
+
+func runLargeWriteReadList(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"large-helper"})
+	if err != nil {
+		return err
+	}
+	totalSize := c.iterations
+	if totalSize <= 0 {
+		totalSize = 64 * 1024 * 1024
+	}
+	files := c.batch
+	if files <= 0 {
+		files = 64
+	}
+	baseSize := totalSize / files
+	remainder := totalSize % files
+	for i := 0; i < files; i++ {
+		size := baseSize
+		if i < remainder {
+			size++
+		}
+		name := "chunk-" + zeroPad(i, 3) + ".bin"
+		if err := opfs.WriteFile(dir, name, deterministicLargeBytes(size, i)); err != nil {
+			return errors.Wrapf(err, "write %s", name)
+		}
+	}
+
+	for _, i := range []int{0, files / 2, files - 1} {
+		size := baseSize
+		if i < remainder {
+			size++
+		}
+		name := "chunk-" + zeroPad(i, 3) + ".bin"
+		got, err := opfs.ReadFile(dir, name)
+		if err != nil {
+			return errors.Wrapf(err, "read %s", name)
+		}
+		want := deterministicLargeBytes(size, i)
+		if len(got) != len(want) {
+			return errors.Errorf("%s length=%d want=%d", name, len(got), len(want))
+		}
+		for _, idx := range []int{0, 1, 4095, 4096, size / 2, size - 2, size - 1} {
+			if idx < 0 || idx >= len(want) {
+				continue
+			}
+			if got[idx] != want[idx] {
+				return errors.Errorf("%s byte[%d]=%d want=%d", name, idx, got[idx], want[idx])
+			}
+		}
+	}
+
+	names, err := opfs.ListDirectory(dir)
+	if err != nil {
+		return errors.Wrap(err, "list large-helper")
+	}
+	seen := make(map[string]bool, len(names))
+	for _, name := range names {
+		seen[name] = true
+	}
+	for i := 0; i < files; i++ {
+		name := "chunk-" + zeroPad(i, 3) + ".bin"
+		if !seen[name] {
+			return errors.Errorf("%s missing from list directory result", name)
+		}
+	}
+	return nil
+}
+
+func runReadAtHelperLoop(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"read-at-helper"})
+	if err != nil {
+		return err
+	}
+	want := []byte("tinygo-opfs-read-at-helper-window")
+	if err := opfs.WriteFile(dir, "pages.dat", want); err != nil {
+		return err
+	}
+	file, err := opfs.OpenAsyncFile(dir, "pages.dat")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	off := int64(11)
+	expected := want[off : off+12]
+	for i := 0; i < c.iterations; i++ {
+		got := make([]byte, len(expected))
+		n, err := file.ReadAt(got, off)
+		if err != nil {
+			return errors.Wrap(err, "read pages.dat")
+		}
+		if n != len(expected) {
+			return errors.Errorf("read-at helper read %d bytes, expected %d", n, len(expected))
+		}
+		if !bytes.Equal(got, expected) {
+			return errors.Errorf("read-at helper mismatch iteration=%d got=%x want=%x", i, got, expected)
+		}
+	}
+	var eof [8]byte
+	n, err := file.ReadAt(eof[:], int64(len(want)))
+	if err != io.EOF {
+		return errors.Errorf("read-at helper EOF error=%v, expected EOF", err)
+	}
+	if n != 0 {
+		return errors.Errorf("read-at helper EOF read %d bytes, expected 0", n)
+	}
+	return nil
+}
+
+func runGCWalWriteLoop(ctx context.Context, c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"gc", "wal"})
+	if err != nil {
+		return err
+	}
+	writer := block_gc_wal.NewWriter(
+		dir,
+		c.root+"/gc/wal",
+		c.root+"|gc-wal-order",
+		c.root+"|gc-stw",
+	)
+	for i := 0; i < c.iterations; i++ {
+		edge := &block_gc_wal.RefEdge{
+			Subject: "subject/" + zeroPad(c.worker, 2) + "/" + zeroPad(i, 5),
+			Object:  "object/" + zeroPad(c.worker, 2) + "/" + zeroPad(i, 5),
+		}
+		if err := writer.Append(ctx, []*block_gc_wal.RefEdge{edge}, nil); err != nil {
+			return errors.Wrapf(err, "append wal %d", i)
+		}
+	}
+
+	names, err := opfs.ListDirectory(dir)
+	if err != nil {
+		return errors.Wrap(err, "list wal directory")
+	}
+	var walFiles int
+	var maxSeq uint64
+	for _, name := range names {
+		if !strings.HasSuffix(name, ".wal") {
+			continue
+		}
+		walFiles++
+		data, err := opfs.ReadFile(dir, name)
+		if err != nil {
+			return errors.Wrapf(err, "read wal file %s", name)
+		}
+		var entry block_gc_wal.WALEntry
+		if err := entry.UnmarshalVT(data); err != nil {
+			return errors.Wrapf(err, "unmarshal wal file %s", name)
+		}
+		if entry.Sequence == 0 || len(entry.Adds) != 1 {
+			return errors.Errorf("invalid wal entry %s sequence=%d adds=%d", name, entry.Sequence, len(entry.Adds))
+		}
+		if entry.Sequence > maxSeq {
+			maxSeq = entry.Sequence
+		}
+	}
+	if walFiles != c.iterations {
+		return errors.Errorf("wal files=%d want=%d", walFiles, c.iterations)
+	}
+	if maxSeq != uint64(c.iterations) {
+		return errors.Errorf("wal max sequence=%d want=%d", maxSeq, c.iterations)
+	}
+	return nil
 }
 
 func runBlockWriter(ctx context.Context, c *config) error {
@@ -715,6 +952,93 @@ func runVolumeRuntimeVerify(ctx context.Context, c *config) error {
 	return nil
 }
 
+func runWorldInitUnixFS(ctx context.Context, c *config) error {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+
+	le := logrus.NewEntry(logrus.New())
+	bucketID := c.root + "/world"
+	ref := &bucket.ObjectRef{BucketId: bucketID}
+	cursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		le,
+		nil,
+		vol,
+		nil,
+		ref,
+		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: vol.GetID()},
+		nil,
+	)
+	defer cursor.Release()
+
+	ws, err := world_block.BuildWorldStateFromCursor(
+		ctx,
+		le,
+		true,
+		cursor,
+		world.NewWorldStorageFromCursor(cursor),
+		space_world_ops.LookupWorldOp,
+		false,
+	)
+	if err != nil {
+		return errors.Wrap(err, "build world state")
+	}
+	defer ws.Discard()
+
+	if _, _, err := space_world_ops.InitUnixFS(ctx, ws, vol.GetPeerID(), "files", time.Now()); err != nil {
+		return errors.Wrap(err, "init unixfs")
+	}
+	if err := ws.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit world state")
+	}
+
+	fsCursor, err := unixfs_world.FollowUnixfsRef(
+		ctx,
+		le,
+		ws,
+		&unixfs_world.UnixfsRef{
+			ObjectKey: "files",
+			FsType:    unixfs_world.FSType_FSType_FS_NODE,
+		},
+		vol.GetPeerID(),
+		true,
+	)
+	if err != nil {
+		return errors.Wrap(err, "follow unixfs")
+	}
+	defer fsCursor.Release()
+
+	handle, err := unixfs_sdk.NewFSHandle(fsCursor)
+	if err != nil {
+		return errors.Wrap(err, "open fs handle")
+	}
+	defer handle.Release()
+
+	file, err := handle.Lookup(ctx, "getting-started.md")
+	if err != nil {
+		return errors.Wrap(err, "lookup getting-started.md")
+	}
+	defer file.Release()
+
+	size, err := file.GetSize(ctx)
+	if err != nil {
+		return errors.Wrap(err, "stat getting-started.md")
+	}
+	buf := make([]byte, size)
+	n, err := file.ReadAt(ctx, 0, buf)
+	if err != nil && err != io.EOF {
+		return errors.Wrap(err, "read getting-started.md")
+	}
+	if !bytes.Contains(buf[:n], []byte("single guide")) {
+		return errors.Errorf("getting-started.md content mismatch: %q", string(buf[:n]))
+	}
+	return nil
+}
+
 func readCurrentMetaSuperblock(dir js.Value) (*pagestore.Superblock, error) {
 	a, err := opfs.ReadFile(dir, "super-a")
 	if err != nil && !opfs.IsNotFound(err) {
@@ -912,6 +1236,18 @@ func blockKey(worker, iteration, entry int) []byte {
 
 func blockValue(key []byte) []byte {
 	return []byte("value:" + string(key))
+}
+
+func deterministicLargeBytes(size int, salt int) []byte {
+	buf := make([]byte, size)
+	x := uint32(0x9e3779b9) ^ (uint32(salt) * uint32(0x85ebca6b))
+	for i := range buf {
+		x ^= x << 13
+		x ^= x >> 17
+		x ^= x << 5
+		buf[i] = byte(x) + byte(i)
+	}
+	return buf
 }
 
 func metaKey(worker, iteration int) []byte {

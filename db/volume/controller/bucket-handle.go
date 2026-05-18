@@ -80,8 +80,9 @@ func (b *bucketHandleTracker) execute(ctx context.Context) (exErr error) {
 		bucketConf: bc,
 	}
 
-	// Wrap block operations with GC tracking if the volume has a RefGraph.
-	if rg := vol.GetRefGraph(); rg != nil {
+	// Wrap block operations with GC tracking if the volume has a RefGraph and
+	// the controller keeps volume GC enabled.
+	if rg := vol.GetRefGraph(); rg != nil && !b.c.config.GCDisabled() {
 		bucketIRI := block_gc.BucketIRI(b.bucketID)
 		handle.gcOps = block_gc.NewGCStoreOpsWithParentAndTraceTask(
 			vol,

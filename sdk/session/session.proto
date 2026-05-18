@@ -101,6 +101,14 @@ message CreateSpaceResponse {
   .sobject.SharedObjectRef shared_object_ref = 1;
   // SharedObjectMeta is the metadata for the created SharedObject.
   .sobject.SharedObjectMeta shared_object_meta = 2;
+  // MountedSharedObject is the mounted SharedObject resource created as part of
+  // space initialization. Callers may use it instead of immediately remounting
+  // the same SharedObject by id.
+  MountSharedObjectResponse mounted_shared_object = 3;
+  // SharedObjectBodyResourceId is the resource id of the mounted Space body.
+  uint32 shared_object_body_resource_id = 4;
+  // SpaceWorldResourceId is the resource id of the mounted Space world engine.
+  uint32 space_world_resource_id = 5;
 }
 
 // DeleteSpaceRequest is the request type for DeleteSpace.

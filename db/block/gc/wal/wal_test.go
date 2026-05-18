@@ -12,10 +12,6 @@ import (
 )
 
 func TestWALWriteRead(t *testing.T) {
-	if !opfs.SyncAvailable() {
-		t.Skip("sync access handles not available")
-	}
-
 	root, err := opfs.GetRoot()
 	if err != nil {
 		t.Fatal(err)
@@ -88,10 +84,6 @@ func TestWALWriteRead(t *testing.T) {
 }
 
 func TestWALConcurrentAppend(t *testing.T) {
-	if !opfs.SyncAvailable() {
-		t.Skip("sync access handles not available")
-	}
-
 	root, err := opfs.GetRoot()
 	if err != nil {
 		t.Fatal(err)
@@ -149,10 +141,6 @@ func TestWALConcurrentAppend(t *testing.T) {
 }
 
 func TestWALEmptyAppend(t *testing.T) {
-	if !opfs.SyncAvailable() {
-		t.Skip("sync access handles not available")
-	}
-
 	root, err := opfs.GetRoot()
 	if err != nil {
 		t.Fatal(err)

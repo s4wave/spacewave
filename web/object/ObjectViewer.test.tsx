@@ -173,6 +173,47 @@ describe('ObjectViewer', () => {
     expect(screen.queryByText('Loading object')).toBeNull()
   })
 
+  it('renders typed world viewers that do not require the generic object handle', () => {
+    mockUseObjectViewer.mockReturnValue(
+      buildViewerResult({
+        typeID: 'unixfs/fs-node',
+        selectedComponent: {
+          typeID: 'unixfs/fs-node',
+          name: 'UnixFS Viewer',
+          requiresObjectState: false,
+          component: () => null,
+        },
+        objectState: {
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        },
+      }),
+    )
+
+    const objectInfo: ObjectInfo = {
+      info: {
+        case: 'worldObjectInfo',
+        value: {
+          objectKey: 'files',
+          objectType: 'unixfs/fs-node',
+        },
+      },
+    }
+
+    render(
+      <ObjectViewer
+        objectInfo={objectInfo}
+        worldState={buildWorldState({} as IWorldState)}
+      />,
+    )
+
+    expect(screen.getByTestId('object-viewer-content')).toBeDefined()
+    expect(screen.queryByText('Loading object')).toBeNull()
+    expect(screen.queryByText('Object not found')).toBeNull()
+  })
+
   it('renders not found when a world object lookup resolves missing', () => {
     mockUseObjectViewer.mockReturnValue(
       buildViewerResult({

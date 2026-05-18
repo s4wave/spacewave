@@ -303,7 +303,8 @@ describe('Resources SDK with Real Backend E2E', () => {
     stack.defer(() => spaceSoBody[Symbol.dispose]())
 
     // Create Space from body
-    const space = new Space(spaceSoBody.resourceRef)
+    const space = new Space(spaceSoBody.resourceRef.createRef(spaceSoBody.id))
+    stack.defer(() => space[Symbol.dispose]())
 
     // Access world state
     console.log('accessing world state...')

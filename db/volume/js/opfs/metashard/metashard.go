@@ -96,7 +96,10 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	}
 	defer release()
 
-	if err := ms.reloadCommittedState(); err != nil {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	if err := ms.reloadCommittedStateLocked(); err != nil {
 		if !IsCorruptError(err) {
 			return errors.Wrap(err, "reload committed state")
 		}
@@ -104,7 +107,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 			return errors.Wrap(err, "reset corrupt meta shard")
 		}
 	}
-	tree, gen := ms.OpenCommittedTree()
+	tree, gen := ms.openCommittedTreeLocked()
 
 	// Execute mutations.
 	if err := fn(tree); err != nil {
@@ -167,10 +170,8 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 		return err
 	}
 
-	ms.mu.Lock()
 	ms.rootPage = tree.RootID()
 	ms.generation = gen
-	ms.mu.Unlock()
 
 	return nil
 }
@@ -253,11 +254,19 @@ func (ms *MetaShard) openCommittedTreeForRead() (*pagestore.Tree, uint64, func()
 			return nil, 0, nil, errors.Wrap(err, "reload recovered state")
 		}
 	}
-	tree, generation := ms.OpenCommittedTree()
-	return tree, generation, release, nil
+	tree, generation, closeSnapshot := ms.openCommittedSnapshotTree()
+	release()
+	return tree, generation, closeSnapshot, nil
 }
 
 func (ms *MetaShard) reloadCommittedState() error {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	return ms.reloadCommittedStateLocked()
+}
+
+func (ms *MetaShard) reloadCommittedStateLocked() error {
 	var aBuf [pagestore.SuperblockSize]byte
 	var bBuf [pagestore.SuperblockSize]byte
 	readSuper(ms.dir, "super-a", aBuf[:])
@@ -285,10 +294,8 @@ func (ms *MetaShard) reloadCommittedState() error {
 		}
 	}
 
-	ms.mu.Lock()
 	ms.rootPage = rootPage
 	ms.generation = gen
-	ms.mu.Unlock()
 	return nil
 }
 
@@ -299,7 +306,10 @@ func (ms *MetaShard) recoverCorruptState() error {
 	}
 	defer release()
 
-	if err := ms.reloadCommittedState(); err == nil {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	if err := ms.reloadCommittedStateLocked(); err == nil {
 		return nil
 	} else if !IsCorruptError(err) {
 		return err
@@ -308,8 +318,30 @@ func (ms *MetaShard) recoverCorruptState() error {
 	}
 }
 
+func (ms *MetaShard) openCommittedTreeLocked() (*pagestore.Tree, uint64) {
+	return pagestore.OpenTree(ms.pager, ms.rootPage), ms.generation
+}
+
+func (ms *MetaShard) openCommittedSnapshotTree() (*pagestore.Tree, uint64, func()) {
+	ms.mu.RLock()
+	rootPage := ms.rootPage
+	generation := ms.generation
+	pageCount := ms.pager.PageCount()
+	ms.mu.RUnlock()
+
+	pager := NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
+	pager.SetPageCount(pageCount)
+	return pagestore.OpenTree(pager, rootPage), generation, func() {
+		_ = pager.Close()
+	}
+}
+
 func (ms *MetaShard) acquireStateLock(exclusive bool) (func(), error) {
-	return filelock.AcquireWebLock(ms.lockPrefix+"/meta/write", exclusive)
+	release, err := filelock.AcquireWebLock(ms.lockPrefix+"/meta/write", exclusive)
+	if err != nil {
+		return nil, err
+	}
+	return release, nil
 }
 
 func scanPrefixEntries(tree *pagestore.Tree, prefix []byte) ([]metaEntry, error) {
@@ -442,22 +474,25 @@ func validateSuperblock(pager *OpfsPager, sb *pagestore.Superblock) (*pagestore.
 
 // readSuper reads a superblock file into buf, ignoring errors.
 func readSuper(dir js.Value, name string, buf []byte) {
-	f, err := opfs.OpenAsyncFile(dir, name)
+	if !opfs.PreferSyncAccessHandles() {
+		data, err := opfs.ReadFile(dir, name)
+		if err == nil {
+			copy(buf, data)
+		}
+		return
+	}
+	f, err := opfs.OpenSyncFile(dir, name)
 	if err != nil {
 		return
 	}
+	defer f.Close()
 	f.ReadAt(buf, 0)
 }
 
 // writeSuper writes a superblock to OPFS.
 func writeSuper(dir js.Value, name string, data []byte) error {
-	if !opfs.SyncAvailable() {
-		f, err := opfs.CreateAsyncFile(dir, name)
-		if err != nil {
-			return err
-		}
-		_, err = f.WriteAt(data, 0)
-		return err
+	if !opfs.PreferSyncAccessHandles() {
+		return opfs.WriteFile(dir, name, data)
 	}
 	f, err := opfs.CreateSyncFile(dir, name)
 	if err != nil {

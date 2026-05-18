@@ -156,19 +156,7 @@ func (g *GCGraph) RemoveNode(ctx context.Context, iri string) error {
 
 // writeFile writes content to a file using per-file locking.
 func (g *GCGraph) writeFile(dir js.Value, name string, content []byte) error {
-	f, release, err := filelock.AcquireFile(dir, name, g.lockPrefix, true)
-	if err != nil {
-		return err
-	}
-	defer release()
-
-	if err := f.Truncate(0); err != nil {
-		return err
-	}
-	if _, err := f.WriteAt(content, 0); err != nil {
-		return err
-	}
-	return f.Flush()
+	return filelock.WriteFile(dir, name, g.lockPrefix, content)
 }
 
 // deleteFile removes a file, ignoring not-found errors.

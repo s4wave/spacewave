@@ -89,12 +89,14 @@ const staticViewers: ObjectViewerComponent[] = [
     typeID: UnixFSTypeID,
     name: 'UnixFS Viewer',
     category: 'Files',
+    requiresObjectState: false,
     component: UnixFSViewer,
   },
   {
     typeID: UnixFSTypeID,
     name: 'UnixFS Gallery',
     category: 'Files',
+    requiresObjectState: false,
     component: UnixFSGalleryViewer,
   },
   {

@@ -25,7 +25,7 @@ func NewDistBucketConfig(projectID string) (*bucket.Config, error) {
 		&lookup_concurrent.Config{
 			// Verbose:              true,
 			FallbackBlockStoreId: StaticBlockStoreID,
-			WritebackBehavior:    lookup_concurrent.WritebackBehavior_WritebackBehavior_ALL,
+			WritebackBehavior:    lookup_concurrent.WritebackBehavior_WritebackBehavior_NONE,
 			PutBlockBehavior:     lookup_concurrent.PutBlockBehavior_PutBlockBehavior_ALL,
 			NotFoundBehavior:     lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
 		},

@@ -11,7 +11,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
-	"github.com/s4wave/spacewave/db/world"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	s4wave_plugin "github.com/s4wave/spacewave/sdk/plugin"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -173,7 +173,7 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 	}
 	defer resources.Release()
 
-	lookupOp := world.BuildLookupWorldOpFunc(r.b, r.le, spaceResource.GetWorldEngineID())
+	lookupOp := space_world_optypes.BuildSpaceLookupOp(r.b, r.le, spaceResource.GetWorldEngineID())
 	engineInfo := &s4wave_world.EngineInfo{
 		EngineId: spaceResource.GetWorldEngineID(),
 		BucketId: spaceResource.GetWorldEngineBucketID(),

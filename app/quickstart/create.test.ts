@@ -31,14 +31,18 @@ import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import type { QuickstartSpaceCreateId } from './options.js'
 import {
+  buildQuickstartSpaceRoutePath,
   createLocalSession,
+  createQuickstartSetupFromSession,
   createQuickstartSetup,
   createDrive,
   createSpaceSettingsObject,
   executeDynamicQuickstart,
+  getQuickstartInitialObjectRouteHandoff,
   getQuickstartSpaceName,
   populateSpace,
   type QuickstartProgressState,
+  type QuickstartSetupTiming,
 } from './create.js'
 
 const quickstartRegistryMocks = vi.hoisted(() => ({
@@ -396,6 +400,23 @@ describe('quickstart create', () => {
     }
   })
 
+  it('routes Drive quickstart straight to its seeded object', () => {
+    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'drive')).toBe(
+      '/u/2/so/space-1/files',
+    )
+    expect(getQuickstartInitialObjectRouteHandoff('drive')).toEqual({
+      objectKey: 'files',
+      objectType: 'unixfs/fs-node',
+    })
+    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1/', 'canvas')).toBe(
+      '/u/2/so/space-1/canvas-1',
+    )
+    expect(getQuickstartInitialObjectRouteHandoff('canvas')).toBeUndefined()
+    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'space')).toBe(
+      '/u/2/so/space-1',
+    )
+  })
+
   it('publishes quickstart progress-ready before Drive content seeding finishes', async () => {
     vi.stubGlobal('__s4waveQuickstartTiming', undefined)
     vi.stubGlobal('__s4wave_debug', {})
@@ -619,6 +640,113 @@ describe('quickstart create', () => {
       throw new Error('expected settings')
     }
     expect(settings.indexPath).toBe(UNIXFS_OBJECT_KEY)
+  })
+
+  it('reuses the CreateSpace world resource instead of remounting it', async () => {
+    const abortSignal = new AbortController().signal
+    const cleanup: RegisterCleanup = (value) => value
+    const spaceWorldState = {
+      release: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    }
+    const engine = {
+      accessWorldState: vi.fn().mockResolvedValue(spaceWorldState),
+      release: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    }
+    const createResource = vi.fn(() => engine)
+    const accessWorldState = vi.fn()
+    const spaceContents = {
+      release: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    }
+    spaceMocks.mountSpace.mockResolvedValue({
+      accessWorldState,
+      mountSpaceContents: vi.fn().mockResolvedValue(spaceContents),
+    })
+
+    const setup = await createQuickstartSetupFromSession({
+      session: {
+        resourceRef: {
+          createResource,
+        },
+      } as never,
+      spaceResp: {
+        spaceWorldResourceId: 99,
+      },
+      abortSignal,
+      cleanup,
+    })
+
+    expect(createResource).toHaveBeenCalledWith(99, expect.any(Function))
+    expect(accessWorldState).not.toHaveBeenCalled()
+    expect(setup.spaceWorld.getEngine()).toBe(engine)
+  })
+
+  it('records Drive UnixFS transaction subphases when timing is available', async () => {
+    const txApplyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
+      seqno: 1n,
+      sysErr: false,
+    })
+    const commit = vi.fn().mockResolvedValue(undefined)
+    const discard = vi.fn().mockResolvedValue(undefined)
+    const newTransaction = vi.fn().mockResolvedValue({
+      applyWorldOp: txApplyWorldOp,
+      commit,
+      discard,
+    })
+    const applyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
+      seqno: 2n,
+      sysErr: false,
+    })
+    const spaceWorld = {
+      getEngine: vi.fn(() => ({ newTransaction })),
+      getObject: vi.fn(() => Promise.resolve(null)),
+      lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
+      setGraphQuad: vi.fn().mockResolvedValue(undefined),
+      applyWorldOp,
+    }
+    const timing: QuickstartSetupTiming = {
+      quickstartId: 'drive',
+      state: 'loading',
+      startedMs: 0,
+      phases: [],
+    }
+
+    await createDrive(spaceWorld as never, undefined, timing)
+
+    expect(newTransaction).toHaveBeenCalledTimes(2)
+    expect(newTransaction).toHaveBeenCalledWith(true, undefined)
+    expect(txApplyWorldOp).toHaveBeenNthCalledWith(
+      1,
+      INIT_UNIXFS_OP_ID,
+      expect.any(Uint8Array),
+      '',
+      undefined,
+    )
+    expect(txApplyWorldOp).toHaveBeenNthCalledWith(
+      2,
+      SET_SPACE_SETTINGS_OP_ID,
+      expect.any(Uint8Array),
+      '',
+      undefined,
+    )
+    expect(commit).toHaveBeenCalledTimes(2)
+    expect(discard).toHaveBeenCalledTimes(2)
+    expect(applyWorldOp).not.toHaveBeenCalled()
+    expect(timing.phases.map((phase) => phase.name)).toEqual([
+      'init-drive-unixfs',
+      'init-drive-unixfs-new-transaction',
+      'init-drive-unixfs-apply-op',
+      'init-drive-unixfs-commit',
+      'init-drive-unixfs-discard',
+      'create-drive-settings',
+      'create-drive-settings-get-object',
+      'create-drive-settings-new-transaction',
+      'create-drive-settings-apply-op',
+      'create-drive-settings-commit',
+      'create-drive-settings-discard',
+    ])
   })
 
   it('indexes every quickstart to the object it creates or seeds', async () => {

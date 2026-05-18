@@ -83,7 +83,7 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<EngineWorldState> {
     const engine = await this.accessWorld(abortSignal)
-    return new EngineWorldState(engine, write)
+    return new EngineWorldState(engine, write, true)
   }
 
   // listWizards returns all registered object creation wizards.

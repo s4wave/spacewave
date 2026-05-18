@@ -5,6 +5,7 @@ import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
 import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
+import { getQuickstartInitialObjectHandoff } from '@s4wave/app/quickstart/session-handoff.js'
 
 // SpaceObjectContainer displays an object within a space.
 export function SpaceObjectContainer() {
@@ -12,6 +13,7 @@ export function SpaceObjectContainer() {
     spaceId,
     objectKey,
     objectPath,
+    spaceState,
     spaceWorldResource,
     navigateToRoot,
     navigateToSubPath,
@@ -31,16 +33,32 @@ export function SpaceObjectContainer() {
     [routerPath, objectKey, navigateToSubPath],
   )
 
+  const objectType = useMemo(() => {
+    const stateType = spaceState.worldContents?.objects?.find(
+      (obj) => obj.objectKey === objectKey,
+    )?.objectType
+    if (stateType) {
+      return stateType
+    }
+    return (
+      getQuickstartInitialObjectHandoff(sessionIndex, spaceId, objectKey)
+        ?.objectType ?? ''
+    )
+  }, [objectKey, sessionIndex, spaceId, spaceState.worldContents?.objects])
+
   const objectInfo: ObjectInfo = useMemo(
     () => ({
       info: objectKey
         ? {
             case: 'worldObjectInfo' as const,
-            value: { objectKey },
+            value: {
+              objectKey,
+              ...(objectType ? { objectType } : {}),
+            },
           }
         : { case: undefined, value: undefined },
     }),
-    [objectKey],
+    [objectKey, objectType],
   )
 
   const exportUrl = useMemo(

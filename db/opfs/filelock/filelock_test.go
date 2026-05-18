@@ -51,6 +51,33 @@ func TestAcquireFileBasic(t *testing.T) {
 	}
 }
 
+func TestWriteFileReplacesWholeFile(t *testing.T) {
+	root, err := opfs.GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dirName := "test-filelock-write-file"
+	dir, err := opfs.GetDirectory(root, dirName, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer opfs.DeleteEntry(root, dirName, true) //nolint
+
+	if err := WriteFile(dir, "data", dirName, []byte("0123456789")); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteFile(dir, "data", dirName, []byte("abc")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := opfs.ReadFile(dir, "data")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "abc" {
+		t.Fatalf("file content after replace = %q, want abc", string(got))
+	}
+}
+
 func TestAcquireFileConcurrent(t *testing.T) {
 	if !opfs.SyncAvailable() {
 		t.Skip("sync access handles not available")

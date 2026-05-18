@@ -78,9 +78,9 @@ func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
 	return nil
 }
 
-// WritePage writes a page. Uses a sync handle when available, async otherwise.
+// WritePage writes a page. Uses a sync handle when preferred, async otherwise.
 func (p *OpfsPager) WritePage(id pagestore.PageID, buf []byte) error {
-	if opfs.SyncAvailable() {
+	if opfs.PreferSyncAccessHandles() {
 		if p.syncFile == nil {
 			f, err := opfs.CreateSyncFile(p.dir, p.filename)
 			if err != nil {

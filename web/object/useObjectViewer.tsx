@@ -90,8 +90,16 @@ export function useObjectViewer({
     infoCase === 'worldObjectInfo'
       ? (objectInfo.info?.value as { objectKey?: string })?.objectKey
       : undefined
+  const worldObjectType =
+    infoCase === 'worldObjectInfo'
+      ? (objectInfo.info?.value as { objectType?: string })?.objectType ||
+        undefined
+      : undefined
 
-  const worldSetup = useObjectViewerSetup(worldState, worldObjectKey)
+  const worldSetup = useObjectViewerSetup(worldState, worldObjectKey, {
+    typeIDHint: worldObjectType,
+    loadObjectState: worldObjectType !== UnixFSTypeID,
+  })
 
   // For unixfs objects, resolve typeID directly.
   const isUnixfs = infoCase === 'unixfsObjectInfo'

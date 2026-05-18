@@ -28,10 +28,12 @@ import type {
 export class EngineWorldState implements IWorldState {
   private engine: Engine
   private write: boolean
+  private ownsEngine: boolean
 
-  constructor(engine: Engine, write: boolean) {
+  constructor(engine: Engine, write: boolean, ownsEngine = false) {
     this.engine = engine
     this.write = write
+    this.ownsEngine = ownsEngine
   }
 
   // getResourceRef returns the resource ref for creating child resources.
@@ -282,14 +284,16 @@ export class EngineWorldState implements IWorldState {
     return this.engine
   }
 
-  // release is a no-op for EngineWorldState since it doesn't own any resources
+  // release releases the owned Engine resource, when this wrapper created it.
   public release(): void {
-    // No-op: EngineWorldState is not a Resource, just a lightweight wrapper
+    if (this.ownsEngine && !this.engine.released) {
+      this.engine.release()
+    }
   }
 
-  // Symbol.dispose is a no-op for EngineWorldState
+  // Symbol.dispose releases any owned Engine resource.
   [Symbol.dispose](): void {
-    // No-op: EngineWorldState is not a Resource
+    this.release()
   }
 }
 

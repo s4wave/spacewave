@@ -70,3 +70,27 @@ export function spaceMountDetailFromWorld(
   if (!spaceState) return 'Preparing the space contents.'
   return 'Finishing space load.'
 }
+
+export function spaceRouteCanRenderBody(
+  root: boolean,
+  space: boolean,
+  spaceWorld: boolean,
+  _spaceContents: boolean,
+  spaceStateReady: boolean,
+  objectKey?: string,
+): boolean {
+  if (!root || !space || !spaceWorld) {
+    return false
+  }
+  if (spaceStateReady) {
+    return true
+  }
+  return !!objectKey
+}
+
+export function spaceRouteShouldMountContents(
+  objectKey: string | undefined,
+  spaceStateReady: boolean,
+): boolean {
+  return !objectKey || spaceStateReady
+}

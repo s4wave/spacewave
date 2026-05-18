@@ -277,16 +277,23 @@ class WebDocumentWebWorker {
     const w = this.worker
     if (w) {
       w.onerror = (ev: ErrorEvent) => {
+        const stack =
+          ev.error instanceof Error && ev.error.stack
+            ? `\n${ev.error.stack}`
+            : ''
         console.error(
-          `worker ${id}: error: ${ev.message} at ${ev.filename}:${ev.lineno}:${ev.colno}`,
+          `worker ${id}: error: ${ev.message} at ${ev.filename}:${ev.lineno}:${ev.colno}${stack}`,
         )
       }
     }
     if (this.sharedWorker) {
       this.sharedWorker.onerror = (ev: Event) => {
-        console.error(
-          `shared worker ${id}: error: ${(ev as ErrorEvent).message}`,
-        )
+        const err = ev as ErrorEvent
+        const stack =
+          err.error instanceof Error && err.error.stack
+            ? `\n${err.error.stack}`
+            : ''
+        console.error(`shared worker ${id}: error: ${err.message}${stack}`)
       }
     }
 

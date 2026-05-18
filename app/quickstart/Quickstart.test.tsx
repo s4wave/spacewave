@@ -101,4 +101,37 @@ describe('Quickstart', () => {
     expect(screen.getByText('space setup failed')).toBeDefined()
     expect(mockNavigate).toHaveBeenCalledWith({ path: '../../' })
   })
+
+  it('redirects Drive quickstart directly to the seeded object route', () => {
+    mockUseResource.mockImplementation(
+      (
+        _root: unknown,
+        _factory: unknown,
+        _deps: unknown,
+        opts?: { enabled?: boolean },
+      ) =>
+        opts?.enabled
+          ? {
+              error: null,
+              loading: false,
+              retry: mockRetry,
+              value: {
+                sessionIndex: 2,
+                spaceResp: {
+                  sharedObjectRef: { providerResourceRef: { id: 'space-1' } },
+                },
+              },
+            }
+          : {
+              error: null,
+              loading: false,
+              retry: mockRetry,
+              value: null,
+            },
+    )
+
+    render(<Quickstart quickstartId="drive" />)
+
+    expect(screen.getByText('redirect:/u/2/so/space-1/files')).toBeDefined()
+  })
 })

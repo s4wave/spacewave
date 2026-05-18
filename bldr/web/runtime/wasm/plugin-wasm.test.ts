@@ -11,6 +11,11 @@ const pipeState = vi.hoisted(() => ({
   pipe: vi.fn<() => Promise<void>>(),
 }))
 
+async function waitForGoCallbackQueue(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 vi.mock('it-pipe', () => ({
   pipe: pipeState.pipe,
 }))
@@ -211,7 +216,12 @@ describe('plugin-wasm generation lifecycle', () => {
         BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
           onMessage: (message: Uint8Array) => void,
           onClose: (errMsg?: string) => void,
-        ) => Promise<unknown>
+          onResolve: (sink: {
+            push: (message: Uint8Array) => void
+            end: () => void
+          }) => void,
+          onReject: (errMsg: string) => void,
+        ) => void
       }
     ).BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME
     expect(openStream).toBeTypeOf('function')
@@ -222,13 +232,51 @@ describe('plugin-wasm generation lifecycle', () => {
     const onClose = vi.fn(() => {
       console.error('call to released function')
     })
+    const onResolve = vi.fn()
+    const onReject = vi.fn()
     const consoleError = vi.spyOn(console, 'error')
-    await openStream!(onMessage, onClose)
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    openStream!(onMessage, onClose, onResolve, onReject)
+    await waitForGoCallbackQueue()
 
+    expect(onResolve).toHaveBeenCalledTimes(1)
+    expect(onReject).not.toHaveBeenCalled()
     expect(onMessage).toHaveBeenCalledTimes(1)
     expect(onClose).not.toHaveBeenCalled()
     expect(consoleError).not.toHaveBeenCalled()
+  })
+
+  it('reports open stream failures through the reject callback', async () => {
+    goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+    const api = buildBackendAPI(
+      vi.fn(async () => {
+        throw new Error('stream unavailable')
+      }),
+    )
+
+    const { default: main } = await import('./plugin-wasm.js')
+    await main(api)
+    const openStream = (
+      globalThis as {
+        BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
+          onMessage: (message: Uint8Array) => void,
+          onClose: (errMsg?: string) => void,
+          onResolve: (sink: {
+            push: (message: Uint8Array) => void
+            end: () => void
+          }) => void,
+          onReject: (errMsg: string) => void,
+        ) => void
+      }
+    ).BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME
+    expect(openStream).toBeTypeOf('function')
+
+    const onResolve = vi.fn()
+    const onReject = vi.fn()
+    openStream!(vi.fn(), vi.fn(), onResolve, onReject)
+    await waitForGoCallbackQueue()
+
+    expect(onResolve).not.toHaveBeenCalled()
+    expect(onReject).toHaveBeenCalledWith('Error: stream unavailable')
   })
 
   it('classifies Go released-callback logs inside the plugin worker', async () => {

@@ -62,18 +62,23 @@ export function ObjectViewer({
   const navigateHandler = onNavigate ?? noopNavigate
 
   const objectKey = getObjectKey(objectInfo)
+  const requiresObjectState =
+    objectInfo?.info?.case === 'worldObjectInfo' &&
+    (viewer.selectedComponent?.requiresObjectState ?? true)
   const missingWorldObject =
     objectInfo?.info?.case === 'worldObjectInfo' &&
+    requiresObjectState &&
     !!worldState.value &&
     !viewer.objectState.loading &&
     !viewer.objectState.value
 
   const worldReady =
     objectInfo?.info?.case !== 'worldObjectInfo' ||
-    (!!viewer.objectState.value && !!worldState.value)
+    (!!worldState.value && (!requiresObjectState || !!viewer.objectState.value))
   const loading =
     viewer.typeID === undefined ||
-    // For world objects, require objectState and worldState to be loaded.
+    // World objects always need the world; some typed viewers can open their
+    // typed resource directly and do not need the generic object handle first.
     !worldReady
 
   let content

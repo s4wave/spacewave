@@ -25,8 +25,7 @@ func (w *MessagePortPacketStream) WritePacket(p *srpc.Packet) error {
 		return err
 	}
 
-	w.port.WriteMessage(data)
-	return nil
+	return w.port.WriteMessage(data)
 }
 
 // ReadPump is a goroutine that reads packets to a packet handler.

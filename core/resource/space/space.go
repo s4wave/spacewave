@@ -18,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -284,7 +285,7 @@ func (r *SpaceResource) AccessWorld(
 		return nil, err
 	}
 
-	lookupOp := world.BuildLookupWorldOpFunc(r.b, r.le, r.space.GetWorldEngineID())
+	lookupOp := space_world_optypes.BuildSpaceLookupOp(r.b, r.le, r.space.GetWorldEngineID())
 	engineInfo := &s4wave_world.EngineInfo{
 		EngineId: r.space.GetWorldEngineID(),
 		BucketId: r.space.GetWorldEngineBucketID(),
@@ -328,7 +329,10 @@ func (r *SpaceResource) MountSpaceContents(
 		worldBucketID = ""
 	}
 
-	// Start the plugin/space controller so plugins load immediately.
+	// Start the plugin/space controller through the contents resource. The
+	// controller may need to acquire document-owned plugin-host locks while
+	// applying forwarded block-store config, so MountSpaceContents must return
+	// before waiting for that startup path.
 	conf := &plugin_space.Config{
 		SpaceId:       spaceID,
 		EngineId:      engineID,
@@ -336,17 +340,12 @@ func (r *SpaceResource) MountSpaceContents(
 		WorldBucketId: worldBucketID,
 		HostPluginId:  hostPluginID,
 	}
-	ctrl, _, ctrlRef, err := plugin_space.StartControllerWithConfig(ctx, r.b, conf, func() {})
-	if err != nil {
-		return nil, err
-	}
-	contentsResource.ctrl = ctrl
-	contentsResource.ctrlRef = ctrlRef
 
 	id, err := resourceCtx.AddResource(contentsResource.GetMux(), contentsResource.Release)
 	if err != nil {
 		return nil, err
 	}
+	contentsResource.StartController(conf)
 
 	return &s4wave_space.MountSpaceContentsResponse{ResourceId: id}, nil
 }

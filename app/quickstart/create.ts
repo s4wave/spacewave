@@ -10,6 +10,7 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { LocalProvider } from '@s4wave/sdk/provider/local/local.js'
 import { Space } from '@s4wave/sdk/space/space.js'
 import { SpaceContents } from '@s4wave/sdk/space/contents.js'
+import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { BucketLookupCursor } from '@s4wave/sdk/bucket/lookup/lookup.js'
 import { SPACE_SETTINGS_OBJECT_KEY } from '@s4wave/core/space/world/world.js'
@@ -60,6 +61,12 @@ import { type QuickstartSpaceCreateId } from './options.js'
 const NOTES_PLUGIN_ID = 'spacewave-notes'
 const QUICKSTART_REGISTRATION_TIMEOUT_MS = import.meta.env?.DEV ? 240000 : 30000
 const QUICKSTART_LOCAL_PROVIDER_READY_TIMEOUT_MS = 120000
+const QUICKSTART_CREATE_LOCAL_ACCOUNT_TIMEOUT_MS = import.meta.env?.DEV
+  ? 240000
+  : 90000
+const QUICKSTART_RECOVER_LOCAL_SESSION_TIMEOUT_MS = import.meta.env?.DEV
+  ? 60000
+  : 15000
 
 type NotesQuickstartId = Extract<
   QuickstartSpaceCreateId,
@@ -379,7 +386,13 @@ export async function createLocalSession(
     accountResp = await timeQuickstartPhase(
       timing,
       'create-local-account',
-      () => lp.createAccount(makeQuickstartAttemptSignal(abortSignal, 30000)),
+      () =>
+        lp.createAccount(
+          makeQuickstartAttemptSignal(
+            abortSignal,
+            QUICKSTART_CREATE_LOCAL_ACCOUNT_TIMEOUT_MS,
+          ),
+        ),
     )
   } catch (err) {
     if (!isQuickstartRpcAbort(err)) throw err
@@ -392,7 +405,12 @@ export async function createLocalSession(
       const mounted = await timeQuickstartPhase(
         timing,
         'mount-created-local-session-by-index',
-        () => root.mountSessionByIdx({ sessionIdx: 1 }, abortSignal),
+        () =>
+          retryQuickstartRpc(
+            abortSignal,
+            QUICKSTART_RECOVER_LOCAL_SESSION_TIMEOUT_MS,
+            (signal) => root.mountSessionByIdx({ sessionIdx: 1 }, signal),
+          ),
       )
       if (mounted) {
         const session = cleanup(mounted.session)
@@ -458,7 +476,7 @@ export interface QuickstartSetup {
   spaceResp: CreateSpaceResponse
   session: Session
   space: Space
-  spaceContents: SpaceContents
+  spaceContents?: SpaceContents
   spaceWorld: EngineWorldState
   spaceWorldState: BucketLookupCursor
 }
@@ -471,6 +489,7 @@ export interface QuickstartSetupParams {
   cleanup: RegisterCleanup
   timing?: QuickstartSetupTiming
   progress?: QuickstartProgressReporter
+  mountContents?: boolean
 }
 
 // createQuickstartSetupFromSession creates a quickstart setup from an existing session and space response.
@@ -482,7 +501,15 @@ export async function createQuickstartSetupFromSession(
     'accountResp' | 'sessionIndex' | 'session' | 'spaceResp'
   >
 > {
-  const { session, spaceResp, abortSignal, cleanup, timing, progress } = params
+  const {
+    session,
+    spaceResp,
+    abortSignal,
+    cleanup,
+    timing,
+    progress,
+    mountContents = true,
+  } = params
 
   // Mount the space from the response.
   reportQuickstartProgress(progress, 'frame', 'Mounting the new space')
@@ -492,22 +519,34 @@ export async function createQuickstartSetupFromSession(
       spaceResp,
       abortSignal,
       cleanup,
+      phase: (name, cb) => timeQuickstartPhase(timing, name, cb),
     }),
   )
 
   // Access the World associated with the space as a WorldState.
   reportQuickstartProgress(progress, 'frame', 'Loading the space frame')
-  const spaceWorld = await timeQuickstartPhase(
-    timing,
-    'access-space-world',
-    () => space.accessWorldState(true, abortSignal),
+  const spaceWorld = cleanup(
+    await timeQuickstartPhase(timing, 'access-space-world', async () => {
+      const spaceWorldResourceId = spaceResp.spaceWorldResourceId ?? 0
+      if (spaceWorldResourceId !== 0) {
+        return new EngineWorldState(
+          session.resourceRef.createResource(spaceWorldResourceId, Engine),
+          true,
+          true,
+        )
+      }
+      return await space.accessWorldState(true, abortSignal)
+    }),
   )
-  reportQuickstartProgress(progress, 'frame', 'Mounting space contents')
-  const spaceContents = cleanup(
-    await timeQuickstartPhase(timing, 'mount-space-contents', () =>
-      space.mountSpaceContents(abortSignal),
-    ),
-  )
+  let spaceContents: SpaceContents | undefined
+  if (mountContents) {
+    reportQuickstartProgress(progress, 'frame', 'Mounting space contents')
+    spaceContents = cleanup(
+      await timeQuickstartPhase(timing, 'mount-space-contents', () =>
+        space.mountSpaceContents(abortSignal),
+      ),
+    )
+  }
 
   // Access the world state bucket storage.
   reportQuickstartProgress(progress, 'frame', 'Preparing world state')
@@ -519,7 +558,7 @@ export async function createQuickstartSetupFromSession(
 
   return {
     space,
-    spaceContents,
+    ...(spaceContents ? { spaceContents } : {}),
     spaceWorld,
     spaceWorldState,
   }
@@ -566,6 +605,7 @@ export async function createQuickstartSetup(
       cleanup,
       timing,
       progress,
+      mountContents: quickstartId !== 'drive',
     })
 
     // Construct the result
@@ -598,26 +638,110 @@ export async function createQuickstartSetup(
   }
 }
 
+export function getQuickstartInitialObjectKey(
+  quickstartId: QuickstartSpaceCreateId,
+): string {
+  switch (quickstartId) {
+    case 'drive':
+      return UNIXFS_OBJECT_KEY
+    case 'canvas':
+      return CANVAS_DEMO_OBJECT_KEY
+    case 'chat':
+      return CHAT_DEMO_CHANNEL_KEY
+    case 'forge':
+      return 'forge'
+    case 'space':
+    case 'git':
+    case 'notebook':
+    case 'docs':
+    case 'blog':
+    case 'v86':
+      return ''
+    default: {
+      const _exhaustive: never = quickstartId
+      return _exhaustive
+    }
+  }
+}
+
+export function getQuickstartInitialObjectType(
+  quickstartId: QuickstartSpaceCreateId,
+): string {
+  switch (quickstartId) {
+    case 'drive':
+      return 'unixfs/fs-node'
+    case 'space':
+    case 'git':
+    case 'notebook':
+    case 'docs':
+    case 'blog':
+    case 'canvas':
+    case 'chat':
+    case 'v86':
+    case 'forge':
+      return ''
+    default: {
+      const _exhaustive: never = quickstartId
+      return _exhaustive
+    }
+  }
+}
+
+export function getQuickstartInitialObjectRouteHandoff(
+  quickstartId: QuickstartSpaceCreateId,
+): { objectKey: string; objectType: string } | undefined {
+  const objectKey = getQuickstartInitialObjectKey(quickstartId)
+  const objectType = getQuickstartInitialObjectType(quickstartId)
+  if (!objectKey || !objectType) {
+    return undefined
+  }
+  return { objectKey, objectType }
+}
+
+export function buildQuickstartSpaceRoutePath(
+  basePath: string,
+  quickstartId: QuickstartSpaceCreateId,
+): string {
+  const objectKey = getQuickstartInitialObjectKey(quickstartId)
+  if (!objectKey) {
+    return basePath
+  }
+  return basePath.replace(/\/+$/, '') + '/' + objectKey
+}
+
 // createSpaceSettingsObject creates the SpaceSettings object in the world.
 export async function createSpaceSettingsObject(
   spaceWorld: IWorldState,
   abortSignal?: AbortSignal,
   indexPath?: string,
   pluginIds?: string[],
+  timing?: QuickstartSetupTiming,
+  phasePrefix = 'create-space-settings',
 ): Promise<void> {
   let existingSettings: SpaceSettings | undefined
-  const existing = await spaceWorld.getObject(
-    SPACE_SETTINGS_OBJECT_KEY,
-    abortSignal,
+  const existing = await timeQuickstartPhase(
+    timing,
+    phasePrefix + '-get-object',
+    () => spaceWorld.getObject(SPACE_SETTINGS_OBJECT_KEY, abortSignal),
   )
   try {
     if (existing) {
       try {
-        using cursor = await existing.accessWorldState(undefined, abortSignal)
-        const blockResp = await cursor.getBlock({}, abortSignal)
-        if (blockResp.found && blockResp.data) {
-          existingSettings = SpaceSettings.fromBinary(blockResp.data)
-        }
+        existingSettings = await timeQuickstartPhase(
+          timing,
+          phasePrefix + '-read-existing',
+          async () => {
+            using cursor = await existing.accessWorldState(
+              undefined,
+              abortSignal,
+            )
+            const blockResp = await cursor.getBlock({}, abortSignal)
+            if (blockResp.found && blockResp.data) {
+              return SpaceSettings.fromBinary(blockResp.data)
+            }
+            return undefined
+          },
+        )
       } catch {
         existingSettings = undefined
       }
@@ -634,7 +758,8 @@ export async function createSpaceSettingsObject(
       indexPath: indexPath ?? existingSettings?.indexPath ?? '',
       pluginIds: mergedPluginIds,
     }
-    await spaceWorld.applyWorldOp(
+    await applyQuickstartWorldOp(
+      spaceWorld,
       SET_SPACE_SETTINGS_OP_ID,
       SetSpaceSettingsOp.toBinary({
         objectKey: SPACE_SETTINGS_OBJECT_KEY,
@@ -644,6 +769,8 @@ export async function createSpaceSettingsObject(
       }),
       '',
       abortSignal,
+      timing,
+      phasePrefix,
     )
   } finally {
     existing?.release()
@@ -732,6 +859,7 @@ async function waitForQuickstartRegistration(
 export async function initUnixFS(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
 ): Promise<void> {
   // Create the InitUnixFSOp operation
   const op: InitUnixFSOp = {
@@ -741,7 +869,15 @@ export async function initUnixFS(
 
   // Apply the operation using ApplyWorldOp
   const opData = InitUnixFSOp.toBinary(op)
-  await spaceWorld.applyWorldOp(INIT_UNIXFS_OP_ID, opData, '', abortSignal)
+  await applyQuickstartWorldOp(
+    spaceWorld,
+    INIT_UNIXFS_OP_ID,
+    opData,
+    '',
+    abortSignal,
+    timing,
+    'init-drive-unixfs',
+  )
 }
 
 // initObjectLayout initializes an ObjectLayout with starter content.
@@ -881,11 +1017,71 @@ export async function createDrive(
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
   await timeQuickstartPhase(timing, 'init-drive-unixfs', () =>
-    initUnixFS(spaceWorld, abortSignal),
+    initUnixFS(spaceWorld, abortSignal, timing),
   )
   await timeQuickstartPhase(timing, 'create-drive-settings', () =>
-    createSpaceSettingsObject(spaceWorld, abortSignal, UNIXFS_OBJECT_KEY),
+    createSpaceSettingsObject(
+      spaceWorld,
+      abortSignal,
+      UNIXFS_OBJECT_KEY,
+      undefined,
+      timing,
+      'create-drive-settings',
+    ),
   )
+}
+
+async function applyQuickstartWorldOp(
+  spaceWorld: IWorldState,
+  opTypeId: string,
+  opData: Uint8Array,
+  sender: string,
+  abortSignal: AbortSignal | undefined,
+  timing: QuickstartSetupTiming | undefined,
+  phasePrefix: string,
+): Promise<void> {
+  type TimedWorldTx = {
+    applyWorldOp(
+      opTypeId: string,
+      opData: Uint8Array,
+      sender: string,
+      abortSignal?: AbortSignal,
+    ): Promise<unknown>
+    commit(abortSignal?: AbortSignal): Promise<void>
+    discard(abortSignal?: AbortSignal): Promise<void>
+  }
+  type TimedWorldEngine = {
+    newTransaction(
+      write: boolean,
+      abortSignal?: AbortSignal,
+    ): Promise<TimedWorldTx>
+  }
+
+  const getEngine = (spaceWorld as { getEngine?: () => TimedWorldEngine })
+    .getEngine
+  if (!timing || typeof getEngine !== 'function') {
+    await spaceWorld.applyWorldOp(opTypeId, opData, sender, abortSignal)
+    return
+  }
+  const engine = getEngine.call(spaceWorld)
+
+  const tx = await timeQuickstartPhase(
+    timing,
+    phasePrefix + '-new-transaction',
+    () => engine.newTransaction(true, abortSignal),
+  )
+  try {
+    await timeQuickstartPhase(timing, phasePrefix + '-apply-op', () =>
+      tx.applyWorldOp(opTypeId, opData, sender, abortSignal),
+    )
+    await timeQuickstartPhase(timing, phasePrefix + '-commit', () =>
+      tx.commit(abortSignal),
+    )
+  } finally {
+    await timeQuickstartPhase(timing, phasePrefix + '-discard', () =>
+      tx.discard(abortSignal).catch(() => undefined),
+    )
+  }
 }
 
 // initGitQuickstart seeds a persistent git/repo wizard and indexes the Space to it.

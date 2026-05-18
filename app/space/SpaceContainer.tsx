@@ -61,6 +61,8 @@ import { SpaceMountingScreen } from './SpaceMountingScreen.js'
 import {
   spaceMountDetailFromWorld,
   spaceMountStageFromWorld,
+  spaceRouteCanRenderBody,
+  spaceRouteShouldMountContents,
 } from './spaceMountStage.js'
 import { SpaceCommands } from './SpaceCommands.js'
 import { SpaceObjectBrowser } from './SpaceObjectBrowser.js'
@@ -72,6 +74,25 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { isHiddenSpaceObject } from '@s4wave/web/space/object-tree.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import { canRenameSpace } from './permissions.js'
+import {
+  consumeQuickstartSpaceContentsHandoff,
+  consumeQuickstartSpaceHandoff,
+  consumeQuickstartSpaceWorldHandoff,
+  releaseQuickstartSharedObjectHandoff,
+} from '@s4wave/app/quickstart/session-handoff.js'
+
+function logQuickstartSpaceDiagnostic(
+  message: string,
+  fields: Record<string, unknown>,
+): void {
+  if (
+    !(globalThis as { __s4waveLogQuickstartTiming?: boolean })
+      .__s4waveLogQuickstartTiming
+  ) {
+    return
+  }
+  console.log(message + ': ' + JSON.stringify(fields))
+}
 
 // SpaceContainer renders a space shared object body.
 export function SpaceContainer() {
@@ -93,44 +114,83 @@ export function SpaceContainer() {
   const sharedObjectResource = SharedObjectContext.useContext()
   const sharedObject = useResourceValue(sharedObjectResource)
   const sharedObjectId = sharedObject?.meta.sharedObjectId ?? ''
+  const params = useParams()
+  const subPath = params['*']
+  const { objectKey, path: objectPath } = useMemo(
+    () => parseObjectUri(subPath),
+    [subPath],
+  )
 
   const sharedObjectBodyResource = SharedObjectBodyContext.useContext()
   const spaceResource = useResource(
     sharedObjectBodyResource,
-    (parentSharedObjectBody) =>
-      Promise.resolve(
-        parentSharedObjectBody
-          ? new Space(parentSharedObjectBody.resourceRef)
-          : null,
-      ),
-    [],
+    (parentSharedObjectBody, _signal, cleanup) => {
+      if (!parentSharedObjectBody) {
+        return Promise.resolve(null)
+      }
+      const handoff = consumeQuickstartSpaceHandoff(
+        sessionIndex,
+        sharedObjectId,
+      )
+      if (handoff) {
+        logQuickstartSpaceDiagnostic('quickstart route using space handoff', {
+          sharedObjectId,
+          spaceResourceId: handoff.id,
+          released: handoff.released,
+        })
+        return Promise.resolve(cleanup(handoff))
+      }
+      const space = new Space(
+        parentSharedObjectBody.resourceRef.createRef(parentSharedObjectBody.id),
+      )
+      logQuickstartSpaceDiagnostic('quickstart space resource created', {
+        sharedObjectId,
+        bodyResourceId: parentSharedObjectBody.id,
+        spaceResourceId: space.id,
+      })
+      return Promise.resolve(cleanup(space))
+    },
+    [sessionIndex, sharedObjectId],
   )
   const space = useResourceValue(spaceResource)
 
   const spaceWorldResource = useResource(
     spaceResource,
-    async (space, signal, cleanup) =>
-      space ? cleanup(await space.accessWorldState(true, signal)) : null,
-    [],
+    async (space, signal, cleanup) => {
+      if (!space) {
+        return null
+      }
+      const handoff = consumeQuickstartSpaceWorldHandoff(
+        sessionIndex,
+        sharedObjectId,
+      )
+      if (handoff) {
+        logQuickstartSpaceDiagnostic(
+          'quickstart route using space world handoff',
+          {
+            sharedObjectId,
+            engineResourceId: handoff.getEngine().id,
+            released: handoff.getEngine().released,
+          },
+        )
+        return cleanup(handoff)
+      }
+      logQuickstartSpaceDiagnostic('quickstart access world start', {
+        sharedObjectId,
+        spaceResourceId: space.id,
+        released: space.released,
+      })
+      const state = await space.accessWorldState(true, signal)
+      logQuickstartSpaceDiagnostic('quickstart access world finish', {
+        sharedObjectId,
+        spaceResourceId: space.id,
+        released: space.released,
+      })
+      return cleanup(state)
+    },
+    [sessionIndex, sharedObjectId],
   )
   const spaceWorld = useResourceValue(spaceWorldResource)
-
-  const spaceContentsResource = useResource(
-    spaceResource,
-    async (space, signal, cleanup) =>
-      space ? cleanup(await space.mountSpaceContents(signal)) : null,
-    [],
-  )
-  const resourcesList = useWatchStateRpc(
-    useCallback(
-      (req: WatchResourcesListRequest, signal: AbortSignal) =>
-        session?.watchResourcesList(req, signal) ?? null,
-      [session],
-    ),
-    {},
-    WatchResourcesListRequest.equals,
-    WatchResourcesListResponse.equals,
-  )
 
   // watch the space state
   const spaceState = useWatchStateRpc(
@@ -143,6 +203,59 @@ export function SpaceContainer() {
     WatchSpaceStateRequest.equals,
     SpaceState.equals,
   )
+  const shouldMountSpaceContents = spaceRouteShouldMountContents(
+    objectKey,
+    !!spaceState?.ready,
+  )
+  const spaceContentsResource = useResource(
+    spaceResource,
+    async (space, signal, cleanup) => {
+      if (!space) {
+        return null
+      }
+      const handoff = consumeQuickstartSpaceContentsHandoff(
+        sessionIndex,
+        sharedObjectId,
+      )
+      if (handoff) {
+        logQuickstartSpaceDiagnostic(
+          'quickstart route using space contents handoff',
+          {
+            sharedObjectId,
+            contentsResourceId: handoff.id,
+            released: handoff.released,
+          },
+        )
+        return cleanup(handoff)
+      }
+      logQuickstartSpaceDiagnostic('quickstart mount contents start', {
+        sharedObjectId,
+        spaceResourceId: space.id,
+        released: space.released,
+      })
+      const contents = await space.mountSpaceContents(signal)
+      logQuickstartSpaceDiagnostic('quickstart mount contents finish', {
+        sharedObjectId,
+        spaceResourceId: space.id,
+        released: space.released,
+        contentsResourceId: contents.id,
+      })
+      return cleanup(contents)
+    },
+    [sessionIndex, sharedObjectId],
+    { enabled: shouldMountSpaceContents },
+  )
+  const spaceContents = useResourceValue(spaceContentsResource)
+  const resourcesList = useWatchStateRpc(
+    useCallback(
+      (req: WatchResourcesListRequest, signal: AbortSignal) =>
+        session?.watchResourcesList(req, signal) ?? null,
+      [session],
+    ),
+    {},
+    WatchResourcesListRequest.equals,
+    WatchResourcesListResponse.equals,
+  )
   const spaceSharingState = useWatchStateRpc(
     useCallback(
       (req: WatchSpaceSharingStateRequest, signal: AbortSignal) =>
@@ -153,6 +266,13 @@ export function SpaceContainer() {
     WatchSpaceSharingStateRequest.equals,
     SpaceSharingState.equals,
   )
+
+  useEffect(() => {
+    return () => {
+      releaseQuickstartSharedObjectHandoff(sessionIndex, sharedObjectId)
+    }
+  }, [sessionIndex, sharedObjectId])
+
   const canManageSharing = spaceSharingState?.canManage ?? false
   const spaceOrgId = useMemo(() => {
     const orgs = orgListCtx?.organizations ?? []
@@ -182,10 +302,8 @@ export function SpaceContainer() {
     WatchOrganizationStateResponse.equals,
   )
 
-  const params = useParams()
   const navigate = useNavigate()
   const routerContext = useRouter()
-  const subPath = params['*']
   const path = routerContext?.path ?? ''
 
   // Memoize parentPaths to avoid changing dependencies on every render
@@ -195,11 +313,6 @@ export function SpaceContainer() {
   )
   const currentLevelPath =
     parentPaths.length > 0 ? joinPath(parentPaths, true) : path
-
-  const { objectKey, path: objectPath } = useMemo(
-    () => parseObjectUri(subPath),
-    [subPath],
-  )
 
   // Normalize: if subPath is non-empty but objectKey is empty (e.g. bare "-"),
   // redirect to the clean URL without the trailing subpath delimiter.
@@ -272,12 +385,29 @@ export function SpaceContainer() {
     return meta.name || sharedObjectId
   }, [resourcesList, sharedObject, sharedObjectId])
   const canRename = canRenameSpace(providerId, canManageSharing)
+  const canRenderBody = spaceRouteCanRenderBody(
+    !!root,
+    !!space,
+    !!spaceWorld,
+    !!spaceContents,
+    !!spaceState?.ready,
+    objectKey,
+  )
+  const routeSpaceState = useMemo<SpaceState | null>(() => {
+    if (spaceState?.ready) {
+      return spaceState
+    }
+    if (canRenderBody && objectKey) {
+      return { ready: true }
+    }
+    return spaceState
+  }, [canRenderBody, objectKey, spaceState])
   const objectCount = useMemo(() => {
-    const objects = spaceState?.worldContents?.objects ?? []
+    const objects = routeSpaceState?.worldContents?.objects ?? []
     return objects.filter(
       (o) => !isHiddenSpaceObject(o.objectKey, o.objectType),
     ).length
-  }, [spaceState?.worldContents?.objects])
+  }, [routeSpaceState?.worldContents?.objects])
 
   const handleRenameStart = useCallback(() => {
     if (!canRename) return
@@ -354,9 +484,9 @@ export function SpaceContainer() {
     }
   }, [session, sharedObjectId, sessionIndex, path, redirectTab])
 
-  const ready = !!root && !!space && !!spaceWorld && spaceState?.ready
+  const ready = canRenderBody
   const sharedObjectOverlay = useMemo(() => {
-    if (!ready || !spaceWorld || !spaceState) return undefined
+    if (!ready || !spaceWorld || !routeSpaceState) return undefined
     return (
       <SpaceContext.Provider resource={spaceResource}>
         <SpaceContentsContext.Provider resource={spaceContentsResource}>
@@ -366,7 +496,7 @@ export function SpaceContainer() {
             spaceWorld={spaceWorld}
             navigateToRoot={navigateToRoot}
             navigateToObjects={navigateToObjects}
-            spaceState={spaceState}
+            spaceState={routeSpaceState}
             spaceSharingState={spaceSharingState}
             orgState={spaceOrgState}
             buildObjectUrls={buildObjectUrls}
@@ -462,7 +592,7 @@ export function SpaceContainer() {
     spaceWorld,
     navigateToRoot,
     navigateToObjects,
-    spaceState,
+    routeSpaceState,
     spaceSharingState,
     spaceOrgState,
     buildObjectUrls,
@@ -515,14 +645,14 @@ export function SpaceContainer() {
         </DebugInfo>
         <SpaceContext.Provider resource={spaceResource}>
           <SpaceContentsContext.Provider resource={spaceContentsResource}>
-            {ready ? (
+            {ready && routeSpaceState && spaceWorld ? (
               <SpaceContainerContext.Provider
                 spaceId={sharedObjectId}
                 spaceWorldResource={spaceWorldResource}
                 spaceWorld={spaceWorld}
                 navigateToRoot={navigateToRoot}
                 navigateToObjects={navigateToObjects}
-                spaceState={spaceState}
+                spaceState={routeSpaceState}
                 spaceSharingState={spaceSharingState}
                 orgState={spaceOrgState}
                 buildObjectUrls={buildObjectUrls}

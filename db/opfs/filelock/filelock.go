@@ -30,8 +30,9 @@ type File interface {
 // The WebLock name is lockPrefix + "/" + name. If create is true the file
 // is created when it does not exist.
 //
-// In DedicatedWorker contexts, uses a sync access handle (~40% faster).
-// In SharedWorker/main thread contexts, uses async file access.
+// In standard Go DedicatedWorker contexts, uses a sync access handle
+// (~40% faster). In TinyGo, SharedWorker, and main-thread contexts, uses async
+// file access so promise-backed I/O remains JS-owned.
 //
 // The returned release function closes the file and releases the WebLock.
 // It is safe to call more than once.
@@ -44,7 +45,7 @@ func AcquireFile(dir js.Value, name, lockPrefix string, create bool) (File, func
 		return nil, nil, errors.Wrap(err, "acquire WebLock")
 	}
 
-	if opfs.SyncAvailable() {
+	if opfs.PreferSyncAccessHandles() {
 		handle, err := openHandle(dir, name, create)
 		if err != nil {
 			lockRelease()
@@ -76,6 +77,31 @@ func AcquireFile(dir js.Value, name, lockPrefix string, create bool) (File, func
 		once.Do(func() { lockRelease() })
 	}
 	return &asyncAdapter{af}, release, nil
+}
+
+// WriteFile replaces the named file under its per-file WebLock.
+func WriteFile(dir js.Value, name, lockPrefix string, data []byte) error {
+	lockRelease, err := AcquireWebLock(lockPrefix+"/"+name, true)
+	if err != nil {
+		return errors.Wrap(err, "acquire WebLock")
+	}
+	defer lockRelease()
+
+	if !opfs.PreferSyncAccessHandles() {
+		return opfs.WriteFile(dir, name, data)
+	}
+
+	handle, err := opfs.CreateSyncFile(dir, name)
+	if err != nil {
+		return errors.Wrap(err, "open sync file")
+	}
+	defer handle.Close()
+	handle.Truncate(0)
+	if _, err := handle.WriteAt(data, 0); err != nil {
+		return errors.Wrap(err, "write sync file")
+	}
+	handle.Flush()
+	return nil
 }
 
 // openHandle opens or creates a sync access handle.

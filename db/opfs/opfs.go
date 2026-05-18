@@ -4,14 +4,43 @@ package opfs
 
 import (
 	"context"
+	"encoding/binary"
 	"io"
 	"io/fs"
+	"sync"
 	"syscall/js"
 	"time"
-
-	trace "github.com/s4wave/spacewave/db/traceutil"
+	"unsafe"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/opfs/jsutil"
+	trace "github.com/s4wave/spacewave/db/traceutil"
+)
+
+const (
+	jsErrorCodeUnknown = iota
+	jsErrorCodeNotFound
+	jsErrorCodeNoModificationAllowed
+
+	tinyGoOPFSReadFile  = "BLDR_OPFS_READ_FILE"
+	tinyGoOPFSReadAt    = "BLDR_OPFS_READ_AT"
+	tinyGoOPFSListDir   = "BLDR_OPFS_LIST_DIRECTORY"
+	tinyGoOPFSWriteAt   = "BLDR_OPFS_WRITE_AT"
+	tinyGoOPFSWriteFile = "BLDR_OPFS_WRITE_FILE"
+)
+
+type opfsHelperResult struct {
+	values []int
+	err    error
+}
+
+var (
+	opfsHelperOnce    sync.Once
+	opfsHelperResolve js.Func
+	opfsHelperReject  js.Func
+	opfsHelperMu      sync.Mutex
+	opfsHelperNextID  int
+	opfsHelperOps     = map[int]chan opfsHelperResult{}
 )
 
 // JSError represents a JavaScript error or DOMException.
@@ -38,6 +67,10 @@ func IsNotFound(err error) bool {
 
 // newJSError creates a JSError from a js.Value error object.
 func newJSError(val js.Value) *JSError {
+	if val.Type() == js.TypeNumber {
+		return newJSErrorCode(val.Int())
+	}
+
 	name := val.Get("name")
 	msg := val.Get("message")
 	e := &JSError{}
@@ -48,15 +81,27 @@ func newJSError(val js.Value) *JSError {
 		e.Message = msg.String()
 	}
 	if e.Name == "" && e.Message == "" {
-		e.Message = val.Call("toString").String()
+		e.Message = jsutil.Call(val, "toString").String()
 	}
 	return e
+}
+
+func newJSErrorCode(code int) *JSError {
+	switch code {
+	case jsErrorCodeNotFound:
+		return &JSError{Name: "NotFoundError", Message: "entry not found"}
+	case jsErrorCodeNoModificationAllowed:
+		return &JSError{Name: "NoModificationAllowedError", Message: "entry cannot be modified"}
+	default:
+		return &JSError{Message: "promise rejected"}
+	}
 }
 
 // AwaitPromise blocks the calling goroutine until a JS Promise resolves or rejects.
 // Returns the resolved value or an error wrapping the rejection reason.
 func AwaitPromise(promise js.Value) (js.Value, error) {
 	ch := make(chan struct{})
+	var closeOnce sync.Once
 	var result js.Value
 	var jsErr error
 
@@ -66,7 +111,7 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 		} else {
 			result = js.Undefined()
 		}
-		close(ch)
+		closeOnce.Do(func() { close(ch) })
 		return nil
 	})
 	defer thenCb.Release()
@@ -77,19 +122,25 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 		} else {
 			jsErr = errors.New("promise rejected")
 		}
-		close(ch)
+		closeOnce.Do(func() { close(ch) })
 		return nil
 	})
 	defer catchCb.Release()
 
-	promise.Call("then", thenCb).Call("catch", catchCb)
+	jsutil.AwaitPromise(promise, thenCb, catchCb)
 	<-ch
 
 	return result, jsErr
 }
 
+func bytesPtr(buf []byte) int {
+	if len(buf) == 0 {
+		return 0
+	}
+	return int(uintptr(unsafe.Pointer(&buf[0])))
+}
+
 func yieldMicrotask() error {
-	promiseCtor := js.Global().Get("Promise")
 	var cb js.Func
 	exec := js.FuncOf(func(this js.Value, args []js.Value) any {
 		resolve := args[0]
@@ -106,27 +157,27 @@ func yieldMicrotask() error {
 			cb.Release()
 			return nil
 		})
-		js.Global().Call("queueMicrotask", cb)
+		jsutil.Call(js.Global(), "queueMicrotask", cb)
 		return nil
 	})
 	defer exec.Release()
-	_, err := AwaitPromise(promiseCtor.New(exec))
+	_, err := AwaitPromise(jsutil.NewPromise(exec))
 	return err
 }
 
 // GetRoot returns the OPFS root FileSystemDirectoryHandle.
 func GetRoot() (js.Value, error) {
 	storage := js.Global().Get("navigator").Get("storage")
-	promise := storage.Call("getDirectory")
+	promise := jsutil.Call(storage, "getDirectory")
 	return AwaitPromise(promise)
 }
 
 // GetDirectory returns a subdirectory handle within parent.
 // If create is true, the directory is created if it does not exist.
 func GetDirectory(parent js.Value, name string, create bool) (js.Value, error) {
-	opts := js.Global().Get("Object").New()
+	opts := jsutil.NewObject()
 	opts.Set("create", create)
-	promise := parent.Call("getDirectoryHandle", name, opts)
+	promise := jsutil.Call(parent, "getDirectoryHandle", name, opts)
 	return AwaitPromise(promise)
 }
 
@@ -148,7 +199,7 @@ func GetDirectoryPath(parent js.Value, path []string, create bool) (js.Value, er
 // OpenAsyncFile opens an existing file with async OPFS APIs.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
 func OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
-	fileHandle, err := AwaitPromise(dir.Call("getFileHandle", name))
+	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
 	if err != nil {
 		return nil, err
 	}
@@ -158,9 +209,9 @@ func OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 // CreateAsyncFile opens or creates a file with async OPFS APIs.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
 func CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
-	opts := js.Global().Get("Object").New()
+	opts := jsutil.NewObject()
 	opts.Set("create", true)
-	fileHandle, err := AwaitPromise(dir.Call("getFileHandle", name, opts))
+	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name, opts))
 	if err != nil {
 		return nil, errors.Wrap(err, "getFileHandle")
 	}
@@ -186,7 +237,14 @@ func (f *AsyncFile) Read(p []byte) (int, error) {
 // ReadAt reads len(p) bytes from the file starting at byte offset off.
 // Uses File.slice() for range reads without loading the entire file.
 func (f *AsyncFile) ReadAt(p []byte, off int64) (int, error) {
-	file, err := AwaitPromise(f.handle.Call("getFile"))
+	if jsutil.UseTinyGoHelpers() {
+		readAt := js.Global().Get(tinyGoOPFSReadAt)
+		if jsutil.Available(readAt) {
+			return f.readAtWithHelper(readAt, p, off)
+		}
+	}
+
+	file, err := AwaitPromise(jsutil.Call(f.handle, "getFile"))
 	if err != nil {
 		return 0, errors.Wrap(err, "getFile")
 	}
@@ -201,15 +259,28 @@ func (f *AsyncFile) ReadAt(p []byte, off int64) (int, error) {
 		end = int64(size)
 	}
 
-	blob := file.Call("slice", off, end)
-	ab, err := AwaitPromise(blob.Call("arrayBuffer"))
+	blob := jsutil.Call(file, "slice", off, end)
+	ab, err := AwaitPromise(jsutil.Call(blob, "arrayBuffer"))
 	if err != nil {
 		return 0, errors.Wrap(err, "arrayBuffer")
 	}
 
-	arr := js.Global().Get("Uint8Array").New(ab)
+	arr := jsutil.NewUint8Array(ab)
 	n := arr.Get("length").Int()
 	js.CopyBytesToGo(p[:n], arr)
+	if n == 0 && len(p) > 0 {
+		return 0, io.EOF
+	}
+	return n, nil
+}
+
+func (f *AsyncFile) readAtWithHelper(readAt js.Value, p []byte, off int64) (int, error) {
+	n, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
+		readAt.Invoke(f.handle, bytesPtr(p), len(p), off, opID, resolve, reject)
+	})
+	if err != nil {
+		return 0, err
+	}
 	if n == 0 && len(p) > 0 {
 		return 0, io.EOF
 	}
@@ -239,6 +310,13 @@ func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (in
 	ctx, task := trace.NewTask(ctx, "hydra/opfs/async-file/write-at")
 	defer task.End()
 
+	if jsutil.UseTinyGoHelpers() {
+		writeAt := js.Global().Get(tinyGoOPFSWriteAt)
+		if jsutil.Available(writeAt) {
+			return f.writeAtWithHelper(writeAt, p, off, true)
+		}
+	}
+
 	writeCtx, writeTask := trace.NewTask(ctx, "hydra/opfs/async-file/write-at/create-writable")
 	writable, err := openWritable(f.handle, true)
 	writeTask.End()
@@ -248,32 +326,121 @@ func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (in
 
 	if off > 0 {
 		_, seekTask := trace.NewTask(writeCtx, "hydra/opfs/async-file/write-at/seek")
-		_, err := AwaitPromise(writable.Call("seek", off))
+		_, err := AwaitPromise(jsutil.Call(writable, "seek", off))
 		seekTask.End()
 		if err != nil {
-			AwaitPromise(writable.Call("close")) //nolint
+			AwaitPromise(jsutil.Call(writable, "close")) //nolint
 			return 0, errors.Wrap(err, "seek")
 		}
 	}
 
-	arr := js.Global().Get("Uint8Array").New(len(p))
+	arr := jsutil.NewUint8Array(len(p))
 	js.CopyBytesToJS(arr, p)
 
 	writeDataCtx, writeDataTask := trace.NewTask(writeCtx, "hydra/opfs/async-file/write-at/write")
-	_, err = AwaitPromise(writable.Call("write", arr))
+	_, err = AwaitPromise(jsutil.Call(writable, "write", arr))
 	writeDataTask.End()
 	if err != nil {
-		AwaitPromise(writable.Call("close")) //nolint
+		AwaitPromise(jsutil.Call(writable, "close")) //nolint
 		return 0, errors.Wrap(err, "write")
 	}
 
 	_, closeTask := trace.NewTask(writeDataCtx, "hydra/opfs/async-file/write-at/close-writable")
-	_, err = AwaitPromise(writable.Call("close"))
+	_, err = AwaitPromise(jsutil.Call(writable, "close"))
 	closeTask.End()
 	if err != nil {
 		return len(p), errors.Wrap(err, "close writable")
 	}
 	return len(p), nil
+}
+
+func (f *AsyncFile) writeAtWithHelper(writeAt js.Value, p []byte, off int64, keepExisting bool) (int, error) {
+	written, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
+		writeAt.Invoke(f.handle, bytesPtr(p), len(p), off, keepExisting, opID, resolve, reject)
+	})
+	if err != nil {
+		return 0, err
+	}
+	if written != len(p) {
+		return written, errors.Errorf("short write file %s: wrote %d of %d", f.name, written, len(p))
+	}
+	return written, nil
+}
+
+func invokeOPFSIntHelper(call func(opID int, resolve, reject js.Func)) (int, error) {
+	values, err := invokeOPFSHelper(call)
+	if err != nil || len(values) == 0 {
+		return 0, err
+	}
+	return values[0], nil
+}
+
+func invokeOPFSHelper(call func(opID int, resolve, reject js.Func)) ([]int, error) {
+	initOPFSHelperCallbacks()
+	opID, ch := registerOPFSHelperOp()
+	defer unregisterOPFSHelperOp(opID)
+
+	call(opID, opfsHelperResolve, opfsHelperReject)
+	result := <-ch
+	return result.values, result.err
+}
+
+func initOPFSHelperCallbacks() {
+	opfsHelperOnce.Do(func() {
+		opfsHelperResolve = js.FuncOf(func(this js.Value, args []js.Value) any {
+			if len(args) == 0 {
+				return nil
+			}
+			opID := args[0].Int()
+			values := make([]int, 0, len(args)-1)
+			for _, arg := range args[1:] {
+				values = append(values, arg.Int())
+			}
+			completeOPFSHelperOp(opID, opfsHelperResult{values: values})
+			return nil
+		})
+		opfsHelperReject = js.FuncOf(func(this js.Value, args []js.Value) any {
+			if len(args) == 0 {
+				return nil
+			}
+			opID := args[0].Int()
+			err := errors.New("promise rejected")
+			if len(args) > 1 && !args[1].IsUndefined() && !args[1].IsNull() {
+				err = newJSError(args[1])
+			}
+			completeOPFSHelperOp(opID, opfsHelperResult{err: err})
+			return nil
+		})
+	})
+}
+
+func registerOPFSHelperOp() (int, chan opfsHelperResult) {
+	ch := make(chan opfsHelperResult, 1)
+	opfsHelperMu.Lock()
+	opfsHelperNextID++
+	if opfsHelperNextID == 0 {
+		opfsHelperNextID++
+	}
+	opID := opfsHelperNextID
+	opfsHelperOps[opID] = ch
+	opfsHelperMu.Unlock()
+	return opID, ch
+}
+
+func unregisterOPFSHelperOp(opID int) {
+	opfsHelperMu.Lock()
+	delete(opfsHelperOps, opID)
+	opfsHelperMu.Unlock()
+}
+
+func completeOPFSHelperOp(opID int, result opfsHelperResult) {
+	opfsHelperMu.Lock()
+	ch := opfsHelperOps[opID]
+	delete(opfsHelperOps, opID)
+	opfsHelperMu.Unlock()
+	if ch != nil {
+		ch <- result
+	}
 }
 
 // Seek sets the offset for the next Read or Write.
@@ -284,7 +451,7 @@ func (f *AsyncFile) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		f.pos += offset
 	case io.SeekEnd:
-		file, err := AwaitPromise(f.handle.Call("getFile"))
+		file, err := AwaitPromise(jsutil.Call(f.handle, "getFile"))
 		if err != nil {
 			return f.pos, errors.Wrap(err, "getFile")
 		}
@@ -295,7 +462,7 @@ func (f *AsyncFile) Seek(offset int64, whence int) (int64, error) {
 
 // Size returns the file size in bytes.
 func (f *AsyncFile) Size() (int64, error) {
-	file, err := AwaitPromise(f.handle.Call("getFile"))
+	file, err := AwaitPromise(jsutil.Call(f.handle, "getFile"))
 	if err != nil {
 		return 0, errors.Wrap(err, "getFile")
 	}
@@ -312,11 +479,11 @@ func (f *AsyncFile) Truncate(size int64) error {
 	if err != nil {
 		return err
 	}
-	if _, err := AwaitPromise(writable.Call("truncate", size)); err != nil {
-		AwaitPromise(writable.Call("close")) //nolint
+	if _, err := AwaitPromise(jsutil.Call(writable, "truncate", size)); err != nil {
+		AwaitPromise(jsutil.Call(writable, "close")) //nolint
 		return errors.Wrap(err, "truncate")
 	}
-	if _, err := AwaitPromise(writable.Call("close")); err != nil {
+	if _, err := AwaitPromise(jsutil.Call(writable, "close")); err != nil {
 		return errors.Wrap(err, "close writable")
 	}
 	return nil
@@ -347,9 +514,16 @@ func (f *AsyncFile) Close() error {
 // bytes (any prior file content is replaced). One Promise round-trip per
 // stage instead of two (vs separate Truncate then Write calls).
 func WriteFile(dir js.Value, name string, data []byte) error {
-	opts := js.Global().Get("Object").New()
+	if jsutil.UseTinyGoHelpers() {
+		writeFile := js.Global().Get(tinyGoOPFSWriteFile)
+		if jsutil.Available(writeFile) {
+			return writeFileWithHelper(writeFile, dir, name, data)
+		}
+	}
+
+	opts := jsutil.NewObject()
 	opts.Set("create", true)
-	fileHandle, err := AwaitPromise(dir.Call("getFileHandle", name, opts))
+	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name, opts))
 	if err != nil {
 		return errors.Wrap(err, "getFileHandle")
 	}
@@ -358,47 +532,92 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 		return err
 	}
 	if len(data) > 0 {
-		arr := js.Global().Get("Uint8Array").New(len(data))
+		arr := jsutil.NewUint8Array(len(data))
 		js.CopyBytesToJS(arr, data)
-		if _, err := AwaitPromise(writable.Call("write", arr)); err != nil {
-			AwaitPromise(writable.Call("close")) //nolint
+		if _, err := AwaitPromise(jsutil.Call(writable, "write", arr)); err != nil {
+			AwaitPromise(jsutil.Call(writable, "close")) //nolint
 			return errors.Wrap(err, "write")
 		}
 	}
-	if _, err := AwaitPromise(writable.Call("close")); err != nil {
+	if _, err := AwaitPromise(jsutil.Call(writable, "close")); err != nil {
 		return errors.Wrap(err, "close writable")
+	}
+	return nil
+}
+
+func writeFileWithHelper(writeFile js.Value, dir js.Value, name string, data []byte) error {
+	written, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
+		writeFile.Invoke(dir, name, bytesPtr(data), len(data), opID, resolve, reject)
+	})
+	if err != nil {
+		return err
+	}
+	if written != len(data) {
+		return errors.Errorf("short write file %s: wrote %d of %d", name, written, len(data))
 	}
 	return nil
 }
 
 // ReadFile reads the contents of a file in the given directory.
 func ReadFile(dir js.Value, name string) ([]byte, error) {
-	f, err := AwaitPromise(dir.Call("getFileHandle", name))
+	if jsutil.UseTinyGoHelpers() {
+		readFile := js.Global().Get(tinyGoOPFSReadFile)
+		if jsutil.Available(readFile) {
+			return readFileWithHelper(readFile, dir, name)
+		}
+	}
+
+	f, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
 	if err != nil {
 		return nil, err
 	}
-	file, err := AwaitPromise(f.Call("getFile"))
+	file, err := AwaitPromise(jsutil.Call(f, "getFile"))
 	if err != nil {
 		return nil, errors.Wrap(err, "getFile")
 	}
-	ab, err := AwaitPromise(file.Call("arrayBuffer"))
+	ab, err := AwaitPromise(jsutil.Call(file, "arrayBuffer"))
 	if err != nil {
 		return nil, errors.Wrap(err, "arrayBuffer")
 	}
-	arr := js.Global().Get("Uint8Array").New(ab)
+	arr := jsutil.NewUint8Array(ab)
 	buf := make([]byte, arr.Get("length").Int())
 	js.CopyBytesToGo(buf, arr)
+	return buf, nil
+}
+
+func readFileWithHelper(readFile js.Value, dir js.Value, name string) ([]byte, error) {
+	values, err := invokeOPFSHelper(func(opID int, resolve, reject js.Func) {
+		readFile.Invoke(dir, name, opID, resolve, reject)
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(values) < 2 {
+		return nil, errors.New("opfs read file helper returned incomplete result")
+	}
+	id, size := values[0], values[1]
+	if size == 0 {
+		return nil, nil
+	}
+	buf := make([]byte, size)
+	n, ok := jsutil.CopyStoredBytes(id, buf)
+	if !ok {
+		return nil, errors.New("opfs read file byte copy helper unavailable")
+	}
+	if n != size {
+		return nil, errors.Errorf("opfs read file copied %d bytes, expected %d", n, size)
+	}
 	return buf, nil
 }
 
 // DeleteEntry removes a file or directory entry from the parent directory.
 // Returns a "not found" JSError if the entry does not exist.
 func DeleteEntry(dir js.Value, name string, recursive bool) error {
-	opts := js.Global().Get("Object").New()
+	opts := jsutil.NewObject()
 	opts.Set("recursive", recursive)
 	var lastErr error
 	for range syncAccessHandleRetries {
-		_, err := AwaitPromise(dir.Call("removeEntry", name, opts))
+		_, err := AwaitPromise(jsutil.Call(dir, "removeEntry", name, opts))
 		if err == nil {
 			return nil
 		}
@@ -443,12 +662,19 @@ func DeleteFile(dir js.Value, name string) error {
 
 // ListDirectory returns sorted entry names in the given directory.
 func ListDirectory(dir js.Value) ([]string, error) {
+	if jsutil.UseTinyGoHelpers() {
+		listDirectory := js.Global().Get(tinyGoOPFSListDir)
+		if jsutil.Available(listDirectory) {
+			return listDirectoryWithHelper(listDirectory, dir)
+		}
+	}
+
 	// OPFS directories expose an async iterator via values().
 	// We iterate it by calling .next() repeatedly.
-	iter := dir.Call("entries")
+	iter := jsutil.Call(dir, "entries")
 	var names []string
 	for {
-		nextResult, err := AwaitPromise(iter.Call("next"))
+		nextResult, err := AwaitPromise(jsutil.Call(iter, "next"))
 		if err != nil {
 			return nil, errors.Wrap(err, "iterator next")
 		}
@@ -464,9 +690,63 @@ func ListDirectory(dir js.Value) ([]string, error) {
 	return names, nil
 }
 
+func listDirectoryWithHelper(listDirectory js.Value, dir js.Value) ([]string, error) {
+	values, err := invokeOPFSHelper(func(opID int, resolve, reject js.Func) {
+		listDirectory.Invoke(dir, opID, resolve, reject)
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(values) < 2 {
+		return nil, errors.New("opfs list directory helper returned incomplete result")
+	}
+	id, size := values[0], values[1]
+	if size == 0 {
+		return nil, nil
+	}
+	buf := make([]byte, size)
+	n, ok := jsutil.CopyStoredBytes(id, buf)
+	if !ok {
+		return nil, errors.New("opfs list directory byte copy helper unavailable")
+	}
+	if n != size {
+		return nil, errors.Errorf("opfs list directory copied %d bytes, expected %d", n, size)
+	}
+	names, err := decodeHelperNameList(buf)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode opfs list directory names")
+	}
+	return names, nil
+}
+
+func decodeHelperNameList(buf []byte) ([]string, error) {
+	if len(buf) < 4 {
+		return nil, errors.New("opfs list directory helper returned truncated name count")
+	}
+	count := int(binary.BigEndian.Uint32(buf[:4]))
+	names := make([]string, 0, count)
+	buf = buf[4:]
+	for i := 0; i < count; i++ {
+		if len(buf) < 4 {
+			return nil, errors.New("opfs list directory helper returned truncated name length")
+		}
+		size := int(binary.BigEndian.Uint32(buf[:4]))
+		buf = buf[4:]
+		if size > len(buf) {
+			return nil, errors.New("opfs list directory helper returned truncated name bytes")
+		}
+		names = append(names, string(buf[:size]))
+		buf = buf[size:]
+	}
+	if len(buf) != 0 {
+		return nil, errors.New("opfs list directory helper returned trailing bytes")
+	}
+	return names, nil
+}
+
 // FileExists checks if a file exists in the given directory without reading it.
 func FileExists(dir js.Value, name string) (bool, error) {
-	_, err := AwaitPromise(dir.Call("getFileHandle", name))
+	_, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
 	if err != nil {
 		if IsNotFound(err) {
 			return false, nil
@@ -491,10 +771,16 @@ func SyncAvailable() bool {
 	return !method.IsUndefined() && !method.IsNull() && method.Type() == js.TypeFunction
 }
 
+// PreferSyncAccessHandles reports whether OPFS owners should use sync access
+// handles for writes in the current runtime.
+func PreferSyncAccessHandles() bool {
+	return SyncAvailable() && !jsutil.UseTinyGoHelpers()
+}
+
 // OpenSyncFile opens an existing file with a sync access handle.
 // Only available in DedicatedWorker contexts (check SyncAvailable first).
 func OpenSyncFile(dir js.Value, name string) (*SyncFile, error) {
-	fileHandle, err := AwaitPromise(dir.Call("getFileHandle", name))
+	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
 	if err != nil {
 		return nil, err
 	}
@@ -513,9 +799,9 @@ func CreateSyncFile(dir js.Value, name string) (*SyncFile, error) {
 func CreateSyncFileContext(ctx context.Context, dir js.Value, name string) (*SyncFile, error) {
 	// Split lookup from sync-handle creation so traces show which OPFS call is expensive.
 	_, subtask := trace.NewTask(ctx, "hydra/opfs/create-sync-file/get-file-handle")
-	opts := js.Global().Get("Object").New()
+	opts := jsutil.NewObject()
 	opts.Set("create", true)
-	fileHandle, err := AwaitPromise(dir.Call("getFileHandle", name, opts))
+	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name, opts))
 	subtask.End()
 
 	if err != nil {
@@ -563,7 +849,7 @@ func newSyncFileContext(ctx context.Context, name string, fileHandle js.Value) (
 	for range syncAccessHandleRetries {
 		// Trace each open attempt separately so contention retries stay visible.
 		_, subtask := trace.NewTask(ctx, "hydra/opfs/create-sync-file/create-sync-access-handle")
-		ah, err := AwaitPromise(fileHandle.Call("createSyncAccessHandle"))
+		ah, err := AwaitPromise(jsutil.Call(fileHandle, "createSyncAccessHandle"))
 		subtask.End()
 
 		if err == nil {
@@ -593,10 +879,10 @@ func (f *SyncFile) Read(p []byte) (int, error) {
 
 // ReadAt reads len(p) bytes from the file starting at byte offset off.
 func (f *SyncFile) ReadAt(p []byte, off int64) (int, error) {
-	arr := js.Global().Get("Uint8Array").New(len(p))
-	opts := js.Global().Get("Object").New()
+	arr := jsutil.NewUint8Array(len(p))
+	opts := jsutil.NewObject()
 	opts.Set("at", off)
-	n := f.ah.Call("read", arr, opts).Int()
+	n := jsutil.Call(f.ah, "read", arr, opts).Int()
 	js.CopyBytesToGo(p[:n], arr)
 	if n == 0 && len(p) > 0 {
 		return 0, io.EOF
@@ -613,11 +899,11 @@ func (f *SyncFile) Write(p []byte) (int, error) {
 
 // WriteAt writes len(p) bytes to the file starting at byte offset off.
 func (f *SyncFile) WriteAt(p []byte, off int64) (int, error) {
-	arr := js.Global().Get("Uint8Array").New(len(p))
+	arr := jsutil.NewUint8Array(len(p))
 	js.CopyBytesToJS(arr, p)
-	opts := js.Global().Get("Object").New()
+	opts := jsutil.NewObject()
 	opts.Set("at", off)
-	n := f.ah.Call("write", arr, opts).Int()
+	n := jsutil.Call(f.ah, "write", arr, opts).Int()
 	return n, nil
 }
 
@@ -634,7 +920,7 @@ func (f *SyncFile) WriteAt(p []byte, off int64) (int, error) {
 func openWritable(fileHandle js.Value, keepExisting bool) (js.Value, error) {
 	var opts js.Value
 	if keepExisting {
-		opts = js.Global().Get("Object").New()
+		opts = jsutil.NewObject()
 		opts.Set("keepExistingData", true)
 	}
 	var lastErr error
@@ -642,9 +928,9 @@ func openWritable(fileHandle js.Value, keepExisting bool) (js.Value, error) {
 		var writable js.Value
 		var err error
 		if keepExisting {
-			writable, err = AwaitPromise(fileHandle.Call("createWritable", opts))
+			writable, err = AwaitPromise(jsutil.Call(fileHandle, "createWritable", opts))
 		} else {
-			writable, err = AwaitPromise(fileHandle.Call("createWritable"))
+			writable, err = AwaitPromise(jsutil.Call(fileHandle, "createWritable"))
 		}
 		if err == nil {
 			return writable, nil
@@ -668,24 +954,24 @@ func (f *SyncFile) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		f.pos += offset
 	case io.SeekEnd:
-		f.pos = int64(f.ah.Call("getSize").Int()) + offset
+		f.pos = int64(jsutil.Call(f.ah, "getSize").Int()) + offset
 	}
 	return f.pos, nil
 }
 
 // Size returns the file size in bytes.
 func (f *SyncFile) Size() int64 {
-	return int64(f.ah.Call("getSize").Int())
+	return int64(jsutil.Call(f.ah, "getSize").Int())
 }
 
 // Truncate sets the file size. Pads with zero bytes if growing.
 func (f *SyncFile) Truncate(size int64) {
-	f.ah.Call("truncate", size)
+	jsutil.Call(f.ah, "truncate", size)
 }
 
 // Flush flushes buffered writes to stable storage.
 func (f *SyncFile) Flush() {
-	f.ah.Call("flush")
+	jsutil.Call(f.ah, "flush")
 }
 
 // Stat returns file info.
@@ -698,7 +984,7 @@ func (f *SyncFile) Stat() (fs.FileInfo, error) {
 
 // Close releases the sync access handle.
 func (f *SyncFile) Close() error {
-	f.ah.Call("close")
+	jsutil.Call(f.ah, "close")
 	return nil
 }
 

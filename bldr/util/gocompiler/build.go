@@ -77,12 +77,16 @@ func ExecBuildEntrypoint(
 		if err != nil {
 			return err
 		}
+		tinygoArgs, err := GetDefaultTinygoArgs()
+		if err != nil {
+			return err
+		}
 		args = append([]string{
 			"build",
 			"-o",
 			outBinPathRel,
 			"-target", tinygoPlat,
-		}, GetDefaultTinygoArgs()...)
+		}, tinygoArgs...)
 
 		// if release or not native platform drop debugging symbols
 		if isRelease || !isNativeBuildPlatform {

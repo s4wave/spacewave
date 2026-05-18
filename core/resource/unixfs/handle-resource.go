@@ -416,11 +416,7 @@ func (r *FSHandleResource) Readdir(req *s4wave_unixfs.HandleReaddirRequest, strm
 	skip := req.GetSkip()
 
 	err := r.handle.ReaddirAll(ctx, skip, func(ent unixfs.FSCursorDirent) error {
-		entry := &s4wave_unixfs.DirEntry{
-			Name:      ent.GetName(),
-			IsDir:     ent.GetIsDirectory(),
-			IsSymlink: ent.GetIsSymlink(),
-		}
+		entry := dirEntryFromCursor(ent)
 
 		// Try to get additional info (size, mtime, mode)
 		childHandle, lookupErr := r.handle.Lookup(ctx, ent.GetName())
@@ -657,27 +653,19 @@ func (r *FSHandleResource) Clone(ctx context.Context, req *s4wave_unixfs.HandleC
 	}, nil
 }
 
-// readAllEntries reads all directory entries and returns them as a slice.
-func (r *FSHandleResource) readAllEntries(ctx context.Context) ([]*s4wave_unixfs.DirEntry, error) {
+func dirEntryFromCursor(ent unixfs.FSCursorDirent) *s4wave_unixfs.DirEntry {
+	return &s4wave_unixfs.DirEntry{
+		Name:      ent.GetName(),
+		IsDir:     ent.GetIsDirectory(),
+		IsSymlink: ent.GetIsSymlink(),
+	}
+}
+
+// readWatchEntries reads all directory entries for WatchReaddir.
+func (r *FSHandleResource) readWatchEntries(ctx context.Context) ([]*s4wave_unixfs.DirEntry, error) {
 	var entries []*s4wave_unixfs.DirEntry
 	err := r.handle.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
-		entry := &s4wave_unixfs.DirEntry{
-			Name:      ent.GetName(),
-			IsDir:     ent.GetIsDirectory(),
-			IsSymlink: ent.GetIsSymlink(),
-		}
-
-		childHandle, lookupErr := r.handle.Lookup(ctx, ent.GetName())
-		if lookupErr == nil && childHandle != nil {
-			defer childHandle.Release()
-			if info, infoErr := childHandle.GetFileInfo(ctx); infoErr == nil {
-				entry.Size = uint64(info.Size())
-				entry.ModTime = info.ModTime().Unix()
-				entry.Mode = uint32(info.Mode())
-			}
-		}
-
-		entries = append(entries, entry)
+		entries = append(entries, dirEntryFromCursor(ent))
 		return nil
 	})
 	if err != nil {
@@ -697,7 +685,7 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			ch = getWaitCh()
 		})
 
-		entries, err := r.readAllEntries(ctx)
+		entries, err := r.readWatchEntries(ctx)
 		if err != nil {
 			return err
 		}

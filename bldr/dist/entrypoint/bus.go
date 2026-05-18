@@ -223,16 +223,7 @@ func BuildDistBus(
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(&storage_volume.Config{
-			StorageId:       storageID,
-			StorageVolumeId: "dist/" + projectID,
-			VolumeConfig: &volume_controller.Config{
-				VolumeIdAlias: []string{"dist"},
-
-				DisableEventBlockRm: true,
-				DisablePeer:         true,
-			},
-		}),
+		resolver.NewLoadControllerWithConfig(newDistStorageVolumeConfig(storageID, projectID)),
 		ctxCancel,
 	)
 	if err != nil {
@@ -445,6 +436,20 @@ func BuildDistBus(
 	distBus.worldEngine = eng
 	distBus.worldState = worldState
 	return distBus, nil
+}
+
+func newDistStorageVolumeConfig(storageID, projectID string) *storage_volume.Config {
+	return &storage_volume.Config{
+		StorageId:       storageID,
+		StorageVolumeId: "dist/" + projectID,
+		VolumeConfig: &volume_controller.Config{
+			VolumeIdAlias: []string{"dist"},
+
+			DisableEventBlockRm: true,
+			DisablePeer:         true,
+			GcIntervalDur:       "0",
+		},
+	}
 }
 
 // GetContext returns the context.

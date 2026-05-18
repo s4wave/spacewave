@@ -23,14 +23,21 @@ export interface ObjectViewerSetup {
   visibleComponents: ObjectViewerComponent[]
 }
 
+interface UseObjectViewerSetupOptions {
+  typeIDHint?: string
+  loadObjectState?: boolean
+}
+
 // useObjectViewerSetup loads the ObjectViewer chain for a world object.
 // Shared by SpaceObjectContainer and CanvasObjectNode.
 export function useObjectViewerSetup(
   worldState: Resource<IWorldState>,
   objectKey: string | undefined,
+  options: UseObjectViewerSetupOptions = {},
 ): ObjectViewerSetup {
   const rootResource = RootContext.useContext()
   const allViewers = useAllViewers(rootResource)
+  const loadObjectState = options.loadObjectState ?? true
 
   const objectState = useResource(
     worldState,
@@ -39,6 +46,7 @@ export function useObjectViewerSetup(
         ? cleanup(await world.getObject(objectKey, signal))
         : null,
     [objectKey],
+    { enabled: loadObjectState },
   )
 
   const objectInfo = useResource(
@@ -57,9 +65,10 @@ export function useObjectViewerSetup(
       }
     },
     [],
+    { enabled: loadObjectState },
   )
 
-  const typeID = objectInfo.value?.typeID
+  const typeID = options.typeIDHint || objectInfo.value?.typeID
   const availableComponents = useMemo(
     () => getViewersForType(typeID ?? '', allViewers),
     [typeID, allViewers],

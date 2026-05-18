@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -31,12 +32,68 @@ type countStore struct {
 	batchRelease chan struct{}
 }
 
+type deferOrderStore struct {
+	*countStore
+
+	eventMtx   sync.Mutex
+	events     []string
+	deferDepth int
+	endCalled  chan struct{}
+	endOnce    sync.Once
+}
+
 func newCountStore(hashType hash.HashType) *countStore {
 	return &countStore{
 		hashType:      hashType,
 		blocks:        make(map[string][]byte),
 		recordTargets: make(map[string]int),
 	}
+}
+
+func newDeferOrderStore(hashType hash.HashType) *deferOrderStore {
+	return &deferOrderStore{
+		countStore: newCountStore(hashType),
+		endCalled:  make(chan struct{}),
+	}
+}
+
+func (s *deferOrderStore) appendEvent(event string) {
+	s.eventMtx.Lock()
+	s.events = append(s.events, event)
+	s.eventMtx.Unlock()
+}
+
+func (s *deferOrderStore) snapshotEvents() []string {
+	s.eventMtx.Lock()
+	defer s.eventMtx.Unlock()
+	return slices.Clone(s.events)
+}
+
+func (s *deferOrderStore) BeginDeferFlush() {
+	s.eventMtx.Lock()
+	s.deferDepth++
+	s.events = append(s.events, "begin")
+	s.eventMtx.Unlock()
+}
+
+func (s *deferOrderStore) EndDeferFlush(context.Context) error {
+	s.eventMtx.Lock()
+	s.deferDepth--
+	depth := s.deferDepth
+	s.events = append(s.events, "end")
+	s.eventMtx.Unlock()
+	s.endOnce.Do(func() { close(s.endCalled) })
+	if depth < 0 {
+		return errors.New("deferOrderStore: EndDeferFlush called more than BeginDeferFlush")
+	}
+	return nil
+}
+
+func (s *deferOrderStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
+	s.appendEvent("put-start")
+	err := s.countStore.PutBlockBatch(ctx, entries)
+	s.appendEvent("put-done")
+	return err
 }
 
 func (s *countStore) GetHashType() hash.HashType {
@@ -474,6 +531,45 @@ func TestBufferedStoreNestedDeferFlushFlushesOnce(t *testing.T) {
 	}
 	if inner.recordCalls != 1 {
 		t.Fatalf("expected one outermost flush, got %d", inner.recordCalls)
+	}
+}
+
+func TestBufferedStoreEndDeferFlushDrainsBeforeInnerFlush(t *testing.T) {
+	ctx := context.Background()
+	inner := newDeferOrderStore(hash.HashType_HashType_BLAKE3)
+	started := inner.setBatchBlocker()
+	store := NewBufferedStore(ctx, inner)
+
+	store.BeginDeferFlush()
+	if _, _, err := store.PutBlock(ctx, []byte("src"), nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- store.EndDeferFlush(ctx)
+	}()
+	waitSignal(t, started, "defer flush drain")
+
+	select {
+	case <-inner.endCalled:
+		t.Fatalf("inner EndDeferFlush ran before buffered writes drained: %v", inner.snapshotEvents())
+	case <-time.After(25 * time.Millisecond):
+	}
+
+	inner.releaseBatchBlocker()
+	if err := <-errCh; err != nil {
+		t.Fatal(err.Error())
+	}
+
+	events := inner.snapshotEvents()
+	putDone := slices.Index(events, "put-done")
+	end := slices.Index(events, "end")
+	if putDone == -1 || end == -1 {
+		t.Fatalf("missing expected events: %v", events)
+	}
+	if end < putDone {
+		t.Fatalf("inner EndDeferFlush ran before buffered writes drained: %v", events)
 	}
 }
 

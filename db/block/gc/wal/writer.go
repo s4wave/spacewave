@@ -6,6 +6,7 @@ package block_gc_wal
 import (
 	"context"
 	"strconv"
+	"strings"
 	"syscall/js"
 	"time"
 
@@ -17,9 +18,6 @@ import (
 
 // walExtension is the file extension for WAL entries.
 const walExtension = ".wal"
-
-// seqCounterFile is the filename for the persisted sequence counter.
-const seqCounterFile = "seq"
 
 // seqDigits is the zero-padded width of the sequence prefix in filenames.
 const seqDigits = 20
@@ -69,12 +67,19 @@ func (w *Writer) Append(ctx context.Context, adds, removes []*RefEdge) error {
 	}
 	defer stwRelease()
 
-	// Allocate durable sequence number under exclusive ordering lock.
-	seq, err := w.allocSequence()
+	// Allocate durable sequence number and write the WAL entry under the same
+	// exclusive order lock so concurrent appenders cannot observe the same
+	// filename set before either entry has been persisted.
+	releaseOrder, err := filelock.AcquireWebLock(w.orderLock, true)
+	if err != nil {
+		return errors.Wrap(err, "acquire order lock")
+	}
+	defer releaseOrder()
+
+	seq, err := w.nextSequenceLocked()
 	if err != nil {
 		return errors.Wrap(err, "allocate WAL sequence")
 	}
-
 	entry := &WALEntry{
 		Sequence:  seq,
 		Timestamp: time.Now().UnixNano(),
@@ -88,72 +93,27 @@ func (w *Writer) Append(ctx context.Context, adds, removes []*RefEdge) error {
 	}
 
 	filename := formatFilename(seq)
-	f, release, err := filelock.AcquireFile(w.dir, filename, w.lockPrefix, true)
-	if err != nil {
-		return errors.Wrap(err, "acquire WAL file")
-	}
-	defer release()
-
-	if err := f.Truncate(0); err != nil {
-		return errors.Wrap(err, "truncate WAL file")
-	}
-	if _, err := f.WriteAt(data, 0); err != nil {
+	if err := filelock.WriteFile(w.dir, filename, w.lockPrefix, data); err != nil {
 		return errors.Wrap(err, "write WAL file")
 	}
-	return f.Flush()
+	return nil
 }
 
-// allocSequence acquires the ordering lock, reads the current counter,
-// increments it, persists, and returns the new value. The ordering lock
-// provides mutual exclusion so the counter file needs no per-file lock.
-func (w *Writer) allocSequence() (uint64, error) {
-	release, err := filelock.AcquireWebLock(w.orderLock, true)
+// nextSequenceLocked derives the next sequence from existing WAL filenames.
+// The caller must hold orderLock until the corresponding WAL file is written.
+func (w *Writer) nextSequenceLocked() (uint64, error) {
+	names, err := opfs.ListDirectory(w.dir)
 	if err != nil {
-		return 0, errors.Wrap(err, "acquire order lock")
+		return 0, errors.Wrap(err, "list WAL directory")
 	}
-	defer release()
-
-	if !opfs.SyncAvailable() {
-		var seq uint64
-		data, err := opfs.ReadFile(w.dir, seqCounterFile)
-		if err != nil && !opfs.IsNotFound(err) {
-			return 0, errors.Wrap(err, "read counter")
-		}
-		if len(data) != 0 {
-			seq, _ = strconv.ParseUint(string(data), 10, 64)
-		}
-		seq++
-		data = []byte(strconv.FormatUint(seq, 10))
-		if err := opfs.WriteFile(w.dir, seqCounterFile, data); err != nil {
-			return 0, errors.Wrap(err, "write counter")
-		}
-		return seq, nil
-	}
-
-	// Open counter file once for both read and write.
-	f, err := opfs.CreateSyncFile(w.dir, seqCounterFile)
-	if err != nil {
-		return 0, errors.Wrap(err, "open counter file")
-	}
-	defer f.Close()
-
 	var seq uint64
-	if size := f.Size(); size > 0 {
-		buf := make([]byte, size)
-		n, err := f.ReadAt(buf, 0)
-		if err == nil {
-			seq, _ = strconv.ParseUint(string(buf[:n]), 10, 64)
+	for _, name := range names {
+		n, ok := parseFilenameSequence(name)
+		if ok && n > seq {
+			seq = n
 		}
 	}
-
-	seq++
-	data := []byte(strconv.FormatUint(seq, 10))
-	f.Truncate(0)
-	if _, err := f.WriteAt(data, 0); err != nil {
-		return 0, errors.Wrap(err, "write counter")
-	}
-	f.Flush()
-	return seq, nil
+	return seq + 1, nil
 }
 
 // formatFilename produces a WAL filename: <zero-padded seq>-<ulid>.wal
@@ -169,4 +129,12 @@ func formatFilename(seq uint64) string {
 	buf = append(buf, ulid.NewULID()...)
 	buf = append(buf, walExtension...)
 	return string(buf)
+}
+
+func parseFilenameSequence(name string) (uint64, bool) {
+	if !strings.HasSuffix(name, walExtension) || len(name) <= seqDigits || name[seqDigits] != '-' {
+		return 0, false
+	}
+	seq, err := strconv.ParseUint(name[:seqDigits], 10, 64)
+	return seq, err == nil
 }

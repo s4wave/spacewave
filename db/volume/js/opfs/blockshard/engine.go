@@ -367,35 +367,7 @@ func (e *Engine) refreshShardManifest(shardIdx int) (*Manifest, error) {
 
 	shard := e.shards[shardIdx]
 	current := shard.Manifest()
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/read-generation")
-	genData := readFileBytesContext(taskCtx, shard.dir, manifestGen)
-	subtask.End()
-	if gen, ok := decodeManifestGeneration(genData); ok {
-		if gen <= current.Generation {
-			return current, nil
-		}
-
-		slot := manifestSlotA
-		if gen%2 == 0 {
-			slot = manifestSlotB
-		}
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/read-target-slot")
-		slotData := readFileBytesContext(taskCtx, shard.dir, slot)
-		subtask.End()
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/decode-target-slot")
-		m, err := DecodeManifest(slotData)
-		subtask.End()
-		if err == nil && m != nil && m.Generation == gen {
-			_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/update-cache")
-			shard.mu.Lock()
-			shard.setManifestLocked(m)
-			shard.mu.Unlock()
-			subtask.End()
-			return m.Clone(), nil
-		}
-	}
-
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/read-slot-a")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/read-slot-a")
 	a := readFileBytesContext(taskCtx, shard.dir, manifestSlotA)
 	subtask.End()
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/read-slot-b")
@@ -406,6 +378,9 @@ func (e *Engine) refreshShardManifest(shardIdx int) (*Manifest, error) {
 	subtask.End()
 	if m == nil {
 		return nil, nil
+	}
+	if m.Generation <= current.Generation {
+		return current, nil
 	}
 	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/update-cache")
 	shard.mu.Lock()

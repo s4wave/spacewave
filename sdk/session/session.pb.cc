@@ -1875,7 +1875,10 @@ inline constexpr CreateSpaceResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         shared_object_ref_{nullptr},
-        shared_object_meta_{nullptr} {}
+        shared_object_meta_{nullptr},
+        mounted_shared_object_{nullptr},
+        shared_object_body_resource_id_{0u},
+        space_world_resource_id_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR CreateSpaceResponse::CreateSpaceResponse(::_pbi::ConstantInitialized)
@@ -2075,11 +2078,17 @@ const ::uint32_t
         2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::CreateSpaceResponse, _impl_._has_bits_),
-        5, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::session::CreateSpaceResponse, _impl_.shared_object_ref_),
         PROTOBUF_FIELD_OFFSET(::s4wave::session::CreateSpaceResponse, _impl_.shared_object_meta_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::CreateSpaceResponse, _impl_.mounted_shared_object_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::CreateSpaceResponse, _impl_.shared_object_body_resource_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::CreateSpaceResponse, _impl_.space_world_resource_id_),
         0,
         1,
+        2,
+        3,
+        4,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::DeleteSpaceRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -2529,78 +2538,78 @@ static const ::_pbi::MigrationSchema
         {24, sizeof(::s4wave::session::WatchResourcesListResponse)},
         {29, sizeof(::s4wave::session::CreateSpaceRequest)},
         {38, sizeof(::s4wave::session::CreateSpaceResponse)},
-        {45, sizeof(::s4wave::session::DeleteSpaceRequest)},
-        {50, sizeof(::s4wave::session::DeleteSpaceResponse)},
-        {51, sizeof(::s4wave::session::RenameSpaceRequest)},
-        {58, sizeof(::s4wave::session::RenameSpaceResponse)},
-        {59, sizeof(::s4wave::session::MountSharedObjectRequest)},
-        {64, sizeof(::s4wave::session::MountSharedObjectResponse)},
-        {79, sizeof(::s4wave::session::WatchSharedObjectHealthRequest)},
-        {84, sizeof(::s4wave::session::WatchSharedObjectHealthResponse)},
-        {89, sizeof(::s4wave::session::WatchSyncStatusRequest)},
-        {90, sizeof(::s4wave::session::WatchSyncStatusResponse)},
-        {201, sizeof(::s4wave::session::WatchLockStateRequest)},
-        {202, sizeof(::s4wave::session::WatchLockStateResponse)},
-        {209, sizeof(::s4wave::session::SetLockModeRequest)},
-        {216, sizeof(::s4wave::session::SetLockModeResponse)},
-        {217, sizeof(::s4wave::session::UnlockSessionRequest)},
-        {222, sizeof(::s4wave::session::UnlockSessionResponse)},
-        {223, sizeof(::s4wave::session::LockSessionRequest)},
-        {224, sizeof(::s4wave::session::LockSessionResponse)},
-        {225, sizeof(::s4wave::session::GeneratePairingCodeRequest)},
-        {226, sizeof(::s4wave::session::GeneratePairingCodeResponse)},
-        {231, sizeof(::s4wave::session::CompletePairingRequest)},
-        {236, sizeof(::s4wave::session::CompletePairingResponse)},
-        {241, sizeof(::s4wave::session::GetSASEmojiRequest)},
-        {246, sizeof(::s4wave::session::GetSASEmojiResponse)},
-        {251, sizeof(::s4wave::session::ConfirmSASMatchRequest)},
-        {256, sizeof(::s4wave::session::ConfirmSASMatchResponse)},
-        {257, sizeof(::s4wave::session::ConfirmPairingRequest)},
-        {264, sizeof(::s4wave::session::ConfirmPairingResponse)},
-        {265, sizeof(::s4wave::session::DeleteAccountRequest)},
-        {270, sizeof(::s4wave::session::DeleteAccountResponse)},
-        {271, sizeof(::s4wave::session::AccessSessionStateAtomRequest)},
-        {276, sizeof(::s4wave::session::AccessSessionStateAtomResponse)},
-        {281, sizeof(::s4wave::session::WatchSessionStateAtomsRequest)},
-        {282, sizeof(::s4wave::session::WatchSessionStateAtomsResponse)},
-        {289, sizeof(::s4wave::session::ExportBackupKeyRequest)},
-        {294, sizeof(::s4wave::session::ExportBackupKeyResponse)},
-        {301, sizeof(::s4wave::session::GetTransferInventoryRequest)},
-        {306, sizeof(::s4wave::session::GetTransferInventoryResponse)},
-        {311, sizeof(::s4wave::session::StartTransferRequest)},
-        {322, sizeof(::s4wave::session::StartTransferResponse)},
-        {323, sizeof(::s4wave::session::WatchTransferProgressRequest)},
-        {324, sizeof(::s4wave::session::WatchTransferProgressResponse)},
-        {329, sizeof(::s4wave::session::CancelTransferRequest)},
-        {330, sizeof(::s4wave::session::CancelTransferResponse)},
-        {331, sizeof(::s4wave::session::WatchPairedDevicesRequest)},
-        {332, sizeof(::s4wave::session::WatchPairedDevicesResponse)},
-        {339, sizeof(::s4wave::session::UnlinkDeviceRequest)},
-        {344, sizeof(::s4wave::session::UnlinkDeviceResponse)},
-        {345, sizeof(::s4wave::session::WatchPairingStatusRequest)},
-        {346, sizeof(::s4wave::session::WatchPairingStatusResponse)},
-        {359, sizeof(::s4wave::session::CreateSpaceInviteRequest)},
-        {372, sizeof(::s4wave::session::CreateSpaceInviteResponse)},
-        {379, sizeof(::s4wave::session::ListSpaceInvitesRequest)},
-        {384, sizeof(::s4wave::session::ListSpaceInvitesResponse)},
-        {389, sizeof(::s4wave::session::ListSpaceParticipantsRequest)},
-        {394, sizeof(::s4wave::session::ListSpaceParticipantsResponse)},
-        {399, sizeof(::s4wave::session::RemoveSpaceParticipantRequest)},
-        {406, sizeof(::s4wave::session::RemoveSpaceParticipantResponse)},
-        {411, sizeof(::s4wave::session::RevokeSpaceInviteRequest)},
-        {418, sizeof(::s4wave::session::RevokeSpaceInviteResponse)},
-        {419, sizeof(::s4wave::session::JoinSpaceViaInviteRequest)},
-        {426, sizeof(::s4wave::session::JoinSpaceViaInviteResponse)},
-        {433, sizeof(::s4wave::session::GetTransferStatusRequest)},
-        {434, sizeof(::s4wave::session::GetTransferStatusResponse)},
-        {443, sizeof(::s4wave::session::LocalPairingOffer)},
-        {450, sizeof(::s4wave::session::LocalPairingAnswer)},
-        {457, sizeof(::s4wave::session::CreateLocalPairingOfferRequest)},
-        {458, sizeof(::s4wave::session::CreateLocalPairingOfferResponse)},
-        {463, sizeof(::s4wave::session::AcceptLocalPairingOfferRequest)},
-        {468, sizeof(::s4wave::session::AcceptLocalPairingOfferResponse)},
-        {473, sizeof(::s4wave::session::AcceptLocalPairingAnswerRequest)},
-        {478, sizeof(::s4wave::session::AcceptLocalPairingAnswerResponse)},
+        {51, sizeof(::s4wave::session::DeleteSpaceRequest)},
+        {56, sizeof(::s4wave::session::DeleteSpaceResponse)},
+        {57, sizeof(::s4wave::session::RenameSpaceRequest)},
+        {64, sizeof(::s4wave::session::RenameSpaceResponse)},
+        {65, sizeof(::s4wave::session::MountSharedObjectRequest)},
+        {70, sizeof(::s4wave::session::MountSharedObjectResponse)},
+        {85, sizeof(::s4wave::session::WatchSharedObjectHealthRequest)},
+        {90, sizeof(::s4wave::session::WatchSharedObjectHealthResponse)},
+        {95, sizeof(::s4wave::session::WatchSyncStatusRequest)},
+        {96, sizeof(::s4wave::session::WatchSyncStatusResponse)},
+        {207, sizeof(::s4wave::session::WatchLockStateRequest)},
+        {208, sizeof(::s4wave::session::WatchLockStateResponse)},
+        {215, sizeof(::s4wave::session::SetLockModeRequest)},
+        {222, sizeof(::s4wave::session::SetLockModeResponse)},
+        {223, sizeof(::s4wave::session::UnlockSessionRequest)},
+        {228, sizeof(::s4wave::session::UnlockSessionResponse)},
+        {229, sizeof(::s4wave::session::LockSessionRequest)},
+        {230, sizeof(::s4wave::session::LockSessionResponse)},
+        {231, sizeof(::s4wave::session::GeneratePairingCodeRequest)},
+        {232, sizeof(::s4wave::session::GeneratePairingCodeResponse)},
+        {237, sizeof(::s4wave::session::CompletePairingRequest)},
+        {242, sizeof(::s4wave::session::CompletePairingResponse)},
+        {247, sizeof(::s4wave::session::GetSASEmojiRequest)},
+        {252, sizeof(::s4wave::session::GetSASEmojiResponse)},
+        {257, sizeof(::s4wave::session::ConfirmSASMatchRequest)},
+        {262, sizeof(::s4wave::session::ConfirmSASMatchResponse)},
+        {263, sizeof(::s4wave::session::ConfirmPairingRequest)},
+        {270, sizeof(::s4wave::session::ConfirmPairingResponse)},
+        {271, sizeof(::s4wave::session::DeleteAccountRequest)},
+        {276, sizeof(::s4wave::session::DeleteAccountResponse)},
+        {277, sizeof(::s4wave::session::AccessSessionStateAtomRequest)},
+        {282, sizeof(::s4wave::session::AccessSessionStateAtomResponse)},
+        {287, sizeof(::s4wave::session::WatchSessionStateAtomsRequest)},
+        {288, sizeof(::s4wave::session::WatchSessionStateAtomsResponse)},
+        {295, sizeof(::s4wave::session::ExportBackupKeyRequest)},
+        {300, sizeof(::s4wave::session::ExportBackupKeyResponse)},
+        {307, sizeof(::s4wave::session::GetTransferInventoryRequest)},
+        {312, sizeof(::s4wave::session::GetTransferInventoryResponse)},
+        {317, sizeof(::s4wave::session::StartTransferRequest)},
+        {328, sizeof(::s4wave::session::StartTransferResponse)},
+        {329, sizeof(::s4wave::session::WatchTransferProgressRequest)},
+        {330, sizeof(::s4wave::session::WatchTransferProgressResponse)},
+        {335, sizeof(::s4wave::session::CancelTransferRequest)},
+        {336, sizeof(::s4wave::session::CancelTransferResponse)},
+        {337, sizeof(::s4wave::session::WatchPairedDevicesRequest)},
+        {338, sizeof(::s4wave::session::WatchPairedDevicesResponse)},
+        {345, sizeof(::s4wave::session::UnlinkDeviceRequest)},
+        {350, sizeof(::s4wave::session::UnlinkDeviceResponse)},
+        {351, sizeof(::s4wave::session::WatchPairingStatusRequest)},
+        {352, sizeof(::s4wave::session::WatchPairingStatusResponse)},
+        {365, sizeof(::s4wave::session::CreateSpaceInviteRequest)},
+        {378, sizeof(::s4wave::session::CreateSpaceInviteResponse)},
+        {385, sizeof(::s4wave::session::ListSpaceInvitesRequest)},
+        {390, sizeof(::s4wave::session::ListSpaceInvitesResponse)},
+        {395, sizeof(::s4wave::session::ListSpaceParticipantsRequest)},
+        {400, sizeof(::s4wave::session::ListSpaceParticipantsResponse)},
+        {405, sizeof(::s4wave::session::RemoveSpaceParticipantRequest)},
+        {412, sizeof(::s4wave::session::RemoveSpaceParticipantResponse)},
+        {417, sizeof(::s4wave::session::RevokeSpaceInviteRequest)},
+        {424, sizeof(::s4wave::session::RevokeSpaceInviteResponse)},
+        {425, sizeof(::s4wave::session::JoinSpaceViaInviteRequest)},
+        {432, sizeof(::s4wave::session::JoinSpaceViaInviteResponse)},
+        {439, sizeof(::s4wave::session::GetTransferStatusRequest)},
+        {440, sizeof(::s4wave::session::GetTransferStatusResponse)},
+        {449, sizeof(::s4wave::session::LocalPairingOffer)},
+        {456, sizeof(::s4wave::session::LocalPairingAnswer)},
+        {463, sizeof(::s4wave::session::CreateLocalPairingOfferRequest)},
+        {464, sizeof(::s4wave::session::CreateLocalPairingOfferResponse)},
+        {469, sizeof(::s4wave::session::AcceptLocalPairingOfferRequest)},
+        {474, sizeof(::s4wave::session::AcceptLocalPairingOfferResponse)},
+        {479, sizeof(::s4wave::session::AcceptLocalPairingAnswerRequest)},
+        {484, sizeof(::s4wave::session::AcceptLocalPairingAnswerResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::session::_GetSessionInfoRequest_default_instance_._instance,
@@ -2708,292 +2717,296 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "urcesListResponse\022,\n\013spaces_list\030\001 \003(\0132\027"
     ".space.SpaceSoListEntry\"N\n\022CreateSpaceRe"
     "quest\022\022\n\nspace_name\030\001 \001(\t\022\022\n\nowner_type\030"
-    "\002 \001(\t\022\020\n\010owner_id\030\003 \001(\t\"\201\001\n\023CreateSpaceR"
+    "\002 \001(\t\022\020\n\010owner_id\030\003 \001(\t\"\224\002\n\023CreateSpaceR"
     "esponse\0223\n\021shared_object_ref\030\001 \001(\0132\030.sob"
     "ject.SharedObjectRef\0225\n\022shared_object_me"
-    "ta\030\002 \001(\0132\031.sobject.SharedObjectMeta\".\n\022D"
-    "eleteSpaceRequest\022\030\n\020shared_object_id\030\001 "
-    "\001(\t\"\025\n\023DeleteSpaceResponse\"D\n\022RenameSpac"
-    "eRequest\022\030\n\020shared_object_id\030\001 \001(\t\022\024\n\014di"
-    "splay_name\030\002 \001(\t\"\025\n\023RenameSpaceResponse\""
-    "4\n\030MountSharedObjectRequest\022\030\n\020shared_ob"
-    "ject_id\030\001 \001(\t\"\315\001\n\031MountSharedObjectRespo"
-    "nse\022\023\n\013resource_id\030\001 \001(\r\0225\n\022shared_objec"
-    "t_meta\030\002 \001(\0132\031.sobject.SharedObjectMeta\022"
-    "\017\n\007peer_id\030\003 \001(\t\022\030\n\020shared_object_id\030\004 \001"
-    "(\t\022\026\n\016block_store_id\030\005 \001(\t\022!\n\thash_type\030"
-    "\006 \001(\0162\016.hash.HashType\":\n\036WatchSharedObje"
-    "ctHealthRequest\022\030\n\020shared_object_id\030\001 \001("
-    "\t\"N\n\037WatchSharedObjectHealthResponse\022+\n\006"
-    "health\030\001 \001(\0132\033.sobject.SharedObjectHealt"
-    "h\"\030\n\026WatchSyncStatusRequest\"\213\017\n\027WatchSyn"
-    "cStatusResponse\022.\n\005state\030\001 \001(\0162\037.s4wave."
-    "session.SyncStatusState\0228\n\tdirection\030\002 \001"
-    "(\0162%.s4wave.session.SyncActivityDirectio"
-    "n\022;\n\017transport_state\030\003 \001(\0162\".s4wave.sess"
-    "ion.SyncTransportState\022/\n\tp2p_state\030\004 \001("
-    "\0162\034.s4wave.session.SyncP2PState\022\034\n\024pendi"
-    "ng_upload_bytes\030\005 \001(\004\022\036\n\026pending_downloa"
-    "d_bytes\030\006 \001(\004\022\034\n\024pending_upload_count\030\007 "
-    "\001(\r\022\036\n\026pending_download_count\030\010 \001(\r\022\037\n\027u"
-    "pload_bytes_per_second\030\t \001(\004\022!\n\031download"
-    "_bytes_per_second\030\n \001(\004\022\033\n\023active_upload"
-    "_bytes\0304 \001(\004\022\'\n\037active_upload_transferre"
-    "d_bytes\0305 \001(\004\022\036\n\026in_flight_upload_count\030"
-    "6 \001(\r\022\032\n\022active_store_count\030\013 \001(\r\022\031\n\021act"
-    "ive_peer_count\030\014 \001(\r\022\022\n\nlast_error\030\r \001(\t"
-    "\0224\n\020last_activity_at\030\016 \001(\0132\032.google.prot"
-    "obuf.Timestamp\022 \n\030pack_range_request_cou"
-    "nt\030\017 \001(\004\022!\n\031pack_range_response_bytes\030\020 "
-    "\001(\004\022)\n!pack_full_response_fallback_count"
-    "\030\021 \001(\004\022)\n!pack_full_response_fallback_by"
-    "tes\030\022 \001(\004\022.\n&pack_last_full_response_fal"
-    "lback_bytes\030\023 \001(\004\022\035\n\025pack_manifest_entri"
-    "es\030\024 \001(\r\022\036\n\026pack_block_count_total\030\025 \001(\004"
-    "\022\034\n\024pack_block_count_min\030\026 \001(\004\022\034\n\024pack_b"
-    "lock_count_max\030\027 \001(\004\022\035\n\025pack_size_bytes_"
-    "total\030\030 \001(\004\022\033\n\023pack_size_bytes_min\030\031 \001(\004"
-    "\022\033\n\023pack_size_bytes_max\030\032 \001(\004\022\037\n\027pack_bl"
-    "oom_filter_count\030\033 \001(\r\022 \n\030pack_bloom_mis"
-    "sing_count\030\034 \001(\r\022 \n\030pack_bloom_invalid_c"
-    "ount\030\035 \001(\r\022(\n pack_bloom_parameter_shape"
-    "_count\030\036 \001(\r\022*\n\"pack_bloom_max_false_pos"
-    "itive_rate\030\037 \001(\001\022\"\n\032pack_bloom_risk_pack"
-    "_count\030  \001(\r\022\031\n\021pack_lookup_count\030! \001(\004\022"
-    "\034\n\024pack_candidate_packs\030\" \001(\004\022\031\n\021pack_op"
-    "ened_packs\030# \001(\004\022\033\n\023pack_negative_packs\030"
-    "$ \001(\004\022\030\n\020pack_target_hits\030% \001(\004\022!\n\031pack_"
-    "last_candidate_packs\030& \001(\r\022\036\n\026pack_last_"
-    "opened_packs\030\' \001(\r\022 \n\030pack_last_negative"
-    "_packs\030( \001(\r\022\034\n\024pack_last_target_hit\030) \001"
-    "(\010\022\035\n\025pack_index_cache_hits\030* \001(\004\022\037\n\027pac"
-    "k_index_cache_misses\030+ \001(\004\022$\n\034pack_index"
-    "_cache_read_errors\030, \001(\004\022%\n\035pack_index_c"
-    "ache_write_errors\030- \001(\004\022\037\n\027pack_remote_i"
-    "ndex_loads\030. \001(\004\022\037\n\027pack_remote_index_by"
-    "tes\030/ \001(\004\022$\n\034pack_last_remote_index_byte"
-    "s\0300 \001(\004\022#\n\033pack_index_tail_fetch_count\0301"
-    " \001(\004\022#\n\033pack_index_tail_fetch_bytes\0302 \001("
-    "\004\022&\n\036pack_index_tail_response_bytes\0303 \001("
-    "\004\"\027\n\025WatchLockStateRequest\"P\n\026WatchLockS"
-    "tateResponse\022&\n\004mode\030\001 \001(\0162\030.session.Ses"
-    "sionLockMode\022\016\n\006locked\030\002 \001(\010\"I\n\022SetLockM"
-    "odeRequest\022&\n\004mode\030\001 \001(\0162\030.session.Sessi"
-    "onLockMode\022\013\n\003pin\030\002 \001(\014\"\025\n\023SetLockModeRe"
-    "sponse\"#\n\024UnlockSessionRequest\022\013\n\003pin\030\001 "
-    "\001(\014\"\027\n\025UnlockSessionResponse\"\024\n\022LockSess"
-    "ionRequest\"\025\n\023LockSessionResponse\"\034\n\032Gen"
-    "eratePairingCodeRequest\"+\n\033GeneratePairi"
-    "ngCodeResponse\022\014\n\004code\030\001 \001(\t\"&\n\026Complete"
-    "PairingRequest\022\014\n\004code\030\001 \001(\t\"1\n\027Complete"
-    "PairingResponse\022\026\n\016remote_peer_id\030\001 \001(\t\""
-    ",\n\022GetSASEmojiRequest\022\026\n\016remote_peer_id\030"
-    "\001 \001(\t\"$\n\023GetSASEmojiResponse\022\r\n\005emoji\030\001 "
-    "\003(\t\"+\n\026ConfirmSASMatchRequest\022\021\n\tconfirm"
-    "ed\030\001 \001(\010\"\031\n\027ConfirmSASMatchResponse\"E\n\025C"
-    "onfirmPairingRequest\022\026\n\016remote_peer_id\030\001"
-    " \001(\t\022\024\n\014display_name\030\002 \001(\t\"\030\n\026ConfirmPai"
-    "ringResponse\"+\n\024DeleteAccountRequest\022\023\n\013"
-    "session_idx\030\001 \001(\r\"\027\n\025DeleteAccountRespon"
-    "se\"1\n\035AccessSessionStateAtomRequest\022\020\n\010s"
-    "tore_id\030\001 \001(\t\"5\n\036AccessSessionStateAtomR"
-    "esponse\022\023\n\013resource_id\030\001 \001(\r\"\037\n\035WatchSes"
-    "sionStateAtomsRequest\"H\n\036WatchSessionSta"
-    "teAtomsResponse\022\021\n\tstore_ids\030\001 \003(\t\022\023\n\013st"
-    "ore_count\030\002 \001(\r\"*\n\026ExportBackupKeyReques"
-    "t\022\020\n\010password\030\001 \001(\t\"<\n\027ExportBackupKeyRe"
-    "sponse\022\020\n\010pem_data\030\001 \001(\014\022\017\n\007peer_id\030\002 \001("
-    "\t\"4\n\033GetTransferInventoryRequest\022\025\n\rsess"
-    "ion_index\030\001 \001(\r\"G\n\034GetTransferInventoryR"
-    "esponse\022\'\n\006spaces\030\001 \003(\0132\027.space.SpaceSoL"
-    "istEntry\"\224\001\n\024StartTransferRequest\022\034\n\024sou"
-    "rce_session_index\030\001 \001(\r\022\034\n\024target_sessio"
-    "n_index\030\002 \001(\r\022-\n\004mode\030\003 \001(\0162\037.provider.t"
-    "ransfer.TransferMode\022\021\n\tspace_ids\030\004 \003(\t\""
-    "\027\n\025StartTransferResponse\"\036\n\034WatchTransfe"
-    "rProgressRequest\"P\n\035WatchTransferProgres"
-    "sResponse\022/\n\005state\030\001 \001(\0132 .provider.tran"
-    "sfer.TransferState\"\027\n\025CancelTransferRequ"
-    "est\"\030\n\026CancelTransferResponse\"\033\n\031WatchPa"
-    "iredDevicesRequest\"m\n\032WatchPairedDevices"
-    "Response\0226\n\016paired_devices\030\001 \003(\0132\036.accou"
-    "nt.settings.PairedDevice\022\027\n\017online_peer_"
-    "ids\030\002 \003(\t\"&\n\023UnlinkDeviceRequest\022\017\n\007peer"
-    "_id\030\001 \001(\t\"\026\n\024UnlinkDeviceResponse\"\033\n\031Wat"
-    "chPairingStatusRequest\"\227\001\n\032WatchPairingS"
-    "tatusResponse\022-\n\006status\030\001 \001(\0162\035.s4wave.s"
-    "ession.PairingStatus\022\026\n\016remote_peer_id\030\002"
-    " \001(\t\022\014\n\004code\030\003 \001(\t\022\r\n\005emoji\030\004 \003(\t\022\025\n\rerr"
-    "or_message\030\005 \001(\t\"\260\001\n\030CreateSpaceInviteRe"
-    "quest\022\020\n\010space_id\030\001 \001(\t\022(\n\004role\030\002 \001(\0162\032."
-    "sobject.SOParticipantRole\022\026\n\016target_peer"
-    "_id\030\003 \001(\t\022\020\n\010max_uses\030\004 \001(\r\022.\n\nexpires_a"
-    "t\030\005 \001(\0132\032.google.protobuf.Timestamp\"a\n\031C"
-    "reateSpaceInviteResponse\0220\n\016invite_messa"
-    "ge\030\001 \001(\0132\030.sobject.SOInviteMessage\022\022\n\nsh"
-    "ort_code\030\002 \001(\t\"+\n\027ListSpaceInvitesReques"
-    "t\022\020\n\010space_id\030\001 \001(\t\">\n\030ListSpaceInvitesR"
-    "esponse\022\"\n\007invites\030\001 \003(\0132\021.sobject.SOInv"
-    "ite\"0\n\034ListSpaceParticipantsRequest\022\020\n\010s"
-    "pace_id\030\001 \001(\t\"S\n\035ListSpaceParticipantsRe"
-    "sponse\0222\n\014participants\030\001 \003(\0132\034.sobject.S"
-    "OParticipantConfig\"B\n\035RemoveSpacePartici"
-    "pantRequest\022\020\n\010space_id\030\001 \001(\t\022\017\n\007peer_id"
-    "\030\002 \001(\t\"1\n\036RemoveSpaceParticipantResponse"
-    "\022\017\n\007removed\030\001 \001(\010\"\?\n\030RevokeSpaceInviteRe"
-    "quest\022\020\n\010space_id\030\001 \001(\t\022\021\n\tinvite_id\030\002 \001"
-    "(\t\"\033\n\031RevokeSpaceInviteResponse\"s\n\031JoinS"
-    "paceViaInviteRequest\0220\n\016invite_message\030\001"
-    " \001(\0132\030.sobject.SOInviteMessage\022$\n\034target"
-    "ed_invitation_envelope\030\002 \001(\014\"p\n\032JoinSpac"
-    "eViaInviteResponse\022\030\n\020shared_object_id\030\001"
-    " \001(\t\0228\n\006result\030\002 \001(\0162(.s4wave.session.Jo"
-    "inSpaceViaInviteResult\"\032\n\030GetTransferSta"
-    "tusRequest\"t\n\031GetTransferStatusResponse\022"
-    "\016\n\006active\030\001 \001(\010\022\026\n\016has_checkpoint\030\002 \001(\010\022"
-    "/\n\005state\030\003 \001(\0132 .provider.transfer.Trans"
-    "ferState\"1\n\021LocalPairingOffer\022\013\n\003sdp\030\001 \001"
-    "(\t\022\017\n\007peer_id\030\002 \001(\t\"2\n\022LocalPairingAnswe"
-    "r\022\013\n\003sdp\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\" \n\036Creat"
-    "eLocalPairingOfferRequest\"8\n\037CreateLocal"
-    "PairingOfferResponse\022\025\n\roffer_payload\030\001 "
-    "\001(\t\"7\n\036AcceptLocalPairingOfferRequest\022\025\n"
-    "\roffer_payload\030\001 \001(\t\"9\n\037AcceptLocalPairi"
-    "ngOfferResponse\022\026\n\016answer_payload\030\001 \001(\t\""
-    "9\n\037AcceptLocalPairingAnswerRequest\022\026\n\016an"
-    "swer_payload\030\001 \001(\t\":\n AcceptLocalPairing"
-    "AnswerResponse\022\026\n\016remote_peer_id\030\001 \001(\t*d"
-    "\n\017SyncStatusState\022\032\n\026SyncStatusState_SYN"
-    "CED\020\000\022\032\n\026SyncStatusState_ACTIVE\020\001\022\031\n\025Syn"
-    "cStatusState_ERROR\020\002*\250\001\n\025SyncActivityDir"
-    "ection\022\036\n\032SyncActivityDirection_NONE\020\000\022 "
-    "\n\034SyncActivityDirection_UPLOAD\020\001\022\"\n\036Sync"
-    "ActivityDirection_DOWNLOAD\020\002\022)\n%SyncActi"
-    "vityDirection_UPLOAD_DOWNLOAD\020\003*\270\001\n\022Sync"
-    "TransportState\022\036\n\032SyncTransportState_UNK"
-    "NOWN\020\000\022\"\n\036SyncTransportState_UNAVAILABLE"
-    "\020\001\022!\n\035SyncTransportState_CONNECTING\020\002\022\035\n"
-    "\031SyncTransportState_ONLINE\020\003\022\034\n\030SyncTran"
-    "sportState_ERROR\020\004*\213\001\n\014SyncP2PState\022\030\n\024S"
-    "yncP2PState_UNKNOWN\020\000\022\031\n\025SyncP2PState_NO"
-    "_PEERS\020\001\022\025\n\021SyncP2PState_IDLE\020\002\022\027\n\023SyncP"
-    "2PState_ACTIVE\020\003\022\026\n\022SyncP2PState_ERROR\020\004"
-    "*\316\003\n\rPairingStatus\022\026\n\022PairingStatus_IDLE"
-    "\020\000\022 \n\034PairingStatus_CODE_GENERATED\020\001\022\"\n\036"
-    "PairingStatus_WAITING_FOR_PEER\020\002\022 \n\034Pair"
-    "ingStatus_PEER_CONNECTED\020\003\022!\n\035PairingSta"
-    "tus_VERIFYING_EMOJI\020\004\022\032\n\026PairingStatus_V"
-    "ERIFIED\020\005\022\030\n\024PairingStatus_FAILED\020\006\022\"\n\036P"
-    "airingStatus_SIGNALING_FAILED\020\007\022$\n Pairi"
-    "ngStatus_CONNECTION_TIMEOUT\020\010\022,\n(Pairing"
-    "Status_WAITING_FOR_REMOTE_CONFIRM\020\t\022 \n\034P"
-    "airingStatus_BOTH_CONFIRMED\020\n\022\"\n\036Pairing"
-    "Status_PAIRING_REJECTED\020\013\022&\n\"PairingStat"
-    "us_CONFIRMATION_TIMEOUT\020\014*\372\001\n\030JoinSpaceV"
-    "iaInviteResult\022(\n$JoinSpaceViaInviteResu"
-    "lt_UNSPECIFIED\020\000\022%\n!JoinSpaceViaInviteRe"
-    "sult_ACCEPTED\020\001\0223\n/JoinSpaceViaInviteRes"
-    "ult_PENDING_OWNER_APPROVAL\020\002\022%\n!JoinSpac"
-    "eViaInviteResult_REJECTED\020\003\0221\n-JoinSpace"
-    "ViaInviteResult_OWNER_MUST_BE_ONLINE\020\0042\301"
-    "\036\n\026SessionResourceService\022_\n\016GetSessionI"
-    "nfo\022%.s4wave.session.GetSessionInfoReque"
-    "st\032&.s4wave.session.GetSessionInfoRespon"
-    "se\022m\n\022WatchResourcesList\022).s4wave.sessio"
-    "n.WatchResourcesListRequest\032*.s4wave.ses"
-    "sion.WatchResourcesListResponse0\001\022V\n\013Cre"
-    "ateSpace\022\".s4wave.session.CreateSpaceReq"
-    "uest\032#.s4wave.session.CreateSpaceRespons"
-    "e\022j\n\021MountSharedObject\022(.s4wave.session."
-    "MountSharedObjectRequest\032).s4wave.sessio"
-    "n.MountSharedObjectResponse\"\000\022|\n\027WatchSh"
-    "aredObjectHealth\022..s4wave.session.WatchS"
-    "haredObjectHealthRequest\032/.s4wave.sessio"
-    "n.WatchSharedObjectHealthResponse0\001\022d\n\017W"
-    "atchSyncStatus\022&.s4wave.session.WatchSyn"
-    "cStatusRequest\032\'.s4wave.session.WatchSyn"
-    "cStatusResponse0\001\022V\n\013DeleteSpace\022\".s4wav"
-    "e.session.DeleteSpaceRequest\032#.s4wave.se"
-    "ssion.DeleteSpaceResponse\022V\n\013RenameSpace"
-    "\022\".s4wave.session.RenameSpaceRequest\032#.s"
-    "4wave.session.RenameSpaceResponse\022a\n\016Wat"
-    "chLockState\022%.s4wave.session.WatchLockSt"
-    "ateRequest\032&.s4wave.session.WatchLockSta"
-    "teResponse0\001\022V\n\013SetLockMode\022\".s4wave.ses"
-    "sion.SetLockModeRequest\032#.s4wave.session"
-    ".SetLockModeResponse\022\\\n\rUnlockSession\022$."
-    "s4wave.session.UnlockSessionRequest\032%.s4"
-    "wave.session.UnlockSessionResponse\022V\n\013Lo"
-    "ckSession\022\".s4wave.session.LockSessionRe"
-    "quest\032#.s4wave.session.LockSessionRespon"
-    "se\022n\n\023GeneratePairingCode\022*.s4wave.sessi"
-    "on.GeneratePairingCodeRequest\032+.s4wave.s"
-    "ession.GeneratePairingCodeResponse\022b\n\017Co"
-    "mpletePairing\022&.s4wave.session.CompleteP"
-    "airingRequest\032\'.s4wave.session.CompleteP"
-    "airingResponse\022V\n\013GetSASEmoji\022\".s4wave.s"
-    "ession.GetSASEmojiRequest\032#.s4wave.sessi"
-    "on.GetSASEmojiResponse\022b\n\017ConfirmSASMatc"
-    "h\022&.s4wave.session.ConfirmSASMatchReques"
-    "t\032\'.s4wave.session.ConfirmSASMatchRespon"
-    "se\022_\n\016ConfirmPairing\022%.s4wave.session.Co"
-    "nfirmPairingRequest\032&.s4wave.session.Con"
-    "firmPairingResponse\022\\\n\rDeleteAccount\022$.s"
-    "4wave.session.DeleteAccountRequest\032%.s4w"
-    "ave.session.DeleteAccountResponse\022p\n\017Acc"
-    "essStateAtom\022-.s4wave.session.AccessSess"
-    "ionStateAtomRequest\032..s4wave.session.Acc"
-    "essSessionStateAtomResponse\022r\n\017WatchStat"
-    "eAtoms\022-.s4wave.session.WatchSessionStat"
-    "eAtomsRequest\032..s4wave.session.WatchSess"
-    "ionStateAtomsResponse0\001\022q\n\024GetTransferIn"
-    "ventory\022+.s4wave.session.GetTransferInve"
-    "ntoryRequest\032,.s4wave.session.GetTransfe"
-    "rInventoryResponse\022\\\n\rStartTransfer\022$.s4"
-    "wave.session.StartTransferRequest\032%.s4wa"
-    "ve.session.StartTransferResponse\022v\n\025Watc"
-    "hTransferProgress\022,.s4wave.session.Watch"
-    "TransferProgressRequest\032-.s4wave.session"
-    ".WatchTransferProgressResponse0\001\022_\n\016Canc"
-    "elTransfer\022%.s4wave.session.CancelTransf"
-    "erRequest\032&.s4wave.session.CancelTransfe"
-    "rResponse\022h\n\021GetTransferStatus\022(.s4wave."
-    "session.GetTransferStatusRequest\032).s4wav"
-    "e.session.GetTransferStatusResponse\022m\n\022W"
-    "atchPairedDevices\022).s4wave.session.Watch"
-    "PairedDevicesRequest\032*.s4wave.session.Wa"
-    "tchPairedDevicesResponse0\001\022m\n\022WatchPairi"
-    "ngStatus\022).s4wave.session.WatchPairingSt"
-    "atusRequest\032*.s4wave.session.WatchPairin"
-    "gStatusResponse0\001\022Y\n\014UnlinkDevice\022#.s4wa"
-    "ve.session.UnlinkDeviceRequest\032$.s4wave."
-    "session.UnlinkDeviceResponse\022h\n\021CreateSp"
-    "aceInvite\022(.s4wave.session.CreateSpaceIn"
-    "viteRequest\032).s4wave.session.CreateSpace"
-    "InviteResponse\022e\n\020ListSpaceInvites\022\'.s4w"
-    "ave.session.ListSpaceInvitesRequest\032(.s4"
-    "wave.session.ListSpaceInvitesResponse\022t\n"
-    "\025ListSpaceParticipants\022,.s4wave.session."
-    "ListSpaceParticipantsRequest\032-.s4wave.se"
-    "ssion.ListSpaceParticipantsResponse\022w\n\026R"
-    "emoveSpaceParticipant\022-.s4wave.session.R"
-    "emoveSpaceParticipantRequest\032..s4wave.se"
-    "ssion.RemoveSpaceParticipantResponse\022h\n\021"
-    "RevokeSpaceInvite\022(.s4wave.session.Revok"
-    "eSpaceInviteRequest\032).s4wave.session.Rev"
-    "okeSpaceInviteResponse\022k\n\022JoinSpaceViaIn"
-    "vite\022).s4wave.session.JoinSpaceViaInvite"
-    "Request\032*.s4wave.session.JoinSpaceViaInv"
-    "iteResponse\022z\n\027CreateLocalPairingOffer\022."
-    ".s4wave.session.CreateLocalPairingOfferR"
-    "equest\032/.s4wave.session.CreateLocalPairi"
-    "ngOfferResponse\022z\n\027AcceptLocalPairingOff"
-    "er\022..s4wave.session.AcceptLocalPairingOf"
-    "ferRequest\032/.s4wave.session.AcceptLocalP"
-    "airingOfferResponse\022}\n\030AcceptLocalPairin"
-    "gAnswer\022/.s4wave.session.AcceptLocalPair"
-    "ingAnswerRequest\0320.s4wave.session.Accept"
-    "LocalPairingAnswerResponseb\006proto3"
+    "ta\030\002 \001(\0132\031.sobject.SharedObjectMeta\022H\n\025m"
+    "ounted_shared_object\030\003 \001(\0132).s4wave.sess"
+    "ion.MountSharedObjectResponse\022&\n\036shared_"
+    "object_body_resource_id\030\004 \001(\r\022\037\n\027space_w"
+    "orld_resource_id\030\005 \001(\r\".\n\022DeleteSpaceReq"
+    "uest\022\030\n\020shared_object_id\030\001 \001(\t\"\025\n\023Delete"
+    "SpaceResponse\"D\n\022RenameSpaceRequest\022\030\n\020s"
+    "hared_object_id\030\001 \001(\t\022\024\n\014display_name\030\002 "
+    "\001(\t\"\025\n\023RenameSpaceResponse\"4\n\030MountShare"
+    "dObjectRequest\022\030\n\020shared_object_id\030\001 \001(\t"
+    "\"\315\001\n\031MountSharedObjectResponse\022\023\n\013resour"
+    "ce_id\030\001 \001(\r\0225\n\022shared_object_meta\030\002 \001(\0132"
+    "\031.sobject.SharedObjectMeta\022\017\n\007peer_id\030\003 "
+    "\001(\t\022\030\n\020shared_object_id\030\004 \001(\t\022\026\n\016block_s"
+    "tore_id\030\005 \001(\t\022!\n\thash_type\030\006 \001(\0162\016.hash."
+    "HashType\":\n\036WatchSharedObjectHealthReque"
+    "st\022\030\n\020shared_object_id\030\001 \001(\t\"N\n\037WatchSha"
+    "redObjectHealthResponse\022+\n\006health\030\001 \001(\0132"
+    "\033.sobject.SharedObjectHealth\"\030\n\026WatchSyn"
+    "cStatusRequest\"\213\017\n\027WatchSyncStatusRespon"
+    "se\022.\n\005state\030\001 \001(\0162\037.s4wave.session.SyncS"
+    "tatusState\0228\n\tdirection\030\002 \001(\0162%.s4wave.s"
+    "ession.SyncActivityDirection\022;\n\017transpor"
+    "t_state\030\003 \001(\0162\".s4wave.session.SyncTrans"
+    "portState\022/\n\tp2p_state\030\004 \001(\0162\034.s4wave.se"
+    "ssion.SyncP2PState\022\034\n\024pending_upload_byt"
+    "es\030\005 \001(\004\022\036\n\026pending_download_bytes\030\006 \001(\004"
+    "\022\034\n\024pending_upload_count\030\007 \001(\r\022\036\n\026pendin"
+    "g_download_count\030\010 \001(\r\022\037\n\027upload_bytes_p"
+    "er_second\030\t \001(\004\022!\n\031download_bytes_per_se"
+    "cond\030\n \001(\004\022\033\n\023active_upload_bytes\0304 \001(\004\022"
+    "\'\n\037active_upload_transferred_bytes\0305 \001(\004"
+    "\022\036\n\026in_flight_upload_count\0306 \001(\r\022\032\n\022acti"
+    "ve_store_count\030\013 \001(\r\022\031\n\021active_peer_coun"
+    "t\030\014 \001(\r\022\022\n\nlast_error\030\r \001(\t\0224\n\020last_acti"
+    "vity_at\030\016 \001(\0132\032.google.protobuf.Timestam"
+    "p\022 \n\030pack_range_request_count\030\017 \001(\004\022!\n\031p"
+    "ack_range_response_bytes\030\020 \001(\004\022)\n!pack_f"
+    "ull_response_fallback_count\030\021 \001(\004\022)\n!pac"
+    "k_full_response_fallback_bytes\030\022 \001(\004\022.\n&"
+    "pack_last_full_response_fallback_bytes\030\023"
+    " \001(\004\022\035\n\025pack_manifest_entries\030\024 \001(\r\022\036\n\026p"
+    "ack_block_count_total\030\025 \001(\004\022\034\n\024pack_bloc"
+    "k_count_min\030\026 \001(\004\022\034\n\024pack_block_count_ma"
+    "x\030\027 \001(\004\022\035\n\025pack_size_bytes_total\030\030 \001(\004\022\033"
+    "\n\023pack_size_bytes_min\030\031 \001(\004\022\033\n\023pack_size"
+    "_bytes_max\030\032 \001(\004\022\037\n\027pack_bloom_filter_co"
+    "unt\030\033 \001(\r\022 \n\030pack_bloom_missing_count\030\034 "
+    "\001(\r\022 \n\030pack_bloom_invalid_count\030\035 \001(\r\022(\n"
+    " pack_bloom_parameter_shape_count\030\036 \001(\r\022"
+    "*\n\"pack_bloom_max_false_positive_rate\030\037 "
+    "\001(\001\022\"\n\032pack_bloom_risk_pack_count\030  \001(\r\022"
+    "\031\n\021pack_lookup_count\030! \001(\004\022\034\n\024pack_candi"
+    "date_packs\030\" \001(\004\022\031\n\021pack_opened_packs\030# "
+    "\001(\004\022\033\n\023pack_negative_packs\030$ \001(\004\022\030\n\020pack"
+    "_target_hits\030% \001(\004\022!\n\031pack_last_candidat"
+    "e_packs\030& \001(\r\022\036\n\026pack_last_opened_packs\030"
+    "\' \001(\r\022 \n\030pack_last_negative_packs\030( \001(\r\022"
+    "\034\n\024pack_last_target_hit\030) \001(\010\022\035\n\025pack_in"
+    "dex_cache_hits\030* \001(\004\022\037\n\027pack_index_cache"
+    "_misses\030+ \001(\004\022$\n\034pack_index_cache_read_e"
+    "rrors\030, \001(\004\022%\n\035pack_index_cache_write_er"
+    "rors\030- \001(\004\022\037\n\027pack_remote_index_loads\030. "
+    "\001(\004\022\037\n\027pack_remote_index_bytes\030/ \001(\004\022$\n\034"
+    "pack_last_remote_index_bytes\0300 \001(\004\022#\n\033pa"
+    "ck_index_tail_fetch_count\0301 \001(\004\022#\n\033pack_"
+    "index_tail_fetch_bytes\0302 \001(\004\022&\n\036pack_ind"
+    "ex_tail_response_bytes\0303 \001(\004\"\027\n\025WatchLoc"
+    "kStateRequest\"P\n\026WatchLockStateResponse\022"
+    "&\n\004mode\030\001 \001(\0162\030.session.SessionLockMode\022"
+    "\016\n\006locked\030\002 \001(\010\"I\n\022SetLockModeRequest\022&\n"
+    "\004mode\030\001 \001(\0162\030.session.SessionLockMode\022\013\n"
+    "\003pin\030\002 \001(\014\"\025\n\023SetLockModeResponse\"#\n\024Unl"
+    "ockSessionRequest\022\013\n\003pin\030\001 \001(\014\"\027\n\025Unlock"
+    "SessionResponse\"\024\n\022LockSessionRequest\"\025\n"
+    "\023LockSessionResponse\"\034\n\032GeneratePairingC"
+    "odeRequest\"+\n\033GeneratePairingCodeRespons"
+    "e\022\014\n\004code\030\001 \001(\t\"&\n\026CompletePairingReques"
+    "t\022\014\n\004code\030\001 \001(\t\"1\n\027CompletePairingRespon"
+    "se\022\026\n\016remote_peer_id\030\001 \001(\t\",\n\022GetSASEmoj"
+    "iRequest\022\026\n\016remote_peer_id\030\001 \001(\t\"$\n\023GetS"
+    "ASEmojiResponse\022\r\n\005emoji\030\001 \003(\t\"+\n\026Confir"
+    "mSASMatchRequest\022\021\n\tconfirmed\030\001 \001(\010\"\031\n\027C"
+    "onfirmSASMatchResponse\"E\n\025ConfirmPairing"
+    "Request\022\026\n\016remote_peer_id\030\001 \001(\t\022\024\n\014displ"
+    "ay_name\030\002 \001(\t\"\030\n\026ConfirmPairingResponse\""
+    "+\n\024DeleteAccountRequest\022\023\n\013session_idx\030\001"
+    " \001(\r\"\027\n\025DeleteAccountResponse\"1\n\035AccessS"
+    "essionStateAtomRequest\022\020\n\010store_id\030\001 \001(\t"
+    "\"5\n\036AccessSessionStateAtomResponse\022\023\n\013re"
+    "source_id\030\001 \001(\r\"\037\n\035WatchSessionStateAtom"
+    "sRequest\"H\n\036WatchSessionStateAtomsRespon"
+    "se\022\021\n\tstore_ids\030\001 \003(\t\022\023\n\013store_count\030\002 \001"
+    "(\r\"*\n\026ExportBackupKeyRequest\022\020\n\010password"
+    "\030\001 \001(\t\"<\n\027ExportBackupKeyResponse\022\020\n\010pem"
+    "_data\030\001 \001(\014\022\017\n\007peer_id\030\002 \001(\t\"4\n\033GetTrans"
+    "ferInventoryRequest\022\025\n\rsession_index\030\001 \001"
+    "(\r\"G\n\034GetTransferInventoryResponse\022\'\n\006sp"
+    "aces\030\001 \003(\0132\027.space.SpaceSoListEntry\"\224\001\n\024"
+    "StartTransferRequest\022\034\n\024source_session_i"
+    "ndex\030\001 \001(\r\022\034\n\024target_session_index\030\002 \001(\r"
+    "\022-\n\004mode\030\003 \001(\0162\037.provider.transfer.Trans"
+    "ferMode\022\021\n\tspace_ids\030\004 \003(\t\"\027\n\025StartTrans"
+    "ferResponse\"\036\n\034WatchTransferProgressRequ"
+    "est\"P\n\035WatchTransferProgressResponse\022/\n\005"
+    "state\030\001 \001(\0132 .provider.transfer.Transfer"
+    "State\"\027\n\025CancelTransferRequest\"\030\n\026Cancel"
+    "TransferResponse\"\033\n\031WatchPairedDevicesRe"
+    "quest\"m\n\032WatchPairedDevicesResponse\0226\n\016p"
+    "aired_devices\030\001 \003(\0132\036.account.settings.P"
+    "airedDevice\022\027\n\017online_peer_ids\030\002 \003(\t\"&\n\023"
+    "UnlinkDeviceRequest\022\017\n\007peer_id\030\001 \001(\t\"\026\n\024"
+    "UnlinkDeviceResponse\"\033\n\031WatchPairingStat"
+    "usRequest\"\227\001\n\032WatchPairingStatusResponse"
+    "\022-\n\006status\030\001 \001(\0162\035.s4wave.session.Pairin"
+    "gStatus\022\026\n\016remote_peer_id\030\002 \001(\t\022\014\n\004code\030"
+    "\003 \001(\t\022\r\n\005emoji\030\004 \003(\t\022\025\n\rerror_message\030\005 "
+    "\001(\t\"\260\001\n\030CreateSpaceInviteRequest\022\020\n\010spac"
+    "e_id\030\001 \001(\t\022(\n\004role\030\002 \001(\0162\032.sobject.SOPar"
+    "ticipantRole\022\026\n\016target_peer_id\030\003 \001(\t\022\020\n\010"
+    "max_uses\030\004 \001(\r\022.\n\nexpires_at\030\005 \001(\0132\032.goo"
+    "gle.protobuf.Timestamp\"a\n\031CreateSpaceInv"
+    "iteResponse\0220\n\016invite_message\030\001 \001(\0132\030.so"
+    "bject.SOInviteMessage\022\022\n\nshort_code\030\002 \001("
+    "\t\"+\n\027ListSpaceInvitesRequest\022\020\n\010space_id"
+    "\030\001 \001(\t\">\n\030ListSpaceInvitesResponse\022\"\n\007in"
+    "vites\030\001 \003(\0132\021.sobject.SOInvite\"0\n\034ListSp"
+    "aceParticipantsRequest\022\020\n\010space_id\030\001 \001(\t"
+    "\"S\n\035ListSpaceParticipantsResponse\0222\n\014par"
+    "ticipants\030\001 \003(\0132\034.sobject.SOParticipantC"
+    "onfig\"B\n\035RemoveSpaceParticipantRequest\022\020"
+    "\n\010space_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\"1\n\036Rem"
+    "oveSpaceParticipantResponse\022\017\n\007removed\030\001"
+    " \001(\010\"\?\n\030RevokeSpaceInviteRequest\022\020\n\010spac"
+    "e_id\030\001 \001(\t\022\021\n\tinvite_id\030\002 \001(\t\"\033\n\031RevokeS"
+    "paceInviteResponse\"s\n\031JoinSpaceViaInvite"
+    "Request\0220\n\016invite_message\030\001 \001(\0132\030.sobjec"
+    "t.SOInviteMessage\022$\n\034targeted_invitation"
+    "_envelope\030\002 \001(\014\"p\n\032JoinSpaceViaInviteRes"
+    "ponse\022\030\n\020shared_object_id\030\001 \001(\t\0228\n\006resul"
+    "t\030\002 \001(\0162(.s4wave.session.JoinSpaceViaInv"
+    "iteResult\"\032\n\030GetTransferStatusRequest\"t\n"
+    "\031GetTransferStatusResponse\022\016\n\006active\030\001 \001"
+    "(\010\022\026\n\016has_checkpoint\030\002 \001(\010\022/\n\005state\030\003 \001("
+    "\0132 .provider.transfer.TransferState\"1\n\021L"
+    "ocalPairingOffer\022\013\n\003sdp\030\001 \001(\t\022\017\n\007peer_id"
+    "\030\002 \001(\t\"2\n\022LocalPairingAnswer\022\013\n\003sdp\030\001 \001("
+    "\t\022\017\n\007peer_id\030\002 \001(\t\" \n\036CreateLocalPairing"
+    "OfferRequest\"8\n\037CreateLocalPairingOfferR"
+    "esponse\022\025\n\roffer_payload\030\001 \001(\t\"7\n\036Accept"
+    "LocalPairingOfferRequest\022\025\n\roffer_payloa"
+    "d\030\001 \001(\t\"9\n\037AcceptLocalPairingOfferRespon"
+    "se\022\026\n\016answer_payload\030\001 \001(\t\"9\n\037AcceptLoca"
+    "lPairingAnswerRequest\022\026\n\016answer_payload\030"
+    "\001 \001(\t\":\n AcceptLocalPairingAnswerRespons"
+    "e\022\026\n\016remote_peer_id\030\001 \001(\t*d\n\017SyncStatusS"
+    "tate\022\032\n\026SyncStatusState_SYNCED\020\000\022\032\n\026Sync"
+    "StatusState_ACTIVE\020\001\022\031\n\025SyncStatusState_"
+    "ERROR\020\002*\250\001\n\025SyncActivityDirection\022\036\n\032Syn"
+    "cActivityDirection_NONE\020\000\022 \n\034SyncActivit"
+    "yDirection_UPLOAD\020\001\022\"\n\036SyncActivityDirec"
+    "tion_DOWNLOAD\020\002\022)\n%SyncActivityDirection"
+    "_UPLOAD_DOWNLOAD\020\003*\270\001\n\022SyncTransportStat"
+    "e\022\036\n\032SyncTransportState_UNKNOWN\020\000\022\"\n\036Syn"
+    "cTransportState_UNAVAILABLE\020\001\022!\n\035SyncTra"
+    "nsportState_CONNECTING\020\002\022\035\n\031SyncTranspor"
+    "tState_ONLINE\020\003\022\034\n\030SyncTransportState_ER"
+    "ROR\020\004*\213\001\n\014SyncP2PState\022\030\n\024SyncP2PState_U"
+    "NKNOWN\020\000\022\031\n\025SyncP2PState_NO_PEERS\020\001\022\025\n\021S"
+    "yncP2PState_IDLE\020\002\022\027\n\023SyncP2PState_ACTIV"
+    "E\020\003\022\026\n\022SyncP2PState_ERROR\020\004*\316\003\n\rPairingS"
+    "tatus\022\026\n\022PairingStatus_IDLE\020\000\022 \n\034Pairing"
+    "Status_CODE_GENERATED\020\001\022\"\n\036PairingStatus"
+    "_WAITING_FOR_PEER\020\002\022 \n\034PairingStatus_PEE"
+    "R_CONNECTED\020\003\022!\n\035PairingStatus_VERIFYING"
+    "_EMOJI\020\004\022\032\n\026PairingStatus_VERIFIED\020\005\022\030\n\024"
+    "PairingStatus_FAILED\020\006\022\"\n\036PairingStatus_"
+    "SIGNALING_FAILED\020\007\022$\n PairingStatus_CONN"
+    "ECTION_TIMEOUT\020\010\022,\n(PairingStatus_WAITIN"
+    "G_FOR_REMOTE_CONFIRM\020\t\022 \n\034PairingStatus_"
+    "BOTH_CONFIRMED\020\n\022\"\n\036PairingStatus_PAIRIN"
+    "G_REJECTED\020\013\022&\n\"PairingStatus_CONFIRMATI"
+    "ON_TIMEOUT\020\014*\372\001\n\030JoinSpaceViaInviteResul"
+    "t\022(\n$JoinSpaceViaInviteResult_UNSPECIFIE"
+    "D\020\000\022%\n!JoinSpaceViaInviteResult_ACCEPTED"
+    "\020\001\0223\n/JoinSpaceViaInviteResult_PENDING_O"
+    "WNER_APPROVAL\020\002\022%\n!JoinSpaceViaInviteRes"
+    "ult_REJECTED\020\003\0221\n-JoinSpaceViaInviteResu"
+    "lt_OWNER_MUST_BE_ONLINE\020\0042\301\036\n\026SessionRes"
+    "ourceService\022_\n\016GetSessionInfo\022%.s4wave."
+    "session.GetSessionInfoRequest\032&.s4wave.s"
+    "ession.GetSessionInfoResponse\022m\n\022WatchRe"
+    "sourcesList\022).s4wave.session.WatchResour"
+    "cesListRequest\032*.s4wave.session.WatchRes"
+    "ourcesListResponse0\001\022V\n\013CreateSpace\022\".s4"
+    "wave.session.CreateSpaceRequest\032#.s4wave"
+    ".session.CreateSpaceResponse\022j\n\021MountSha"
+    "redObject\022(.s4wave.session.MountSharedOb"
+    "jectRequest\032).s4wave.session.MountShared"
+    "ObjectResponse\"\000\022|\n\027WatchSharedObjectHea"
+    "lth\022..s4wave.session.WatchSharedObjectHe"
+    "althRequest\032/.s4wave.session.WatchShared"
+    "ObjectHealthResponse0\001\022d\n\017WatchSyncStatu"
+    "s\022&.s4wave.session.WatchSyncStatusReques"
+    "t\032\'.s4wave.session.WatchSyncStatusRespon"
+    "se0\001\022V\n\013DeleteSpace\022\".s4wave.session.Del"
+    "eteSpaceRequest\032#.s4wave.session.DeleteS"
+    "paceResponse\022V\n\013RenameSpace\022\".s4wave.ses"
+    "sion.RenameSpaceRequest\032#.s4wave.session"
+    ".RenameSpaceResponse\022a\n\016WatchLockState\022%"
+    ".s4wave.session.WatchLockStateRequest\032&."
+    "s4wave.session.WatchLockStateResponse0\001\022"
+    "V\n\013SetLockMode\022\".s4wave.session.SetLockM"
+    "odeRequest\032#.s4wave.session.SetLockModeR"
+    "esponse\022\\\n\rUnlockSession\022$.s4wave.sessio"
+    "n.UnlockSessionRequest\032%.s4wave.session."
+    "UnlockSessionResponse\022V\n\013LockSession\022\".s"
+    "4wave.session.LockSessionRequest\032#.s4wav"
+    "e.session.LockSessionResponse\022n\n\023Generat"
+    "ePairingCode\022*.s4wave.session.GeneratePa"
+    "iringCodeRequest\032+.s4wave.session.Genera"
+    "tePairingCodeResponse\022b\n\017CompletePairing"
+    "\022&.s4wave.session.CompletePairingRequest"
+    "\032\'.s4wave.session.CompletePairingRespons"
+    "e\022V\n\013GetSASEmoji\022\".s4wave.session.GetSAS"
+    "EmojiRequest\032#.s4wave.session.GetSASEmoj"
+    "iResponse\022b\n\017ConfirmSASMatch\022&.s4wave.se"
+    "ssion.ConfirmSASMatchRequest\032\'.s4wave.se"
+    "ssion.ConfirmSASMatchResponse\022_\n\016Confirm"
+    "Pairing\022%.s4wave.session.ConfirmPairingR"
+    "equest\032&.s4wave.session.ConfirmPairingRe"
+    "sponse\022\\\n\rDeleteAccount\022$.s4wave.session"
+    ".DeleteAccountRequest\032%.s4wave.session.D"
+    "eleteAccountResponse\022p\n\017AccessStateAtom\022"
+    "-.s4wave.session.AccessSessionStateAtomR"
+    "equest\032..s4wave.session.AccessSessionSta"
+    "teAtomResponse\022r\n\017WatchStateAtoms\022-.s4wa"
+    "ve.session.WatchSessionStateAtomsRequest"
+    "\032..s4wave.session.WatchSessionStateAtoms"
+    "Response0\001\022q\n\024GetTransferInventory\022+.s4w"
+    "ave.session.GetTransferInventoryRequest\032"
+    ",.s4wave.session.GetTransferInventoryRes"
+    "ponse\022\\\n\rStartTransfer\022$.s4wave.session."
+    "StartTransferRequest\032%.s4wave.session.St"
+    "artTransferResponse\022v\n\025WatchTransferProg"
+    "ress\022,.s4wave.session.WatchTransferProgr"
+    "essRequest\032-.s4wave.session.WatchTransfe"
+    "rProgressResponse0\001\022_\n\016CancelTransfer\022%."
+    "s4wave.session.CancelTransferRequest\032&.s"
+    "4wave.session.CancelTransferResponse\022h\n\021"
+    "GetTransferStatus\022(.s4wave.session.GetTr"
+    "ansferStatusRequest\032).s4wave.session.Get"
+    "TransferStatusResponse\022m\n\022WatchPairedDev"
+    "ices\022).s4wave.session.WatchPairedDevices"
+    "Request\032*.s4wave.session.WatchPairedDevi"
+    "cesResponse0\001\022m\n\022WatchPairingStatus\022).s4"
+    "wave.session.WatchPairingStatusRequest\032*"
+    ".s4wave.session.WatchPairingStatusRespon"
+    "se0\001\022Y\n\014UnlinkDevice\022#.s4wave.session.Un"
+    "linkDeviceRequest\032$.s4wave.session.Unlin"
+    "kDeviceResponse\022h\n\021CreateSpaceInvite\022(.s"
+    "4wave.session.CreateSpaceInviteRequest\032)"
+    ".s4wave.session.CreateSpaceInviteRespons"
+    "e\022e\n\020ListSpaceInvites\022\'.s4wave.session.L"
+    "istSpaceInvitesRequest\032(.s4wave.session."
+    "ListSpaceInvitesResponse\022t\n\025ListSpacePar"
+    "ticipants\022,.s4wave.session.ListSpacePart"
+    "icipantsRequest\032-.s4wave.session.ListSpa"
+    "ceParticipantsResponse\022w\n\026RemoveSpacePar"
+    "ticipant\022-.s4wave.session.RemoveSpacePar"
+    "ticipantRequest\032..s4wave.session.RemoveS"
+    "paceParticipantResponse\022h\n\021RevokeSpaceIn"
+    "vite\022(.s4wave.session.RevokeSpaceInviteR"
+    "equest\032).s4wave.session.RevokeSpaceInvit"
+    "eResponse\022k\n\022JoinSpaceViaInvite\022).s4wave"
+    ".session.JoinSpaceViaInviteRequest\032*.s4w"
+    "ave.session.JoinSpaceViaInviteResponse\022z"
+    "\n\027CreateLocalPairingOffer\022..s4wave.sessi"
+    "on.CreateLocalPairingOfferRequest\032/.s4wa"
+    "ve.session.CreateLocalPairingOfferRespon"
+    "se\022z\n\027AcceptLocalPairingOffer\022..s4wave.s"
+    "ession.AcceptLocalPairingOfferRequest\032/."
+    "s4wave.session.AcceptLocalPairingOfferRe"
+    "sponse\022}\n\030AcceptLocalPairingAnswer\022/.s4w"
+    "ave.session.AcceptLocalPairingAnswerRequ"
+    "est\0320.s4wave.session.AcceptLocalPairingA"
+    "nswerResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_deps[7] = {
@@ -3009,7 +3022,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto = {
     false,
     false,
-    12354,
+    12501,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
     "github.com/s4wave/spacewave/sdk/session/session.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_once,
@@ -4800,6 +4813,16 @@ CreateSpaceResponse::CreateSpaceResponse(
   _impl_.shared_object_meta_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.shared_object_meta_)
                 : nullptr;
+  _impl_.mounted_shared_object_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.mounted_shared_object_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, shared_object_body_resource_id_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, shared_object_body_resource_id_),
+           offsetof(Impl_, space_world_resource_id_) -
+               offsetof(Impl_, shared_object_body_resource_id_) +
+               sizeof(Impl_::space_world_resource_id_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.session.CreateSpaceResponse)
 }
@@ -4813,9 +4836,9 @@ inline void CreateSpaceResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE aren
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, shared_object_ref_),
            0,
-           offsetof(Impl_, shared_object_meta_) -
+           offsetof(Impl_, space_world_resource_id_) -
                offsetof(Impl_, shared_object_ref_) +
-               sizeof(Impl_::shared_object_meta_));
+               sizeof(Impl_::space_world_resource_id_));
 }
 CreateSpaceResponse::~CreateSpaceResponse() {
   // @@protoc_insertion_point(destructor:s4wave.session.CreateSpaceResponse)
@@ -4830,6 +4853,7 @@ inline void CreateSpaceResponse::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   delete this_._impl_.shared_object_ref_;
   delete this_._impl_.shared_object_meta_;
+  delete this_._impl_.mounted_shared_object_;
   this_._impl_.~Impl_();
 }
 
@@ -4876,17 +4900,17 @@ CreateSpaceResponse::GetClassData() const {
   return CreateSpaceResponse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 2, 0, 2>
+const ::_pbi::TcParseTable<3, 5, 3, 0, 2>
 CreateSpaceResponse::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    2,  // num_aux_entries
+    5,  // num_field_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     CreateSpaceResponse_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -4895,14 +4919,29 @@ CreateSpaceResponse::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::session::CreateSpaceResponse>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .sobject.SharedObjectMeta shared_object_meta = 2;
-    {::_pbi::TcParser::FastMtS1,
-     {18, 1, 1,
-      PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_meta_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .sobject.SharedObjectRef shared_object_ref = 1;
     {::_pbi::TcParser::FastMtS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_ref_)}},
+    // .sobject.SharedObjectMeta shared_object_meta = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 1,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_meta_)}},
+    // .s4wave.session.MountSharedObjectResponse mounted_shared_object = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 2, 2,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.mounted_shared_object_)}},
+    // uint32 shared_object_body_resource_id = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateSpaceResponse, _impl_.shared_object_body_resource_id_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_body_resource_id_)}},
+    // uint32 space_world_resource_id = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateSpaceResponse, _impl_.space_world_resource_id_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.space_world_resource_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -4910,10 +4949,17 @@ CreateSpaceResponse::_table_ = {
     {PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_ref_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .sobject.SharedObjectMeta shared_object_meta = 2;
     {PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_meta_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.session.MountSharedObjectResponse mounted_shared_object = 3;
+    {PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.mounted_shared_object_), _Internal::kHasBitsOffset + 2, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint32 shared_object_body_resource_id = 4;
+    {PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_body_resource_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 space_world_resource_id = 5;
+    {PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.space_world_resource_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::sobject::SharedObjectRef>()},
       {::_pbi::TcParser::GetTable<::sobject::SharedObjectMeta>()},
+      {::_pbi::TcParser::GetTable<::s4wave::session::MountSharedObjectResponse>()},
   }},
   {{
   }},
@@ -4926,7 +4972,7 @@ PROTOBUF_NOINLINE void CreateSpaceResponse::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(_impl_.shared_object_ref_ != nullptr);
       _impl_.shared_object_ref_->Clear();
@@ -4935,6 +4981,15 @@ PROTOBUF_NOINLINE void CreateSpaceResponse::Clear() {
       ABSL_DCHECK(_impl_.shared_object_meta_ != nullptr);
       _impl_.shared_object_meta_->Clear();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.mounted_shared_object_ != nullptr);
+      _impl_.mounted_shared_object_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
+    ::memset(&_impl_.shared_object_body_resource_id_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.space_world_resource_id_) -
+        reinterpret_cast<char*>(&_impl_.shared_object_body_resource_id_)) + sizeof(_impl_.space_world_resource_id_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -4973,6 +5028,31 @@ PROTOBUF_NOINLINE void CreateSpaceResponse::Clear() {
         stream);
   }
 
+  // .s4wave.session.MountSharedObjectResponse mounted_shared_object = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.mounted_shared_object_, this_._impl_.mounted_shared_object_->GetCachedSize(), target,
+        stream);
+  }
+
+  // uint32 shared_object_body_resource_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_shared_object_body_resource_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          4, this_._internal_shared_object_body_resource_id(), target);
+    }
+  }
+
+  // uint32 space_world_resource_id = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_space_world_resource_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          5, this_._internal_space_world_resource_id(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -4998,7 +5078,7 @@ PROTOBUF_NOINLINE void CreateSpaceResponse::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // .sobject.SharedObjectRef shared_object_ref = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       total_size += 1 +
@@ -5008,6 +5088,25 @@ PROTOBUF_NOINLINE void CreateSpaceResponse::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.shared_object_meta_);
+    }
+    // .s4wave.session.MountSharedObjectResponse mounted_shared_object = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.mounted_shared_object_);
+    }
+    // uint32 shared_object_body_resource_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_shared_object_body_resource_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_shared_object_body_resource_id());
+      }
+    }
+    // uint32 space_world_resource_id = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_space_world_resource_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_space_world_resource_id());
+      }
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -5029,7 +5128,7 @@ void CreateSpaceResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(from._impl_.shared_object_ref_ != nullptr);
       if (_this->_impl_.shared_object_ref_ == nullptr) {
@@ -5044,6 +5143,24 @@ void CreateSpaceResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.shared_object_meta_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.shared_object_meta_);
       } else {
         _this->_impl_.shared_object_meta_->MergeFrom(*from._impl_.shared_object_meta_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.mounted_shared_object_ != nullptr);
+      if (_this->_impl_.mounted_shared_object_ == nullptr) {
+        _this->_impl_.mounted_shared_object_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.mounted_shared_object_);
+      } else {
+        _this->_impl_.mounted_shared_object_->MergeFrom(*from._impl_.mounted_shared_object_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_shared_object_body_resource_id() != 0) {
+        _this->_impl_.shared_object_body_resource_id_ = from._impl_.shared_object_body_resource_id_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_space_world_resource_id() != 0) {
+        _this->_impl_.space_world_resource_id_ = from._impl_.space_world_resource_id_;
       }
     }
   }
@@ -5065,8 +5182,8 @@ void CreateSpaceResponse::InternalSwap(CreateSpaceResponse* PROTOBUF_RESTRICT PR
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_meta_)
-      + sizeof(CreateSpaceResponse::_impl_.shared_object_meta_)
+      PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.space_world_resource_id_)
+      + sizeof(CreateSpaceResponse::_impl_.space_world_resource_id_)
       - PROTOBUF_FIELD_OFFSET(CreateSpaceResponse, _impl_.shared_object_ref_)>(
           reinterpret_cast<char*>(&_impl_.shared_object_ref_),
           reinterpret_cast<char*>(&other->_impl_.shared_object_ref_));

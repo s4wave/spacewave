@@ -1,5 +1,5 @@
 import { pipe } from 'it-pipe'
-import { Pushable, pushable } from 'it-pushable'
+import { pushable } from 'it-pushable'
 import { MessagePortDuplex, PacketStream, castToError } from 'starpc'
 import { GoWasmProcess } from '../../runtime/wasm/go-process.js'
 import { BackendAPI } from '@aptre/bldr-sdk'
@@ -12,8 +12,15 @@ interface Global {
   BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
     onMessage: (message: Uint8Array) => void,
     onClose: (errMsg?: string) => void,
-  ) => Promise<Pushable<Uint8Array>>
+    onResolve: (sink: GoPushableSink) => void,
+    onReject: (errMsg: string) => void,
+  ) => void
   BLDR_PLUGIN_SET_ACCEPT_STREAM?: (acceptStream: () => MessagePort) => void
+}
+
+type GoPushableSink = {
+  push: (message: Uint8Array) => void
+  end: () => void
 }
 
 // globalScope is globalThis but with the bldr globals.
@@ -23,6 +30,10 @@ const globalScope: Global = globalThis as any
 // baseURL is the base URL to use for paths relative to this module.
 const baseURL = import.meta?.url
 globalScope.BLDR_BASE_URL = baseURL
+
+const goCallbackQueue: (() => void)[] = []
+let goCallbackScheduled = false
+let goCallbackChannel: MessageChannel | undefined
 
 // BLDR_PLUGIN_ENTRYPOINT is declared at build time by the plugin compiler.
 declare const BLDR_PLUGIN_ENTRYPOINT: string
@@ -131,60 +142,90 @@ export default async function main(
   const generation = new WasmPluginGeneration(api, abortSignal)
 
   // The Go runtime will call this function to open outgoing streams.
-  globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = async (
+  globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = (
     onMessage,
     onClose,
-  ): Promise<Pushable<Uint8Array>> => {
-    const packetStream = await api.openStream()
-    const packetSource = packetStream.source
-    let callbacksClosed = false
-    const closeCallbacks = (errMsg?: string) => {
-      if (callbacksClosed) {
-        return
-      }
-      callbacksClosed = true
-      const released = callGoCallback(() => {
-        onClose(errMsg)
-      })
-      if (released) {
-        return
-      }
-    }
-    const deliverMessage = (msg: Uint8Array): boolean => {
-      if (callbacksClosed) {
-        return false
-      }
-      const released = callGoCallback(() => {
-        onMessage(msg)
-      })
-      if (released) {
-        callbacksClosed = true
-        return false
-      }
-      return true
-    }
-    queueMicrotask(async () => {
-      try {
-        for await (const msg of packetSource) {
-          if (!deliverMessage(msg)) {
-            return
-          }
+    onResolve,
+    onReject,
+  ): void => {
+    void (async () => {
+      const packetStream = await api.openStream()
+      const packetSource = packetStream.source
+      let callbacksClosed = false
+      const closeCallbacks = (errMsg?: string) => {
+        if (callbacksClosed) {
+          return
         }
-        closeCallbacks()
-      } catch (err) {
-        const e = castToError(err)
-        closeCallbacks(e.toString())
+        callbacksClosed = true
+        deferGoCallback(() => {
+          callGoCallback(() => {
+            onClose(errMsg)
+          })
+        })
       }
-    })
-
-    const push = pushable<Uint8Array>({ objectMode: true })
-    queueMicrotask(() => {
-      void packetStream.sink(push).catch((err) => {
-        const e = castToError(err)
-        closeCallbacks(e.toString())
+      const deliverMessage = async (msg: Uint8Array): Promise<boolean> => {
+        if (callbacksClosed) {
+          return false
+        }
+        const released = await deferGoCallbackResult(() =>
+          callGoCallback(() => {
+            onMessage(msg)
+          }),
+        )
+        if (released) {
+          callbacksClosed = true
+          return false
+        }
+        return true
+      }
+      queueMicrotask(async () => {
+        try {
+          for await (const msg of packetSource) {
+            if (!(await deliverMessage(msg))) {
+              return
+            }
+          }
+          closeCallbacks()
+        } catch (err) {
+          const e = castToError(err)
+          closeCallbacks(e.toString())
+        }
       })
-    })
-    return push
+
+      const push = pushable<Uint8Array>({ objectMode: true })
+      queueMicrotask(() => {
+        void packetStream.sink(push).catch((err) => {
+          const e = castToError(err)
+          closeCallbacks(e.toString())
+        })
+      })
+      return {
+        push: (message: Uint8Array) => {
+          push.push(message)
+        },
+        end: () => {
+          push.end()
+        },
+      }
+    })().then(
+      (sink) => {
+        deferGoCallback(() => {
+          const released = callGoCallback(() => {
+            onResolve(sink)
+          })
+          if (released) {
+            sink.end()
+          }
+        })
+      },
+      (err) => {
+        deferGoCallback(() => {
+          callGoCallback(() => {
+            onReject(castToError(err).toString())
+          })
+        })
+      },
+    )
   }
 
   // The Go runtime will call this function to set a callback for incoming streams.
@@ -204,6 +245,48 @@ function closeMessagePortDuplex(duplex: MessagePortDuplex<Uint8Array>) {
   } catch {
     // ignored: the port may already be closed by the pipe.
   }
+}
+
+function flushGoCallbacks(): void {
+  goCallbackScheduled = false
+  const callbacks = goCallbackQueue.splice(0)
+  for (const callback of callbacks) {
+    callback()
+  }
+  if (goCallbackQueue.length !== 0) {
+    scheduleGoCallbackFlush()
+  }
+}
+
+function scheduleGoCallbackFlush(): void {
+  if (goCallbackScheduled) {
+    return
+  }
+  goCallbackScheduled = true
+  if (typeof MessageChannel === 'function') {
+    goCallbackChannel ??= new MessageChannel()
+    goCallbackChannel.port1.onmessage = flushGoCallbacks
+    goCallbackChannel.port2.postMessage(undefined)
+    return
+  }
+  setTimeout(flushGoCallbacks, 0)
+}
+
+function deferGoCallback(callback: () => void): void {
+  goCallbackQueue.push(callback)
+  scheduleGoCallbackFlush()
+}
+
+function deferGoCallbackResult<T>(callback: () => T): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    deferGoCallback(() => {
+      try {
+        resolve(callback())
+      } catch (err) {
+        reject(err)
+      }
+    })
+  })
 }
 
 function isReleasedGoCallbackError(err: unknown): boolean {

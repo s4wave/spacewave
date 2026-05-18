@@ -34,6 +34,8 @@ type SpaceContentsResource struct {
 	engineID string
 	volumeID string
 	storeID  string
+	// startCancel cancels the asynchronous plugin/space controller startup.
+	startCancel context.CancelFunc
 	// ctrlRef holds the plugin/space controller reference.
 	// Released when the resource is cleaned up.
 	ctrlRef directive.Reference
@@ -67,9 +69,21 @@ func NewSpaceContentsResource(le *logrus.Entry, b bus.Bus, engine world.Engine, 
 
 // Release releases the controller reference.
 func (r *SpaceContentsResource) Release() {
-	if r.ctrlRef != nil {
-		r.ctrlRef.Release()
+	var cancel context.CancelFunc
+	var ref directive.Reference
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		cancel = r.startCancel
+		r.startCancel = nil
+		ref = r.ctrlRef
 		r.ctrlRef = nil
+		r.ctrl = nil
+		broadcast()
+	})
+	if cancel != nil {
+		cancel()
+	}
+	if ref != nil {
+		ref.Release()
 	}
 }
 
@@ -93,14 +107,53 @@ func (r *SpaceContentsResource) getStoreLocation() (string, string) {
 }
 
 func (r *SpaceContentsResource) notifyController() {
-	if r.ctrl != nil {
-		r.ctrl.NotifyChanged()
+	var ctrl *plugin_space.Controller
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		ctrl = r.ctrl
+	})
+	if ctrl != nil {
+		ctrl.NotifyChanged()
 	}
 }
 
 // GetMux returns the rpc mux.
 func (r *SpaceContentsResource) GetMux() srpc.Invoker {
 	return r.mux
+}
+
+// StartController starts the plugin/space controller behind this resource.
+func (r *SpaceContentsResource) StartController(conf *plugin_space.Config) {
+	ctx, cancel := context.WithCancel(context.Background())
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if r.startCancel != nil {
+			r.startCancel()
+		}
+		r.startCancel = cancel
+		broadcast()
+	})
+	go func() {
+		ctrl, _, ctrlRef, err := plugin_space.StartControllerWithConfig(ctx, r.b, conf, func() {})
+		if err != nil {
+			if ctx.Err() == nil {
+				r.le.WithError(err).Warn("failed to start Space contents controller")
+			}
+			return
+		}
+
+		var release directive.Reference
+		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if r.startCancel == nil || ctx.Err() != nil {
+				release = ctrlRef
+			} else {
+				r.ctrl = ctrl
+				r.ctrlRef = ctrlRef
+			}
+			broadcast()
+		})
+		if release != nil {
+			release.Release()
+		}
+	}()
 }
 
 // WatchState streams the current plugin and process state for the space.
@@ -150,9 +203,13 @@ func (r *SpaceContentsResource) WatchState(
 		plugins := make([]*s4wave_space.SpacePluginStatus, 0, len(pluginIDs))
 		loadedIDs := map[string]struct{}{}
 		var loadedCh <-chan struct{}
-		if r.ctrl != nil {
+		var ctrl *plugin_space.Controller
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			ctrl = r.ctrl
+		})
+		if ctrl != nil {
 			var ids []string
-			ids, loadedCh = r.ctrl.GetLoadedPluginIDsAndWaitCh()
+			ids, loadedCh = ctrl.GetLoadedPluginIDsAndWaitCh()
 			for _, pid := range ids {
 				loadedIDs[pid] = struct{}{}
 			}

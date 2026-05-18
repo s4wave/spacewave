@@ -3,12 +3,12 @@
 package hash
 
 import (
-	"crypto/sha256"
-	"sync"
-	"syscall/js"
-
 	// We include sha1 for git support.
 	"crypto/sha1" //nolint:gosec
+	"crypto/sha256"
+	"runtime"
+	"sync"
+	"syscall/js"
 
 	"github.com/pkg/errors"
 	"github.com/zeebo/blake3"
@@ -21,13 +21,13 @@ const subtleCryptoDigestMinSize = 12 * 1024
 func sumHashType(h HashType, data []byte) ([]byte, error) {
 	switch h {
 	case HashType_HashType_SHA256:
-		if len(data) < subtleCryptoDigestMinSize {
+		if runtime.Compiler == "tinygo" || len(data) < subtleCryptoDigestMinSize {
 			h := sha256.Sum256(data)
 			return h[:], nil
 		}
 		return subtleCryptoDigest("SHA-256", data)
 	case HashType_HashType_SHA1:
-		if len(data) < subtleCryptoDigestMinSize {
+		if runtime.Compiler == "tinygo" || len(data) < subtleCryptoDigestMinSize {
 			h := sha1.Sum(data) //nolint:gosec
 			return h[:], nil
 		}

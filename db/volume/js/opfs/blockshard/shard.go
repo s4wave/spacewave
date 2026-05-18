@@ -5,7 +5,6 @@ package blockshard
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,7 +22,6 @@ import (
 const (
 	manifestSlotA = "manifest-a"
 	manifestSlotB = "manifest-b"
-	manifestGen   = "manifest-gen"
 )
 
 // Shard is a single block shard backed by an OPFS directory.
@@ -202,9 +200,6 @@ func (s *Shard) writeManifest(m *Manifest) error {
 	if err := s.writeFileData(context.Background(), slot, mdata); err != nil {
 		return errors.Wrap(err, "write manifest")
 	}
-	if err := s.writeFileData(context.Background(), manifestGen, encodeManifestGeneration(m.Generation)); err != nil {
-		return errors.Wrap(err, "write manifest generation")
-	}
 
 	s.mu.Lock()
 	s.setManifestLocked(m)
@@ -222,8 +217,8 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 	taskName := "hydra/opfs-blockshard/shard/write-file-data/select-sync"
 	if s.asyncIO {
 		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/forced-config"
-	} else if !opfs.SyncAvailable() {
-		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/sync-unavailable"
+	} else if !opfs.PreferSyncAccessHandles() {
+		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/sync-not-preferred"
 	} else if !isSegmentFilename(name) {
 		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/non-segment"
 	}
@@ -233,14 +228,8 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 	selectTask.End()
 
 	if s.shouldUseAsyncWrite(name) {
-		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/create-async-file")
-		f, err := opfs.CreateAsyncFile(s.dir, name)
-		subtask.End()
-		if err != nil {
-			return err
-		}
-		_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/write-async")
-		_, err = f.WriteAtContext(ctx, data, 0)
+		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data/write-async-file")
+		err := opfs.WriteFile(s.dir, name, data)
 		subtask.End()
 		return err
 	}
@@ -278,7 +267,7 @@ func (s *Shard) shouldUseAsyncWrite(name string) bool {
 	if s.asyncIO {
 		return true
 	}
-	if !opfs.SyncAvailable() {
+	if !opfs.PreferSyncAccessHandles() {
 		return true
 	}
 	return !isSegmentFilename(name)
@@ -449,19 +438,6 @@ func readFileBytesRequired(ctx context.Context, dir js.Value, name string) ([]by
 		return nil, nil
 	}
 	return buf, nil
-}
-
-func decodeManifestGeneration(buf []byte) (uint64, bool) {
-	if len(buf) != 8 {
-		return 0, false
-	}
-	return binary.BigEndian.Uint64(buf), true
-}
-
-func encodeManifestGeneration(gen uint64) []byte {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, gen)
-	return buf
 }
 
 // zeroPad formats n as a zero-padded decimal string.

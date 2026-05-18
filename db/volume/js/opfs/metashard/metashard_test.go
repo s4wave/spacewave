@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
+	"github.com/s4wave/spacewave/db/opfs/filelock"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 )
 
@@ -184,6 +185,58 @@ func TestMetaShardReadSnapshotIsolation(t *testing.T) {
 	}
 	if !found || string(val) != "v2" {
 		t.Fatalf("live read got found=%v val=%q want v2", found, val)
+	}
+}
+
+func TestMetaStoreReadTxDoesNotHoldMetaWebLock(t *testing.T) {
+	name := "test-metastore-read-tx-does-not-hold-lock"
+	ms := newTestMetaShard(t, name)
+	store := NewMetaStore(ms)
+	ctx := context.Background()
+
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, []byte("k"), []byte("v1")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	readTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+
+	release, acquired, err := filelock.AcquireWebLockIfAvailable(name+"/meta/write", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !acquired {
+		t.Fatal("read transaction held meta WebLock")
+	}
+	release()
+
+	writeTx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeTx.Set(ctx, []byte("k"), []byte("v2")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	val, found, err := readTx.Get(ctx, []byte("k"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "v1" {
+		t.Fatalf("snapshot read got found=%v val=%q want v1", found, val)
 	}
 }
 

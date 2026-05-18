@@ -607,6 +607,72 @@ export const CreateSpaceRequest: MessageType<CreateSpaceRequest> =
   })
 
 /**
+ * MountSharedObjectResponse is the response type for MountSharedObject.
+ *
+ * @generated from message s4wave.session.MountSharedObjectResponse
+ */
+export interface MountSharedObjectResponse {
+  /**
+   * ResourceId is the ID of the mounted shared object resource.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+  /**
+   * SharedObjectMeta is the metadata for the SharedObject.
+   * Contains the body type and body metadata.
+   *
+   * @generated from field: sobject.SharedObjectMeta shared_object_meta = 2;
+   */
+  sharedObjectMeta?: SharedObjectMeta
+  /**
+   * PeerId is the peer id of our local participant for the shared object.
+   *
+   * @generated from field: string peer_id = 3;
+   */
+  peerId?: string
+  /**
+   * SharedObjectId is the id of the shared object.
+   *
+   * @generated from field: string shared_object_id = 4;
+   */
+  sharedObjectId?: string
+  /**
+   * BlockStoreId is the id of the block store used for the shared object.
+   *
+   * @generated from field: string block_store_id = 5;
+   */
+  blockStoreId?: string
+  /**
+   * HashType is the hash type preferred by the block store used for the shared object.
+   * The zero value (0) indicates any.
+   *
+   * @generated from field: hash.HashType hash_type = 6;
+   */
+  hashType?: HashType
+}
+
+// MountSharedObjectResponse contains the message type declaration for MountSharedObjectResponse.
+export const MountSharedObjectResponse: MessageType<MountSharedObjectResponse> =
+  createMessageType({
+    typeName: 's4wave.session.MountSharedObjectResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 2,
+        name: 'shared_object_meta',
+        kind: 'message',
+        T: () => SharedObjectMeta,
+      },
+      { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'hash_type', kind: 'enum', T: HashType_Enum },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * CreateSpaceResponse is the response type for CreateSpace.
  *
  * @generated from message s4wave.session.CreateSpaceResponse
@@ -624,6 +690,26 @@ export interface CreateSpaceResponse {
    * @generated from field: sobject.SharedObjectMeta shared_object_meta = 2;
    */
   sharedObjectMeta?: SharedObjectMeta
+  /**
+   * MountedSharedObject is the mounted SharedObject resource created as part of
+   * space initialization. Callers may use it instead of immediately remounting
+   * the same SharedObject by id.
+   *
+   * @generated from field: s4wave.session.MountSharedObjectResponse mounted_shared_object = 3;
+   */
+  mountedSharedObject?: MountSharedObjectResponse
+  /**
+   * SharedObjectBodyResourceId is the resource id of the mounted Space body.
+   *
+   * @generated from field: uint32 shared_object_body_resource_id = 4;
+   */
+  sharedObjectBodyResourceId?: number
+  /**
+   * SpaceWorldResourceId is the resource id of the mounted Space world engine.
+   *
+   * @generated from field: uint32 space_world_resource_id = 5;
+   */
+  spaceWorldResourceId?: number
 }
 
 // CreateSpaceResponse contains the message type declaration for CreateSpaceResponse.
@@ -642,6 +728,24 @@ export const CreateSpaceResponse: MessageType<CreateSpaceResponse> =
         name: 'shared_object_meta',
         kind: 'message',
         T: () => SharedObjectMeta,
+      },
+      {
+        no: 3,
+        name: 'mounted_shared_object',
+        kind: 'message',
+        T: () => MountSharedObjectResponse,
+      },
+      {
+        no: 4,
+        name: 'shared_object_body_resource_id',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 5,
+        name: 'space_world_resource_id',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
       },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -752,72 +856,6 @@ export const MountSharedObjectRequest: MessageType<MountSharedObjectRequest> =
     typeName: 's4wave.session.MountSharedObjectRequest',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * MountSharedObjectResponse is the response type for MountSharedObject.
- *
- * @generated from message s4wave.session.MountSharedObjectResponse
- */
-export interface MountSharedObjectResponse {
-  /**
-   * ResourceId is the ID of the mounted shared object resource.
-   *
-   * @generated from field: uint32 resource_id = 1;
-   */
-  resourceId?: number
-  /**
-   * SharedObjectMeta is the metadata for the SharedObject.
-   * Contains the body type and body metadata.
-   *
-   * @generated from field: sobject.SharedObjectMeta shared_object_meta = 2;
-   */
-  sharedObjectMeta?: SharedObjectMeta
-  /**
-   * PeerId is the peer id of our local participant for the shared object.
-   *
-   * @generated from field: string peer_id = 3;
-   */
-  peerId?: string
-  /**
-   * SharedObjectId is the id of the shared object.
-   *
-   * @generated from field: string shared_object_id = 4;
-   */
-  sharedObjectId?: string
-  /**
-   * BlockStoreId is the id of the block store used for the shared object.
-   *
-   * @generated from field: string block_store_id = 5;
-   */
-  blockStoreId?: string
-  /**
-   * HashType is the hash type preferred by the block store used for the shared object.
-   * The zero value (0) indicates any.
-   *
-   * @generated from field: hash.HashType hash_type = 6;
-   */
-  hashType?: HashType
-}
-
-// MountSharedObjectResponse contains the message type declaration for MountSharedObjectResponse.
-export const MountSharedObjectResponse: MessageType<MountSharedObjectResponse> =
-  createMessageType({
-    typeName: 's4wave.session.MountSharedObjectResponse',
-    fields: [
-      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-      {
-        no: 2,
-        name: 'shared_object_meta',
-        kind: 'message',
-        T: () => SharedObjectMeta,
-      },
-      { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 5, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 6, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -42,3 +42,9 @@ func (c *Config) ParseGCIntervalDur() (time.Duration, error) {
 	}
 	return dur, nil
 }
+
+// GCDisabled returns whether volume GC tracking and sweeps are disabled.
+func (c *Config) GCDisabled() bool {
+	dur, err := c.ParseGCIntervalDur()
+	return err == nil && c.GetGcIntervalDur() != "" && dur == 0
+}

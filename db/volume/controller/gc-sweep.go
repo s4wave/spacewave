@@ -21,7 +21,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		interval = defaultGCInterval
 	}
 	if interval == 0 {
-		c.le.Debug("gc sweep disabled (interval=0)")
+		c.le.Debug("gc disabled (interval=0)")
 		return nil
 	}
 

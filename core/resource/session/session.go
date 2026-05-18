@@ -23,6 +23,7 @@ import (
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	resource_sobject "github.com/s4wave/spacewave/core/resource/sobject"
+	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
@@ -33,6 +34,7 @@ import (
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/util/confparse"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
+	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 	"github.com/sirupsen/logrus"
 )
@@ -249,6 +251,46 @@ func (r *SessionResource) buildCryptoInfo() *s4wave_session.SessionCryptoInfo {
 	return info
 }
 
+func (r *SessionResource) addSharedObjectResource(
+	ctx context.Context,
+	resourceCtx resource_server.ResourceClientContext,
+	soRef *sobject.SharedObjectRef,
+	meta *sobject.SharedObjectMeta,
+) (*s4wave_session.MountSharedObjectResponse, error) {
+	if err := soRef.Validate(); err != nil {
+		return nil, err
+	}
+
+	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(ctx, r.session.GetBus(), soRef, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	soResource := resource_sobject.NewSharedObjectResourceWithHostPluginID(
+		r.le,
+		r.b,
+		mountedSo,
+		meta,
+		soRef,
+		r.session.GetPeerId().String(),
+		r.hostPluginID,
+	)
+	id, err := resourceCtx.AddResource(soResource.GetMux(), mountedSoRef.Release)
+	if err != nil {
+		mountedSoRef.Release()
+		return nil, err
+	}
+
+	return &s4wave_session.MountSharedObjectResponse{
+		ResourceId:       id,
+		SharedObjectMeta: meta,
+		PeerId:           mountedSo.GetPeerID().String(),
+		SharedObjectId:   mountedSo.GetSharedObjectID(),
+		BlockStoreId:     mountedSo.GetBlockStore().GetID(),
+		HashType:         mountedSo.GetBlockStore().GetHashType(),
+	}, nil
+}
+
 // CreateSpace creates a new space within the ProviderAccount with the Session.
 func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.CreateSpaceRequest) (*s4wave_session.CreateSpaceResponse, error) {
 	// Create the new shared object metadata
@@ -278,17 +320,53 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 	if err != nil {
 		return nil, err
 	}
-	// Initialize the space world immediately so later readers and writers do not
-	// block waiting for the first owner mount to seed the head state.
-	_, spaceBodyRef, err := space.ExMountSpaceSoBody(ctx, r.b, soRef, false, nil)
+
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer spaceBodyRef.Release()
+
+	// Initialize the space world immediately so later readers and writers do not
+	// block waiting for the first owner mount to seed the head state. Keep the
+	// mounted resources attached to the client so first-use flows do not need to
+	// immediately remount the same SharedObject by id.
+	mountedSpace, spaceBodyRef, err := space.ExMountSpaceSoBody(ctx, r.b, soRef, false, nil)
+	if err != nil {
+		return nil, err
+	}
+	spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
+		r.le,
+		r.b,
+		mountedSpace.GetSharedObjectBody(),
+		r.session.GetPeerId().String(),
+		r.hostPluginID,
+	)
+	spaceBodyID, err := resourceCtx.AddResource(spaceResource.GetMux(), spaceBodyRef.Release)
+	if err != nil {
+		spaceBodyRef.Release()
+		return nil, err
+	}
+
+	spaceWorld, err := spaceResource.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
+	if err != nil {
+		resourceCtx.ReleaseResource(spaceBodyID)
+		return nil, err
+	}
+	spaceWorldID := spaceWorld.GetResourceId()
+
+	mountedSharedObject, err := r.addSharedObjectResource(ctx, resourceCtx, soRef, soMeta)
+	if err != nil {
+		resourceCtx.ReleaseResource(spaceWorldID)
+		resourceCtx.ReleaseResource(spaceBodyID)
+		return nil, err
+	}
 
 	return &s4wave_session.CreateSpaceResponse{
-		SharedObjectRef:  soRef,
-		SharedObjectMeta: soMeta,
+		SharedObjectRef:            soRef,
+		SharedObjectMeta:           soMeta,
+		MountedSharedObject:        mountedSharedObject,
+		SharedObjectBodyResourceId: spaceBodyID,
+		SpaceWorldResourceId:       spaceWorldID,
 	}, nil
 }
 
@@ -432,35 +510,7 @@ func (r *SessionResource) MountSharedObject(
 		return nil, err
 	}
 
-	// TODO: pass released here?
-	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(ctx, r.session.GetBus(), soRef, false, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	soResource := resource_sobject.NewSharedObjectResourceWithHostPluginID(
-		r.le,
-		r.b,
-		mountedSo,
-		soListEntry.GetMeta(),
-		soRef,
-		r.session.GetPeerId().String(),
-		r.hostPluginID,
-	)
-	id, err := resourceCtx.AddResource(soResource.GetMux(), mountedSoRef.Release)
-	if err != nil {
-		mountedSoRef.Release()
-		return nil, err
-	}
-
-	return &s4wave_session.MountSharedObjectResponse{
-		ResourceId:       id,
-		SharedObjectMeta: soListEntry.GetMeta(),
-		PeerId:           mountedSo.GetPeerID().String(),
-		SharedObjectId:   mountedSo.GetSharedObjectID(),
-		BlockStoreId:     mountedSo.GetBlockStore().GetID(),
-		HashType:         mountedSo.GetBlockStore().GetHashType(),
-	}, nil
+	return r.addSharedObjectResource(ctx, resourceCtx, soRef, soListEntry.GetMeta())
 }
 
 // mountCdnSharedObject publishes the process-scoped CDN SharedObject as a

@@ -3,6 +3,7 @@
 package block_gc_wal
 
 import (
+	"slices"
 	"strings"
 	"syscall/js"
 
@@ -20,14 +21,14 @@ func ReadWAL(dir js.Value, lockPrefix string) ([]*WALEntry, []string, error) {
 		return nil, nil, errors.Wrap(err, "list WAL directory")
 	}
 
-	// Filter and sort .wal files. ListDirectory returns sorted names;
-	// sequence-prefixed filenames sort lexicographically into replay order.
+	// Filter and sort .wal files into durable replay order.
 	var walFiles []string
 	for _, name := range names {
 		if strings.HasSuffix(name, walExtension) {
 			walFiles = append(walFiles, name)
 		}
 	}
+	slices.Sort(walFiles)
 
 	entries := make([]*WALEntry, 0, len(walFiles))
 	for _, name := range walFiles {

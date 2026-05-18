@@ -42,6 +42,10 @@ export interface ObjectViewerComponent {
   category?: string
   // disablePadding removes the default 5px viewer content padding.
   disablePadding?: boolean
+  // requiresObjectState indicates whether the component needs the generic
+  // world object handle before it can render. Components that open their typed
+  // resource directly can render from a trusted object type hint.
+  requiresObjectState?: boolean
   // component is the React component to render.
   component: React.ComponentType<ObjectViewerComponentProps>
 }

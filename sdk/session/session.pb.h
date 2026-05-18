@@ -14730,6 +14730,9 @@ class CreateSpaceResponse final : public ::google::protobuf::Message
   enum : int {
     kSharedObjectRefFieldNumber = 1,
     kSharedObjectMetaFieldNumber = 2,
+    kMountedSharedObjectFieldNumber = 3,
+    kSharedObjectBodyResourceIdFieldNumber = 4,
+    kSpaceWorldResourceIdFieldNumber = 5,
   };
   // .sobject.SharedObjectRef shared_object_ref = 1;
   bool has_shared_object_ref() const;
@@ -14761,12 +14764,47 @@ class CreateSpaceResponse final : public ::google::protobuf::Message
   ::sobject::SharedObjectMeta* PROTOBUF_NONNULL _internal_mutable_shared_object_meta();
 
   public:
+  // .s4wave.session.MountSharedObjectResponse mounted_shared_object = 3;
+  bool has_mounted_shared_object() const;
+  void clear_mounted_shared_object() ;
+  const ::s4wave::session::MountSharedObjectResponse& mounted_shared_object() const;
+  [[nodiscard]] ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE release_mounted_shared_object();
+  ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NONNULL mutable_mounted_shared_object();
+  void set_allocated_mounted_shared_object(::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_mounted_shared_object(::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE value);
+  ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE unsafe_arena_release_mounted_shared_object();
+
+  private:
+  const ::s4wave::session::MountSharedObjectResponse& _internal_mounted_shared_object() const;
+  ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NONNULL _internal_mutable_mounted_shared_object();
+
+  public:
+  // uint32 shared_object_body_resource_id = 4;
+  void clear_shared_object_body_resource_id() ;
+  ::uint32_t shared_object_body_resource_id() const;
+  void set_shared_object_body_resource_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_shared_object_body_resource_id() const;
+  void _internal_set_shared_object_body_resource_id(::uint32_t value);
+
+  public:
+  // uint32 space_world_resource_id = 5;
+  void clear_space_world_resource_id() ;
+  ::uint32_t space_world_resource_id() const;
+  void set_space_world_resource_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_space_world_resource_id() const;
+  void _internal_set_space_world_resource_id(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.session.CreateSpaceResponse)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   2, 0,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   3, 0,
                                    2>
       _table_;
 
@@ -14789,6 +14827,9 @@ class CreateSpaceResponse final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::sobject::SharedObjectRef* PROTOBUF_NULLABLE shared_object_ref_;
     ::sobject::SharedObjectMeta* PROTOBUF_NULLABLE shared_object_meta_;
+    ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE mounted_shared_object_;
+    ::uint32_t shared_object_body_resource_id_;
+    ::uint32_t space_world_resource_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -16788,6 +16829,155 @@ inline void CreateSpaceResponse::set_allocated_shared_object_meta(::sobject::Sha
 
   _impl_.shared_object_meta_ = reinterpret_cast<::sobject::SharedObjectMeta*>(value);
   // @@protoc_insertion_point(field_set_allocated:s4wave.session.CreateSpaceResponse.shared_object_meta)
+}
+
+// .s4wave.session.MountSharedObjectResponse mounted_shared_object = 3;
+inline bool CreateSpaceResponse::has_mounted_shared_object() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.mounted_shared_object_ != nullptr);
+  return value;
+}
+inline void CreateSpaceResponse::clear_mounted_shared_object() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.mounted_shared_object_ != nullptr) _impl_.mounted_shared_object_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::s4wave::session::MountSharedObjectResponse& CreateSpaceResponse::_internal_mounted_shared_object() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::session::MountSharedObjectResponse* p = _impl_.mounted_shared_object_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::session::MountSharedObjectResponse&>(::s4wave::session::_MountSharedObjectResponse_default_instance_);
+}
+inline const ::s4wave::session::MountSharedObjectResponse& CreateSpaceResponse::mounted_shared_object() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.session.CreateSpaceResponse.mounted_shared_object)
+  return _internal_mounted_shared_object();
+}
+inline void CreateSpaceResponse::unsafe_arena_set_allocated_mounted_shared_object(
+    ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.mounted_shared_object_);
+  }
+  _impl_.mounted_shared_object_ = reinterpret_cast<::s4wave::session::MountSharedObjectResponse*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.session.CreateSpaceResponse.mounted_shared_object)
+}
+inline ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE CreateSpaceResponse::release_mounted_shared_object() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::session::MountSharedObjectResponse* released = _impl_.mounted_shared_object_;
+  _impl_.mounted_shared_object_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE CreateSpaceResponse::unsafe_arena_release_mounted_shared_object() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.session.CreateSpaceResponse.mounted_shared_object)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::session::MountSharedObjectResponse* temp = _impl_.mounted_shared_object_;
+  _impl_.mounted_shared_object_ = nullptr;
+  return temp;
+}
+inline ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NONNULL CreateSpaceResponse::_internal_mutable_mounted_shared_object() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.mounted_shared_object_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::session::MountSharedObjectResponse>(GetArena());
+    _impl_.mounted_shared_object_ = reinterpret_cast<::s4wave::session::MountSharedObjectResponse*>(p);
+  }
+  return _impl_.mounted_shared_object_;
+}
+inline ::s4wave::session::MountSharedObjectResponse* PROTOBUF_NONNULL CreateSpaceResponse::mutable_mounted_shared_object()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::session::MountSharedObjectResponse* _msg = _internal_mutable_mounted_shared_object();
+  // @@protoc_insertion_point(field_mutable:s4wave.session.CreateSpaceResponse.mounted_shared_object)
+  return _msg;
+}
+inline void CreateSpaceResponse::set_allocated_mounted_shared_object(::s4wave::session::MountSharedObjectResponse* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.mounted_shared_object_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.mounted_shared_object_ = reinterpret_cast<::s4wave::session::MountSharedObjectResponse*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.session.CreateSpaceResponse.mounted_shared_object)
+}
+
+// uint32 shared_object_body_resource_id = 4;
+inline void CreateSpaceResponse::clear_shared_object_body_resource_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shared_object_body_resource_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint32_t CreateSpaceResponse::shared_object_body_resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.CreateSpaceResponse.shared_object_body_resource_id)
+  return _internal_shared_object_body_resource_id();
+}
+inline void CreateSpaceResponse::set_shared_object_body_resource_id(::uint32_t value) {
+  _internal_set_shared_object_body_resource_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.session.CreateSpaceResponse.shared_object_body_resource_id)
+}
+inline ::uint32_t CreateSpaceResponse::_internal_shared_object_body_resource_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.shared_object_body_resource_id_;
+}
+inline void CreateSpaceResponse::_internal_set_shared_object_body_resource_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shared_object_body_resource_id_ = value;
+}
+
+// uint32 space_world_resource_id = 5;
+inline void CreateSpaceResponse::clear_space_world_resource_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_world_resource_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint32_t CreateSpaceResponse::space_world_resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.CreateSpaceResponse.space_world_resource_id)
+  return _internal_space_world_resource_id();
+}
+inline void CreateSpaceResponse::set_space_world_resource_id(::uint32_t value) {
+  _internal_set_space_world_resource_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.session.CreateSpaceResponse.space_world_resource_id)
+}
+inline ::uint32_t CreateSpaceResponse::_internal_space_world_resource_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.space_world_resource_id_;
+}
+inline void CreateSpaceResponse::_internal_set_space_world_resource_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.space_world_resource_id_ = value;
 }
 
 // -------------------------------------------------------------------

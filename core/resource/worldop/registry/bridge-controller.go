@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_plugin "github.com/s4wave/spacewave/sdk/plugin"
@@ -147,9 +148,9 @@ func (o *bridgeOperation) ApplyWorldOp(
 	defer resources.Release()
 
 	// Attach a WorldStateResource so the TS handler can mutate world state.
-	// Pass a bus-backed lookupOp so the TS handler can call applyWorldOp
-	// recursively (e.g. to init UnixFS objects).
-	lookupOp := world.BuildLookupWorldOpFunc(o.b, o.le, o.engineID)
+	// Include built-in Space ops before the bus-backed dynamic registry so TS
+	// handlers can call applyWorldOp recursively (e.g. to init UnixFS objects).
+	lookupOp := space_world_optypes.BuildSpaceLookupOp(o.b, o.le, o.engineID)
 	wsResource := resource_world.NewWorldStateResource(o.le, o.b, ws, lookupOp)
 	worldStateResourceID, err := resources.Client.AttachResource(ctx, "world-state", wsResource.GetMux())
 	if err != nil {
