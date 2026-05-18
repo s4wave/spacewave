@@ -44,6 +44,7 @@ type CdnBlockStore struct {
 	cache  *memIndexCache
 	pfs    *packfile_store.PackfileStore
 
+	decodedBlocks   *block.DecodedBlockCache
 	bcast           broadcast.Broadcast
 	pointer         *cdn.CdnRootPointer
 	pointerTime     time.Time
@@ -67,12 +68,17 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	cache := newMemIndexCache()
 	opener := NewAnonymousOpener(cli, opts.CdnBaseURL, opts.SpaceID)
 	pfs := packfile_store.NewPackfileStore(opener, cache)
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		return nil, err
+	}
 	return &CdnBlockStore{
-		opts:   opts,
-		cli:    cli,
-		opener: opener,
-		cache:  cache,
-		pfs:    pfs,
+		opts:          opts,
+		cli:           cli,
+		opener:        opener,
+		cache:         cache,
+		pfs:           pfs,
+		decodedBlocks: decodedBlocks,
 	}, nil
 }
 
@@ -92,9 +98,23 @@ func (s *CdnBlockStore) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
 
+// GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.
+func (s *CdnBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
+	return s.decodedBlocks
+}
+
 // BeginReadOperation returns the CDN block store as the scoped read handle.
 func (s *CdnBlockStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
 	return s, func() {}, nil
+}
+
+// Close releases the decoded-block cache owned by this block store.
+func (s *CdnBlockStore) Close() {
+	if s.decodedBlocks == nil {
+		return
+	}
+	s.decodedBlocks.Close()
+	s.decodedBlocks = nil
 }
 
 // SetWriteback enables local co-block persistence through the underlying

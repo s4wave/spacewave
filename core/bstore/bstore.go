@@ -1,6 +1,7 @@
 package bstore
 
 import (
+	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/sirupsen/logrus"
 )
@@ -9,6 +10,8 @@ import (
 type BlockStore interface {
 	// Store is the block store interface.
 	block_store.Store
+	// GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.
+	GetDecodedBlockCache() *block.DecodedBlockCache
 }
 
 // Validate validates the block store ref.

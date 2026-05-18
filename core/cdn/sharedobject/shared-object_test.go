@@ -15,6 +15,7 @@ import (
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	"github.com/sirupsen/logrus"
 )
 
 const testSpaceID = "01kpftest0000000000000001"
@@ -175,6 +176,49 @@ func TestEmptyInitializedPointerHasNoHead(t *testing.T) {
 	}
 	if head != nil {
 		t.Fatalf("head inner state = %+v, want nil for empty initialized CDN root", head)
+	}
+}
+
+func TestWorldEnginesBorrowBlockStoreDecodedCache(t *testing.T) {
+	ctx := context.Background()
+	head := &bucket.ObjectRef{}
+	innerState := &sobject_world_engine.InnerState{HeadRef: head}
+	innerStateBytes, err := innerState.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sori := &sobject.SORootInner{Seqno: 1, StateData: innerStateBytes}
+	soriBytes, err := sori.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	so := newTestSharedObject(t, &sobject.SORoot{Inner: soriBytes, InnerSeqno: 1})
+	wantCache := so.bs.GetDecodedBlockCache()
+	if wantCache == nil {
+		t.Fatal("expected block store decoded cache")
+	}
+
+	le := logrus.NewEntry(logrus.New())
+	first, err := NewWorldEngine(ctx, le, nil, so, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Release()
+	second, err := NewWorldEngine(ctx, le, nil, so, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Release()
+
+	if first.decodedBlocks != wantCache || second.decodedBlocks != wantCache {
+		t.Fatal("world engines did not borrow the block-store decoded cache")
+	}
+	if first.ownDecodedBlocks || second.ownDecodedBlocks {
+		t.Fatal("world engines should not own fallback caches when block store has an owner cache")
+	}
+	first.Release()
+	if so.bs.GetDecodedBlockCache() != wantCache {
+		t.Fatal("releasing a borrowing world engine closed the block-store decoded cache")
 	}
 }
 

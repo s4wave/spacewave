@@ -43,16 +43,19 @@ func StartEngineWithConfig(
 
 // blkEngine contains a world state with engine.
 type blkEngine struct {
-	bengine       *world_block.Engine
-	cursor        *bucket_lookup.Cursor
-	decodedBlocks *block.DecodedBlockCache
-	lookupOp      world.LookupOp
+	bengine          *world_block.Engine
+	cursor           *bucket_lookup.Cursor
+	decodedBlocks    *block.DecodedBlockCache
+	ownDecodedBlocks bool
+	lookupOp         world.LookupOp
 }
 
 // Release releases the engine resources.
 func (w *blkEngine) Release() {
 	w.cursor.Release()
-	w.decodedBlocks.Close()
+	if w.ownDecodedBlocks {
+		w.decodedBlocks.Close()
+	}
 }
 
 // buildBlkEngine builds a world state with engine from a head ref.
@@ -88,19 +91,26 @@ func (c *Controller) buildBlkEngine(
 		}
 	}
 
-	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
-	if err != nil {
-		return nil, err
+	blockStore := so.GetBlockStore()
+	decodedBlocks := blockStore.GetDecodedBlockCache()
+	ownDecodedBlocks := false
+	if decodedBlocks == nil {
+		var err error
+		decodedBlocks, err = block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+		if err != nil {
+			return nil, err
+		}
+		ownDecodedBlocks = true
 	}
-	releaseDecodedBlocks := true
+	closeDecodedBlocks := ownDecodedBlocks
 	defer func() {
-		if releaseDecodedBlocks {
+		if closeDecodedBlocks {
 			decodedBlocks.Close()
 		}
 	}()
 
 	// the bucket ID is equivalent to the block store id
-	bucketID := so.GetBlockStore().GetID()
+	bucketID := blockStore.GetID()
 	headRef.BucketId = bucketID
 
 	// build cursor with shared object block store
@@ -112,12 +122,12 @@ func (c *Controller) buildBlkEngine(
 			c.bus,
 			le,
 			c.sfs,
-			so.GetBlockStore(),
+			blockStore,
 			xfrm,
 			headRef,
 			&bucket.BucketOpArgs{
-				BucketId: so.GetBlockStore().GetID(),
-				VolumeId: so.GetBlockStore().GetID(),
+				BucketId: bucketID,
+				VolumeId: bucketID,
 			},
 			transformConf,
 		)
@@ -150,12 +160,13 @@ func (c *Controller) buildBlkEngine(
 		}
 	}
 
-	releaseDecodedBlocks = false
+	closeDecodedBlocks = false
 	return &blkEngine{
-		bengine:       bengine,
-		cursor:        cursor,
-		decodedBlocks: decodedBlocks,
-		lookupOp:      lookupWorldOp,
+		bengine:          bengine,
+		cursor:           cursor,
+		decodedBlocks:    decodedBlocks,
+		ownDecodedBlocks: ownDecodedBlocks,
+		lookupOp:         lookupWorldOp,
 	}, nil
 }
 

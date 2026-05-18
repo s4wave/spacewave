@@ -57,6 +57,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer store.Close()
 	so, err := cdn_sharedobject.NewCdnSharedObject(cdn_sharedobject.CdnSharedObjectOptions{
 		SpaceID:    c.conf.GetSpaceId(),
 		BlockStore: store,

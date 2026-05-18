@@ -309,6 +309,53 @@ func TestDecodedBlockCacheRejectsEntriesOverBudget(t *testing.T) {
 	}
 }
 
+func TestDecodedBlockCacheUsesDecodedEntryCostAboveRawBytes(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	want := &block_mock.Example{Msg: "decoded-cost"}
+	rawData, err := want.MarshalBlock()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref, _, err := block.PutBlock(ctx, store, want)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DecodedBlockCacheOptions{
+		MaxCost: int64(len(rawData)),
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	opCtx, counter := block.WithReadCounter(ctx)
+	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
+	for range 2 {
+		_, cursor := block.NewTransaction(store, nil, ref, nil)
+		blk, err := cursor.Unmarshal(opCtx, block_mock.NewExampleBlock)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if got := blk.(*block_mock.Example).GetMsg(); got != "decoded-cost" {
+			t.Fatalf("decoded message = %q, want decoded-cost", got)
+		}
+		decodedBlocks.Wait()
+	}
+
+	snapshot := counter.Snapshot()
+	if snapshot.BlockReadCount != 2 ||
+		snapshot.DecodedBlockUnmarshalCount != 2 ||
+		snapshot.DecodedBlockCacheHitCount != 0 ||
+		snapshot.DecodedBlockStoreCost <= uint64(len(rawData))*2 {
+		t.Fatalf("decoded-entry cost should exceed raw-byte budget: %+v", snapshot)
+	}
+	cacheSnapshot := decodedBlocks.Snapshot()
+	if cacheSnapshot.RetainedCost != 0 || cacheSnapshot.Stores != 0 {
+		t.Fatalf("decoded-entry cost should not retain over-budget entries: counter=%+v cache=%+v", snapshot, cacheSnapshot)
+	}
+}
+
 func TestDecodedBlockCacheDisabledDoesNotRetain(t *testing.T) {
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)

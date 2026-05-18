@@ -24,6 +24,12 @@ type DecodedBlockCacheTransformer interface {
 	DecodedBlockCacheTransformKey() string
 }
 
+type decodedBlockCacheSizer interface {
+	SizeVT() int
+}
+
+const decodedBlockCacheEntryOverheadCost int64 = 256
+
 // DecodedBlockCache owns shared decoded block reuse.
 type DecodedBlockCache struct {
 	cache *ristretto.Cache[string, Block]
@@ -195,8 +201,8 @@ func (c *DecodedBlockCache) Store(
 	if c == nil || c.cache == nil {
 		return nil
 	}
-	cost := int64(len(data))
-	if cost <= 0 {
+	cost, ok := decodedBlockCacheCost(blk, data)
+	if !ok {
 		RecordDecodedBlockUncacheable(ctx)
 		return nil
 	}
@@ -233,6 +239,28 @@ func decodedBlockFrontCacheFromContext(ctx context.Context) *decodedBlockFrontCa
 		return nil
 	}
 	return op.decodedBlocks
+}
+
+func decodedBlockCacheCost(blk Block, data []byte) (int64, bool) {
+	rawCost := int64(len(data))
+	if rawCost <= 0 {
+		return 0, false
+	}
+	decodedCost := int64(0)
+	if sizer, ok := blk.(decodedBlockCacheSizer); ok {
+		decodedCost = int64(sizer.SizeVT())
+	}
+	if decodedCost <= 0 {
+		decodedData, err := blk.MarshalBlock()
+		if err != nil {
+			return 0, false
+		}
+		decodedCost = int64(len(decodedData))
+	}
+	if decodedCost <= 0 {
+		return 0, false
+	}
+	return rawCost + decodedCost + decodedBlockCacheEntryOverheadCost, true
 }
 
 func decodedBlockCacheKeyFor(ref *BlockRef, blk Block, xfrm Transformer) (decodedBlockCacheKey, bool) {

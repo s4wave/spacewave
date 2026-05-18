@@ -50,6 +50,8 @@ type Transaction struct {
 	// bufferedStoreSettings overrides the default BufferedStore settings used
 	// inside WriteAtRoot. nil uses the defaults.
 	bufferedStoreSettings *BufferedStoreSettings
+	// decodedBlocks is borrowed from the owning object lifecycle.
+	decodedBlocks *DecodedBlockCache
 }
 
 // NewTransaction builds a new transaction with a root cursor.
@@ -130,6 +132,16 @@ func (t *Transaction) SetStoreOps(store StoreOps) {
 		return
 	}
 	t.store = store
+}
+
+// SetDecodedBlockCache sets the lifecycle-owned decoded-block cache borrowed by this transaction.
+func (t *Transaction) SetDecodedBlockCache(cache *DecodedBlockCache) {
+	if t == nil {
+		return
+	}
+	t.mtx.Lock()
+	t.decodedBlocks = cache
+	t.mtx.Unlock()
 }
 
 // SetBufferedStoreSettings overrides the BufferedStore settings used to wrap
@@ -587,11 +599,12 @@ func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
 		return nil
 	}
 	nt := &Transaction{
-		store:      t.store,
-		xfrm:       t.xfrm,
-		root:       nroot,
-		blockGraph: newDirectedGraph(),
-		putOpts:    t.putOpts,
+		store:         t.store,
+		xfrm:          t.xfrm,
+		root:          nroot,
+		blockGraph:    newDirectedGraph(),
+		putOpts:       t.putOpts,
+		decodedBlocks: t.decodedBlocks,
 	}
 	nt.root.Node = nt.blockGraph.NewNode()
 	nt.blockGraph.AddNode(nt.root)

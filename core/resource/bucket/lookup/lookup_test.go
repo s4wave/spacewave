@@ -3,8 +3,11 @@ package resource_bucket_lookup
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 
+	"github.com/aperturerobotics/starpc/srpc"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/blocktype"
@@ -12,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
+	s4wave_block_cursor "github.com/s4wave/spacewave/sdk/block/cursor"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	"github.com/sirupsen/logrus"
 )
@@ -119,6 +123,86 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 	}
 }
 
+func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+	addExampleBlockTypeController(t, ctx, tb)
+
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(cursor.Release)
+
+	want := &block_mock.Example{Msg: "transaction resource"}
+	tx, bcs := cursor.BuildTransaction(nil)
+	bcs.SetBlock(want, true)
+	rootRef, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cursor.SetRootRef(rootRef)
+
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+	cursor.SetDecodedBlockCache(decodedBlocks)
+
+	resourceClient := newRecordingResourceClient(ctx)
+	resourceCtx := resource_server.WithResourceClientContext(ctx, resourceClient)
+	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
+
+	buildResp, err := resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cursorClient := resourceClient.blockCursorClient(t, buildResp.GetCursorResourceId())
+
+	firstCtx, firstCounter := block.WithReadCounter(ctx)
+	first, err := cursorClient.Unmarshal(firstCtx, &s4wave_block_cursor.UnmarshalRequest{BlockType: exampleBlockTypeID})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertExampleResponse(t, first.GetData(), "transaction resource")
+	decodedBlocks.Wait()
+
+	buildResp, err = resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cursorClient = resourceClient.blockCursorClient(t, buildResp.GetCursorResourceId())
+	secondCtx, secondCounter := block.WithReadCounter(ctx)
+	second, err := cursorClient.Unmarshal(secondCtx, &s4wave_block_cursor.UnmarshalRequest{BlockType: exampleBlockTypeID})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertExampleResponse(t, second.GetData(), "transaction resource")
+
+	firstSnapshot := firstCounter.Snapshot()
+	if firstSnapshot.BlockReadCount != 1 ||
+		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
+		firstSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		firstSnapshot.DecodedBlockCacheMissCount != 1 {
+		t.Fatalf("unexpected first transaction resource counters: %+v", firstSnapshot)
+	}
+	secondSnapshot := secondCounter.Snapshot()
+	if secondSnapshot.BlockReadCount != 0 ||
+		secondSnapshot.DecodedBlockUnmarshalCount != 0 ||
+		secondSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		secondSnapshot.DecodedBlockCacheHitCount != 1 ||
+		secondSnapshot.DecodedBlockCloneCount != 1 {
+		t.Fatalf("unexpected second transaction resource counters: %+v", secondSnapshot)
+	}
+}
+
 func TestPutBlockBatchUsesCursorBatch(t *testing.T) {
 	ctx := context.Background()
 	store := &recordingBucketOps{StoreOps: block_mock.NewMockStore(0)}
@@ -221,6 +305,80 @@ type recordingBucketOps struct {
 	existsBatchRefs   []*block.BlockRef
 	existsBatchResult []bool
 }
+
+type recordingResourceClient struct {
+	ctx      context.Context
+	nextID   uint32
+	muxes    map[uint32]srpc.Invoker
+	values   map[uint32]any
+	releases map[uint32]func()
+}
+
+func newRecordingResourceClient(ctx context.Context) *recordingResourceClient {
+	return &recordingResourceClient{
+		ctx:      ctx,
+		muxes:    make(map[uint32]srpc.Invoker),
+		values:   make(map[uint32]any),
+		releases: make(map[uint32]func()),
+	}
+}
+
+func (c *recordingResourceClient) Context() context.Context {
+	return c.ctx
+}
+
+func (c *recordingResourceClient) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
+	return c.AddResourceValue(mux, nil, releaseFn)
+}
+
+func (c *recordingResourceClient) AddResourceValue(mux srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	c.nextID++
+	c.muxes[c.nextID] = mux
+	c.values[c.nextID] = value
+	c.releases[c.nextID] = releaseFn
+	return c.nextID, nil
+}
+
+func (c *recordingResourceClient) ReleaseResource(resourceID uint32) bool {
+	releaseFn, ok := c.releases[resourceID]
+	if !ok {
+		return false
+	}
+	delete(c.muxes, resourceID)
+	delete(c.values, resourceID)
+	delete(c.releases, resourceID)
+	if releaseFn != nil {
+		releaseFn()
+	}
+	return true
+}
+
+func (c *recordingResourceClient) GetResourceValue(resourceID uint32) (any, error) {
+	value := c.values[resourceID]
+	if value == nil {
+		return nil, errors.New("resource value not found")
+	}
+	return value, nil
+}
+
+func (c *recordingResourceClient) GetAttachedResource(resourceID uint32) (srpc.Client, error) {
+	mux := c.muxes[resourceID]
+	if mux == nil {
+		return nil, errors.New("resource mux not found")
+	}
+	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))), nil
+}
+
+func (c *recordingResourceClient) blockCursorClient(t *testing.T, resourceID uint32) s4wave_block_cursor.SRPCBlockCursorResourceServiceClient {
+	t.Helper()
+	client, err := c.GetAttachedResource(resourceID)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return s4wave_block_cursor.NewSRPCBlockCursorResourceServiceClient(client)
+}
+
+var _ resource_server.ResourceClientContext = ((*recordingResourceClient)(nil))
 
 func (s *recordingBucketOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.putBlockCalls++

@@ -297,6 +297,23 @@ func TestCdnBlockStoreReadsBlock(t *testing.T) {
 	}
 }
 
+func TestCdnBlockStoreOwnsDecodedBlockCache(t *testing.T) {
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: "https://cdn.example.test",
+		SpaceID:    testSpaceID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bs.GetDecodedBlockCache() == nil {
+		t.Fatal("expected CDN block store to own a decoded-block cache")
+	}
+	bs.Close()
+	if bs.GetDecodedBlockCache() != nil {
+		t.Fatal("expected Close to release decoded-block cache")
+	}
+}
+
 func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 	ctx := context.Background()
 

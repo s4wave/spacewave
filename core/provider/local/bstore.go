@@ -20,6 +20,8 @@ import (
 type BlockStore struct {
 	// store is the inner block store.
 	store block_store.Store
+	// decodedBlocks is the decoded-block cache owned by the block-store lifecycle.
+	decodedBlocks *block.DecodedBlockCache
 }
 
 // GetID returns the inner store id.
@@ -37,6 +39,11 @@ func (b *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return b.store.GetSupportedFeatures()
 }
 
+// GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.
+func (b *BlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
+	return b.decodedBlocks
+}
+
 // BeginReadOperation opens a read scope on the inner store.
 func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	store, release, err := b.store.BeginReadOperation(ctx)
@@ -47,7 +54,7 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 	if !ok {
 		scopedStore = block_store.NewStore(b.store.GetID(), store)
 	}
-	return &BlockStore{store: scopedStore}, release, nil
+	return &BlockStore{store: scopedStore, decodedBlocks: b.decodedBlocks}, release, nil
 }
 
 // PutBlock forwards to the inner store.
@@ -190,7 +197,15 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 
 	// Construct the block store handle and controller.
-	bstoreHandle := &BlockStore{store: block_store.NewStore(blockStoreLocalID, bucketHandle.GetBucket())}
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		return err
+	}
+	defer decodedBlocks.Close()
+	bstoreHandle := &BlockStore{
+		store:         block_store.NewStore(blockStoreLocalID, bucketHandle.GetBucket()),
+		decodedBlocks: decodedBlocks,
+	}
 	bstoreCtrl := block_store_controller.NewController(
 		le,
 		controller.NewInfo(ControllerID+"/bstore", Version, "local block store for: "+blockStoreLocalID),

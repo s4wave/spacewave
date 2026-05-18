@@ -81,3 +81,30 @@ func TestBlockStoreForwardsBatchAndBackground(t *testing.T) {
 		t.Fatalf("expected 1 GetBlockExistsBatch call, got %d", inner.existsBatchHits)
 	}
 }
+
+func TestBlockStoreReadOperationSharesDecodedBlockCache(t *testing.T) {
+	ctx := context.Background()
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	store := &BlockStore{
+		store:         newBatchForwardTestStore(),
+		decodedBlocks: decodedBlocks,
+	}
+	scoped, release, err := store.BeginReadOperation(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer release()
+
+	scopedStore, ok := scoped.(*BlockStore)
+	if !ok {
+		t.Fatalf("scoped store type = %T, want *BlockStore", scoped)
+	}
+	if scopedStore.GetDecodedBlockCache() != decodedBlocks {
+		t.Fatal("scoped read operation did not borrow block-store decoded cache")
+	}
+}

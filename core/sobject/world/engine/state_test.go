@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -48,7 +49,7 @@ func TestExecuteWatchSOStateOnceSignalsGCSweepMaintenance(t *testing.T) {
 
 	c := &Controller{le: tb.Logger}
 	so := &testSharedObject{
-		blockStore: block_store.NewStore(tb.EngineBucketID, tb.Volume),
+		blockStore: newTestBlockStore(tb.EngineBucketID, tb.Volume),
 	}
 	soEngine := &soEngine{
 		c:       c,
@@ -80,6 +81,19 @@ func TestExecuteWatchSOStateOnceSignalsGCSweepMaintenance(t *testing.T) {
 
 type testSharedObject struct {
 	blockStore bstore.BlockStore
+}
+
+type testBlockStore struct {
+	block_store.Store
+	decodedBlocks *block.DecodedBlockCache
+}
+
+func newTestBlockStore(id string, store block.StoreOps) *testBlockStore {
+	return &testBlockStore{Store: block_store.NewStore(id, store)}
+}
+
+func (s *testBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
+	return s.decodedBlocks
 }
 
 func (s *testSharedObject) GetBus() bus.Bus {

@@ -36,8 +36,10 @@ type WorldEngine struct {
 	// Cursor is the underlying root bucket cursor held by the engine. Release
 	// via WorldEngine.Release when done; Engine itself does not own it.
 	Cursor *bucket_lookup.Cursor
-	// decodedBlocks is the decoded-block cache owned by this CDN object engine.
+	// decodedBlocks is the decoded-block cache borrowed by this CDN object engine.
 	decodedBlocks *block.DecodedBlockCache
+	// ownDecodedBlocks is true only for explicit fallback cache ownership.
+	ownDecodedBlocks bool
 
 	// refresh runs the head-ref watcher goroutine; owned by Release.
 	refresh *routine.RoutineContainer
@@ -58,10 +60,11 @@ func (w *WorldEngine) Release() {
 		w.Cursor.Release()
 		w.Cursor = nil
 	}
-	if w.decodedBlocks != nil {
+	if w.ownDecodedBlocks && w.decodedBlocks != nil {
 		w.decodedBlocks.Close()
-		w.decodedBlocks = nil
 	}
+	w.decodedBlocks = nil
+	w.ownDecodedBlocks = false
 }
 
 // NewWorldEngine builds a read-only *world_block.Engine against the CDN
@@ -118,13 +121,19 @@ func NewWorldEngine(
 		}
 	}
 
-	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
-	if err != nil {
-		return nil, errors.Wrap(err, "build decoded block cache")
+	blockStore := so.GetBlockStore()
+	decodedBlocks := blockStore.GetDecodedBlockCache()
+	ownDecodedBlocks := false
+	if decodedBlocks == nil {
+		decodedBlocks, err = block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+		if err != nil {
+			return nil, errors.Wrap(err, "build decoded block cache")
+		}
+		ownDecodedBlocks = true
 	}
-	releaseDecodedBlocks := true
+	closeDecodedBlocks := ownDecodedBlocks
 	defer func() {
-		if releaseDecodedBlocks {
+		if closeDecodedBlocks {
 			decodedBlocks.Close()
 		}
 	}()
@@ -134,7 +143,7 @@ func NewWorldEngine(
 		b,
 		le,
 		sfs,
-		so.GetBlockStore(),
+		blockStore,
 		xfrm,
 		headRef,
 		&bucket.BucketOpArgs{
@@ -152,9 +161,10 @@ func NewWorldEngine(
 	}
 
 	w := &WorldEngine{
-		Engine:        bengine,
-		Cursor:        cursor,
-		decodedBlocks: decodedBlocks,
+		Engine:           bengine,
+		Cursor:           cursor,
+		decodedBlocks:    decodedBlocks,
+		ownDecodedBlocks: ownDecodedBlocks,
 	}
 
 	watchable, _, _ := so.AccessSharedObjectState(ctx, nil)
@@ -191,6 +201,6 @@ func NewWorldEngine(
 	})
 	w.refresh.SetContext(ctx, true)
 
-	releaseDecodedBlocks = false
+	closeDecodedBlocks = false
 	return w, nil
 }

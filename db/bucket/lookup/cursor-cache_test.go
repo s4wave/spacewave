@@ -113,6 +113,71 @@ func TestCursorUnmarshalBorrowsLifecycleDecodedCache(t *testing.T) {
 	}
 }
 
+func TestBuildTransactionBorrowsLifecycleDecodedCache(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "transaction-cache"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	cursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		nil,
+		nil,
+		store,
+		nil,
+		&bucket.ObjectRef{RootRef: ref},
+		nil,
+		nil,
+	)
+	cursor.SetDecodedBlockCache(decodedBlocks)
+	defer cursor.Release()
+
+	firstCtx, firstCounter := block.WithReadCounter(ctx)
+	_, firstCursor := cursor.BuildTransaction(nil)
+	first, err := firstCursor.Unmarshal(firstCtx, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := first.(*block_mock.Example).GetMsg(); got != "transaction-cache" {
+		t.Fatalf("first decoded message = %q, want transaction-cache", got)
+	}
+	decodedBlocks.Wait()
+
+	secondCtx, secondCounter := block.WithReadCounter(ctx)
+	_, secondCursor := cursor.BuildTransaction(nil)
+	second, err := secondCursor.Unmarshal(secondCtx, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := second.(*block_mock.Example).GetMsg(); got != "transaction-cache" {
+		t.Fatalf("second decoded message = %q, want transaction-cache", got)
+	}
+
+	firstSnapshot := firstCounter.Snapshot()
+	if firstSnapshot.BlockReadCount != 1 ||
+		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
+		firstSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		firstSnapshot.DecodedBlockCacheMissCount != 1 {
+		t.Fatalf("unexpected first transaction counters: %+v", firstSnapshot)
+	}
+	secondSnapshot := secondCounter.Snapshot()
+	if secondSnapshot.BlockReadCount != 0 ||
+		secondSnapshot.DecodedBlockUnmarshalCount != 0 ||
+		secondSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		secondSnapshot.DecodedBlockCacheHitCount != 1 ||
+		secondSnapshot.DecodedBlockCloneCount != 1 {
+		t.Fatalf("unexpected second transaction counters: %+v", secondSnapshot)
+	}
+}
+
 func TestCursorUnmarshalWithoutOwnerUsesUncachedPath(t *testing.T) {
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)

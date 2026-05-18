@@ -650,6 +650,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	if b == nil {
 		return nil, nil
 	}
+	ctx = c.decodedBlockCacheContext(ctx)
 	cacheKey, cacheable := decodedBlockCacheKeyFor(c.pos.ref, b, c.transformer())
 	if !cacheable {
 		RecordDecodedBlockUncacheable(ctx)
@@ -694,6 +695,16 @@ func (c *Cursor) readStore(ctx context.Context) StoreOps {
 	}
 	bkt, _ = c.GetBlockStore()
 	return bkt
+}
+
+func (c *Cursor) decodedBlockCacheContext(ctx context.Context) context.Context {
+	if decodedBlockCacheFromContext(ctx) != nil || c == nil || c.t == nil {
+		return ctx
+	}
+	c.t.mtx.Lock()
+	cache := c.t.decodedBlocks
+	c.t.mtx.Unlock()
+	return WithDecodedBlockCache(ctx, cache)
 }
 
 func (c *Cursor) transformer() Transformer {

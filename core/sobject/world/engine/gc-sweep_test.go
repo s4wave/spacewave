@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
-	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/kvtx"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -100,7 +99,7 @@ func TestExecuteGCSweepMaintenanceWaitsForRoleChanges(t *testing.T) {
 		snapshot: &testGCSweepSnapshot{
 			role: sobject.SOParticipantRole_SOParticipantRole_READER,
 		},
-		blockStore: block_store.NewStore(tb.EngineBucketID, tb.Volume),
+		blockStore: newTestBlockStore(tb.EngineBucketID, tb.Volume),
 	}
 	c := &Controller{
 		le:   tb.Logger,
@@ -135,7 +134,7 @@ func TestExecuteGCSweepMaintenanceWaitsForRoleChanges(t *testing.T) {
 
 type testGCSweepSharedObject struct {
 	snapshot   sobject.SharedObjectStateSnapshot
-	blockStore block_store.Store
+	blockStore bstore.BlockStore
 	queueOps   [][]byte
 }
 

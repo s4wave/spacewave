@@ -40,6 +40,8 @@ const (
 type BlockStore struct {
 	// store is the inner block store overlay.
 	store block_store.Store
+	// decodedBlocks is the decoded-block cache owned by the block-store lifecycle.
+	decodedBlocks *block.DecodedBlockCache
 	// forceSync flushes pending dirty blocks to the cloud immediately.
 	forceSync func(ctx context.Context) error
 }
@@ -59,6 +61,11 @@ func (b *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return b.store.GetSupportedFeatures()
 }
 
+// GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.
+func (b *BlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
+	return b.decodedBlocks
+}
+
 // BeginReadOperation opens a read scope on the inner store.
 func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	store, release, err := b.store.BeginReadOperation(ctx)
@@ -69,7 +76,7 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 	if !ok {
 		scopedStore = block_store.NewStore(b.store.GetID(), store)
 	}
-	return &BlockStore{store: scopedStore, forceSync: b.forceSync}, release, nil
+	return &BlockStore{store: scopedStore, decodedBlocks: b.decodedBlocks, forceSync: b.forceSync}, release, nil
 }
 
 // PutBlock forwards to the inner store.
@@ -267,7 +274,15 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	overlay := newCloudOverlay(ctx, le, lower, dirtyUpper)
 
 	// Build the block store handle.
-	bstoreHandle := &BlockStore{store: block_store.NewStore(localID, overlay)}
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		return errors.Wrap(err, "building decoded block cache")
+	}
+	defer decodedBlocks.Close()
+	bstoreHandle := &BlockStore{
+		store:         block_store.NewStore(localID, overlay),
+		decodedBlocks: decodedBlocks,
+	}
 
 	// Build and register block store controller on the bus.
 	bstoreCtrl := block_store_controller.NewController(

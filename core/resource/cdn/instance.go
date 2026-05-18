@@ -58,6 +58,7 @@ func newCdnInstance(
 		BlockStore: bs,
 	})
 	if err != nil {
+		bs.Close()
 		return nil, errors.Wrap(err, "build cdn shared object")
 	}
 	refresh := routine.NewRoutineContainerWithLogger(le)
@@ -104,10 +105,13 @@ func (c *CdnInstance) Refresh() {
 	c.refresh.RestartRoutine()
 }
 
-// Close stops the refresh routine. The underlying SharedObject and block
-// store have no teardown of their own.
+// Close stops the refresh routine and releases the block-store cache.
 func (c *CdnInstance) Close() {
 	if c.refresh != nil {
 		c.refresh.ClearContext()
+	}
+	if c.bs != nil {
+		c.bs.Close()
+		c.bs = nil
 	}
 }
