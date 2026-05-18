@@ -3,6 +3,7 @@ package block_gc
 import (
 	"context"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -575,6 +576,42 @@ func TestMixedNodeTypes(t *testing.T) {
 		}
 		if !has {
 			t.Fatalf("expected %s to have incoming refs", node)
+		}
+	}
+}
+
+func TestApplyRefBatchLargeBatchKeepsAddThenRemoveSemantics(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	edgeCount := refGraphApplyBatchLimit*3 + 17
+	adds := make([]RefEdge, 0, edgeCount+1)
+	for i := range edgeCount {
+		adds = append(adds, RefEdge{
+			Subject: "root",
+			Object:  "node-" + strconv.Itoa(i),
+		})
+	}
+	adds = append(adds, RefEdge{Subject: "root", Object: "removed"})
+	removes := []RefEdge{{Subject: "root", Object: "removed"}}
+
+	if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
+		t.Fatal(err)
+	}
+
+	refs, err := rg.GetOutgoingRefs(ctx, "root")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(refs) != edgeCount {
+		t.Fatalf("outgoing ref count = %d, want %d", len(refs), edgeCount)
+	}
+	if slices.Contains(refs, "removed") {
+		t.Fatal("removed edge should be absent after add-before-remove batch")
+	}
+	for _, node := range []string{"node-0", "node-512", "node-1536"} {
+		if !slices.Contains(refs, node) {
+			t.Fatalf("missing edge to %s", node)
 		}
 	}
 }

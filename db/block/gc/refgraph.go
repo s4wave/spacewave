@@ -29,6 +29,8 @@ type RefGraph struct {
 	iriRefKeys map[string]any
 }
 
+const refGraphApplyBatchLimit = 512
+
 // NewRefGraph constructs a RefGraph backed by the given kvtx store.
 // prefix is prepended to all keys (e.g., "gc/" for space context).
 func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGraph, error) {
@@ -91,10 +93,29 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
 	defer task.End()
 
-	n := len(adds) + len(removes)
-	if n == 0 {
+	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
+
+	for len(adds) != 0 {
+		n := min(len(adds), refGraphApplyBatchLimit)
+		if err := rg.applyRefBatch(ctx, adds[:n], nil); err != nil {
+			return err
+		}
+		adds = adds[n:]
+	}
+	for len(removes) != 0 {
+		n := min(len(removes), refGraphApplyBatchLimit)
+		if err := rg.applyRefBatch(ctx, nil, removes[:n]); err != nil {
+			return err
+		}
+		removes = removes[n:]
+	}
+	return nil
+}
+
+func (rg *RefGraph) applyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	n := len(adds) + len(removes)
 	tx := graph.NewTransactionN(n)
 	for _, e := range adds {
 		tx.AddQuad(quad.Make(quad.IRI(e.Subject), quad.IRI(PredGCRef), quad.IRI(e.Object), nil))
