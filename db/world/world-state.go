@@ -315,7 +315,7 @@ func AccessObject(
 			return berr
 		}
 		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/clone-out-ref")
-		outRef = bls.GetRef().Clone()
+		outRef = bls.GetRefWithOpArgs()
 		subtask.End()
 		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/write-transaction")
 		outRef.RootRef, _, berr = btx.Write(ctx, true)
