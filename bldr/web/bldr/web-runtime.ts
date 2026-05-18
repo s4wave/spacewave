@@ -140,7 +140,7 @@ class WebRuntimeClientInstance {
       this.init.clientType !==
         WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT ||
       typeof navigator === 'undefined' ||
-      !('locks' in navigator)
+      !navigator.locks
     ) {
       return
     }
@@ -589,7 +589,7 @@ export class WebRuntime {
     if (
       !webLockName ||
       typeof navigator === 'undefined' ||
-      !('locks' in navigator)
+      !navigator.locks
     ) {
       return
     }

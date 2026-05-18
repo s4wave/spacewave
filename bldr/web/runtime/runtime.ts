@@ -140,7 +140,9 @@ export interface ConnectWebRuntimeAck {
   // from is the identifier of the sender.
   from: string
   // webRuntimePort contains the port connected to the remote WebRuntime.
-  webRuntimePort: MessagePort
+  webRuntimePort?: MessagePort
+  // error reports that the WebDocument could not forward the port.
+  error?: string
 }
 
 // ConnectWebRtcBridgeAck is sent from WebDocument to worker with the bridge port.

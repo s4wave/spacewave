@@ -26,6 +26,8 @@ async function flushPromises(count = 5): Promise<void> {
   }
 }
 
+async function* emptyPacketSource(): AsyncGenerator<Uint8Array> {}
+
 async function startStreamOpenGate(
   client: WebRuntimeClient,
   generationId = 1,
@@ -395,7 +397,18 @@ describe('WebRuntimeClient', () => {
     fake.channels[0].port1.onmessage?.({
       data: { from: 'runtime', ack: true, opened: true },
     } as MessageEvent)
-    await expect(openPromise).resolves.toBeDefined()
+    const stream = await openPromise
+    expect(client.getRuntimeGenerationSnapshot().activeStreams).toBe(1)
+
+    await stream.sink(emptyPacketSource())
+    expect(client.getRuntimeGenerationSnapshot().activeStreams).toBe(1)
+
+    const close = Reflect.get(stream, 'close')
+    if (typeof close !== 'function') {
+      throw new Error('runtime stream close method missing')
+    }
+    close.call(stream)
+    expect(client.getRuntimeGenerationSnapshot().activeStreams).toBe(0)
 
     client.close()
   })

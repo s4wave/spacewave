@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { ClientToWebDocument } from '../runtime/runtime.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 
@@ -368,6 +369,48 @@ describe('WebDocumentTracker resume-ready gate', () => {
     await expect(waitConn).rejects.toThrow(
       'closed while waiting for WebDocument',
     )
+    documentPort.close()
+  })
+
+  it('rejects WebDocument connect error acks without a timer', async () => {
+    let resolveExhausted: () => void = () => {}
+    const exhausted = new Promise<void>((resolve) => {
+      resolveExhausted = resolve
+    })
+    const onWebDocumentsExhausted = vi.fn(async () => {
+      resolveExhausted()
+    })
+    const tracker = new WebDocumentTracker(
+      'service-worker',
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      onWebDocumentsExhausted,
+      null,
+    )
+    const documentPort = attachWebDocument(tracker)
+    const connectMsg = new Promise<ClientToWebDocument>((resolve) => {
+      documentPort.onmessage = (ev) => {
+        resolve(ev.data)
+      }
+      documentPort.start()
+    })
+
+    const waitConn = tracker.waitConn()
+    const msg = await connectMsg
+    const ackPort = msg.connectWebRuntime?.port
+    if (!ackPort) {
+      throw new Error('connectWebRuntime ack port missing')
+    }
+    ackPort.postMessage({
+      from: 'document-1',
+      error: 'webRuntimePort not initialized',
+    })
+
+    await exhausted
+    tracker.close()
+    await expect(waitConn).rejects.toThrow(
+      'closed while waiting for WebDocument',
+    )
+    expect(onWebDocumentsExhausted).toHaveBeenCalledTimes(1)
     documentPort.close()
   })
 

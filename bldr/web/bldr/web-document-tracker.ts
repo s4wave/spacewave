@@ -383,6 +383,14 @@ export class WebDocumentTracker {
         if (result instanceof Error) {
           throw result
         }
+        if (result.error) {
+          throw new Error(result.error)
+        }
+        if (!result.webRuntimePort) {
+          throw new Error(
+            `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} ack missing runtime port`,
+          )
+        }
         console.log(
           `WebDocumentTracker: ${this.clientUuid}: opened port with WebRuntime via WebDocument: ${webDocumentId}`,
         )
@@ -438,7 +446,9 @@ export class WebDocumentTracker {
     webDocumentId: string,
     signal: AbortSignal,
   ): Promise<Error | undefined> {
-    if (typeof navigator === 'undefined' || !('locks' in navigator)) {
+    if (typeof navigator === 'undefined' || !navigator.locks) {
+      // No timer fallback here: a hidden WebDocument without Web Locks can be
+      // suspended, so elapsed time is not proof that the document disappeared.
       return new Promise(() => {})
     }
 
@@ -460,7 +470,7 @@ export class WebDocumentTracker {
     this.activeRuntimeDocumentAbort?.abort()
     this.activeRuntimeWebDocumentId = webDocumentId
 
-    if (typeof navigator === 'undefined' || !('locks' in navigator)) {
+    if (typeof navigator === 'undefined' || !navigator.locks) {
       this.activeRuntimeDocumentAbort = undefined
       return
     }

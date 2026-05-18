@@ -90,6 +90,8 @@ export type WaitForStreamOpenGateFn =
 class RuntimeClientPacketStream implements PacketStream {
   public readonly source: PacketStream['source']
   public readonly sink: PacketStream['sink']
+  private sourceClosed = false
+  private sinkClosed = false
   private released = false
 
   constructor(
@@ -101,7 +103,8 @@ class RuntimeClientPacketStream implements PacketStream {
       try {
         await inner.sink(source)
       } finally {
-        this.releaseOnce()
+        this.sinkClosed = true
+        this.releaseIfBothDirectionsClosed()
       }
     }
   }
@@ -117,6 +120,15 @@ class RuntimeClientPacketStream implements PacketStream {
     try {
       yield* source
     } finally {
+      this.sourceClosed = true
+      this.releaseIfBothDirectionsClosed()
+    }
+  }
+
+  private releaseIfBothDirectionsClosed(): void {
+    // A clean duplex half-close is not a dead stream. Keep it generation-owned
+    // until both halves finish or close() tears down the still-live side.
+    if (this.sourceClosed && this.sinkClosed) {
       this.releaseOnce()
     }
   }

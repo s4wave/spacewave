@@ -1027,7 +1027,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // tab creates plugin workers at a time. SharedWorker mode doesn't need this
     // because the Go runtime's singletonWorkerDoc handles it within the shared
     // process. The lock is held until this document closes.
-    if (useDedicatedRuntime && !this.isElectron && 'locks' in navigator) {
+    if (useDedicatedRuntime && !this.isElectron && navigator.locks) {
       this.singletonAbort = new AbortController()
       markStartupBoundary('singleton-lock.request-start', {
         source: 'browser',
@@ -2131,8 +2131,24 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     })
     port.start()
 
-    // Ack we are opening the channel and pass the MessagePort to use.
     const { port1: clientPort, port2: webRuntimePort } = new MessageChannel()
+    try {
+      this.sendWebRuntimeOpenClient(from, init, webRuntimePort)
+    } catch (err) {
+      clientPort.close()
+      webRuntimePort.close()
+      const message = err instanceof Error ? err.message : String(err)
+      const ack: ConnectWebRuntimeAck = {
+        from: this.webDocumentUuid,
+        error: message,
+      }
+      port.postMessage(ack)
+      port.close()
+      return
+    }
+
+    // Ack only after forwarding the remote port. Otherwise the caller can get a
+    // client port that no WebRuntime will ever open, with no timeout to rescue it.
     const ack: ConnectWebRuntimeAck = {
       from: this.webDocumentUuid,
       webRuntimePort: clientPort,
@@ -2146,8 +2162,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       from,
     })
 
-    // Send the MessagePort to the WebRuntime to complete the connection.
-    this.sendWebRuntimeOpenClient(from, init, webRuntimePort)
   }
 
   // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.

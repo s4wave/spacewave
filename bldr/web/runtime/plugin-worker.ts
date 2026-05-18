@@ -133,7 +133,7 @@ export class PluginWorker {
   private armWorkerLock() {
     if (
       typeof navigator === 'undefined' ||
-      !('locks' in navigator) ||
+      !navigator.locks ||
       this.lockAbortController
     ) {
       return
