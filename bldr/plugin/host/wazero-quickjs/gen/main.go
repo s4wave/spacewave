@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 
@@ -91,10 +92,10 @@ func main() {
 		return
 	}
 
-	eslintDisable := "/* eslint-disable */\n"
-	newContent := eslintDisable + string(content)
+	eslintDisable := []byte("/* eslint-disable */\n")
+	newContent := append(eslintDisable, trimTrailingLineWhitespace(content)...)
 	// #nosec G703 -- writes a fixed generated filename in the current generator directory.
-	if err := os.WriteFile("plugin-quickjs.esm.js", []byte(newContent), 0o644); err != nil {
+	if err := os.WriteFile("plugin-quickjs.esm.js", newContent, 0o644); err != nil {
 		le.WithError(err).Fatal("failed to write eslint-disable comment")
 		return
 	}
@@ -105,4 +106,27 @@ func main() {
 	} else {
 		le.Info("cleaned up intermediate file")
 	}
+}
+
+func trimTrailingLineWhitespace(data []byte) []byte {
+	lines := bytes.SplitAfter(data, []byte("\n"))
+	out := make([]byte, 0, len(data))
+	for _, line := range lines {
+		hasNewline := len(line) > 0 && line[len(line)-1] == '\n'
+		if hasNewline {
+			line = line[:len(line)-1]
+		}
+		for len(line) > 0 {
+			last := line[len(line)-1]
+			if last != ' ' && last != '\t' {
+				break
+			}
+			line = line[:len(line)-1]
+		}
+		out = append(out, line...)
+		if hasNewline {
+			out = append(out, '\n')
+		}
+	}
+	return out
 }
