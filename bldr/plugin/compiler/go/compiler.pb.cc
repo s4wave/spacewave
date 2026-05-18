@@ -243,6 +243,7 @@ inline constexpr Config::Impl_::Impl_(
         enable_compression_{static_cast< ::enabled::Enabled >(0)},
         disable_rpc_fetch_{false},
         vite_disable_project_config_{false},
+        enable_imported_factory_discovery_{static_cast< ::enabled::Enabled >(0)},
         config_set_{},
         host_config_set_{},
         build_types_{},
@@ -403,7 +404,7 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_._has_bits_),
-        19, // hasbit index offset
+        20, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.project_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.config_set_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.host_config_set_),
@@ -420,9 +421,10 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.web_plugin_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.build_types_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.platform_types_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.enable_imported_factory_discovery_),
         4,
-        12,
         13,
+        14,
         0,
         1,
         3,
@@ -434,8 +436,9 @@ const ::uint32_t
         9,
         2,
         6,
-        14,
         15,
+        16,
+        12,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::PreBuildHookResult, _impl_._has_bits_),
         4, // hasbit index offset
@@ -522,13 +525,13 @@ static const ::_pbi::MigrationSchema
         {14, sizeof(::bldr::plugin::compiler::go::Config_BuildTypesEntry_DoNotUse)},
         {21, sizeof(::bldr::plugin::compiler::go::Config_PlatformTypesEntry_DoNotUse)},
         {28, sizeof(::bldr::plugin::compiler::go::Config)},
-        {63, sizeof(::bldr::plugin::compiler::go::PreBuildHookResult)},
-        {68, sizeof(::bldr::plugin::compiler::go::InputFileMeta)},
-        {73, sizeof(::bldr::plugin::compiler::go::InputManifestMeta)},
-        {96, sizeof(::bldr::plugin::compiler::go::EsbuildBundleVarMeta)},
-        {103, sizeof(::bldr::plugin::compiler::go::EsbuildEntrypointVar)},
-        {116, sizeof(::bldr::plugin::compiler::go::ViteBundleVarMeta)},
-        {123, sizeof(::bldr::plugin::compiler::go::ViteEntrypointVar)},
+        {65, sizeof(::bldr::plugin::compiler::go::PreBuildHookResult)},
+        {70, sizeof(::bldr::plugin::compiler::go::InputFileMeta)},
+        {75, sizeof(::bldr::plugin::compiler::go::InputManifestMeta)},
+        {98, sizeof(::bldr::plugin::compiler::go::EsbuildBundleVarMeta)},
+        {105, sizeof(::bldr::plugin::compiler::go::EsbuildEntrypointVar)},
+        {118, sizeof(::bldr::plugin::compiler::go::ViteBundleVarMeta)},
+        {125, sizeof(::bldr::plugin::compiler::go::ViteEntrypointVar)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::compiler::go::_Config_ConfigSetEntry_DoNotUse_default_instance_._instance,
@@ -559,7 +562,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "ldr/web/pkg/pkg.proto\032;github.com/s4wave"
     "/spacewave/bldr/plugin/vardef/vardef.pro"
     "to\0326github.com/aperturerobotics/util/ena"
-    "bled/enabled.proto\"\370\007\n\006Config\022\022\n\nproject"
+    "bled/enabled.proto\"\265\010\n\006Config\022\022\n\nproject"
     "_id\030\001 \001(\t\022B\n\nconfig_set\030\002 \003(\0132..bldr.plu"
     "gin.compiler.go.Config.ConfigSetEntry\022K\n"
     "\017host_config_set\030\003 \003(\01322.bldr.plugin.com"
@@ -576,54 +579,56 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "s\030\016 \003(\0132/.bldr.plugin.compiler.go.Config"
     ".BuildTypesEntry\022J\n\016platform_types\030\021 \003(\013"
     "22.bldr.plugin.compiler.go.Config.Platfo"
-    "rmTypesEntry\032S\n\016ConfigSetEntry\022\013\n\003key\030\001 "
-    "\001(\t\0220\n\005value\030\002 \001(\0132!.configset.proto.Con"
-    "trollerConfig:\0028\001\032W\n\022HostConfigSetEntry\022"
-    "\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configset."
-    "proto.ControllerConfig:\0028\001\032R\n\017BuildTypes"
-    "Entry\022\013\n\003key\030\001 \001(\t\022.\n\005value\030\002 \001(\0132\037.bldr"
-    ".plugin.compiler.go.Config:\0028\001\032U\n\022Platfo"
-    "rmTypesEntry\022\013\n\003key\030\001 \001(\t\022.\n\005value\030\002 \001(\013"
-    "2\037.bldr.plugin.compiler.go.Config:\0028\001\"E\n"
-    "\022PreBuildHookResult\022/\n\006config\030\001 \001(\0132\037.bl"
-    "dr.plugin.compiler.go.Config\"E\n\rInputFil"
-    "eMeta\0224\n\004kind\030\001 \001(\0162&.bldr.plugin.compil"
-    "er.go.InputFileKind\"\213\004\n\021InputManifestMet"
-    "a\0223\n\010dev_info\030\001 \001(\0132!.bldr.plugin.vardef"
-    ".PluginDevInfo\022(\n\014web_pkg_refs\030\002 \003(\0132\022.w"
-    "eb.pkg.WebPkgRef\0223\n\010web_pkgs\030\003 \003(\0132!.bld"
-    "r.web.bundler.WebPkgRefConfig\022\025\n\resbuild"
-    "_flags\030\004 \003(\t\022F\n\017esbuild_bundles\030\005 \003(\0132-."
-    "bldr.plugin.compiler.go.EsbuildBundleVar"
-    "Meta\022D\n\017esbuild_outputs\030\006 \003(\0132+.bldr.web"
-    ".bundler.esbuild.EsbuildOutputMeta\022\031\n\021vi"
-    "te_config_paths\030\007 \003(\t\022@\n\014vite_bundles\030\010 "
-    "\003(\0132*.bldr.plugin.compiler.go.ViteBundle"
-    "VarMeta\022;\n\014vite_outputs\030\t \003(\0132%.bldr.web"
-    ".bundler.vite.ViteOutputMeta\022#\n\033vite_dis"
-    "able_project_config\030\n \001(\010\"j\n\024EsbuildBund"
-    "leVarMeta\022\n\n\002id\030\001 \001(\t\022F\n\017entrypoint_vars"
-    "\030\002 \003(\0132-.bldr.plugin.compiler.go.Esbuild"
-    "EntrypointVar\"\255\001\n\024EsbuildEntrypointVar\022\027"
-    "\n\017pkg_import_path\030\001 \001(\t\022\017\n\007pkg_var\030\002 \001(\t"
-    "\022\025\n\rpkg_code_path\030\003 \001(\t\022=\n\014pkg_var_type\030"
-    "\004 \001(\0162\'.bldr.plugin.compiler.go.EsbuildV"
-    "arType\022\025\n\resbuild_flags\030\005 \003(\t\"d\n\021ViteBun"
-    "dleVarMeta\022\n\n\002id\030\001 \001(\t\022C\n\017entrypoint_var"
-    "s\030\002 \003(\0132*.bldr.plugin.compiler.go.ViteEn"
-    "trypointVar\"\344\001\n\021ViteEntrypointVar\022\027\n\017pkg"
-    "_import_path\030\001 \001(\t\022\017\n\007pkg_var\030\002 \001(\t\022\025\n\rp"
-    "kg_code_path\030\003 \001(\t\022:\n\014pkg_var_type\030\004 \001(\016"
-    "2$.bldr.plugin.compiler.go.ViteVarType\022\031"
-    "\n\021vite_config_paths\030\005 \003(\t\022\027\n\017entrypoint_"
-    "path\030\006 \001(\t\022\036\n\026disable_project_config\030\007 \001"
-    "(\010*Y\n\rInputFileKind\022\031\n\025InputFileKind_UNK"
-    "NOWN\020\000\022\027\n\023InputFileKind_ASSET\020\001\022\024\n\020Input"
-    "FileKind_GO\020\002*[\n\016EsbuildVarType\022\"\n\036Esbui"
-    "ldVarType_ENTRYPOINT_PATH\020\000\022%\n!EsbuildVa"
-    "rType_WEB_BUNDLER_OUTPUT\020\001*R\n\013ViteVarTyp"
-    "e\022\037\n\033ViteVarType_ENTRYPOINT_PATH\020\000\022\"\n\036Vi"
-    "teVarType_WEB_BUNDLER_OUTPUT\020\001b\006proto3"
+    "rmTypesEntry\022;\n!enable_imported_factory_"
+    "discovery\030\022 \001(\0162\020.enabled.Enabled\032S\n\016Con"
+    "figSetEntry\022\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132"
+    "!.configset.proto.ControllerConfig:\0028\001\032W"
+    "\n\022HostConfigSetEntry\022\013\n\003key\030\001 \001(\t\0220\n\005val"
+    "ue\030\002 \001(\0132!.configset.proto.ControllerCon"
+    "fig:\0028\001\032R\n\017BuildTypesEntry\022\013\n\003key\030\001 \001(\t\022"
+    ".\n\005value\030\002 \001(\0132\037.bldr.plugin.compiler.go"
+    ".Config:\0028\001\032U\n\022PlatformTypesEntry\022\013\n\003key"
+    "\030\001 \001(\t\022.\n\005value\030\002 \001(\0132\037.bldr.plugin.comp"
+    "iler.go.Config:\0028\001\"E\n\022PreBuildHookResult"
+    "\022/\n\006config\030\001 \001(\0132\037.bldr.plugin.compiler."
+    "go.Config\"E\n\rInputFileMeta\0224\n\004kind\030\001 \001(\016"
+    "2&.bldr.plugin.compiler.go.InputFileKind"
+    "\"\213\004\n\021InputManifestMeta\0223\n\010dev_info\030\001 \001(\013"
+    "2!.bldr.plugin.vardef.PluginDevInfo\022(\n\014w"
+    "eb_pkg_refs\030\002 \003(\0132\022.web.pkg.WebPkgRef\0223\n"
+    "\010web_pkgs\030\003 \003(\0132!.bldr.web.bundler.WebPk"
+    "gRefConfig\022\025\n\resbuild_flags\030\004 \003(\t\022F\n\017esb"
+    "uild_bundles\030\005 \003(\0132-.bldr.plugin.compile"
+    "r.go.EsbuildBundleVarMeta\022D\n\017esbuild_out"
+    "puts\030\006 \003(\0132+.bldr.web.bundler.esbuild.Es"
+    "buildOutputMeta\022\031\n\021vite_config_paths\030\007 \003"
+    "(\t\022@\n\014vite_bundles\030\010 \003(\0132*.bldr.plugin.c"
+    "ompiler.go.ViteBundleVarMeta\022;\n\014vite_out"
+    "puts\030\t \003(\0132%.bldr.web.bundler.vite.ViteO"
+    "utputMeta\022#\n\033vite_disable_project_config"
+    "\030\n \001(\010\"j\n\024EsbuildBundleVarMeta\022\n\n\002id\030\001 \001"
+    "(\t\022F\n\017entrypoint_vars\030\002 \003(\0132-.bldr.plugi"
+    "n.compiler.go.EsbuildEntrypointVar\"\255\001\n\024E"
+    "sbuildEntrypointVar\022\027\n\017pkg_import_path\030\001"
+    " \001(\t\022\017\n\007pkg_var\030\002 \001(\t\022\025\n\rpkg_code_path\030\003"
+    " \001(\t\022=\n\014pkg_var_type\030\004 \001(\0162\'.bldr.plugin"
+    ".compiler.go.EsbuildVarType\022\025\n\resbuild_f"
+    "lags\030\005 \003(\t\"d\n\021ViteBundleVarMeta\022\n\n\002id\030\001 "
+    "\001(\t\022C\n\017entrypoint_vars\030\002 \003(\0132*.bldr.plug"
+    "in.compiler.go.ViteEntrypointVar\"\344\001\n\021Vit"
+    "eEntrypointVar\022\027\n\017pkg_import_path\030\001 \001(\t\022"
+    "\017\n\007pkg_var\030\002 \001(\t\022\025\n\rpkg_code_path\030\003 \001(\t\022"
+    ":\n\014pkg_var_type\030\004 \001(\0162$.bldr.plugin.comp"
+    "iler.go.ViteVarType\022\031\n\021vite_config_paths"
+    "\030\005 \003(\t\022\027\n\017entrypoint_path\030\006 \001(\t\022\036\n\026disab"
+    "le_project_config\030\007 \001(\010*Y\n\rInputFileKind"
+    "\022\031\n\025InputFileKind_UNKNOWN\020\000\022\027\n\023InputFile"
+    "Kind_ASSET\020\001\022\024\n\020InputFileKind_GO\020\002*[\n\016Es"
+    "buildVarType\022\"\n\036EsbuildVarType_ENTRYPOIN"
+    "T_PATH\020\000\022%\n!EsbuildVarType_WEB_BUNDLER_O"
+    "UTPUT\020\001*R\n\013ViteVarType\022\037\n\033ViteVarType_EN"
+    "TRYPOINT_PATH\020\000\022\"\n\036ViteVarType_WEB_BUNDL"
+    "ER_OUTPUT\020\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto_deps[7] = {
@@ -639,7 +644,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto = {
     false,
     false,
-    3118,
+    3179,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto,
     "github.com/s4wave/spacewave/bldr/plugin/compiler/go/compiler.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto_once,
@@ -1084,13 +1089,13 @@ void Config::clear_config_set() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.config_set_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00001000U);
+                  0x00002000U);
 }
 void Config::clear_host_config_set() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.host_config_set_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00002000U);
+                  0x00004000U);
 }
 void Config::clear_web_pkgs() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
@@ -1142,9 +1147,9 @@ Config::Config(
                offsetof(Impl_, enable_cgo_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, enable_cgo_),
-           offsetof(Impl_, vite_disable_project_config_) -
+           offsetof(Impl_, enable_imported_factory_discovery_) -
                offsetof(Impl_, enable_cgo_) +
-               sizeof(Impl_::vite_disable_project_config_));
+               sizeof(Impl_::enable_imported_factory_discovery_));
 
   // @@protoc_insertion_point(copy_constructor:bldr.plugin.compiler.go.Config)
 }
@@ -1169,9 +1174,9 @@ inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, enable_cgo_),
            0,
-           offsetof(Impl_, vite_disable_project_config_) -
+           offsetof(Impl_, enable_imported_factory_discovery_) -
                offsetof(Impl_, enable_cgo_) +
-               sizeof(Impl_::vite_disable_project_config_));
+               sizeof(Impl_::enable_imported_factory_discovery_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:bldr.plugin.compiler.go.Config)
@@ -1273,16 +1278,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 16, 9, 175, 2>
+const ::_pbi::TcParseTable<4, 17, 9, 175, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    17, 120,  // max_field_number, fast_idx_mask
+    18, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294836288,  // skipmap
+    4294705216,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    16,  // num_field_entries
+    17,  // num_field_entries
     9,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -1300,7 +1305,10 @@ Config::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {10, 4, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.project_id_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .enabled.Enabled enable_imported_factory_discovery = 18;
+    {::_pbi::TcParser::FastV32S2,
+     {400, 12, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_imported_factory_discovery_)}},
     {::_pbi::TcParser::MiniParse, {}},
     // repeated string go_pkgs = 4;
     {::_pbi::TcParser::FastUR1,
@@ -1350,9 +1358,9 @@ Config::_table_ = {
     // string project_id = 1;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.project_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // map<string, .configset.proto.ControllerConfig> config_set = 2;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.config_set_), _Internal::kHasBitsOffset + 12, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.config_set_), _Internal::kHasBitsOffset + 13, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
     // map<string, .configset.proto.ControllerConfig> host_config_set = 3;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.host_config_set_), _Internal::kHasBitsOffset + 13, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.host_config_set_), _Internal::kHasBitsOffset + 14, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
     // repeated string go_pkgs = 4;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.go_pkgs_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 5;
@@ -1372,13 +1380,15 @@ Config::_table_ = {
     // string web_plugin_id = 13;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.web_plugin_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // map<string, .bldr.plugin.compiler.go.Config> build_types = 14;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.build_types_), _Internal::kHasBitsOffset + 14, 5, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.build_types_), _Internal::kHasBitsOffset + 15, 5, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
     // repeated string vite_config_paths = 15;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.vite_config_paths_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // bool vite_disable_project_config = 16;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.vite_disable_project_config_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // map<string, .bldr.plugin.compiler.go.Config> platform_types = 17;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.platform_types_), _Internal::kHasBitsOffset + 15, 7, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.platform_types_), _Internal::kHasBitsOffset + 16, 7, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    // .enabled.Enabled enable_imported_factory_discovery = 18;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_imported_factory_discovery_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bldr::web::bundler::WebPkgRefConfig>()},
@@ -1444,20 +1454,20 @@ PROTOBUF_NOINLINE void Config::Clear() {
   _impl_.enable_cgo_ = 0;
   if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
     ::memset(&_impl_.enable_tinygo_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.vite_disable_project_config_) -
-        reinterpret_cast<char*>(&_impl_.enable_tinygo_)) + sizeof(_impl_.vite_disable_project_config_));
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00001000U)) {
+        reinterpret_cast<char*>(&_impl_.enable_imported_factory_discovery_) -
+        reinterpret_cast<char*>(&_impl_.enable_tinygo_)) + sizeof(_impl_.enable_imported_factory_discovery_));
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
       _impl_.config_set_.Clear();
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00004000U)) {
       _impl_.host_config_set_.Clear();
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00004000U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00008000U)) {
       _impl_.build_types_.Clear();
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00008000U)) {
-      _impl_.platform_types_.Clear();
-    }
+  }
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00010000U)) {
+    _impl_.platform_types_.Clear();
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -1493,7 +1503,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // map<string, .configset.proto.ControllerConfig> config_set = 2;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00001000U)) {
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
     if (!this_._internal_config_set().empty()) {
       using MapType = ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>;
       using WireHelper = _pbi::MapEntryFuncs<::std::string, ::configset::proto::ControllerConfig,
@@ -1522,7 +1532,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // map<string, .configset.proto.ControllerConfig> host_config_set = 3;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00004000U)) {
     if (!this_._internal_host_config_set().empty()) {
       using MapType = ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>;
       using WireHelper = _pbi::MapEntryFuncs<::std::string, ::configset::proto::ControllerConfig,
@@ -1640,7 +1650,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // map<string, .bldr.plugin.compiler.go.Config> build_types = 14;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00004000U)) {
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00008000U)) {
     if (!this_._internal_build_types().empty()) {
       using MapType = ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>;
       using WireHelper = _pbi::MapEntryFuncs<::std::string, ::bldr::plugin::compiler::go::Config,
@@ -1688,7 +1698,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // map<string, .bldr.plugin.compiler.go.Config> platform_types = 17;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00008000U)) {
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00010000U)) {
     if (!this_._internal_platform_types().empty()) {
       using MapType = ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>;
       using WireHelper = _pbi::MapEntryFuncs<::std::string, ::bldr::plugin::compiler::go::Config,
@@ -1713,6 +1723,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
  ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.compiler.go.Config.platform_types");
         }
       }
+    }
+  }
+
+  // .enabled.Enabled enable_imported_factory_discovery = 18;
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (this_._internal_enable_imported_factory_discovery() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          18, this_._internal_enable_imported_factory_discovery(), target);
     }
   }
 
@@ -1832,8 +1851,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
         total_size += 3;
       }
     }
+    // .enabled.Enabled enable_imported_factory_discovery = 18;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (this_._internal_enable_imported_factory_discovery() != 0) {
+        total_size += 2 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_enable_imported_factory_discovery());
+      }
+    }
     // map<string, .configset.proto.ControllerConfig> config_set = 2;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00001000U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
       total_size +=
           1 * ::google::protobuf::internal::FromIntSize(this_._internal_config_set_size());
       for (const auto& entry : this_._internal_config_set()) {
@@ -1843,7 +1869,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
       }
     }
     // map<string, .configset.proto.ControllerConfig> host_config_set = 3;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00004000U)) {
       total_size +=
           1 * ::google::protobuf::internal::FromIntSize(this_._internal_host_config_set_size());
       for (const auto& entry : this_._internal_host_config_set()) {
@@ -1853,7 +1879,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
       }
     }
     // map<string, .bldr.plugin.compiler.go.Config> build_types = 14;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00004000U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00008000U)) {
       total_size +=
           1 * ::google::protobuf::internal::FromIntSize(this_._internal_build_types_size());
       for (const auto& entry : this_._internal_build_types()) {
@@ -1862,8 +1888,10 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                        _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
       }
     }
+  }
+   {
     // map<string, .bldr.plugin.compiler.go.Config> platform_types = 17;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00008000U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00010000U)) {
       total_size +=
           2 * ::google::protobuf::internal::FromIntSize(this_._internal_platform_types_size());
       for (const auto& entry : this_._internal_platform_types()) {
@@ -1967,18 +1995,23 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.vite_disable_project_config_ = from._impl_.vite_disable_project_config_;
       }
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00001000U)) {
-      _this->_impl_.config_set_.MergeFrom(from._impl_.config_set_);
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (from._internal_enable_imported_factory_discovery() != 0) {
+        _this->_impl_.enable_imported_factory_discovery_ = from._impl_.enable_imported_factory_discovery_;
+      }
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
-      _this->_impl_.host_config_set_.MergeFrom(from._impl_.host_config_set_);
+      _this->_impl_.config_set_.MergeFrom(from._impl_.config_set_);
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00004000U)) {
-      _this->_impl_.build_types_.MergeFrom(from._impl_.build_types_);
+      _this->_impl_.host_config_set_.MergeFrom(from._impl_.host_config_set_);
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00008000U)) {
-      _this->_impl_.platform_types_.MergeFrom(from._impl_.platform_types_);
+      _this->_impl_.build_types_.MergeFrom(from._impl_.build_types_);
     }
+  }
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00010000U)) {
+    _this->_impl_.platform_types_.MergeFrom(from._impl_.platform_types_);
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -2007,8 +2040,8 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.delve_addr_, &other->_impl_.delve_addr_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_plugin_id_, &other->_impl_.web_plugin_id_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.vite_disable_project_config_)
-      + sizeof(Config::_impl_.vite_disable_project_config_)
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_imported_factory_discovery_)
+      + sizeof(Config::_impl_.enable_imported_factory_discovery_)
       - PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_cgo_)>(
           reinterpret_cast<char*>(&_impl_.enable_cgo_),
           reinterpret_cast<char*>(&other->_impl_.enable_cgo_));

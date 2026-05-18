@@ -607,6 +607,20 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		t.Fatalf("TinyGo web spacewave-core enableTinygo: got %s, want ENABLE", tinygoWebConf.GetEnableTinygo())
 	}
 
+	tinygoReleaseBuild := result.Config.GetBuild()["release-web-tinygo"]
+	if tinygoReleaseBuild == nil {
+		t.Fatal("build target 'release-web-tinygo' not found")
+	}
+	tinygoReleaseOverride := tinygoReleaseBuild.GetManifestOverrides()["spacewave-core"]
+	if tinygoReleaseOverride == nil {
+		t.Fatal("spacewave-core TinyGo release-web override not found")
+	}
+	tinygoReleaseCoreConf := mustGoPluginConfig(t, tinygoReleaseOverride.GetConfig())
+	tinygoReleaseWebConf := flattenGoConfigForPlatform(t, tinygoReleaseCoreConf, "web/js/wasm")
+	if tinygoReleaseWebConf.GetEnableTinygo() != enabled.Enabled_ENABLE {
+		t.Fatalf("TinyGo release-web spacewave-core enableTinygo: got %s, want ENABLE", tinygoReleaseWebConf.GetEnableTinygo())
+	}
+
 	cli := result.Config.GetManifests()["spacewave"]
 	if cli == nil {
 		t.Fatal("spacewave CLI manifest not found")

@@ -52,7 +52,7 @@ vi.mock('./routes/AppRoutes.js', async () => {
 })
 
 function seedTabs(activeTabId: string) {
-  localStorage.setItem(
+  sessionStorage.setItem(
     SHELL_TABS_STORAGE_KEY,
     JSON.stringify({
       tabs: [
@@ -68,6 +68,7 @@ describe('ShellAppPanel', () => {
   afterEach(() => {
     cleanup()
     localStorage.clear()
+    sessionStorage.clear()
     window.history.replaceState({}, '', '/')
   })
 

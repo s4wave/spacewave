@@ -4,6 +4,7 @@ package web_runtime_wasm
 
 import (
 	"context"
+	"io"
 	"strings"
 	"sync"
 	"syscall/js"
@@ -17,7 +18,9 @@ const (
 	// BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
 	//   onMessage: (message: Uint8Array) => void,
 	//   onClose: (errMsg?: string) => void,
-	// ) => Promise<Pushable<Uint8Array>>
+	//   onResolve: (sink: { push: (message: Uint8Array) => void, end: () => void }) => void,
+	//   onReject: (errMsg: string) => void,
+	// ) => void
 	globalOpenStreamToWebRuntime = "BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME"
 	// BLDR_PLUGIN_SET_ACCEPT_STREAM?: (acceptStream: () => MessagePort) => void
 	globalSetAcceptStream = "BLDR_PLUGIN_SET_ACCEPT_STREAM"
@@ -32,145 +35,315 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 		msgHandler srpc.PacketDataHandler,
 		closeHandler srpc.CloseHandler,
 	) (_ srpc.PacketWriter, err error) {
-		defer func() {
-			if e := recover(); e != nil {
-				switch recovered := e.(type) {
-				case error:
-					err = errors.Wrap(recovered, "invoke open stream to web runtime")
-				default:
-					err = errors.Errorf("invoke open stream to web runtime: %v", recovered)
-				}
-			}
-		}()
-
-		// (message: Uint8Array) => void
-		var releasePacketCallbacks sync.Once
-		var jsOnMessage js.Func
-		var jsOnClose js.Func
-		var packetMtx sync.Mutex
-		packetClosed := false
-		markPacketClosed := func() bool {
-			packetMtx.Lock()
-			defer packetMtx.Unlock()
-			if packetClosed {
-				return false
-			}
-			packetClosed = true
-			return true
-		}
-		isPacketClosed := func() bool {
-			packetMtx.Lock()
-			defer packetMtx.Unlock()
-			return packetClosed
-		}
-		releasePackets := func() {
-			releasePacketCallbacks.Do(func() {
-				jsOnMessage.Release()
-				jsOnClose.Release()
-			})
-		}
-		jsOnMessage = js.FuncOf(func(this js.Value, args []js.Value) any {
-			if isPacketClosed() {
-				return nil
-			}
-
-			// copy packet from Uint8Array to []byte
-			packet := args[0]
-			dlen := packet.Length()
-			bin := make([]byte, dlen)
-			js.CopyBytesToGo(bin, packet)
-
-			// call handler and handle error
-			if err := msgHandler(bin); err != nil {
-				if markPacketClosed() {
-					closeHandler(err)
-				}
-			}
-
-			return nil
-		})
-		// (errMsg?: string) => void,
-		jsOnClose = js.FuncOf(func(this js.Value, args []js.Value) any {
-			var errMsg string
-			if len(args) > 0 {
-				errMsgVal := args[0]
-				if !errMsgVal.IsUndefined() && errMsgVal.Type() == js.TypeString {
-					errMsg = errMsgVal.String()
-				}
-			}
-
-			var err error
-			if len(errMsg) != 0 {
-				err = errors.New(errMsg)
-			}
-
-			if markPacketClosed() {
-				closeHandler(err)
-			}
-			releasePackets()
-			return nil
-		})
-
-		sinkPromise := openStreamFunc.Invoke(jsOnMessage, jsOnClose)
-		errCh := make(chan error, 1)
-		doneCh := make(chan srpc.PacketWriter, 1)
-		var releasePromiseCallbacks sync.Once
-		var jsThen js.Func
-		var jsCatch js.Func
-		var promiseMtx sync.Mutex
-		promiseCanceled := false
-		cancelPromiseWait := func() {
-			promiseMtx.Lock()
-			promiseCanceled = true
-			promiseMtx.Unlock()
-		}
-		isPromiseCanceled := func() bool {
-			promiseMtx.Lock()
-			defer promiseMtx.Unlock()
-			return promiseCanceled
-		}
-		jsThen = js.FuncOf(func(this js.Value, args []js.Value) any {
-			releasePromiseCallbacks.Do(func() {
-				jsThen.Release()
-				jsCatch.Release()
-			})
-			if ctx.Err() != nil || isPromiseCanceled() {
-				args[0].Call("end")
-				return nil
-			}
-			doneCh <- srpc.NewPacketWriterWithClose(NewPushablePacketWriter(args[0]), func() error {
-				args[0].Call("end")
-				return nil
-			})
-			return nil
-		})
-		jsCatch = js.FuncOf(func(this js.Value, args []js.Value) any {
-			releasePromiseCallbacks.Do(func() {
-				jsThen.Release()
-				jsCatch.Release()
-			})
-			releasePackets()
-			if args[0].Type() == js.TypeObject {
-				// Error
-				errCh <- errors.New(strings.TrimPrefix(args[0].Call("toString").String(), "Error: "))
-			} else {
-				// String
-				errCh <- errors.New(args[0].String())
-			}
-			return nil
-		})
-		sinkPromise.Call("then", jsThen).Call("catch", jsCatch)
-
-		select {
-		case prw := <-doneCh:
-			return prw, nil
-		case err := <-errCh:
+		if err := ctx.Err(); err != nil {
 			return nil, err
-		case <-ctx.Done():
-			cancelPromiseWait()
-			return nil, context.Canceled
+		}
+
+		packetCallbacks := &jsStreamPacketCallbacks{}
+		packetWriter := newDeferredPushablePacketWriter(packetCallbacks.Release)
+		go openPushableStream(ctx, openStreamFunc, msgHandler, closeHandler, packetWriter, packetCallbacks)
+		go func() {
+			<-ctx.Done()
+			_ = packetWriter.Close()
+		}()
+		return packetWriter, nil
+	}
+}
+
+func openPushableStream(
+	ctx context.Context,
+	openStreamFunc js.Value,
+	msgHandler srpc.PacketDataHandler,
+	closeHandler srpc.CloseHandler,
+	packetWriter *deferredPushablePacketWriter,
+	packetCallbacks *jsStreamPacketCallbacks,
+) {
+	defer func() {
+		if e := recover(); e != nil {
+			var err error
+			switch recovered := e.(type) {
+			case error:
+				err = errors.Wrap(recovered, "invoke open stream to web runtime")
+			default:
+				err = errors.Errorf("invoke open stream to web runtime: %v", recovered)
+			}
+			packetWriter.fail(err)
+			closeHandler(err)
+		}
+	}()
+
+	if err := ctx.Err(); err != nil {
+		packetWriter.fail(err)
+		closeHandler(err)
+		return
+	}
+
+	// (message: Uint8Array) => void
+	jsOnMessage := js.FuncOf(func(this js.Value, args []js.Value) any {
+		defer recoverJSCallback("handle stream packet", func(err error) {
+			closeHandler(err)
+			packetCallbacks.Release()
+		})
+		// copy packet from Uint8Array to []byte
+		packet := args[0]
+		dlen := packet.Length()
+		bin := make([]byte, dlen)
+		for i := 0; i < dlen; i++ {
+			bin[i] = byte(packet.Index(i).Int())
+		}
+
+		// call handler and handle error
+		if err := msgHandler(bin); err != nil {
+			closeHandler(err)
+			packetCallbacks.Release()
+		}
+
+		return nil
+	})
+	// (errMsg?: string) => void,
+	jsOnClose := js.FuncOf(func(this js.Value, args []js.Value) any {
+		defer recoverJSCallback("handle stream close", closeHandler)
+		var errMsg string
+		if len(args) > 0 {
+			errMsgVal := args[0]
+			if !errMsgVal.IsUndefined() && errMsgVal.Type() == js.TypeString {
+				errMsg = errMsgVal.String()
+			}
+		}
+
+		var err error
+		if len(errMsg) != 0 {
+			err = errors.New(errMsg)
+		}
+
+		closeHandler(err)
+		packetCallbacks.Release()
+		return nil
+	})
+	if !packetCallbacks.Set(jsOnMessage, jsOnClose) {
+		return
+	}
+
+	var releasePromiseCallbacks sync.Once
+	var jsThen js.Func
+	var jsCatch js.Func
+	jsThen = js.FuncOf(func(this js.Value, args []js.Value) any {
+		defer recoverJSCallback("resolve stream sink", func(err error) {
+			releasePromiseCallbacks.Do(func() {
+				jsThen.Release()
+				jsCatch.Release()
+			})
+			packetWriter.fail(err)
+			closeHandler(err)
+		})
+		releasePromiseCallbacks.Do(func() {
+			jsThen.Release()
+			jsCatch.Release()
+		})
+		packetWriter.resolve(args[0])
+		return nil
+	})
+	jsCatch = js.FuncOf(func(this js.Value, args []js.Value) any {
+		defer recoverJSCallback("reject stream sink", func(err error) {
+			releasePromiseCallbacks.Do(func() {
+				jsThen.Release()
+				jsCatch.Release()
+			})
+			packetWriter.fail(err)
+			closeHandler(err)
+		})
+		releasePromiseCallbacks.Do(func() {
+			jsThen.Release()
+			jsCatch.Release()
+		})
+		var err error
+		if len(args) == 0 || args[0].IsUndefined() || args[0].IsNull() {
+			err = errors.New("open stream rejected")
+		} else if args[0].Type() == js.TypeString {
+			err = errors.New(strings.TrimPrefix(args[0].String(), "Error: "))
+		} else {
+			err = errors.Errorf("open stream rejected: %v", args[0])
+		}
+		packetWriter.fail(err)
+		closeHandler(err)
+		return nil
+	})
+	if packetWriter.isClosed() {
+		releasePromiseCallbacks.Do(func() {
+			jsThen.Release()
+			jsCatch.Release()
+		})
+		packetCallbacks.Release()
+		return
+	}
+	openStreamFunc.Invoke(jsOnMessage, jsOnClose, jsThen, jsCatch)
+}
+
+type jsStreamPacketCallbacks struct {
+	mtx       sync.Mutex
+	onMessage js.Func
+	onClose   js.Func
+	ready     bool
+	released  bool
+}
+
+func (c *jsStreamPacketCallbacks) Set(onMessage, onClose js.Func) bool {
+	c.mtx.Lock()
+	if c.released {
+		c.mtx.Unlock()
+		onMessage.Release()
+		onClose.Release()
+		return false
+	}
+	c.onMessage = onMessage
+	c.onClose = onClose
+	c.ready = true
+	c.mtx.Unlock()
+	return true
+}
+
+func (c *jsStreamPacketCallbacks) Release() {
+	c.mtx.Lock()
+	if c.released {
+		c.mtx.Unlock()
+		return
+	}
+	c.released = true
+	if !c.ready {
+		c.mtx.Unlock()
+		return
+	}
+	onMessage := c.onMessage
+	onClose := c.onClose
+	c.mtx.Unlock()
+
+	onMessage.Release()
+	onClose.Release()
+}
+
+func recoverJSCallback(label string, onErr func(error)) {
+	if e := recover(); e != nil {
+		var err error
+		switch recovered := e.(type) {
+		case error:
+			err = errors.Wrap(recovered, label)
+		default:
+			err = errors.Errorf("%s: %v", label, recovered)
+		}
+		onErr(err)
+	}
+}
+
+type deferredPushablePacketWriter struct {
+	mtx       sync.Mutex
+	writer    *PushablePacketWriter
+	queued    [][]byte
+	closed    bool
+	err       error
+	releaseFn func()
+	release   sync.Once
+}
+
+func newDeferredPushablePacketWriter(releaseFn func()) *deferredPushablePacketWriter {
+	return &deferredPushablePacketWriter{
+		releaseFn: releaseFn,
+	}
+}
+
+func (w *deferredPushablePacketWriter) WritePacket(pkt *srpc.Packet) error {
+	data, err := pkt.MarshalVT()
+	if err != nil {
+		return err
+	}
+
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	if w.closed {
+		if w.err != nil {
+			return w.err
+		}
+		return io.ErrClosedPipe
+	}
+	if w.writer == nil {
+		w.queued = append(w.queued, data)
+		return nil
+	}
+	return w.writer.WritePacketData(data)
+}
+
+func (w *deferredPushablePacketWriter) isClosed() bool {
+	w.mtx.Lock()
+	closed := w.closed
+	w.mtx.Unlock()
+	return closed
+}
+
+func (w *deferredPushablePacketWriter) Close() error {
+	w.mtx.Lock()
+	if w.closed {
+		w.mtx.Unlock()
+		return nil
+	}
+	w.closed = true
+	w.err = io.ErrClosedPipe
+	w.queued = nil
+	writer := w.writer
+	w.mtx.Unlock()
+
+	var err error
+	if writer != nil {
+		err = writer.Close()
+	}
+	w.release.Do(w.releaseFn)
+	return err
+}
+
+func (w *deferredPushablePacketWriter) resolve(pushable js.Value) {
+	writer := NewPushablePacketWriter(pushable)
+
+	w.mtx.Lock()
+	if w.closed {
+		w.mtx.Unlock()
+		_ = writer.Close()
+		return
+	}
+
+	for _, data := range w.queued {
+		if err := writer.WritePacketData(data); err != nil {
+			w.closed = true
+			w.err = err
+			w.queued = nil
+			w.mtx.Unlock()
+			_ = writer.Close()
+			w.release.Do(w.releaseFn)
+			return
 		}
 	}
+	w.queued = nil
+	w.writer = writer
+	w.mtx.Unlock()
+}
+
+func (w *deferredPushablePacketWriter) fail(err error) {
+	if err == nil {
+		err = io.ErrClosedPipe
+	}
+
+	w.mtx.Lock()
+	if w.closed {
+		w.mtx.Unlock()
+		return
+	}
+	w.closed = true
+	w.err = err
+	w.queued = nil
+	writer := w.writer
+	w.mtx.Unlock()
+
+	if writer != nil {
+		_ = writer.Close()
+	}
+	w.release.Do(w.releaseFn)
 }
 
 // GlobalWasmPluginIo gets the message port defined by plugin-wasm.ts

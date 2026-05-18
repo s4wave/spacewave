@@ -7,7 +7,6 @@ import {
   useState,
   useCallback,
   useEffect,
-  useRef,
 } from 'react'
 import { useIsStaticMode } from '@s4wave/app/prerender/StaticContext.js'
 import { TabActiveProvider } from '@s4wave/web/contexts/TabActiveContext.js'
@@ -28,7 +27,7 @@ import { useTabId as useTabContextTabId } from '@s4wave/web/object/TabContext.js
 // TAB_STATE_PREFIX is the localStorage key prefix for tab-specific state.
 export const TAB_STATE_PREFIX = 'tab-state-'
 
-// SHELL_TABS_STORAGE_KEY is the localStorage key for shell tabs state.
+// SHELL_TABS_STORAGE_KEY is the sessionStorage key for shell tabs state.
 export const SHELL_TABS_STORAGE_KEY = 'shell-tabs-state'
 
 // ShellTabContextValue provides tab information to descendant components.
@@ -75,7 +74,6 @@ interface ShellTabsProviderState extends ShellTabsState {
 }
 
 type ShellTabsProviderAction =
-  | { type: 'hydrate'; state: ShellTabsState }
   | { type: 'set_tabs'; update: React.SetStateAction<ShellTab[]> }
   | { type: 'set_active_tab_id'; update: React.SetStateAction<string> }
   | { type: 'start_renaming'; tabId: string }
@@ -115,19 +113,6 @@ function shellTabsProviderReducer(
   action: ShellTabsProviderAction,
 ): ShellTabsProviderState {
   switch (action.type) {
-    case 'hydrate': {
-      const activeTabId = action.state.tabs.some(
-        (t) => t.id === state.activeTabId,
-      )
-        ? state.activeTabId
-        : action.state.tabs[0]?.id || DEFAULT_HOME_TAB.id
-      const renamingTabId = action.state.tabs.some(
-        (t) => t.id === state.renamingTabId,
-      )
-        ? state.renamingTabId
-        : null
-      return { ...action.state, activeTabId, renamingTabId }
-    }
     case 'set_tabs': {
       const tabs = applyStateUpdate(state.tabs, action.update)
       if (tabs === state.tabs || shellTabsEqual(tabs, state.tabs)) {
@@ -181,10 +166,6 @@ export interface ShellTabsContextValue {
   startRenaming: (tabId: string) => void
   // stopRenaming clears the renaming state.
   stopRenaming: () => void
-  // Subscribe to external tab changes (from other windows)
-  subscribeToExternalChanges: (
-    callback: (tabs: ShellTab[]) => void,
-  ) => () => void
 }
 
 // ShellTabsContext provides global tabs state to all components.
@@ -199,10 +180,10 @@ export function useShellTabs(): ShellTabsContextValue {
   return context
 }
 
-// loadTabsFromStorage loads tabs state from localStorage.
+// loadTabsFromStorage loads tabs state from sessionStorage.
 function loadTabsFromStorage(): ShellTabsState {
   try {
-    const stored = localStorage.getItem(SHELL_TABS_STORAGE_KEY)
+    const stored = sessionStorage.getItem(SHELL_TABS_STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored) as ShellTabsState
       if (parsed.tabs?.length > 0) {
@@ -215,10 +196,10 @@ function loadTabsFromStorage(): ShellTabsState {
   return { tabs: [DEFAULT_HOME_TAB], activeTabId: DEFAULT_HOME_TAB.id }
 }
 
-// saveTabsToStorage saves tabs state to localStorage.
+// saveTabsToStorage saves tabs state to sessionStorage.
 function saveTabsToStorage(state: ShellTabsState): void {
   try {
-    localStorage.setItem(SHELL_TABS_STORAGE_KEY, JSON.stringify(state))
+    sessionStorage.setItem(SHELL_TABS_STORAGE_KEY, JSON.stringify(state))
   } catch {
     // Ignore storage errors
   }
@@ -246,36 +227,10 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'stop_renaming' })
   }, [])
 
-  // Subscribers for external tab changes
-  const externalChangeSubscribersRef = useRef<Set<(tabs: ShellTab[]) => void>>(
-    new Set(),
-  )
-
-  // Persist to localStorage when state changes
+  // Persist to sessionStorage when state changes.
   useEffect(() => {
     saveTabsToStorage({ tabs, activeTabId })
   }, [tabs, activeTabId])
-
-  // Listen for cross-window storage changes
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key !== SHELL_TABS_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as ShellTabsState
-        if (parsed.tabs?.length > 0) {
-          dispatch({ type: 'hydrate', state: parsed })
-          // Notify subscribers of external change
-          for (const callback of externalChangeSubscribersRef.current) {
-            callback(parsed.tabs)
-          }
-        }
-      } catch {
-        // Ignore parse errors
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [])
 
   // Helper to update a specific tab's path
   const updateTabPath = useCallback(
@@ -326,17 +281,6 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
     [setTabs],
   )
 
-  // Subscribe to external tab changes
-  const subscribeToExternalChanges = useCallback(
-    (callback: (tabs: ShellTab[]) => void) => {
-      externalChangeSubscribersRef.current.add(callback)
-      return () => {
-        externalChangeSubscribersRef.current.delete(callback)
-      }
-    },
-    [],
-  )
-
   const value = useMemo<ShellTabsContextValue>(
     () => ({
       tabs,
@@ -349,7 +293,6 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       renamingTabId,
       startRenaming,
       stopRenaming,
-      subscribeToExternalChanges,
     }),
     [
       tabs,
@@ -362,7 +305,6 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       renamingTabId,
       startRenaming,
       stopRenaming,
-      subscribeToExternalChanges,
     ],
   )
 

@@ -205,6 +205,91 @@ describe('WebDocumentTracker resume-ready gate', () => {
     port2.close()
   })
 
+  it('moves the active gate to the latest document and only closes runtime after all documents close', async () => {
+    const tracker = buildTracker()
+    const closeRuntime = vi.spyOn(tracker.webRuntimeClient, 'close')
+    const firstPort = attachWebDocument(tracker, 'document-1')
+
+    firstPort.postMessage({
+      from: 'document-1',
+      resumeReady: true,
+    })
+
+    await expect(
+      waitForActiveWebDocumentResumeReady(tracker),
+    ).resolves.toMatchObject({
+      state: 'ready',
+      documentId: 'document-1',
+    })
+
+    const secondPort = attachWebDocument(tracker, 'document-2')
+    const secondReady = waitForActiveWebDocumentResumeReady(tracker)
+    const secondSettled = markSettled(secondReady)
+    await Promise.resolve()
+    expect(secondSettled()).toBe(false)
+
+    secondPort.postMessage({
+      from: 'document-2',
+      resumeReady: true,
+    })
+
+    await expect(secondReady).resolves.toMatchObject({
+      state: 'ready',
+      documentId: 'document-2',
+    })
+
+    secondPort.postMessage({
+      from: 'document-2',
+      close: true,
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(closeRuntime).not.toHaveBeenCalled()
+    await expect(
+      waitForActiveWebDocumentResumeReady(tracker),
+    ).resolves.toMatchObject({
+      state: 'ready',
+      documentId: 'document-1',
+    })
+
+    firstPort.postMessage({
+      from: 'document-1',
+      close: true,
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(closeRuntime).toHaveBeenCalledTimes(1)
+    tracker.close()
+    firstPort.close()
+    secondPort.close()
+  })
+
+  it('closes the runtime client when the active relay document closes', async () => {
+    const tracker = buildTracker()
+    const closeRuntime = vi.spyOn(tracker.webRuntimeClient, 'close')
+    const firstPort = attachWebDocument(tracker, 'document-1')
+    const secondPort = attachWebDocument(tracker, 'document-2')
+
+    Reflect.set(tracker, 'activeRuntimeWebDocumentId', 'document-1')
+
+    firstPort.postMessage({
+      from: 'document-1',
+      close: true,
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(closeRuntime).toHaveBeenCalledTimes(1)
+    expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+      'document-1',
+    )
+    expect(Reflect.get(tracker, 'webDocuments')).toHaveProperty('document-2')
+    expect(Reflect.get(tracker, 'lastWebDocumentId')).toBe('document-2')
+
+    tracker.close()
+    firstPort.close()
+    secondPort.close()
+  })
+
   it('keeps plugin worker resume gate parked while the active WebDocument is hidden', async () => {
     vi.useFakeTimers()
     const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)

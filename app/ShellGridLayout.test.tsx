@@ -341,13 +341,14 @@ describe('ShellGridLayout', () => {
   afterEach(() => {
     cleanup()
     localStorage.clear()
+    sessionStorage.clear()
     clearActiveAppDragEnvelope()
     vi.clearAllMocks()
     mockOptimizedLayoutProps.mockReset()
   })
 
   it('opens the shared tab context menu in grid mode and routes rename through tab state', () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
         tabs: [
@@ -377,7 +378,7 @@ describe('ShellGridLayout', () => {
   })
 
   it('accepts UnixFS row drags through the grid layout external-drag handler', async () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
         tabs: [
@@ -422,7 +423,7 @@ describe('ShellGridLayout', () => {
 
     await waitFor(() => {
       const stored = JSON.parse(
-        localStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
+        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
       ) as {
         activeTabId: string
         tabs: Array<{ id: string; name: string; path: string }>
@@ -440,7 +441,7 @@ describe('ShellGridLayout', () => {
   })
 
   it('accepts UnixFS row drags on dragenter before custom drag data becomes readable', () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
         tabs: [

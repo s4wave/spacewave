@@ -313,5 +313,8 @@ func directFetchCandidateMatchesState(candidate *directFetchCandidate, currentSt
 		return false
 	}
 
-	return currentState.manifestSnapshot.GetManifestRef().EqualVT(candidate.ref.GetManifestRef())
+	return manifestObjectRefsSameExecutable(
+		currentState.manifestSnapshot.GetManifestRef(),
+		candidate.ref.GetManifestRef(),
+	)
 }

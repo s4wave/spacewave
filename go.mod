@@ -20,7 +20,7 @@ require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260426060333-d8dbc50ec0cb // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.14.1-0.20260512101008-8126fdcbc49f // latest
+	github.com/aperturerobotics/cayley v0.14.1-0.20260514195440-32d3c8730ab2 // latest
 	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/common v0.33.1-0.20260516193515-675cfc5a0c12 // latest
 	github.com/aperturerobotics/controllerbus v0.53.3 // latest
@@ -31,7 +31,7 @@ require (
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 // master
-	github.com/aperturerobotics/go-multiaddr v0.17.0
+	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
 	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
@@ -73,7 +73,6 @@ require (
 )
 
 require (
-	github.com/bits-and-blooms/bitset v1.24.4
 	github.com/cloudflare/circl v1.6.3
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.9.1
@@ -97,7 +96,6 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
 	github.com/ncruces/go-sqlite3 v0.34.1
-	github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pierrec/lz4/v4 v4.1.26
 	github.com/pion/datachannel v1.6.0

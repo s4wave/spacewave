@@ -9,7 +9,6 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/aperturerobotics/util/conc"
-	simple "github.com/paralin/gonum-graph-simple"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/net/hash"
@@ -43,7 +42,7 @@ type Transaction struct {
 	// mtx guards the object
 	mtx sync.Mutex
 	// blockGraph is the graph of blocks
-	blockGraph *simple.DirectedGraph
+	blockGraph *directedGraph
 	// putOpts are put options (hashType is always filled with a value)
 	putOpts *PutOpts
 	// dirty indicates anything changed in the transaction
@@ -85,7 +84,7 @@ func NewTransaction(
 		store:      store,
 		xfrm:       transformer,
 		root:       &handle{ref: rootRef},
-		blockGraph: simple.NewDirectedGraph(),
+		blockGraph: newDirectedGraph(),
 		putOpts:    putOpts,
 	}
 	t.root.Node = t.blockGraph.NewNode()
@@ -576,7 +575,7 @@ func (t *Transaction) clearData() {
 	t.dirty = false
 	t.root.dirty = false
 	t.root.refHandles = nil
-	t.blockGraph = simple.NewDirectedGraph()
+	t.blockGraph = newDirectedGraph()
 	rn := t.blockGraph.NewNode()
 	t.root.Node = rn
 	t.blockGraph.AddNode(t.root)
@@ -591,7 +590,7 @@ func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
 		store:      t.store,
 		xfrm:       t.xfrm,
 		root:       nroot,
-		blockGraph: simple.NewDirectedGraph(),
+		blockGraph: newDirectedGraph(),
 		putOpts:    t.putOpts,
 	}
 	nt.root.Node = nt.blockGraph.NewNode()

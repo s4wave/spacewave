@@ -69,7 +69,7 @@ function isTabNode(node: { getType(): string } | undefined): node is TabNode {
 const noopAddTab = () => Promise.resolve({ tabId: '' })
 const noopNavigateTab = () => Promise.resolve({})
 
-// SHELL_TABS_STORAGE_KEY is the localStorage key for shell layout state.
+// SHELL_TABS_STORAGE_KEY is the sessionStorage key for shell layout state.
 const SHELL_TABS_STORAGE_KEY = 'shell-tabs-layout'
 const SHELL_TABS_NONCE = 4
 
@@ -112,14 +112,14 @@ function buildDefaultModel(tabs: ShellTab[], activeTabId: string): IJsonModel {
   }
 }
 
-// loadModelFromStorage loads the FlexLayout model from localStorage.
+// loadModelFromStorage loads the FlexLayout model from sessionStorage.
 // If the stored model is a grid layout (multiple tabsets), ignore it and rebuild.
 function loadModelFromStorage(
   tabs: ShellTab[],
   activeTabId: string,
 ): IJsonModel {
   try {
-    const stored = localStorage.getItem(SHELL_TABS_STORAGE_KEY)
+    const stored = sessionStorage.getItem(SHELL_TABS_STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored) as unknown
       if (typeof parsed === 'object' && parsed !== null) {
@@ -157,10 +157,10 @@ function loadModelFromStorage(
   return buildDefaultModel(tabs, activeTabId)
 }
 
-// saveModelToStorage saves the FlexLayout model to localStorage.
+// saveModelToStorage saves the FlexLayout model to sessionStorage.
 function saveModelToStorage(model: IJsonModel): void {
   try {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({ nonce: SHELL_TABS_NONCE, model }),
     )
@@ -430,7 +430,7 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
     (newModel: Model) => {
       setModel(newModel)
 
-      // Save to localStorage
+      // Save to sessionStorage.
       saveModelToStorage(newModel.toJson())
 
       // Check for transition to grid mode (splits detected)

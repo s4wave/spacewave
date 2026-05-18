@@ -61,6 +61,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
     Provider: ({ children }: { children?: ReactNode }) => <>{children}</>,
   },
   useSessionNavigate: () => mockNavigateSession,
+  useSessionIndex: () => 1,
 }))
 
 vi.mock('@s4wave/web/contexts/SpacewaveOrgListContext.js', () => ({

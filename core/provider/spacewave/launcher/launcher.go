@@ -2,7 +2,6 @@ package spacewave_launcher
 
 import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 )
 
@@ -35,26 +34,7 @@ func (c *DistConfig) Validate() error {
 	return nil
 }
 
-// UnmarshalFromYAML unmarshals the configuration from yaml.
-func (c *DistConfig) UnmarshalFromYAML(dat []byte) error {
-	jdat, err := yaml.YAMLToJSON(dat)
-	if err != nil {
-		return err
-	}
-	return c.UnmarshalJSON(jdat)
-}
-
 // MarshalToJSON marshals the configuration to json.
 func (c *DistConfig) MarshalToJSON() ([]byte, error) {
 	return c.MarshalJSON()
-}
-
-// MarshalToYAML marshals the configuration to yaml.
-func (c *DistConfig) MarshalToYAML() ([]byte, error) {
-	jdat, err := c.MarshalToJSON()
-	if err != nil {
-		return nil, err
-	}
-
-	return yaml.JSONToYAML(jdat)
 }

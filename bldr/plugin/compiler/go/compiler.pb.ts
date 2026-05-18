@@ -157,7 +157,9 @@ export interface Config {
    * Looks for package-level functions:
    *  - NewFactory(b bus.Bus) controller.Factory
    *  - BuildFactories(b bus.Bus) []controller.Factory
-   * Appended to the list set in the plugin compiler settings.
+   * Appended to the list set in the plugin compiler settings. Imported
+   * packages are not scanned for factories unless
+   * EnableImportedFactoryDiscovery is ENABLE.
    *
    * @generated from field: repeated string go_pkgs = 4;
    */
@@ -280,6 +282,14 @@ export interface Config {
    * @generated from field: map<string, bldr.plugin.compiler.go.Config> platform_types = 17;
    */
   platformTypes?: { [key: string]: Config }
+  /**
+   * EnableImportedFactoryDiscovery scans same-module packages imported by
+   * GoPkgs for controller factories. The default is disabled so GoPkgs is the
+   * explicit generated factory surface.
+   *
+   * @generated from field: enabled.Enabled enable_imported_factory_discovery = 18;
+   */
+  enableImportedFactoryDiscovery?: Enabled
 }
 
 // Config contains the message type declaration for Config.
@@ -354,6 +364,12 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'map',
       K: ScalarType.STRING,
       V: { kind: 'message', T: () => Config },
+    },
+    {
+      no: 18,
+      name: 'enable_imported_factory_discovery',
+      kind: 'enum',
+      T: Enabled_Enum,
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,

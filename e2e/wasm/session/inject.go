@@ -8,6 +8,7 @@ import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	"github.com/s4wave/spacewave/e2e/wasm/internal/configjson"
 	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
 )
@@ -16,7 +17,7 @@ import (
 // compiler manifests in the project config so the session harness is available
 // in plugin processes without modifying the production project config.
 func InjectSessionHarnessConfig(projectConfig *bldr_project.ProjectConfig) error {
-	webrtcConfBytes, err := (&webrtc.Config{
+	webrtcConf := &webrtc.Config{
 		SignalingId: "webrtc",
 		WebRtc: &webrtc.WebRtcConfig{
 			IceServers: []*webrtc.IceServerConfig{
@@ -24,11 +25,16 @@ func InjectSessionHarnessConfig(projectConfig *bldr_project.ProjectConfig) error
 			},
 		},
 		AllPeers: true,
-	}).MarshalJSON()
+	}
+	webrtcConfBytes, err := configjson.MarshalCanonical(webrtcConf)
 	if err != nil {
 		return err
 	}
-	linkSolicitConfBytes, err := (&link_solicit_controller.Config{}).MarshalJSON()
+	sessionConfBytes, err := configjson.MarshalCanonical(&Config{})
+	if err != nil {
+		return err
+	}
+	linkSolicitConfBytes, err := configjson.MarshalCanonical(&link_solicit_controller.Config{})
 	if err != nil {
 		return err
 	}
@@ -40,7 +46,7 @@ func InjectSessionHarnessConfig(projectConfig *bldr_project.ProjectConfig) error
 
 		goConf := &bldr_plugin_compiler_go.Config{}
 		if data := builder.GetConfig(); len(data) != 0 {
-			if err := goConf.UnmarshalJSON(data); err != nil {
+			if err := unmarshalGoPluginConfig(goConf, data); err != nil {
 				return err
 			}
 		}
@@ -59,7 +65,7 @@ func InjectSessionHarnessConfig(projectConfig *bldr_project.ProjectConfig) error
 		}
 		goConf.ConfigSet["e2e-session-harness"] = &configset_proto.ControllerConfig{
 			Id:     ConfigID,
-			Config: []byte("{}"),
+			Config: sessionConfBytes,
 		}
 		goConf.ConfigSet["e2e-session-harness-webrtc"] = &configset_proto.ControllerConfig{
 			Id:     webrtc.ConfigID,
@@ -70,11 +76,21 @@ func InjectSessionHarnessConfig(projectConfig *bldr_project.ProjectConfig) error
 			Config: linkSolicitConfBytes,
 		}
 
-		data, err := goConf.MarshalJSON()
+		data, err := configjson.MarshalCanonical(goConf)
 		if err != nil {
 			return err
 		}
 		builder.Config = data
 	}
 	return nil
+}
+
+func unmarshalGoPluginConfig(conf *bldr_plugin_compiler_go.Config, data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+	if data[0] == '{' {
+		return conf.UnmarshalJSON(data)
+	}
+	return conf.UnmarshalVT(data)
 }

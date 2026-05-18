@@ -1,7 +1,6 @@
 package bldr_plugin
 
 import (
-	"github.com/klauspost/compress/s2"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/util/labels"
@@ -25,10 +24,6 @@ func UnmarshalPluginMetaB58(str string) (*PluginMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err = s2.Decode(nil, data)
-	if err != nil {
-		return nil, err
-	}
 	if err := m.UnmarshalVT(data); err != nil {
 		return nil, err
 	}
@@ -47,9 +42,8 @@ func (m *PluginMeta) Validate() error {
 }
 
 // MarshalB58 marshals the conf to a b58 string.
-// note: we compress with s2 compression & encrypt with a psk.
+// note: plugin metadata is base58 encoded protobuf data.
 func (m *PluginMeta) MarshalB58() string {
 	dat, _ := m.MarshalVT()
-	dat = s2.EncodeBest(nil, dat)
 	return b58.Encode(dat)
 }

@@ -4,6 +4,8 @@ package wasm
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/binary"
 	"net"
 	"net/http"
 	"strconv"
@@ -14,12 +16,25 @@ import (
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/e2e/wasm/internal/configjson"
 )
 
 const e2eCloudAuthConfigPath = "/api/auth/config"
 
-func startE2ECloudAuthConfigEndpoint() (string, func(), error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+func stableE2ECloudAuthConfigAddr(stateRoot string) string {
+	sum := sha1.Sum([]byte("e2e-cloud-auth|" + stateRoot))
+	port := 20000 + int(binary.BigEndian.Uint16(sum[:2])%30000)
+	return "127.0.0.1:" + strconv.Itoa(port)
+}
+
+func startE2ECloudAuthConfigEndpoint(bindAddr string) (string, func(), error) {
+	if bindAddr == "" {
+		bindAddr = "127.0.0.1:0"
+	}
+	listener, err := net.Listen("tcp", bindAddr)
+	if err != nil && bindAddr != "127.0.0.1:0" {
+		listener, err = net.Listen("tcp", "127.0.0.1:0")
+	}
 	if err != nil {
 		return "", nil, err
 	}
@@ -110,13 +125,13 @@ func applyE2ECloudAuthConfigEndpoint(projectConfig *bldr_project.ProjectConfig, 
 	swConf.AccountEndpoint = endpoint
 	swConf.PublicBaseUrl = endpoint
 
-	providerData, err := swConf.MarshalJSON()
+	providerData, err := configjson.MarshalCanonical(swConf)
 	if err != nil {
 		return errors.Wrap(err, "marshal provider-spacewave config")
 	}
 	providerEntry.Config = providerData
 
-	builderData, err := goConf.MarshalJSON()
+	builderData, err := configjson.MarshalCanonical(goConf)
 	if err != nil {
 		return errors.Wrap(err, "marshal spacewave-core builder config")
 	}

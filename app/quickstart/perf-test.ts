@@ -23,6 +23,7 @@ export interface PostLoadSOPerfTarget {
   routePath: string
   sessionIndex: number
   sharedObjectId: string
+  indexPath: string
 }
 
 export interface AcceptedSOTiming {
@@ -64,7 +65,7 @@ function currentRoutePath(): string {
 function currentPostLoadSOTarget(): PostLoadSOPerfTarget {
   const routePath = currentRoutePath()
   const match = routePath.match(
-    /^\/u\/([1-9]\d*)\/(?:org\/[^/]+\/)?so\/([^/?#]+)/,
+    /^\/u\/([1-9]\d*)\/(?:org\/[^/]+\/)?so\/([^/?#]+)(?:\/-\/([^?#]*))?/,
   )
   if (!match) {
     throw new Error('current route is not a mounted Space route: ' + routePath)
@@ -73,6 +74,7 @@ function currentPostLoadSOTarget(): PostLoadSOPerfTarget {
     routePath,
     sessionIndex: Number(match[1]),
     sharedObjectId: decodeURIComponent(match[2]),
+    indexPath: decodeURIComponent(match[3] ?? ''),
   }
 }
 
@@ -125,7 +127,7 @@ export async function runPostLoadSOPerfTest(
     for (let i = 0; i < opCount; i++) {
       const op: SetSpaceSettingsOp = {
         objectKey: 'settings',
-        settings: { indexPath: `post-load-throughput-${i}` },
+        settings: { indexPath: target.indexPath },
         overwrite: true,
         timestamp: new Date(),
       }

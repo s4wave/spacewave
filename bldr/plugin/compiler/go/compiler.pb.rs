@@ -23,7 +23,9 @@ pub struct Config {
     /// Looks for package-level functions:
     ///   - NewFactory(b bus.Bus) controller.Factory
     ///   - BuildFactories(b bus.Bus) \[\]controller.Factory
-    /// Appended to the list set in the plugin compiler settings.
+    /// Appended to the list set in the plugin compiler settings. Imported
+    /// packages are not scanned for factories unless
+    /// EnableImportedFactoryDiscovery is ENABLE.
     #[prost(string, repeated, tag="4")]
     pub go_pkgs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     /// WebPkgs is the list of web packages to externalize and include in the bundle.
@@ -108,6 +110,11 @@ pub struct Config {
     /// "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
     #[prost(map="string, message", tag="17")]
     pub platform_types: ::std::collections::HashMap<::prost::alloc::string::String, Config>,
+    /// EnableImportedFactoryDiscovery scans same-module packages imported by
+    /// GoPkgs for controller factories. The default is disabled so GoPkgs is the
+    /// explicit generated factory surface.
+    #[prost(enumeration="super::super::super::super::enabled::Enabled", tag="18")]
+    pub enable_imported_factory_discovery: i32,
 }
 /// PreBuildHookResult is the output of a pre-build hook.
 #[derive(Clone, PartialEq, ::prost::Message)]

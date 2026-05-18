@@ -164,6 +164,7 @@ func (c *Config) Merge(o *Config) {
 
 	c.EnableCgo = c.EnableCgo.Merge(o.GetEnableCgo())
 	c.EnableTinygo = c.EnableTinygo.Merge(o.GetEnableTinygo())
+	c.EnableImportedFactoryDiscovery = c.EnableImportedFactoryDiscovery.Merge(o.GetEnableImportedFactoryDiscovery())
 	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCompression())
 
 	if esbuildFlags := o.GetEsbuildFlags(); len(esbuildFlags) != 0 {

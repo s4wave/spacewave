@@ -1670,6 +1670,7 @@ class Config final : public ::google::protobuf::Message
     kEnableCompressionFieldNumber = 11,
     kDisableRpcFetchFieldNumber = 6,
     kViteDisableProjectConfigFieldNumber = 16,
+    kEnableImportedFactoryDiscoveryFieldNumber = 18,
     kConfigSetFieldNumber = 2,
     kHostConfigSetFieldNumber = 3,
     kBuildTypesFieldNumber = 14,
@@ -1853,6 +1854,16 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_vite_disable_project_config(bool value);
 
   public:
+  // .enabled.Enabled enable_imported_factory_discovery = 18;
+  void clear_enable_imported_factory_discovery() ;
+  ::enabled::Enabled enable_imported_factory_discovery() const;
+  void set_enable_imported_factory_discovery(::enabled::Enabled value);
+
+  private:
+  ::enabled::Enabled _internal_enable_imported_factory_discovery() const;
+  void _internal_set_enable_imported_factory_discovery(::enabled::Enabled value);
+
+  public:
   // map<string, .configset.proto.ControllerConfig> config_set = 2;
   int config_set_size() const;
   private:
@@ -1917,7 +1928,7 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 16,
+  static const ::google::protobuf::internal::TcParseTable<4, 17,
                                    9, 175,
                                    2>
       _table_;
@@ -1951,6 +1962,7 @@ class Config final : public ::google::protobuf::Message
     int enable_compression_;
     bool disable_rpc_fetch_;
     bool vite_disable_project_config_;
+    int enable_imported_factory_discovery_;
     ::google::protobuf::internal::MapField<Config_ConfigSetEntry_DoNotUse, ::std::string, ::configset::proto::ControllerConfig,
                       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
                       ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
@@ -2727,7 +2739,7 @@ inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConf
 }
 inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>* PROTOBUF_NONNULL Config::mutable_config_set()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00001000U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00002000U);
   // @@protoc_insertion_point(field_mutable_map:bldr.plugin.compiler.go.Config.config_set)
   return _internal_mutable_config_set();
 }
@@ -2753,7 +2765,7 @@ inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConf
 }
 inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>* PROTOBUF_NONNULL Config::mutable_host_config_set()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00002000U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00004000U);
   // @@protoc_insertion_point(field_mutable_map:bldr.plugin.compiler.go.Config.host_config_set)
   return _internal_mutable_host_config_set();
 }
@@ -3290,7 +3302,7 @@ inline void Config::clear_build_types() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.build_types_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00004000U);
+                  0x00008000U);
 }
 inline const ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>& Config::_internal_build_types() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -3306,7 +3318,7 @@ inline ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Conf
 }
 inline ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>* PROTOBUF_NONNULL Config::mutable_build_types()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00004000U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00008000U);
   // @@protoc_insertion_point(field_mutable_map:bldr.plugin.compiler.go.Config.build_types)
   return _internal_mutable_build_types();
 }
@@ -3322,7 +3334,7 @@ inline void Config::clear_platform_types() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.platform_types_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00008000U);
+                  0x00010000U);
 }
 inline const ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>& Config::_internal_platform_types() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -3338,9 +3350,34 @@ inline ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Conf
 }
 inline ::google::protobuf::Map<::std::string, ::bldr::plugin::compiler::go::Config>* PROTOBUF_NONNULL Config::mutable_platform_types()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00008000U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00010000U);
   // @@protoc_insertion_point(field_mutable_map:bldr.plugin.compiler.go.Config.platform_types)
   return _internal_mutable_platform_types();
+}
+
+// .enabled.Enabled enable_imported_factory_discovery = 18;
+inline void Config::clear_enable_imported_factory_discovery() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.enable_imported_factory_discovery_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00001000U);
+}
+inline ::enabled::Enabled Config::enable_imported_factory_discovery() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.Config.enable_imported_factory_discovery)
+  return _internal_enable_imported_factory_discovery();
+}
+inline void Config::set_enable_imported_factory_discovery(::enabled::Enabled value) {
+  _internal_set_enable_imported_factory_discovery(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.Config.enable_imported_factory_discovery)
+}
+inline ::enabled::Enabled Config::_internal_enable_imported_factory_discovery() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::enabled::Enabled>(_impl_.enable_imported_factory_discovery_);
+}
+inline void Config::_internal_set_enable_imported_factory_discovery(::enabled::Enabled value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.enable_imported_factory_discovery_ = value;
 }
 
 // -------------------------------------------------------------------

@@ -309,6 +309,7 @@ func (c *Controller) BuildManifest(
 			pluginBuildConf.GetHostConfigSet(),
 			pluginBuildConf.GetEnableCgo(),
 			pluginBuildConf.GetEnableTinygo(),
+			pluginBuildConf.GetEnableImportedFactoryDiscovery(),
 			pluginBuildConf.GetEnableCompression(),
 			pluginBuildConf.GetEsbuildFlags(),
 			devInfoFile,
@@ -384,6 +385,7 @@ func (c *Controller) BuildPlugin(
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	enableCgoOpt enabled.Enabled,
 	enableTinygoOpt enabled.Enabled,
+	enableImportedFactoryDiscoveryOpt enabled.Enabled,
 	enableCompressionOpt enabled.Enabled,
 	baseEsbuildFlags []string,
 	devInfoFile string,
@@ -409,6 +411,7 @@ func (c *Controller) BuildPlugin(
 	if err != nil {
 		return nil, nil, err
 	}
+	enableImportedFactoryDiscovery := enableImportedFactoryDiscoveryOpt.IsEnabled(false)
 
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)
@@ -526,7 +529,16 @@ func (c *Controller) BuildPlugin(
 		analyzeGOOS = native.GetGOOS()
 		analyzeGOARCH = native.GetGOARCH()
 	}
-	an, err := AnalyzePackages(ctx, le, sourcePath, goPkgs, buildTagsForAnalyze, analyzeGOOS, analyzeGOARCH)
+	an, err := AnalyzePackages(
+		ctx,
+		le,
+		sourcePath,
+		goPkgs,
+		buildTagsForAnalyze,
+		analyzeGOOS,
+		analyzeGOARCH,
+		enableImportedFactoryDiscovery,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -543,11 +555,12 @@ func (c *Controller) BuildPlugin(
 	var goVariableDefs []*vardef.PluginVar
 
 	codeFiles := an.GetGoCodeFiles()
+	programCodeFiles := an.GetProgramGoCodeFiles()
 	fset := an.GetFileSet()
 
 	// build source files list with go files
 	var goSrcFiles []string
-	for _, pkgFiles := range codeFiles {
+	for _, pkgFiles := range programCodeFiles {
 		for _, codeFile := range pkgFiles {
 			pkgFile := an.GetFileToken(codeFile)
 			goSrcFiles = append(goSrcFiles, pkgFile.Name())
@@ -807,6 +820,7 @@ func (c *Controller) BuildPlugin(
 
 	// Files to copy from the generated module directory to the output dist directory.
 	var copyFiles []string
+	var webRuntimeSrcFiles []string
 	outDistBinary := filepath.Join(outDistPath, outBinName)
 
 	// only use dev wrapper if not web platform
@@ -864,7 +878,7 @@ func (c *Controller) BuildPlugin(
 			outDistPath,
 			pluginID+".mjs",
 		)
-		if err := web_runtime_wasm_build.BuildWebWasmPluginScript(
+		webRuntimeSrcFiles, err = web_runtime_wasm_build.BuildWebWasmPluginScript(
 			ctx,
 			le,
 			distSourcePath,
@@ -872,7 +886,8 @@ func (c *Controller) BuildPlugin(
 			outBinName,
 			enableTinygo,
 			isRelease,
-		); err != nil {
+		)
+		if err != nil {
 			return nil, nil, err
 		}
 	}
@@ -961,11 +976,18 @@ func (c *Controller) BuildPlugin(
 			})
 		}
 	}
+	webRuntimeSrcFiles = filterPathsUnderBase(sourcePath, webRuntimeSrcFiles)
+	if len(webRuntimeSrcFiles) != 0 {
+		err = fsutil.ConvertPathsToRelative(sourcePath, webRuntimeSrcFiles)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 	seenInputPaths := make(map[string]struct{}, len(inputManifest.Files))
 	for _, inputFile := range inputManifest.Files {
 		seenInputPaths[inputFile.GetPath()] = struct{}{}
 	}
-	for _, srcPath := range append(esbuildSrcFiles, viteSrcFiles...) {
+	for _, srcPath := range append(append(esbuildSrcFiles, viteSrcFiles...), webRuntimeSrcFiles...) {
 		if _, ok := seenInputPaths[srcPath]; ok {
 			continue
 		}
@@ -975,9 +997,40 @@ func (c *Controller) BuildPlugin(
 			StartupOnly: true,
 		})
 	}
+	if enableTinygo {
+		addTinyGoStartupCacheInputs(inputManifest)
+	}
 	inputManifest.SortFiles()
 
 	return an, inputManifest, nil
+}
+
+func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
+	for _, envKey := range gocompiler.TinyGoStartupCacheEnvKeys() {
+		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
+	}
+	inputManifest.SortStartupInputs()
+}
+
+func filterPathsUnderBase(basePath string, paths []string) []string {
+	if len(paths) == 0 {
+		return nil
+	}
+	filtered := paths[:0]
+	for _, filePath := range paths {
+		if filePath == "" {
+			continue
+		}
+		relPath, err := filepath.Rel(basePath, filePath)
+		if err != nil {
+			continue
+		}
+		if relPath == "." || relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
+			continue
+		}
+		filtered = append(filtered, filePath)
+	}
+	return filtered
 }
 
 func newBuildTagsForAnalyze(

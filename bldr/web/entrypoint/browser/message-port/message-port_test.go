@@ -66,6 +66,25 @@ func TestMessagePortCloseClearsHandlerAndWakesRead(t *testing.T) {
 	}
 }
 
+func TestMessagePortReadPreservesPostMessageOrder(t *testing.T) {
+	chObj := newTestMessagePort(t)
+	port := NewMessagePort(chObj)
+
+	deliverTestMessage(t, chObj, []byte("first"))
+	deliverTestMessage(t, chObj, []byte("second"))
+	deliverTestMessage(t, chObj, []byte("third"))
+
+	for _, want := range []string{"first", "second", "third"} {
+		got, err := port.ReadMessage(context.Background())
+		if err != nil {
+			t.Fatalf("read message: %v", err)
+		}
+		if string(got) != want {
+			t.Fatalf("message order mismatch: got %q want %q", string(got), want)
+		}
+	}
+}
+
 func waitReadError(readDone <-chan error) error {
 	for range 100 {
 		select {
@@ -76,6 +95,16 @@ func waitReadError(readDone <-chan error) error {
 		}
 	}
 	return context.DeadlineExceeded
+}
+
+func deliverTestMessage(t *testing.T, chObj js.Value, data []byte) {
+	t.Helper()
+
+	msg := js.Global().Get("Uint8Array").New(len(data))
+	js.CopyBytesToJS(msg, data)
+	event := js.Global().Get("Object").New()
+	event.Set("data", msg)
+	chObj.Get("onmessage").Invoke(event)
 }
 
 func newTestMessagePort(t *testing.T) js.Value {

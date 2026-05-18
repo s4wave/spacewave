@@ -24,8 +24,8 @@ github.com/aperturerobotics/bbolt v0.0.0-20260426060333-d8dbc50ec0cb h1:800F/SY/
 github.com/aperturerobotics/bbolt v0.0.0-20260426060333-d8dbc50ec0cb/go.mod h1:yNkDjLE7/LRdVzkoGo2dTCXtIHW2mkvE8W0Pzbkj83M=
 github.com/aperturerobotics/bldr-saucer v0.4.4 h1:kQvjAAQcdydvX2EYWipQW1vOBUe88F/27WaVU7mKRoE=
 github.com/aperturerobotics/bldr-saucer v0.4.4/go.mod h1:yH40259UVahR/9DU9c+Sg0+HGm5OtTWHV7CeEzneVho=
-github.com/aperturerobotics/cayley v0.14.1-0.20260512101008-8126fdcbc49f h1:rCU1ukYB0Hhpp7BB0ZvT84KYWOA+MICIK84vxGg9u7s=
-github.com/aperturerobotics/cayley v0.14.1-0.20260512101008-8126fdcbc49f/go.mod h1:UG5F9OJ7kIfexYBQVUEeEZbBGfzBctPJ7dDyFntmN7Q=
+github.com/aperturerobotics/cayley v0.14.1-0.20260514195440-32d3c8730ab2 h1:+93bKDrvTSQtklhX4H9DAA9nkCXJgUOp92IaDknYBmU=
+github.com/aperturerobotics/cayley v0.14.1-0.20260514195440-32d3c8730ab2/go.mod h1:rGfI9NLmQRy3v9Zp2oyK84rTc5R6fn6Yk/qH2jq46tQ=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
 github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
 github.com/aperturerobotics/common v0.33.1-0.20260516193515-675cfc5a0c12 h1:KQiFEDyu5//G8JZ3yTN92kF2P3F+LHjSKsQikgROncU=
@@ -46,8 +46,8 @@ github.com/aperturerobotics/go-indexeddb v0.2.3 h1:DfquIk9YEZjWD/lJyBWZWGCtRga43
 github.com/aperturerobotics/go-indexeddb v0.2.3/go.mod h1:JV1XngOCCui7zrMSyRz+Wvz00nUSfotRKZqJzWpl5fQ=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 h1:1GiibOMnkf3sMnOkCE9zhxnTv9wsdqS/jtLwd/vzxws=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0/go.mod h1:HjPtCVPOo4OREpb5vic13KLufoyirtuV7cTzU+Rnv+s=
-github.com/aperturerobotics/go-multiaddr v0.17.0 h1:dYNEylrfGoFZEx5ZeTm01R5tX+vpZTm9ypNPG6I96jY=
-github.com/aperturerobotics/go-multiaddr v0.17.0/go.mod h1:qCrUDxkyS9ElQNb1LyV5wcRJwhdLgkHj19CDJBW60vs=
+github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5 h1:EXuhOPf4RVJirySH0z8j2NfI2YwLHD6tBRj+NGgE+Vs=
+github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5/go.mod h1:qCrUDxkyS9ElQNb1LyV5wcRJwhdLgkHj19CDJBW60vs=
 github.com/aperturerobotics/go-multibase v0.4.0 h1:zYxJkOb6yIXvd2m4je/QfJeoWoWW/Sbl9/FoOfY7ptQ=
 github.com/aperturerobotics/go-multibase v0.4.0/go.mod h1:PMClsExj7sks4HmxY7SAo09ZkR8B6pOCjjApo/ZE4GU=
 github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430160256-9f14583bdee3 h1:S1z81QmGa03QbNleD0JbbHcWCmOyKhq9wYBNXjvBMiU=
@@ -84,8 +84,6 @@ github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 h1:ZbKfJ4Q
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6/go.mod h1:SLrPtbLCdMA1cJ2wmpnozln6nLjIH4l/88jcOUEac00=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
-github.com/bits-and-blooms/bitset v1.24.4 h1:95H15Og1clikBrKr/DuzMXkQzECs1M6hhoGXLwLQOZE=
-github.com/bits-and-blooms/bitset v1.24.4/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bwesterb/go-ristretto v1.2.3 h1:1w53tCkGhCQ5djbat3+MH0BAQ5Kfgbt56UZQ/JMzngw=
 github.com/bwesterb/go-ristretto v1.2.3/go.mod h1:fUIoIZaG73pV5biE2Blr2xEzDoMj7NFEuV9ekS419A0=
 github.com/cayleygraph/quad v1.3.0 h1:xg7HOLWWPgvZ4CcvzEpfCwq42L8mzYUR+8V0jtYoBzc=
@@ -255,8 +253,6 @@ github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOF
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/ncruces/julianday v1.0.0 h1:fH0OKwa7NWvniGQtxdJRxAgkBMolni2BjDHaWTxqt7M=
 github.com/ncruces/julianday v1.0.0/go.mod h1:Dusn2KvZrrovOMJuOt0TNXL6tB7U2E8kvza5fFc9G7g=
-github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33 h1:L9QV95RPfadhBsiq/N9pZ7MTs823/gBe2X/9C2hHUjI=
-github.com/paralin/gonum-graph-simple v0.0.0-20240410084948-b970da5ebf33/go.mod h1:JCyKu0B4pZc/wvduVu6GwY1N8vACjFpJiEzGNq7nf5U=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe h1:vHpqOnPlnkba8iSxU4j/CvDSS9J4+F4473esQsYLGoE=

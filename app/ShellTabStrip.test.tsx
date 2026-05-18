@@ -269,13 +269,14 @@ describe('ShellTabStrip', () => {
   afterEach(() => {
     cleanup()
     localStorage.clear()
+    sessionStorage.clear()
     window.location.hash = ''
     vi.unstubAllGlobals()
     mockOptimizedLayoutProps.mockReset()
   })
 
   it('materializes and selects a state-only docs tab in the flex layout model', async () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
         tabs: [{ id: 'home', name: 'Home', path: '/' }],
@@ -309,7 +310,7 @@ describe('ShellTabStrip', () => {
         | undefined
       const model = call?.[0].model
       const stored = JSON.parse(
-        localStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
+        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
       ) as {
         activeTabId: string
         tabs: Array<{ id: string; path: string }>

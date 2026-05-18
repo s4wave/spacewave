@@ -11,6 +11,12 @@ import (
 // BroadcastChannelName is the channel name for shard generation invalidation.
 const BroadcastChannelName = "hydra-blockshard-gen"
 
+const (
+	bldrOPFSBroadcastChannelNew = "BLDR_OPFS_BROADCAST_CHANNEL_NEW"
+	bldrOPFSBroadcastSend       = "BLDR_OPFS_BROADCAST_SEND"
+	bldrOPFSBroadcastClose      = "BLDR_OPFS_BROADCAST_CLOSE"
+)
+
 // InvalidationMsg is a shard generation invalidation message.
 // Wire format: [shard_id: u16] [generation: u64] = 10 bytes.
 type InvalidationMsg struct {
@@ -44,7 +50,7 @@ type Broadcaster struct {
 
 // NewBroadcaster creates a BroadcastChannel for sending invalidation messages.
 func NewBroadcaster() *Broadcaster {
-	ch := js.Global().Get("BroadcastChannel").New(BroadcastChannelName)
+	ch := newBroadcastChannel()
 	return &Broadcaster{channel: ch}
 }
 
@@ -54,15 +60,30 @@ func (b *Broadcaster) Send(shardID int, generation uint64) {
 		ShardID:    uint16(shardID),
 		Generation: generation,
 	}
-	data := msg.Encode()
-	arr := js.Global().Get("Uint8Array").New(len(data))
-	js.CopyBytesToJS(arr, data)
-	b.channel.Call("postMessage", arr.Get("buffer"))
+	send := js.Global().Get(bldrOPFSBroadcastSend)
+	if jsFuncAvailable(send) {
+		send.Invoke(
+			b.channel,
+			int(msg.ShardID),
+			int(uint32(msg.Generation>>32)),
+			int(uint32(msg.Generation)),
+		)
+		return
+	}
+
+	arr := js.Global().Get("Uint8Array").New(10)
+	arr.SetIndex(0, int(msg.ShardID>>8))
+	arr.SetIndex(1, int(msg.ShardID))
+	for i := 0; i < 8; i++ {
+		shift := uint((7 - i) * 8)
+		arr.SetIndex(2+i, int(byte(msg.Generation>>shift)))
+	}
+	b.channel.Call("postMessage", arr)
 }
 
 // Close closes the BroadcastChannel.
 func (b *Broadcaster) Close() {
-	b.channel.Call("close")
+	closeBroadcastChannel(b.channel)
 }
 
 // Listener receives shard generation invalidation messages.
@@ -76,7 +97,7 @@ type Listener struct {
 
 // NewListener creates a BroadcastChannel listener for invalidation messages.
 func NewListener() *Listener {
-	ch := js.Global().Get("BroadcastChannel").New(BroadcastChannelName)
+	ch := newBroadcastChannel()
 	l := &Listener{
 		channel: ch,
 		pending: make(map[uint16]uint64),
@@ -90,20 +111,33 @@ func NewListener() *Listener {
 		if data.IsUndefined() || data.IsNull() {
 			return nil
 		}
-		arr := js.Global().Get("Uint8Array").New(data)
-		buf := make([]byte, arr.Get("length").Int())
-		js.CopyBytesToGo(buf, arr)
-		msg := DecodeInvalidationMsg(buf)
-		if msg != nil {
-			l.mu.Lock()
-			if msg.Generation > l.pending[msg.ShardID] {
-				l.pending[msg.ShardID] = msg.Generation
-			}
-			l.mu.Unlock()
-			select {
-			case l.notify <- struct{}{}:
-			default:
-			}
+		length := data.Get("length")
+		if length.IsUndefined() || length.IsNull() {
+			return nil
+		}
+		if length.Int() < 10 {
+			return nil
+		}
+		msg := &InvalidationMsg{
+			ShardID: uint16(byte(data.Index(0).Int()))<<8 |
+				uint16(byte(data.Index(1).Int())),
+			Generation: uint64(byte(data.Index(2).Int()))<<56 |
+				uint64(byte(data.Index(3).Int()))<<48 |
+				uint64(byte(data.Index(4).Int()))<<40 |
+				uint64(byte(data.Index(5).Int()))<<32 |
+				uint64(byte(data.Index(6).Int()))<<24 |
+				uint64(byte(data.Index(7).Int()))<<16 |
+				uint64(byte(data.Index(8).Int()))<<8 |
+				uint64(byte(data.Index(9).Int())),
+		}
+		l.mu.Lock()
+		if msg.Generation > l.pending[msg.ShardID] {
+			l.pending[msg.ShardID] = msg.Generation
+		}
+		l.mu.Unlock()
+		select {
+		case l.notify <- struct{}{}:
+		default:
 		}
 		return nil
 	})
@@ -134,6 +168,27 @@ func (l *Listener) DrainPending() []InvalidationMsg {
 
 // Close closes the BroadcastChannel listener.
 func (l *Listener) Close() {
-	l.channel.Call("close")
+	closeBroadcastChannel(l.channel)
 	l.cleanup.Release()
+}
+
+func newBroadcastChannel() js.Value {
+	newChannel := js.Global().Get(bldrOPFSBroadcastChannelNew)
+	if jsFuncAvailable(newChannel) {
+		return newChannel.Invoke(BroadcastChannelName)
+	}
+	return js.Global().Get("BroadcastChannel").New(BroadcastChannelName)
+}
+
+func closeBroadcastChannel(channel js.Value) {
+	closeChannel := js.Global().Get(bldrOPFSBroadcastClose)
+	if jsFuncAvailable(closeChannel) {
+		closeChannel.Invoke(channel)
+		return
+	}
+	channel.Call("close")
+}
+
+func jsFuncAvailable(fn js.Value) bool {
+	return !fn.IsUndefined() && !fn.IsNull()
 }

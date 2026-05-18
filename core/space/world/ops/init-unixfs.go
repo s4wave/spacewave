@@ -75,20 +75,20 @@ func (o *InitUnixFSOp) ApplyWorldOp(
 		return false, world.ErrEmptyObjectKey
 	}
 
-	// Initialize the UnixFS filesystem
 	fsNodeType := unixfs_world.FSType_FSType_FS_NODE
-	_, _, err = unixfs_world.FsInit(
-		ctx,
-		worldHandle,
-		sender,
+	fsInit := unixfs_world.NewFsInitOp(
 		objKey,
 		fsNodeType,
 		nil,
 		false,
 		o.GetTimestamp().AsTime(),
 	)
-	if err != nil {
+	if err := fsInit.Validate(); err != nil {
 		return false, err
+	}
+	sysErr, err = fsInit.ApplyWorldOp(ctx, le, worldHandle, sender)
+	if err != nil {
+		return sysErr, err
 	}
 
 	ts := o.GetTimestamp().AsTime()

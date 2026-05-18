@@ -53,6 +53,7 @@ var Value = dep.Value
 		[]string{"build_type_dev"},
 		"linux",
 		"amd64",
+		false,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -97,6 +98,7 @@ func NewFactory() {}
 		[]string{"build_type_release", "purego"},
 		"js",
 		"wasm",
+		false,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -113,12 +115,149 @@ func NewFactory() {}
 		[]string{"build_type_release", "purego", "tinygo"},
 		"js",
 		"wasm",
+		false,
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(tinygo.controllerFactories) != 0 {
 		t.Fatalf("TinyGo analysis factories: got %d, want 0", len(tinygo.controllerFactories))
+	}
+}
+
+func TestAnalyzePackagesScansImportedFactoriesOnlyWhenEnabled(t *testing.T) {
+	ctx := context.Background()
+	workDir := t.TempDir()
+
+	writeFile(t, workDir, "go.mod", `module github.com/s4wave/spacewave
+
+go 1.26.2
+`)
+	writeFile(t, workDir, "bldr/web/bundler/output.go", `package bundler
+
+type WebBundlerOutput struct{}
+`)
+	writeFile(t, workDir, "plugin/root/root.go", `package root
+
+import _ "github.com/s4wave/spacewave/plugin/child"
+
+func NewFactory() {}
+`)
+	writeFile(t, workDir, "plugin/child/child.go", `package child
+
+func NewFactory() {}
+`)
+
+	le := logrus.NewEntry(logrus.New())
+	explicitOnly, err := AnalyzePackages(
+		ctx,
+		le,
+		workDir,
+		[]string{"./plugin/root"},
+		[]string{"build_type_release", "purego"},
+		"js",
+		"wasm",
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(explicitOnly.controllerFactories) != 1 {
+		t.Fatalf("explicit-only analysis factories: got %d, want 1", len(explicitOnly.controllerFactories))
+	}
+	if _, ok := explicitOnly.controllerFactories["child"]; ok {
+		t.Fatal("explicit-only analysis unexpectedly included imported child factory")
+	}
+
+	withImported, err := AnalyzePackages(
+		ctx,
+		le,
+		workDir,
+		[]string{"./plugin/root"},
+		[]string{"build_type_release", "purego"},
+		"js",
+		"wasm",
+		true,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(withImported.controllerFactories) != 2 {
+		t.Fatalf("imported analysis factories: got %d, want 2", len(withImported.controllerFactories))
+	}
+	if _, ok := withImported.controllerFactories["child"]; !ok {
+		t.Fatal("imported analysis did not include imported child factory")
+	}
+}
+
+func TestAnalysisProgramGoCodeFilesIncludesDependencies(t *testing.T) {
+	ctx := context.Background()
+	workDir := t.TempDir()
+
+	writeFile(t, workDir, "go.mod", `module github.com/s4wave/spacewave
+
+go 1.26.2
+`)
+	writeFile(t, workDir, "bldr/web/bundler/output.go", `package bundler
+
+type WebBundlerOutput struct{}
+`)
+	writeFile(t, workDir, "plugin/root/root.go", `package root
+
+import "github.com/s4wave/spacewave/lib/dep"
+
+var Value = dep.Value
+`)
+	writeFile(t, workDir, "lib/dep/dep.go", `package dep
+
+const Value = "dep"
+`)
+
+	le := logrus.NewEntry(logrus.New())
+	an, err := AnalyzePackages(
+		ctx,
+		le,
+		workDir,
+		[]string{"./plugin/root"},
+		[]string{"build_type_release", "purego"},
+		"js",
+		"wasm",
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	programFiles := an.GetProgramGoCodeFiles()
+	var programRelPaths []string
+	for _, pkgFiles := range programFiles {
+		for _, file := range pkgFiles {
+			relPath, err := filepath.Rel(workDir, an.GetFileToken(file).Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			programRelPaths = append(programRelPaths, filepath.ToSlash(relPath))
+		}
+	}
+	for _, want := range []string{"plugin/root/root.go", "lib/dep/dep.go"} {
+		if !slices.Contains(programRelPaths, want) {
+			t.Fatalf("program files missing %q: %v", want, programRelPaths)
+		}
+	}
+
+	rootFiles := an.GetGoCodeFiles()
+	var rootRelPaths []string
+	for _, pkgFiles := range rootFiles {
+		for _, file := range pkgFiles {
+			relPath, err := filepath.Rel(workDir, an.GetFileToken(file).Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			rootRelPaths = append(rootRelPaths, filepath.ToSlash(relPath))
+		}
+	}
+	if slices.Contains(rootRelPaths, "lib/dep/dep.go") {
+		t.Fatalf("root files unexpectedly included dependency: %v", rootRelPaths)
 	}
 }
 

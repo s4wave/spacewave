@@ -11,6 +11,7 @@ const exitedGoProgramMessage = "Go program has already exited"
 type CrashReport struct {
 	GoFatalStackTrace []string
 	PageErrors        []string
+	RuntimeErrors     []string
 	WorkerErrors      []string
 	ExitedGoCount     int
 }
@@ -27,6 +28,13 @@ func (r *CrashReport) AddMessage(msg string) {
 	if strings.Contains(lower, "page error:") {
 		r.PageErrors = append(r.PageErrors, msg)
 	}
+	if strings.Contains(lower, "uncaught rangeerror") ||
+		strings.Contains(lower, "uncaught runtimeerror") ||
+		strings.Contains(lower, "offset is outside the bounds of the dataview") ||
+		strings.Contains(lower, "maximum call stack size exceeded") ||
+		strings.Contains(lower, "memory access out of bounds") {
+		r.RuntimeErrors = append(r.RuntimeErrors, msg)
+	}
 	if strings.Contains(lower, "worker ") && strings.Contains(lower, " error:") {
 		r.WorkerErrors = append(r.WorkerErrors, msg)
 	}
@@ -40,7 +48,10 @@ func (r CrashReport) HasExitedGoLoop() bool {
 
 // HasCrash returns true when a primary crash signal was captured.
 func (r CrashReport) HasCrash() bool {
-	return len(r.GoFatalStackTrace) != 0 || len(r.PageErrors) != 0 || len(r.WorkerErrors) != 0
+	return len(r.GoFatalStackTrace) != 0 ||
+		len(r.PageErrors) != 0 ||
+		len(r.RuntimeErrors) != 0 ||
+		len(r.WorkerErrors) != 0
 }
 
 // DrainCrashReport drains all currently buffered console messages into a

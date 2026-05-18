@@ -43,7 +43,7 @@ var StaticFS embed.FS
 var PluginStartInfo = strings.TrimSpace(os.Getenv("BLDR_PLUGIN_START_INFO"))
 
 // PluginMeta contains the b58 encoded plugin metadata.
-var PluginMeta = "L9hvzj3w1szjfbzYPQHjjHRhdViHQuZ28DTVYmQqWL1MozHowwx7YgCoJBpxQsoc3ieCX79XZcR"
+var PluginMeta = "BeV8YUBrjkJ1fxJby5yuLwHd7bA9PN5PMajBEsgchi3daNeQK7PxzSvmExbANTqhHCSkFN29"
 
 // LogLevel is the default program log level.
 var LogLevel = logrus.DebugLevel
@@ -96,7 +96,7 @@ var StaticFS embed.FS
 var PluginStartInfo = strings.TrimSpace(os.Getenv("BLDR_PLUGIN_START_INFO"))
 
 // PluginMeta contains the b58 encoded plugin metadata.
-var PluginMeta = "L9hvzj3w1szjfbzYPQHjjHRhdViHQuZ28DTVYmQqWL1MozHowwx7YgCoJBpxQsoc3ieCX79XZcR"
+var PluginMeta = "BeV8YUBrjkJ1fxJby5yuLwHd7bA9PN5PMajBEsgchi3daNeQK7PxzSvmExbANTqhHCSkFN29"
 
 // LogLevel is the default program log level.
 var LogLevel = logrus.DebugLevel
@@ -141,7 +141,7 @@ func TestCodegen(t *testing.T) {
 
 	workDir, _ := os.Getwd()
 	workDir = filepath.Join(workDir, "../../../..")
-	an, err := AnalyzePackages(ctx, le, workDir, packagePaths, []string{"build_type_dev"}, "", "")
+	an, err := AnalyzePackages(ctx, le, workDir, packagePaths, []string{"build_type_dev"}, "", "", false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

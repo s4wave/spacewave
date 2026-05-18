@@ -265,6 +265,7 @@ func TestValidateStartupInputs(t *testing.T) {
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewControllerConfigDigestStartupInput(controllerConfigDigest),
 	)
+	inputManifest.AddStartupInput(newStartupCacheFormatInput())
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewEnvStartupInput("BLDR_TEST_ENV", "expected"),
 	)
@@ -276,6 +277,22 @@ func TestValidateStartupInputs(t *testing.T) {
 	t.Setenv("BLDR_TEST_ENV", "changed")
 	if err := validateStartupInputs(controllerConfig, inputManifest); err == nil {
 		t.Fatal("expected env validation error")
+	}
+}
+
+func TestValidateStartupInputsRequiresCacheFormat(t *testing.T) {
+	controllerConfig := &configset_proto.ControllerConfig{}
+	controllerConfigDigest, err := marshalControllerConfigDigest(controllerConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
+	inputManifest.AddStartupInput(
+		bldr_manifest_builder.NewControllerConfigDigestStartupInput(controllerConfigDigest),
+	)
+	if err := validateStartupInputs(controllerConfig, inputManifest); err == nil {
+		t.Fatal("expected missing startup cache format marker error")
 	}
 }
 
@@ -307,11 +324,25 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	if inputManifest.GetFiles()[0].GetIdentity() == nil {
 		t.Fatal("expected captured file identity")
 	}
-	if len(inputManifest.GetStartupInputs()) != 1 {
-		t.Fatalf("expected 1 startup input, got %d", len(inputManifest.GetStartupInputs()))
+	if len(inputManifest.GetStartupInputs()) != 2 {
+		t.Fatalf("expected 2 startup inputs, got %d", len(inputManifest.GetStartupInputs()))
 	}
-	if inputManifest.GetStartupInputs()[0].GetKind() != bldr_manifest_builder.InputManifest_StartupInputKind_CONTROLLER_CONFIG_DIGEST {
+	var foundControllerDigest bool
+	var foundCacheFormat bool
+	for _, input := range inputManifest.GetStartupInputs() {
+		if input.GetKind() == bldr_manifest_builder.InputManifest_StartupInputKind_CONTROLLER_CONFIG_DIGEST {
+			foundControllerDigest = true
+		}
+		if input.GetKind() == bldr_manifest_builder.InputManifest_StartupInputKind_ENV_VAR &&
+			input.GetKey() == startupCacheFormatEnvKey {
+			foundCacheFormat = true
+		}
+	}
+	if !foundControllerDigest {
 		t.Fatal("expected controller config digest startup input")
+	}
+	if !foundCacheFormat {
+		t.Fatal("expected startup cache format marker input")
 	}
 }
 

@@ -125,7 +125,7 @@ func (c *Controller) BuildManifest(
 		analyzeGOARCH = native.GetGOARCH()
 	}
 	analysis, err := plugin_compiler_go.AnalyzePackages(
-		ctx, le, sourcePath, conf.GetGoPkgs(), nil, analyzeGOOS, analyzeGOARCH,
+		ctx, le, sourcePath, conf.GetGoPkgs(), nil, analyzeGOOS, analyzeGOARCH, true,
 	)
 	if err != nil {
 		return nil, err

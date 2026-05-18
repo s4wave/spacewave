@@ -64,7 +64,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	}
 
 	le.Info("building release web bundle")
-	if err := runBun(ctx, repoRoot, "run", releaseWasmBuildScript()); err != nil {
+	if err := buildReleaseWeb(ctx, repoRoot); err != nil {
 		return nil, errors.Wrap(err, "build release web bundle")
 	}
 
@@ -187,6 +187,17 @@ func releaseWasmBuildScript() string {
 	return script
 }
 
+func releaseWasmTinyGoEnabled() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("E2E_RELEASE_WASM_TINYGO")), "true")
+}
+
+func buildReleaseWeb(ctx context.Context, repoRoot string) error {
+	if releaseWasmTinyGoEnabled() {
+		return runBun(ctx, repoRoot, "run", "bldr", "--", "--state-path=.bldr-dist", "--build-type=release", "build", "-b", "release-web-e2e-tinygo")
+	}
+	return runBun(ctx, repoRoot, "run", releaseWasmBuildScript())
+}
+
 func playwrightBrowserType(pw *playwright.Playwright, browserName string) (playwright.BrowserType, error) {
 	switch browserName {
 	case "chromium":
@@ -234,7 +245,66 @@ func (h *harness) newPage(t testing.TB) playwright.Page {
 		t.Fatalf("new page: %v", err)
 	}
 
+	h.attachPageDiagnostics(t, page)
+	return page
+}
+
+func (h *harness) newPageInContext(t testing.TB, ctx playwright.BrowserContext) playwright.Page {
+	t.Helper()
+
+	page, err := ctx.NewPage()
+	if err != nil {
+		t.Fatalf("new page in context: %v", err)
+	}
+	h.attachPageDiagnostics(t, page)
+	return page
+}
+
+func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
+	t.Helper()
+
 	var errs []string
+	consoleTrace := os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1"
+	page.OnFrameNavigated(func(frame playwright.Frame) {
+		if frame.ParentFrame() != nil {
+			return
+		}
+		t.Logf("browser navigated: %s", frame.URL())
+	})
+	if os.Getenv("E2E_RELEASE_WASM_HTTP_TRACE") == "1" {
+		page.OnRequest(func(req playwright.Request) {
+			url := req.URL()
+			if !isRelevantReleaseWasmRequest(url) {
+				return
+			}
+			t.Logf("browser request: %s %s", req.Method(), url)
+		})
+		page.OnResponse(func(resp playwright.Response) {
+			url := resp.URL()
+			if !isRelevantReleaseWasmRequest(url) {
+				return
+			}
+			t.Logf("browser response: %d %s", resp.Status(), url)
+		})
+	}
+	page.OnRequestFailed(func(req playwright.Request) {
+		url := req.URL()
+		if !isRelevantReleaseWasmRequest(url) {
+			return
+		}
+		t.Logf("browser request failed: %s %s: %s", req.Method(), url, req.Failure())
+	})
+	if consoleTrace {
+		page.OnWorker(func(worker playwright.Worker) {
+			t.Logf("browser worker: %s", worker.URL())
+			worker.OnConsole(func(msg playwright.ConsoleMessage) {
+				t.Logf("browser worker %s: %s", msg.Type(), msg.Text())
+			})
+			worker.OnClose(func(worker playwright.Worker) {
+				t.Logf("browser worker closed: %s", worker.URL())
+			})
+		})
+	}
 	page.On("console", func(msg playwright.ConsoleMessage) {
 		switch msg.Type() {
 		case "error":
@@ -242,9 +312,13 @@ func (h *harness) newPage(t testing.TB) playwright.Page {
 				errs = append(errs, "console error: "+msg.Text())
 			}
 		case "warning":
-			t.Logf("browser warning: %s", msg.Text())
+			if consoleTrace {
+				t.Logf("browser warning: %s", msg.Text())
+			}
 		default:
-			t.Logf("browser %s: %s", msg.Type(), msg.Text())
+			if consoleTrace {
+				t.Logf("browser %s: %s", msg.Type(), msg.Text())
+			}
 		}
 	})
 	page.On("pageerror", func(err error) {
@@ -268,8 +342,19 @@ func (h *harness) newPage(t testing.TB) playwright.Page {
 			t.Fatalf("browser errors: %v", errs)
 		}
 	})
+}
 
-	return page
+func isRelevantReleaseWasmRequest(url string) bool {
+	if strings.Contains(url, "runtime.wasm") ||
+		strings.Contains(url, "runtime-wasm") ||
+		strings.Contains(url, "/shw") ||
+		strings.Contains(url, "/sw-") ||
+		strings.Contains(url, "/b/pd/") ||
+		strings.Contains(url, "/b/pa/") ||
+		strings.Contains(url, "/entrypoint/") {
+		return true
+	}
+	return false
 }
 
 func (h *harness) newContextOptions(t testing.TB) playwright.BrowserNewContextOptions {

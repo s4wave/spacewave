@@ -16,13 +16,16 @@ import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 
 import {
+  buildQuickstartSpaceRoutePath,
   createQuickstartSetup,
   createLocalSession,
+  getQuickstartInitialObjectRouteHandoff,
   type QuickstartProgressState,
 } from './create.js'
 import { LoadingScreen } from './LoadingScreen.js'
 import { isQuickstartCreateId, type QuickstartId } from './options.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
+import { createQuickstartSessionHandoffCleanup } from './session-handoff.js'
 
 interface QuickstartProps {
   quickstartId: QuickstartId
@@ -76,14 +79,26 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
   const localSessionResource = useResource(
     rootResource,
     async (root, signal, cleanup) => {
-      return createLocalSession(
-        root,
-        signal,
-        cleanup,
-        true,
-        undefined,
-        reportProgress,
-      )
+      const handoff = createQuickstartSessionHandoffCleanup(cleanup)
+      try {
+        const setup = await createLocalSession(
+          root,
+          signal,
+          handoff.cleanup,
+          true,
+          undefined,
+          reportProgress,
+        )
+        if (signal.aborted) {
+          handoff.releaseHeldResources()
+          return setup
+        }
+        handoff.stage(setup.sessionIndex, setup.session)
+        return setup
+      } catch (err) {
+        handoff.releaseHeldResources()
+        throw err
+      }
     },
     [reportProgress],
     { enabled: isLocal },
@@ -94,13 +109,34 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     rootResource,
     async (root, signal, cleanup) => {
       if (!isCreate || isLocal) return null
-      return createQuickstartSetup(
-        root,
-        quickstartId,
-        signal,
-        cleanup,
-        reportProgress,
-      )
+      const handoff = createQuickstartSessionHandoffCleanup(cleanup)
+      try {
+        const setup = await createQuickstartSetup(
+          root,
+          quickstartId,
+          signal,
+          handoff.cleanup,
+          reportProgress,
+        )
+        if (signal.aborted) {
+          handoff.releaseHeldResources()
+          return setup
+        }
+        if (typeof setup.sessionIndex === 'number') {
+          const spaceID =
+            setup.spaceResp.sharedObjectRef?.providerResourceRef?.id
+          handoff.stage(
+            setup.sessionIndex,
+            setup.session,
+            spaceID,
+            getQuickstartInitialObjectRouteHandoff(quickstartId),
+          )
+        }
+        return setup
+      } catch (err) {
+        handoff.releaseHeldResources()
+        throw err
+      }
     },
     [isCreate, isLocal, quickstartId, reportProgress],
     { enabled: isCreate && !isLocal },
@@ -154,5 +190,12 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     return <LoadingScreen quickstartId={quickstartId} progress={progress} />
   }
 
-  return <Redirect to={`/u/${setup.sessionIndex}/so/${spaceID}`} />
+  return (
+    <Redirect
+      to={buildQuickstartSpaceRoutePath(
+        `/u/${setup.sessionIndex}/so/${spaceID}`,
+        quickstartId,
+      )}
+    />
+  )
 }

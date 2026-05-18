@@ -11,7 +11,8 @@ CORE_GO_PKGS = [
     "./core/provider/local",
     "./core/provider/spacewave",
     "./core/space/sobject",
-    "./core/space/world/ops",
+    "./core/sobject/world/engine",
+    "./core/space/world/optypes",
     "./core/plugin/space",
     "./core/space/http/download",
     "./core/space/http/export",
@@ -446,6 +447,29 @@ build("release-web-e2e",
     manifests=BROWSER_RELEASE_E2E_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
+        "spacewave-launcher": e2e_release_wasm_launcher_config(),
+        "spacewave-dist": dist_release_config(
+            BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
+            BROWSER_RELEASE_E2E_LOAD_PLUGINS,
+        ),
+    },
+)
+build("release-web-tinygo",
+    manifests=BROWSER_RELEASE_MANIFESTS,
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-core": spacewave_core_config(enable_tinygo_web=True),
+        "spacewave-dist": dist_release_config(
+            BROWSER_RELEASE_EMBED_MANIFESTS,
+            BROWSER_RELEASE_LOAD_PLUGINS,
+        ),
+    },
+)
+build("release-web-e2e-tinygo",
+    manifests=BROWSER_RELEASE_E2E_MANIFESTS,
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-core": spacewave_core_config(enable_tinygo_web=True),
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,

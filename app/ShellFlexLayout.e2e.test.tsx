@@ -131,6 +131,7 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
   beforeEach(() => {
     void cleanup()
     localStorage.clear()
+    sessionStorage.clear()
     window.location.hash = ''
   })
 

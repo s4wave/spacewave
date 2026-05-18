@@ -78,6 +78,31 @@ func compactShard(t testing.TB, s *Shard) {
 	}
 }
 
+func TestBroadcastChannelInvalidationUsesTypedArrayPayload(t *testing.T) {
+	b := NewBroadcaster()
+	defer b.Close()
+	l := NewListener()
+	defer l.Close()
+
+	const shardID uint16 = 0x8003
+	const generation uint64 = 0xfedcba9876543210
+	b.Send(int(shardID), generation)
+
+	select {
+	case <-l.Notify():
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for invalidation message")
+	}
+
+	msgs := l.DrainPending()
+	if len(msgs) != 1 {
+		t.Fatalf("pending messages: got %d, want 1", len(msgs))
+	}
+	if msgs[0].ShardID != shardID || msgs[0].Generation != generation {
+		t.Fatalf("pending message = %+v, want shard=%d generation=%d", msgs[0], shardID, generation)
+	}
+}
+
 func TestSingletonPutDoesNotWaitForFlushAge(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
@@ -137,6 +162,90 @@ func TestAsyncIOWriteAndRead(t *testing.T) {
 	}
 	if !found || string(val) != "mode" {
 		t.Fatalf("async get: found=%v val=%q want mode", found, val)
+	}
+}
+
+func TestAsyncIOConsecutivePutsDoNotWriteManifestGenerationPointer(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-async-io-consecutive-puts",
+		"test-blockshard-async-io-consecutive-puts",
+		settings,
+	)
+	defer cleanup()
+
+	if err := e.Put(context.Background(), []segment.Entry{{
+		Key:   []byte("a"),
+		Value: []byte("first"),
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Put(context.Background(), []segment.Entry{{
+		Key:   []byte("b"),
+		Value: []byte("second"),
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		key  string
+		want string
+	}{
+		{key: "a", want: "first"},
+		{key: "b", want: "second"},
+	} {
+		val, found, err := e.Get([]byte(tc.key))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found || string(val) != tc.want {
+			t.Fatalf("get %q: found=%v val=%q want %q", tc.key, found, val, tc.want)
+		}
+	}
+
+	_, err := opfs.ReadFile(e.shards[0].dir, "manifest-gen")
+	if err == nil || !opfs.IsNotFound(err) {
+		t.Fatalf("manifest-gen read error = %v, want not found", err)
+	}
+}
+
+func TestWriteFileDataAsyncReplacesWholeFile(t *testing.T) {
+	root, err := opfs.GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dirName := "test-blockshard-async-replace-file"
+	dir, err := opfs.GetDirectory(root, dirName, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer opfs.DeleteEntry(root, dirName, true) //nolint
+
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	shard, err := NewShard(0, dir, dirName, settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const name = "seg-000001.sst"
+	if err := shard.writeFileData(context.Background(), name, []byte("0123456789")); err != nil {
+		t.Fatal(err)
+	}
+	if err := shard.writeFileData(context.Background(), name, []byte("abc")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := opfs.ReadFile(dir, name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "abc" {
+		t.Fatalf("file content after async replace = %q, want abc", string(got))
 	}
 }
 

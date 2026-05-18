@@ -172,6 +172,43 @@ func TestExecutePluginArgsEqualHandlesNilManifestRefs(t *testing.T) {
 	}
 }
 
+func TestExecutePluginArgsEqualIgnoresBucketForSameManifestRoot(t *testing.T) {
+	rootRef := block.NewBlockRef(hash.NewHash(hash.HashType_HashType_BLAKE3, []byte{1, 2, 3}))
+	remote := &executePluginArgs{
+		manifestSnapshot: &bldr_manifest.ManifestSnapshot{
+			ManifestRef: &bucket.ObjectRef{
+				BucketId: "remote",
+				RootRef:  rootRef.Clone(),
+			},
+		},
+	}
+	local := &executePluginArgs{
+		manifestSnapshot: &bldr_manifest.ManifestSnapshot{
+			ManifestRef: &bucket.ObjectRef{
+				BucketId: "local",
+				RootRef:  rootRef.Clone(),
+			},
+		},
+	}
+	if !executePluginArgsEqual(remote, local) {
+		t.Fatal("expected local manifest copy to preserve execute state")
+	}
+
+	le := logrus.NewEntry(logrus.New())
+	ctr := routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le)
+	ctr.SetState(remote)
+	if _, changed, _, _ := ctr.SetState(local); changed {
+		t.Fatal("expected local manifest copy not to reset the execute routine")
+	}
+
+	changedRoot := rootRef.Clone()
+	changedRoot.Hash.Hash[0] ^= 0xff
+	local.manifestSnapshot.ManifestRef.RootRef = changedRoot
+	if executePluginArgsEqual(remote, local) {
+		t.Fatal("expected a changed manifest root to reset execute state")
+	}
+}
+
 func TestDirectFetchCandidateBetterPrefersNativePlatform(t *testing.T) {
 	js := &directFetchCandidate{
 		ref:  newTestManifestRef("spacewave-v86", "js", 68, "bucket"),
@@ -1641,6 +1678,32 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 		t.Fatal("expected plugin host manifest store object")
 	}
 	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	runningPi := &pluginInstance{
+		c: &Controller{
+			conf:   &Config{},
+			objKey: objKey,
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	runningArgs := &executePluginArgs{
+		manifestSnapshot: &bldr_manifest.ManifestSnapshot{
+			ManifestRef: ref.GetManifestRef(),
+		},
+		pluginHost: host,
+	}
+	runningPi.executePluginRoutine.SetState(runningArgs)
+	if _, err := runningPi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj); err != nil {
+		t.Fatal(err.Error())
+	}
+	if runningPi.executePluginRoutine.GetState() != runningArgs {
+		t.Fatal("expected running remote manifest to stay active after local copy appears")
+	}
+
 	watchPi := &pluginInstance{
 		c: &Controller{
 			conf:   &Config{},

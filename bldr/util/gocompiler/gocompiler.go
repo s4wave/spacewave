@@ -48,14 +48,6 @@ func GetDefaultTinygoLlvmFeatures() []string {
 	}
 }
 
-// GetDefaultTinygoArgs are the set of args we usually pass to the compiler.
-func GetDefaultTinygoArgs() []string {
-	return []string{
-		"-opt=2",
-		"-llvm-features=" + strings.Join(GetDefaultTinygoLlvmFeatures(), ","),
-	}
-}
-
 // GetDefaultEnv are the set of args we usually pass to the compiler.
 func GetDefaultEnv() []string {
 	return []string{

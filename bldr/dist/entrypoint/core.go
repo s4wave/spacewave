@@ -14,7 +14,6 @@ import (
 	bldr_plugin_load "github.com/s4wave/spacewave/bldr/plugin/load"
 	storage_default "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	statusprojector "github.com/s4wave/spacewave/core/resource/desktop/statusprojector"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_rpc_lookup "github.com/s4wave/spacewave/db/block/store/rpc/lookup"
@@ -57,7 +56,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	for _, factory := range plugin_host_default.PluginHostControllerFactories {
 		sr.AddFactory(factory(b))
 	}
-	sr.AddFactory(statusprojector.NewFactory(b))
+	addDesktopFactories(b, sr)
 
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))

@@ -160,7 +160,9 @@ type Config struct {
 	//   - NewFactory(b bus.Bus) controller.Factory
 	//   - BuildFactories(b bus.Bus) []controller.Factory
 	//
-	// Appended to the list set in the plugin compiler settings.
+	// Appended to the list set in the plugin compiler settings. Imported
+	// packages are not scanned for factories unless
+	// EnableImportedFactoryDiscovery is ENABLE.
 	GoPkgs []string `protobuf:"bytes,4,rep,name=go_pkgs,json=goPkgs,proto3" json:"goPkgs,omitempty"`
 	// WebPkgs is the list of web packages to externalize and include in the bundle.
 	//
@@ -232,6 +234,10 @@ type Config struct {
 	// Both base platform IDs and full platform IDs are checked: a build for
 	// "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
 	PlatformTypes map[string]*Config `protobuf:"bytes,17,rep,name=platform_types,json=platformTypes,proto3" json:"platformTypes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// EnableImportedFactoryDiscovery scans same-module packages imported by
+	// GoPkgs for controller factories. The default is disabled so GoPkgs is the
+	// explicit generated factory surface.
+	EnableImportedFactoryDiscovery enabled.Enabled `protobuf:"varint,18,opt,name=enable_imported_factory_discovery,json=enableImportedFactoryDiscovery,proto3" json:"enableImportedFactoryDiscovery,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -350,6 +356,13 @@ func (x *Config) GetPlatformTypes() map[string]*Config {
 		return x.PlatformTypes
 	}
 	return nil
+}
+
+func (x *Config) GetEnableImportedFactoryDiscovery() enabled.Enabled {
+	if x != nil {
+		return x.EnableImportedFactoryDiscovery
+	}
+	return enabled.Enabled(0)
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
@@ -801,6 +814,7 @@ func (m *Config) CloneVT() *Config {
 	r.EnableTinygo = m.EnableTinygo
 	r.EnableCompression = m.EnableCompression
 	r.WebPluginId = m.WebPluginId
+	r.EnableImportedFactoryDiscovery = m.EnableImportedFactoryDiscovery
 	if rhs := m.ConfigSet; rhs != nil {
 		r.ConfigSet = make(map[string]*proto.ControllerConfig, len(rhs))
 		for k, v := range rhs {
@@ -887,8 +901,10 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		return (*InputManifestMeta)(nil)
 	}
 	r := new(InputManifestMeta)
-	r.DevInfo = m.DevInfo.CloneVT()
 	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
+	if rhs := m.DevInfo; rhs != nil {
+		r.DevInfo = rhs.CloneVT()
+	}
 	if rhs := m.WebPkgRefs; rhs != nil {
 		r.WebPkgRefs = make([]*pkg.WebPkgRef, len(rhs))
 		for k, v := range rhs {
@@ -1184,6 +1200,9 @@ func (this *Config) EqualVT(that *Config) bool {
 				return false
 			}
 		}
+	}
+	if this.EnableImportedFactoryDiscovery != that.EnableImportedFactoryDiscovery {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1993,6 +2012,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteObjectEnd()
 	}
+	if x.EnableImportedFactoryDiscovery != 0 || s.HasField("enableImportedFactoryDiscovery") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enableImportedFactoryDiscovery")
+		x.EnableImportedFactoryDiscovery.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2121,6 +2145,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				v.UnmarshalProtoJSON(s)
 				x.PlatformTypes[key] = &v
 			})
+		case "enable_imported_factory_discovery", "enableImportedFactoryDiscovery":
+			s.AddField("enable_imported_factory_discovery")
+			x.EnableImportedFactoryDiscovery.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -2813,6 +2840,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.EnableImportedFactoryDiscovery != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableImportedFactoryDiscovery))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
 	}
 	if len(m.PlatformTypes) > 0 {
 		for k := range m.PlatformTypes {
@@ -3594,6 +3628,9 @@ func (m *Config) SizeVT() (n int) {
 			n += mapEntrySize + 2 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
 		}
 	}
+	if m.EnableImportedFactoryDiscovery != 0 {
+		n += 2 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableImportedFactoryDiscovery))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4083,6 +4120,15 @@ func (x *Config) MarshalProtoText() string {
 			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString(" }")
+	}
+	if x.EnableImportedFactoryDiscovery != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("enable_imported_factory_discovery: ")
+		sb.WriteString("\"")
+		sb.WriteString(enabled.Enabled(x.EnableImportedFactoryDiscovery).String())
+		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -5050,6 +5096,17 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PlatformTypes[mapkey] = mapvalue
 			iNdEx = postIndex
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableImportedFactoryDiscovery", wireType)
+			}
+			m.EnableImportedFactoryDiscovery = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.EnableImportedFactoryDiscovery = enabled.Enabled(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

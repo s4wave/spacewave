@@ -6,13 +6,13 @@ import (
 	"io"
 	"slices"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/scrub"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/core/session"
@@ -33,10 +33,12 @@ var controllerDescrip = "session list controller"
 type Controller struct {
 	*bus.BusController[*Config]
 
-	mtx           csync.Mutex
+	mtx           sync.Mutex
 	bcast         broadcast.Broadcast
 	volumeID      string
 	objectStoreID string
+	objStore      object.ObjectStore
+	objStoreRel   func()
 }
 
 // sessionListPrefix is the key prefix for items in the session list.
@@ -95,6 +97,20 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	return nil, nil
 }
 
+// Close releases controller-owned resources.
+func (c *Controller) Close() error {
+	c.mtx.Lock()
+	objStoreRel := c.objStoreRel
+	c.objStore = nil
+	c.objStoreRel = nil
+	c.mtx.Unlock()
+
+	if objStoreRel != nil {
+		objStoreRel()
+	}
+	return c.BusController.Close()
+}
+
 // GetSessionBroadcast returns the broadcast that fires when sessions change.
 func (c *Controller) GetSessionBroadcast() *broadcast.Broadcast {
 	return &c.bcast
@@ -103,17 +119,13 @@ func (c *Controller) GetSessionBroadcast() *broadcast.Broadcast {
 // GetSessionByIdx looks up the given session index.
 // Returns nil, nil if not found.
 func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.SessionListEntry, error) {
-	objStore, objStoreRel, err := c.buildObjectStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer objStoreRel()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
-	rel, err := c.mtx.Lock(ctx)
+	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rel()
 
 	otx, err := objStore.NewTransaction(ctx, false)
 	if err != nil {
@@ -139,17 +151,13 @@ func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.
 
 // ListSessions lists the sessions in storage.
 func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEntry, error) {
-	objStore, objStoreRel, err := c.buildObjectStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer objStoreRel()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
-	rel, err := c.mtx.Lock(ctx)
+	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rel()
 
 	otx, err := objStore.NewTransaction(ctx, false)
 	if err != nil {
@@ -194,17 +202,13 @@ func sessionMetaKey(idx uint32) []byte {
 // RegisterSession registers a session ref in storage or returns the existing matching entry.
 // If metadata is non-nil, it is written to the session controller ObjectStore.
 func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) (*session.SessionListEntry, error) {
-	objStore, objStoreRel, err := c.buildObjectStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer objStoreRel()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
-	rel, err := c.mtx.Lock(ctx)
+	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rel()
 
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
@@ -299,17 +303,13 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 // GetSessionMetadata returns the metadata for a session by index.
 // Returns nil, nil if not found.
 func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*session.SessionMetadata, error) {
-	objStore, objStoreRel, err := c.buildObjectStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer objStoreRel()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
-	rel, err := c.mtx.Lock(ctx)
+	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rel()
 
 	otx, err := objStore.NewTransaction(ctx, false)
 	if err != nil {
@@ -336,17 +336,13 @@ func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*sessi
 // UpdateSessionMetadata updates the metadata for a session by ref.
 // Creates the metadata entry if it does not exist.
 func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) error {
-	objStore, objStoreRel, err := c.buildObjectStore(ctx)
-	if err != nil {
-		return err
-	}
-	defer objStoreRel()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
-	rel, err := c.mtx.Lock(ctx)
+	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return err
 	}
-	defer rel()
 
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
@@ -395,17 +391,13 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 // DeleteSession removes the matching session ref from the list.
 // Returns nil if not found.
 func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef) error {
-	objStore, objStoreRel, err := c.buildObjectStore(ctx)
-	if err != nil {
-		return err
-	}
-	defer objStoreRel()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
-	rel, err := c.mtx.Lock(ctx)
+	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
 		return err
 	}
-	defer rel()
 
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
@@ -448,8 +440,13 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 	return err
 }
 
-// buildObjectStore builds the object store for the sessions list.
-func (c *Controller) buildObjectStore(ctx context.Context) (object.ObjectStore, func(), error) {
+// buildObjectStoreLocked builds or returns the cached sessions object store.
+// c.mtx must be held by the caller.
+func (c *Controller) buildObjectStoreLocked(ctx context.Context) (object.ObjectStore, error) {
+	if c.objStore != nil {
+		return c.objStore, nil
+	}
+
 	// Open the object store for the session list.
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,
@@ -460,10 +457,12 @@ func (c *Controller) buildObjectStore(ctx context.Context) (object.ObjectStore, 
 		nil,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return objStoreHandle.GetObjectStore(), diRef.Release, nil
+	c.objStore = objStoreHandle.GetObjectStore()
+	c.objStoreRel = diRef.Release
+	return c.objStore, nil
 }
 
 // _ is a type assertion

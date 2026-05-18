@@ -5,10 +5,14 @@ package message_port
 import (
 	"context"
 	"io"
+	"runtime"
 	"syscall/js"
+	"unsafe"
 
-	"github.com/aperturerobotics/util/cqueue"
+	"github.com/pkg/errors"
 )
+
+const tinyGoPostBytes = "BLDR_TINYGO_POST_BYTES"
 
 // MessagePort wraps a MessagePort object into a in/out Uint8Array stream.
 //
@@ -22,7 +26,7 @@ type MessagePort struct {
 	onMessage  js.Func
 
 	trig         chan struct{}
-	msgs         cqueue.AtomicLIFO[[]byte]
+	msgs         [][]byte
 	closed       bool
 	onMessageSet bool
 }
@@ -55,8 +59,7 @@ func NewMessagePort(chObj js.Value) *MessagePort {
 				dlen := dat.Length()
 				bin := make([]byte, dlen)
 				js.CopyBytesToGo(bin, dat)
-				// note: we cannot block here, use atomic ops
-				s.msgs.Push(bin)
+				s.msgs = append(s.msgs, bin)
 			}
 
 			s.wakeReader()
@@ -77,8 +80,11 @@ func (s *MessagePort) ReadMessage(ctx context.Context) ([]byte, error) {
 			return nil, io.EOF
 		}
 
-		nextMsg := s.msgs.Pop()
-		if len(nextMsg) != 0 {
+		if len(s.msgs) != 0 {
+			nextMsg := s.msgs[0]
+			copy(s.msgs, s.msgs[1:])
+			s.msgs[len(s.msgs)-1] = nil
+			s.msgs = s.msgs[:len(s.msgs)-1]
 			return nextMsg, nil
 		}
 
@@ -97,7 +103,20 @@ func (s *MessagePort) ReadMessage(ctx context.Context) ([]byte, error) {
 }
 
 // WriteMessage writes a message to the stream.
-func (s *MessagePort) WriteMessage(p []byte) {
+func (s *MessagePort) WriteMessage(p []byte) error {
+	if runtime.Compiler == "tinygo" {
+		postBytes := js.Global().Get(tinyGoPostBytes)
+		if postBytes.IsUndefined() || postBytes.IsNull() || postBytes.Type() != js.TypeFunction {
+			return errors.New("tinygo message port byte helper unavailable")
+		}
+		ptr := 0
+		if len(p) != 0 {
+			ptr = int(uintptr(unsafe.Pointer(&p[0])))
+		}
+		postBytes.Invoke(s.chObj, ptr, len(p))
+		return nil
+	}
+
 	a := s.uint8Array.New(len(p))
 	js.CopyBytesToJS(a, p)
 	if s.chPost.IsUndefined() || s.chPost.IsNull() || s.chPost.Type() != js.TypeFunction {
@@ -109,6 +128,7 @@ func (s *MessagePort) WriteMessage(p []byte) {
 		}
 	}()
 	s.chPost.Invoke(a)
+	return nil
 }
 
 // Close closes the channels.

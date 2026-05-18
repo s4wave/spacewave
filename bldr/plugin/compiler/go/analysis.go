@@ -58,7 +58,9 @@ type Analysis struct {
 // build tags during analysis. Pass the target platform's GOOS/GOARCH so
 // factories gated on platform-specific tags (e.g. "//go:build !js") match
 // the target compile rather than the analysis host. Empty strings fall
-// back to linux/amd64.
+// back to linux/amd64. When enableImportedFactoryDiscovery is false,
+// factory discovery only uses the explicit packagePaths roots; imported
+// packages are still loaded for dependency and source analysis.
 func AnalyzePackages(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -66,6 +68,7 @@ func AnalyzePackages(
 	packagePaths []string,
 	buildTags []string,
 	goos, goarch string,
+	enableImportedFactoryDiscovery bool,
 ) (*Analysis, error) {
 	// expect go.mod go.sum in the work dir for base module
 	baseGoModPath := filepath.Join(workDir, "go.mod")
@@ -180,6 +183,11 @@ func AnalyzePackages(
 		return nil, errors.Errorf("could not find %s.%s type", EsbuildOutputPkgPath, EsbuildOutputTypeName)
 	}
 
+	explicitFactoryPackagePaths := make(map[string]struct{}, len(packagePaths))
+	for _, packagePath := range packagePaths {
+		explicitFactoryPackagePaths[packagePath] = struct{}{}
+	}
+
 	addPkgsStack := make([]*packages.Package, len(loadedPackages))
 	copy(addPkgsStack, loadedPackages)
 	for len(addPkgsStack) != 0 {
@@ -211,6 +219,12 @@ func AnalyzePackages(
 	factoryModules := res.module
 	for _, pkg := range res.packages {
 		le := le.WithField("pkg", pkg.Types.Path())
+
+		if !enableImportedFactoryDiscovery {
+			if _, ok := explicitFactoryPackagePaths[pkg.Types.Path()]; !ok {
+				continue
+			}
+		}
 
 		factoryCtorObj := pkg.Types.Scope().Lookup("NewFactory")
 		if factoryCtorObj == nil {
@@ -264,9 +278,21 @@ func (a *Analysis) GetLoadedPackages() map[string]*packages.Package {
 	return a.packages
 }
 
-// GetGoCodeFiles returns file paths for packages in the program.
+// GetGoCodeFiles returns file paths for explicitly configured packages.
 func (a *Analysis) GetGoCodeFiles() map[string][]*ast.File {
-	packagePaths := a.packagePaths
+	packagePaths := make(map[string]struct{}, len(a.packagePaths))
+	for _, packagePath := range a.packagePaths {
+		packagePaths[packagePath] = struct{}{}
+	}
+	return a.getGoCodeFiles(packagePaths)
+}
+
+// GetProgramGoCodeFiles returns Go files for all same-module packages loaded into the program.
+func (a *Analysis) GetProgramGoCodeFiles() map[string][]*ast.File {
+	return a.getGoCodeFiles(nil)
+}
+
+func (a *Analysis) getGoCodeFiles(packagePaths map[string]struct{}) map[string][]*ast.File {
 	res := make(map[string][]*ast.File)
 	addFile := func(pakImportPath string, astFile *ast.File) {
 		res[pakImportPath] = append(res[pakImportPath], astFile)
@@ -277,11 +303,7 @@ func (a *Analysis) GetGoCodeFiles() map[string][]*ast.File {
 		for i := range pak.Syntax {
 			pakImportPath := pak.PkgPath
 			if len(packagePaths) != 0 {
-				var found bool
-				if slices.Contains(packagePaths, pakImportPath) {
-					found = true
-				}
-				if !found {
+				if _, ok := packagePaths[pakImportPath]; !ok {
 					continue
 				}
 			}

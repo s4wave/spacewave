@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/bits-and-blooms/bitset"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/file"
@@ -282,48 +281,6 @@ func (f *FSTree) LookupFollowDirentAsCursor(name string) (*block.Cursor, *Dirent
 	return ds.FollowDirentAsCursor(didx)
 }
 
-// PreMkdir checks directories for existence and returns a skip list.
-// Dirs must be pre-sorted.
-// Skip list value: found index + 1. 0 = not found.
-func (f *FSTree) PreMkdir(dirs []string) (*bitset.BitSet, []int, error) {
-	nodeDirs := f.node.GetDirectoryEntry()
-	// target index must be at or greater than prev
-	var startIdx int
-	var skipBitset bitset.BitSet
-	indexes := make([]int, len(dirs))
-	for i := range dirs {
-		if err := ValidateDirentName(dirs[i]); err != nil {
-			return nil, indexes, err
-		}
-
-		var didx int
-		var match bool
-		if startIdx < len(nodeDirs) {
-			subslice := nodeDirs[startIdx:]
-			ds := NewDirentSlice(&subslice, f.bcs)
-			didx, match = ds.SearchDirents(dirs[i])
-			didx += startIdx // offset
-			startIdx = didx
-			// note: even if not found, didx = insertion location of dir
-			// since dirs is sorted, this means we can keep searching from that pt
-		}
-		if match {
-			indexes[i] = didx + 1
-			if nodeDirs[didx].GetNodeType() != NodeType_NodeType_DIRECTORY {
-				return nil, indexes, unixfs_errors.ErrExist
-			}
-		}
-		if match || (i != 0 && dirs[i] == dirs[i-1]) {
-			// dir exists or is a dupe of previous entry
-			skipBitset.Set(uint(i + 1)) //nolint:gosec
-			continue
-		}
-		skipBitset.Set(0)
-	}
-
-	return &skipBitset, indexes, nil
-}
-
 // Mkdir creates one or more directories.
 // May return ErrExist if any of dirs exist as a file.
 func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs ...string) (map[string]*FSTree, error) {
@@ -337,12 +294,41 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 
 	// all dirs are stored in one node, so we can do this:
 	slices.Sort(dirs)
-	skipBitset, skipIndexes, err := f.PreMkdir(dirs)
-	if err != nil {
-		return nil, err
+	nodeDirs := f.node.GetDirectoryEntry()
+	skipDirs := make([]bool, len(dirs))
+	skipIndexes := make([]int, len(dirs))
+	var hasCreate bool
+
+	var startIdx int
+	for i := range dirs {
+		if err := ValidateDirentName(dirs[i]); err != nil {
+			return nil, err
+		}
+
+		var didx int
+		var match bool
+		if startIdx < len(nodeDirs) {
+			subslice := nodeDirs[startIdx:]
+			ds := NewDirentSlice(&subslice, f.bcs)
+			didx, match = ds.SearchDirents(dirs[i])
+			didx += startIdx
+			startIdx = didx
+		}
+		if match {
+			skipIndexes[i] = didx + 1
+			if nodeDirs[didx].GetNodeType() != NodeType_NodeType_DIRECTORY {
+				return nil, unixfs_errors.ErrExist
+			}
+		}
+		if match || (i != 0 && dirs[i] == dirs[i-1]) {
+			skipDirs[i] = true
+			continue
+		}
+		hasCreate = true
 	}
 
 	dslice := NewDirentSlice(&f.node.DirectoryEntry, f.bcs)
+	var err error
 	for i, didx := range skipIndexes {
 		// note: didx is idx + 1
 		if didx != 0 {
@@ -353,13 +339,13 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 			}
 		}
 	}
-	if !skipBitset.Test(0) {
+	if !hasCreate {
 		// nothing to create
 		return outputCursors, nil
 	}
 
 	for i := range dirs {
-		if skipBitset.Test(uint(i + 1)) { //nolint:gosec
+		if skipDirs[i] {
 			// already created
 			continue
 		}

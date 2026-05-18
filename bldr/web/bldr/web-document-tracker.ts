@@ -69,6 +69,10 @@ export class WebDocumentTracker {
   private lastWebDocumentIdx = 0
   // lastWebDocumentId was the last web document id used from WebDocuments.
   private lastWebDocumentId?: string
+  // activeRuntimeWebDocumentId is the WebDocument currently relaying the
+  // WebRuntimeClient channel.
+  private activeRuntimeWebDocumentId?: string
+  private activeRuntimeDocumentAbort?: AbortController
   private nextSabPairRequestNumber = 1
   private sabPairOpenWaiters = new Map<string, SabPairOpenWaiter>()
   private sabPairEndpoints = new Map<string, SabPairEndpointDescriptor>()
@@ -119,6 +123,7 @@ export class WebDocumentTracker {
     )
 
     this.webDocuments[webDocumentId] = port
+    this.lastWebDocumentId = webDocumentId
     port.onmessage = (ev) => {
       const data: WebDocumentToClient = ev.data
       if (typeof data !== 'object' || data === null) {
@@ -126,42 +131,10 @@ export class WebDocumentTracker {
       }
 
       if (data.close) {
-        void (async () => {
-          const closePort = this.webDocuments[webDocumentId]
-          if (closePort) {
-            closePort.close()
-            console.log(
-              `WebDocumentTracker: ${this.clientUuid}: removed WebDocument: ${webDocumentId}`,
-            )
-            delete this.webDocuments[webDocumentId]
-            this.webDocumentResumeReadyIds.delete(webDocumentId)
-            const closeErr = new Error(
-              `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed`,
-            )
-            this.rejectSabPairWaitersForWebDocument(webDocumentId, closeErr)
-            this.rejectWebRtcBridgeWaitersForWebDocument(
-              webDocumentId,
-              closeErr,
-            )
-            this.rejectResumeReadyWaiters(
-              webDocumentId,
-              new Error(
-                `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed before resume-ready`,
-              ),
-            )
-            if (this.lastWebDocumentId === webDocumentId) {
-              this.lastWebDocumentId = undefined
-              this.lastWebDocumentIdx = 0
-              this.webRuntimeClient.close()
-            }
-            if (
-              !Object.keys(this.webDocuments).length &&
-              this.onAllWebDocumentsClosed
-            ) {
-              await this.onAllWebDocumentsClosed()
-            }
-          }
-        })().catch((err) => {
+        const closeErr = new Error(
+          `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed`,
+        )
+        this.removeWebDocument(webDocumentId, closeErr).catch((err) => {
           console.error(
             `WebDocumentTracker: ${this.clientUuid}: error handling WebDocument close:`,
             err,
@@ -250,6 +223,9 @@ export class WebDocumentTracker {
     }
     this.webDocumentResumeReadyIds.clear()
     delete this.lastWebDocumentId
+    delete this.activeRuntimeWebDocumentId
+    this.activeRuntimeDocumentAbort?.abort()
+    this.activeRuntimeDocumentAbort = undefined
     const err = new Error(
       `WebDocumentTracker: ${this.clientUuid}: closed while waiting for WebDocument`,
     )
@@ -412,6 +388,7 @@ export class WebDocumentTracker {
         )
         this.lastWebDocumentIdx = x
         this.lastWebDocumentId = webDocumentId
+        this.trackActiveRuntimeWebDocument(webDocumentId)
         return result.webRuntimePort
       } catch (err) {
         // message port must be closed.
@@ -477,6 +454,102 @@ export class WebDocumentTracker {
         }
         throw err
       })
+  }
+
+  private trackActiveRuntimeWebDocument(webDocumentId: string): void {
+    this.activeRuntimeDocumentAbort?.abort()
+    this.activeRuntimeWebDocumentId = webDocumentId
+
+    if (typeof navigator === 'undefined' || !('locks' in navigator)) {
+      this.activeRuntimeDocumentAbort = undefined
+      return
+    }
+
+    const abortController = new AbortController()
+    this.activeRuntimeDocumentAbort = abortController
+    this.waitForWebDocumentDisconnect(webDocumentId, abortController.signal)
+      .then((err) => {
+        if (
+          !err ||
+          this.closed ||
+          this.activeRuntimeDocumentAbort !== abortController ||
+          this.activeRuntimeWebDocumentId !== webDocumentId
+        ) {
+          return
+        }
+        return this.removeWebDocument(webDocumentId, err)
+      })
+      .catch((err: unknown) => {
+        if (abortController.signal.aborted) {
+          return
+        }
+        console.error(
+          `WebDocumentTracker: ${this.clientUuid}: active WebDocument disconnect watch failed:`,
+          err,
+        )
+      })
+  }
+
+  private async removeWebDocument(
+    webDocumentId: string,
+    closeErr: Error,
+  ): Promise<void> {
+    const closePort = this.webDocuments[webDocumentId]
+    if (!closePort) {
+      return
+    }
+
+    closePort.close()
+    console.log(
+      `WebDocumentTracker: ${this.clientUuid}: removed WebDocument: ${webDocumentId}`,
+    )
+    delete this.webDocuments[webDocumentId]
+    this.webDocumentResumeReadyIds.delete(webDocumentId)
+    this.rejectSabPairWaitersForWebDocument(webDocumentId, closeErr)
+    this.rejectWebRtcBridgeWaitersForWebDocument(webDocumentId, closeErr)
+    this.rejectResumeReadyWaiters(
+      webDocumentId,
+      new Error(
+        `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed before resume-ready`,
+      ),
+    )
+
+    const wasActiveRuntimeDocument =
+      this.activeRuntimeWebDocumentId === webDocumentId
+    if (wasActiveRuntimeDocument) {
+      delete this.activeRuntimeWebDocumentId
+      this.activeRuntimeDocumentAbort?.abort()
+      this.activeRuntimeDocumentAbort = undefined
+    }
+
+    const remainingWebDocumentIds = Object.keys(this.webDocuments)
+    if (
+      this.lastWebDocumentId === webDocumentId ||
+      !this.lastWebDocumentId ||
+      !this.webDocuments[this.lastWebDocumentId]
+    ) {
+      const nextWebDocumentId =
+        remainingWebDocumentIds[remainingWebDocumentIds.length - 1]
+      this.lastWebDocumentId = nextWebDocumentId
+      this.lastWebDocumentIdx =
+        nextWebDocumentId ?
+          remainingWebDocumentIds.indexOf(nextWebDocumentId)
+        : 0
+    }
+
+    const shouldCloseRuntimeClient =
+      !remainingWebDocumentIds.length || wasActiveRuntimeDocument
+    if (!remainingWebDocumentIds.length) {
+      this.lastWebDocumentId = undefined
+      this.lastWebDocumentIdx = 0
+    }
+    if (shouldCloseRuntimeClient) {
+      this.webRuntimeClient.close()
+    }
+
+    if (!remainingWebDocumentIds.length && this.onAllWebDocumentsClosed) {
+      await this.onAllWebDocumentsClosed()
+    }
   }
 
   private async waitForActiveWebDocumentResumeReady(): Promise<RuntimeClientStreamOpenGateResult> {

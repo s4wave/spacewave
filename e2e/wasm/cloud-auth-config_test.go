@@ -12,7 +12,7 @@ import (
 )
 
 func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
-	endpoint, stop, err := startE2ECloudAuthConfigEndpoint()
+	endpoint, stop, err := startE2ECloudAuthConfigEndpoint("")
 	if err != nil {
 		t.Fatalf("start endpoint: %v", err)
 	}
@@ -36,6 +36,18 @@ func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
 	}
 	if cfg.GetPublicBaseUrl() != endpoint {
 		t.Fatalf("public base URL = %q, want %q", cfg.GetPublicBaseUrl(), endpoint)
+	}
+}
+
+func TestStableE2ECloudAuthConfigAddr(t *testing.T) {
+	a := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-a")
+	b := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-a")
+	c := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-b")
+	if a != b {
+		t.Fatalf("stable addr changed: %q != %q", a, b)
+	}
+	if a == c {
+		t.Fatalf("expected different state roots to use different addrs, got %q", a)
 	}
 }
 

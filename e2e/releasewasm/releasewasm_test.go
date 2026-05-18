@@ -171,7 +171,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	waitForBootFunction(t, page)
 	waitForLiveApp(t, page)
 	waitForCanonicalQuickstartURL(t, page)
-	err = page.Locator("[data-testid='unixfs-browser']").WaitFor(
+	err = page.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
 	)
 	if err != nil {
@@ -196,6 +196,108 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		t.Fatalf("write quickstart smoke artifact: %v", err)
 	}
 	t.Logf("quickstart smoke artifact written to %s (%d bytes)", path, len(data))
+}
+
+func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
+	pageA := testHarness.newPage(t)
+	quickstartURL := testHarness.getBaseURL() + "/quickstart/drive"
+	if _, err := pageA.Goto(quickstartURL); err != nil {
+		t.Fatalf("goto first quickstart drive: %v", err)
+	}
+	waitForPrerenderRoot(t, pageA)
+	waitForBootFunction(t, pageA)
+	waitForLiveApp(t, pageA)
+	waitForCanonicalQuickstartURL(t, pageA)
+	if err := pageA.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	); err != nil {
+		dumpPageState(t, pageA)
+		t.Fatalf("wait for first quickstart frame-ready: %v", err)
+	}
+	firstURL := pageA.URL()
+	if _, err := pageA.Evaluate(`() => {
+		const navEvents = []
+		globalThis.__swCrossTabNavEvents = navEvents
+		const record = (type, detail = {}) => {
+			navEvents.push({
+				type,
+				href: location.href,
+				hash: location.hash,
+				time: performance.now(),
+				...detail,
+			})
+		}
+		window.addEventListener('hashchange', () => record('hashchange'))
+		window.addEventListener('storage', (ev) => record('storage', {
+			key: ev.key,
+			newValue: ev.newValue,
+		}))
+		globalThis.__swCrossTabReloadProbe = {
+			token: crypto.randomUUID(),
+			href: location.href,
+			markedAt: performance.now(),
+		}
+	}`); err != nil {
+		t.Fatalf("install first tab reload probe: %v", err)
+	}
+
+	pageB := testHarness.newPageInContext(t, pageA.Context())
+	if _, err := pageB.Goto(quickstartURL); err != nil {
+		t.Fatalf("goto second quickstart drive: %v", err)
+	}
+	waitForPrerenderRoot(t, pageB)
+	waitForBootFunction(t, pageB)
+	waitForLiveApp(t, pageB)
+	waitForCanonicalQuickstartURL(t, pageB)
+	if err := pageB.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	); err != nil {
+		dumpPageState(t, pageB)
+		t.Fatalf("wait for second quickstart frame-ready: %v", err)
+	}
+
+	if err := pageB.Close(); err != nil {
+		t.Fatalf("close second quickstart tab: %v", err)
+	}
+	if err := pageA.BringToFront(); err != nil {
+		t.Fatalf("bring first quickstart tab to front: %v", err)
+	}
+	raw, err := pageA.Evaluate(`async () => {
+		await new Promise((resolve) => requestAnimationFrame(() => {
+			requestAnimationFrame(resolve)
+		}))
+		const marker = globalThis.__swCrossTabReloadProbe ?? null
+		const driveReady = !!document.querySelector("[data-testid='unixfs-browser']")
+		return {
+			href: location.href,
+			markerPresent: !!marker,
+			markerHref: marker?.href ?? '',
+			driveReady,
+			bootStatus: globalThis.__swBootStatus ?? null,
+			resumeReady: globalThis.__swWebDocumentResumeReady ?? null,
+			navEvents: globalThis.__swCrossTabNavEvents ?? [],
+			localTabs: localStorage.getItem('shell-tabs-state'),
+			sessionTabs: sessionStorage.getItem('shell-tabs-state'),
+		}
+	}`)
+	if err != nil {
+		t.Fatalf("read first tab after closing second: %v", err)
+	}
+	state, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected first tab close state %T", raw)
+	}
+	if state["href"] != firstURL {
+		t.Fatalf("first tab URL changed after closing second tab: got %v want %s state=%#v", state["href"], firstURL, state)
+	}
+	if state["markerPresent"] != true {
+		dumpPageState(t, pageA)
+		t.Fatalf("first tab reloaded after closing second tab: %#v", state)
+	}
+	if state["driveReady"] != true {
+		dumpPageState(t, pageA)
+		t.Fatalf("first tab lost drive readiness after closing second tab: %#v", state)
+	}
 }
 
 type quickstartRuntimeTraceCapture struct {
@@ -291,12 +393,24 @@ func waitForCanonicalQuickstartURL(t *testing.T, page playwright.Page) {
 func waitForLiveApp(t *testing.T, page playwright.Page) {
 	t.Helper()
 
-	_, err := page.Evaluate(`async () => {
+	deadline := time.Now().Add(time.Duration(browserWaitMS) * time.Millisecond)
+	for {
+		timeoutMS := int(time.Until(deadline) / time.Millisecond)
+		if timeoutMS <= 0 {
+			dumpPageState(t, page)
+			t.Fatal("wait for live app: timed out after navigation retries")
+		}
+		_, err := page.Evaluate(`async (timeoutMs) => {
+		const deadline = performance.now() + timeoutMs
+		const remaining = () => Math.max(0, deadline - performance.now())
+		const timeout = () =>
+			new Promise((_, reject) => {
+				setTimeout(() => reject(new Error('runtime did not become ready')), remaining())
+			})
 		await Promise.race([
 			globalThis.__swReady,
-			new Promise((_, reject) => setTimeout(() => reject(new Error('runtime did not become ready')), 30000)),
+			timeout(),
 		])
-		const deadline = performance.now() + 30000
 		while (document.querySelector('#bldr-root')?.hasAttribute('data-prerendered')) {
 			if (performance.now() > deadline) {
 				throw new Error('prerender did not switch to live app')
@@ -304,10 +418,21 @@ func waitForLiveApp(t *testing.T, page playwright.Page) {
 			await new Promise((resolve) => requestAnimationFrame(resolve))
 		}
 		return true
-	}`)
-	if err != nil {
-		t.Fatalf("wait for live app: %v", err)
+	}`, timeoutMS)
+		if err == nil {
+			return
+		}
+		if !isNavigationEvaluationError(err) {
+			dumpPageState(t, page)
+			t.Fatalf("wait for live app: %v", err)
+		}
 	}
+}
+
+func isNavigationEvaluationError(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "Execution context was destroyed") ||
+		strings.Contains(msg, "navigation")
 }
 
 func waitForPrerenderRoot(t *testing.T, page playwright.Page) {
@@ -351,6 +476,11 @@ func dumpPageState(t *testing.T, page playwright.Page) {
 
 	state, err := page.Evaluate(`() => {
 		const startupPrefix = 'spacewave.startup.'
+		const startupMarks = (globalThis.__swStartupMarks ?? []).map((mark) => ({
+			label: mark.label,
+			sequence: mark.sequence,
+			detail: mark.detail,
+		}))
 		const state = {
 			href: window.location.href,
 			hash: window.location.hash,
@@ -359,6 +489,7 @@ func dumpPageState(t *testing.T, page playwright.Page) {
 			text: document.body?.innerText?.slice(0, 4000) ?? '',
 			rootHtml: document.querySelector('#bldr-root')?.outerHTML?.slice(0, 4000) ?? '',
 			hasDebugRoot: !!globalThis.__s4wave_debug?.root,
+			bootStatus: globalThis.__swBootStatus ?? null,
 			quickstartTiming:
 				globalThis.__s4waveQuickstartTiming ??
 				globalThis.__s4wave_debug?.quickstartTiming ??
@@ -367,7 +498,8 @@ func dumpPageState(t *testing.T, page playwright.Page) {
 				testid: el.getAttribute('data-testid'),
 				text: el.textContent?.slice(0, 200) ?? '',
 			})),
-			startupMarks: performance
+			startupMarks,
+			performanceStartupMarks: performance
 				.getEntriesByType('mark')
 				.filter((entry) => entry.name.startsWith(startupPrefix))
 				.map((entry) => ({

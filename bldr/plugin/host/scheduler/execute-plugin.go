@@ -11,6 +11,7 @@ import (
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -34,14 +35,10 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 	manifestEqual := (a.manifestSnapshot == nil) == (b.manifestSnapshot == nil)
 	if manifestEqual && a.manifestSnapshot != nil {
 		// Compare the manifest references for equality
-		aRef := a.manifestSnapshot.GetManifestRef()
-		bRef := b.manifestSnapshot.GetManifestRef()
-		if aRef == nil || bRef == nil {
-			manifestEqual = aRef == bRef
-		}
-		if aRef != nil && bRef != nil {
-			manifestEqual = aRef.EqualVT(bRef)
-		}
+		manifestEqual = manifestObjectRefsSameExecutable(
+			a.manifestSnapshot.GetManifestRef(),
+			b.manifestSnapshot.GetManifestRef(),
+		)
 	}
 	if !manifestEqual {
 		return false
@@ -54,6 +51,20 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 	}
 
 	return pluginHostEqual
+}
+
+func manifestObjectRefsSameExecutable(a, b *bucket.ObjectRef) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.GetRootRef().GetEmpty() || b.GetRootRef().GetEmpty() {
+		return a.EqualVT(b)
+	}
+	aCopy := a.Clone()
+	bCopy := b.Clone()
+	aCopy.BucketId = ""
+	bCopy.BucketId = ""
+	return aCopy.EqualVT(bCopy)
 }
 
 // execPlugin executes the plugin.

@@ -22,6 +22,7 @@ import {
   type EntityCredential,
 } from '@s4wave/core/session/session.pb.js'
 import type { Root } from '@s4wave/sdk/root/root.js'
+import { consumeQuickstartSessionHandoff } from './quickstart/session-handoff.js'
 
 // AppSession handles the /u/{session-idx}/* path.
 export function AppSession() {
@@ -51,6 +52,31 @@ export function AppSession() {
     rootResource,
     async (root: Root, signal, cleanup) => {
       if (!sessionIdx) return null
+      const handoff = consumeQuickstartSessionHandoff(sessionIdx)
+      if (handoff) {
+        if (
+          (globalThis as { __s4waveLogQuickstartTiming?: boolean })
+            .__s4waveLogQuickstartTiming
+        ) {
+          console.log(
+            'quickstart route consuming session handoff: ' +
+              JSON.stringify({
+                sessionIdx,
+                released: handoff.session.released,
+              }),
+          )
+        }
+        return cleanup(handoff.session)
+      }
+      if (
+        (globalThis as { __s4waveLogQuickstartTiming?: boolean })
+          .__s4waveLogQuickstartTiming
+      ) {
+        console.log(
+          'quickstart route mounting session by index: ' +
+            JSON.stringify({ sessionIdx }),
+        )
+      }
       const result = await root.mountSessionByIdx({ sessionIdx }, signal)
       if (result === null) {
         console.warn(

@@ -22,7 +22,7 @@ describe('patchTinyGoRuntimeImports', () => {
 
     const go: TinyGoRuntime = {
       importObject: {
-        gojs: {},
+        gojs: {} as WebAssembly.ModuleImports,
       },
       _inst: {
         exports: {

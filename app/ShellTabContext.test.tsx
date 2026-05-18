@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 
 import {
   ShellTabsProvider,
@@ -36,14 +36,22 @@ function ActiveTabProbe() {
   return <div data-testid="active-tab-id">{activeTabId}</div>
 }
 
+function TabPathProbe() {
+  const { tabs } = useShellTabs()
+  return (
+    <div data-testid="tab-paths">{tabs.map((tab) => tab.path).join('|')}</div>
+  )
+}
+
 describe('ShellTabContext', () => {
   afterEach(() => {
     cleanup()
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('treats same-path tab updates as a no-op', () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
         tabs: [{ id: 'tab-1', name: 'Home', path: '/' }],
@@ -62,7 +70,7 @@ describe('ShellTabContext', () => {
 
   it('treats semantically equal tab arrays as a no-op', async () => {
     const onCommit = vi.fn()
-    localStorage.setItem(
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
         tabs: [{ id: 'tab-1', name: 'Home', path: '/' }],
@@ -81,8 +89,8 @@ describe('ShellTabContext', () => {
     expect(onCommit).toHaveBeenCalledTimes(1)
   })
 
-  it('preserves active tab selection when hydrating external tab changes', async () => {
-    localStorage.setItem(
+  it('ignores cross-window tab storage changes', () => {
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
         tabs: [
@@ -96,6 +104,7 @@ describe('ShellTabContext', () => {
     render(
       <ShellTabsProvider>
         <ActiveTabProbe />
+        <TabPathProbe />
       </ShellTabsProvider>,
     )
 
@@ -113,41 +122,7 @@ describe('ShellTabContext', () => {
       }),
     )
 
-    await waitFor(() => {
-      expect(screen.getByTestId('active-tab-id').textContent).toBe('tab-1')
-    })
-  })
-
-  it('falls back locally when an external tab change removes the active tab', async () => {
-    localStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Home', path: '/' },
-          { id: 'tab-2', name: 'Docs', path: '/docs' },
-        ],
-        activeTabId: 'tab-2',
-      }),
-    )
-
-    render(
-      <ShellTabsProvider>
-        <ActiveTabProbe />
-      </ShellTabsProvider>,
-    )
-
-    window.dispatchEvent(
-      new StorageEvent('storage', {
-        key: SHELL_TABS_STORAGE_KEY,
-        newValue: JSON.stringify({
-          tabs: [{ id: 'tab-1', name: 'Home', path: '/' }],
-          activeTabId: 'tab-1',
-        }),
-      }),
-    )
-
-    await waitFor(() => {
-      expect(screen.getByTestId('active-tab-id').textContent).toBe('tab-1')
-    })
+    expect(screen.getByTestId('active-tab-id').textContent).toBe('tab-1')
+    expect(screen.getByTestId('tab-paths').textContent).toBe('/|/docs')
   })
 })

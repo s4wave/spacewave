@@ -67,11 +67,12 @@ describe('ShellGridPanel', () => {
   afterEach(() => {
     cleanup()
     localStorage.clear()
+    sessionStorage.clear()
     window.location.hash = ''
   })
 
   it('reuses the shared app routes and keeps navigation and back history inside the grid panel', () => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
         tabs: [{ id: 'tab-1', name: 'Home', path: '/' }],

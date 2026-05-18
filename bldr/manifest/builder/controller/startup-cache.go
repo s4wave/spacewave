@@ -27,6 +27,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V3"
+
 // startupValidationResult contains the startup cache validation result.
 type startupValidationResult struct {
 	// builderResult is the validated startup builder result.
@@ -233,6 +235,7 @@ func enrichBuilderResultForStartupReuse(
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewControllerConfigDigestStartupInput(controllerConfigDigest),
 	)
+	inputManifest.AddStartupInput(newStartupCacheFormatInput())
 	inputManifest.SortStartupInputs()
 	inputManifest.SortFiles()
 	return nil
@@ -269,9 +272,13 @@ func validateStartupInputs(
 ) error {
 	var controllerConfigDigest []byte
 	var foundControllerConfigDigest bool
+	var foundStartupCacheFormat bool
 	for _, input := range inputManifest.GetStartupInputs() {
 		switch input.GetKind() {
 		case bldr_manifest_builder.InputManifest_StartupInputKind_ENV_VAR:
+			if input.GetKey() == startupCacheFormatEnvKey {
+				foundStartupCacheFormat = true
+			}
 			if os.Getenv(input.GetKey()) != input.GetStringValue() {
 				return errors.Errorf("startup env %q changed", input.GetKey())
 			}
@@ -294,7 +301,17 @@ func validateStartupInputs(
 	if !foundControllerConfigDigest {
 		return errors.New("missing builder controller config digest")
 	}
+	if !foundStartupCacheFormat {
+		return errors.New("missing startup cache format marker")
+	}
 	return nil
+}
+
+func newStartupCacheFormatInput() *bldr_manifest_builder.InputManifest_StartupInput {
+	return bldr_manifest_builder.NewEnvStartupInput(
+		startupCacheFormatEnvKey,
+		os.Getenv(startupCacheFormatEnvKey),
+	)
 }
 
 // captureFileIdentities captures file identities on all input manifest files.

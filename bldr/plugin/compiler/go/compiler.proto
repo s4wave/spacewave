@@ -31,7 +31,9 @@ message Config {
   // Looks for package-level functions:
   //  - NewFactory(b bus.Bus) controller.Factory
   //  - BuildFactories(b bus.Bus) []controller.Factory
-  // Appended to the list set in the plugin compiler settings.
+  // Appended to the list set in the plugin compiler settings. Imported
+  // packages are not scanned for factories unless
+  // EnableImportedFactoryDiscovery is ENABLE.
   repeated string go_pkgs = 4;
 
   // WebPkgs is the list of web packages to externalize and include in the bundle.
@@ -115,6 +117,11 @@ message Config {
   // Both base platform IDs and full platform IDs are checked: a build for
   // "desktop/darwin/arm64" will match both "desktop/darwin/arm64" and "desktop".
   map<string, Config> platform_types = 17;
+
+  // EnableImportedFactoryDiscovery scans same-module packages imported by
+  // GoPkgs for controller factories. The default is disabled so GoPkgs is the
+  // explicit generated factory surface.
+  .enabled.Enabled enable_imported_factory_discovery = 18;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
