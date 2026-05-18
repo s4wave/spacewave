@@ -42,7 +42,7 @@ type DecodedBlockCache struct {
 	byRef map[string]map[string]struct{}
 	// byHash lets async Ristretto callbacks prune byRef; rejected or evicted
 	// entries must not leave old refs pinned in the invalidation index.
-	byHash     map[decodedBlockCacheHash]decodedBlockCacheTrackedKey
+	byHash     map[decodedBlockCacheHash]map[uint64]decodedBlockCacheTrackedKey
 	refEpoch   map[string]uint64
 	clearEpoch uint64
 	generation uint64
@@ -94,7 +94,7 @@ func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlo
 	cache := &DecodedBlockCache{
 		opts:     opts,
 		byRef:    make(map[string]map[string]struct{}),
-		byHash:   make(map[decodedBlockCacheHash]decodedBlockCacheTrackedKey),
+		byHash:   make(map[decodedBlockCacheHash]map[uint64]decodedBlockCacheTrackedKey),
 		refEpoch: make(map[string]uint64),
 	}
 	if opts.Disabled {
@@ -377,7 +377,7 @@ func (c *DecodedBlockCache) recordRefKeyLocked(refKey, key string) uint64 {
 		c.byRef = make(map[string]map[string]struct{})
 	}
 	if c.byHash == nil {
-		c.byHash = make(map[decodedBlockCacheHash]decodedBlockCacheTrackedKey)
+		c.byHash = make(map[decodedBlockCacheHash]map[uint64]decodedBlockCacheTrackedKey)
 	}
 	keys := c.byRef[refKey]
 	if keys == nil {
@@ -387,7 +387,12 @@ func (c *DecodedBlockCache) recordRefKeyLocked(refKey, key string) uint64 {
 	keys[key] = struct{}{}
 	h := decodedBlockCacheHashFor(key)
 	c.generation++
-	c.byHash[h] = decodedBlockCacheTrackedKey{
+	generations := c.byHash[h]
+	if generations == nil {
+		generations = make(map[uint64]decodedBlockCacheTrackedKey)
+		c.byHash[h] = generations
+	}
+	generations[c.generation] = decodedBlockCacheTrackedKey{
 		ref:        refKey,
 		key:        key,
 		generation: c.generation,
@@ -405,18 +410,35 @@ func (c *DecodedBlockCache) removeRefKeyHashGeneration(h decodedBlockCacheHash, 
 }
 
 func (c *DecodedBlockCache) removeRefKeyHashGenerationLocked(h decodedBlockCacheHash, generation uint64) {
-	tracked, ok := c.byHash[h]
-	if !ok || tracked.generation != generation {
+	generations := c.byHash[h]
+	tracked, ok := generations[generation]
+	if !ok {
 		return
 	}
-	// Ristretto can reject or evict after a ref was invalidated and re-stored.
-	// Only the callback for the current admission may prune the side index.
-	delete(c.byHash, h)
+	delete(generations, generation)
+	if len(generations) == 0 {
+		delete(c.byHash, h)
+	}
+	// Ristretto can reject a duplicate admission while an older generation for
+	// the same decoded key still owns the invalidation index. Only remove byRef
+	// after the last tracked generation for this ref/key has left Ristretto.
+	if c.hasRefKeyGenerationLocked(h, tracked.ref, tracked.key) {
+		return
+	}
 	keys := c.byRef[tracked.ref]
 	delete(keys, tracked.key)
 	if len(keys) == 0 {
 		delete(c.byRef, tracked.ref)
 	}
+}
+
+func (c *DecodedBlockCache) hasRefKeyGenerationLocked(h decodedBlockCacheHash, ref, key string) bool {
+	for _, tracked := range c.byHash[h] {
+		if tracked.ref == ref && tracked.key == key {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *DecodedBlockCache) takeRefKeys(refKey string) map[string]struct{} {
@@ -454,7 +476,7 @@ func (c *DecodedBlockCache) takeAllKeys() map[string]struct{} {
 		}
 	}
 	c.byRef = make(map[string]map[string]struct{})
-	c.byHash = make(map[decodedBlockCacheHash]decodedBlockCacheTrackedKey)
+	c.byHash = make(map[decodedBlockCacheHash]map[uint64]decodedBlockCacheTrackedKey)
 	c.mtx.Unlock()
 	return keys
 }

@@ -235,14 +235,14 @@ func (s *CdnBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error
 
 // Invalidate drops the cached pointer so the next read re-fetches.
 func (s *CdnBlockStore) Invalidate() {
+	s.cache.reset()
+	s.invalidateDecodedBlocks()
+	s.pfs.UpdateManifest(nil)
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
 		s.pointer = nil
 		s.pointerTime = time.Time{}
 		broadcastFn()
 	})
-	s.cache.reset()
-	s.invalidateDecodedBlocks()
-	s.pfs.UpdateManifest(nil)
 }
 
 // SetPointer replaces the cached pointer without issuing a network request.
@@ -253,18 +253,20 @@ func (s *CdnBlockStore) SetPointer(ptr *cdn.CdnRootPointer) {
 }
 
 func (s *CdnBlockStore) setPointer(ptr *cdn.CdnRootPointer) {
+	s.cache.reset()
+	// Invalidate before publishing the new pointer or manifest. Decoded keys are
+	// scoped by ref/type and can otherwise outlive the CDN root that sourced them.
+	s.invalidateDecodedBlocks()
+	if ptr == nil {
+		s.pfs.UpdateManifest(nil)
+	} else {
+		s.pfs.UpdateManifest(ptr.GetPacks())
+	}
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
 		s.pointer = ptr
 		s.pointerTime = time.Now()
 		broadcastFn()
 	})
-	s.cache.reset()
-	s.invalidateDecodedBlocks()
-	if ptr == nil {
-		s.pfs.UpdateManifest(nil)
-		return
-	}
-	s.pfs.UpdateManifest(ptr.GetPacks())
 }
 
 // ensurePointer returns the cached pointer if fresh, otherwise refreshes.

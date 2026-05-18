@@ -8,6 +8,7 @@ import (
 	"io"
 	"slices"
 	"strconv"
+	"syscall/js"
 	"testing"
 	"time"
 
@@ -92,6 +93,38 @@ func TestBroadcastChannelInvalidationUsesTypedArrayPayload(t *testing.T) {
 	case <-l.Notify():
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for invalidation message")
+	}
+
+	msgs := l.DrainPending()
+	if len(msgs) != 1 {
+		t.Fatalf("pending messages: got %d, want 1", len(msgs))
+	}
+	if msgs[0].ShardID != shardID || msgs[0].Generation != generation {
+		t.Fatalf("pending message = %+v, want shard=%d generation=%d", msgs[0], shardID, generation)
+	}
+}
+
+func TestBroadcastChannelInvalidationAcceptsArrayBufferPayload(t *testing.T) {
+	l := NewListener()
+	defer l.Close()
+
+	const shardID uint16 = 0x7004
+	const generation uint64 = 0x0123456789abcdef
+	arr := js.Global().Get("Uint8Array").New(10)
+	arr.SetIndex(0, int(shardID>>8))
+	arr.SetIndex(1, int(shardID))
+	for i := 0; i < 8; i++ {
+		shift := uint((7 - i) * 8)
+		arr.SetIndex(2+i, int(byte(generation>>shift)))
+	}
+	event := js.Global().Get("Object").New()
+	event.Set("data", arr.Get("buffer"))
+
+	l.cleanup.Invoke(event)
+	select {
+	case <-l.Notify():
+	default:
+		t.Fatal("array buffer payload did not notify listener")
 	}
 
 	msgs := l.DrainPending()

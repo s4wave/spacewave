@@ -111,24 +111,24 @@ func NewListener() *Listener {
 		if data.IsUndefined() || data.IsNull() {
 			return nil
 		}
-		length := data.Get("length")
-		if length.IsUndefined() || length.IsNull() {
+		payload, length, ok := invalidationPayloadBytes(data)
+		if !ok {
 			return nil
 		}
-		if length.Int() < 10 {
+		if length < 10 {
 			return nil
 		}
 		msg := &InvalidationMsg{
-			ShardID: uint16(byte(data.Index(0).Int()))<<8 |
-				uint16(byte(data.Index(1).Int())),
-			Generation: uint64(byte(data.Index(2).Int()))<<56 |
-				uint64(byte(data.Index(3).Int()))<<48 |
-				uint64(byte(data.Index(4).Int()))<<40 |
-				uint64(byte(data.Index(5).Int()))<<32 |
-				uint64(byte(data.Index(6).Int()))<<24 |
-				uint64(byte(data.Index(7).Int()))<<16 |
-				uint64(byte(data.Index(8).Int()))<<8 |
-				uint64(byte(data.Index(9).Int())),
+			ShardID: uint16(byte(payload.Index(0).Int()))<<8 |
+				uint16(byte(payload.Index(1).Int())),
+			Generation: uint64(byte(payload.Index(2).Int()))<<56 |
+				uint64(byte(payload.Index(3).Int()))<<48 |
+				uint64(byte(payload.Index(4).Int()))<<40 |
+				uint64(byte(payload.Index(5).Int()))<<32 |
+				uint64(byte(payload.Index(6).Int()))<<24 |
+				uint64(byte(payload.Index(7).Int()))<<16 |
+				uint64(byte(payload.Index(8).Int()))<<8 |
+				uint64(byte(payload.Index(9).Int())),
 		}
 		l.mu.Lock()
 		if msg.Generation > l.pending[msg.ShardID] {
@@ -143,6 +143,20 @@ func NewListener() *Listener {
 	})
 	ch.Set("onmessage", l.cleanup)
 	return l
+}
+
+func invalidationPayloadBytes(data js.Value) (js.Value, int, bool) {
+	length := data.Get("length")
+	if !length.IsUndefined() && !length.IsNull() {
+		return data, length.Int(), true
+	}
+	byteLength := data.Get("byteLength")
+	if byteLength.IsUndefined() || byteLength.IsNull() {
+		return js.Value{}, 0, false
+	}
+	// Browser/runtime versions have posted both Uint8Array and raw ArrayBuffer
+	// payloads. Normalize to byte indexing so old tabs keep receiving invalidations.
+	return js.Global().Get("Uint8Array").New(data), byteLength.Int(), true
 }
 
 // Notify returns the wakeup channel for invalidation processing.

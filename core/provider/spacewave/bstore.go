@@ -632,13 +632,14 @@ func (r *publicReadRemote) Refresh(ctx context.Context) error {
 		return err
 	}
 	entries := clonePackfileEntries(ptr.GetPacks())
+	// Invalidate before publishing the refreshed manifest. Reads can observe the
+	// lower store and Entries snapshot from separate owners, and stale decoded
+	// blocks must not survive into either new view.
+	r.decodedBlocks.InvalidateAll(ctx)
+	r.lower.UpdateManifest(entries)
 	r.mtx.Lock()
 	r.entries = entries
 	r.mtx.Unlock()
-	r.lower.UpdateManifest(entries)
-	// A public CDN root replacement changes which packfile bytes are current.
-	// Invalidate decoded entries by owner epoch instead of trying to diff packs.
-	r.decodedBlocks.InvalidateAll(ctx)
 	return nil
 }
 

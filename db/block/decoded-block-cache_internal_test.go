@@ -125,6 +125,39 @@ func TestDecodedBlockCacheOldCallbackDoesNotPruneNewIndexEntry(t *testing.T) {
 	}
 }
 
+func TestDecodedBlockCacheRejectedDuplicateKeepsResidentIndexEntry(t *testing.T) {
+	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	refKey := "ref-a"
+	key := decodedBlockCacheKey{
+		ref:       refKey,
+		blockType: "db/block.decodedBlockCacheIndexTestBlock",
+		transform: DecodedBlockCacheNoTransformKey,
+		trust:     decodedBlockCacheTrustKey,
+	}.String()
+	h := decodedBlockCacheHashFor(key)
+
+	decodedBlocks.mtx.Lock()
+	residentGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
+	rejectedGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
+	decodedBlocks.removeRefKeyHashGenerationLocked(h, rejectedGeneration)
+	_, stillTracked := decodedBlocks.byRef[refKey][key]
+	decodedBlocks.removeRefKeyHashGenerationLocked(h, residentGeneration)
+	_, removed := decodedBlocks.byRef[refKey]
+	decodedBlocks.mtx.Unlock()
+
+	if !stillTracked {
+		t.Fatal("rejected duplicate admission pruned resident decoded-cache index entry")
+	}
+	if removed {
+		t.Fatal("resident generation did not prune decoded-cache index entry")
+	}
+}
+
 type decodedBlockCacheIndexTestBlock struct {
 	data []byte
 }
