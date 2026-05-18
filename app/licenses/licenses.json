@@ -822,7 +822,7 @@
     },
     {
       "name": "github.com/aperturerobotics/cayley",
-      "version": "v0.14.1-0.20260512101008-8126fdcbc49f",
+      "version": "v0.14.1-0.20260514195440-32d3c8730ab2",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/cayley",
@@ -893,7 +893,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-multiaddr",
-      "version": "v0.17.0",
+      "version": "v0.17.1-0.20260514224402-c193991c3ce5",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/multiformats/go-multiaddr",
@@ -972,14 +972,6 @@
       "copyrightNotice": "Copyright (c) 2018-2025 Aperture Robotics, LLC."
     },
     {
-      "name": "github.com/bits-and-blooms/bitset",
-      "version": "v1.24.4",
-      "spdx": "BSD-3-Clause",
-      "source": "go",
-      "repo": "https://github.com/bits-and-blooms/bitset",
-      "fullText": "Copyright (c) 2014 Will Fitzgerald. All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n   * Redistributions of source code must retain the above copyright\nnotice, this list of conditions and the following disclaimer.\n   * Redistributions in binary form must reproduce the above\ncopyright notice, this list of conditions and the following disclaimer\nin the documentation and/or other materials provided with the\ndistribution.\n   * Neither the name of Google Inc. nor the names of its\ncontributors may be used to endorse or promote products derived from\nthis software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nOWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
-    },
-    {
       "name": "github.com/bwesterb/go-ristretto",
       "version": "v1.2.3",
       "spdx": "MIT",
@@ -1029,7 +1021,7 @@
     },
     {
       "name": "github.com/dgraph-io/ristretto/v2",
-      "version": "v2.4.0",
+      "version": "=>",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/dgraph-io/ristretto",
@@ -1347,14 +1339,6 @@
       "source": "go",
       "repo": "https://github.com/ncruces/julianday",
       "copyrightNotice": "Copyright (c) 2022 Nuno Cruces"
-    },
-    {
-      "name": "github.com/paralin/gonum-graph-simple",
-      "version": "v0.0.0-20240410084948-b970da5ebf33",
-      "spdx": "BSD-3-Clause",
-      "source": "go",
-      "repo": "https://github.com/paralin/gonum-graph-simple",
-      "fullText": "Copyright ©2024 Christian Stewart <christian@aperture.us>\nCopyright ©2013 The Gonum Authors. All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n    * Redistributions of source code must retain the above copyright\n      notice, this list of conditions and the following disclaimer.\n    * Redistributions in binary form must reproduce the above copyright\n      notice, this list of conditions and the following disclaimer in the\n      documentation and/or other materials provided with the distribution.\n    * Neither the name of the Gonum project nor the names of its authors and\n      contributors may be used to endorse or promote products derived from this\n      software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\nANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\nWARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\nFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\nDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\nSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\nCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\nOR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     },
     {
       "name": "github.com/patrickmn/go-cache",
