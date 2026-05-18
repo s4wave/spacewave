@@ -4,8 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
+	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 )
@@ -110,6 +115,76 @@ func TestCursorUnmarshalBorrowsLifecycleDecodedCache(t *testing.T) {
 	if fourthSnapshot.BlockReadCount != 0 ||
 		fourthSnapshot.DecodedBlockCacheHitCount != 1 {
 		t.Fatalf("cursor release should not close lifecycle cache: %+v", fourthSnapshot)
+	}
+}
+
+func TestCursorUnmarshalBorrowsTransformAwareLifecycleDecodedCache(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	transformConf, xfrm := newProductionTransform(t, &transform_s2.Config{})
+
+	tx, writeCursor := block.NewTransaction(store, xfrm, nil, nil)
+	writeCursor.SetBlock(&block_mock.Example{Msg: "transformed-resource-cache"}, true)
+	ref, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	cursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		nil,
+		nil,
+		store,
+		xfrm,
+		&bucket.ObjectRef{RootRef: ref, TransformConf: transformConf},
+		nil,
+		transformConf,
+	)
+	cursor.SetDecodedBlockCache(decodedBlocks)
+	defer cursor.Release()
+
+	firstCtx, firstCounter := block.WithReadCounter(ctx)
+	first, err := cursor.Unmarshal(firstCtx, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	first.(*block_mock.Example).Msg = "mutated"
+	decodedBlocks.Wait()
+
+	secondCursor := cursor.Clone()
+	defer secondCursor.Release()
+
+	secondCtx, secondCounter := block.WithReadCounter(ctx)
+	second, err := secondCursor.Unmarshal(secondCtx, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := second.(*block_mock.Example).GetMsg(); got != "transformed-resource-cache" {
+		t.Fatalf("transformed lifecycle cache clone msg = %q, want transformed-resource-cache", got)
+	}
+
+	firstSnapshot := firstCounter.Snapshot()
+	if firstSnapshot.BlockReadCount != 1 ||
+		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
+		firstSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		firstSnapshot.DecodedBlockCacheMissCount != 1 ||
+		firstSnapshot.DecodedBlockStoreAcceptedCount != 1 ||
+		firstSnapshot.DecodedBlockUncacheableCount != 0 {
+		t.Fatalf("unexpected first transformed decoded cache counters: %+v", firstSnapshot)
+	}
+	secondSnapshot := secondCounter.Snapshot()
+	if secondSnapshot.BlockReadCount != 0 ||
+		secondSnapshot.DecodedBlockUnmarshalCount != 0 ||
+		secondSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		secondSnapshot.DecodedBlockCacheHitCount != 1 ||
+		secondSnapshot.DecodedBlockCloneCount != 1 {
+		t.Fatalf("unexpected second transformed decoded cache counters: %+v", secondSnapshot)
 	}
 }
 
@@ -333,4 +408,17 @@ func runRepeatedUnmarshalWorkload(
 		}()
 	}
 	return total
+}
+
+func newProductionTransform(t *testing.T, steps ...config.Config) (*block_transform.Config, *block_transform.Transformer) {
+	t.Helper()
+	transformConf, err := block_transform.NewConfig(steps)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, transform_all.BuildFactorySet(), transformConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return transformConf, xfrm
 }

@@ -6,10 +6,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/starpc/srpc"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/blocktype"
 	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -200,6 +203,98 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 		secondSnapshot.DecodedBlockCacheHitCount != 1 ||
 		secondSnapshot.DecodedBlockCloneCount != 1 {
 		t.Fatalf("unexpected second transaction resource counters: %+v", secondSnapshot)
+	}
+}
+
+func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+	addExampleBlockTypeController(t, ctx, tb)
+
+	transformConf := newResourceTransformConfig(t, &transform_s2.Config{})
+	cursor, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		le,
+		tb.StepFactorySet,
+		tb.BucketId,
+		tb.Volume.GetID(),
+		transformConf,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(cursor.Release)
+
+	want := &block_mock.Example{Msg: "transformed transaction resource"}
+	tx, bcs := cursor.BuildTransaction(nil)
+	bcs.SetBlock(want, true)
+	rootRef, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cursor.SetRootRef(rootRef)
+
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+	cursor.SetDecodedBlockCache(decodedBlocks)
+
+	resourceClient := newRecordingResourceClient(ctx)
+	resourceCtx := resource_server.WithResourceClientContext(ctx, resourceClient)
+	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
+
+	buildResp, err := resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cursorClient := resourceClient.blockCursorClient(t, buildResp.GetCursorResourceId())
+
+	firstCtx, firstCounter := block.WithReadCounter(ctx)
+	first, err := cursorClient.Unmarshal(firstCtx, &s4wave_block_cursor.UnmarshalRequest{BlockType: exampleBlockTypeID})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertExampleResponse(t, first.GetData(), "transformed transaction resource")
+	decodedBlocks.Wait()
+
+	buildResp, err = resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cursorClient = resourceClient.blockCursorClient(t, buildResp.GetCursorResourceId())
+	secondCtx, secondCounter := block.WithReadCounter(ctx)
+	second, err := cursorClient.Unmarshal(secondCtx, &s4wave_block_cursor.UnmarshalRequest{BlockType: exampleBlockTypeID})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertExampleResponse(t, second.GetData(), "transformed transaction resource")
+
+	firstSnapshot := firstCounter.Snapshot()
+	if firstSnapshot.BlockReadCount != 1 ||
+		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
+		firstSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		firstSnapshot.DecodedBlockCacheMissCount != 1 ||
+		firstSnapshot.DecodedBlockStoreAcceptedCount != 1 ||
+		firstSnapshot.DecodedBlockUncacheableCount != 0 {
+		t.Fatalf("unexpected first transformed transaction resource counters: %+v", firstSnapshot)
+	}
+	secondSnapshot := secondCounter.Snapshot()
+	if secondSnapshot.BlockReadCount != 0 ||
+		secondSnapshot.DecodedBlockUnmarshalCount != 0 ||
+		secondSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		secondSnapshot.DecodedBlockCacheHitCount != 1 ||
+		secondSnapshot.DecodedBlockCloneCount != 1 {
+		t.Fatalf("unexpected second transformed transaction resource counters: %+v", secondSnapshot)
 	}
 }
 
@@ -421,6 +516,15 @@ func addExampleBlockTypeController(t *testing.T, ctx context.Context, tb *testbe
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(release)
+}
+
+func newResourceTransformConfig(t *testing.T, steps ...config.Config) *block_transform.Config {
+	t.Helper()
+	transformConf, err := block_transform.NewConfig(steps)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return transformConf
 }
 
 func assertExampleResponse(t *testing.T, data []byte, want string) {

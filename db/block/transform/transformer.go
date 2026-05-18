@@ -3,6 +3,8 @@
 package block_transform
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -10,9 +12,12 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
+const decodedBlockCacheTransformConfigKeyPrefix = "transform:config:v1:"
+
 // Transformer is constructed using a factory set and a configuration.
 type Transformer struct {
-	steps []Step
+	steps                         []Step
+	decodedBlockCacheTransformKey string
 }
 
 // NewTransformer constructs a new transformer from a factory set and a config.
@@ -40,12 +45,34 @@ func NewTransformer(
 		}
 		steps[i] = s
 	}
-	return NewTransformerWithSteps(steps), nil
+	key, err := decodedBlockCacheTransformKeyForConfig(c)
+	if err != nil {
+		return nil, err
+	}
+	return &Transformer{
+		steps:                         steps,
+		decodedBlockCacheTransformKey: key,
+	}, nil
 }
 
 // NewTransformerWithSteps constructs a new transformer with the given steps.
 func NewTransformerWithSteps(steps []Step) *Transformer {
-	return &Transformer{steps: steps}
+	var key string
+	if len(steps) == 0 {
+		key = block.DecodedBlockCacheNoTransformKey
+	}
+	return &Transformer{
+		steps:                         steps,
+		decodedBlockCacheTransformKey: key,
+	}
+}
+
+// DecodedBlockCacheTransformKey returns the exact decoded-cache transform identity.
+func (t *Transformer) DecodedBlockCacheTransformKey() string {
+	if t == nil {
+		return ""
+	}
+	return t.decodedBlockCacheTransformKey
 }
 
 // EncodeBlock encodes the block according to the config.
@@ -81,8 +108,21 @@ func (t *Transformer) DecodeBlock(data []byte) ([]byte, error) {
 	return data, nil
 }
 
+func decodedBlockCacheTransformKeyForConfig(c *Config) (string, error) {
+	if c == nil || c.GetEmpty() {
+		return block.DecodedBlockCacheNoTransformKey, nil
+	}
+	data, err := c.MarshalVT()
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(data)
+	return decodedBlockCacheTransformConfigKeyPrefix + base64.RawStdEncoding.EncodeToString(sum[:]), nil
+}
+
 // _ is a type assertion
 var (
-	_ Step              = ((*Transformer)(nil))
-	_ block.Transformer = ((*Transformer)(nil))
+	_ Step                               = ((*Transformer)(nil))
+	_ block.Transformer                  = ((*Transformer)(nil))
+	_ block.DecodedBlockCacheTransformer = ((*Transformer)(nil))
 )

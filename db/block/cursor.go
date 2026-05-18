@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"context"
 	"errors"
 )
@@ -583,16 +584,21 @@ func (c *Cursor) ClearAllRefs() {
 // Returns nil, false, nil if the reference is empty.
 // Returns nil, false, ErrNotFound if not found (block unavailable).
 func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
+	data, _, found, err := c.fetch(ctx)
+	return data, found, err
+}
+
+func (c *Cursor) fetch(ctx context.Context) ([]byte, []byte, bool, error) {
 	if c == nil {
-		return nil, false, nil
+		return nil, nil, false, nil
 	}
 	if c.pos.ref.GetEmpty() {
-		return nil, false, nil
+		return nil, nil, false, nil
 	}
 
 	bkt := c.readStore(ctx)
 	if bkt == nil {
-		return nil, false, ErrBlockStoreUnavailable
+		return nil, nil, false, ErrBlockStoreUnavailable
 	}
 	data, found, err := bkt.GetBlock(ctx, c.pos.ref)
 	if err == nil {
@@ -602,15 +608,17 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 		if err == nil {
 			err = ErrNotFound
 		}
-		return nil, false, err
+		return nil, nil, false, err
 	}
-	if c.t.xfrm != nil {
-		data, err = c.t.xfrm.DecodeBlock(data)
+	storedData := data
+	if xfrm := c.transformer(); xfrm != nil {
+		storedData = bytes.Clone(data)
+		data, err = xfrm.DecodeBlock(data)
 		if err != nil {
-			return nil, false, err
+			return nil, nil, false, err
 		}
 	}
-	return data, true, nil
+	return data, storedData, true, nil
 }
 
 // Unmarshal fetches and unmarshals the data to a block.
@@ -667,7 +675,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 
 	// returns nil, false, nil if reference was empty.
 	// returns nil, false, ErrNotFound if reference was not found.
-	dat, datFound, err := c.Fetch(ctx)
+	dat, storedDat, datFound, err := c.fetch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -679,7 +687,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 			return nil, err
 		}
 		if cacheable {
-			if err := storeDecodedBlock(ctx, cacheKey, c.pos.ref, b, dat); err != nil {
+			if err := storeDecodedBlock(ctx, cacheKey, c.pos.ref, b, storedDat); err != nil {
 				return nil, err
 			}
 		}

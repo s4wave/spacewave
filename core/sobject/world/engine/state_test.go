@@ -5,12 +5,16 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -76,6 +80,85 @@ func TestExecuteWatchSOStateOnceSignalsGCSweepMaintenance(t *testing.T) {
 	case <-waitCh:
 	default:
 		t.Fatal("expected watch-state update to signal gc sweep maintenance")
+	}
+}
+
+func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T) {
+	ctx := context.Background()
+
+	tb, err := alpha_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	transformConf := newStateTestTransformConfig(t, &transform_s2.Config{})
+	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, tb.StepFactorySet, transformConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	store := newTestBlockStore(tb.EngineBucketID, tb.Volume)
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+	store.decodedBlocks = decodedBlocks
+
+	tx, bcs := block.NewTransaction(store, xfrm, nil, nil)
+	bcs.SetBlock(world_block.NewWorld(true), true)
+	rootRef, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	c := &Controller{
+		le:   tb.Logger,
+		bus:  tb.Bus,
+		conf: &Config{DisableLookup: true},
+		sfs:  tb.StepFactorySet,
+	}
+	so := &testSharedObject{blockStore: store}
+	headRef := &bucket.ObjectRef{RootRef: rootRef, TransformConf: transformConf}
+
+	firstCtx, firstCounter := block.WithReadCounter(ctx)
+	first, err := c.buildBlkEngine(firstCtx, tb.Logger, so, headRef.CloneVT(), transformConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer first.Release()
+	if first.decodedBlocks != decodedBlocks || first.ownDecodedBlocks {
+		t.Fatal("first world engine did not borrow the block-store decoded cache")
+	}
+	decodedBlocks.Wait()
+
+	secondCtx, secondCounter := block.WithReadCounter(ctx)
+	second, err := c.buildBlkEngine(secondCtx, tb.Logger, so, headRef.CloneVT(), transformConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer second.Release()
+	if second.decodedBlocks != decodedBlocks || second.ownDecodedBlocks {
+		t.Fatal("second world engine did not borrow the block-store decoded cache")
+	}
+
+	firstSnapshot := firstCounter.Snapshot()
+	if firstSnapshot.BlockReadCount != 1 ||
+		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
+		firstSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		firstSnapshot.DecodedBlockCacheMissCount != 1 ||
+		firstSnapshot.DecodedBlockStoreAcceptedCount != 1 ||
+		firstSnapshot.DecodedBlockUncacheableCount != 0 {
+		t.Fatalf("unexpected first transformed world-engine counters: %+v", firstSnapshot)
+	}
+	secondSnapshot := secondCounter.Snapshot()
+	if secondSnapshot.BlockReadCount != 0 ||
+		secondSnapshot.DecodedBlockUnmarshalCount != 0 ||
+		secondSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		secondSnapshot.DecodedBlockCacheHitCount != 1 ||
+		secondSnapshot.DecodedBlockCloneCount != 1 {
+		t.Fatalf("unexpected second transformed world-engine counters: %+v", secondSnapshot)
 	}
 }
 
@@ -175,4 +258,13 @@ func (s *testSharedObjectSnapshot) ProcessOperations(
 	err error,
 ) {
 	return nil, nil, nil, nil
+}
+
+func newStateTestTransformConfig(t *testing.T, steps ...config.Config) *block_transform.Config {
+	t.Helper()
+	transformConf, err := block_transform.NewConfig(steps)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return transformConf
 }

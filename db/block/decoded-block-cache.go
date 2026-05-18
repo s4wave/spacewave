@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	decodedBlockCacheNoTransformKey = "transform:none"
+	// DecodedBlockCacheNoTransformKey identifies untransformed decoded-cache entries.
+	DecodedBlockCacheNoTransformKey = "transform:none"
 	decodedBlockCacheTrustKey       = "trust:verified-block-ref"
 )
 
@@ -293,7 +294,7 @@ func decodedBlockCacheKeyFor(ref *BlockRef, blk Block, xfrm Transformer) (decode
 
 func decodedBlockCacheTransformKey(xfrm Transformer) (string, bool) {
 	if xfrm == nil {
-		return decodedBlockCacheNoTransformKey, true
+		return DecodedBlockCacheNoTransformKey, true
 	}
 	keyer, ok := xfrm.(DecodedBlockCacheTransformer)
 	if !ok {
