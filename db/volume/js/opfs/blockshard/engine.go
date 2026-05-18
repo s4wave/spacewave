@@ -517,28 +517,31 @@ func (e *Engine) getExistsBatchFromShard(
 			}
 			return nil, errors.Errorf("open segment %s: %v", seg.Filename, err)
 		}
-		for _, j := range candidates {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			default:
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		candidateKeys := make([][]byte, len(candidates))
+		for i, j := range candidates {
+			candidateKeys[i] = keys[j]
+		}
+		results, err := lookup.LocateBatch(f, candidateKeys, false)
+		if err != nil {
+			if opfs.IsNotFound(err) {
+				shard.dropSegmentFile(seg.Filename)
 			}
-			_, found, tombstone, err := lookup.Locate(f, keys[j], false)
-			if err != nil {
-				if opfs.IsNotFound(err) {
-					shard.dropSegmentFile(seg.Filename)
-				}
-				if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
-					return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
-				}
-				return nil, err
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
 			}
-			if tombstone {
+			return nil, err
+		}
+		for i, result := range results {
+			j := candidates[i]
+			if result.Tombstone {
 				resolved[j] = true
 				out[j] = false
 				continue
 			}
-			if found {
+			if result.Found {
 				resolved[j] = true
 				out[j] = true
 			}

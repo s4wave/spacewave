@@ -11,8 +11,12 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// DefaultHashType is the default hash type for refs.
-const DefaultHashType = hash.HashType_HashType_BLAKE3
+const (
+	// LegacyDefaultHashType is the hash type used by persisted configs that predate explicit hash selection.
+	LegacyDefaultHashType = hash.HashType_HashType_BLAKE3
+	// DefaultHashType is the hash type for new refs when callers do not choose one.
+	DefaultHashType = hash.HashType_HashType_SHA256
+)
 
 // NewBlockRef constructs a new block reference.
 func NewBlockRef(hash *hash.Hash) *BlockRef {

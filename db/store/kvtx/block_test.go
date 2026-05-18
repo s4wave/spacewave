@@ -107,3 +107,16 @@ func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
 		t.Fatalf("expected defer-flush forwarding, got begin=%d end=%d", inner.beginCalls, inner.endCalls)
 	}
 }
+
+func TestConfigResolveHashType(t *testing.T) {
+	var nilConfig *Config
+	if got := nilConfig.ResolveHashType(); got != block.LegacyDefaultHashType {
+		t.Fatalf("expected nil config to resolve legacy BLAKE3, got %s", got)
+	}
+	if got := (&Config{}).ResolveHashType(); got != block.LegacyDefaultHashType {
+		t.Fatalf("expected zero config to resolve legacy BLAKE3, got %s", got)
+	}
+	if got := (&Config{HashType: hash.HashType_HashType_SHA256}).ResolveHashType(); got != hash.HashType_HashType_SHA256 {
+		t.Fatalf("expected explicit SHA256 config to win, got %s", got)
+	}
+}

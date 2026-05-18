@@ -563,6 +563,99 @@ func TestPublishPreservesPendingDelete(t *testing.T) {
 	assertShardEntry(t, e.shards[0], []byte("e"), []byte("value-e"))
 }
 
+func TestCompactionIncludesOverlappingLowerLevelAndAgesTombstone(t *testing.T) {
+	e, cleanup := newTestEngine(t, "test-blockshard-overlap-tombstone-aging", "test-blockshard-overlap-tombstone-aging")
+	defer cleanup()
+
+	for _, key := range []string{"a", "b", "c", "x"} {
+		publishEntries(t, e.shards[0], []segment.Entry{{
+			Key:   []byte(key),
+			Value: []byte("old-" + key),
+		}})
+	}
+	compactShard(t, e.shards[0])
+
+	for _, entry := range []segment.Entry{
+		{Key: []byte("d"), Value: []byte("new-d")},
+		{Key: []byte("e"), Value: []byte("new-e")},
+		{Key: []byte("f"), Value: []byte("new-f")},
+		{Key: []byte("x"), Tombstone: true},
+	} {
+		publishEntries(t, e.shards[0], []segment.Entry{entry})
+	}
+	compactShard(t, e.shards[0])
+
+	if _, found, err := e.Get([]byte("x")); err != nil {
+		t.Fatal(err)
+	} else if found {
+		t.Fatal("compacted tombstone did not suppress older lower-level value")
+	}
+	for _, key := range []string{"d", "e", "f"} {
+		val, found, err := e.Get([]byte(key))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found || string(val) != "new-"+key {
+			t.Fatalf("key %q: found=%v val=%q", key, found, val)
+		}
+	}
+
+	stats, err := e.LevelStats()
+	if err != nil {
+		t.Fatal(err)
+	}
+	level1 := findLevelStats(stats, 1)
+	if level1 == nil {
+		t.Fatalf("missing level 1 stats: %+v", stats)
+	}
+	if level1.TombstoneCount != 0 {
+		t.Fatalf("tombstone count after aging: got %d want 0", level1.TombstoneCount)
+	}
+	if level1.LiveEntryCount != 6 {
+		t.Fatalf("live entry count: got %d want 6", level1.LiveEntryCount)
+	}
+	if level1.PendingDeleteSegmentCount == 0 {
+		t.Fatalf("expected pending-delete stats after compaction: %+v", stats)
+	}
+}
+
+func TestCleanOrphansRemovesInterruptedCompactionOutput(t *testing.T) {
+	root, err := opfs.GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := opfs.GetDirectory(root, "test-blockshard-clean-compaction-orphan", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer opfs.DeleteEntry(root, "test-blockshard-clean-compaction-orphan", true) //nolint
+
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	shard, err := NewShard(0, dir, "test-blockshard-clean-compaction-orphan", settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	publishEntries(t, shard, []segment.Entry{{Key: []byte("live"), Value: []byte("value")}})
+	if err := shard.writeFileData(context.Background(), "seg-000999.sst", buildSegmentData(t, []segment.Entry{{
+		Key:   []byte("orphan"),
+		Value: []byte("value"),
+	}})); err != nil {
+		t.Fatal(err)
+	}
+	if err := shard.CleanOrphans(); err != nil {
+		t.Fatal(err)
+	}
+	exists, err := opfs.FileExists(dir, "seg-000999.sst")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists {
+		t.Fatal("interrupted compaction output was not removed")
+	}
+	assertShardEntry(t, shard, []byte("live"), []byte("value"))
+}
+
 func TestCleanOrphansReloadsStaleManifest(t *testing.T) {
 	root, err := opfs.GetRoot()
 	if err != nil {
@@ -595,6 +688,32 @@ func TestCleanOrphansReloadsStaleManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertShardEntry(t, fresh, key, []byte("value"))
+}
+
+func findLevelStats(stats []LevelStats, level uint8) *LevelStats {
+	for i := range stats {
+		if stats[i].Level == level {
+			return &stats[i]
+		}
+	}
+	return nil
+}
+
+func buildSegmentData(t testing.TB, entries []segment.Entry) []byte {
+	t.Helper()
+	w := segment.NewWriter()
+	for _, entry := range entries {
+		if entry.Tombstone {
+			w.AddTombstone(entry.Key)
+			continue
+		}
+		w.Add(entry.Key, entry.Value)
+	}
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
 }
 
 func assertShardEntry(t testing.TB, shard *Shard, key, want []byte) {

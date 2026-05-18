@@ -1,0 +1,56 @@
+syntax = "proto3";
+package kvtx.block.okra;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// Root is the root sub-block for an Okra-backed key/value store.
+message Root {
+  // Size contains the total number of keys in the store.
+  uint64 size = 1;
+  // Height contains the highest populated Okra level.
+  uint32 height = 2;
+  // RootHash contains the K-byte Okra hash for the highest-level root node.
+  bytes root_hash = 3;
+  // RootPageRef points to the packed page containing the root node.
+  .block.BlockRef root_page_ref = 4;
+  // HashSize records the Okra K constant used by this tree.
+  uint32 hash_size = 5;
+  // FanoutDegree records the Okra Q promotion constant used by this tree.
+  uint32 fanout_degree = 6;
+}
+
+// Page is a packed Okra level page.
+message Page {
+  // Level is the Okra level of every entry in the page.
+  uint32 level = 1;
+  // LowerBound is the first non-anchor key covered by this page.
+  bytes lower_bound = 2;
+  // UpperBound is the exclusive upper key bound. Empty means unbounded.
+  bytes upper_bound = 3;
+  // StartsAtAnchor is true when this page begins at the level anchor.
+  bool starts_at_anchor = 4;
+  // Size contains the number of leaf keys covered by the page.
+  uint64 size = 5;
+  // PageHash is a deterministic hash of the page metadata and entry hashes.
+  bytes page_hash = 6;
+  // Entries contains sorted Okra nodes packed into this page.
+  repeated Entry entries = 7;
+}
+
+// Entry is one Okra node inside a packed page.
+message Entry {
+  // Anchor is true for the null anchor node at the start of each level.
+  bool anchor = 1;
+  // Key is the node key. Empty when Anchor is true.
+  bytes key = 2;
+  // Hash contains the K-byte Okra node hash.
+  bytes hash = 3;
+  // Size contains the number of leaf keys below this node.
+  uint64 size = 4;
+  // ChildRef points to the child page for internal nodes.
+  .block.BlockRef child_ref = 5;
+  // ValueRef points to the value block for leaf nodes.
+  .block.BlockRef value_ref = 6;
+  // ValueIsBlob indicates that ValueRef points to a blob.Blob block.
+  bool value_is_blob = 7;
+}

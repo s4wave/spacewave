@@ -33,6 +33,7 @@
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "iavl/iavl.pb.h"
+#include "okra/okra.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
@@ -79,6 +80,7 @@ namespace block {
 enum KVImplType : int {
   KV_IMPL_TYPE_UNKNOWN = 0,
   KV_IMPL_TYPE_IAVL = 1,
+  KV_IMPL_TYPE_OKRA = 2,
   KVImplType_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   KVImplType_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -89,11 +91,11 @@ extern const uint32_t KVImplType_internal_data_[];
 inline constexpr KVImplType KVImplType_MIN =
     static_cast<KVImplType>(0);
 inline constexpr KVImplType KVImplType_MAX =
-    static_cast<KVImplType>(1);
+    static_cast<KVImplType>(2);
 inline bool KVImplType_IsValid(int value) {
-  return 0 <= value && value <= 1;
+  return 0 <= value && value <= 2;
 }
-inline constexpr int KVImplType_ARRAYSIZE = 1 + 1;
+inline constexpr int KVImplType_ARRAYSIZE = 2 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL KVImplType_descriptor();
 template <typename T>
 const ::std::string& KVImplType_Name(T value) {
@@ -104,7 +106,7 @@ const ::std::string& KVImplType_Name(T value) {
 }
 template <>
 inline const ::std::string& KVImplType_Name(KVImplType value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<KVImplType_descriptor, 0, 1>(
+  return ::google::protobuf::internal::NameOfDenseEnum<KVImplType_descriptor, 0, 2>(
       static_cast<int>(value));
 }
 inline bool KVImplType_Parse(
@@ -261,6 +263,7 @@ class KeyValueStore final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kIavlRootFieldNumber = 2,
+    kOkraRootFieldNumber = 3,
     kImplTypeFieldNumber = 1,
   };
   // .kvtx.block.iavl.Node iavl_root = 2;
@@ -278,6 +281,21 @@ class KeyValueStore final : public ::google::protobuf::Message
   ::kvtx::block::iavl::Node* PROTOBUF_NONNULL _internal_mutable_iavl_root();
 
   public:
+  // .kvtx.block.okra.Root okra_root = 3;
+  bool has_okra_root() const;
+  void clear_okra_root() ;
+  const ::kvtx::block::okra::Root& okra_root() const;
+  [[nodiscard]] ::kvtx::block::okra::Root* PROTOBUF_NULLABLE release_okra_root();
+  ::kvtx::block::okra::Root* PROTOBUF_NONNULL mutable_okra_root();
+  void set_allocated_okra_root(::kvtx::block::okra::Root* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_okra_root(::kvtx::block::okra::Root* PROTOBUF_NULLABLE value);
+  ::kvtx::block::okra::Root* PROTOBUF_NULLABLE unsafe_arena_release_okra_root();
+
+  private:
+  const ::kvtx::block::okra::Root& _internal_okra_root() const;
+  ::kvtx::block::okra::Root* PROTOBUF_NONNULL _internal_mutable_okra_root();
+
+  public:
   // .kvtx.block.KVImplType impl_type = 1;
   void clear_impl_type() ;
   ::kvtx::block::KVImplType impl_type() const;
@@ -292,8 +310,8 @@ class KeyValueStore final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   2, 0,
                                    2>
       _table_;
 
@@ -315,6 +333,7 @@ class KeyValueStore final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::kvtx::block::iavl::Node* PROTOBUF_NULLABLE iavl_root_;
+    ::kvtx::block::okra::Root* PROTOBUF_NULLABLE okra_root_;
     int impl_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -345,7 +364,7 @@ inline void KeyValueStore::clear_impl_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.impl_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline ::kvtx::block::KVImplType KeyValueStore::impl_type() const {
   // @@protoc_insertion_point(field_get:kvtx.block.KeyValueStore.impl_type)
@@ -353,7 +372,7 @@ inline ::kvtx::block::KVImplType KeyValueStore::impl_type() const {
 }
 inline void KeyValueStore::set_impl_type(::kvtx::block::KVImplType value) {
   _internal_set_impl_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:kvtx.block.KeyValueStore.impl_type)
 }
 inline ::kvtx::block::KVImplType KeyValueStore::_internal_impl_type() const {
@@ -456,6 +475,99 @@ inline void KeyValueStore::set_allocated_iavl_root(::kvtx::block::iavl::Node* PR
 
   _impl_.iavl_root_ = reinterpret_cast<::kvtx::block::iavl::Node*>(value);
   // @@protoc_insertion_point(field_set_allocated:kvtx.block.KeyValueStore.iavl_root)
+}
+
+// .kvtx.block.okra.Root okra_root = 3;
+inline bool KeyValueStore::has_okra_root() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.okra_root_ != nullptr);
+  return value;
+}
+inline const ::kvtx::block::okra::Root& KeyValueStore::_internal_okra_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::kvtx::block::okra::Root* p = _impl_.okra_root_;
+  return p != nullptr ? *p : reinterpret_cast<const ::kvtx::block::okra::Root&>(::kvtx::block::okra::_Root_default_instance_);
+}
+inline const ::kvtx::block::okra::Root& KeyValueStore::okra_root() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:kvtx.block.KeyValueStore.okra_root)
+  return _internal_okra_root();
+}
+inline void KeyValueStore::unsafe_arena_set_allocated_okra_root(
+    ::kvtx::block::okra::Root* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.okra_root_);
+  }
+  _impl_.okra_root_ = reinterpret_cast<::kvtx::block::okra::Root*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:kvtx.block.KeyValueStore.okra_root)
+}
+inline ::kvtx::block::okra::Root* PROTOBUF_NULLABLE KeyValueStore::release_okra_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::kvtx::block::okra::Root* released = _impl_.okra_root_;
+  _impl_.okra_root_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::kvtx::block::okra::Root* PROTOBUF_NULLABLE KeyValueStore::unsafe_arena_release_okra_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:kvtx.block.KeyValueStore.okra_root)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::kvtx::block::okra::Root* temp = _impl_.okra_root_;
+  _impl_.okra_root_ = nullptr;
+  return temp;
+}
+inline ::kvtx::block::okra::Root* PROTOBUF_NONNULL KeyValueStore::_internal_mutable_okra_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.okra_root_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::kvtx::block::okra::Root>(GetArena());
+    _impl_.okra_root_ = reinterpret_cast<::kvtx::block::okra::Root*>(p);
+  }
+  return _impl_.okra_root_;
+}
+inline ::kvtx::block::okra::Root* PROTOBUF_NONNULL KeyValueStore::mutable_okra_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::kvtx::block::okra::Root* _msg = _internal_mutable_okra_root();
+  // @@protoc_insertion_point(field_mutable:kvtx.block.KeyValueStore.okra_root)
+  return _msg;
+}
+inline void KeyValueStore::set_allocated_okra_root(::kvtx::block::okra::Root* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.okra_root_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.okra_root_ = reinterpret_cast<::kvtx::block::okra::Root*>(value);
+  // @@protoc_insertion_point(field_set_allocated:kvtx.block.KeyValueStore.okra_root)
 }
 
 #ifdef __GNUC__

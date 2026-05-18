@@ -111,6 +111,11 @@ func (g *GCStoreOps) SetWALAppender(wal WALAppender) {
 	g.wal = wal
 }
 
+// HasWALAppender returns whether this GC store writes flushes to a WAL.
+func (g *GCStoreOps) HasWALAppender() bool {
+	return g != nil && g.wal != nil
+}
+
 // GetHashType returns the preferred hash type for the store.
 func (g *GCStoreOps) GetHashType() hash.HashType {
 	return g.store.GetHashType()

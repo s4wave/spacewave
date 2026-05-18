@@ -43,6 +43,11 @@ type GraphEdgeBucket struct {
 	IncomingTruncated bool
 }
 
+type graphEdgeBucketFilterTarget struct {
+	bucket   *GraphEdgeBucket
+	incoming bool
+}
+
 // ListGraphEdgeBuckets lists grouped inbound/outbound graph edges for object keys.
 func ListGraphEdgeBuckets(ctx context.Context, ws WorldStateGraph, query *GraphEdgeBucketQuery) ([]*GraphEdgeBucket, error) {
 	if query == nil {
@@ -56,6 +61,8 @@ func ListGraphEdgeBuckets(ctx context.Context, ws WorldStateGraph, query *GraphE
 	}
 
 	buckets := make([]*GraphEdgeBucket, len(query.OriginObjectKeys))
+	filters := make([]GraphQuad, 0, len(query.OriginObjectKeys)*2)
+	targets := make([]graphEdgeBucketFilterTarget, 0, len(query.OriginObjectKeys)*2)
 	for i, origin := range query.OriginObjectKeys {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -67,32 +74,36 @@ func ListGraphEdgeBuckets(ctx context.Context, ws WorldStateGraph, query *GraphE
 			continue
 		}
 		if query.Direction == GraphEdgeBucketDirectionOut || query.Direction == GraphEdgeBucketDirectionBoth {
-			outgoing, truncated, err := lookupGraphEdgeBucketDirection(
-				ctx,
-				ws,
-				NewGraphQuadWithKeys(origin, query.Predicate, "", ""),
-				query.LimitPerOrigin,
-			)
-			if err != nil {
-				return nil, err
-			}
-			bucket.Outgoing = outgoing
-			bucket.OutgoingTruncated = truncated
+			filters = append(filters, NewGraphQuadWithKeys(origin, query.Predicate, "", ""))
+			targets = append(targets, graphEdgeBucketFilterTarget{bucket: bucket})
 		}
 		if query.Direction == GraphEdgeBucketDirectionIn || query.Direction == GraphEdgeBucketDirectionBoth {
-			incoming, truncated, err := lookupGraphEdgeBucketDirection(
-				ctx,
-				ws,
-				NewGraphQuadWithKeys("", query.Predicate, origin, ""),
-				query.LimitPerOrigin,
-			)
-			if err != nil {
-				return nil, err
-			}
-			bucket.Incoming = incoming
-			bucket.IncomingTruncated = truncated
+			filters = append(filters, NewGraphQuadWithKeys("", query.Predicate, origin, ""))
+			targets = append(targets, graphEdgeBucketFilterTarget{bucket: bucket, incoming: true})
 		}
 		buckets[i] = bucket
+	}
+
+	if len(filters) != 0 {
+		results, err := ws.LookupGraphQuadsBatch(ctx, filters, 0)
+		if err != nil {
+			return nil, err
+		}
+		for i, quads := range results {
+			sortGraphQuads(quads)
+			truncated := uint64(len(quads)) > uint64(query.LimitPerOrigin)
+			if truncated {
+				quads = quads[:query.LimitPerOrigin]
+			}
+			target := targets[i]
+			if target.incoming {
+				target.bucket.Incoming = quads
+				target.bucket.IncomingTruncated = truncated
+				continue
+			}
+			target.bucket.Outgoing = quads
+			target.bucket.OutgoingTruncated = truncated
+		}
 	}
 	return buckets, nil
 }
@@ -104,22 +115,4 @@ func validateGraphEdgeBucketDirection(direction GraphEdgeBucketDirection) error 
 	default:
 		return ErrGraphEdgeBucketDirection
 	}
-}
-
-func lookupGraphEdgeBucketDirection(
-	ctx context.Context,
-	ws WorldStateGraph,
-	filter GraphQuad,
-	limit uint32,
-) ([]GraphQuad, bool, error) {
-	quads, err := ws.LookupGraphQuads(ctx, filter, 0)
-	if err != nil {
-		return nil, false, err
-	}
-	sortGraphQuads(quads)
-	truncated := uint32(len(quads)) > limit
-	if truncated {
-		quads = quads[:limit]
-	}
-	return quads, truncated, nil
 }

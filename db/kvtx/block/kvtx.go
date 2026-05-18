@@ -7,11 +7,53 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
+	okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
-// DefaultKeyValueStoreImpl is the default implementation.
+// LegacyKeyValueStoreImpl is the implementation used for persisted roots with a
+// missing impl_type field.
+const LegacyKeyValueStoreImpl = KVImplType_KV_IMPL_TYPE_IAVL
+
+// DefaultKeyValueStoreImpl is the default implementation for new writable roots.
 const DefaultKeyValueStoreImpl = KVImplType_KV_IMPL_TYPE_IAVL
+
+// WorkloadClass classifies the KVTX workload behind a new root.
+type WorkloadClass uint8
+
+const (
+	// WorkloadClassDefault is the conservative writable KVTX policy.
+	WorkloadClassDefault WorkloadClass = iota
+	// WorkloadClassTinyMetadata is for small metadata stores with mixed reads and writes.
+	WorkloadClassTinyMetadata
+	// WorkloadClassGraphPrefixRead is for read-heavy graph/prefix scans.
+	WorkloadClassGraphPrefixRead
+	// WorkloadClassIndexedLog is for append logs that find the latest sorted key.
+	WorkloadClassIndexedLog
+	// WorkloadClassCursorValueRead is for read-heavy cursor-valued stores.
+	WorkloadClassCursorValueRead
+	// WorkloadClassWriteChurn is for repeated set/delete/commit workloads.
+	WorkloadClassWriteChurn
+	// WorkloadClassGCRefGraph is for GC/refgraph metadata stores.
+	WorkloadClassGCRefGraph
+)
+
+// DefaultKeyValueStoreImplForWorkload returns the measured backend policy for a
+// new KVTX root.
+func DefaultKeyValueStoreImplForWorkload(workload WorkloadClass) KVImplType {
+	switch workload {
+	case WorkloadClassGraphPrefixRead:
+		return KVImplType_KV_IMPL_TYPE_OKRA
+	default:
+		return DefaultKeyValueStoreImpl
+	}
+}
+
+// NewKeyValueStoreForWorkload constructs a new key-value store for a workload
+// class.
+func NewKeyValueStoreForWorkload(workload WorkloadClass) *KeyValueStore {
+	return NewKeyValueStore(DefaultKeyValueStoreImplForWorkload(workload))
+}
 
 // NewKeyValueStore constructs a new key-value store with the given impl.
 //
@@ -36,7 +78,7 @@ func LoadKeyValueStore(ctx context.Context, bcs *block.Cursor) (*KeyValueStore, 
 		return nil, err
 	}
 	if b.GetImplType() == 0 {
-		b.ImplType = DefaultKeyValueStoreImpl
+		b.ImplType = LegacyKeyValueStoreImpl
 	}
 	return b, nil
 }
@@ -65,6 +107,8 @@ func (i KVImplType) Validate() error {
 	switch i {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		return nil
+	case KVImplType_KV_IMPL_TYPE_OKRA:
+		return nil
 	default:
 		return NewErrUnknownImpl(i)
 	}
@@ -75,8 +119,15 @@ func (k *KeyValueStore) Validate() error {
 	if err := k.GetImplType().Validate(); err != nil {
 		return err
 	}
-	if err := k.GetIavlRoot().Validate(); err != nil {
-		return errors.Wrap(err, "iavl_root")
+	switch k.GetImplType() {
+	case KVImplType_KV_IMPL_TYPE_IAVL:
+		if err := k.GetIavlRoot().Validate(); err != nil {
+			return errors.Wrap(err, "iavl_root")
+		}
+	case KVImplType_KV_IMPL_TYPE_OKRA:
+		if err := k.GetOkraRoot().Validate(); err != nil {
+			return errors.Wrap(err, "okra_root")
+		}
 	}
 	return nil
 }
@@ -94,6 +145,13 @@ func (k *KeyValueStore) BuildKvTransaction(ctx context.Context, bcs *block.Curso
 		defer subtask.End()
 		return iavl.NewTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {
 			_ = ncs.SetAsSubBlock(2, bcs)
+		})
+	case KVImplType_KV_IMPL_TYPE_OKRA:
+		treeBcs := bcs.FollowSubBlock(3)
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/key-value-store/build-kv-transaction/okra-new-tx")
+		defer subtask.End()
+		return okra.NewTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {
+			_ = ncs.SetAsSubBlock(3, bcs)
 		})
 	default:
 		return nil, NewErrUnknownImpl(impl)

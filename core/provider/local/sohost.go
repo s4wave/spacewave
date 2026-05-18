@@ -139,6 +139,11 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 	}
 
 	processUpdatedSoState := func(updatedSoState *sobject.SOState) error {
+		if err := l.writeAcceptedLocalOpResults(ctx, soState, updatedSoState); err != nil {
+			l.le.WithError(err).Warn("failed to write accepted operation result")
+			return err
+		}
+
 		// Process rejections
 		for _, peerRejections := range updatedSoState.GetOpRejections() {
 			if peerRejections.GetPeerId() != l.peerID.String() {
@@ -164,7 +169,8 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 
 				// Write the rejection to local state
 				if err := l.writeLocalOpResult(ctx, &LocalSOOperationResult{
-					LocalId: rejInner.GetLocalId(),
+					LocalId:   rejInner.GetLocalId(),
+					RootSeqno: updatedSoState.GetRoot().GetInnerSeqno(),
 					Result: &sobject.SOOperationResult{
 						OpRef: &sobject.SOOperationRef{
 							PeerId: l.peerID.String(),
@@ -383,12 +389,109 @@ func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, er
 	return id, nil
 }
 
+func (l *LocalSOHost) writeAcceptedLocalOpResults(
+	ctx context.Context,
+	prevState *sobject.SOState,
+	updatedState *sobject.SOState,
+) error {
+	if prevState == nil || updatedState == nil {
+		return nil
+	}
+
+	pendingLocalIDs := make(map[string]struct{})
+	for _, op := range updatedState.GetOps() {
+		inner, ok, err := l.localOperationInner(op)
+		if err != nil {
+			return err
+		}
+		if ok && inner.GetLocalId() != "" {
+			pendingLocalIDs[inner.GetLocalId()] = struct{}{}
+		}
+	}
+
+	rejectedLocalIDs := make(map[string]struct{})
+	for _, peerRejections := range updatedState.GetOpRejections() {
+		if peerRejections.GetPeerId() != l.peerID.String() {
+			continue
+		}
+		for _, rejection := range peerRejections.GetRejections() {
+			rejInner := &sobject.SOOperationRejectionInner{}
+			if err := rejInner.UnmarshalVT(rejection.GetInner()); err != nil {
+				return err
+			}
+			if rejInner.GetLocalId() != "" {
+				rejectedLocalIDs[rejInner.GetLocalId()] = struct{}{}
+			}
+		}
+	}
+
+	for _, op := range prevState.GetOps() {
+		inner, ok, err := l.localOperationInner(op)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			continue
+		}
+		localID := inner.GetLocalId()
+		if localID == "" {
+			continue
+		}
+		if _, pending := pendingLocalIDs[localID]; pending {
+			continue
+		}
+		if _, rejected := rejectedLocalIDs[localID]; rejected {
+			continue
+		}
+
+		existingResult, err := l.readLocalOpResult(ctx, localID)
+		if err != nil {
+			return err
+		}
+		if existingResult != nil {
+			continue
+		}
+
+		if err := l.writeLocalOpResult(ctx, &LocalSOOperationResult{
+			LocalId:   localID,
+			RootSeqno: updatedState.GetRoot().GetInnerSeqno(),
+			Result: sobject.BuildSOOperationResult(
+				l.peerID.String(),
+				inner.GetNonce(),
+				true,
+				nil,
+			),
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (l *LocalSOHost) localOperationInner(
+	op *sobject.SOOperation,
+) (*sobject.SOOperationInner, bool, error) {
+	if op == nil || !bytes.Equal(op.GetSignature().GetPubKey(), l.pubKey) {
+		return nil, false, nil
+	}
+	inner, err := op.UnmarshalInner()
+	if err != nil {
+		return nil, false, err
+	}
+	return inner, true, nil
+}
+
 // WaitOperation waits for the operation to be confirmed or rejected by the provider.
 // Returns the current state nonce (greater than or equal to the nonce when the op was applied).
 // After ClearOperation has been called, this will return success even for failed ops!
 // If the operation was rejected, returns 0, true, error.
 // Any other error returns 0, false, error
 func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
+	if seqno, rejected, err, resolved := l.localOpResultOutcome(ctx, localID); err != nil || resolved {
+		return seqno, rejected, err
+	}
+
 	ctx, ctxCancel := context.WithCancel(ctx)
 	defer ctxCancel()
 
@@ -434,16 +537,8 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 		}
 
 		// Check if there is a local op result.
-		localOpResult, err := l.readLocalOpResult(ctx, localID)
-		if err != nil {
-			return 0, false, err
-		}
-		if localOpResult.GetLocalId() == localID {
-			errorMsg := localOpResult.GetResult().GetErrorDetails().GetErrorMsg()
-			if errorMsg != "" {
-				// Error
-				return 0, true, errors.Wrap(sobject.ErrRejectedOp, errorMsg)
-			}
+		if seqno, rejected, err, resolved := l.localOpResultOutcome(ctx, localID); err != nil || resolved {
+			return seqno, rejected, err
 		}
 
 		// Check if there is a rejection.
@@ -490,6 +585,32 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 		}
 		return rootInner.GetSeqno(), false, nil
 	}
+}
+
+func (l *LocalSOHost) localOpResultOutcome(
+	ctx context.Context,
+	localID string,
+) (uint64, bool, error, bool) {
+	localOpResult, err := l.readLocalOpResult(ctx, localID)
+	if err != nil {
+		return 0, false, err, true
+	}
+	if localOpResult == nil || localOpResult.GetLocalId() != localID {
+		return 0, false, nil, false
+	}
+
+	if errorDetails := localOpResult.GetResult().GetErrorDetails(); errorDetails != nil {
+		errorMsg := errorDetails.GetErrorMsg()
+		if errorMsg != "" {
+			return 0, true, errors.Wrap(sobject.ErrRejectedOp, errorMsg), true
+		}
+		return 0, true, sobject.ErrRejectedOp, true
+	}
+
+	if seqno := localOpResult.GetRootSeqno(); seqno != 0 {
+		return seqno, false, nil, true
+	}
+	return 0, false, nil, false
 }
 
 // readLocalState reads the local state from the object store.

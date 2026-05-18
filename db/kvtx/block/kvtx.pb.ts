@@ -5,6 +5,7 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
 import { Node } from './iavl/iavl.pb.js'
+import { Root } from './okra/okra.pb.js'
 
 export const protobufPackage = 'kvtx.block'
 
@@ -27,12 +28,20 @@ export enum KVImplType {
    * @generated from enum value: KV_IMPL_TYPE_IAVL = 1;
    */
   KV_IMPL_TYPE_IAVL = 1,
+
+  /**
+   * KEY_VALUE_IMPL_OKRA is the Okra-backed tree value.
+   *
+   * @generated from enum value: KV_IMPL_TYPE_OKRA = 2;
+   */
+  KV_IMPL_TYPE_OKRA = 2,
 }
 
 // KVImplType_Enum is the enum type for KVImplType.
 export const KVImplType_Enum = createEnumType('kvtx.block.KVImplType', [
   { no: 0, name: 'KV_IMPL_TYPE_UNKNOWN' },
   { no: 1, name: 'KV_IMPL_TYPE_IAVL' },
+  { no: 2, name: 'KV_IMPL_TYPE_OKRA' },
 ])
 
 /**
@@ -55,6 +64,13 @@ export interface KeyValueStore {
    * @generated from field: kvtx.block.iavl.Node iavl_root = 2;
    */
   iavlRoot?: Node
+  /**
+   * OkraRoot is the root metadata for the Okra tree.
+   * KV_IMPL_TYPE_OKRA
+   *
+   * @generated from field: kvtx.block.okra.Root okra_root = 3;
+   */
+  okraRoot?: Root
 }
 
 // KeyValueStore contains the message type declaration for KeyValueStore.
@@ -63,6 +79,7 @@ export const KeyValueStore: MessageType<KeyValueStore> = createMessageType({
   fields: [
     { no: 1, name: 'impl_type', kind: 'enum', T: KVImplType_Enum },
     { no: 2, name: 'iavl_root', kind: 'message', T: () => Node },
+    { no: 3, name: 'okra_root', kind: 'message', T: () => Root },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

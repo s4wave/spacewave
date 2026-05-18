@@ -77,7 +77,7 @@ func NewOpfs(
 	if err != nil {
 		return nil, errors.Wrap(err, "create block shard engine")
 	}
-	blkStore := blockshard.NewBlockStore(blkEngine, conf.GetStoreConfig().GetHashType())
+	blkStore := blockshard.NewBlockStore(blkEngine, conf.GetStoreConfig().ResolveHashType())
 
 	// Meta page store: single B+tree page file with dual superblocks.
 	metaShardCount := conf.GetMetaShardCount()

@@ -33,6 +33,9 @@ pub struct LocalSoOperationResult {
     /// Result is the operation result.
     #[prost(message, optional, tag="2")]
     pub result: ::core::option::Option<super::super::sobject::SoOperationResult>,
+    /// RootSeqno is the root seqno that accepted or rejected the operation.
+    #[prost(uint64, tag="3")]
+    pub root_seqno: u64,
 }
 /// PairingConfirmMessage is exchanged over a bifrost link during the
 /// mutual SAS verification step. Both peers send their confirmation

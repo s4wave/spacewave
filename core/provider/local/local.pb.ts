@@ -99,6 +99,12 @@ export interface LocalSOOperationResult {
    * @generated from field: sobject.SOOperationResult result = 2;
    */
   result?: SOOperationResult
+  /**
+   * RootSeqno is the root seqno that accepted or rejected the operation.
+   *
+   * @generated from field: uint64 root_seqno = 3;
+   */
+  rootSeqno?: bigint
 }
 
 // LocalSOOperationResult contains the message type declaration for LocalSOOperationResult.
@@ -108,6 +114,7 @@ export const LocalSOOperationResult: MessageType<LocalSOOperationResult> =
     fields: [
       { no: 1, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'result', kind: 'message', T: () => SOOperationResult },
+      { no: 3, name: 'root_seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

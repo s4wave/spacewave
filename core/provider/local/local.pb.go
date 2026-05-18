@@ -85,6 +85,8 @@ type LocalSOOperationResult struct {
 	LocalId string `protobuf:"bytes,1,opt,name=local_id,json=localId,proto3" json:"localId,omitempty"`
 	// Result is the operation result.
 	Result *sobject.SOOperationResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	// RootSeqno is the root seqno that accepted or rejected the operation.
+	RootSeqno uint64 `protobuf:"varint,3,opt,name=root_seqno,json=rootSeqno,proto3" json:"rootSeqno,omitempty"`
 }
 
 func (x *LocalSOOperationResult) Reset() {
@@ -105,6 +107,13 @@ func (x *LocalSOOperationResult) GetResult() *sobject.SOOperationResult {
 		return x.Result
 	}
 	return nil
+}
+
+func (x *LocalSOOperationResult) GetRootSeqno() uint64 {
+	if x != nil {
+		return x.RootSeqno
+	}
+	return 0
 }
 
 // PairingConfirmMessage is exchanged over a bifrost link during the
@@ -183,7 +192,10 @@ func (m *LocalSOOperationResult) CloneVT() *LocalSOOperationResult {
 	}
 	r := new(LocalSOOperationResult)
 	r.LocalId = m.LocalId
-	r.Result = m.Result.CloneVT()
+	r.RootSeqno = m.RootSeqno
+	if rhs := m.Result; rhs != nil {
+		r.Result = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -281,6 +293,9 @@ func (this *LocalSOOperationResult) EqualVT(that *LocalSOOperationResult) bool {
 		return false
 	}
 	if !this.Result.EqualVT(that.Result) {
+		return false
+	}
+	if this.RootSeqno != that.RootSeqno {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -456,6 +471,11 @@ func (x *LocalSOOperationResult) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("result")
 		x.Result.MarshalProtoJSON(s.WithField("result"))
 	}
+	if x.RootSeqno != 0 || s.HasField("rootSeqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootSeqno")
+		s.WriteUint64(x.RootSeqno)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -483,6 +503,9 @@ func (x *LocalSOOperationResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Result = &sobject.SOOperationResult{}
 			x.Result.UnmarshalProtoJSON(s.WithField("result", true))
+		case "root_seqno", "rootSeqno":
+			s.AddField("root_seqno")
+			x.RootSeqno = s.ReadUint64()
 		}
 	})
 }
@@ -671,6 +694,11 @@ func (m *LocalSOOperationResult) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.RootSeqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RootSeqno))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.Result != nil {
 		size, err := m.Result.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -796,6 +824,9 @@ func (m *LocalSOOperationResult) SizeVT() (n int) {
 		l = m.Result.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.RootSeqno != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.RootSeqno))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -888,6 +919,13 @@ func (x *LocalSOOperationResult) MarshalProtoText() string {
 		}
 		sb.WriteString("result: ")
 		sb.WriteString(x.Result.MarshalProtoText())
+	}
+	if x.RootSeqno != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("root_seqno: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.RootSeqno), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1170,6 +1208,15 @@ func (m *LocalSOOperationResult) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootSeqno", wireType)
+			}
+			m.RootSeqno = 0
+			m.RootSeqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

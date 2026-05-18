@@ -128,17 +128,16 @@ func (l *lookupBucket) GetBlockExists(ctx context.Context, ref *block.BlockRef) 
 	return ok, err
 }
 
-// GetBlockExistsBatch loops calling GetBlockExists per ref.
+// GetBlockExistsBatch checks whether refs exist through the lookup controller.
 func (l *lookupBucket) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := l.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
+	lb, err := l.h.GetLookup(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return out, nil
+	if lb == nil {
+		return nil, bucket.ErrBucketNotFound
+	}
+	return lb.LookupBlockExistsBatch(ctx, refs, WithLocalOnly())
 }
 
 // StatBlock returns metadata about a block without reading its data.

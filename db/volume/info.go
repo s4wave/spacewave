@@ -5,6 +5,8 @@ import (
 	"crypto"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
@@ -29,8 +31,21 @@ func NewVolumeInfo(ctx context.Context, ci *controller.Info, vol Volume) (*Volum
 		PeerId:         peerID,
 		PeerPub:        string(pkPem),
 		ControllerInfo: ci.Clone(),
-		HashType:       vol.GetHashType(),
+		HashType:       ResolveHashType(vol.GetHashType()),
 	}, nil
+}
+
+// ResolveHashType resolves persisted volume hash defaults.
+func ResolveHashType(hashType hash.HashType) hash.HashType {
+	if hashType != 0 {
+		return hashType
+	}
+	return block.LegacyDefaultHashType
+}
+
+// ResolveHashType resolves persisted volume hash defaults.
+func (i *VolumeInfo) ResolveHashType() hash.HashType {
+	return ResolveHashType(i.GetHashType())
 }
 
 // Validate validates the VolumeInfo object.

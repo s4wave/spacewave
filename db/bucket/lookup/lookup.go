@@ -59,6 +59,13 @@ type Lookup interface {
 		ref *block.BlockRef,
 		opts ...LookupBlockOption,
 	) ([]byte, bool, error)
+	// LookupBlockExistsBatch checks whether each block exists using the bucket
+	// lookup controller.
+	LookupBlockExistsBatch(
+		reqCtx context.Context,
+		refs []*block.BlockRef,
+		opts ...LookupBlockOption,
+	) ([]bool, error)
 	// PutBlock writes a block using the bucket lookup controller.
 	// The behavior of the write-back is configured in the lookup controller.
 	// If lookup is disabled, will return an error.

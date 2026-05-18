@@ -14,6 +14,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
+	okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 )
 
 // KVImplType is the key/value store implementation enum.
@@ -24,6 +25,8 @@ const (
 	KVImplType_KV_IMPL_TYPE_UNKNOWN KVImplType = 0
 	// KEY_VALUE_IMPL_IAVL is the immutable avl tree value.
 	KVImplType_KV_IMPL_TYPE_IAVL KVImplType = 1
+	// KEY_VALUE_IMPL_OKRA is the Okra-backed tree value.
+	KVImplType_KV_IMPL_TYPE_OKRA KVImplType = 2
 )
 
 // Enum value maps for KVImplType.
@@ -31,10 +34,12 @@ var (
 	KVImplType_name = map[int32]string{
 		0: "KV_IMPL_TYPE_UNKNOWN",
 		1: "KV_IMPL_TYPE_IAVL",
+		2: "KV_IMPL_TYPE_OKRA",
 	}
 	KVImplType_value = map[string]int32{
 		"KV_IMPL_TYPE_UNKNOWN": 0,
 		"KV_IMPL_TYPE_IAVL":    1,
+		"KV_IMPL_TYPE_OKRA":    2,
 	}
 )
 
@@ -61,6 +66,9 @@ type KeyValueStore struct {
 	// IavlRoot is the root node for the iavl tree.
 	// KV_IMPL_TYPE_IAVL
 	IavlRoot *iavl.Node `protobuf:"bytes,2,opt,name=iavl_root,json=iavlRoot,proto3" json:"iavlRoot,omitempty"`
+	// OkraRoot is the root metadata for the Okra tree.
+	// KV_IMPL_TYPE_OKRA
+	OkraRoot *okra.Root `protobuf:"bytes,3,opt,name=okra_root,json=okraRoot,proto3" json:"okraRoot,omitempty"`
 }
 
 func (x *KeyValueStore) Reset() {
@@ -83,13 +91,25 @@ func (x *KeyValueStore) GetIavlRoot() *iavl.Node {
 	return nil
 }
 
+func (x *KeyValueStore) GetOkraRoot() *okra.Root {
+	if x != nil {
+		return x.OkraRoot
+	}
+	return nil
+}
+
 func (m *KeyValueStore) CloneVT() *KeyValueStore {
 	if m == nil {
 		return (*KeyValueStore)(nil)
 	}
 	r := new(KeyValueStore)
 	r.ImplType = m.ImplType
-	r.IavlRoot = m.IavlRoot.CloneVT()
+	if rhs := m.IavlRoot; rhs != nil {
+		r.IavlRoot = rhs.CloneVT()
+	}
+	if rhs := m.OkraRoot; rhs != nil {
+		r.OkraRoot = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -110,6 +130,9 @@ func (this *KeyValueStore) EqualVT(that *KeyValueStore) bool {
 		return false
 	}
 	if !this.IavlRoot.EqualVT(that.IavlRoot) {
+		return false
+	}
+	if !this.OkraRoot.EqualVT(that.OkraRoot) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -181,6 +204,11 @@ func (x *KeyValueStore) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("iavlRoot")
 		x.IavlRoot.MarshalProtoJSON(s.WithField("iavlRoot"))
 	}
+	if x.OkraRoot != nil || s.HasField("okraRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("okraRoot")
+		x.OkraRoot.MarshalProtoJSON(s.WithField("okraRoot"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -208,6 +236,13 @@ func (x *KeyValueStore) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.IavlRoot = &iavl.Node{}
 			x.IavlRoot.UnmarshalProtoJSON(s.WithField("iavl_root", true))
+		case "okra_root", "okraRoot":
+			if s.ReadNil() {
+				x.OkraRoot = nil
+				return
+			}
+			x.OkraRoot = &okra.Root{}
+			x.OkraRoot.UnmarshalProtoJSON(s.WithField("okra_root", true))
 		}
 	})
 }
@@ -247,6 +282,16 @@ func (m *KeyValueStore) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.OkraRoot != nil {
+		size, err := m.OkraRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.IavlRoot != nil {
 		size, err := m.IavlRoot.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -278,6 +323,10 @@ func (m *KeyValueStore) SizeVT() (n int) {
 		l = m.IavlRoot.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.OkraRoot != nil {
+		l = m.OkraRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -304,6 +353,13 @@ func (x *KeyValueStore) MarshalProtoText() string {
 		}
 		sb.WriteString("iavl_root: ")
 		sb.WriteString(x.IavlRoot.MarshalProtoText())
+	}
+	if x.OkraRoot != nil {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("okra_root: ")
+		sb.WriteString(x.OkraRoot.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -369,6 +425,34 @@ func (m *KeyValueStore) UnmarshalVT(dAtA []byte) error {
 				m.IavlRoot = &iavl.Node{}
 			}
 			if err := m.IavlRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OkraRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.OkraRoot == nil {
+				m.OkraRoot = &okra.Root{}
+			}
+			if err := m.OkraRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -118,6 +118,85 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestLookupMetaLocateBatchCoalescesWindowReads(t *testing.T) {
+	w := NewWriter()
+	w.SetIndexInterval(4)
+	for i := range 8 {
+		key := "key-" + zeroPad(i, 4)
+		w.Add([]byte(key), []byte("val-"+zeroPad(i, 4)))
+	}
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	data := buf.Bytes()
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+
+	reader := &countingReaderAt{data: data}
+	results, err := meta.LocateBatch(reader, [][]byte{
+		[]byte("key-0001"),
+		[]byte("key-0002"),
+		[]byte("key-0003"),
+	}, false)
+	if err != nil {
+		t.Fatalf("LocateBatch: %v", err)
+	}
+	if reader.reads != 1 {
+		t.Fatalf("data window reads = %d, want 1", reader.reads)
+	}
+	for i, result := range results {
+		if !result.Found || result.Tombstone || result.Value != nil {
+			t.Fatalf("result %d = %#v, want live existence hit without value", i, result)
+		}
+	}
+}
+
+func TestLookupMetaLocateBatchValuesAndTombstones(t *testing.T) {
+	w := NewWriter()
+	w.SetIndexInterval(4)
+	w.Add([]byte("key-0000"), []byte("val-0000"))
+	w.AddTombstone([]byte("key-0001"))
+	w.Add([]byte("key-0002"), []byte("val-0002"))
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	data := buf.Bytes()
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+
+	results, err := meta.LocateBatch(bytes.NewReader(data), [][]byte{
+		[]byte("key-0000"),
+		[]byte("key-0001"),
+		[]byte("key-missing"),
+		[]byte("key-0002"),
+	}, true)
+	if err != nil {
+		t.Fatalf("LocateBatch: %v", err)
+	}
+	if !results[0].Found || string(results[0].Value) != "val-0000" || results[0].Tombstone {
+		t.Fatalf("live result = %#v, want key-0000 value", results[0])
+	}
+	if results[1].Found || !results[1].Tombstone || results[1].Value != nil {
+		t.Fatalf("tombstone result = %#v, want tombstone miss", results[1])
+	}
+	if results[2].Found || results[2].Tombstone || results[2].Value != nil {
+		t.Fatalf("missing result = %#v, want miss", results[2])
+	}
+	if !results[3].Found || string(results[3].Value) != "val-0002" || results[3].Tombstone {
+		t.Fatalf("live result = %#v, want key-0002 value", results[3])
+	}
+}
+
 func TestEmptyWriter(t *testing.T) {
 	w := NewWriter()
 	var buf bytes.Buffer
@@ -447,6 +526,16 @@ func zeroPad(n, width int) string {
 		s = "0" + s
 	}
 	return s
+}
+
+type countingReaderAt struct {
+	data  []byte
+	reads int
+}
+
+func (r *countingReaderAt) ReadAt(p []byte, off int64) (int, error) {
+	r.reads++
+	return bytes.NewReader(r.data).ReadAt(p, off)
 }
 
 func TestHeaderEncodeDecode(t *testing.T) {

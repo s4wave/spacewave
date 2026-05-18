@@ -10,6 +10,17 @@ import (
 )
 
 func TestNextIndexedLogIndexUsesLatestKey(t *testing.T) {
+	for _, impl := range []KVImplType{
+		KVImplType_KV_IMPL_TYPE_IAVL,
+		KVImplType_KV_IMPL_TYPE_OKRA,
+	} {
+		t.Run(impl.String(), func(t *testing.T) {
+			testNextIndexedLogIndexUsesLatestKey(t, impl)
+		})
+	}
+}
+
+func testNextIndexedLogIndexUsesLatestKey(t *testing.T, impl KVImplType) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -24,7 +35,7 @@ func TestNextIndexedLogIndexUsesLatestKey(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	btx, bcs := oc.BuildTransaction(nil)
-	bcs.SetBlock(NewKeyValueStore(0), true)
+	bcs.SetBlock(NewKeyValueStore(impl), true)
 	if _, bcs, err = btx.Write(ctx, true); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -60,6 +71,17 @@ func TestNextIndexedLogIndexUsesLatestKey(t *testing.T) {
 }
 
 func TestNextIndexedLogIndexEmptyTree(t *testing.T) {
+	for _, impl := range []KVImplType{
+		KVImplType_KV_IMPL_TYPE_IAVL,
+		KVImplType_KV_IMPL_TYPE_OKRA,
+	} {
+		t.Run(impl.String(), func(t *testing.T) {
+			testNextIndexedLogIndexEmptyTree(t, impl)
+		})
+	}
+}
+
+func testNextIndexedLogIndexEmptyTree(t *testing.T, impl KVImplType) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -74,7 +96,7 @@ func TestNextIndexedLogIndexEmptyTree(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	btx, bcs := oc.BuildTransaction(nil)
-	bcs.SetBlock(NewKeyValueStore(0), true)
+	bcs.SetBlock(NewKeyValueStore(impl), true)
 	if _, bcs, err = btx.Write(ctx, true); err != nil {
 		t.Fatal(err.Error())
 	}

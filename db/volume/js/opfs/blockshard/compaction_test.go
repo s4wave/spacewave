@@ -95,13 +95,76 @@ func TestMergeSegmentsDuplicateKeys(t *testing.T) {
 	}
 }
 
+func TestBuildCompactionPlanIncludesOverlappingLowerLevel(t *testing.T) {
+	m := &Manifest{
+		Generation: 12,
+		Segments: []SegmentMeta{
+			{Filename: "seg-000001.sst", Level: 1, MinKey: []byte("a"), MaxKey: []byte("c")},
+			{Filename: "seg-000002.sst", Level: 1, MinKey: []byte("x"), MaxKey: []byte("z")},
+			{Filename: "seg-000003.sst", Level: 0, MinKey: []byte("b"), MaxKey: []byte("d")},
+			{Filename: "seg-000004.sst", Level: 0, MinKey: []byte("d"), MaxKey: []byte("e")},
+		},
+	}
+
+	plan := buildCompactionPlan(3, m, 2)
+	if plan == nil {
+		t.Fatal("expected compaction plan")
+	}
+	if plan.ShardID != 3 {
+		t.Fatalf("shard id: got %d want 3", plan.ShardID)
+	}
+	if plan.Generation != 12 {
+		t.Fatalf("generation: got %d want 12", plan.Generation)
+	}
+	if plan.OutputLevel != 1 {
+		t.Fatalf("output level: got %d want 1", plan.OutputLevel)
+	}
+	got := segmentNames(plan.InputSegs)
+	want := []string{"seg-000001.sst", "seg-000003.sst", "seg-000004.sst"}
+	if !sameStrings(got, want) {
+		t.Fatalf("inputs: got %v want %v", got, want)
+	}
+}
+
+func TestBuildCompactionPlanUsesDeeperLevelThresholds(t *testing.T) {
+	m := &Manifest{
+		Generation: 20,
+		Segments: []SegmentMeta{
+			{Filename: "seg-000001.sst", Level: 2, MinKey: []byte("a"), MaxKey: []byte("z")},
+			{Filename: "seg-000002.sst", Level: 1, MinKey: []byte("a"), MaxKey: []byte("b")},
+			{Filename: "seg-000003.sst", Level: 1, MinKey: []byte("c"), MaxKey: []byte("d")},
+			{Filename: "seg-000004.sst", Level: 1, MinKey: []byte("e"), MaxKey: []byte("f")},
+			{Filename: "seg-000005.sst", Level: 1, MinKey: []byte("g"), MaxKey: []byte("h")},
+		},
+	}
+
+	plan := buildCompactionPlan(0, m, 2)
+	if plan == nil {
+		t.Fatal("expected level-1 compaction plan")
+	}
+	if plan.OutputLevel != 2 {
+		t.Fatalf("output level: got %d want 2", plan.OutputLevel)
+	}
+	got := segmentNames(plan.InputSegs)
+	want := []string{
+		"seg-000001.sst",
+		"seg-000002.sst",
+		"seg-000003.sst",
+		"seg-000004.sst",
+		"seg-000005.sst",
+	}
+	if !sameStrings(got, want) {
+		t.Fatalf("inputs: got %v want %v", got, want)
+	}
+}
+
 func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 	current := &Manifest{
 		Generation: 4,
 		Segments: []SegmentMeta{
-			{Filename: "seg-000001.sst", Level: 0, MinKey: []byte("a"), MaxKey: []byte("b")},
-			{Filename: "seg-000002.sst", Level: 0, MinKey: []byte("c"), MaxKey: []byte("d")},
-			{Filename: "seg-000003.sst", Level: 1, MinKey: []byte("e"), MaxKey: []byte("f")},
+			{Filename: "seg-000001.sst", Level: 1, MinKey: []byte("e"), MaxKey: []byte("f")},
+			{Filename: "seg-000002.sst", Level: 0, MinKey: []byte("a"), MaxKey: []byte("b")},
+			{Filename: "seg-000003.sst", Level: 0, MinKey: []byte("c"), MaxKey: []byte("d")},
 		},
 		PendingDelete: []RetiredSegmentMeta{
 			{
@@ -112,8 +175,8 @@ func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 		},
 	}
 	inputs := map[string]bool{
-		"seg-000001.sst": true,
 		"seg-000002.sst": true,
+		"seg-000003.sst": true,
 	}
 	output := SegmentMeta{
 		Filename: "seg-000004.sst",
@@ -122,7 +185,7 @@ func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 		MaxKey:   []byte("d"),
 	}
 
-	next, err := buildCompactedManifest(current, inputs, output, 5, 2000, 250)
+	next, err := buildCompactedManifest(current, inputs, &output, 5, 2000, 250)
 	if err != nil {
 		t.Fatalf("buildCompactedManifest: %v", err)
 	}
@@ -133,7 +196,7 @@ func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 	if len(next.Segments) != 2 {
 		t.Fatalf("segments: got %d want 2", len(next.Segments))
 	}
-	if next.Segments[0].Filename != "seg-000003.sst" {
+	if next.Segments[0].Filename != "seg-000001.sst" {
 		t.Fatalf("kept segment: got %q", next.Segments[0].Filename)
 	}
 	if next.Segments[1].Filename != "seg-000004.sst" {
@@ -142,7 +205,7 @@ func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 	if len(next.PendingDelete) != 3 {
 		t.Fatalf("pending delete: got %d want 3", len(next.PendingDelete))
 	}
-	if next.PendingDelete[1].Filename != "seg-000001.sst" {
+	if next.PendingDelete[1].Filename != "seg-000002.sst" {
 		t.Fatalf("retired[1] filename: got %q", next.PendingDelete[1].Filename)
 	}
 	if next.PendingDelete[1].RetireGeneration != 5 {
@@ -151,7 +214,7 @@ func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 	if next.PendingDelete[1].DeleteAfterUnixMilli != 2250 {
 		t.Fatalf("retired[1] delete-after: got %d want 2250", next.PendingDelete[1].DeleteAfterUnixMilli)
 	}
-	if next.PendingDelete[2].Filename != "seg-000002.sst" {
+	if next.PendingDelete[2].Filename != "seg-000003.sst" {
 		t.Fatalf("retired[2] filename: got %q", next.PendingDelete[2].Filename)
 	}
 	if len(current.PendingDelete) != 1 {
@@ -159,6 +222,88 @@ func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 	}
 	if len(current.Segments) != 3 {
 		t.Fatalf("current manifest mutated: segments=%d want 3", len(current.Segments))
+	}
+}
+
+func TestBuildCompactedManifestInsertsOutputAtNewestInput(t *testing.T) {
+	current := &Manifest{
+		Generation: 7,
+		Segments: []SegmentMeta{
+			{Filename: "older.sst", Level: 1},
+			{Filename: "input-a.sst", Level: 1},
+			{Filename: "input-b.sst", Level: 1},
+			{Filename: "newer.sst", Level: 0},
+		},
+	}
+	output := SegmentMeta{Filename: "output.sst", Level: 2}
+	next, err := buildCompactedManifest(
+		current,
+		map[string]bool{"input-a.sst": true, "input-b.sst": true},
+		&output,
+		8,
+		1000,
+		250,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := segmentNames(next.Segments)
+	want := []string{"older.sst", "output.sst", "newer.sst"}
+	if !sameStrings(got, want) {
+		t.Fatalf("segments: got %v want %v", got, want)
+	}
+}
+
+func TestPruneCompactedTombstones(t *testing.T) {
+	merged := []segment.Entry{
+		{Key: []byte("a"), Tombstone: true},
+		{Key: []byte("b"), Tombstone: true},
+		{Key: []byte("c"), Value: []byte("live")},
+	}
+	current := &Manifest{
+		Segments: []SegmentMeta{
+			{Filename: "input.sst", MinKey: []byte("a"), MaxKey: []byte("c")},
+			{Filename: "older-overlap.sst", MinKey: []byte("b"), MaxKey: []byte("b")},
+		},
+	}
+	pruned := pruneCompactedTombstones(merged, current, map[string]bool{"input.sst": true})
+	if len(pruned) != 2 {
+		t.Fatalf("pruned count: got %d want 2", len(pruned))
+	}
+	if string(pruned[0].Key) != "b" || !pruned[0].Tombstone {
+		t.Fatalf("first retained entry: %+v", pruned[0])
+	}
+	if string(pruned[1].Key) != "c" || pruned[1].Tombstone {
+		t.Fatalf("second retained entry: %+v", pruned[1])
+	}
+}
+
+func TestBuildCompactedManifestCanRetireWithoutOutput(t *testing.T) {
+	current := &Manifest{
+		Generation: 3,
+		Segments: []SegmentMeta{
+			{Filename: "input.sst", Level: 0},
+			{Filename: "newer.sst", Level: 0},
+		},
+	}
+	next, err := buildCompactedManifest(
+		current,
+		map[string]bool{"input.sst": true},
+		nil,
+		4,
+		1000,
+		250,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := segmentNames(next.Segments)
+	want := []string{"newer.sst"}
+	if !sameStrings(got, want) {
+		t.Fatalf("segments: got %v want %v", got, want)
+	}
+	if len(next.PendingDelete) != 1 || next.PendingDelete[0].Filename != "input.sst" {
+		t.Fatalf("pending delete: %+v", next.PendingDelete)
 	}
 }
 
@@ -194,6 +339,26 @@ func TestSelectReclaimablePendingRequiresGenerationAndTime(t *testing.T) {
 	if len(keep) != 2 {
 		t.Fatalf("keep count: got %d want 2", len(keep))
 	}
+}
+
+func segmentNames(segs []SegmentMeta) []string {
+	out := make([]string, len(segs))
+	for i := range segs {
+		out[i] = segs[i].Filename
+	}
+	return out
+}
+
+func sameStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestBuildReclaimManifestAdvancesGeneration(t *testing.T) {

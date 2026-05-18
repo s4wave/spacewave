@@ -11,6 +11,10 @@ pub struct KeyValueStore {
     /// KV_IMPL_TYPE_IAVL
     #[prost(message, optional, tag="2")]
     pub iavl_root: ::core::option::Option<iavl::Node>,
+    /// OkraRoot is the root metadata for the Okra tree.
+    /// KV_IMPL_TYPE_OKRA
+    #[prost(message, optional, tag="3")]
+    pub okra_root: ::core::option::Option<okra::Root>,
 }
 /// KVImplType is the key/value store implementation enum.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -20,6 +24,8 @@ pub enum KvImplType {
     Unknown = 0,
     /// KEY_VALUE_IMPL_IAVL is the immutable avl tree value.
     Iavl = 1,
+    /// KEY_VALUE_IMPL_OKRA is the Okra-backed tree value.
+    Okra = 2,
 }
 impl KvImplType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -30,6 +36,7 @@ impl KvImplType {
         match self {
             Self::Unknown => "KV_IMPL_TYPE_UNKNOWN",
             Self::Iavl => "KV_IMPL_TYPE_IAVL",
+            Self::Okra => "KV_IMPL_TYPE_OKRA",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -37,6 +44,7 @@ impl KvImplType {
         match value {
             "KV_IMPL_TYPE_UNKNOWN" => Some(Self::Unknown),
             "KV_IMPL_TYPE_IAVL" => Some(Self::Iavl),
+            "KV_IMPL_TYPE_OKRA" => Some(Self::Okra),
             _ => None,
         }
     }

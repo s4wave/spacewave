@@ -860,6 +860,7 @@ class LocalSOOperationResult final : public ::google::protobuf::Message
   enum : int {
     kLocalIdFieldNumber = 1,
     kResultFieldNumber = 2,
+    kRootSeqnoFieldNumber = 3,
   };
   // string local_id = 1;
   void clear_local_id() ;
@@ -891,11 +892,21 @@ class LocalSOOperationResult final : public ::google::protobuf::Message
   ::sobject::SOOperationResult* PROTOBUF_NONNULL _internal_mutable_result();
 
   public:
+  // uint64 root_seqno = 3;
+  void clear_root_seqno() ;
+  ::uint64_t root_seqno() const;
+  void set_root_seqno(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_root_seqno() const;
+  void _internal_set_root_seqno(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:provider.local.LocalSOOperationResult)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    1, 54,
                                    2>
       _table_;
@@ -919,6 +930,7 @@ class LocalSOOperationResult final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr local_id_;
     ::sobject::SOOperationResult* PROTOBUF_NULLABLE result_;
+    ::uint64_t root_seqno_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1352,6 +1364,31 @@ inline void LocalSOOperationResult::set_allocated_result(::sobject::SOOperationR
 
   _impl_.result_ = reinterpret_cast<::sobject::SOOperationResult*>(value);
   // @@protoc_insertion_point(field_set_allocated:provider.local.LocalSOOperationResult.result)
+}
+
+// uint64 root_seqno = 3;
+inline void LocalSOOperationResult::clear_root_seqno() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.root_seqno_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t LocalSOOperationResult::root_seqno() const {
+  // @@protoc_insertion_point(field_get:provider.local.LocalSOOperationResult.root_seqno)
+  return _internal_root_seqno();
+}
+inline void LocalSOOperationResult::set_root_seqno(::uint64_t value) {
+  _internal_set_root_seqno(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:provider.local.LocalSOOperationResult.root_seqno)
+}
+inline ::uint64_t LocalSOOperationResult::_internal_root_seqno() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.root_seqno_;
+}
+inline void LocalSOOperationResult::_internal_set_root_seqno(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.root_seqno_ = value;
 }
 
 // -------------------------------------------------------------------

@@ -59,6 +59,12 @@ func TestListGraphEdgeBucketsOrdersLimitsAndTruncates(t *testing.T) {
 	if second.OutgoingTruncated || second.IncomingTruncated {
 		t.Fatalf("expected second bucket not truncated, got outgoing=%v incoming=%v", second.OutgoingTruncated, second.IncomingTruncated)
 	}
+	if graph.lookupCalls != 0 {
+		t.Fatalf("expected bucket owner to avoid primitive lookups, got %d", graph.lookupCalls)
+	}
+	if graph.batchCalls != 1 || graph.batchLimit != 0 || len(graph.batchFilters) != 4 {
+		t.Fatalf("unexpected batch lookup usage: calls=%d limit=%d filters=%d", graph.batchCalls, graph.batchLimit, len(graph.batchFilters))
+	}
 }
 
 func TestListGraphEdgeBucketsLimitsAfterOrdering(t *testing.T) {
@@ -99,7 +105,11 @@ func TestListGraphEdgeBucketsLimitsAfterOrdering(t *testing.T) {
 }
 
 type edgeBucketTestGraph struct {
-	quads []world.GraphQuad
+	quads        []world.GraphQuad
+	lookupCalls  int
+	batchCalls   int
+	batchLimit   uint32
+	batchFilters []world.GraphQuad
 }
 
 func (g *edgeBucketTestGraph) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
@@ -107,6 +117,22 @@ func (g *edgeBucketTestGraph) AccessCayleyGraph(ctx context.Context, write bool,
 }
 
 func (g *edgeBucketTestGraph) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	g.lookupCalls++
+	return g.filterGraphQuads(filter, limit), nil
+}
+
+func (g *edgeBucketTestGraph) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	g.batchCalls++
+	g.batchLimit = limitPerFilter
+	g.batchFilters = append([]world.GraphQuad(nil), filters...)
+	results := make([][]world.GraphQuad, len(filters))
+	for i, filter := range filters {
+		results[i] = g.filterGraphQuads(filter, limitPerFilter)
+	}
+	return results, nil
+}
+
+func (g *edgeBucketTestGraph) filterGraphQuads(filter world.GraphQuad, limit uint32) []world.GraphQuad {
 	var out []world.GraphQuad
 	for _, q := range g.quads {
 		if filter.GetSubject() != "" && q.GetSubject() != filter.GetSubject() {
@@ -123,19 +149,7 @@ func (g *edgeBucketTestGraph) LookupGraphQuads(ctx context.Context, filter world
 			break
 		}
 	}
-	return out, nil
-}
-
-func (g *edgeBucketTestGraph) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
-	results := make([][]world.GraphQuad, len(filters))
-	for i, filter := range filters {
-		quads, err := g.LookupGraphQuads(ctx, filter, limitPerFilter)
-		if err != nil {
-			return nil, err
-		}
-		results[i] = quads
-	}
-	return results, nil
+	return out
 }
 
 func (g *edgeBucketTestGraph) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {

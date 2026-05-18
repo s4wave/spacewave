@@ -119,7 +119,8 @@ inline constexpr LocalSOOperationResult::Impl_::Impl_(
         local_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        result_{nullptr} {}
+        result_{nullptr},
+        root_seqno_{::uint64_t{0u}} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR LocalSOOperationResult::LocalSOOperationResult(::_pbi::ConstantInitialized)
@@ -165,11 +166,13 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::local::LocalSOOperationResult, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::provider::local::LocalSOOperationResult, _impl_.local_id_),
         PROTOBUF_FIELD_OFFSET(::provider::local::LocalSOOperationResult, _impl_.result_),
+        PROTOBUF_FIELD_OFFSET(::provider::local::LocalSOOperationResult, _impl_.root_seqno_),
         0,
         1,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::local::PairingConfirmMessage, _impl_._has_bits_),
         5, // hasbit index offset
@@ -184,7 +187,7 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::provider::local::Config)},
         {9, sizeof(::provider::local::LocalSOState)},
         {14, sizeof(::provider::local::LocalSOOperationResult)},
-        {21, sizeof(::provider::local::PairingConfirmMessage)},
+        {23, sizeof(::provider::local::PairingConfirmMessage)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::provider::local::_Config_default_instance_._instance,
@@ -200,11 +203,12 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "sobject.proto\"B\n\006Config\022\023\n\013provider_id\030\001"
     " \001(\t\022\017\n\007peer_id\030\002 \001(\t\022\022\n\nstorage_id\030\003 \001("
     "\t\"<\n\014LocalSOState\022,\n\010op_queue\030\001 \003(\0132\032.so"
-    "bject.QueuedSOOperation\"V\n\026LocalSOOperat"
+    "bject.QueuedSOOperation\"j\n\026LocalSOOperat"
     "ionResult\022\020\n\010local_id\030\001 \001(\t\022*\n\006result\030\002 "
-    "\001(\0132\032.sobject.SOOperationResult\"<\n\025Pairi"
-    "ngConfirmMessage\022\021\n\tconfirmed\030\001 \001(\010\022\020\n\010r"
-    "ejected\030\002 \001(\010b\006proto3"
+    "\001(\0132\032.sobject.SOOperationResult\022\022\n\nroot_"
+    "seqno\030\003 \001(\004\"<\n\025PairingConfirmMessage\022\021\n\t"
+    "confirmed\030\001 \001(\010\022\020\n\010rejected\030\002 \001(\010b\006proto"
+    "3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2flocal_2flocal_2eproto_deps[1] = {
@@ -214,7 +218,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2flocal_2flocal_2eproto = {
     false,
     false,
-    421,
+    441,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2flocal_2flocal_2eproto,
     "github.com/s4wave/spacewave/core/provider/local/local.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2flocal_2flocal_2eproto_once,
@@ -930,6 +934,7 @@ LocalSOOperationResult::LocalSOOperationResult(
   _impl_.result_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_)
                 : nullptr;
+  _impl_.root_seqno_ = from._impl_.root_seqno_;
 
   // @@protoc_insertion_point(copy_constructor:provider.local.LocalSOOperationResult)
 }
@@ -941,7 +946,12 @@ PROTOBUF_NDEBUG_INLINE LocalSOOperationResult::Impl_::Impl_(
 
 inline void LocalSOOperationResult::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.result_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, result_),
+           0,
+           offsetof(Impl_, root_seqno_) -
+               offsetof(Impl_, result_) +
+               sizeof(Impl_::root_seqno_));
 }
 LocalSOOperationResult::~LocalSOOperationResult() {
   // @@protoc_insertion_point(destructor:provider.local.LocalSOOperationResult)
@@ -1002,16 +1012,16 @@ LocalSOOperationResult::GetClassData() const {
   return LocalSOOperationResult_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 54, 2>
+const ::_pbi::TcParseTable<2, 3, 1, 54, 2>
 LocalSOOperationResult::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     LocalSOOperationResult_class_data_.base(),
@@ -1021,14 +1031,19 @@ LocalSOOperationResult::_table_ = {
     ::_pbi::TcParser::GetTable<::provider::local::LocalSOOperationResult>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .sobject.SOOperationResult result = 2;
-    {::_pbi::TcParser::FastMtS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.result_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string local_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.local_id_)}},
+    // .sobject.SOOperationResult result = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.result_)}},
+    // uint64 root_seqno = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(LocalSOOperationResult, _impl_.root_seqno_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.root_seqno_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1036,6 +1051,8 @@ LocalSOOperationResult::_table_ = {
     {PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.local_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .sobject.SOOperationResult result = 2;
     {PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.result_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 root_seqno = 3;
+    {PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.root_seqno_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::sobject::SOOperationResult>()},
@@ -1063,6 +1080,7 @@ PROTOBUF_NOINLINE void LocalSOOperationResult::Clear() {
       _impl_.result_->Clear();
     }
   }
+  _impl_.root_seqno_ = ::uint64_t{0u};
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1103,6 +1121,15 @@ PROTOBUF_NOINLINE void LocalSOOperationResult::Clear() {
         stream);
   }
 
+  // uint64 root_seqno = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_root_seqno() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_root_seqno(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1128,7 +1155,7 @@ PROTOBUF_NOINLINE void LocalSOOperationResult::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // string local_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_local_id().empty()) {
@@ -1140,6 +1167,13 @@ PROTOBUF_NOINLINE void LocalSOOperationResult::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.result_);
+    }
+    // uint64 root_seqno = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_root_seqno() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_root_seqno());
+      }
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1161,7 +1195,7 @@ void LocalSOOperationResult::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_local_id().empty()) {
         _this->_internal_set_local_id(from._internal_local_id());
@@ -1177,6 +1211,11 @@ void LocalSOOperationResult::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.result_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_);
       } else {
         _this->_impl_.result_->MergeFrom(*from._impl_.result_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_root_seqno() != 0) {
+        _this->_impl_.root_seqno_ = from._impl_.root_seqno_;
       }
     }
   }
@@ -1200,7 +1239,12 @@ void LocalSOOperationResult::InternalSwap(LocalSOOperationResult* PROTOBUF_RESTR
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.local_id_, &other->_impl_.local_id_, arena);
-  swap(_impl_.result_, other->_impl_.result_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.root_seqno_)
+      + sizeof(LocalSOOperationResult::_impl_.root_seqno_)
+      - PROTOBUF_FIELD_OFFSET(LocalSOOperationResult, _impl_.result_)>(
+          reinterpret_cast<char*>(&_impl_.result_),
+          reinterpret_cast<char*>(&other->_impl_.result_));
 }
 
 ::google::protobuf::Metadata LocalSOOperationResult::GetMetadata() const {

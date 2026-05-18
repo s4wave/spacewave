@@ -321,13 +321,10 @@ func (c *Controller) checkAndQueueBlocks(ctx context.Context, pid peer.ID) {
 	}
 	defer rel()
 
-	var queued []*block.BlockRef
-	for _, ref := range wants {
-		_, ok, lerr := lk.LookupBlock(ctx, ref, WithLocalOnly())
-		if lerr != nil || !ok {
-			continue
-		}
-		queued = append(queued, ref)
+	queued, err := filterLocalExistingBlocks(ctx, lk, wants)
+	if err != nil {
+		c.le.WithError(err).Warn("failed to check local wanted blocks")
+		return
 	}
 	if len(queued) == 0 {
 		return

@@ -3,6 +3,7 @@ package kvtx_block
 import (
 	"github.com/s4wave/spacewave/db/block"
 	iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
+	okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 )
 
 // NewKeyValueStoreBlock constructs a new KeyValueStore block.
@@ -46,6 +47,12 @@ func (k *KeyValueStore) ApplySubBlock(id uint32, next block.SubBlock) error {
 			return block.ErrUnexpectedType
 		}
 		k.IavlRoot = v
+	case 3:
+		v, ok := next.(*okra.Root)
+		if !ok {
+			return block.ErrUnexpectedType
+		}
+		k.OkraRoot = v
 	}
 	return nil
 }
@@ -57,6 +64,8 @@ func (k *KeyValueStore) GetSubBlocks() map[uint32]block.SubBlock {
 	switch k.GetImplType() {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		m[2] = k.GetIavlRoot()
+	case KVImplType_KV_IMPL_TYPE_OKRA:
+		m[3] = k.GetOkraRoot()
 	}
 	return m
 }
@@ -77,6 +86,8 @@ func (k *KeyValueStore) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 			}
 			return x
 		}
+	case 3:
+		return okra.NewRootSubBlockCtor(&k.OkraRoot)
 	}
 	return nil
 }

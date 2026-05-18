@@ -33,7 +33,7 @@ func NewKVTx(
 		blk: block_store_kvtx.NewKVTxBlock(
 			kvkey,
 			store,
-			conf.GetHashType(),
+			conf.ResolveHashType(),
 			!conf.GetDisableHashGet(),
 		),
 		store: store,

@@ -33,6 +33,7 @@ inline constexpr KeyValueStore::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         iavl_root_{nullptr},
+        okra_root_{nullptr},
         impl_type_{static_cast< ::kvtx::block::KVImplType >(0)} {}
 
 template <typename>
@@ -65,11 +66,13 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::kvtx::block::KeyValueStore, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::kvtx::block::KeyValueStore, _impl_.impl_type_),
         PROTOBUF_FIELD_OFFSET(::kvtx::block::KeyValueStore, _impl_.iavl_root_),
-        1,
+        PROTOBUF_FIELD_OFFSET(::kvtx::block::KeyValueStore, _impl_.okra_root_),
+        2,
         0,
+        1,
 };
 
 static const ::_pbi::MigrationSchema
@@ -84,26 +87,30 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkv
     "\n4github.com/s4wave/spacewave/db/kvtx/bl"
     "ock/kvtx.proto\022\nkvtx.block\0329github.com/s"
     "4wave/spacewave/db/kvtx/block/iavl/iavl."
-    "proto\"d\n\rKeyValueStore\022)\n\timpl_type\030\001 \001("
-    "\0162\026.kvtx.block.KVImplType\022(\n\tiavl_root\030\002"
-    " \001(\0132\025.kvtx.block.iavl.Node*=\n\nKVImplTyp"
-    "e\022\030\n\024KV_IMPL_TYPE_UNKNOWN\020\000\022\025\n\021KV_IMPL_T"
-    "YPE_IAVL\020\001b\006proto3"
+    "proto\0329github.com/s4wave/spacewave/db/kv"
+    "tx/block/okra/okra.proto\"\216\001\n\rKeyValueSto"
+    "re\022)\n\timpl_type\030\001 \001(\0162\026.kvtx.block.KVImp"
+    "lType\022(\n\tiavl_root\030\002 \001(\0132\025.kvtx.block.ia"
+    "vl.Node\022(\n\tokra_root\030\003 \001(\0132\025.kvtx.block."
+    "okra.Root*T\n\nKVImplType\022\030\n\024KV_IMPL_TYPE_"
+    "UNKNOWN\020\000\022\025\n\021KV_IMPL_TYPE_IAVL\020\001\022\025\n\021KV_I"
+    "MPL_TYPE_OKRA\020\002b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_deps[1] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_deps[2] = {
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fiavl_2fiavl_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fokra_2fokra_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto = {
     false,
     false,
-    298,
+    423,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto,
     "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto_deps,
-    1,
+    2,
     1,
     schemas,
     file_default_instances,
@@ -118,7 +125,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL KVImplType_descriptor
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2fblock_2fkvtx_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t KVImplType_internal_data_[] = {
-    131072u, 0u, };
+    196608u, 0u, };
 // ===================================================================
 
 class KeyValueStore::_Internal {
@@ -134,6 +141,12 @@ void KeyValueStore::clear_iavl_root() {
   if (_impl_.iavl_root_ != nullptr) _impl_.iavl_root_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000001U);
+}
+void KeyValueStore::clear_okra_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.okra_root_ != nullptr) _impl_.okra_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
 }
 KeyValueStore::KeyValueStore(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -168,6 +181,9 @@ KeyValueStore::KeyValueStore(
   _impl_.iavl_root_ = (CheckHasBit(cached_has_bits, 0x00000001U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.iavl_root_)
                 : nullptr;
+  _impl_.okra_root_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.okra_root_)
+                : nullptr;
   _impl_.impl_type_ = from._impl_.impl_type_;
 
   // @@protoc_insertion_point(copy_constructor:kvtx.block.KeyValueStore)
@@ -198,6 +214,7 @@ inline void KeyValueStore::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   delete this_._impl_.iavl_root_;
+  delete this_._impl_.okra_root_;
   this_._impl_.~Impl_();
 }
 
@@ -244,17 +261,17 @@ KeyValueStore::GetClassData() const {
   return KeyValueStore_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 2, 0, 2>
 KeyValueStore::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    1,  // num_aux_entries
+    3,  // num_field_entries
+    2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     KeyValueStore_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -263,24 +280,32 @@ KeyValueStore::_table_ = {
     ::_pbi::TcParser::GetTable<::kvtx::block::KeyValueStore>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .kvtx.block.KVImplType impl_type = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(KeyValueStore, _impl_.impl_type_), 2>(),
+     {8, 2, 0,
+      PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_.impl_type_)}},
     // .kvtx.block.iavl.Node iavl_root = 2;
     {::_pbi::TcParser::FastMtS1,
      {18, 0, 0,
       PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_.iavl_root_)}},
-    // .kvtx.block.KVImplType impl_type = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(KeyValueStore, _impl_.impl_type_), 1>(),
-     {8, 1, 0,
-      PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_.impl_type_)}},
+    // .kvtx.block.okra.Root okra_root = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 1, 1,
+      PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_.okra_root_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .kvtx.block.KVImplType impl_type = 1;
-    {PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_.impl_type_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_.impl_type_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .kvtx.block.iavl.Node iavl_root = 2;
     {PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_.iavl_root_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .kvtx.block.okra.Root okra_root = 3;
+    {PROTOBUF_FIELD_OFFSET(KeyValueStore, _impl_.okra_root_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::kvtx::block::iavl::Node>()},
+      {::_pbi::TcParser::GetTable<::kvtx::block::okra::Root>()},
   }},
   {{
   }},
@@ -293,9 +318,15 @@ PROTOBUF_NOINLINE void KeyValueStore::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(_impl_.iavl_root_ != nullptr);
-    _impl_.iavl_root_->Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(_impl_.iavl_root_ != nullptr);
+      _impl_.iavl_root_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.okra_root_ != nullptr);
+      _impl_.okra_root_->Clear();
+    }
   }
   _impl_.impl_type_ = 0;
   _impl_._has_bits_.Clear();
@@ -322,7 +353,7 @@ PROTOBUF_NOINLINE void KeyValueStore::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .kvtx.block.KVImplType impl_type = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (this_._internal_impl_type() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -334,6 +365,13 @@ PROTOBUF_NOINLINE void KeyValueStore::Clear() {
   if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         2, *this_._impl_.iavl_root_, this_._impl_.iavl_root_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .kvtx.block.okra.Root okra_root = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.okra_root_, this_._impl_.okra_root_->GetCachedSize(), target,
         stream);
   }
 
@@ -362,14 +400,19 @@ PROTOBUF_NOINLINE void KeyValueStore::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // .kvtx.block.iavl.Node iavl_root = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.iavl_root_);
     }
-    // .kvtx.block.KVImplType impl_type = 1;
+    // .kvtx.block.okra.Root okra_root = 3;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.okra_root_);
+    }
+    // .kvtx.block.KVImplType impl_type = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (this_._internal_impl_type() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_impl_type());
@@ -395,7 +438,7 @@ void KeyValueStore::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(from._impl_.iavl_root_ != nullptr);
       if (_this->_impl_.iavl_root_ == nullptr) {
@@ -405,6 +448,14 @@ void KeyValueStore::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.okra_root_ != nullptr);
+      if (_this->_impl_.okra_root_ == nullptr) {
+        _this->_impl_.okra_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.okra_root_);
+      } else {
+        _this->_impl_.okra_root_->MergeFrom(*from._impl_.okra_root_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (from._internal_impl_type() != 0) {
         _this->_impl_.impl_type_ = from._impl_.impl_type_;
       }

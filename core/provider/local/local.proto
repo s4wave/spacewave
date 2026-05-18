@@ -29,6 +29,8 @@ message LocalSOOperationResult {
   string local_id = 1;
   // Result is the operation result.
   .sobject.SOOperationResult result = 2;
+  // RootSeqno is the root seqno that accepted or rejected the operation.
+  uint64 root_seqno = 3;
 }
 
 // PairingConfirmMessage is exchanged over a bifrost link during the

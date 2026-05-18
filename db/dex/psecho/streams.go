@@ -34,6 +34,43 @@ func (c *Controller) getBucketLookup(ctx context.Context) (bucket_lookup.Lookup,
 	return lk, func() { lkRef.Release() }, nil
 }
 
+func filterLocalExistingBlocks(
+	ctx context.Context,
+	lk bucket_lookup.Lookup,
+	refs []*block.BlockRef,
+) ([]*block.BlockRef, error) {
+	found, err := lk.LookupBlockExistsBatch(ctx, refs, WithLocalOnly())
+	if err != nil {
+		return filterLocalExistingBlocksIndividually(ctx, lk, refs), nil
+	}
+	if len(found) != len(refs) {
+		return nil, errors.Errorf("lookup exists batch returned %d results for %d refs", len(found), len(refs))
+	}
+
+	queued := make([]*block.BlockRef, 0, len(refs))
+	for i, ok := range found {
+		if ok {
+			queued = append(queued, refs[i])
+		}
+	}
+	return queued, nil
+}
+
+func filterLocalExistingBlocksIndividually(
+	ctx context.Context,
+	lk bucket_lookup.Lookup,
+	refs []*block.BlockRef,
+) []*block.BlockRef {
+	queued := make([]*block.BlockRef, 0, len(refs))
+	for _, ref := range refs {
+		_, ok, err := lk.LookupBlock(ctx, ref, WithLocalOnly())
+		if err == nil && ok {
+			queued = append(queued, ref)
+		}
+	}
+	return queued
+}
+
 // buildIncomingRoutine constructs a routine for an incoming stream session.
 func (c *Controller) buildIncomingRoutine(key sessionKey) (keyed.Routine, struct{}) {
 	return func(ctx context.Context) error {

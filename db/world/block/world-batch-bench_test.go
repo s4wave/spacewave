@@ -42,6 +42,7 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 	defer cleanup()
 
 	b.Run("primitive-loop", func(b *testing.B) {
+		b.ResetTimer()
 		b.ReportAllocs()
 		var readCount, readBytes uint64
 		for range b.N {
@@ -65,6 +66,7 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 	})
 
 	b.Run("owner-batch", func(b *testing.B) {
+		b.ResetTimer()
 		b.ReportAllocs()
 		var readCount, readBytes uint64
 		for range b.N {
@@ -86,6 +88,45 @@ func BenchmarkWorldStateLookupGraphQuadsBatchRelationshipFanout(b *testing.B) {
 		}
 		reportBlockReadMetrics(b, readCount, readBytes)
 	})
+}
+
+func BenchmarkWorldStateListGraphEdgeBucketsRelationshipFanout(b *testing.B) {
+	ctx := context.Background()
+	const roots = 96
+	ws, _, cleanup := setupRelationshipFanoutBenchWorld(ctx, b, roots)
+	defer cleanup()
+
+	originKeys := make([]string, roots)
+	for i := range roots {
+		originKeys[i] = relationshipFanoutRootKey(i)
+	}
+	query := &world.GraphEdgeBucketQuery{
+		OriginObjectKeys: originKeys,
+		LimitPerOrigin:   16,
+		Direction:        world.GraphEdgeBucketDirectionBoth,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	var readCount, readBytes uint64
+	for range b.N {
+		opCtx, counter := block.WithReadCounter(ctx)
+		buckets, err := world.ListGraphEdgeBuckets(opCtx, ws, query)
+		if err != nil {
+			b.Fatal(err.Error())
+		}
+		var total int
+		for _, bucket := range buckets {
+			total += len(bucket.Outgoing) + len(bucket.Incoming)
+		}
+		if total != roots*7 {
+			b.Fatalf("result count = %d, want %d", total, roots*7)
+		}
+		snapshot := counter.Snapshot()
+		readCount += snapshot.BlockReadCount
+		readBytes += snapshot.BlockReadBytes
+	}
+	reportBlockReadMetrics(b, readCount, readBytes)
 }
 
 func BenchmarkWorldStateQueryGraphPathRelationshipFanout(b *testing.B) {
@@ -165,7 +206,7 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 		tbed.Release()
 		tb.Fatal(err.Error())
 	}
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	writeWs, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		ocs.Release()
 		tbed.Release()
@@ -185,23 +226,23 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 	}
 	filters := make([]world.GraphQuad, 0, roots*(len(outPredicates)+len(inPredicates)))
 	for i := range roots {
-		rootKey := "bench/workfront/" + strconv.Itoa(i)
-		if _, err := ws.CreateObject(ctx, rootKey, nil); err != nil {
-			ws.Discard()
+		rootKey := relationshipFanoutRootKey(i)
+		if _, err := writeWs.CreateObject(ctx, rootKey, nil); err != nil {
+			writeWs.Discard()
 			ocs.Release()
 			tbed.Release()
 			tb.Fatal(err.Error())
 		}
 		for predIndex, pred := range outPredicates {
 			targetKey := rootKey + "/out/" + strconv.Itoa(predIndex)
-			if _, err := ws.CreateObject(ctx, targetKey, nil); err != nil {
-				ws.Discard()
+			if _, err := writeWs.CreateObject(ctx, targetKey, nil); err != nil {
+				writeWs.Discard()
 				ocs.Release()
 				tbed.Release()
 				tb.Fatal(err.Error())
 			}
-			if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(rootKey, pred, targetKey, "")); err != nil {
-				ws.Discard()
+			if err := writeWs.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(rootKey, pred, targetKey, "")); err != nil {
+				writeWs.Discard()
 				ocs.Release()
 				tbed.Release()
 				tb.Fatal(err.Error())
@@ -210,14 +251,14 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 		}
 		for predIndex, pred := range inPredicates {
 			sourceKey := rootKey + "/in/" + strconv.Itoa(predIndex)
-			if _, err := ws.CreateObject(ctx, sourceKey, nil); err != nil {
-				ws.Discard()
+			if _, err := writeWs.CreateObject(ctx, sourceKey, nil); err != nil {
+				writeWs.Discard()
 				ocs.Release()
 				tbed.Release()
 				tb.Fatal(err.Error())
 			}
-			if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(sourceKey, pred, rootKey, "")); err != nil {
-				ws.Discard()
+			if err := writeWs.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(sourceKey, pred, rootKey, "")); err != nil {
+				writeWs.Discard()
 				ocs.Release()
 				tbed.Release()
 				tb.Fatal(err.Error())
@@ -225,13 +266,32 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 			filters = append(filters, world.NewGraphQuadWithKeys("", pred, rootKey, ""))
 		}
 	}
+	if err := writeWs.Commit(ctx); err != nil {
+		writeWs.Discard()
+		ocs.Release()
+		tbed.Release()
+		tb.Fatal(err.Error())
+	}
+	ocs.SetRootRef(writeWs.GetRootRef())
+	writeWs.Discard()
+
+	readWs, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
+	if err != nil {
+		ocs.Release()
+		tbed.Release()
+		tb.Fatal(err.Error())
+	}
 
 	cleanup := func() {
-		ws.Discard()
+		readWs.Discard()
 		ocs.Release()
 		tbed.Release()
 	}
-	return ws, filters, cleanup
+	return readWs, filters, cleanup
+}
+
+func relationshipFanoutRootKey(i int) string {
+	return "bench/workfront/" + strconv.Itoa(i)
 }
 
 func setupGraphPathBenchWorld(ctx context.Context, tb testing.TB, roots int) (*world_block.WorldState, []string, func()) {

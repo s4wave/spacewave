@@ -273,6 +273,112 @@ func (c *LookupController) LookupBlock(
 	return *rdata, true, nil
 }
 
+// LookupBlockExistsBatch checks whether each block exists using local block
+// stores when LocalOnly is set.
+func (c *LookupController) LookupBlockExistsBatch(
+	rctx context.Context,
+	refs []*block.BlockRef,
+	optf ...lookup.LookupBlockOption,
+) (retFound []bool, retErr error) {
+	opts := lookup.NewLookupBlockOpts(optf...)
+	retFound = make([]bool, len(refs))
+	for _, ref := range refs {
+		if ref.GetEmpty() {
+			return nil, block.ErrEmptyBlockRef
+		}
+	}
+	if len(refs) == 0 {
+		return retFound, nil
+	}
+
+	if !opts.LocalOnly {
+		for i, ref := range refs {
+			_, found, err := c.LookupBlock(rctx, ref, optf...)
+			if err != nil {
+				return nil, err
+			}
+			retFound[i] = found
+		}
+		return retFound, nil
+	}
+
+	var reqCtx context.Context
+	var reqCtxCancel context.CancelFunc
+	timeoutDur := opts.Timeout
+	if timeoutDur == 0 {
+		timeoutDur, _ = c.conf.ParseLookupTimeoutDur()
+	}
+	if timeoutDur > 0 {
+		reqCtx, reqCtxCancel = context.WithTimeout(rctx, timeoutDur)
+	} else {
+		reqCtx, reqCtxCancel = context.WithCancel(rctx)
+	}
+	defer reqCtxCancel()
+
+	if opts.TimeoutNotFound {
+		defer func() {
+			if retErr == context.DeadlineExceeded {
+				retErr = nil
+				retFound = make([]bool, len(refs))
+			}
+		}()
+	}
+
+	bh, err := c.getBucketHandles(reqCtx)
+	if err != nil {
+		return nil, err
+	}
+	if len(bh) == 0 {
+		return nil, errors.Wrap(bucket.ErrBucketNotFound, c.conf.GetBucketConf().GetId())
+	}
+
+	for _, h := range bh {
+		if !h.GetExists() || h.GetBucket() == nil {
+			continue
+		}
+		found, err := h.GetBucket().GetBlockExistsBatch(reqCtx, refs)
+		if err != nil {
+			return nil, err
+		}
+		if len(found) != len(refs) {
+			return nil, errors.Errorf("bucket exists batch returned %d results for %d refs", len(found), len(refs))
+		}
+		for i, ok := range found {
+			retFound[i] = retFound[i] || ok
+		}
+	}
+
+	if c.fallbackBlockStoreRc != nil {
+		var missingRefs []*block.BlockRef
+		var missingIdx []int
+		for i, found := range retFound {
+			if !found {
+				missingRefs = append(missingRefs, refs[i])
+				missingIdx = append(missingIdx, i)
+			}
+		}
+		if len(missingRefs) != 0 {
+			fallbackBlockStore, fallbackBlockStoreRef, err := c.fallbackBlockStoreRc.Wait(reqCtx)
+			if err != nil {
+				return nil, err
+			}
+			found, err := fallbackBlockStore.GetBlockExistsBatch(reqCtx, missingRefs)
+			fallbackBlockStoreRef.Release()
+			if err != nil {
+				return nil, err
+			}
+			if len(found) != len(missingRefs) {
+				return nil, errors.Errorf("fallback exists batch returned %d results for %d refs", len(found), len(missingRefs))
+			}
+			for i, ok := range found {
+				retFound[missingIdx[i]] = ok
+			}
+		}
+	}
+
+	return retFound, nil
+}
+
 // PutBlock writes a block using the bucket lookup controller.
 // The behavior of the write-back is configured in the lookup controller.
 // If lookup is disabled, will return an error.

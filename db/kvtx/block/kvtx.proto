@@ -2,6 +2,7 @@ syntax = "proto3";
 package kvtx.block;
 
 import "github.com/s4wave/spacewave/db/kvtx/block/iavl/iavl.proto";
+import "github.com/s4wave/spacewave/db/kvtx/block/okra/okra.proto";
 
 // KeyValueStore is the root of a Key-Value Transaction store.
 // Allows for multiple options of underlying block structures.
@@ -12,6 +13,10 @@ message KeyValueStore {
   // IavlRoot is the root node for the iavl tree.
   // KV_IMPL_TYPE_IAVL
   .kvtx.block.iavl.Node iavl_root = 2;
+
+  // OkraRoot is the root metadata for the Okra tree.
+  // KV_IMPL_TYPE_OKRA
+  .kvtx.block.okra.Root okra_root = 3;
 }
 
 // KVImplType is the key/value store implementation enum.
@@ -20,4 +25,6 @@ enum KVImplType {
   KV_IMPL_TYPE_UNKNOWN = 0;
   // KEY_VALUE_IMPL_IAVL is the immutable avl tree value.
   KV_IMPL_TYPE_IAVL = 1;
+  // KEY_VALUE_IMPL_OKRA is the Okra-backed tree value.
+  KV_IMPL_TYPE_OKRA = 2;
 }

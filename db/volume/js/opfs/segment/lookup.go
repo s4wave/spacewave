@@ -21,6 +21,13 @@ type LookupMeta struct {
 	Bloom  *BloomFilter
 }
 
+// LookupResult is the result of a batched segment lookup.
+type LookupResult struct {
+	Value     []byte
+	Found     bool
+	Tombstone bool
+}
+
 // LoadLookupMeta loads only the SSTable metadata needed for point lookups.
 func LoadLookupMeta(r io.ReaderAt, size int64) (*LookupMeta, error) {
 	if size < HeaderSize+4 {
@@ -183,4 +190,125 @@ func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, 
 	}
 	subtask.End()
 	return nil, false, false, nil
+}
+
+// LocateBatch resolves keys using cached metadata and one data-window read per
+// sparse-index window.
+func (m *LookupMeta) LocateBatch(r io.ReaderAt, keys [][]byte, loadValue bool) ([]LookupResult, error) {
+	ctx := context.Background()
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate-batch")
+	defer task.End()
+
+	out := make([]LookupResult, len(keys))
+	if len(keys) == 0 {
+		return out, nil
+	}
+
+	type lookupWindow struct {
+		start uint32
+		limit uint32
+		keys  []int
+	}
+	var windows []lookupWindow
+	for i, key := range keys {
+		keyStr := string(key)
+		if keyStr < string(m.MinKey) || keyStr > string(m.MaxKey) {
+			continue
+		}
+		if m.Bloom != nil && !m.Bloom.MayContain(key) {
+			continue
+		}
+
+		start, limit := SearchIndex(m.Index, key, m.Header.DataSize)
+		var found bool
+		for j := range windows {
+			if windows[j].start == start && windows[j].limit == limit {
+				windows[j].keys = append(windows[j].keys, i)
+				found = true
+				break
+			}
+		}
+		if !found {
+			windows = append(windows, lookupWindow{
+				start: start,
+				limit: limit,
+				keys:  []int{i},
+			})
+		}
+	}
+
+	for _, lw := range windows {
+		windowSize := int(lw.limit - lw.start)
+		window := make([]byte, windowSize)
+		trace.Log(ctx, "window", "size="+strconv.Itoa(windowSize))
+		_, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate-batch/read-window")
+		if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(lw.start)); err != nil {
+			subtask.End()
+			return nil, errors.Wrap(err, "read data window")
+		}
+		subtask.End()
+
+		want := make(map[string][]int, len(lw.keys))
+		for _, keyIdx := range lw.keys {
+			keyStr := string(keys[keyIdx])
+			want[keyStr] = append(want[keyStr], keyIdx)
+		}
+
+		_, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate-batch/scan-window")
+		off := 0
+		for off < len(window) && len(want) != 0 {
+			if off+2 > len(window) {
+				break
+			}
+			keyLen := int(binary.BigEndian.Uint16(window[off : off+2]))
+			off += 2
+			if off+keyLen > len(window) {
+				break
+			}
+			entryKey := string(window[off : off+keyLen])
+			off += keyLen
+			if off+4 > len(window) {
+				break
+			}
+			valLen := binary.BigEndian.Uint32(window[off : off+4])
+			off += 4
+
+			if keyIdxs, ok := want[entryKey]; ok {
+				if valLen == TombstoneLen {
+					for _, keyIdx := range keyIdxs {
+						out[keyIdx].Tombstone = true
+					}
+					delete(want, entryKey)
+					continue
+				}
+				if loadValue {
+					if off+int(valLen) > len(window) {
+						subtask.End()
+						return nil, errors.New("truncated value in data window")
+					}
+					for _, keyIdx := range keyIdxs {
+						val := make([]byte, valLen)
+						copy(val, window[off:off+int(valLen)])
+						out[keyIdx].Value = val
+						out[keyIdx].Found = true
+					}
+				} else {
+					for _, keyIdx := range keyIdxs {
+						out[keyIdx].Found = true
+					}
+				}
+				delete(want, entryKey)
+			}
+
+			if valLen != TombstoneLen {
+				if off+int(valLen) > len(window) {
+					break
+				}
+				off += int(valLen)
+			}
+		}
+		subtask.End()
+	}
+
+	return out, nil
 }

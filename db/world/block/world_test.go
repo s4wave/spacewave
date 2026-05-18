@@ -14,6 +14,7 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -132,6 +133,190 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 	checkMetadata(mds[1], "child-c", "", "")
 	checkMetadata(mds[2], "child-a", "type/a", "parent")
 	checkMetadata(mds[3], "child-a", "type/a", "parent")
+}
+
+func TestWorldStateExplicitKVImplCompatibility(t *testing.T) {
+	for _, impl := range []kvtx_block.KVImplType{
+		kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL,
+		kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA,
+	} {
+		t.Run(impl.String(), func(t *testing.T) {
+			testWorldStateExplicitKVImplCompatibility(t, impl)
+		})
+	}
+}
+
+func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ws.Discard()
+
+	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
+	if _, err := ws.CreateObject(ctx, "default/a", oref); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := ws.CreateObject(ctx, "default/b", oref); err != nil {
+		t.Fatal(err.Error())
+	}
+	quad := world.NewGraphQuadWithKeys("default/a", "<default-rel>", "default/b", "")
+	if err := ws.SetGraphQuad(ctx, quad); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs.SetRootRef(ws.GetRootRef())
+
+	writtenRoot, err := ws.GetRoot(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertWorldStoreImpl(t, "object", writtenRoot.GetObjectKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
+	assertWorldStoreImpl(t, "graph", writtenRoot.GetGraphKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA)
+	assertWorldStoreImpl(t, "gc graph", writtenRoot.GetGcGraph(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
+	assertWorldStoreImpl(t, "gc journal", writtenRoot.GetGcJournal(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
+
+	readWS, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readWS.Discard()
+	quads, err := readWS.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("default/a", "<default-rel>", "", ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 1 || quads[0].GetObj() != world.KeyToGraphValue("default/b").String() {
+		t.Fatalf("LookupGraphQuads = %#v, want default/b", quads)
+	}
+}
+
+func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVImplType) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	btx, bcs := ocs.BuildTransaction(nil)
+	root := world_block.NewWorld(false)
+	root.ObjectKeyValue = kvtx_block.NewKeyValueStore(impl)
+	root.GraphKeyValue = kvtx_block.NewKeyValueStore(impl)
+	root.GcGraph = kvtx_block.NewKeyValueStore(impl)
+	root.GcJournal = kvtx_block.NewKeyValueStore(impl)
+	bcs.SetBlock(root, true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs.SetRootRef(rootRef)
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ws.Discard()
+
+	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
+	if _, err := ws.CreateObject(ctx, "explicit/a", oref); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := ws.CreateObject(ctx, "explicit/b", oref); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := world.MustGetObject(ctx, ws, "explicit/a"); err != nil {
+		t.Fatal(err.Error())
+	}
+	quad := world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "explicit/b", "")
+	if err := ws.SetGraphQuad(ctx, quad); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs.SetRootRef(ws.GetRootRef())
+
+	writtenRoot, err := ws.GetRoot(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertWorldKVImpl(t, writtenRoot, impl)
+
+	rg := ws.GetRefGraph()
+	if rg == nil {
+		t.Fatal("expected writable world state to build a refgraph")
+	}
+	outgoing, err := rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Contains(outgoing, "world") {
+		t.Fatalf("expected gcroot -> world edge, got outgoing: %v", outgoing)
+	}
+
+	readWS, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readWS.Discard()
+	if _, err := world.MustGetObject(ctx, readWS, "explicit/a"); err != nil {
+		t.Fatal(err.Error())
+	}
+	quads, err := readWS.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "", ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 1 || quads[0].GetObj() != world.KeyToGraphValue("explicit/b").String() {
+		t.Fatalf("LookupGraphQuads = %#v, want explicit/b", quads)
+	}
+}
+
+func assertWorldKVImpl(t *testing.T, root *world_block.World, impl kvtx_block.KVImplType) {
+	t.Helper()
+	stores := map[string]*kvtx_block.KeyValueStore{
+		"object":     root.GetObjectKeyValue(),
+		"graph":      root.GetGraphKeyValue(),
+		"gc-graph":   root.GetGcGraph(),
+		"gc-journal": root.GetGcJournal(),
+	}
+	for name, store := range stores {
+		assertWorldStoreImpl(t, name, store, impl)
+	}
+}
+
+func assertWorldStoreImpl(t *testing.T, name string, store *kvtx_block.KeyValueStore, impl kvtx_block.KVImplType) {
+	t.Helper()
+	if store == nil {
+		t.Fatalf("%s store is nil", name)
+	}
+	if got := store.GetImplType(); got != impl {
+		t.Fatalf("%s impl = %s, want %s", name, got, impl)
+	}
 }
 
 // TestWorldState_GetObjectRootRefsBatch checks batched root-ref lookup behavior.

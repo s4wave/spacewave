@@ -515,9 +515,10 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	// accumulate and flush once at the end instead of per-PutBlock.
 	t.store.BeginDeferFlush()
 
+	journalEntriesBefore := t.GetGCJournalEntries()
 	var bcs *block.Cursor
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/block-write")
-	_, bcs, err = t.btx.Write(taskCtx, true)
+	_, bcs, err = t.btx.Write(taskCtx, false)
 	subtask.End()
 	if err != nil {
 		// End the deferred scope even on error to flush any partial work.
@@ -542,6 +543,32 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	if gcOps, ok := t.btx.GetStoreOps().(*block_gc.GCStoreOps); ok {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending")
 		err := gcOps.FlushPending(taskCtx)
+		subtask.End()
+		if err != nil {
+			return err
+		}
+	}
+	journalChanged := t.gcJournalTree != nil && t.GetGCJournalEntries() != journalEntriesBefore
+	if journalChanged {
+		// The world GC flush appends to the journal after the primary write.
+		// Persist that journal update through the inner store so it does not
+		// recursively append another WAL entry.
+		prevStore := t.btx.GetStoreOps()
+		t.btx.SetStoreOps(t.store)
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/persist-gc-journal")
+		err = t.gcJournalTree.Commit(taskCtx)
+		if err == nil {
+			_, bcs, err = t.btx.Write(taskCtx, true)
+		}
+		subtask.End()
+		t.btx.SetStoreOps(prevStore)
+		if err != nil {
+			return err
+		}
+	}
+	if !journalChanged {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/clear-block-tree")
+		_, bcs, err = t.btx.Write(taskCtx, true)
 		subtask.End()
 		if err != nil {
 			return err
@@ -662,7 +689,6 @@ func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.B
 	if err != nil {
 		return nil, nil, false, err
 	}
-	initGCRootEdge := kvs.GetIavlRoot() == nil
 
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/build-kv-transaction")
 	ktx, err := kvs.BuildKvTransaction(taskCtx, gcTreeBcs, true)
@@ -670,6 +696,15 @@ func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.B
 	if err != nil {
 		return nil, nil, false, err
 	}
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/size")
+	gcTreeSize, err := ktx.Size(taskCtx)
+	subtask.End()
+	if err != nil {
+		ktx.Discard()
+		return nil, nil, false, err
+	}
+	initGCRootEdge := gcTreeSize == 0
+
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/new-ref-graph")
 	rg, err := block_gc.NewRefGraph(taskCtx, kvtx.NewTxStore(ktx), nil)
 	subtask.End()
