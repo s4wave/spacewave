@@ -42,8 +42,12 @@ type ViteManifestEntry = {
   assets?: string[];
 };
 
-const backendAssetsRoot = "v/b/be/";
-const quickJSPluginReadyMarker = "__BLDR_QUICKJS_PLUGIN_READY__";
+const backendAssetsRoot = 'v/b/be/'
+const quickJSPluginFrontendReadyMarker =
+  '__BLDR_QUICKJS_PLUGIN_FRONTEND_READY__'
+const quickJSPluginCapabilityReadyMarker =
+  '__BLDR_QUICKJS_PLUGIN_CAPABILITY_READY__'
+const quickJSPluginReadyMarker = '__BLDR_QUICKJS_PLUGIN_READY__'
 
 // Cached compiled QuickJS WASM module (shared across plugin restarts)
 let cachedWasmModule: WebAssembly.Module | null = null;
@@ -192,15 +196,36 @@ export function addAssetToFileSystem(
   files.set("/assets/" + resolvedPath, content);
 }
 
+export type BackendAssetFetchFailureResult =
+  | 'missing'
+  | 'unavailable'
+  | 'generation-closed'
+  | 'runtime-unavailable'
+  | 'canceled'
+
 export type BackendAssetCacheEntry =
   | { ok: true; data: Uint8Array }
-  | { ok: false; status: number; url: string };
+  | {
+      ok: false
+      status: number
+      url: string
+      result: BackendAssetFetchFailureResult
+      message?: string
+    }
 
 export type BackendAssetLoadingMode = "lazy-http" | "bounded-preload";
 
 export type QuickJSRunnerOptions = {
-  onReady?: () => void;
-};
+  onFrontendReady?: () => void
+  onCapabilityReady?: () => void
+  onReady?: () => void
+}
+
+export type QuickJSRunnerReadiness = {
+  frontendReady: boolean
+  capabilityReady: boolean
+  ready: boolean
+}
 
 type BackendAssetAPI = {
   startInfo: Pick<BackendAPI["startInfo"], "pluginId">;
@@ -498,13 +523,11 @@ function createBackendAssetMountWithCache(
       if (cached?.ok) {
         return backendAssetFile(cached.data);
       }
-      if (cached && cached.status === 404) {
-        return null;
+      if (cached && cached.result === 'missing') {
+        return null
       }
       if (cached) {
-        throw new Error(
-          `Failed to fetch backend asset ${cached.url}: ${cached.status}`,
-        );
+        throw new Error(formatBackendAssetFailure(cached))
       }
 
       const url = api.utils.pluginAssetHttpPath(pluginId, resolvedPath);
@@ -513,10 +536,10 @@ function createBackendAssetMountWithCache(
       if (entry.ok) {
         return backendAssetFile(entry.data);
       }
-      if (entry.status === 404) {
-        return null;
+      if (entry.result === 'missing') {
+        return null
       }
-      throw new Error(`Failed to fetch backend asset ${url}: ${entry.status}`);
+      throw new Error(formatBackendAssetFailure(entry))
     },
   };
 }
@@ -554,7 +577,16 @@ function fetchBackendAssetSync(url: string): BackendAssetCacheEntry {
   xhr.send();
 
   if (xhr.status < 200 || xhr.status >= 300) {
-    return { ok: false, status: xhr.status, url };
+    return {
+      ok: false,
+      status: xhr.status,
+      url,
+      result: backendAssetFetchFailureResult(
+        xhr.status,
+        xhr.getResponseHeader.bind(xhr),
+      ),
+      message: xhr.responseText || undefined,
+    }
   }
   const response = xhr.response;
   if (response instanceof ArrayBuffer) {
@@ -564,6 +596,60 @@ function fetchBackendAssetSync(url: string): BackendAssetCacheEntry {
     ok: true,
     data: new TextEncoder().encode(xhr.responseText),
   };
+}
+
+function backendAssetFetchFailureResult(
+  status: number,
+  getHeader: (name: string) => string | null,
+): BackendAssetFetchFailureResult {
+  const result = getHeader('X-Bldr-Plugin-Asset-Fetch-Result')
+  if (
+    result === 'generation-closed' ||
+    result === 'runtime-unavailable' ||
+    result === 'canceled' ||
+    result === 'missing' ||
+    result === 'unavailable'
+  ) {
+    return result
+  }
+  if (status === 404) {
+    return 'missing'
+  }
+  return 'unavailable'
+}
+
+async function backendAssetFetchFailureFromResponse(
+  url: string,
+  response: Response,
+): Promise<Extract<BackendAssetCacheEntry, { ok: false }>> {
+  return {
+    ok: false,
+    status: response.status,
+    url,
+    result: backendAssetFetchFailureResult(
+      response.status,
+      response.headers.get.bind(response.headers),
+    ),
+    message: (await response.text()).trim() || undefined,
+  }
+}
+
+function formatBackendAssetFailure(
+  failure: Extract<BackendAssetCacheEntry, { ok: false }>,
+): string {
+  const detail = failure.message ? `: ${failure.message}` : ''
+  switch (failure.result) {
+    case 'missing':
+      return `Missing backend asset ${failure.url}: ${failure.status}${detail}`
+    case 'generation-closed':
+      return `QuickJS backend asset generation closed ${failure.url}: ${failure.status}${detail}`
+    case 'runtime-unavailable':
+      return `QuickJS backend asset runtime unavailable ${failure.url}: ${failure.status}${detail}`
+    case 'canceled':
+      return `QuickJS backend asset fetch canceled ${failure.url}: ${failure.status}${detail}`
+    case 'unavailable':
+      return `QuickJS backend asset unavailable ${failure.url}: ${failure.status}${detail}`
+  }
 }
 
 export async function loadBackendAssets(
@@ -578,16 +664,18 @@ export async function loadBackendAssets(
     return false;
   }
 
-  const manifestPath = backendAssetsRoot + ".vite/manifest.json";
-  const manifestURL = api.utils.pluginAssetHttpPath(pluginId, manifestPath);
-  const manifestResponse = await fetch(manifestURL, { signal });
-  if (manifestResponse.status === 404) {
-    return false;
-  }
+  const manifestPath = backendAssetsRoot + '.vite/manifest.json'
+  const manifestURL = api.utils.pluginAssetHttpPath(pluginId, manifestPath)
+  const manifestResponse = await fetch(manifestURL, { signal })
   if (!manifestResponse.ok) {
-    throw new Error(
-      `Failed to fetch backend asset manifest ${manifestURL}: ${manifestResponse.status}`,
-    );
+    const failure = await backendAssetFetchFailureFromResponse(
+      manifestURL,
+      manifestResponse,
+    )
+    if (failure.result === 'missing') {
+      return false
+    }
+    throw new Error(formatBackendAssetFailure(failure))
   }
 
   const manifestText = await manifestResponse.text();
@@ -609,9 +697,12 @@ export async function loadBackendAssets(
     const assetURL = api.utils.pluginAssetHttpPath(pluginId, resolvedPath);
     const assetResponse = await fetch(assetURL, { signal });
     if (!assetResponse.ok) {
-      throw new Error(
-        `Failed to fetch backend asset ${assetURL}: ${assetResponse.status}`,
-      );
+      const failure = await backendAssetFetchFailureFromResponse(
+        assetURL,
+        assetResponse,
+      )
+      cache?.set(resolvedPath, failure)
+      throw new Error(formatBackendAssetFailure(failure))
     }
     const data = new Uint8Array(await assetResponse.arrayBuffer());
     cache?.set(resolvedPath, { ok: true, data });
@@ -640,6 +731,43 @@ async function mapWithConcurrency<T>(
     },
   );
   await Promise.all(workers);
+}
+
+export function handleQuickJSReadinessMarker(
+  line: string,
+  readiness: QuickJSRunnerReadiness,
+  opts: QuickJSRunnerOptions = {},
+): boolean {
+  if (line === quickJSPluginFrontendReadyMarker) {
+    if (!readiness.frontendReady) {
+      readiness.frontendReady = true
+      opts.onFrontendReady?.()
+    }
+    return true
+  }
+  if (line === quickJSPluginCapabilityReadyMarker) {
+    if (!readiness.capabilityReady) {
+      readiness.capabilityReady = true
+      opts.onCapabilityReady?.()
+    }
+    return true
+  }
+  if (line === quickJSPluginReadyMarker) {
+    if (!readiness.frontendReady) {
+      readiness.frontendReady = true
+      opts.onFrontendReady?.()
+    }
+    if (!readiness.capabilityReady) {
+      readiness.capabilityReady = true
+      opts.onCapabilityReady?.()
+    }
+    if (!readiness.ready) {
+      readiness.ready = true
+      opts.onReady?.()
+    }
+    return true
+  }
+  return false
 }
 
 // main runs a JavaScript plugin in the QuickJS WASI reactor.
@@ -720,15 +848,11 @@ export default async function main(
 
   console.log("quickjs-runner: instantiating QuickJS reactor...");
 
-  // Create QuickJS instance
-  let ready = false;
-  const notifyReady = () => {
-    if (ready) {
-      return;
-    }
-    ready = true;
-    opts.onReady?.();
-  };
+  const readiness: QuickJSRunnerReadiness = {
+    frontendReady: false,
+    capabilityReady: false,
+    ready: false,
+  }
 
   const qjs = new QuickJS(wasmModule, {
     args: ["qjs"],
@@ -740,9 +864,8 @@ export default async function main(
     preopens,
     stdin,
     stdout: (line) => {
-      if (line === quickJSPluginReadyMarker) {
-        notifyReady();
-        return;
+      if (handleQuickJSReadinessMarker(line, readiness, opts)) {
+        return
       }
       console.log("[QuickJS stdout]", line);
     },

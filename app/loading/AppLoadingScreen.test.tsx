@@ -66,6 +66,14 @@ const mockProjection = vi.hoisted<{
         progress: 0.58,
       },
       marks: [],
+      runtime: {
+        startup: { phase: 'runtime' },
+        document: { state: 'unknown' },
+        runtimeClient: { state: 'opening' },
+        serviceWorker: { state: 'unknown' },
+        pluginGeneration: { state: 'idle' },
+        frame: { state: 'idle' },
+      },
     },
   }
   return {

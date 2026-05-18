@@ -1,49 +1,238 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
-import { WebRuntimeClient } from './web-runtime-client.js'
+import {
+  RuntimeClientGenerationGateError,
+  type RuntimeClientStreamOpenGateResult,
+  WebRuntimeClient,
+} from './web-runtime-client.js'
 
-function startStreamOpenTimeout(client: WebRuntimeClient): Promise<void> {
-  const streamOpenTimeout = Reflect.get(client, 'streamOpenTimeoutPromise')
-  if (typeof streamOpenTimeout !== 'function') {
-    throw new Error('streamOpenTimeoutPromise is not callable')
+interface Deferred<T> {
+  promise: Promise<T>
+  resolve(value: T): void
+}
+
+function newDeferred<T>(): Deferred<T> {
+  let resolve: (value: T) => void = () => {}
+  const promise = new Promise<T>((r) => {
+    resolve = r
+  })
+  return { promise, resolve }
+}
+
+async function flushPromises(count = 5): Promise<void> {
+  for (let i = 0; i < count; i++) {
+    await Promise.resolve()
   }
-  return streamOpenTimeout.call(client)
+}
+
+async function startStreamOpenGate(
+  client: WebRuntimeClient,
+  generationId = 1,
+): Promise<void> {
+  const waitForStreamOpenGate = Reflect.get(client, 'waitForStreamOpenGate')
+  if (typeof waitForStreamOpenGate !== 'function') {
+    throw new Error('waitForStreamOpenGate is not callable')
+  }
+  return waitForStreamOpenGate.call(client, generationId)
+}
+
+function seedConnectedGeneration(client: WebRuntimeClient): void {
+  Reflect.set(client, 'generation', {
+    id: 1,
+    state: 'connected',
+    webRuntimeId: 'runtime',
+    clientId: 'client',
+    clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+  })
+  Reflect.set(client, 'generationAbortController', new AbortController())
+}
+
+function installFakeMessageChannel(): {
+  channels: Array<{ port1: MessagePort; port2: MessagePort }>
+  port(): MessagePort
+} {
+  const channels: Array<{ port1: MessagePort; port2: MessagePort }> = []
+  class FakeMessagePort {
+    public onmessage: ((ev: MessageEvent) => void) | null = null
+    public postMessage = vi.fn()
+    public start = vi.fn()
+    public close = vi.fn()
+  }
+  class FakeMessageChannel {
+    public readonly port1 = new FakeMessagePort() as unknown as MessagePort
+    public readonly port2 = new FakeMessagePort() as unknown as MessagePort
+
+    public constructor() {
+      channels.push({ port1: this.port1, port2: this.port2 })
+    }
+  }
+  vi.stubGlobal('MessagePort', FakeMessagePort)
+  vi.stubGlobal('MessageChannel', FakeMessageChannel)
+  return {
+    channels,
+    port() {
+      return new FakeMessagePort() as unknown as MessagePort
+    },
+  }
+}
+
+async function connectClient(
+  client: WebRuntimeClient,
+  runtimePort: MessagePort,
+): Promise<void> {
+  const waitConn = client.waitConn()
+  runtimePort.postMessage({ connected: true })
+  await waitConn
 }
 
 describe('WebRuntimeClient', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     vi.useRealTimers()
   })
 
-  it('retries waitConn when the runtime connected ack times out', async () => {
+  it('keeps runtime connected ack pending until the generation closes', async () => {
     vi.useFakeTimers()
+    const { port1, port2 } = new MessageChannel()
     const client = new WebRuntimeClient(
       'runtime',
       'client',
       WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      vi.fn().mockResolvedValue(port1),
+      null,
+      null,
+    )
+
+    let settled = false
+    const waitPromise = client.waitConn()
+    waitPromise.then(
+      () => {
+        settled = true
+      },
+      () => {
+        settled = true
+      },
+    )
+    await Promise.resolve()
+
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    expect(settled).toBe(false)
+    expect(client.getRuntimeGenerationSnapshot()).toMatchObject({
+      id: 1,
+      state: 'opening',
+    })
+    expect(client.getRuntimeGenerationSnapshot().closeReason).toBeUndefined()
+
+    client.close()
+
+    await expect(waitPromise).rejects.toThrow('normal-close')
+    expect(client.getRuntimeGenerationSnapshot()).toMatchObject({
+      id: 1,
+      state: 'closed',
+      closeReason: 'normal-close',
+    })
+    port2.close()
+  })
+
+  it('exposes initial generation state for every browser runtime client type', () => {
+    for (const clientType of [
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+    ]) {
+      const client = new WebRuntimeClient(
+        'runtime',
+        `client-${clientType}`,
+        clientType,
+        vi.fn(),
+        null,
+        null,
+      )
+
+      expect(client.getRuntimeGenerationSnapshot()).toMatchObject({
+        id: 0,
+        state: 'idle',
+        webRuntimeId: 'runtime',
+        clientId: `client-${clientType}`,
+        clientType,
+        closeReason: 'not-started',
+        activeStreams: 0,
+      })
+    }
+  })
+
+  it('publishes connected and closed runtime client generations', async () => {
+    const { port1, port2 } = new MessageChannel()
+    const client = new WebRuntimeClient(
+      'runtime',
+      'service-worker',
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      vi.fn().mockResolvedValue(port1),
+      null,
+      null,
+    )
+
+    await connectClient(client, port2)
+
+    const connected = client.getRuntimeGenerationSnapshot()
+    expect(connected).toMatchObject({
+      id: 1,
+      state: 'connected',
+      clientId: 'service-worker',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      activeStreams: 0,
+    })
+    expect(connected.openedAtMs).toBeTypeOf('number')
+    expect(connected.connectedAtMs).toBeTypeOf('number')
+
+    client.close()
+    expect(client.getRuntimeGenerationSnapshot()).toMatchObject({
+      id: 1,
+      state: 'closed',
+      closeReason: 'normal-close',
+      activeStreams: 0,
+    })
+    port2.close()
+  })
+
+  it('closes child streams when the parent runtime client generation closes', () => {
+    const client = new WebRuntimeClient(
+      'runtime',
+      'plugin-worker',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
       vi.fn(),
       null,
       null,
     )
-    const { port1 } = new MessageChannel()
-    const openClientChannel = vi
-      .fn()
-      .mockRejectedValueOnce(
-        new Error(
-          'WebRuntimeClient: client: timeout waiting for runtime connected ack',
-        ),
-      )
-      .mockResolvedValue(port1)
-    Reflect.set(client, 'openClientChannel', openClientChannel)
-
-    const waitPromise = client.waitConn()
-    await vi.advanceTimersByTimeAsync(100)
-    await expect(waitPromise).resolves.toBeUndefined()
-    expect(openClientChannel).toHaveBeenCalledTimes(2)
+    Reflect.set(client, 'generation', {
+      id: 1,
+      state: 'connected',
+      webRuntimeId: 'runtime',
+      clientId: 'plugin-worker',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+    })
+    const close = vi.fn()
+    const stream = { close }
+    const activeStreams = Reflect.get(client, 'activeStreams') as Set<{
+      close(error?: Error): void
+    }>
+    activeStreams.add(stream)
+    expect(client.getRuntimeGenerationSnapshot().activeStreams).toBe(1)
 
     client.close()
+
+    expect(close).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('normal-close'),
+      }),
+    )
+    expect(client.getRuntimeGenerationSnapshot()).toMatchObject({
+      state: 'closed',
+      activeStreams: 0,
+    })
   })
 
   it('shares a single reconnect across concurrent waiters', async () => {
@@ -74,9 +263,9 @@ describe('WebRuntimeClient', () => {
     await expect(Promise.all([a, b])).resolves.toEqual([undefined, undefined])
   })
 
-  it('defers the stream-open timeout until the resume-ready gate resolves', async () => {
+  it('keeps the resume-ready gate pending without a timeout', async () => {
     vi.useFakeTimers()
-    let resolveResumeReady: (() => void) | undefined
+    const resumeReady = newDeferred<RuntimeClientStreamOpenGateResult>()
     const client = new WebRuntimeClient(
       'runtime',
       'client',
@@ -86,29 +275,31 @@ describe('WebRuntimeClient', () => {
       null,
       undefined,
       undefined,
-      () =>
-        new Promise<void>((resolve) => {
-          resolveResumeReady = resolve
-        }),
+      () => resumeReady.promise,
     )
-    const streamOpenTimeoutPromise = startStreamOpenTimeout(client)
-    const timedOut = vi.fn()
-    streamOpenTimeoutPromise.then(timedOut)
+    seedConnectedGeneration(client)
 
-    await vi.advanceTimersByTimeAsync(2999)
-    expect(timedOut).not.toHaveBeenCalled()
+    let settled = false
+    const gatePromise = startStreamOpenGate(client)
+    gatePromise.then(
+      () => {
+        settled = true
+      },
+      () => {
+        settled = true
+      },
+    )
 
-    resolveResumeReady?.()
-    await vi.advanceTimersByTimeAsync(1499)
-    expect(timedOut).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(30_000)
 
-    await vi.advanceTimersByTimeAsync(1)
-    expect(timedOut).toHaveBeenCalledTimes(1)
-    await expect(streamOpenTimeoutPromise).resolves.toBeUndefined()
+    expect(settled).toBe(false)
+
+    resumeReady.resolve({ state: 'ready', documentId: 'document-1' })
+
+    await expect(gatePromise).resolves.toBeUndefined()
   })
 
-  it('bounds the resume-ready gate wait before applying the stream-open timeout', async () => {
-    vi.useFakeTimers()
+  it('returns a typed resume-unavailable gate failure', async () => {
     const client = new WebRuntimeClient(
       'runtime',
       'client',
@@ -118,23 +309,67 @@ describe('WebRuntimeClient', () => {
       null,
       undefined,
       undefined,
-      () => new Promise<void>(() => {}),
+      vi.fn().mockResolvedValue({
+        state: 'unavailable',
+        reason: 'no active WebDocument',
+      } satisfies RuntimeClientStreamOpenGateResult),
     )
+    seedConnectedGeneration(client)
 
-    const streamOpenTimeoutPromise = startStreamOpenTimeout(client)
-    const timedOut = vi.fn()
-    streamOpenTimeoutPromise.then(timedOut)
-
-    await vi.advanceTimersByTimeAsync(4499)
-    expect(timedOut).not.toHaveBeenCalled()
-
-    await vi.advanceTimersByTimeAsync(1)
-    expect(timedOut).toHaveBeenCalledTimes(1)
-    await expect(streamOpenTimeoutPromise).resolves.toBeUndefined()
+    await expect(startStreamOpenGate(client)).rejects.toThrow(
+      RuntimeClientGenerationGateError,
+    )
   })
 
-  it('applies the stream-open timeout after the resume-ready gate resolves', async () => {
+  it('keeps stream opens pending until the parent generation closes', async () => {
     vi.useFakeTimers()
+    const fake = installFakeMessageChannel()
+    const clientPort = fake.port()
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      vi.fn(),
+      null,
+      null,
+    )
+    seedConnectedGeneration(client)
+    Reflect.set(client, 'clientChannel', clientPort)
+
+    let settled = false
+    const openPromise = client.openStream()
+    openPromise.then(
+      () => {
+        settled = true
+      },
+      () => {
+        settled = true
+      },
+    )
+
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    expect(settled).toBe(false)
+    expect(client.getRuntimeGenerationSnapshot()).toMatchObject({
+      state: 'connected',
+      activeStreams: 1,
+    })
+    expect(client.getRuntimeGenerationSnapshot().closeReason).toBeUndefined()
+
+    client.close()
+
+    await expect(openPromise).rejects.toThrow('normal-close')
+    expect(client.getRuntimeGenerationSnapshot()).toMatchObject({
+      state: 'closed',
+      closeReason: 'normal-close',
+      activeStreams: 0,
+    })
+  })
+
+  it('opens a stream after resume-ready reports ready', async () => {
+    const fake = installFakeMessageChannel()
+    const clientPort = fake.port()
+    const resumeReady = newDeferred<RuntimeClientStreamOpenGateResult>()
     const client = new WebRuntimeClient(
       'runtime',
       'client',
@@ -144,18 +379,24 @@ describe('WebRuntimeClient', () => {
       null,
       undefined,
       undefined,
-      vi.fn().mockResolvedValue(undefined),
+      () => resumeReady.promise,
     )
+    seedConnectedGeneration(client)
+    Reflect.set(client, 'clientChannel', clientPort)
 
-    const streamOpenTimeoutPromise = startStreamOpenTimeout(client)
-    const timedOut = vi.fn()
-    streamOpenTimeoutPromise.then(timedOut)
+    const openPromise = client.openStream()
+    await flushPromises()
+    expect(fake.channels).toHaveLength(0)
 
-    await vi.advanceTimersByTimeAsync(1499)
-    expect(timedOut).not.toHaveBeenCalled()
+    resumeReady.resolve({ state: 'ready', documentId: 'document-1' })
+    await flushPromises()
+    expect(fake.channels).toHaveLength(1)
 
-    await vi.advanceTimersByTimeAsync(1)
-    expect(timedOut).toHaveBeenCalledTimes(1)
-    await expect(streamOpenTimeoutPromise).resolves.toBeUndefined()
+    fake.channels[0].port1.onmessage?.({
+      data: { from: 'runtime', ack: true, opened: true },
+    } as MessageEvent)
+    await expect(openPromise).resolves.toBeDefined()
+
+    client.close()
   })
 })

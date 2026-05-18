@@ -28,6 +28,21 @@ func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContai
 			if worker.GetId() != webWorkerID {
 				continue
 			}
+			switch worker.GetGenerationState() {
+			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE:
+				return webWorkerFailureError(worker, "web worker terminal failure before becoming ready")
+			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT:
+				return webWorkerFailureError(worker, "web worker startup timed out before becoming ready")
+			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN:
+				return errors.New("web document hidden before worker became ready")
+			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET:
+				return errors.New("web worker stream reset before becoming ready")
+			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_NORMAL_STOP:
+				return errors.New("web worker stopped before becoming ready")
+			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_RUNNING,
+				web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_CAPABILITY_READY:
+				return nil
+			}
 			if worker.GetFailed() {
 				return webWorkerFailureError(worker, "web worker failed before becoming ready")
 			}

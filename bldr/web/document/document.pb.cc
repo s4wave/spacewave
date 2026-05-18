@@ -41,7 +41,8 @@ inline constexpr WebWorkerStatus::Impl_::Impl_(
         deleted_{false},
         shared_{false},
         ready_{false},
-        failed_{false} {}
+        failed_{false},
+        generation_state_{static_cast< ::web::document::WebWorkerGenerationState >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR WebWorkerStatus::WebWorkerStatus(::_pbi::ConstantInitialized)
@@ -309,7 +310,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace document
 }  // namespace web
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto[2];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto[3];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto = nullptr;
 const ::uint32_t
@@ -342,19 +343,21 @@ const ::uint32_t
         3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_._has_bits_),
-        9, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.id_),
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.deleted_),
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.shared_),
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.ready_),
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.failed_),
         PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.failure_reason_),
+        PROTOBUF_FIELD_OFFSET(::web::document::WebWorkerStatus, _impl_.generation_state_),
         0,
         2,
         3,
         4,
         5,
         1,
+        6,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::web::document::CreateWebViewRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -403,12 +406,12 @@ static const ::_pbi::MigrationSchema
         {1, sizeof(::web::document::WebDocumentStatus)},
         {14, sizeof(::web::document::WebViewStatus)},
         {25, sizeof(::web::document::WebWorkerStatus)},
-        {40, sizeof(::web::document::CreateWebViewRequest)},
-        {45, sizeof(::web::document::CreateWebViewResponse)},
-        {50, sizeof(::web::document::CreateWebWorkerRequest)},
-        {63, sizeof(::web::document::CreateWebWorkerResponse)},
-        {70, sizeof(::web::document::RemoveWebWorkerRequest)},
-        {75, sizeof(::web::document::RemoveWebWorkerResponse)},
+        {42, sizeof(::web::document::CreateWebViewRequest)},
+        {47, sizeof(::web::document::CreateWebViewResponse)},
+        {52, sizeof(::web::document::CreateWebWorkerRequest)},
+        {65, sizeof(::web::document::CreateWebWorkerResponse)},
+        {72, sizeof(::web::document::RemoveWebWorkerRequest)},
+        {77, sizeof(::web::document::RemoveWebWorkerResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::web::document::_WatchWebDocumentStatusRequest_default_instance_._instance,
@@ -434,39 +437,55 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "eb_workers\030\004 \003(\0132\035.web.document.WebWorke"
     "rStatus\022\016\n\006closed\030\005 \001(\010\"R\n\rWebViewStatus"
     "\022\n\n\002id\030\001 \001(\t\022\017\n\007deleted\030\002 \001(\010\022\021\n\tparent_"
-    "id\030\003 \001(\t\022\021\n\tpermanent\030\004 \001(\010\"u\n\017WebWorker"
-    "Status\022\n\n\002id\030\001 \001(\t\022\017\n\007deleted\030\002 \001(\010\022\016\n\006s"
-    "hared\030\003 \001(\010\022\r\n\005ready\030\004 \001(\010\022\016\n\006failed\030\005 \001"
-    "(\010\022\026\n\016failure_reason\030\006 \001(\t\"\"\n\024CreateWebV"
-    "iewRequest\022\n\n\002id\030\001 \001(\t\"(\n\025CreateWebViewR"
-    "esponse\022\017\n\007created\030\001 \001(\010\"\251\001\n\026CreateWebWo"
-    "rkerRequest\022\n\n\002id\030\001 \001(\t\022\014\n\004path\030\002 \001(\t\0220\n"
-    "\013worker_mode\030\003 \001(\0162\033.web.document.WebWor"
-    "kerMode\022\021\n\tinit_data\030\004 \001(\014\0220\n\013worker_typ"
-    "e\030\005 \001(\0162\033.web.document.WebWorkerType\":\n\027"
-    "CreateWebWorkerResponse\022\017\n\007created\030\001 \001(\010"
-    "\022\016\n\006shared\030\002 \001(\010\"$\n\026RemoveWebWorkerReque"
-    "st\022\n\n\002id\030\001 \001(\t\"*\n\027RemoveWebWorkerRespons"
-    "e\022\017\n\007removed\030\001 \001(\010*H\n\rWebWorkerType\022\032\n\026W"
-    "EB_WORKER_TYPE_NATIVE\020\000\022\033\n\027WEB_WORKER_TY"
-    "PE_QUICKJS\020\001*[\n\rWebWorkerMode\022\027\n\023WORKER_"
-    "MODE_DEFAULT\020\000\022\026\n\022WORKER_MODE_SHARED\020\001\022\031"
-    "\n\025WORKER_MODE_DEDICATED\020\0022[\n\017WebDocument"
-    "Host\022H\n\nWebViewRpc\022\032.rpcstream.RpcStream"
-    "Packet\032\032.rpcstream.RpcStreamPacket(\0010\0012\333"
-    "\003\n\013WebDocument\022h\n\026WatchWebDocumentStatus"
-    "\022+.web.document.WatchWebDocumentStatusRe"
-    "quest\032\037.web.document.WebDocumentStatus0\001"
-    "\022X\n\rCreateWebView\022\".web.document.CreateW"
-    "ebViewRequest\032#.web.document.CreateWebVi"
-    "ewResponse\022H\n\nWebViewRpc\022\032.rpcstream.Rpc"
-    "StreamPacket\032\032.rpcstream.RpcStreamPacket"
-    "(\0010\001\022^\n\017CreateWebWorker\022$.web.document.C"
-    "reateWebWorkerRequest\032%.web.document.Cre"
-    "ateWebWorkerResponse\022^\n\017RemoveWebWorker\022"
-    "$.web.document.RemoveWebWorkerRequest\032%."
-    "web.document.RemoveWebWorkerResponseb\006pr"
-    "oto3"
+    "id\030\003 \001(\t\022\021\n\tpermanent\030\004 \001(\010\"\267\001\n\017WebWorke"
+    "rStatus\022\n\n\002id\030\001 \001(\t\022\017\n\007deleted\030\002 \001(\010\022\016\n\006"
+    "shared\030\003 \001(\010\022\r\n\005ready\030\004 \001(\010\022\016\n\006failed\030\005 "
+    "\001(\010\022\026\n\016failure_reason\030\006 \001(\t\022@\n\020generatio"
+    "n_state\030\007 \001(\0162&.web.document.WebWorkerGe"
+    "nerationState\"\"\n\024CreateWebViewRequest\022\n\n"
+    "\002id\030\001 \001(\t\"(\n\025CreateWebViewResponse\022\017\n\007cr"
+    "eated\030\001 \001(\010\"\251\001\n\026CreateWebWorkerRequest\022\n"
+    "\n\002id\030\001 \001(\t\022\014\n\004path\030\002 \001(\t\0220\n\013worker_mode\030"
+    "\003 \001(\0162\033.web.document.WebWorkerMode\022\021\n\tin"
+    "it_data\030\004 \001(\014\0220\n\013worker_type\030\005 \001(\0162\033.web"
+    ".document.WebWorkerType\":\n\027CreateWebWork"
+    "erResponse\022\017\n\007created\030\001 \001(\010\022\016\n\006shared\030\002 "
+    "\001(\010\"$\n\026RemoveWebWorkerRequest\022\n\n\002id\030\001 \001("
+    "\t\"*\n\027RemoveWebWorkerResponse\022\017\n\007removed\030"
+    "\001 \001(\010*\334\004\n\030WebWorkerGenerationState\022\'\n#WE"
+    "B_WORKER_GENERATION_STATE_UNKNOWN\020\000\0220\n,W"
+    "EB_WORKER_GENERATION_STATE_WORKER_REQUES"
+    "TED\020\001\022.\n*WEB_WORKER_GENERATION_STATE_WOR"
+    "KER_CREATED\020\002\022/\n+WEB_WORKER_GENERATION_S"
+    "TATE_STARTUP_RUNNING\020\003\022.\n*WEB_WORKER_GEN"
+    "ERATION_STATE_FRONTEND_READY\020\004\0220\n,WEB_WO"
+    "RKER_GENERATION_STATE_CAPABILITY_READY\020\005"
+    "\022\'\n#WEB_WORKER_GENERATION_STATE_RUNNING\020"
+    "\006\022+\n\'WEB_WORKER_GENERATION_STATE_NORMAL_"
+    "STOP\020\007\022/\n+WEB_WORKER_GENERATION_STATE_ST"
+    "ARTUP_TIMEOUT\020\010\0220\n,WEB_WORKER_GENERATION"
+    "_STATE_TERMINAL_FAILURE\020\t\0220\n,WEB_WORKER_"
+    "GENERATION_STATE_LIFECYCLE_HIDDEN\020\n\0227\n3W"
+    "EB_WORKER_GENERATION_STATE_CONTROLLED_ST"
+    "REAM_RESET\020\013*H\n\rWebWorkerType\022\032\n\026WEB_WOR"
+    "KER_TYPE_NATIVE\020\000\022\033\n\027WEB_WORKER_TYPE_QUI"
+    "CKJS\020\001*[\n\rWebWorkerMode\022\027\n\023WORKER_MODE_D"
+    "EFAULT\020\000\022\026\n\022WORKER_MODE_SHARED\020\001\022\031\n\025WORK"
+    "ER_MODE_DEDICATED\020\0022[\n\017WebDocumentHost\022H"
+    "\n\nWebViewRpc\022\032.rpcstream.RpcStreamPacket"
+    "\032\032.rpcstream.RpcStreamPacket(\0010\0012\333\003\n\013Web"
+    "Document\022h\n\026WatchWebDocumentStatus\022+.web"
+    ".document.WatchWebDocumentStatusRequest\032"
+    "\037.web.document.WebDocumentStatus0\001\022X\n\rCr"
+    "eateWebView\022\".web.document.CreateWebView"
+    "Request\032#.web.document.CreateWebViewResp"
+    "onse\022H\n\nWebViewRpc\022\032.rpcstream.RpcStream"
+    "Packet\032\032.rpcstream.RpcStreamPacket(\0010\001\022^"
+    "\n\017CreateWebWorker\022$.web.document.CreateW"
+    "ebWorkerRequest\032%.web.document.CreateWeb"
+    "WorkerResponse\022^\n\017RemoveWebWorker\022$.web."
+    "document.RemoveWebWorkerRequest\032%.web.do"
+    "cument.RemoveWebWorkerResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto_deps[1] = {
@@ -476,7 +495,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto = {
     false,
     false,
-    1684,
+    2358,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto,
     "github.com/s4wave/spacewave/bldr/web/document/document.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto_once,
@@ -491,15 +510,21 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace web {
 namespace document {
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebWorkerType_descriptor() {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebWorkerGenerationState_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t WebWorkerGenerationState_internal_data_[] = {
+    786432u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebWorkerType_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t WebWorkerType_internal_data_[] = {
     131072u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebWorkerMode_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto[1];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fdocument_2fdocument_2eproto[2];
 }
 PROTOBUF_CONSTINIT const uint32_t WebWorkerMode_internal_data_[] = {
     196608u, 0u, };
@@ -1484,9 +1509,9 @@ WebWorkerStatus::WebWorkerStatus(
                offsetof(Impl_, deleted_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, deleted_),
-           offsetof(Impl_, failed_) -
+           offsetof(Impl_, generation_state_) -
                offsetof(Impl_, deleted_) +
-               sizeof(Impl_::failed_));
+               sizeof(Impl_::generation_state_));
 
   // @@protoc_insertion_point(copy_constructor:web.document.WebWorkerStatus)
 }
@@ -1502,9 +1527,9 @@ inline void WebWorkerStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, deleted_),
            0,
-           offsetof(Impl_, failed_) -
+           offsetof(Impl_, generation_state_) -
                offsetof(Impl_, deleted_) +
-               sizeof(Impl_::failed_));
+               sizeof(Impl_::generation_state_));
 }
 WebWorkerStatus::~WebWorkerStatus() {
   // @@protoc_insertion_point(destructor:web.document.WebWorkerStatus)
@@ -1565,16 +1590,16 @@ WebWorkerStatus::GetClassData() const {
   return WebWorkerStatus_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 0, 53, 2>
+const ::_pbi::TcParseTable<3, 7, 0, 53, 2>
 WebWorkerStatus::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
+    7,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     WebWorkerStatus_class_data_.base(),
@@ -1609,7 +1634,10 @@ WebWorkerStatus::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {50, 1, 0,
       PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failure_reason_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .web.document.WebWorkerGenerationState generation_state = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WebWorkerStatus, _impl_.generation_state_), 6>(),
+     {56, 6, 0,
+      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.generation_state_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1625,6 +1653,8 @@ WebWorkerStatus::_table_ = {
     {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failed_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string failure_reason = 6;
     {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failure_reason_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .web.document.WebWorkerGenerationState generation_state = 7;
+    {PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.generation_state_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -1650,9 +1680,11 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
       _impl_.failure_reason_.ClearNonDefaultToEmpty();
     }
   }
-  ::memset(&_impl_.deleted_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.failed_) -
-      reinterpret_cast<char*>(&_impl_.deleted_)) + sizeof(_impl_.failed_));
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007cU)) {
+    ::memset(&_impl_.deleted_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.generation_state_) -
+        reinterpret_cast<char*>(&_impl_.deleted_)) + sizeof(_impl_.generation_state_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1732,6 +1764,15 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
     }
   }
 
+  // .web.document.WebWorkerGenerationState generation_state = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_generation_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          7, this_._internal_generation_state(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1757,7 +1798,7 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // string id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_id().empty()) {
@@ -1796,6 +1837,13 @@ PROTOBUF_NOINLINE void WebWorkerStatus::Clear() {
         total_size += 2;
       }
     }
+    // .web.document.WebWorkerGenerationState generation_state = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_generation_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_generation_state());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -1815,7 +1863,7 @@ void WebWorkerStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_id().empty()) {
         _this->_internal_set_id(from._internal_id());
@@ -1854,6 +1902,11 @@ void WebWorkerStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.failed_ = from._impl_.failed_;
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_generation_state() != 0) {
+        _this->_impl_.generation_state_ = from._impl_.generation_state_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -1877,8 +1930,8 @@ void WebWorkerStatus::InternalSwap(WebWorkerStatus* PROTOBUF_RESTRICT PROTOBUF_N
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.failure_reason_, &other->_impl_.failure_reason_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.failed_)
-      + sizeof(WebWorkerStatus::_impl_.failed_)
+      PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.generation_state_)
+      + sizeof(WebWorkerStatus::_impl_.generation_state_)
       - PROTOBUF_FIELD_OFFSET(WebWorkerStatus, _impl_.deleted_)>(
           reinterpret_cast<char*>(&_impl_.deleted_),
           reinterpret_cast<char*>(&other->_impl_.deleted_));

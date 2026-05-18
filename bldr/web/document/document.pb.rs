@@ -66,6 +66,9 @@ pub struct WebWorkerStatus {
     /// FailureReason contains the worker-provided failure reason, if any.
     #[prost(string, tag="6")]
     pub failure_reason: ::prost::alloc::string::String,
+    /// GenerationState is the typed lifecycle state for the worker generation.
+    #[prost(enumeration="WebWorkerGenerationState", tag="7")]
+    pub generation_state: i32,
 }
 /// CreateWebViewRequest is a request to create a new web view.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -133,6 +136,85 @@ pub struct RemoveWebWorkerResponse {
     /// If false, the worker was not found or not running.
     #[prost(bool, tag="1")]
     pub removed: bool,
+}
+/// WebWorkerGenerationState is the browser plugin worker generation lifecycle.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WebWorkerGenerationState {
+    /// WEB_WORKER_GENERATION_STATE_UNKNOWN preserves old status producers.
+    Unknown = 0,
+    /// WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED means the browser was asked
+    /// to create a generation.
+    WorkerRequested = 1,
+    /// WEB_WORKER_GENERATION_STATE_WORKER_CREATED means the Worker object and
+    /// init port exist.
+    WorkerCreated = 2,
+    /// WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING means plugin startup is
+    /// executing inside the worker.
+    StartupRunning = 3,
+    /// WEB_WORKER_GENERATION_STATE_FRONTEND_READY means frontend handlers/assets
+    /// are usable for the generation.
+    FrontendReady = 4,
+    /// WEB_WORKER_GENERATION_STATE_CAPABILITY_READY means the startup capability
+    /// required by the current host path is ready.
+    CapabilityReady = 5,
+    /// WEB_WORKER_GENERATION_STATE_RUNNING means the generation is fully running.
+    Running = 6,
+    /// WEB_WORKER_GENERATION_STATE_NORMAL_STOP means the generation stopped by
+    /// explicit lifecycle removal.
+    NormalStop = 7,
+    /// WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT means the host timed out while
+    /// waiting for startup.
+    StartupTimeout = 8,
+    /// WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE means the worker reported a
+    /// terminal runtime failure.
+    TerminalFailure = 9,
+    /// WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN means the document lifecycle
+    /// prevented generation startup.
+    LifecycleHidden = 10,
+    /// WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET means a stream reset
+    /// was handled as controlled lifecycle rather than terminal plugin failure.
+    ControlledStreamReset = 11,
+}
+impl WebWorkerGenerationState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "WEB_WORKER_GENERATION_STATE_UNKNOWN",
+            Self::WorkerRequested => "WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED",
+            Self::WorkerCreated => "WEB_WORKER_GENERATION_STATE_WORKER_CREATED",
+            Self::StartupRunning => "WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING",
+            Self::FrontendReady => "WEB_WORKER_GENERATION_STATE_FRONTEND_READY",
+            Self::CapabilityReady => "WEB_WORKER_GENERATION_STATE_CAPABILITY_READY",
+            Self::Running => "WEB_WORKER_GENERATION_STATE_RUNNING",
+            Self::NormalStop => "WEB_WORKER_GENERATION_STATE_NORMAL_STOP",
+            Self::StartupTimeout => "WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT",
+            Self::TerminalFailure => "WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE",
+            Self::LifecycleHidden => "WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN",
+            Self::ControlledStreamReset => "WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WEB_WORKER_GENERATION_STATE_UNKNOWN" => Some(Self::Unknown),
+            "WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED" => Some(Self::WorkerRequested),
+            "WEB_WORKER_GENERATION_STATE_WORKER_CREATED" => Some(Self::WorkerCreated),
+            "WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING" => Some(Self::StartupRunning),
+            "WEB_WORKER_GENERATION_STATE_FRONTEND_READY" => Some(Self::FrontendReady),
+            "WEB_WORKER_GENERATION_STATE_CAPABILITY_READY" => Some(Self::CapabilityReady),
+            "WEB_WORKER_GENERATION_STATE_RUNNING" => Some(Self::Running),
+            "WEB_WORKER_GENERATION_STATE_NORMAL_STOP" => Some(Self::NormalStop),
+            "WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT" => Some(Self::StartupTimeout),
+            "WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE" => Some(Self::TerminalFailure),
+            "WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN" => Some(Self::LifecycleHidden),
+            "WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET" => Some(Self::ControlledStreamReset),
+            _ => None,
+        }
+    }
 }
 /// WebWorkerType specifies the type of worker to create.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

@@ -30,21 +30,47 @@ type DriveReadyResult struct {
 func WaitForApp(t testing.TB, page playwright.Page) {
 	t.Helper()
 
-	_, err := page.Evaluate(`async () => {
-		const deadline = performance.now() + 120000
+	deadlineMS := 120000
+	if E2EWasmTinyGoEnabled() {
+		deadlineMS = 240000
+	}
+
+	_, err := page.Evaluate(`async ({ deadlineMS }) => {
+		const deadline = performance.now() + deadlineMS
 		let booted = false
+		let readyResolved = !globalThis.__swReady
+		let readyRejected = null
+		if (globalThis.__swReady?.then) {
+			globalThis.__swReady.then(
+				() => {
+					readyResolved = true
+				},
+				(err) => {
+					readyRejected = String(err)
+				},
+			)
+		}
 		while (!globalThis.__s4wave_debug?.root) {
-			if (!booted && typeof globalThis.__swBoot === 'function') {
+			if (!booted && readyResolved && typeof globalThis.__swBoot === 'function') {
 				globalThis.__swBoot(window.location.hash || '#/')
 				booted = true
 			}
 			if (performance.now() > deadline) {
-				throw new Error('debug context did not initialize before deadline')
+				const state = JSON.stringify({
+					booted,
+					hasBoot: typeof globalThis.__swBoot === 'function',
+					hasReady: !!globalThis.__swReady,
+					readyResolved,
+					readyRejected,
+					bootStatus: globalThis.__swBootStatus ?? null,
+					startupMarks: globalThis.__swStartupMarks ?? [],
+				})
+				throw new Error('debug context did not initialize before deadline: ' + state)
 			}
 			await new Promise((resolve) => requestAnimationFrame(resolve))
 		}
 		return null
-	}`)
+	}`, map[string]any{"deadlineMS": deadlineMS})
 	if err != nil {
 		body, bodyErr := page.Locator("body").TextContent()
 		if bodyErr != nil {
@@ -57,6 +83,60 @@ func WaitForApp(t testing.TB, page playwright.Page) {
 			trimPageText(body),
 		)
 	}
+}
+
+func AssertBrowserStartupDone(t testing.TB, h *Harness, page playwright.Page) map[string]any {
+	t.Helper()
+
+	proof := readRuntimeStartupProof(t, h, page)
+	if got := stringField(proof, "phaseId"); got != "done" {
+		t.Fatalf("browser startup phase=%q want done; proof=%#v", got, proof)
+	}
+	if got := stringField(proof, "viewState"); got != "synced" {
+		t.Fatalf("browser startup view state=%q want synced; proof=%#v", got, proof)
+	}
+	runtime := mapField(t, proof, "runtime")
+	if terminalFailure := runtime["terminalFailure"]; terminalFailure != nil {
+		t.Fatalf("browser startup has terminal failure: %#v", terminalFailure)
+	}
+	if got := stringField(runtime, "runtimeClientState"); got != "connected" {
+		t.Fatalf("browser runtime client state=%q want connected; proof=%#v", got, proof)
+	}
+	frameState := stringField(runtime, "frameState")
+	if frameState != "revealed" {
+		t.Fatalf("browser frame state=%q want revealed; proof=%#v", frameState, proof)
+	}
+	return proof
+}
+
+func AssertRootImportMap(t testing.TB, h *Harness, page playwright.Page) {
+	t.Helper()
+
+	proof := readRuntimeStartupProof(t, h, page)
+	importMap := mapField(t, proof, "importMap")
+	if !boolField(importMap, "hasReact") {
+		t.Fatalf("root import map missing react specifier; proof=%#v", proof)
+	}
+	if !boolField(importMap, "hasReactDomClient") {
+		t.Fatalf("root import map missing react-dom/client specifier; proof=%#v", proof)
+	}
+	if got := intField(importMap, "importCount"); got == 0 {
+		t.Fatalf("root import map is empty; proof=%#v", proof)
+	}
+}
+
+func readRuntimeStartupProof(t testing.TB, h *Harness, page playwright.Page) map[string]any {
+	t.Helper()
+
+	raw, err := page.Evaluate(h.Script("runtime-startup-state.ts"), nil)
+	if err != nil {
+		t.Fatalf("read runtime startup proof: %v", err)
+	}
+	proof, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected runtime startup proof %T: %#v", raw, raw)
+	}
+	return proof
 }
 
 // NavigateHash changes the client-side hash route without reloading the page.
@@ -83,22 +163,79 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 		if bodyErr != nil {
 			body = "failed to read body text: " + bodyErr.Error()
 		}
-		debug, debugErr := page.Evaluate(`() => JSON.stringify({
-			hash: window.location.hash,
-			hasDebugRoot: !!globalThis.__s4wave_debug?.root,
-			quickstartTiming: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
-			bodyHtml: document.body.innerHTML.slice(0, 3000),
-			text: document.body.textContent?.slice(0, 1000) ?? '',
-			links: Array.from(document.querySelectorAll('link')).map((link) => ({
-				href: link.href,
-				rel: link.rel,
-				loaded: !!link.sheet,
-			})),
-			testIds: Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
-				testid: el.getAttribute('data-testid'),
-				text: el.textContent?.slice(0, 120) ?? '',
-			})),
-		})`)
+		debug, debugErr := page.Evaluate(`async () => {
+			async function firstStreamValue(stream, signal) {
+				for await (const value of stream) {
+					return value
+				}
+				return null
+			}
+			async function routeProbe() {
+				const match = window.location.hash.match(/^#\/u\/([0-9]+)\/so\/([^/]+)/)
+				const root = globalThis.__s4wave_debug?.root
+				if (!match || !root) {
+					return { skipped: true, hasDebugRoot: !!root }
+				}
+				const sessionIdx = Number(match[1])
+				const sharedObjectId = decodeURIComponent(match[2])
+				let session = null
+				let sharedObject = null
+				let body = null
+				let space = null
+				try {
+					const abort = AbortSignal.timeout(15000)
+					const mounted = await root.mountSessionByIdx({ sessionIdx }, abort)
+					session = mounted?.session ?? null
+					if (!session) return { skipped: false, session: false }
+					sharedObject = await session.mountSharedObject({ sharedObjectId }, abort)
+					if (!sharedObject) return { skipped: false, session: true, sharedObject: false }
+					body = await sharedObject.mountSharedObjectBody({}, abort)
+					const { Space } = await import('@s4wave/sdk/space/space.js')
+					space = new Space(body.resourceRef.createRef(body.id))
+					const state = await firstStreamValue(space.watchSpaceState({}, abort), abort)
+					return {
+						skipped: false,
+						session: true,
+						sharedObject: true,
+						body: true,
+						spaceState: state ? {
+							ready: !!state.ready,
+							indexPath: state.settings?.indexPath ?? '',
+							objectKeys: (state.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+						} : null,
+					}
+				} catch (err) {
+					return { skipped: false, error: String(err?.stack ?? err) }
+				} finally {
+					space?.release?.()
+					body?.release?.()
+					sharedObject?.release?.()
+					session?.release?.()
+				}
+			}
+			const headings = Array.from(document.querySelectorAll('h1,h2,h3,[data-slot="loading-title"],[data-slot="loading-detail"]')).map((el) => ({
+				tag: el.tagName,
+				text: el.textContent?.slice(0, 160) ?? '',
+			}))
+			return JSON.stringify({
+				hash: window.location.hash,
+				hasDebugRoot: !!globalThis.__s4wave_debug?.root,
+				quickstartTiming: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
+				routeProbe: await routeProbe(),
+				bodyHtml: document.body.innerHTML.slice(0, 3000),
+				text: document.body.textContent?.slice(0, 1500) ?? '',
+				headings,
+				links: Array.from(document.querySelectorAll('link')).map((link) => ({
+					href: link.href,
+					rel: link.rel,
+					loaded: !!link.sheet,
+				})),
+				testIds: Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
+					testid: el.getAttribute('data-testid'),
+					text: el.textContent?.slice(0, 120) ?? '',
+				})),
+			})
+		}`)
 		if debugErr != nil {
 			debug = "failed to collect page debug: " + debugErr.Error()
 		}
@@ -171,6 +308,11 @@ func stringField(m map[string]any, key string) string {
 	return v
 }
 
+func boolField(m map[string]any, key string) bool {
+	v, _ := m[key].(bool)
+	return v
+}
+
 func intField(m map[string]any, key string) int {
 	switch v := m[key].(type) {
 	case float64:
@@ -180,6 +322,16 @@ func intField(m map[string]any, key string) int {
 	default:
 		return 0
 	}
+}
+
+func mapField(t testing.TB, m map[string]any, key string) map[string]any {
+	t.Helper()
+
+	v, ok := m[key].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map field %q in %#v", key, m)
+	}
+	return v
 }
 
 func optionalIntField(m map[string]any, key string) *int {

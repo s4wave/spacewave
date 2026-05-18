@@ -25,6 +25,7 @@ import {
   RemoveWebWorkerRequest,
   RemoveWebWorkerResponse,
   WebWorkerMode,
+  WebWorkerGenerationState,
   WebWorkerStatus,
   WebWorkerType,
 } from '../document/document.pb.js'
@@ -83,7 +84,10 @@ import {
   createSabPair,
 } from './sab-ring-stream.js'
 import { SimpleEventEmitter } from './simple-event-emitter.js'
-import { WebRuntimeClient } from './web-runtime-client.js'
+import {
+  WebRuntimeClient,
+  type RuntimeClientStreamOpenGateResult,
+} from './web-runtime-client.js'
 import { markStartupBoundary } from './startup-marks.js'
 
 // CreateWebViewFunc is a function to create a WebView.
@@ -148,6 +152,8 @@ class WebDocumentWebWorker {
   public readonly plugin: boolean
   // ready indicates the worker finished startup and runtime registration.
   public ready = false
+  public generationState = WebWorkerGenerationState.WORKER_CREATED
+  public failureReason?: string
   private closed = false
 
   public get isShared() {
@@ -297,6 +303,16 @@ class WebDocumentWebWorker {
     })
   }
 
+  public setGenerationState(
+    generationState: WebWorkerGenerationState,
+    failureReason?: string,
+  ) {
+    this.generationState = generationState
+    if (failureReason) {
+      this.failureReason = failureReason
+    }
+  }
+
   // close closes our connection to the worker.
   public async close() {
     if (this.closed) {
@@ -329,6 +345,42 @@ class WebDocumentWebWorker {
 
     this.port.close()
   }
+}
+
+function isFailedWorkerGenerationState(
+  generationState: WebWorkerGenerationState,
+): boolean {
+  return (
+    generationState === WebWorkerGenerationState.TERMINAL_FAILURE ||
+    generationState === WebWorkerGenerationState.STARTUP_TIMEOUT
+  )
+}
+
+function advanceWorkerGenerationState(
+  worker: WebDocumentWebWorker,
+  generationState: WebWorkerGenerationState,
+): boolean {
+  if (worker.generationState >= generationState) {
+    return false
+  }
+  worker.setGenerationState(generationState)
+  return true
+}
+
+function classifyWorkerCloseGenerationState(
+  failureReason?: string,
+): WebWorkerGenerationState {
+  if (!failureReason) {
+    return WebWorkerGenerationState.NORMAL_STOP
+  }
+  const reason = failureReason.toLowerCase()
+  if (reason.includes('stream reset') || reason.includes('err_rpc_abort')) {
+    return WebWorkerGenerationState.CONTROLLED_STREAM_RESET
+  }
+  if (reason.includes('startup timeout') || reason.includes('timed out')) {
+    return WebWorkerGenerationState.STARTUP_TIMEOUT
+  }
+  return WebWorkerGenerationState.TERMINAL_FAILURE
 }
 
 // WebDocumentWebView tracks a WebView associated with a WebDocument.
@@ -1148,6 +1200,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         deleted: false,
         shared: this.webWorkers[id].isShared,
         ready: this.webWorkers[id].ready,
+        generationState: this.webWorkers[id].generationState,
+        failed: isFailedWorkerGenerationState(
+          this.webWorkers[id].generationState,
+        ),
+        failureReason: this.webWorkers[id].failureReason,
       }),
     )
 
@@ -1202,6 +1259,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (old) {
       this.closeWorkerBridgeEndpoint(request.id)
       this.closeSabPairsForWorker(request.id, 'worker replaced')
+      old.setGenerationState(WebWorkerGenerationState.NORMAL_STOP)
       delete this.webWorkers[request.id]
       await old.close()
     }
@@ -1241,6 +1299,15 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
     }
 
+    this.notifyWebWorkerUpdated(
+      request.id,
+      false,
+      shared,
+      false,
+      undefined,
+      WebWorkerGenerationState.WORKER_REQUESTED,
+    )
+
     const worker = new WebDocumentWebWorker(
       request.id,
       request.path,
@@ -1256,6 +1323,23 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.notifyResumeReadyClient(worker.port)
 
     const createdShared = worker.isShared
+    this.notifyWebWorkerUpdated(
+      request.id,
+      false,
+      createdShared,
+      false,
+      undefined,
+      worker.generationState,
+    )
+    worker.setGenerationState(WebWorkerGenerationState.STARTUP_RUNNING)
+    this.notifyWebWorkerUpdated(
+      request.id,
+      false,
+      createdShared,
+      false,
+      undefined,
+      worker.generationState,
+    )
     markStartupBoundary('worker.create-ready', {
       source: 'browser',
       documentId: this.webDocumentUuid,
@@ -1265,7 +1349,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       workerType,
       plugin: !!request.initData,
     })
-    this.notifyWebWorkerUpdated(request.id, false, createdShared, worker.ready)
     return { created: true, shared: createdShared }
   }
 
@@ -1281,9 +1364,17 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (old) {
       this.closeWorkerBridgeEndpoint(request.id)
       this.closeSabPairsForWorker(request.id, 'worker removed')
+      old.setGenerationState(WebWorkerGenerationState.NORMAL_STOP)
       delete this.webWorkers[request.id]
       await old.close()
-      this.notifyWebWorkerUpdated(request.id, true, old.isShared, old.ready)
+      this.notifyWebWorkerUpdated(
+        request.id,
+        true,
+        old.isShared,
+        old.ready,
+        undefined,
+        old.generationState,
+      )
     }
     return { removed: !!old }
   }
@@ -1405,6 +1496,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       const currSw = navigator.serviceWorker.controller || sw
       // the service worker wants a new message port for requests
       this.initServiceWorkerPort(currSw)
+      if (!this.runtimeConnected) {
+        this.taskEnsureWebRuntimeConn()
+      }
     }
 
     navigator.serviceWorker.addEventListener('controllerchange', (ev) => {
@@ -1484,11 +1578,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     shared: boolean,
     ready: boolean,
     failureReason?: string,
+    generationState = WebWorkerGenerationState.UNKNOWN,
   ) {
     if (this.closed) {
       return
     }
-    const failed = !!failureReason
+    const failed = isFailedWorkerGenerationState(generationState)
     const webStatus: WebDocumentStatus = {
       snapshot: false,
       closed: false,
@@ -1502,6 +1597,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           ready,
           failed,
           failureReason,
+          generationState,
         },
       ],
     }
@@ -1641,6 +1737,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // Emit the visibilitychange event
     this.emit('visibilitychange', hidden)
     if (!hidden) {
+      if (!this.runtimeConnected) {
+        this.taskEnsureWebRuntimeConn()
+      }
       this.scheduleResumeReadySeed()
     }
   }
@@ -1661,30 +1760,108 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (data.close) {
       // Web worker was closed / removed.
       const failureReason = data.failureReason
+      worker.setGenerationState(
+        classifyWorkerCloseGenerationState(failureReason),
+        failureReason,
+      )
       this.closeWorkerBridgeEndpoint(workerID)
       this.closeSabPairsForWorker(workerID, 'worker closed')
       worker.port.close()
       delete this.webWorkers[workerID]
-      if (failureReason) {
-        this.notifyWebWorkerUpdated(
-          workerID,
-          true,
-          worker.isShared,
-          worker.ready,
-          failureReason,
-        )
-      } else {
-        this.notifyWebWorkerUpdated(
-          workerID,
-          true,
-          worker.isShared,
-          worker.ready,
-        )
-      }
+      this.notifyWebWorkerUpdated(
+        workerID,
+        true,
+        worker.isShared,
+        worker.ready,
+        failureReason,
+        worker.generationState,
+      )
       return
     }
 
+    if (
+      data.frontendReady &&
+      !worker.ready &&
+      advanceWorkerGenerationState(
+        worker,
+        WebWorkerGenerationState.FRONTEND_READY,
+      )
+    ) {
+      this.notifyWebWorkerUpdated(
+        workerID,
+        false,
+        worker.isShared,
+        false,
+        undefined,
+        worker.generationState,
+      )
+    }
+
+    if (data.capabilityReady && !worker.ready) {
+      if (
+        advanceWorkerGenerationState(
+          worker,
+          WebWorkerGenerationState.FRONTEND_READY,
+        )
+      ) {
+        this.notifyWebWorkerUpdated(
+          workerID,
+          false,
+          worker.isShared,
+          false,
+          undefined,
+          worker.generationState,
+        )
+      }
+      if (
+        advanceWorkerGenerationState(
+          worker,
+          WebWorkerGenerationState.CAPABILITY_READY,
+        )
+      ) {
+        this.notifyWebWorkerUpdated(
+          workerID,
+          false,
+          worker.isShared,
+          false,
+          undefined,
+          worker.generationState,
+        )
+      }
+    }
+
     if (data.ready && !worker.ready) {
+      if (
+        advanceWorkerGenerationState(
+          worker,
+          WebWorkerGenerationState.FRONTEND_READY,
+        )
+      ) {
+        this.notifyWebWorkerUpdated(
+          workerID,
+          false,
+          worker.isShared,
+          false,
+          undefined,
+          worker.generationState,
+        )
+      }
+      if (
+        advanceWorkerGenerationState(
+          worker,
+          WebWorkerGenerationState.CAPABILITY_READY,
+        )
+      ) {
+        this.notifyWebWorkerUpdated(
+          workerID,
+          false,
+          worker.isShared,
+          false,
+          undefined,
+          worker.generationState,
+        )
+      }
+      advanceWorkerGenerationState(worker, WebWorkerGenerationState.RUNNING)
       worker.ready = true
       if (!this.firstWorkerReadyMarked) {
         this.firstWorkerReadyMarked = true
@@ -1718,7 +1895,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           plugin: true,
         })
       }
-      this.notifyWebWorkerUpdated(workerID, false, worker.isShared, true)
+      this.notifyWebWorkerUpdated(
+        workerID,
+        false,
+        worker.isShared,
+        true,
+        undefined,
+        worker.generationState,
+      )
       return
     }
 
@@ -1982,7 +2166,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         (err) => {
           if (this.closed) return
           console.warn('WebDocument: failed to connect to WebRuntime', err)
-          setTimeout(() => this.taskEnsureWebRuntimeConn(), 100)
+          this.runtimeConnected = false
+          this.clearResumeReadyState('runtime-connect-failed')
         },
       )
     })
@@ -2116,20 +2301,30 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     port.postMessage(msg)
   }
 
-  private async waitForResumeReady(): Promise<void> {
+  private async waitForResumeReady(): Promise<RuntimeClientStreamOpenGateResult> {
     if (this.resumeReady) {
-      return
+      return {
+        state: 'ready',
+        documentId: this.webDocumentUuid,
+      }
     }
-    await new Promise<void>((resolve, reject) => {
+    return new Promise<RuntimeClientStreamOpenGateResult>((resolve) => {
       const onReady = () => {
         this.removeListener('closed', onClosed)
         this.removeListener('resumeready', onReady)
-        resolve()
+        resolve({
+          state: 'ready',
+          documentId: this.webDocumentUuid,
+        })
       }
       const onClosed = (err?: Error) => {
         this.removeListener('resumeready', onReady)
         this.removeListener('closed', onClosed)
-        reject(err ?? new Error('web document is closed'))
+        resolve({
+          state: 'closed',
+          documentId: this.webDocumentUuid,
+          reason: err?.message ?? 'web document is closed',
+        })
       }
       this.on('resumeready', onReady)
       this.on('closed', onClosed)

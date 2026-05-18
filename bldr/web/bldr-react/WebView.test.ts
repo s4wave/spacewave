@@ -224,6 +224,42 @@ describe('WebView startup boundaries', () => {
     await expectMarkCount('webview.revealed', 1)
   })
 
+  it('keeps the app revealed when render mode repeats the same component target', async () => {
+    const captured: CapturedRegistration = { release: vi.fn() }
+    const webDocument = makeWebDocument(captured)
+
+    const { container } = render(
+      React.createElement(WebView, {
+        loading: React.createElement('div', {}, 'Loading'),
+        startupProgress: true,
+        uuid: 'root-view',
+        webDocument,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(captured.view).toBeTruthy()
+    })
+    await finishRevealLifecycle(
+      captured.view as BldrWebView,
+      container,
+      '/component-a.js',
+      1,
+    )
+    expect(container.textContent).not.toContain('Loading')
+
+    await act(async () => {
+      await (captured.view as BldrWebView).setRenderMode({
+        renderMode: RenderMode.RenderMode_REACT_COMPONENT,
+        scriptPath: '/component-a.js',
+      })
+    })
+
+    expect(container.textContent).not.toContain('Loading')
+    await expectMarkCount('webview.component-ready', 1)
+    await expectMarkCount('webview.revealed', 1)
+  })
+
   it('resets reveal evidence across refresh and remount lifecycles', async () => {
     const captured: CapturedRegistration = { release: vi.fn() }
     const webDocument = makeWebDocument(captured)

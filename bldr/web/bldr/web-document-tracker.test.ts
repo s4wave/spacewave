@@ -22,9 +22,79 @@ function waitForActiveWebDocumentResumeReady(
   return waitForResumeReady.call(tracker)
 }
 
+function attachWebDocument(
+  tracker: WebDocumentTracker,
+  webDocumentId = 'document-1',
+): MessagePort {
+  const { port1, port2 } = new MessageChannel()
+  tracker.handleWebDocumentMessage({
+    from: webDocumentId,
+    initPort: port1,
+  })
+  return port2
+}
+
+function markSettled(promise: Promise<unknown>): () => boolean {
+  let settled = false
+  promise.then(
+    () => {
+      settled = true
+    },
+    () => {
+      settled = true
+    },
+  )
+  return () => settled
+}
+
+function installControllableWebLock(): { release(): void } {
+  let releaseLock: (() => void) | undefined
+  vi.stubGlobal('navigator', {
+    locks: {
+      request: vi.fn(
+        (
+          _name: string,
+          opts: { signal?: AbortSignal },
+          cb: () => Error | undefined,
+        ) =>
+          new Promise<Error | undefined>((resolve, reject) => {
+            const abort = () => {
+              reject(new DOMException('aborted', 'AbortError'))
+            }
+            opts.signal?.addEventListener('abort', abort, { once: true })
+            releaseLock = () => {
+              opts.signal?.removeEventListener('abort', abort)
+              resolve(cb())
+            }
+          }),
+      ),
+    },
+  })
+  return {
+    release() {
+      releaseLock?.()
+    },
+  }
+}
+
 describe('WebDocumentTracker resume-ready gate', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  it('reports resume unavailable when there is no active WebDocument', async () => {
+    const tracker = buildTracker()
+
+    await expect(
+      waitForActiveWebDocumentResumeReady(tracker),
+    ).resolves.toMatchObject({
+      state: 'unavailable',
+      reason: 'no active WebDocument',
+    })
+
+    tracker.close()
   })
 
   it('resolves the active document resume-ready gate from the WebDocument port', async () => {
@@ -49,14 +119,17 @@ describe('WebDocumentTracker resume-ready gate', () => {
       resumeReady: true,
     })
 
-    await expect(readyPromise).resolves.toBeUndefined()
+    await expect(readyPromise).resolves.toMatchObject({
+      state: 'ready',
+      documentId: 'document-1',
+    })
     expect(resolved).toBe(true)
 
     tracker.close()
     port2.close()
   })
 
-  it('rejects the resume-ready gate when the active WebDocument closes', async () => {
+  it('reports the resume-ready gate closed when the active WebDocument closes', async () => {
     const tracker = buildTracker()
     const { port1, port2 } = new MessageChannel()
     tracker.handleWebDocumentMessage({
@@ -72,9 +145,13 @@ describe('WebDocumentTracker resume-ready gate', () => {
       close: true,
     })
 
-    await expect(readyPromise).rejects.toThrow(
-      'WebDocument document-1 closed before resume-ready',
-    )
+    await expect(readyPromise).resolves.toMatchObject({
+      state: 'closed',
+      documentId: 'document-1',
+      reason: expect.stringContaining(
+        'WebDocument document-1 closed before resume-ready',
+      ),
+    })
 
     tracker.close()
     port2.close()
@@ -95,7 +172,10 @@ describe('WebDocumentTracker resume-ready gate', () => {
     })
     await expect(
       waitForActiveWebDocumentResumeReady(tracker),
-    ).resolves.toBeUndefined()
+    ).resolves.toMatchObject({
+      state: 'ready',
+      documentId: 'document-1',
+    })
 
     port2.postMessage({
       from: 'document-1',
@@ -116,13 +196,16 @@ describe('WebDocumentTracker resume-ready gate', () => {
       resumeReady: true,
     })
 
-    await expect(readyPromise).resolves.toBeUndefined()
+    await expect(readyPromise).resolves.toMatchObject({
+      state: 'ready',
+      documentId: 'document-1',
+    })
 
     tracker.close()
     port2.close()
   })
 
-  it('keeps plugin worker reconnect parked while the active WebDocument is hidden', async () => {
+  it('keeps plugin worker resume gate parked while the active WebDocument is hidden', async () => {
     vi.useFakeTimers()
     const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
     const onAllWebDocumentsClosed = vi.fn()
@@ -133,32 +216,17 @@ describe('WebDocumentTracker resume-ready gate', () => {
       null,
       onAllWebDocumentsClosed,
     )
-    const { port1: trackerPort, port2: documentPort } = new MessageChannel()
-    let streamTimedOut = false
+    const documentPort = attachWebDocument(tracker)
 
     try {
-      tracker.handleWebDocumentMessage({
-        from: 'document-1',
-        initPort: trackerPort,
-      })
       Reflect.set(tracker, 'lastWebDocumentId', 'document-1')
 
-      const timeoutAfterResumeReady = waitForActiveWebDocumentResumeReady(
-        tracker,
-      )
-        .then(
-          () =>
-            new Promise<void>((resolve) => {
-              setTimeout(resolve, 1500)
-            }),
-        )
-        .then(() => {
-          streamTimedOut = true
-        })
+      const readyPromise = waitForActiveWebDocumentResumeReady(tracker)
+      const isSettled = markSettled(readyPromise)
 
       await vi.advanceTimersByTimeAsync(5000)
 
-      expect(streamTimedOut).toBe(false)
+      expect(isSettled()).toBe(false)
       expect(onWebDocumentsExhausted).not.toHaveBeenCalled()
       expect(onAllWebDocumentsClosed).not.toHaveBeenCalled()
       expect(Reflect.get(tracker, 'webDocuments')).toHaveProperty('document-1')
@@ -167,18 +235,117 @@ describe('WebDocumentTracker resume-ready gate', () => {
         from: 'document-1',
         resumeReady: true,
       })
-      await vi.advanceTimersByTimeAsync(1499)
 
-      expect(streamTimedOut).toBe(false)
+      await expect(readyPromise).resolves.toMatchObject({
+        state: 'ready',
+        documentId: 'document-1',
+      })
 
-      await vi.advanceTimersByTimeAsync(1)
-      await timeoutAfterResumeReady
-
-      expect(streamTimedOut).toBe(true)
+      expect(isSettled()).toBe(true)
     } finally {
       tracker.close()
       documentPort.close()
-      vi.useRealTimers()
     }
+  })
+
+  it('keeps WebDocument proxy ack pending while the document lock is held', async () => {
+    vi.useFakeTimers()
+    const webLock = installControllableWebLock()
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const tracker = new WebDocumentTracker(
+      'service-worker',
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      onWebDocumentsExhausted,
+      null,
+    )
+    const documentPort = attachWebDocument(tracker)
+    const waitConn = tracker.waitConn()
+    const isSettled = markSettled(waitConn)
+
+    await vi.advanceTimersByTimeAsync(5000)
+
+    expect(isSettled()).toBe(false)
+    expect(onWebDocumentsExhausted).not.toHaveBeenCalled()
+    expect(Reflect.get(tracker, 'webDocuments')).toHaveProperty('document-1')
+
+    webLock.release()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(isSettled()).toBe(false)
+    expect(onWebDocumentsExhausted).toHaveBeenCalledTimes(1)
+    expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+      'document-1',
+    )
+
+    tracker.close()
+    await expect(waitConn).rejects.toThrow(
+      'closed while waiting for WebDocument',
+    )
+    documentPort.close()
+  })
+
+  it('keeps SAB pair open pending until the WebDocument closes', async () => {
+    vi.useFakeTimers()
+    const tracker = buildTracker()
+    const documentPort = attachWebDocument(tracker)
+
+    const sabPair = tracker.requestSabPair('worker-1')
+    const isSettled = markSettled(sabPair)
+
+    await vi.advanceTimersByTimeAsync(5000)
+
+    expect(isSettled()).toBe(false)
+
+    documentPort.postMessage({
+      from: 'document-1',
+      close: true,
+    })
+    await vi.advanceTimersByTimeAsync(0)
+
+    await expect(sabPair).rejects.toThrow('WebDocument document-1 closed')
+    tracker.close()
+    documentPort.close()
+  })
+
+  it('keeps WebRTC bridge open pending until the WebDocument closes', async () => {
+    vi.useFakeTimers()
+    const tracker = buildTracker()
+    const documentPort = attachWebDocument(tracker)
+
+    const bridgePort = tracker.requestWebRtcBridge()
+    const isSettled = markSettled(bridgePort)
+
+    await vi.advanceTimersByTimeAsync(5000)
+
+    expect(isSettled()).toBe(false)
+
+    documentPort.postMessage({
+      from: 'document-1',
+      close: true,
+    })
+    await vi.advanceTimersByTimeAsync(0)
+
+    await expect(bridgePort).rejects.toThrow('WebDocument document-1 closed')
+    tracker.close()
+    documentPort.close()
+  })
+
+  it('keeps exhausted shutdown rejections attached to the reconnect promise', async () => {
+    const onWebDocumentsExhausted = vi.fn(async () => {
+      tracker.close()
+    })
+    const tracker = new WebDocumentTracker(
+      'plugin/spacewave-core',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+      onWebDocumentsExhausted,
+      null,
+    )
+
+    await expect(tracker.waitConn()).rejects.toThrow(
+      'closed while waiting for WebDocument',
+    )
+    expect(onWebDocumentsExhausted).toHaveBeenCalledTimes(1)
   })
 })

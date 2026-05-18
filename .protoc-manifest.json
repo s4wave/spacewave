@@ -244,7 +244,7 @@
       "protoFiles": ["bldr/plugin/assets/http/config.proto"]
     },
     "github.com/s4wave/spacewave/bldr/plugin/compiler/go": {
-      "hash": "5a382bc40b71ac33f5e97da106793f2942e3f680609b8157b56d3c2469f61774",
+      "hash": "acd5eab820abd853774d22125e247491e8064e4838f24a3718bca15bc8881ee6",
       "generatedFiles": [
         "bldr/plugin/compiler/go/compiler.pb.cc",
         "bldr/plugin/compiler/go/compiler.pb.go",
@@ -632,7 +632,7 @@
       "protoFiles": ["bldr/web/bundler/vite/compiler/compiler.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/document": {
-      "hash": "bf4f730cc001470e5493d2f94fcca12c5ee3fd17392894c94e21b996866230aa",
+      "hash": "3420866d59d32934d6cadb45bd4ae207bbe11787314efcd0873401eae7a0541f",
       "generatedFiles": [
         "bldr/web/document/document.pb.cc",
         "bldr/web/document/document.pb.go",
@@ -4101,7 +4101,7 @@
       "protoFiles": ["sdk/secret/secret.proto"]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "0fbd040caa10a1882b89ac5e3361329c42730aa91db38c23b7de2f15fd937df4",
+      "hash": "42e12d5f1b7ec6ba6cd67a09748f0ccbd42380e7333c8a9d43570380bc44fc6d",
       "generatedFiles": [
         "sdk/session/local-session.pb.cc",
         "sdk/session/local-session.pb.go",

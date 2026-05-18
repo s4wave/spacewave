@@ -28,6 +28,7 @@ export type WasmSource =
 // worker-hosted Go WASM modules. Some JS/WASM libraries still reach through
 // window even when the equivalent constructor already exists on globalThis.
 function patchWorkerBrowserGlobals() {
+  installReleasedGoCallbackConsoleFilter()
   if (typeof globalThis.window === 'undefined') {
     Object.defineProperty(globalThis, 'window', {
       value: globalThis,
@@ -41,6 +42,33 @@ function patchWorkerBrowserGlobals() {
   if (getBridgePort()) {
     installWebRTCShim()
     console.log('GoWasmProcess: WebRTC bridge shim installed')
+  }
+}
+
+let releasedGoCallbackConsoleFilterInstalled = false
+
+function isReleasedGoCallbackConsoleMessage(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return value === 'call to released function'
+  }
+  return value instanceof Error && value.message === 'call to released function'
+}
+
+function installReleasedGoCallbackConsoleFilter(): void {
+  if (releasedGoCallbackConsoleFilterInstalled) {
+    return
+  }
+  releasedGoCallbackConsoleFilterInstalled = true
+
+  const consoleError = console.error
+  console.error = (...args: unknown[]) => {
+    if (
+      args.length === 1 &&
+      isReleasedGoCallbackConsoleMessage(args[0])
+    ) {
+      return
+    }
+    consoleError(...args)
   }
 }
 

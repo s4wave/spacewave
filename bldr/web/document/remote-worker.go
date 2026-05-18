@@ -8,21 +8,27 @@ import (
 
 // remoteWebWorker contains remote web worker information.
 type remoteWebWorker struct {
-	r        *Remote
-	id       string
-	document string
-	shared   bool
-	ready    bool
+	r               *Remote
+	id              string
+	document        string
+	shared          bool
+	ready           bool
+	failed          bool
+	failureReason   string
+	generationState WebWorkerGenerationState
 }
 
 // buildRemoteWebWorker constructs a new remote WebWorker handle.
-func (r *Remote) buildRemoteWebWorker(id, document string, shared, ready bool) *remoteWebWorker {
+func (r *Remote) buildRemoteWebWorker(document string, status *WebWorkerStatus) *remoteWebWorker {
 	return &remoteWebWorker{
-		r:        r,
-		id:       id,
-		document: document,
-		shared:   shared,
-		ready:    ready,
+		r:               r,
+		id:              status.GetId(),
+		document:        document,
+		shared:          status.GetShared(),
+		ready:           status.GetReady(),
+		failed:          status.GetFailed(),
+		failureReason:   status.GetFailureReason(),
+		generationState: status.GetGenerationState(),
 	}
 }
 

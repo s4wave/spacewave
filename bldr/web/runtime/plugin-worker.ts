@@ -73,6 +73,8 @@ export class PluginWorker {
   private lockAbortController?: AbortController
   // failureCloseReported records that this worker has already published a fatal close.
   private failureCloseReported?: boolean
+  // shuttingDown records that worker shutdown has already started.
+  private shuttingDown?: boolean
   // onSnapshotNow is called when the WebDocument requests an urgent snapshot.
   public onSnapshotNow?: SnapshotNowCallback
 
@@ -159,6 +161,10 @@ export class PluginWorker {
 
   // shutdown tears down the worker, releasing the liveness lock first.
   private async shutdown() {
+    if (this.shuttingDown) {
+      return
+    }
+    this.shuttingDown = true
     this.lockAbortController?.abort()
     this.lockAbortController = undefined
     this.webDocumentTracker.close()
@@ -223,6 +229,24 @@ export class PluginWorker {
     this.pluginStarted = true
   }
 
+  // notifyFrontendReady notifies connected web documents that frontend setup completed.
+  public notifyFrontendReady() {
+    const msg: ClientToWebDocument = {
+      from: this.workerId,
+      frontendReady: true,
+    }
+    this.webDocumentTracker.postMessage(msg)
+  }
+
+  // notifyCapabilityReady notifies connected web documents that startup capability is ready.
+  public notifyCapabilityReady() {
+    const msg: ClientToWebDocument = {
+      from: this.workerId,
+      capabilityReady: true,
+    }
+    this.webDocumentTracker.postMessage(msg)
+  }
+
   // notifyReady notifies all connected web documents that startup completed.
   private notifyReady() {
     const msg: ClientToWebDocument = {
@@ -261,6 +285,12 @@ export class PluginWorker {
     if (data.initData) {
       this.handleStartPlugin(data.initData, data.workerCommsDetect).catch(
         (err) => {
+          if (isExpectedPluginWorkerShutdownError(err)) {
+            console.warn(
+              `PluginWorker: ${this.workerId}: startup canceled because WebDocument closed`,
+            )
+            return
+          }
           console.warn(
             `PluginWorker: ${this.workerId}: startup failed, exiting!`,
             err,
@@ -279,6 +309,11 @@ function isAbortError(err: unknown): boolean {
     'name' in err &&
     (err as { name?: string }).name === 'AbortError'
   )
+}
+
+function isExpectedPluginWorkerShutdownError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.includes('closed while waiting for WebDocument')
 }
 
 function stringifyError(err: unknown): string {

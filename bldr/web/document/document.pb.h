@@ -59,6 +59,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace web {
 namespace document {
+enum WebWorkerGenerationState : int;
+extern const uint32_t WebWorkerGenerationState_internal_data_[];
 enum WebWorkerMode : int;
 extern const uint32_t WebWorkerMode_internal_data_[];
 enum WebWorkerType : int;
@@ -108,6 +110,9 @@ extern const ::google::protobuf::internal::ClassDataFull WebWorkerStatus_class_d
 namespace google {
 namespace protobuf {
 template <>
+internal::EnumTraitsT<::web::document::WebWorkerGenerationState_internal_data_>
+    internal::EnumTraitsImpl::value<::web::document::WebWorkerGenerationState>;
+template <>
 internal::EnumTraitsT<::web::document::WebWorkerMode_internal_data_>
     internal::EnumTraitsImpl::value<::web::document::WebWorkerMode>;
 template <>
@@ -118,6 +123,52 @@ internal::EnumTraitsT<::web::document::WebWorkerType_internal_data_>
 
 namespace web {
 namespace document {
+enum WebWorkerGenerationState : int {
+  WEB_WORKER_GENERATION_STATE_UNKNOWN = 0,
+  WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED = 1,
+  WEB_WORKER_GENERATION_STATE_WORKER_CREATED = 2,
+  WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING = 3,
+  WEB_WORKER_GENERATION_STATE_FRONTEND_READY = 4,
+  WEB_WORKER_GENERATION_STATE_CAPABILITY_READY = 5,
+  WEB_WORKER_GENERATION_STATE_RUNNING = 6,
+  WEB_WORKER_GENERATION_STATE_NORMAL_STOP = 7,
+  WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT = 8,
+  WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE = 9,
+  WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN = 10,
+  WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET = 11,
+  WebWorkerGenerationState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  WebWorkerGenerationState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t WebWorkerGenerationState_internal_data_[];
+inline constexpr WebWorkerGenerationState WebWorkerGenerationState_MIN =
+    static_cast<WebWorkerGenerationState>(0);
+inline constexpr WebWorkerGenerationState WebWorkerGenerationState_MAX =
+    static_cast<WebWorkerGenerationState>(11);
+inline bool WebWorkerGenerationState_IsValid(int value) {
+  return 0 <= value && value <= 11;
+}
+inline constexpr int WebWorkerGenerationState_ARRAYSIZE = 11 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebWorkerGenerationState_descriptor();
+template <typename T>
+const ::std::string& WebWorkerGenerationState_Name(T value) {
+  static_assert(::std::is_same<T, WebWorkerGenerationState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to WebWorkerGenerationState_Name().");
+  return WebWorkerGenerationState_Name(static_cast<WebWorkerGenerationState>(value));
+}
+template <>
+inline const ::std::string& WebWorkerGenerationState_Name(WebWorkerGenerationState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<WebWorkerGenerationState_descriptor, 0, 11>(
+      static_cast<int>(value));
+}
+inline bool WebWorkerGenerationState_Parse(
+    ::absl::string_view name, WebWorkerGenerationState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<WebWorkerGenerationState>(WebWorkerGenerationState_descriptor(), name,
+                                           value);
+}
 enum WebWorkerType : int {
   WEB_WORKER_TYPE_NATIVE = 0,
   WEB_WORKER_TYPE_QUICKJS = 1,
@@ -345,6 +396,7 @@ class WebWorkerStatus final : public ::google::protobuf::Message
     kSharedFieldNumber = 3,
     kReadyFieldNumber = 4,
     kFailedFieldNumber = 5,
+    kGenerationStateFieldNumber = 7,
   };
   // string id = 1;
   void clear_id() ;
@@ -416,11 +468,21 @@ class WebWorkerStatus final : public ::google::protobuf::Message
   void _internal_set_failed(bool value);
 
   public:
+  // .web.document.WebWorkerGenerationState generation_state = 7;
+  void clear_generation_state() ;
+  ::web::document::WebWorkerGenerationState generation_state() const;
+  void set_generation_state(::web::document::WebWorkerGenerationState value);
+
+  private:
+  ::web::document::WebWorkerGenerationState _internal_generation_state() const;
+  void _internal_set_generation_state(::web::document::WebWorkerGenerationState value);
+
+  public:
   // @@protoc_insertion_point(class_scope:web.document.WebWorkerStatus)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
                                    0, 53,
                                    2>
       _table_;
@@ -448,6 +510,7 @@ class WebWorkerStatus final : public ::google::protobuf::Message
     bool shared_;
     bool ready_;
     bool failed_;
+    int generation_state_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2928,6 +2991,31 @@ inline void WebWorkerStatus::set_allocated_failure_reason(::std::string* PROTOBU
   // @@protoc_insertion_point(field_set_allocated:web.document.WebWorkerStatus.failure_reason)
 }
 
+// .web.document.WebWorkerGenerationState generation_state = 7;
+inline void WebWorkerStatus::clear_generation_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::web::document::WebWorkerGenerationState WebWorkerStatus::generation_state() const {
+  // @@protoc_insertion_point(field_get:web.document.WebWorkerStatus.generation_state)
+  return _internal_generation_state();
+}
+inline void WebWorkerStatus::set_generation_state(::web::document::WebWorkerGenerationState value) {
+  _internal_set_generation_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:web.document.WebWorkerStatus.generation_state)
+}
+inline ::web::document::WebWorkerGenerationState WebWorkerStatus::_internal_generation_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::web::document::WebWorkerGenerationState>(_impl_.generation_state_);
+}
+inline void WebWorkerStatus::_internal_set_generation_state(::web::document::WebWorkerGenerationState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_state_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // CreateWebViewRequest
@@ -3439,6 +3527,12 @@ inline void RemoveWebWorkerResponse::_internal_set_removed(bool value) {
 namespace google {
 namespace protobuf {
 
+template <>
+struct is_proto_enum<::web::document::WebWorkerGenerationState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::web::document::WebWorkerGenerationState>() {
+  return ::web::document::WebWorkerGenerationState_descriptor();
+}
 template <>
 struct is_proto_enum<::web::document::WebWorkerType> : std::true_type {};
 template <>

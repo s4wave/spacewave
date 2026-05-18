@@ -45,7 +45,6 @@ import {
   WebRuntimeToClient,
 } from '../runtime/runtime.js'
 import { ItState } from './it-state.js'
-import { timeoutPromise } from './timeout.js'
 
 // WebRuntimeClientChannelStreamOpts are common opts for the WebRuntimeClient ChannelStream.
 // Runtime/client invalidation already has explicit teardown paths. Leave
@@ -176,9 +175,6 @@ class WebRuntimeClientInstance {
   }
 
   // openStream opens a RPC stream with the remote client.
-  //
-  // times out if the client does not ack within 3 seconds.
-  //
   // note: the stream has message framing (via postMessage)
   // it is not necessary to use length prefixing for packets
   public async openStream(): Promise<Duplex<Source<Uint8Array>>> {
@@ -194,22 +190,17 @@ class WebRuntimeClientInstance {
       WebRuntimeClientChannelStreamOpts,
     )
     this.postMessage({ openStream: true }, [remotePort])
-    // wait for ack or timeout
-    await Promise.race([
-      stream.waitRemoteAck,
-      this.waitClosed,
-      timeoutPromise(1420),
-    ])
+    await Promise.race([stream.waitRemoteAck, this.waitClosed])
     if (this.closed) {
       stream.close()
       throw new Error('WebRuntimeClientInstance is closed')
     }
-    if (!stream.isAcked) {
-      stream.close()
-      throw new Error('timed out waiting for ack')
-    }
     // wait for the stream to be fully opened
-    await stream.waitRemoteOpen
+    await Promise.race([stream.waitRemoteOpen, this.waitClosed])
+    if (this.closed) {
+      stream.close()
+      throw new Error('WebRuntimeClientInstance is closed')
+    }
     // return the stream
     return stream
   }

@@ -52,6 +52,46 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 	}
 }
 
+func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *testing.T) {
+	ctrl := &Controller{
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+
+	ctrl.setPluginStatus("spacewave-core", "", bldr_plugin.PluginState_PluginState_REQUESTED)
+	ctrl.recordPluginStatusError(
+		"spacewave-core",
+		"",
+		"execute plugin",
+		errors.New("web worker terminal failure before becoming ready: fatal wasm exit"),
+	)
+
+	status := ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
+	}
+	plugin := status.Plugins[0]
+	if got, want := plugin.GetLastErrorMessage(), "execute plugin: web worker terminal failure before becoming ready: fatal wasm exit"; got != want {
+		t.Fatalf("unexpected terminal failure status: got %q want %q", got, want)
+	}
+	if plugin.GetRunning() {
+		t.Fatal("failed generation should not report running")
+	}
+
+	ctrl.setPluginStatusClearingError("spacewave-core", "", bldr_plugin.PluginState_PluginState_RUNNING)
+	status = ctrl.GetPluginStatusCtr().GetValue()
+	plugin = status.Plugins[0]
+	if plugin.GetLastErrorMessage() != "" {
+		t.Fatalf("fresh running generation should clear terminal failure, got %q", plugin.GetLastErrorMessage())
+	}
+	if !plugin.GetRunning() {
+		t.Fatal("fresh generation should report running")
+	}
+}
+
 func TestIsPluginRunning(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(

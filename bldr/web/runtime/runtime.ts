@@ -97,6 +97,10 @@ export interface ClientToWebDocument {
   close?: true
   // failureReason indicates close was caused by a worker runtime failure.
   failureReason?: string
+  // frontendReady indicates frontend handlers and links are registered.
+  frontendReady?: true
+  // capabilityReady indicates the selected backend startup capability is ready.
+  capabilityReady?: true
   // ready indicates the worker finished startup and registered its runtime client.
   ready?: true
 }
@@ -171,6 +175,8 @@ export interface WebDocumentToClient {
   from: string
   // close indicates the web document is about to close.
   close?: true
+  // bridgePort is the MessagePort to use for WebRTC bridge commands.
+  bridgePort?: MessagePort
   // resumeReady indicates whether the WebDocument is past its foreground
   // resume gate.
   resumeReady?: boolean

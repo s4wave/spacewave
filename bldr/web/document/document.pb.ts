@@ -12,6 +12,126 @@ import {
 export const protobufPackage = 'web.document'
 
 /**
+ * WebWorkerGenerationState is the browser plugin worker generation lifecycle.
+ *
+ * @generated from enum web.document.WebWorkerGenerationState
+ */
+export enum WebWorkerGenerationState {
+  /**
+   * WEB_WORKER_GENERATION_STATE_UNKNOWN preserves old status producers.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED means the browser was asked
+   * to create a generation.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED = 1;
+   */
+  WORKER_REQUESTED = 1,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_WORKER_CREATED means the Worker object and
+   * init port exist.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_WORKER_CREATED = 2;
+   */
+  WORKER_CREATED = 2,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING means plugin startup is
+   * executing inside the worker.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING = 3;
+   */
+  STARTUP_RUNNING = 3,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_FRONTEND_READY means frontend handlers/assets
+   * are usable for the generation.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_FRONTEND_READY = 4;
+   */
+  FRONTEND_READY = 4,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_CAPABILITY_READY means the startup capability
+   * required by the current host path is ready.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_CAPABILITY_READY = 5;
+   */
+  CAPABILITY_READY = 5,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_RUNNING means the generation is fully running.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_RUNNING = 6;
+   */
+  RUNNING = 6,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_NORMAL_STOP means the generation stopped by
+   * explicit lifecycle removal.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_NORMAL_STOP = 7;
+   */
+  NORMAL_STOP = 7,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT means the host timed out while
+   * waiting for startup.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT = 8;
+   */
+  STARTUP_TIMEOUT = 8,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE means the worker reported a
+   * terminal runtime failure.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE = 9;
+   */
+  TERMINAL_FAILURE = 9,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN means the document lifecycle
+   * prevented generation startup.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN = 10;
+   */
+  LIFECYCLE_HIDDEN = 10,
+
+  /**
+   * WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET means a stream reset
+   * was handled as controlled lifecycle rather than terminal plugin failure.
+   *
+   * @generated from enum value: WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET = 11;
+   */
+  CONTROLLED_STREAM_RESET = 11,
+}
+
+// WebWorkerGenerationState_Enum is the enum type for WebWorkerGenerationState.
+export const WebWorkerGenerationState_Enum = createEnumType(
+  'web.document.WebWorkerGenerationState',
+  [
+    { no: 0, name: 'WEB_WORKER_GENERATION_STATE_UNKNOWN' },
+    { no: 1, name: 'WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED' },
+    { no: 2, name: 'WEB_WORKER_GENERATION_STATE_WORKER_CREATED' },
+    { no: 3, name: 'WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING' },
+    { no: 4, name: 'WEB_WORKER_GENERATION_STATE_FRONTEND_READY' },
+    { no: 5, name: 'WEB_WORKER_GENERATION_STATE_CAPABILITY_READY' },
+    { no: 6, name: 'WEB_WORKER_GENERATION_STATE_RUNNING' },
+    { no: 7, name: 'WEB_WORKER_GENERATION_STATE_NORMAL_STOP' },
+    { no: 8, name: 'WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT' },
+    { no: 9, name: 'WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE' },
+    { no: 10, name: 'WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN' },
+    { no: 11, name: 'WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET' },
+  ],
+)
+
+/**
  * WebWorkerType specifies the type of worker to create.
  *
  * @generated from enum web.document.WebWorkerType
@@ -182,6 +302,12 @@ export interface WebWorkerStatus {
    * @generated from field: string failure_reason = 6;
    */
   failureReason?: string
+  /**
+   * GenerationState is the typed lifecycle state for the worker generation.
+   *
+   * @generated from field: web.document.WebWorkerGenerationState generation_state = 7;
+   */
+  generationState?: WebWorkerGenerationState
 }
 
 // WebWorkerStatus contains the message type declaration for WebWorkerStatus.
@@ -194,6 +320,12 @@ export const WebWorkerStatus: MessageType<WebWorkerStatus> = createMessageType({
     { no: 4, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'failed', kind: 'scalar', T: ScalarType.BOOL },
     { no: 6, name: 'failure_reason', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 7,
+      name: 'generation_state',
+      kind: 'enum',
+      T: WebWorkerGenerationState_Enum,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

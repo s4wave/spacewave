@@ -298,7 +298,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 	value: mod,
 	enumerable: true
 }) : target, mod));
-var require_event_iterator = __commonJS({ "../../../../../starpc/node_modules/event-iterator/lib/event-iterator.js"(exports) {
+var require_event_iterator = __commonJS({ "../../../../node_modules/event-iterator/lib/event-iterator.js"(exports) {
 	"use strict";
 	Object.defineProperty(exports, "__esModule", { value: true });
 	var EventQueue = class {
@@ -388,7 +388,7 @@ var require_event_iterator = __commonJS({ "../../../../../starpc/node_modules/ev
 			};
 		}
 	};
-	var EventIterator6 = class {
+	var EventIterator4 = class {
 		constructor(listen, { highWaterMark = 100, lowWaterMark = 1 } = {}) {
 			const queue = new EventQueue();
 			queue.highWaterMark = highWaterMark;
@@ -405,10 +405,10 @@ var require_event_iterator = __commonJS({ "../../../../../starpc/node_modules/ev
 			Object.freeze(this);
 		}
 	};
-	exports.EventIterator = EventIterator6;
-	exports.default = EventIterator6;
+	exports.EventIterator = EventIterator4;
+	exports.default = EventIterator4;
 } });
-var require_dom = __commonJS({ "../../../../../starpc/node_modules/event-iterator/lib/dom.js"(exports) {
+var require_dom = __commonJS({ "../../../../node_modules/event-iterator/lib/dom.js"(exports) {
 	"use strict";
 	Object.defineProperty(exports, "__esModule", { value: true });
 	var event_iterator_1 = require_event_iterator();
@@ -537,7 +537,7 @@ function _pushable(getNext, options) {
 	options = options ?? {};
 	let onEnd = options.onEnd;
 	let buffer = new FIFO();
-	let pushable3;
+	let pushable2;
 	let onNext;
 	let ended;
 	let drain = pDefer();
@@ -554,7 +554,7 @@ function _pushable(getNext, options) {
 					} catch (err) {
 						reject(err);
 					}
-					return pushable3;
+					return pushable2;
 				};
 			});
 		} finally {
@@ -567,16 +567,16 @@ function _pushable(getNext, options) {
 	const bufferNext = (next) => {
 		if (onNext != null) return onNext(next);
 		buffer.push(next);
-		return pushable3;
+		return pushable2;
 	};
 	const bufferError = (err) => {
 		buffer = new FIFO();
 		if (onNext != null) return onNext({ error: err });
 		buffer.push({ error: err });
-		return pushable3;
+		return pushable2;
 	};
 	const push = (value) => {
-		if (ended) return pushable3;
+		if (ended) return pushable2;
 		if (options?.objectMode !== true && value?.byteLength == null) throw new Error("objectMode was not true but tried to push non-Uint8Array value");
 		return bufferNext({
 			done: false,
@@ -584,7 +584,7 @@ function _pushable(getNext, options) {
 		});
 	};
 	const end = (err) => {
-		if (ended) return pushable3;
+		if (ended) return pushable2;
 		ended = true;
 		return err != null ? bufferError(err) : bufferNext({ done: true });
 	};
@@ -597,7 +597,7 @@ function _pushable(getNext, options) {
 		end(err);
 		return { done: true };
 	};
-	pushable3 = {
+	pushable2 = {
 		[Symbol.asyncIterator]() {
 			return this;
 		},
@@ -628,17 +628,17 @@ function _pushable(getNext, options) {
 			}
 		}
 	};
-	if (onEnd == null) return pushable3;
-	const _pushable3 = pushable3;
-	pushable3 = {
+	if (onEnd == null) return pushable2;
+	const _pushable2 = pushable2;
+	pushable2 = {
 		[Symbol.asyncIterator]() {
 			return this;
 		},
 		next() {
-			return _pushable3.next();
+			return _pushable2.next();
 		},
 		throw(err) {
-			_pushable3.throw(err);
+			_pushable2.throw(err);
 			if (onEnd != null) {
 				onEnd(err);
 				onEnd = void 0;
@@ -646,7 +646,7 @@ function _pushable(getNext, options) {
 			return { done: true };
 		},
 		return() {
-			_pushable3.return();
+			_pushable2.return();
 			if (onEnd != null) {
 				onEnd();
 				onEnd = void 0;
@@ -655,21 +655,21 @@ function _pushable(getNext, options) {
 		},
 		push,
 		end(err) {
-			_pushable3.end(err);
+			_pushable2.end(err);
 			if (onEnd != null) {
 				onEnd(err);
 				onEnd = void 0;
 			}
-			return pushable3;
+			return pushable2;
 		},
 		get readableLength() {
-			return _pushable3.readableLength;
+			return _pushable2.readableLength;
 		},
 		onEmpty: (opts) => {
-			return _pushable3.onEmpty(opts);
+			return _pushable2.onEmpty(opts);
 		}
 	};
-	return pushable3;
+	return pushable2;
 }
 function defaultTranslate(signal) {
 	return signal.reason;
@@ -1128,28 +1128,28 @@ function makeInt64Support() {
 }
 var protoInt64 = makeInt64Support();
 var ScalarType;
-(function(ScalarType3) {
-	ScalarType3[ScalarType3["DOUBLE"] = 1] = "DOUBLE";
-	ScalarType3[ScalarType3["FLOAT"] = 2] = "FLOAT";
-	ScalarType3[ScalarType3["INT64"] = 3] = "INT64";
-	ScalarType3[ScalarType3["UINT64"] = 4] = "UINT64";
-	ScalarType3[ScalarType3["INT32"] = 5] = "INT32";
-	ScalarType3[ScalarType3["FIXED64"] = 6] = "FIXED64";
-	ScalarType3[ScalarType3["FIXED32"] = 7] = "FIXED32";
-	ScalarType3[ScalarType3["BOOL"] = 8] = "BOOL";
-	ScalarType3[ScalarType3["STRING"] = 9] = "STRING";
-	ScalarType3[ScalarType3["BYTES"] = 12] = "BYTES";
-	ScalarType3[ScalarType3["UINT32"] = 13] = "UINT32";
-	ScalarType3[ScalarType3["SFIXED32"] = 15] = "SFIXED32";
-	ScalarType3[ScalarType3["SFIXED64"] = 16] = "SFIXED64";
-	ScalarType3[ScalarType3["SINT32"] = 17] = "SINT32";
-	ScalarType3[ScalarType3["SINT64"] = 18] = "SINT64";
-	ScalarType3[ScalarType3["DATE"] = 100] = "DATE";
+(function(ScalarType2) {
+	ScalarType2[ScalarType2["DOUBLE"] = 1] = "DOUBLE";
+	ScalarType2[ScalarType2["FLOAT"] = 2] = "FLOAT";
+	ScalarType2[ScalarType2["INT64"] = 3] = "INT64";
+	ScalarType2[ScalarType2["UINT64"] = 4] = "UINT64";
+	ScalarType2[ScalarType2["INT32"] = 5] = "INT32";
+	ScalarType2[ScalarType2["FIXED64"] = 6] = "FIXED64";
+	ScalarType2[ScalarType2["FIXED32"] = 7] = "FIXED32";
+	ScalarType2[ScalarType2["BOOL"] = 8] = "BOOL";
+	ScalarType2[ScalarType2["STRING"] = 9] = "STRING";
+	ScalarType2[ScalarType2["BYTES"] = 12] = "BYTES";
+	ScalarType2[ScalarType2["UINT32"] = 13] = "UINT32";
+	ScalarType2[ScalarType2["SFIXED32"] = 15] = "SFIXED32";
+	ScalarType2[ScalarType2["SFIXED64"] = 16] = "SFIXED64";
+	ScalarType2[ScalarType2["SINT32"] = 17] = "SINT32";
+	ScalarType2[ScalarType2["SINT64"] = 18] = "SINT64";
+	ScalarType2[ScalarType2["DATE"] = 100] = "DATE";
 })(ScalarType || (ScalarType = {}));
 var LongType;
-(function(LongType3) {
-	LongType3[LongType3["BIGINT"] = 0] = "BIGINT";
-	LongType3[LongType3["STRING"] = 1] = "STRING";
+(function(LongType2) {
+	LongType2[LongType2["BIGINT"] = 0] = "BIGINT";
+	LongType2[LongType2["STRING"] = 1] = "STRING";
 })(LongType || (LongType = {}));
 function scalarEquals(type, a2, b) {
 	if (a2 === b) return true;
@@ -1356,18 +1356,18 @@ function newFieldList(fields, packedByDefault) {
 	return new FieldList(fields, (source) => normalizeFieldInfos(source, packedByDefault));
 }
 function isFieldSet(field, target) {
-	const localName3 = field.localName;
+	const localName2 = field.localName;
 	if (!target) return false;
-	if (field.repeated) return !!target[localName3]?.length;
-	if (field.oneof) return target[field.oneof.localName]?.case === localName3;
+	if (field.repeated) return !!target[localName2]?.length;
+	if (field.oneof) return target[field.oneof.localName]?.case === localName2;
 	switch (field.kind) {
 		case "enum":
 		case "scalar":
-			if (field.opt || field.req) return target[localName3] != null;
-			if (field.kind == "enum") return target[localName3] !== field.T.values[0].no;
-			return !isScalarZeroValue(field.T, target[localName3]);
-		case "message": return target[localName3] != null;
-		case "map": return target[localName3] != null && !!Object.keys(target[localName3]).length;
+			if (field.opt || field.req) return target[localName2] != null;
+			if (field.kind == "enum") return target[localName2] !== field.T.values[0].no;
+			return !isScalarZeroValue(field.T, target[localName2]);
+		case "message": return target[localName2] != null;
+		case "map": return target[localName2] != null && !!Object.keys(target[localName2]).length;
 	}
 }
 var fieldJsonName = protoCamelCase;
@@ -1394,12 +1394,12 @@ var InternalOneofInfo = class {
 		assert(field.oneof === this, `field ${field.name} not one of ${this.name}`);
 		this.fields.push(field);
 	}
-	findField(localName3) {
+	findField(localName2) {
 		if (!this._lookup) {
 			this._lookup = /* @__PURE__ */ Object.create(null);
 			for (let i2 = 0; i2 < this.fields.length; i2++) this._lookup[this.fields[i2].localName] = this.fields[i2];
 		}
-		return this._lookup[localName3];
+		return this._lookup[localName2];
 	}
 };
 function normalizeFieldInfos(fieldInfos, packedByDefault) {
@@ -1426,6 +1426,30 @@ function normalizeFieldInfos(fieldInfos, packedByDefault) {
 	}
 	return r2;
 }
+function createEnumType(typeName, values) {
+	const names = /* @__PURE__ */ Object.create(null);
+	const numbers = /* @__PURE__ */ Object.create(null);
+	const normalValues = [];
+	for (const value of values) {
+		const n2 = "localName" in value ? value : {
+			...value,
+			localName: value.name
+		};
+		normalValues.push(n2);
+		names[value.name] = n2;
+		numbers[value.no] = n2;
+	}
+	return {
+		typeName,
+		values: normalValues,
+		findName(name) {
+			return names[name];
+		},
+		findNumber(no) {
+			return numbers[no];
+		}
+	};
+}
 function enumZeroValue(info) {
 	if (info.values.length < 1) throw new Error("invalid enum: missing at least one value");
 	return info.values[0].no;
@@ -1445,25 +1469,25 @@ function applyPartialMessage(source, target, fields, clone = false) {
 	if (source == null || target == null) return;
 	const t2 = target, s2 = source;
 	for (const member of fields.byMember()) {
-		const localName3 = member.localName;
-		throwSanitizeKey(localName3);
-		if (!(localName3 in s2) || s2[localName3] === void 0) continue;
-		const sourceValue = s2[localName3];
+		const localName2 = member.localName;
+		throwSanitizeKey(localName2);
+		if (!(localName2 in s2) || s2[localName2] === void 0) continue;
+		const sourceValue = s2[localName2];
 		if (sourceValue === null) {
-			delete t2[localName3];
+			delete t2[localName2];
 			continue;
 		}
 		switch (member.kind) {
 			case "oneof": {
-				if (typeof sourceValue !== "object") throw new Error(`field ${localName3}: invalid oneof: must be an object with case and value`);
+				if (typeof sourceValue !== "object") throw new Error(`field ${localName2}: invalid oneof: must be an object with case and value`);
 				const { case: sk, value: sv } = sourceValue;
 				const sourceField = sk != null ? member.findField(sk) : null;
-				let dv = localName3 in t2 ? t2[localName3] : void 0;
+				let dv = localName2 in t2 ? t2[localName2] : void 0;
 				if (typeof dv !== "object") dv = /* @__PURE__ */ Object.create(null);
-				if (sk != null && sourceField == null) throw new Error(`field ${localName3}: invalid oneof case: ${sk}`);
+				if (sk != null && sourceField == null) throw new Error(`field ${localName2}: invalid oneof case: ${sk}`);
 				dv.case = sk;
 				if (dv.case !== sk || sk == null) delete dv.value;
-				t2[localName3] = dv;
+				t2[localName2] = dv;
 				if (!sourceField) break;
 				if (sourceField.kind === "message") {
 					let dest = dv.value;
@@ -1478,39 +1502,39 @@ function applyPartialMessage(source, target, fields, clone = false) {
 			}
 			case "scalar":
 				if (member.repeated) {
-					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName3}: invalid value: must be array`);
-					let dst = localName3 in t2 ? t2[localName3] : null;
-					if (dst == null || !Array.isArray(dst)) dst = t2[localName3] = [];
+					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName2}: invalid value: must be array`);
+					let dst = localName2 in t2 ? t2[localName2] : null;
+					if (dst == null || !Array.isArray(dst)) dst = t2[localName2] = [];
 					dst.push(...sourceValue.map((v2) => normalizeScalarValue(member.T, v2, clone)));
 					break;
 				}
-				t2[localName3] = normalizeScalarValue(member.T, sourceValue, clone);
+				t2[localName2] = normalizeScalarValue(member.T, sourceValue, clone);
 				break;
 			case "enum":
-				t2[localName3] = normalizeEnumValue(member.T, sourceValue);
+				t2[localName2] = normalizeEnumValue(member.T, sourceValue);
 				break;
 			case "map": {
 				if (typeof sourceValue !== "object") throw new Error(`field ${member.localName}: invalid value: must be object`);
-				let tMap = t2[localName3];
-				if (typeof tMap !== "object") tMap = t2[localName3] = /* @__PURE__ */ Object.create(null);
+				let tMap = t2[localName2];
+				if (typeof tMap !== "object") tMap = t2[localName2] = /* @__PURE__ */ Object.create(null);
 				applyPartialMap(sourceValue, tMap, member.V, clone);
 				break;
 			}
 			case "message": {
 				const mt = resolveMessageType(member.T);
 				if (member.repeated) {
-					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName3}: invalid value: must be array`);
-					let tArr = t2[localName3];
-					if (!Array.isArray(tArr)) tArr = t2[localName3] = [];
+					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName2}: invalid value: must be array`);
+					let tArr = t2[localName2];
+					if (!Array.isArray(tArr)) tArr = t2[localName2] = [];
 					for (const v2 of sourceValue) if (v2 != null) if (mt.fieldWrapper) tArr.push(mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(v2)));
 					else tArr.push(mt.create(v2));
 					break;
 				}
-				if (mt.fieldWrapper) t2[localName3] = mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(sourceValue));
+				if (mt.fieldWrapper) t2[localName2] = mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(sourceValue));
 				else {
 					if (typeof sourceValue !== "object") throw new Error(`field ${member.localName}: invalid value: must be object`);
-					let destMsg = t2[localName3];
-					if (typeof destMsg !== "object") destMsg = t2[localName3] = /* @__PURE__ */ Object.create(null);
+					let destMsg = t2[localName2];
+					if (typeof destMsg !== "object") destMsg = t2[localName2] = /* @__PURE__ */ Object.create(null);
 					applyPartialMessage(sourceValue, destMsg, mt.fields);
 				}
 				break;
@@ -1574,13 +1598,13 @@ function unwrapField(fieldWrapper, value) {
 }
 ScalarType.DATE, ScalarType.DOUBLE, ScalarType.FLOAT, ScalarType.INT64, ScalarType.UINT64, ScalarType.INT32, ScalarType.UINT32, ScalarType.BOOL, ScalarType.STRING, ScalarType.BYTES;
 var WireType;
-(function(WireType3) {
-	WireType3[WireType3["Varint"] = 0] = "Varint";
-	WireType3[WireType3["Bit64"] = 1] = "Bit64";
-	WireType3[WireType3["LengthDelimited"] = 2] = "LengthDelimited";
-	WireType3[WireType3["StartGroup"] = 3] = "StartGroup";
-	WireType3[WireType3["EndGroup"] = 4] = "EndGroup";
-	WireType3[WireType3["Bit32"] = 5] = "Bit32";
+(function(WireType2) {
+	WireType2[WireType2["Varint"] = 0] = "Varint";
+	WireType2[WireType2["Bit64"] = 1] = "Bit64";
+	WireType2[WireType2["LengthDelimited"] = 2] = "LengthDelimited";
+	WireType2[WireType2["StartGroup"] = 3] = "StartGroup";
+	WireType2[WireType2["EndGroup"] = 4] = "EndGroup";
+	WireType2[WireType2["Bit32"] = 5] = "Bit32";
 })(WireType || (WireType = {}));
 var BinaryWriter = class {
 	/**
@@ -1988,14 +2012,14 @@ function makeWriteOptions(options) {
 }
 function readField(target, reader, field, wireType, options) {
 	const { repeated } = field;
-	let { localName: localName3 } = field;
+	let { localName: localName2 } = field;
 	if (field.oneof) {
 		let oneofMsg = target[field.oneof.localName];
 		if (!oneofMsg) oneofMsg = target[field.oneof.localName] = /* @__PURE__ */ Object.create(null);
 		target = oneofMsg;
-		if (target.case != localName3) delete target.value;
-		target.case = localName3;
-		localName3 = "value";
+		if (target.case != localName2) delete target.value;
+		target.case = localName2;
+		localName2 = "value";
 	}
 	switch (field.kind) {
 		case "scalar":
@@ -2004,29 +2028,29 @@ function readField(target, reader, field, wireType, options) {
 			let read = readScalar;
 			if (field.kind == "scalar" && field.L > 0) read = readScalarLTString;
 			if (repeated) {
-				let tgtArr = target[localName3];
-				if (!Array.isArray(tgtArr)) tgtArr = target[localName3] = [];
+				let tgtArr = target[localName2];
+				if (!Array.isArray(tgtArr)) tgtArr = target[localName2] = [];
 				if (wireType == WireType.LengthDelimited && scalarType != ScalarType.STRING && scalarType != ScalarType.BYTES) {
 					const e2 = reader.uint32() + reader.pos;
 					while (reader.pos < e2) tgtArr.push(read(reader, scalarType));
 				} else tgtArr.push(read(reader, scalarType));
-			} else target[localName3] = read(reader, scalarType);
+			} else target[localName2] = read(reader, scalarType);
 			break;
 		}
 		case "message": {
 			const fieldT = field.T;
 			const messageType = fieldT instanceof Function ? fieldT() : fieldT;
 			if (repeated) {
-				let tgtArr = target[localName3];
-				if (!Array.isArray(tgtArr)) tgtArr = target[localName3] = [];
+				let tgtArr = target[localName2];
+				if (!Array.isArray(tgtArr)) tgtArr = target[localName2] = [];
 				tgtArr.push(unwrapField(messageType.fieldWrapper, readMessageField(reader, /* @__PURE__ */ Object.create(null), messageType.fields, options, field)));
-			} else target[localName3] = unwrapField(messageType.fieldWrapper, readMessageField(reader, /* @__PURE__ */ Object.create(null), messageType.fields, options, field));
+			} else target[localName2] = unwrapField(messageType.fieldWrapper, readMessageField(reader, /* @__PURE__ */ Object.create(null), messageType.fields, options, field));
 			break;
 		}
 		case "map": {
 			const [mapKey, mapVal] = readMapEntry(field, reader, options);
-			if (typeof target[localName3] !== "object") target[localName3] = /* @__PURE__ */ Object.create(null);
-			target[localName3][mapKey] = mapVal;
+			if (typeof target[localName2] !== "object") target[localName2] = /* @__PURE__ */ Object.create(null);
+			target[localName2][mapKey] = mapVal;
 			break;
 		}
 	}
@@ -2384,13 +2408,13 @@ function writeMessage2(message, fields, options) {
 	return json;
 }
 function readField2(target, jsonValue, field, options) {
-	let localName3 = field.localName;
+	let localName2 = field.localName;
 	if (field.repeated) {
 		assert(field.kind != "map");
 		if (jsonValue === null) return;
 		if (!Array.isArray(jsonValue)) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue(jsonValue)}`);
-		let targetArray = target[localName3];
-		if (!Array.isArray(targetArray)) targetArray = target[localName3] = [];
+		let targetArray = target[localName2];
+		if (!Array.isArray(targetArray)) targetArray = target[localName2] = [];
 		for (const jsonItem of jsonValue) {
 			if (jsonItem === null) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue(jsonItem)}`);
 			switch (field.kind) {
@@ -2418,8 +2442,8 @@ function readField2(target, jsonValue, field, options) {
 	} else if (field.kind == "map") {
 		if (jsonValue === null) return;
 		if (typeof jsonValue != "object" || Array.isArray(jsonValue)) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue(jsonValue)}`);
-		let targetMap = target[localName3];
-		if (typeof targetMap !== "object") targetMap = target[localName3] = /* @__PURE__ */ Object.create(null);
+		let targetMap = target[localName2];
+		if (typeof targetMap !== "object") targetMap = target[localName2] = /* @__PURE__ */ Object.create(null);
 		for (const [jsonMapKey, jsonMapValue] of Object.entries(jsonValue)) {
 			if (jsonMapValue === null) throw new Error(`cannot decode field ${field.name} from JSON: map value null`);
 			let key;
@@ -2455,14 +2479,14 @@ function readField2(target, jsonValue, field, options) {
 		}
 	} else {
 		if (field.oneof) {
-			target = target[field.oneof.localName] = { case: localName3 };
-			localName3 = "value";
+			target = target[field.oneof.localName] = { case: localName2 };
+			localName2 = "value";
 		}
 		switch (field.kind) {
 			case "message": {
 				const messageType = resolveMessageType(field.T);
 				if (jsonValue === null && messageType.typeName != "google.protobuf.Value") return;
-				target[localName3] = unwrapField(messageType.fieldWrapper, messageType.fromJson(jsonValue, options));
+				target[localName2] = unwrapField(messageType.fieldWrapper, messageType.fromJson(jsonValue, options));
 				break;
 			}
 			case "enum": {
@@ -2473,7 +2497,7 @@ function readField2(target, jsonValue, field, options) {
 						break;
 					case tokenIgnoredUnknownEnum: break;
 					default:
-						target[localName3] = enumValue;
+						target[localName2] = enumValue;
 						break;
 				}
 				break;
@@ -2486,7 +2510,7 @@ function readField2(target, jsonValue, field, options) {
 							clearField(field, target);
 							break;
 						default:
-							target[localName3] = scalarValue;
+							target[localName2] = scalarValue;
 							break;
 					}
 				} catch (e2) {
@@ -2591,22 +2615,22 @@ function readMapKey(type, json) {
 	return readScalar2(type, json, LongType.BIGINT, true)?.toString() ?? "";
 }
 function clearField(field, target) {
-	const localName3 = field.localName;
+	const localName2 = field.localName;
 	const implicitPresence = !field.opt && !field.req;
-	if (field.repeated) target[localName3] = [];
+	if (field.repeated) target[localName2] = [];
 	else if (field.oneof) target[field.oneof.localName] = { case: void 0 };
 	else switch (field.kind) {
 		case "map":
-			target[localName3] = /* @__PURE__ */ Object.create(null);
+			target[localName2] = /* @__PURE__ */ Object.create(null);
 			break;
 		case "enum":
-			target[localName3] = implicitPresence ? field.T.values[0].no : void 0;
+			target[localName2] = implicitPresence ? field.T.values[0].no : void 0;
 			break;
 		case "scalar":
-			target[localName3] = implicitPresence ? scalarZeroValue(field.T, field.L) : void 0;
+			target[localName2] = implicitPresence ? scalarZeroValue(field.T, field.L) : void 0;
 			break;
 		case "message":
-			target[localName3] = void 0;
+			target[localName2] = void 0;
 			break;
 	}
 }
@@ -2847,32 +2871,32 @@ function cloneMessage(message, fields) {
 function createCompleteMessage(fields) {
 	const message = {};
 	for (const field of fields.byMember()) {
-		const { localName: localName3, kind: fieldKind } = field;
-		throwSanitizeKey(localName3);
+		const { localName: localName2, kind: fieldKind } = field;
+		throwSanitizeKey(localName2);
 		switch (fieldKind) {
 			case "oneof":
-				message[localName3] = /* @__PURE__ */ Object.create(null);
-				message[localName3].case = void 0;
+				message[localName2] = /* @__PURE__ */ Object.create(null);
+				message[localName2].case = void 0;
 				break;
 			case "scalar":
-				if (field.repeated) message[localName3] = [];
-				else message[localName3] = scalarZeroValue(field.T, LongType.BIGINT);
+				if (field.repeated) message[localName2] = [];
+				else message[localName2] = scalarZeroValue(field.T, LongType.BIGINT);
 				break;
 			case "enum":
-				message[localName3] = field.repeated ? [] : enumZeroValue(field.T);
+				message[localName2] = field.repeated ? [] : enumZeroValue(field.T);
 				break;
 			case "message": {
 				if (field.oneof) break;
 				if (field.repeated) {
-					message[localName3] = [];
+					message[localName2] = [];
 					break;
 				}
 				const messageType = resolveMessageType(field.T);
-				message[localName3] = messageType.fieldWrapper ? messageType.fieldWrapper.unwrapField(null) : createCompleteMessage(messageType.fields);
+				message[localName2] = messageType.fieldWrapper ? messageType.fieldWrapper.unwrapField(null) : createCompleteMessage(messageType.fields);
 				break;
 			}
 			case "map":
-				message[localName3] = /* @__PURE__ */ Object.create(null);
+				message[localName2] = /* @__PURE__ */ Object.create(null);
 				break;
 			default:
 		}
@@ -2880,16 +2904,16 @@ function createCompleteMessage(fields) {
 	return message;
 }
 var MethodKind;
-(function(MethodKind3) {
-	MethodKind3[MethodKind3["Unary"] = 0] = "Unary";
-	MethodKind3[MethodKind3["ServerStreaming"] = 1] = "ServerStreaming";
-	MethodKind3[MethodKind3["ClientStreaming"] = 2] = "ClientStreaming";
-	MethodKind3[MethodKind3["BiDiStreaming"] = 3] = "BiDiStreaming";
+(function(MethodKind2) {
+	MethodKind2[MethodKind2["Unary"] = 0] = "Unary";
+	MethodKind2[MethodKind2["ServerStreaming"] = 1] = "ServerStreaming";
+	MethodKind2[MethodKind2["ClientStreaming"] = 2] = "ClientStreaming";
+	MethodKind2[MethodKind2["BiDiStreaming"] = 3] = "BiDiStreaming";
 })(MethodKind || (MethodKind = {}));
 var MethodIdempotency;
-(function(MethodIdempotency4) {
-	MethodIdempotency4[MethodIdempotency4["NoSideEffects"] = 1] = "NoSideEffects";
-	MethodIdempotency4[MethodIdempotency4["Idempotent"] = 2] = "Idempotent";
+(function(MethodIdempotency2) {
+	MethodIdempotency2[MethodIdempotency2["NoSideEffects"] = 1] = "NoSideEffects";
+	MethodIdempotency2[MethodIdempotency2["Idempotent"] = 2] = "Idempotent";
 })(MethodIdempotency || (MethodIdempotency = {}));
 Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY;
 var packageName = "@aptre/protobuf-es-lite";
@@ -3752,6 +3776,375 @@ async function raceSignal2(promise, signal, opts) {
 		if (listener != null) signal.removeEventListener("abort", listener);
 	}
 }
+function alloc2(size = 0) {
+	return new Uint8Array(size);
+}
+function allocUnsafe2(size = 0) {
+	return new Uint8Array(size);
+}
+function asUint8Array2(buf) {
+	return buf;
+}
+function concat2(arrays, length) {
+	if (length == null) length = arrays.reduce((acc, curr) => acc + curr.length, 0);
+	const output = allocUnsafe2(length);
+	let offset = 0;
+	for (const arr of arrays) {
+		output.set(arr, offset);
+		offset += arr.length;
+	}
+	return asUint8Array2(output);
+}
+function equals2(a2, b) {
+	if (a2 === b) return true;
+	if (a2.byteLength !== b.byteLength) return false;
+	for (let i2 = 0; i2 < a2.byteLength; i2++) if (a2[i2] !== b[i2]) return false;
+	return true;
+}
+var symbol2 = /* @__PURE__ */ Symbol.for("@achingbrain/uint8arraylist");
+function findBufAndOffset2(bufs, index) {
+	if (index == null || index < 0) throw new RangeError("index is out of bounds");
+	let offset = 0;
+	for (const buf of bufs) {
+		const bufEnd = offset + buf.byteLength;
+		if (index < bufEnd) return {
+			buf,
+			index: index - offset
+		};
+		offset = bufEnd;
+	}
+	throw new RangeError("index is out of bounds");
+}
+function isUint8ArrayList2(value) {
+	return Boolean(value?.[symbol2]);
+}
+var Uint8ArrayList2 = class _Uint8ArrayList {
+	bufs;
+	length;
+	[symbol2] = true;
+	constructor(...data) {
+		this.bufs = [];
+		this.length = 0;
+		if (data.length > 0) this.appendAll(data);
+	}
+	*[Symbol.iterator]() {
+		yield* this.bufs;
+	}
+	get byteLength() {
+		return this.length;
+	}
+	/**
+	* Add one or more `bufs` to the end of this Uint8ArrayList
+	*/
+	append(...bufs) {
+		this.appendAll(bufs);
+	}
+	/**
+	* Add all `bufs` to the end of this Uint8ArrayList
+	*/
+	appendAll(bufs) {
+		let length = 0;
+		for (const buf of bufs) if (buf instanceof Uint8Array) {
+			length += buf.byteLength;
+			this.bufs.push(buf);
+		} else if (isUint8ArrayList2(buf)) {
+			length += buf.byteLength;
+			for (const chunk of buf.bufs) this.bufs.push(chunk);
+		} else throw new Error("Could not append value, must be an Uint8Array or a Uint8ArrayList");
+		this.length += length;
+	}
+	/**
+	* Add one or more `bufs` to the start of this Uint8ArrayList
+	*/
+	prepend(...bufs) {
+		this.prependAll(bufs);
+	}
+	/**
+	* Add all `bufs` to the start of this Uint8ArrayList
+	*/
+	prependAll(bufs) {
+		let length = 0;
+		for (const buf of bufs.reverse()) if (buf instanceof Uint8Array) {
+			length += buf.byteLength;
+			this.bufs.unshift(buf);
+		} else if (isUint8ArrayList2(buf)) {
+			length += buf.byteLength;
+			this.bufs.unshift(...buf.bufs);
+		} else throw new Error("Could not prepend value, must be an Uint8Array or a Uint8ArrayList");
+		this.length += length;
+	}
+	/**
+	* Read the value at `index`
+	*/
+	get(index) {
+		const res = findBufAndOffset2(this.bufs, index);
+		return res.buf[res.index];
+	}
+	/**
+	* Set the value at `index` to `value`
+	*/
+	set(index, value) {
+		const res = findBufAndOffset2(this.bufs, index);
+		res.buf[res.index] = value;
+	}
+	/**
+	* Copy bytes from `buf` to the index specified by `offset`
+	*/
+	write(buf, offset = 0) {
+		if (buf instanceof Uint8Array) for (let i2 = 0; i2 < buf.length; i2++) this.set(offset + i2, buf[i2]);
+		else if (isUint8ArrayList2(buf)) for (let i2 = 0; i2 < buf.length; i2++) this.set(offset + i2, buf.get(i2));
+		else throw new Error("Could not write value, must be an Uint8Array or a Uint8ArrayList");
+	}
+	/**
+	* Remove bytes from the front of the pool
+	*/
+	consume(bytes) {
+		bytes = Math.trunc(bytes);
+		if (Number.isNaN(bytes) || bytes <= 0) return;
+		if (bytes === this.byteLength) {
+			this.bufs = [];
+			this.length = 0;
+			return;
+		}
+		while (this.bufs.length > 0) if (bytes >= this.bufs[0].byteLength) {
+			bytes -= this.bufs[0].byteLength;
+			this.length -= this.bufs[0].byteLength;
+			this.bufs.shift();
+		} else {
+			this.bufs[0] = this.bufs[0].subarray(bytes);
+			this.length -= bytes;
+			break;
+		}
+	}
+	/**
+	* Extracts a section of an array and returns a new array.
+	*
+	* This is a copy operation as it is with Uint8Arrays and Arrays
+	* - note this is different to the behaviour of Node Buffers.
+	*/
+	slice(beginInclusive, endExclusive) {
+		const { bufs, length } = this._subList(beginInclusive, endExclusive);
+		return concat2(bufs, length);
+	}
+	/**
+	* Returns a alloc from the given start and end element index.
+	*
+	* In the best case where the data extracted comes from a single Uint8Array
+	* internally this is a no-copy operation otherwise it is a copy operation.
+	*/
+	subarray(beginInclusive, endExclusive) {
+		const { bufs, length } = this._subList(beginInclusive, endExclusive);
+		if (bufs.length === 1) return bufs[0];
+		return concat2(bufs, length);
+	}
+	/**
+	* Returns a new Uint8ArrayList from the given start and end element index.
+	*
+	* This is a no-copy operation.
+	*/
+	sublist(beginInclusive, endExclusive) {
+		const { bufs, length } = this._subList(beginInclusive, endExclusive);
+		const list = new _Uint8ArrayList();
+		list.length = length;
+		list.bufs = bufs;
+		return list;
+	}
+	_subList(beginInclusive, endExclusive) {
+		beginInclusive = beginInclusive ?? 0;
+		endExclusive = endExclusive ?? this.length;
+		if (beginInclusive < 0) beginInclusive = this.length + beginInclusive;
+		if (endExclusive < 0) endExclusive = this.length + endExclusive;
+		if (beginInclusive < 0 || endExclusive > this.length) throw new RangeError("index is out of bounds");
+		if (beginInclusive === endExclusive) return {
+			bufs: [],
+			length: 0
+		};
+		if (beginInclusive === 0 && endExclusive === this.length) return {
+			bufs: [...this.bufs],
+			length: this.length
+		};
+		const bufs = [];
+		let offset = 0;
+		for (let i2 = 0; i2 < this.bufs.length; i2++) {
+			const buf = this.bufs[i2];
+			const bufStart = offset;
+			const bufEnd = bufStart + buf.byteLength;
+			offset = bufEnd;
+			if (beginInclusive >= bufEnd) continue;
+			const sliceStartInBuf = beginInclusive >= bufStart && beginInclusive < bufEnd;
+			const sliceEndsInBuf = endExclusive > bufStart && endExclusive <= bufEnd;
+			if (sliceStartInBuf && sliceEndsInBuf) {
+				if (beginInclusive === bufStart && endExclusive === bufEnd) {
+					bufs.push(buf);
+					break;
+				}
+				const start = beginInclusive - bufStart;
+				bufs.push(buf.subarray(start, start + (endExclusive - beginInclusive)));
+				break;
+			}
+			if (sliceStartInBuf) {
+				if (beginInclusive === 0) {
+					bufs.push(buf);
+					continue;
+				}
+				bufs.push(buf.subarray(beginInclusive - bufStart));
+				continue;
+			}
+			if (sliceEndsInBuf) {
+				if (endExclusive === bufEnd) {
+					bufs.push(buf);
+					break;
+				}
+				bufs.push(buf.subarray(0, endExclusive - bufStart));
+				break;
+			}
+			bufs.push(buf);
+		}
+		return {
+			bufs,
+			length: endExclusive - beginInclusive
+		};
+	}
+	indexOf(search, offset = 0) {
+		if (!isUint8ArrayList2(search) && !(search instanceof Uint8Array)) throw new TypeError("The \"value\" argument must be a Uint8ArrayList or Uint8Array");
+		const needle = search instanceof Uint8Array ? search : search.subarray();
+		offset = Number(offset ?? 0);
+		if (isNaN(offset)) offset = 0;
+		if (offset < 0) offset = this.length + offset;
+		if (offset < 0) offset = 0;
+		if (search.length === 0) return offset > this.length ? this.length : offset;
+		const M = needle.byteLength;
+		if (M === 0) throw new TypeError("search must be at least 1 byte long");
+		const radix = 256;
+		const rightmostPositions = new Int32Array(radix);
+		for (let c2 = 0; c2 < radix; c2++) rightmostPositions[c2] = -1;
+		for (let j = 0; j < M; j++) rightmostPositions[needle[j]] = j;
+		const right = rightmostPositions;
+		const lastIndex = this.byteLength - needle.byteLength;
+		const lastPatIndex = needle.byteLength - 1;
+		let skip;
+		for (let i2 = offset; i2 <= lastIndex; i2 += skip) {
+			skip = 0;
+			for (let j = lastPatIndex; j >= 0; j--) {
+				const char = this.get(i2 + j);
+				if (needle[j] !== char) {
+					skip = Math.max(1, j - right[char]);
+					break;
+				}
+			}
+			if (skip === 0) return i2;
+		}
+		return -1;
+	}
+	getInt8(byteOffset) {
+		const buf = this.subarray(byteOffset, byteOffset + 1);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getInt8(0);
+	}
+	setInt8(byteOffset, value) {
+		const buf = allocUnsafe2(1);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setInt8(0, value);
+		this.write(buf, byteOffset);
+	}
+	getInt16(byteOffset, littleEndian) {
+		const buf = this.subarray(byteOffset, byteOffset + 2);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getInt16(0, littleEndian);
+	}
+	setInt16(byteOffset, value, littleEndian) {
+		const buf = alloc2(2);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setInt16(0, value, littleEndian);
+		this.write(buf, byteOffset);
+	}
+	getInt32(byteOffset, littleEndian) {
+		const buf = this.subarray(byteOffset, byteOffset + 4);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getInt32(0, littleEndian);
+	}
+	setInt32(byteOffset, value, littleEndian) {
+		const buf = alloc2(4);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setInt32(0, value, littleEndian);
+		this.write(buf, byteOffset);
+	}
+	getBigInt64(byteOffset, littleEndian) {
+		const buf = this.subarray(byteOffset, byteOffset + 8);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getBigInt64(0, littleEndian);
+	}
+	setBigInt64(byteOffset, value, littleEndian) {
+		const buf = alloc2(8);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setBigInt64(0, value, littleEndian);
+		this.write(buf, byteOffset);
+	}
+	getUint8(byteOffset) {
+		const buf = this.subarray(byteOffset, byteOffset + 1);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getUint8(0);
+	}
+	setUint8(byteOffset, value) {
+		const buf = allocUnsafe2(1);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setUint8(0, value);
+		this.write(buf, byteOffset);
+	}
+	getUint16(byteOffset, littleEndian) {
+		const buf = this.subarray(byteOffset, byteOffset + 2);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getUint16(0, littleEndian);
+	}
+	setUint16(byteOffset, value, littleEndian) {
+		const buf = alloc2(2);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setUint16(0, value, littleEndian);
+		this.write(buf, byteOffset);
+	}
+	getUint32(byteOffset, littleEndian) {
+		const buf = this.subarray(byteOffset, byteOffset + 4);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getUint32(0, littleEndian);
+	}
+	setUint32(byteOffset, value, littleEndian) {
+		const buf = alloc2(4);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setUint32(0, value, littleEndian);
+		this.write(buf, byteOffset);
+	}
+	getBigUint64(byteOffset, littleEndian) {
+		const buf = this.subarray(byteOffset, byteOffset + 8);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getBigUint64(0, littleEndian);
+	}
+	setBigUint64(byteOffset, value, littleEndian) {
+		const buf = alloc2(8);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setBigUint64(0, value, littleEndian);
+		this.write(buf, byteOffset);
+	}
+	getFloat32(byteOffset, littleEndian) {
+		const buf = this.subarray(byteOffset, byteOffset + 4);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getFloat32(0, littleEndian);
+	}
+	setFloat32(byteOffset, value, littleEndian) {
+		const buf = alloc2(4);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setFloat32(0, value, littleEndian);
+		this.write(buf, byteOffset);
+	}
+	getFloat64(byteOffset, littleEndian) {
+		const buf = this.subarray(byteOffset, byteOffset + 8);
+		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getFloat64(0, littleEndian);
+	}
+	setFloat64(byteOffset, value, littleEndian) {
+		const buf = alloc2(8);
+		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setFloat64(0, value, littleEndian);
+		this.write(buf, byteOffset);
+	}
+	equals(other) {
+		if (other == null) return false;
+		if (!(other instanceof _Uint8ArrayList)) return false;
+		if (other.bufs.length !== this.bufs.length) return false;
+		for (let i2 = 0; i2 < this.bufs.length; i2++) if (!equals2(this.bufs[i2], other.bufs[i2])) return false;
+		return true;
+	}
+	/**
+	* Create a Uint8ArrayList from a pre-existing list of Uint8Arrays.  Use this
+	* method if you know the total size of all the Uint8Arrays ahead of time.
+	*/
+	static fromUint8Arrays(bufs, length) {
+		const list = new _Uint8ArrayList();
+		list.bufs = bufs;
+		if (length == null) length = bufs.reduce((acc, curr) => acc + curr.byteLength, 0);
+		list.length = length;
+		return list;
+	}
+};
 var InvalidFrameError = class extends Error {
 	static name = "InvalidFrameError";
 	constructor(message = "The frame was invalid") {
@@ -3907,7 +4300,7 @@ var Decoder = class {
 	frameInProgress;
 	constructor(source) {
 		this.source = returnlessSource(source);
-		this.buffer = new Uint8ArrayList();
+		this.buffer = new Uint8ArrayList2();
 		this.frameInProgress = false;
 	}
 	/**
@@ -3995,8 +4388,33 @@ var StreamStateError = class extends Error {
 		this.name = "StreamStateError";
 	}
 };
-var symbol2 = /* @__PURE__ */ Symbol.for("@achingbrain/uint8arraylist");
-function findBufAndOffset2(bufs, index) {
+function alloc3(size = 0) {
+	return new Uint8Array(size);
+}
+function allocUnsafe3(size = 0) {
+	return new Uint8Array(size);
+}
+function asUint8Array3(buf) {
+	return buf;
+}
+function concat3(arrays, length) {
+	if (length == null) length = arrays.reduce((acc, curr) => acc + curr.length, 0);
+	const output = allocUnsafe3(length);
+	let offset = 0;
+	for (const arr of arrays) {
+		output.set(arr, offset);
+		offset += arr.length;
+	}
+	return asUint8Array3(output);
+}
+function equals3(a2, b) {
+	if (a2 === b) return true;
+	if (a2.byteLength !== b.byteLength) return false;
+	for (let i2 = 0; i2 < a2.byteLength; i2++) if (a2[i2] !== b[i2]) return false;
+	return true;
+}
+var symbol3 = /* @__PURE__ */ Symbol.for("@achingbrain/uint8arraylist");
+function findBufAndOffset3(bufs, index) {
 	if (index == null || index < 0) throw new RangeError("index is out of bounds");
 	let offset = 0;
 	for (const buf of bufs) {
@@ -4009,13 +4427,13 @@ function findBufAndOffset2(bufs, index) {
 	}
 	throw new RangeError("index is out of bounds");
 }
-function isUint8ArrayList2(value) {
-	return Boolean(value?.[symbol2]);
+function isUint8ArrayList3(value) {
+	return Boolean(value?.[symbol3]);
 }
-var Uint8ArrayList2 = class _Uint8ArrayList {
+var Uint8ArrayList3 = class _Uint8ArrayList {
 	bufs;
 	length;
-	[symbol2] = true;
+	[symbol3] = true;
 	constructor(...data) {
 		this.bufs = [];
 		this.length = 0;
@@ -4041,9 +4459,9 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		for (const buf of bufs) if (buf instanceof Uint8Array) {
 			length += buf.byteLength;
 			this.bufs.push(buf);
-		} else if (isUint8ArrayList2(buf)) {
+		} else if (isUint8ArrayList3(buf)) {
 			length += buf.byteLength;
-			this.bufs.push(...buf.bufs);
+			for (const chunk of buf.bufs) this.bufs.push(chunk);
 		} else throw new Error("Could not append value, must be an Uint8Array or a Uint8ArrayList");
 		this.length += length;
 	}
@@ -4061,7 +4479,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		for (const buf of bufs.reverse()) if (buf instanceof Uint8Array) {
 			length += buf.byteLength;
 			this.bufs.unshift(buf);
-		} else if (isUint8ArrayList2(buf)) {
+		} else if (isUint8ArrayList3(buf)) {
 			length += buf.byteLength;
 			this.bufs.unshift(...buf.bufs);
 		} else throw new Error("Could not prepend value, must be an Uint8Array or a Uint8ArrayList");
@@ -4071,14 +4489,14 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 	* Read the value at `index`
 	*/
 	get(index) {
-		const res = findBufAndOffset2(this.bufs, index);
+		const res = findBufAndOffset3(this.bufs, index);
 		return res.buf[res.index];
 	}
 	/**
 	* Set the value at `index` to `value`
 	*/
 	set(index, value) {
-		const res = findBufAndOffset2(this.bufs, index);
+		const res = findBufAndOffset3(this.bufs, index);
 		res.buf[res.index] = value;
 	}
 	/**
@@ -4086,7 +4504,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 	*/
 	write(buf, offset = 0) {
 		if (buf instanceof Uint8Array) for (let i2 = 0; i2 < buf.length; i2++) this.set(offset + i2, buf[i2]);
-		else if (isUint8ArrayList2(buf)) for (let i2 = 0; i2 < buf.length; i2++) this.set(offset + i2, buf.get(i2));
+		else if (isUint8ArrayList3(buf)) for (let i2 = 0; i2 < buf.length; i2++) this.set(offset + i2, buf.get(i2));
 		else throw new Error("Could not write value, must be an Uint8Array or a Uint8ArrayList");
 	}
 	/**
@@ -4118,7 +4536,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 	*/
 	slice(beginInclusive, endExclusive) {
 		const { bufs, length } = this._subList(beginInclusive, endExclusive);
-		return concat(bufs, length);
+		return concat3(bufs, length);
 	}
 	/**
 	* Returns a alloc from the given start and end element index.
@@ -4129,10 +4547,10 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 	subarray(beginInclusive, endExclusive) {
 		const { bufs, length } = this._subList(beginInclusive, endExclusive);
 		if (bufs.length === 1) return bufs[0];
-		return concat(bufs, length);
+		return concat3(bufs, length);
 	}
 	/**
-	* Returns a allocList from the given start and end element index.
+	* Returns a new Uint8ArrayList from the given start and end element index.
 	*
 	* This is a no-copy operation.
 	*/
@@ -4140,7 +4558,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		const { bufs, length } = this._subList(beginInclusive, endExclusive);
 		const list = new _Uint8ArrayList();
 		list.length = length;
-		list.bufs = [...bufs];
+		list.bufs = bufs;
 		return list;
 	}
 	_subList(beginInclusive, endExclusive) {
@@ -4154,7 +4572,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 			length: 0
 		};
 		if (beginInclusive === 0 && endExclusive === this.length) return {
-			bufs: this.bufs,
+			bufs: [...this.bufs],
 			length: this.length
 		};
 		const bufs = [];
@@ -4200,7 +4618,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		};
 	}
 	indexOf(search, offset = 0) {
-		if (!isUint8ArrayList2(search) && !(search instanceof Uint8Array)) throw new TypeError("The \"value\" argument must be a Uint8ArrayList or Uint8Array");
+		if (!isUint8ArrayList3(search) && !(search instanceof Uint8Array)) throw new TypeError("The \"value\" argument must be a Uint8ArrayList or Uint8Array");
 		const needle = search instanceof Uint8Array ? search : search.subarray();
 		offset = Number(offset ?? 0);
 		if (isNaN(offset)) offset = 0;
@@ -4235,7 +4653,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getInt8(0);
 	}
 	setInt8(byteOffset, value) {
-		const buf = allocUnsafe(1);
+		const buf = allocUnsafe3(1);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setInt8(0, value);
 		this.write(buf, byteOffset);
 	}
@@ -4244,7 +4662,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getInt16(0, littleEndian);
 	}
 	setInt16(byteOffset, value, littleEndian) {
-		const buf = alloc(2);
+		const buf = alloc3(2);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setInt16(0, value, littleEndian);
 		this.write(buf, byteOffset);
 	}
@@ -4253,7 +4671,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getInt32(0, littleEndian);
 	}
 	setInt32(byteOffset, value, littleEndian) {
-		const buf = alloc(4);
+		const buf = alloc3(4);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setInt32(0, value, littleEndian);
 		this.write(buf, byteOffset);
 	}
@@ -4262,7 +4680,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getBigInt64(0, littleEndian);
 	}
 	setBigInt64(byteOffset, value, littleEndian) {
-		const buf = alloc(8);
+		const buf = alloc3(8);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setBigInt64(0, value, littleEndian);
 		this.write(buf, byteOffset);
 	}
@@ -4271,7 +4689,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getUint8(0);
 	}
 	setUint8(byteOffset, value) {
-		const buf = allocUnsafe(1);
+		const buf = allocUnsafe3(1);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setUint8(0, value);
 		this.write(buf, byteOffset);
 	}
@@ -4280,7 +4698,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getUint16(0, littleEndian);
 	}
 	setUint16(byteOffset, value, littleEndian) {
-		const buf = alloc(2);
+		const buf = alloc3(2);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setUint16(0, value, littleEndian);
 		this.write(buf, byteOffset);
 	}
@@ -4289,7 +4707,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getUint32(0, littleEndian);
 	}
 	setUint32(byteOffset, value, littleEndian) {
-		const buf = alloc(4);
+		const buf = alloc3(4);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setUint32(0, value, littleEndian);
 		this.write(buf, byteOffset);
 	}
@@ -4298,7 +4716,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getBigUint64(0, littleEndian);
 	}
 	setBigUint64(byteOffset, value, littleEndian) {
-		const buf = alloc(8);
+		const buf = alloc3(8);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setBigUint64(0, value, littleEndian);
 		this.write(buf, byteOffset);
 	}
@@ -4307,7 +4725,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getFloat32(0, littleEndian);
 	}
 	setFloat32(byteOffset, value, littleEndian) {
-		const buf = alloc(4);
+		const buf = alloc3(4);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setFloat32(0, value, littleEndian);
 		this.write(buf, byteOffset);
 	}
@@ -4316,7 +4734,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		return new DataView(buf.buffer, buf.byteOffset, buf.byteLength).getFloat64(0, littleEndian);
 	}
 	setFloat64(byteOffset, value, littleEndian) {
-		const buf = alloc(8);
+		const buf = alloc3(8);
 		new DataView(buf.buffer, buf.byteOffset, buf.byteLength).setFloat64(0, value, littleEndian);
 		this.write(buf, byteOffset);
 	}
@@ -4324,7 +4742,7 @@ var Uint8ArrayList2 = class _Uint8ArrayList {
 		if (other == null) return false;
 		if (!(other instanceof _Uint8ArrayList)) return false;
 		if (other.bufs.length !== this.bufs.length) return false;
-		for (let i2 = 0; i2 < this.bufs.length; i2++) if (!equals(this.bufs[i2], other.bufs[i2])) return false;
+		for (let i2 = 0; i2 < this.bufs.length; i2++) if (!equals3(this.bufs[i2], other.bufs[i2])) return false;
 		return true;
 	}
 	/**
@@ -4418,7 +4836,7 @@ var AbstractStream = class {
 				this.sinkController.signal.addEventListener("abort", abortListener);
 				this.log.trace("sink reading from source");
 				for await (let data of source) {
-					data = data instanceof Uint8Array ? new Uint8ArrayList2(data) : data;
+					data = data instanceof Uint8Array ? new Uint8ArrayList3(data) : data;
 					const res = this.sendData(data, options);
 					if (isPromise2(res)) {
 						this.sendingData = pDefer();
@@ -4617,7 +5035,7 @@ var AbstractStream = class {
 	}
 };
 function peekable(iterable) {
-	const [iterator, symbol4] = iterable[Symbol.asyncIterator] != null ? [iterable[Symbol.asyncIterator](), Symbol.asyncIterator] : [iterable[Symbol.iterator](), Symbol.iterator];
+	const [iterator, symbol5] = iterable[Symbol.asyncIterator] != null ? [iterable[Symbol.asyncIterator](), Symbol.asyncIterator] : [iterable[Symbol.iterator](), Symbol.iterator];
 	const queue = [];
 	return {
 		peek: () => {
@@ -4633,7 +5051,7 @@ function peekable(iterable) {
 			};
 			return iterator.next();
 		},
-		[symbol4]() {
+		[symbol5]() {
 			return this;
 		}
 	};
@@ -5241,7 +5659,7 @@ var YamuxMuxer = class {
 		this.log?.trace("sending frame %o", header);
 		if (header.type === FrameType.Data) {
 			if (data === void 0) throw new InvalidFrameError("Invalid frame");
-			this.source.push(new Uint8ArrayList(encodeHeader(header), data));
+			this.source.push(new Uint8ArrayList2(encodeHeader(header), data));
 		} else this.source.push(encodeHeader(header));
 	}
 	sendPing(pingId, flag = Flag.SYN) {
@@ -5281,14 +5699,7 @@ function streamToPacketStream(stream) {
 	return {
 		source: pipe(stream, parseLengthPrefixTransform(), combineUint8ArrayListTransform()),
 		sink: async (source) => {
-			try {
-				await pipe(source, prependLengthPrefixTransform(), stream);
-				await stream.closeWrite();
-			} catch (err) {
-				const error = err instanceof Error ? err : new Error(String(err));
-				stream.abort(error);
-				throw error;
-			}
+			await pipe(source, prependLengthPrefixTransform(), stream).catch((err) => stream.close(err)).then(() => stream.close());
 		}
 	};
 }
@@ -5504,249 +5915,6 @@ var Empty = createMessageType({
 	fields: [],
 	packedByDefault: true
 });
-var CallStart2 = createMessageType({
-	typeName: "srpc.CallStart",
-	fields: [
-		{
-			no: 1,
-			name: "rpc_service",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 2,
-			name: "rpc_method",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 3,
-			name: "data",
-			kind: "scalar",
-			T: ScalarType.BYTES
-		},
-		{
-			no: 4,
-			name: "data_is_zero",
-			kind: "scalar",
-			T: ScalarType.BOOL
-		}
-	],
-	packedByDefault: true
-});
-var CallData2 = createMessageType({
-	typeName: "srpc.CallData",
-	fields: [
-		{
-			no: 1,
-			name: "data",
-			kind: "scalar",
-			T: ScalarType.BYTES
-		},
-		{
-			no: 2,
-			name: "data_is_zero",
-			kind: "scalar",
-			T: ScalarType.BOOL
-		},
-		{
-			no: 3,
-			name: "complete",
-			kind: "scalar",
-			T: ScalarType.BOOL
-		},
-		{
-			no: 4,
-			name: "error",
-			kind: "scalar",
-			T: ScalarType.STRING
-		}
-	],
-	packedByDefault: true
-});
-var Packet2 = createMessageType({
-	typeName: "srpc.Packet",
-	fields: [
-		{
-			no: 1,
-			name: "call_start",
-			kind: "message",
-			T: () => CallStart2,
-			oneof: "body"
-		},
-		{
-			no: 2,
-			name: "call_data",
-			kind: "message",
-			T: () => CallData2,
-			oneof: "body"
-		},
-		{
-			no: 3,
-			name: "call_cancel",
-			kind: "scalar",
-			T: ScalarType.BOOL,
-			oneof: "body"
-		}
-	],
-	packedByDefault: true
-});
-function buildDecodeMessageTransform2(def) {
-	const decode2 = def.fromBinary.bind(def);
-	return async function* decodeMessageSource(source) {
-		for await (const pkt of source) if (Array.isArray(pkt)) for (const p of pkt) yield* [decode2(p)];
-		else yield* [decode2(pkt)];
-	};
-}
-function buildEncodeMessageTransform2(def) {
-	return async function* encodeMessageSource(source) {
-		for await (const pkt of source) if (Array.isArray(pkt)) for (const p of pkt) yield def.toBinary(p);
-		else yield def.toBinary(pkt);
-	};
-}
-buildDecodeMessageTransform2(Packet2);
-buildEncodeMessageTransform2(Packet2);
-var uint32LEDecode2 = (data) => {
-	if (data.length < 4) throw RangeError("Could not decode int32BE");
-	return data.getUint32(0, true);
-};
-uint32LEDecode2.bytes = 4;
-var uint32LEEncode2 = (value) => {
-	const data = new Uint8ArrayList(new Uint8Array(4));
-	data.setUint32(0, value, true);
-	return data;
-};
-uint32LEEncode2.bytes = 4;
-__toESM(require_dom(), 1);
-__toESM(require_dom(), 1);
-var RpcStreamInit2 = createMessageType({
-	typeName: "rpcstream.RpcStreamInit",
-	fields: [{
-		no: 1,
-		name: "component_id",
-		kind: "scalar",
-		T: ScalarType.STRING
-	}],
-	packedByDefault: true
-});
-var RpcAck2 = createMessageType({
-	typeName: "rpcstream.RpcAck",
-	fields: [{
-		no: 1,
-		name: "error",
-		kind: "scalar",
-		T: ScalarType.STRING
-	}],
-	packedByDefault: true
-});
-var RpcStreamPacket2 = createMessageType({
-	typeName: "rpcstream.RpcStreamPacket",
-	fields: [
-		{
-			no: 1,
-			name: "init",
-			kind: "message",
-			T: () => RpcStreamInit2,
-			oneof: "body"
-		},
-		{
-			no: 2,
-			name: "ack",
-			kind: "message",
-			T: () => RpcAck2,
-			oneof: "body"
-		},
-		{
-			no: 3,
-			name: "data",
-			kind: "scalar",
-			T: ScalarType.BYTES,
-			oneof: "body"
-		}
-	],
-	packedByDefault: true
-});
-var EchoMsg2 = createMessageType({
-	typeName: "echo.EchoMsg",
-	fields: [{
-		no: 1,
-		name: "body",
-		kind: "scalar",
-		T: ScalarType.STRING
-	}],
-	packedByDefault: true
-});
-({
-	typeName: "echo.Echoer",
-	methods: {
-		/**
-		* Echo returns the given message.
-		*
-		* @generated from rpc echo.Echoer.Echo
-		*/
-		Echo: {
-			name: "Echo",
-			I: EchoMsg2,
-			O: EchoMsg2,
-			kind: MethodKind.Unary
-		},
-		/**
-		* EchoServerStream is an example of a server -> client one-way stream.
-		*
-		* @generated from rpc echo.Echoer.EchoServerStream
-		*/
-		EchoServerStream: {
-			name: "EchoServerStream",
-			I: EchoMsg2,
-			O: EchoMsg2,
-			kind: MethodKind.ServerStreaming
-		},
-		/**
-		* EchoClientStream is an example of client->server one-way stream.
-		*
-		* @generated from rpc echo.Echoer.EchoClientStream
-		*/
-		EchoClientStream: {
-			name: "EchoClientStream",
-			I: EchoMsg2,
-			O: EchoMsg2,
-			kind: MethodKind.ClientStreaming
-		},
-		/**
-		* EchoBidiStream is an example of a two-way stream.
-		*
-		* @generated from rpc echo.Echoer.EchoBidiStream
-		*/
-		EchoBidiStream: {
-			name: "EchoBidiStream",
-			I: EchoMsg2,
-			O: EchoMsg2,
-			kind: MethodKind.BiDiStreaming
-		},
-		/**
-		* RpcStream opens a nested rpc call stream.
-		*
-		* @generated from rpc echo.Echoer.RpcStream
-		*/
-		RpcStream: {
-			name: "RpcStream",
-			I: RpcStreamPacket2,
-			O: RpcStreamPacket2,
-			kind: MethodKind.BiDiStreaming
-		},
-		/**
-		* DoNothing does nothing.
-		*
-		* @generated from rpc echo.Echoer.DoNothing
-		*/
-		DoNothing: {
-			name: "DoNothing",
-			I: Empty,
-			O: Empty,
-			kind: MethodKind.Unary
-		}
-	}
-}).typeName;
 ({
 	typeName: "echo.Echoer",
 	methods: {
@@ -5818,9 +5986,9 @@ var EchoMsg2 = createMessageType({
 		}
 	}
 }).typeName;
-var symbol3 = /* @__PURE__ */ Symbol.for("@achingbrain/uint8arraylist");
-function isUint8ArrayList3(value) {
-	return Boolean(value?.[symbol3]);
+var symbol4 = /* @__PURE__ */ Symbol.for("@achingbrain/uint8arraylist");
+function isUint8ArrayList4(value) {
+	return Boolean(value?.[symbol4]);
 }
 function writeCompleteChunk(os, fd, data) {
 	let offset = 0;
@@ -5838,440 +6006,13 @@ async function writeSourceToFd(os, source, filePath) {
 	try {
 		fd = os.open(filePath, flags, mode);
 		if (fd < 0) throw new Error(`Failed to open file ${filePath}. Error code: ${fd}`);
-		for await (const chunk of source) if (isUint8ArrayList3(chunk)) for (const internalBuf of chunk) writeCompleteChunk(os, fd, internalBuf);
+		for await (const chunk of source) if (isUint8ArrayList4(chunk)) for (const internalBuf of chunk) writeCompleteChunk(os, fd, internalBuf);
 		else if (chunk instanceof Uint8Array) writeCompleteChunk(os, fd, chunk);
 		else throw new Error(`Received unsupported chunk type in stream: ${typeof chunk}`);
 	} finally {
 		if (fd !== void 0 && fd >= 0) os.close(fd);
 	}
 }
-function pDefer2() {
-	const deferred = {};
-	deferred.promise = new Promise((resolve, reject) => {
-		deferred.resolve = resolve;
-		deferred.reject = reject;
-	});
-	return deferred;
-}
-var FixedFIFO2 = class {
-	buffer;
-	mask;
-	top;
-	btm;
-	next;
-	constructor(hwm) {
-		if (!(hwm > 0) || (hwm - 1 & hwm) !== 0) throw new Error("Max size for a FixedFIFO should be a power of two");
-		this.buffer = new Array(hwm);
-		this.mask = hwm - 1;
-		this.top = 0;
-		this.btm = 0;
-		this.next = null;
-	}
-	push(data) {
-		if (this.buffer[this.top] !== void 0) return false;
-		this.buffer[this.top] = data;
-		this.top = this.top + 1 & this.mask;
-		return true;
-	}
-	shift() {
-		const last = this.buffer[this.btm];
-		if (last === void 0) return;
-		this.buffer[this.btm] = void 0;
-		this.btm = this.btm + 1 & this.mask;
-		return last;
-	}
-	isEmpty() {
-		return this.buffer[this.btm] === void 0;
-	}
-};
-var FIFO2 = class {
-	size;
-	hwm;
-	head;
-	tail;
-	constructor(options = {}) {
-		this.hwm = options.splitLimit ?? 16;
-		this.head = new FixedFIFO2(this.hwm);
-		this.tail = this.head;
-		this.size = 0;
-	}
-	calculateSize(obj) {
-		if (obj?.byteLength != null) return obj.byteLength;
-		return 1;
-	}
-	push(val) {
-		if (val?.value != null) this.size += this.calculateSize(val.value);
-		if (!this.head.push(val)) {
-			const prev = this.head;
-			this.head = prev.next = new FixedFIFO2(2 * this.head.buffer.length);
-			this.head.push(val);
-		}
-	}
-	shift() {
-		let val = this.tail.shift();
-		if (val === void 0 && this.tail.next != null) {
-			const next = this.tail.next;
-			this.tail.next = null;
-			this.tail = next;
-			val = this.tail.shift();
-		}
-		if (val?.value != null) this.size -= this.calculateSize(val.value);
-		return val;
-	}
-	isEmpty() {
-		return this.head.isEmpty();
-	}
-};
-var AbortError4 = class extends Error {
-	type;
-	code;
-	constructor(message, code) {
-		super(message ?? "The operation was aborted");
-		this.type = "aborted";
-		this.code = code ?? "ABORT_ERR";
-	}
-};
-function pushable2(options = {}) {
-	const getNext = (buffer) => {
-		const next = buffer.shift();
-		if (next == null) return { done: true };
-		if (next.error != null) throw next.error;
-		return {
-			done: next.done === true,
-			value: next.value
-		};
-	};
-	return _pushable2(getNext, options);
-}
-function _pushable2(getNext, options) {
-	options = options ?? {};
-	let onEnd = options.onEnd;
-	let buffer = new FIFO2();
-	let pushable3;
-	let onNext;
-	let ended;
-	let drain = pDefer2();
-	const waitNext = async () => {
-		try {
-			if (!buffer.isEmpty()) return getNext(buffer);
-			if (ended) return { done: true };
-			return await new Promise((resolve, reject) => {
-				onNext = (next) => {
-					onNext = null;
-					buffer.push(next);
-					try {
-						resolve(getNext(buffer));
-					} catch (err) {
-						reject(err);
-					}
-					return pushable3;
-				};
-			});
-		} finally {
-			if (buffer.isEmpty()) queueMicrotask(() => {
-				drain.resolve();
-				drain = pDefer2();
-			});
-		}
-	};
-	const bufferNext = (next) => {
-		if (onNext != null) return onNext(next);
-		buffer.push(next);
-		return pushable3;
-	};
-	const bufferError = (err) => {
-		buffer = new FIFO2();
-		if (onNext != null) return onNext({ error: err });
-		buffer.push({ error: err });
-		return pushable3;
-	};
-	const push = (value) => {
-		if (ended) return pushable3;
-		if (options?.objectMode !== true && value?.byteLength == null) throw new Error("objectMode was not true but tried to push non-Uint8Array value");
-		return bufferNext({
-			done: false,
-			value
-		});
-	};
-	const end = (err) => {
-		if (ended) return pushable3;
-		ended = true;
-		return err != null ? bufferError(err) : bufferNext({ done: true });
-	};
-	const _return = () => {
-		buffer = new FIFO2();
-		end();
-		return { done: true };
-	};
-	const _throw = (err) => {
-		end(err);
-		return { done: true };
-	};
-	pushable3 = {
-		[Symbol.asyncIterator]() {
-			return this;
-		},
-		next: waitNext,
-		return: _return,
-		throw: _throw,
-		push,
-		end,
-		get readableLength() {
-			return buffer.size;
-		},
-		onEmpty: async (options2) => {
-			const signal = options2?.signal;
-			signal?.throwIfAborted();
-			if (buffer.isEmpty()) return;
-			let cancel;
-			let listener;
-			if (signal != null) cancel = new Promise((resolve, reject) => {
-				listener = () => {
-					reject(new AbortError4());
-				};
-				signal.addEventListener("abort", listener);
-			});
-			try {
-				await Promise.race([drain.promise, cancel]);
-			} finally {
-				if (listener != null && signal != null) signal?.removeEventListener("abort", listener);
-			}
-		}
-	};
-	if (onEnd == null) return pushable3;
-	const _pushable3 = pushable3;
-	pushable3 = {
-		[Symbol.asyncIterator]() {
-			return this;
-		},
-		next() {
-			return _pushable3.next();
-		},
-		throw(err) {
-			_pushable3.throw(err);
-			if (onEnd != null) {
-				onEnd(err);
-				onEnd = void 0;
-			}
-			return { done: true };
-		},
-		return() {
-			_pushable3.return();
-			if (onEnd != null) {
-				onEnd();
-				onEnd = void 0;
-			}
-			return { done: true };
-		},
-		push,
-		end(err) {
-			_pushable3.end(err);
-			if (onEnd != null) {
-				onEnd(err);
-				onEnd = void 0;
-			}
-			return pushable3;
-		},
-		get readableLength() {
-			return _pushable3.readableLength;
-		},
-		onEmpty: (opts) => {
-			return _pushable3.onEmpty(opts);
-		}
-	};
-	return pushable3;
-}
-function defaultTranslate2(signal) {
-	return signal.reason;
-}
-async function raceSignal3(promise, signal, opts) {
-	if (signal == null) return promise;
-	const translateError = opts?.translateError ?? defaultTranslate2;
-	if (signal.aborted) {
-		promise.catch(() => {});
-		return Promise.reject(translateError(signal));
-	}
-	let listener;
-	try {
-		return await Promise.race([promise, new Promise((resolve, reject) => {
-			listener = () => {
-				reject(translateError(signal));
-			};
-			signal.addEventListener("abort", listener);
-		})]);
-	} finally {
-		if (listener != null) signal.removeEventListener("abort", listener);
-	}
-}
-var QueuelessPushable2 = class {
-	readNext;
-	haveNext;
-	ended;
-	nextResult;
-	error;
-	constructor() {
-		this.ended = false;
-		this.readNext = pDefer2();
-		this.haveNext = pDefer2();
-	}
-	[Symbol.asyncIterator]() {
-		return this;
-	}
-	async next() {
-		if (this.nextResult == null) await this.haveNext.promise;
-		if (this.nextResult == null) throw new Error("HaveNext promise resolved but nextResult was undefined");
-		const nextResult = this.nextResult;
-		this.nextResult = void 0;
-		this.readNext.resolve();
-		this.readNext = pDefer2();
-		return nextResult;
-	}
-	async throw(err) {
-		this.ended = true;
-		this.error = err;
-		if (err != null) {
-			this.haveNext.promise.catch(() => {});
-			this.haveNext.reject(err);
-		}
-		return {
-			done: true,
-			value: void 0
-		};
-	}
-	async return() {
-		const result = {
-			done: true,
-			value: void 0
-		};
-		this.ended = true;
-		this.nextResult = result;
-		this.haveNext.resolve();
-		return result;
-	}
-	async push(value, options) {
-		await this._push(value, options);
-	}
-	async end(err, options) {
-		if (err != null) await this.throw(err);
-		else await this._push(void 0, options);
-	}
-	async _push(value, options) {
-		if (value != null && this.ended) throw this.error ?? /* @__PURE__ */ new Error("Cannot push value onto an ended pushable");
-		while (this.nextResult != null) await this.readNext.promise;
-		if (value != null) this.nextResult = {
-			done: false,
-			value
-		};
-		else {
-			this.ended = true;
-			this.nextResult = {
-				done: true,
-				value: void 0
-			};
-		}
-		this.haveNext.resolve();
-		this.haveNext = pDefer2();
-		await raceSignal3(this.readNext.promise, options?.signal, options);
-	}
-};
-function queuelessPushable2() {
-	return new QueuelessPushable2();
-}
-function isAsyncIterable4(thing) {
-	return thing[Symbol.asyncIterator] != null;
-}
-async function addAllToPushable2(sources, output, signal) {
-	try {
-		await Promise.all(sources.map(async (source) => {
-			for await (const item of source) {
-				await output.push(item, { signal });
-				signal.throwIfAborted();
-			}
-		}));
-		await output.end(void 0, { signal });
-	} catch (err) {
-		await output.end(err, { signal }).catch(() => {});
-	}
-}
-async function* mergeSources2(sources) {
-	const controller = new AbortController();
-	const output = queuelessPushable2();
-	addAllToPushable2(sources, output, controller.signal).catch(() => {});
-	try {
-		yield* output;
-	} finally {
-		controller.abort();
-	}
-}
-function* mergeSyncSources2(syncSources) {
-	for (const source of syncSources) yield* source;
-}
-function merge2(...sources) {
-	const syncSources = [];
-	for (const source of sources) if (!isAsyncIterable4(source)) syncSources.push(source);
-	if (syncSources.length === sources.length) return mergeSyncSources2(syncSources);
-	return mergeSources2(sources);
-}
-var src_default5 = merge2;
-function pipe2(first, ...rest) {
-	if (first == null) throw new Error("Empty pipeline");
-	if (isDuplex2(first)) {
-		const duplex = first;
-		first = () => duplex.source;
-	} else if (isIterable2(first) || isAsyncIterable5(first)) {
-		const source = first;
-		first = () => source;
-	}
-	const fns = [first, ...rest];
-	if (fns.length > 1) {
-		if (isDuplex2(fns[fns.length - 1])) fns[fns.length - 1] = fns[fns.length - 1].sink;
-	}
-	if (fns.length > 2) {
-		for (let i2 = 1; i2 < fns.length - 1; i2++) if (isDuplex2(fns[i2])) fns[i2] = duplexPipelineFn2(fns[i2]);
-	}
-	return rawPipe2(...fns);
-}
-var rawPipe2 = (...fns) => {
-	let res;
-	while (fns.length > 0) res = fns.shift()(res);
-	return res;
-};
-var isAsyncIterable5 = (obj) => {
-	return obj?.[Symbol.asyncIterator] != null;
-};
-var isIterable2 = (obj) => {
-	return obj?.[Symbol.iterator] != null;
-};
-var isDuplex2 = (obj) => {
-	if (obj == null) return false;
-	return obj.sink != null && obj.source != null;
-};
-var duplexPipelineFn2 = (duplex) => {
-	return (source) => {
-		const p = duplex.sink(source);
-		if (p?.then != null) {
-			const stream = pushable2({ objectMode: true });
-			p.then(() => {
-				stream.end();
-			}, (err) => {
-				stream.end(err);
-			});
-			let sourceWrap;
-			const source2 = duplex.source;
-			if (isAsyncIterable5(source2)) sourceWrap = async function* () {
-				yield* source2;
-				stream.end();
-			};
-			else if (isIterable2(source2)) sourceWrap = function* () {
-				yield* source2;
-				stream.end();
-			};
-			else throw new Error("Unknown duplex source type - must be Iterable or AsyncIterable");
-			return src_default5(stream, sourceWrap());
-		}
-		return duplex.source;
-	};
-};
 function createEvent() {
 	return globalThis.Event;
 }
@@ -6358,13 +6099,14 @@ function createAbortController() {
 			this._signal._abort(reason);
 		}
 	}
-	Object.defineProperty(AbortControllerImpl, "AbortSignal", {
+	const AbortControllerConstructor = AbortControllerImpl;
+	Object.defineProperty(AbortControllerConstructor, "AbortSignal", {
 		value: AbortSignalImpl,
 		writable: false,
 		enumerable: false,
 		configurable: false
 	});
-	return AbortControllerImpl;
+	return AbortControllerConstructor;
 }
 function createSymbolPolyfills() {
 	if (!Symbol.asyncIterator) Object.defineProperty(Symbol, "asyncIterator", {
@@ -6486,7 +6228,7 @@ function decoderError(fatal, opt_code_point) {
 	return opt_code_point || 65533;
 }
 function Decoder2() {}
-Decoder2.prototype = {
+Decoder2.prototype = { 
 /**
 * @param {Stream} stream The stream of bytes being decoded.
 * @param {number} bite The next byte read from the stream.
@@ -6496,7 +6238,7 @@ Decoder2.prototype = {
 */
 handler: function(_stream, _bite) {} };
 function Encoder() {}
-Encoder.prototype = {
+Encoder.prototype = { 
 /**
 * @param {Stream} stream The stream of code points being encoded.
 * @param {number} code_point Next code point read from the stream.
@@ -6519,7 +6261,7 @@ function TextDecoder2(encoding, options) {
 	Object.defineProperty(this, "fatal", { value: this._fatal });
 	Object.defineProperty(this, "ignoreBOM", { value: this._ignoreBOM });
 }
-TextDecoder2.prototype = {
+TextDecoder2.prototype = { 
 /**
 * @param {ArrayBufferView=} input The buffer of bytes to decode.
 * @param {Object=} options
@@ -6583,7 +6325,7 @@ function TextEncoder2(encoding, options) {
 	this._options = { fatal: Boolean(options["fatal"]) };
 	Object.defineProperty(this, "encoding", { value: "utf-8" });
 }
-TextEncoder2.prototype = {
+TextEncoder2.prototype = { 
 /**
 * @param {string=} opt_string The string to encode.
 * @param {Object=} options
@@ -7305,2098 +7047,37 @@ function applyPolyfills(to) {
 	target.btoa = btoa;
 	return target;
 }
-function assert2(condition, msg) {
-	if (!condition) throw new Error(msg);
-}
-var FLOAT32_MAX2 = 34028234663852886e22;
-var FLOAT32_MIN2 = -34028234663852886e22;
-var UINT32_MAX2 = 4294967295;
-var INT32_MAX2 = 2147483647;
-var INT32_MIN2 = -2147483648;
-function assertInt322(arg) {
-	if (typeof arg !== "number") throw new Error("invalid int 32: " + typeof arg);
-	if (!Number.isInteger(arg) || arg > INT32_MAX2 || arg < INT32_MIN2) throw new Error("invalid int 32: " + arg);
-}
-function assertUInt322(arg) {
-	if (typeof arg !== "number") throw new Error("invalid uint 32: " + typeof arg);
-	if (!Number.isInteger(arg) || arg > UINT32_MAX2 || arg < 0) throw new Error("invalid uint 32: " + arg);
-}
-function assertFloat322(arg) {
-	if (typeof arg !== "number") throw new Error("invalid float 32: " + typeof arg);
-	if (!Number.isFinite(arg)) return;
-	if (arg > FLOAT32_MAX2 || arg < FLOAT32_MIN2) throw new Error("invalid float 32: " + arg);
-}
-function varint64read2() {
-	let lowBits = 0;
-	let highBits = 0;
-	for (let shift = 0; shift < 28; shift += 7) {
-		let b = this.buf[this.pos++];
-		lowBits |= (b & 127) << shift;
-		if ((b & 128) == 0) {
-			this.assertBounds();
-			return [lowBits, highBits];
-		}
-	}
-	let middleByte = this.buf[this.pos++];
-	lowBits |= (middleByte & 15) << 28;
-	highBits = (middleByte & 112) >> 4;
-	if ((middleByte & 128) == 0) {
-		this.assertBounds();
-		return [lowBits, highBits];
-	}
-	for (let shift = 3; shift <= 31; shift += 7) {
-		let b = this.buf[this.pos++];
-		highBits |= (b & 127) << shift;
-		if ((b & 128) == 0) {
-			this.assertBounds();
-			return [lowBits, highBits];
-		}
-	}
-	throw new Error("invalid varint");
-}
-function varint64write2(lo, hi, bytes) {
-	for (let i2 = 0; i2 < 28; i2 = i2 + 7) {
-		const shift = lo >>> i2;
-		const hasNext = !(shift >>> 7 == 0 && hi == 0);
-		const byte = (hasNext ? shift | 128 : shift) & 255;
-		bytes.push(byte);
-		if (!hasNext) return;
-	}
-	const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
-	const hasMoreBits = !(hi >> 3 == 0);
-	bytes.push((hasMoreBits ? splitBits | 128 : splitBits) & 255);
-	if (!hasMoreBits) return;
-	for (let i2 = 3; i2 < 31; i2 = i2 + 7) {
-		const shift = hi >>> i2;
-		const hasNext = !(shift >>> 7 == 0);
-		const byte = (hasNext ? shift | 128 : shift) & 255;
-		bytes.push(byte);
-		if (!hasNext) return;
-	}
-	bytes.push(hi >>> 31 & 1);
-}
-var TWO_PWR_32_DBL2 = 4294967296;
-function int64FromString2(dec) {
-	const minus = dec[0] === "-";
-	if (minus) dec = dec.slice(1);
-	const base = 1e6;
-	let lowBits = 0;
-	let highBits = 0;
-	function add1e6digit(begin, end) {
-		const digit1e6 = Number(dec.slice(begin, end));
-		highBits *= base;
-		lowBits = lowBits * base + digit1e6;
-		if (lowBits >= TWO_PWR_32_DBL2) {
-			highBits = highBits + (lowBits / TWO_PWR_32_DBL2 | 0);
-			lowBits = lowBits % TWO_PWR_32_DBL2;
-		}
-	}
-	add1e6digit(-24, -18);
-	add1e6digit(-18, -12);
-	add1e6digit(-12, -6);
-	add1e6digit(-6);
-	return minus ? negate2(lowBits, highBits) : newBits2(lowBits, highBits);
-}
-function int64ToString2(lo, hi) {
-	let bits = newBits2(lo, hi);
-	const negative = bits.hi & 2147483648;
-	if (negative) bits = negate2(bits.lo, bits.hi);
-	const result = uInt64ToString2(bits.lo, bits.hi);
-	return negative ? "-" + result : result;
-}
-function uInt64ToString2(lo, hi) {
-	({lo, hi} = toUnsigned2(lo, hi));
-	if (hi <= 2097151) return String(TWO_PWR_32_DBL2 * hi + lo);
-	const low = lo & 16777215;
-	const mid = (lo >>> 24 | hi << 8) & 16777215;
-	const high = hi >> 16 & 65535;
-	let digitA = low + mid * 6777216 + high * 6710656;
-	let digitB = mid + high * 8147497;
-	let digitC = high * 2;
-	const base = 1e7;
-	if (digitA >= base) {
-		digitB += Math.floor(digitA / base);
-		digitA %= base;
-	}
-	if (digitB >= base) {
-		digitC += Math.floor(digitB / base);
-		digitB %= base;
-	}
-	return digitC.toString() + decimalFrom1e7WithLeadingZeros2(digitB) + decimalFrom1e7WithLeadingZeros2(digitA);
-}
-function toUnsigned2(lo, hi) {
-	return {
-		lo: lo >>> 0,
-		hi: hi >>> 0
-	};
-}
-function newBits2(lo, hi) {
-	return {
-		lo: lo | 0,
-		hi: hi | 0
-	};
-}
-function negate2(lowBits, highBits) {
-	highBits = ~highBits;
-	if (lowBits) lowBits = ~lowBits + 1;
-	else highBits += 1;
-	return newBits2(lowBits, highBits);
-}
-var decimalFrom1e7WithLeadingZeros2 = (digit1e7) => {
-	const partial = String(digit1e7);
-	return "0000000".slice(partial.length) + partial;
-};
-function varint32write2(value, bytes) {
-	if (value >= 0) {
-		while (value > 127) {
-			bytes.push(value & 127 | 128);
-			value = value >>> 7;
-		}
-		bytes.push(value);
-	} else {
-		for (let i2 = 0; i2 < 9; i2++) {
-			bytes.push(value & 127 | 128);
-			value = value >> 7;
-		}
-		bytes.push(1);
-	}
-}
-function varint32read2() {
-	let b = this.buf[this.pos++];
-	let result = b & 127;
-	if ((b & 128) == 0) {
-		this.assertBounds();
-		return result;
-	}
-	b = this.buf[this.pos++];
-	result |= (b & 127) << 7;
-	if ((b & 128) == 0) {
-		this.assertBounds();
-		return result;
-	}
-	b = this.buf[this.pos++];
-	result |= (b & 127) << 14;
-	if ((b & 128) == 0) {
-		this.assertBounds();
-		return result;
-	}
-	b = this.buf[this.pos++];
-	result |= (b & 127) << 21;
-	if ((b & 128) == 0) {
-		this.assertBounds();
-		return result;
-	}
-	b = this.buf[this.pos++];
-	result |= (b & 15) << 28;
-	for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++) b = this.buf[this.pos++];
-	if ((b & 128) != 0) throw new Error("invalid varint");
-	this.assertBounds();
-	return result >>> 0;
-}
-function makeInt64Support2() {
-	const dv = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(8));
-	if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
-		const MIN = BigInt("-9223372036854775808"), MAX = BigInt("9223372036854775807"), UMIN = BigInt("0"), UMAX = BigInt("18446744073709551615");
-		return {
-			zero: BigInt(0),
-			supported: true,
-			parse(value) {
-				const bi = typeof value == "bigint" ? value : BigInt(value);
-				if (bi > MAX || bi < MIN) throw new Error(`int64 invalid: ${value}`);
-				return bi;
-			},
-			uParse(value) {
-				const bi = typeof value == "bigint" ? value : BigInt(value);
-				if (bi > UMAX || bi < UMIN) throw new Error(`uint64 invalid: ${value}`);
-				return bi;
-			},
-			enc(value) {
-				dv.setBigInt64(0, this.parse(value), true);
-				return {
-					lo: dv.getInt32(0, true),
-					hi: dv.getInt32(4, true)
-				};
-			},
-			uEnc(value) {
-				dv.setBigInt64(0, this.uParse(value), true);
-				return {
-					lo: dv.getInt32(0, true),
-					hi: dv.getInt32(4, true)
-				};
-			},
-			dec(lo, hi) {
-				dv.setInt32(0, lo, true);
-				dv.setInt32(4, hi, true);
-				return dv.getBigInt64(0, true);
-			},
-			uDec(lo, hi) {
-				dv.setInt32(0, lo, true);
-				dv.setInt32(4, hi, true);
-				return dv.getBigUint64(0, true);
-			}
-		};
-	}
-	const assertInt64String = (value) => assert2(/^-?[0-9]+$/.test(value), `int64 invalid: ${value}`);
-	const assertUInt64String = (value) => assert2(/^[0-9]+$/.test(value), `uint64 invalid: ${value}`);
-	return {
-		zero: "0",
-		supported: false,
-		parse(value) {
-			if (typeof value != "string") value = value.toString();
-			assertInt64String(value);
-			return value;
-		},
-		uParse(value) {
-			if (typeof value != "string") value = value.toString();
-			assertUInt64String(value);
-			return value;
-		},
-		enc(value) {
-			if (typeof value != "string") value = value.toString();
-			assertInt64String(value);
-			return int64FromString2(value);
-		},
-		uEnc(value) {
-			if (typeof value != "string") value = value.toString();
-			assertUInt64String(value);
-			return int64FromString2(value);
-		},
-		dec(lo, hi) {
-			return int64ToString2(lo, hi);
-		},
-		uDec(lo, hi) {
-			return uInt64ToString2(lo, hi);
-		}
-	};
-}
-var protoInt642 = makeInt64Support2();
-var ScalarType2;
-(function(ScalarType3) {
-	ScalarType3[ScalarType3["DOUBLE"] = 1] = "DOUBLE";
-	ScalarType3[ScalarType3["FLOAT"] = 2] = "FLOAT";
-	ScalarType3[ScalarType3["INT64"] = 3] = "INT64";
-	ScalarType3[ScalarType3["UINT64"] = 4] = "UINT64";
-	ScalarType3[ScalarType3["INT32"] = 5] = "INT32";
-	ScalarType3[ScalarType3["FIXED64"] = 6] = "FIXED64";
-	ScalarType3[ScalarType3["FIXED32"] = 7] = "FIXED32";
-	ScalarType3[ScalarType3["BOOL"] = 8] = "BOOL";
-	ScalarType3[ScalarType3["STRING"] = 9] = "STRING";
-	ScalarType3[ScalarType3["BYTES"] = 12] = "BYTES";
-	ScalarType3[ScalarType3["UINT32"] = 13] = "UINT32";
-	ScalarType3[ScalarType3["SFIXED32"] = 15] = "SFIXED32";
-	ScalarType3[ScalarType3["SFIXED64"] = 16] = "SFIXED64";
-	ScalarType3[ScalarType3["SINT32"] = 17] = "SINT32";
-	ScalarType3[ScalarType3["SINT64"] = 18] = "SINT64";
-	ScalarType3[ScalarType3["DATE"] = 100] = "DATE";
-})(ScalarType2 || (ScalarType2 = {}));
-var LongType2;
-(function(LongType3) {
-	LongType3[LongType3["BIGINT"] = 0] = "BIGINT";
-	LongType3[LongType3["STRING"] = 1] = "STRING";
-})(LongType2 || (LongType2 = {}));
-function scalarEquals2(type, a2, b) {
-	if (a2 === b) return true;
-	if (a2 == null || b == null) return a2 === b;
-	if (type == ScalarType2.BYTES) {
-		if (!(a2 instanceof Uint8Array) || !(b instanceof Uint8Array)) return false;
-		if (a2.length !== b.length) return false;
-		for (let i2 = 0; i2 < a2.length; i2++) if (a2[i2] !== b[i2]) return false;
-		return true;
-	}
-	if (type == ScalarType2.DATE) {
-		const dateA = toDate2(a2, false);
-		const dateB = toDate2(b, false);
-		if (dateA == null || dateB == null) return dateA === dateB;
-		return dateA != null && dateB != null && +dateA === +dateB;
-	}
-	switch (type) {
-		case ScalarType2.UINT64:
-		case ScalarType2.FIXED64:
-		case ScalarType2.INT64:
-		case ScalarType2.SFIXED64:
-		case ScalarType2.SINT64: return a2 == b;
-	}
-	return false;
-}
-function scalarZeroValue2(type, longType) {
-	switch (type) {
-		case ScalarType2.BOOL: return false;
-		case ScalarType2.UINT64:
-		case ScalarType2.FIXED64:
-		case ScalarType2.INT64:
-		case ScalarType2.SFIXED64:
-		case ScalarType2.SINT64: return longType == 0 ? protoInt642.zero : "0";
-		case ScalarType2.DOUBLE:
-		case ScalarType2.FLOAT: return 0;
-		case ScalarType2.BYTES: return new Uint8Array(0);
-		case ScalarType2.STRING: return "";
-		case ScalarType2.DATE: return null;
-		default: return 0;
-	}
-}
-var dateZeroValue2 = +/* @__PURE__ */ new Date(0);
-function isScalarZeroValue2(type, value) {
-	switch (type) {
-		case ScalarType2.DATE: return value == null || +value === dateZeroValue2;
-		case ScalarType2.BOOL: return value === false;
-		case ScalarType2.STRING: return value === "";
-		case ScalarType2.BYTES: return value instanceof Uint8Array && !value.byteLength;
-		default: return value == 0;
-	}
-}
-function normalizeScalarValue2(type, value, clone, longType = LongType2.BIGINT) {
-	if (value == null) return scalarZeroValue2(type, longType);
-	if (type === ScalarType2.BYTES) return toU8Arr2(value, clone);
-	if (isScalarZeroValue2(type, value)) return scalarZeroValue2(type, longType);
-	if (type === ScalarType2.DATE) return toDate2(value, clone);
-	return value;
-}
-function toU8Arr2(input, clone) {
-	return !clone && input instanceof Uint8Array ? input : new Uint8Array(input);
-}
-function toDate2(input, clone) {
-	if (input instanceof Date) return clone ? new Date(input.getTime()) : input;
-	if (typeof input === "string" || typeof input === "number") {
-		const date = new Date(input);
-		return isNaN(date.getTime()) ? null : date;
-	}
-	return null;
-}
-function localFieldName2(protoName, inOneof) {
-	const name = protoCamelCase2(protoName);
-	if (inOneof) return name;
-	return safeObjectProperty2(safeMessageProperty2(name));
-}
-function localOneofName2(protoName) {
-	return localFieldName2(protoName, false);
-}
-function protoCamelCase2(snakeCase) {
-	let capNext = false;
-	const b = [];
-	for (let i2 = 0; i2 < snakeCase.length; i2++) {
-		let c2 = snakeCase.charAt(i2);
-		switch (c2) {
-			case "_":
-				capNext = true;
-				break;
-			case "0":
-			case "1":
-			case "2":
-			case "3":
-			case "4":
-			case "5":
-			case "6":
-			case "7":
-			case "8":
-			case "9":
-				b.push(c2);
-				capNext = false;
-				break;
-			default:
-				if (capNext) {
-					capNext = false;
-					c2 = c2.toUpperCase();
-				}
-				b.push(c2);
-				break;
-		}
-	}
-	return b.join("");
-}
-var reservedObjectProperties2 = /* @__PURE__ */ new Set([
-	"constructor",
-	"toString",
-	"toJSON",
-	"valueOf",
-	"__proto__",
-	"prototype"
-]);
-var reservedMessageProperties2 = /* @__PURE__ */ new Set(["__proto__"]);
-var fallback2 = (name) => `${name}$`;
-var safeMessageProperty2 = (name) => {
-	if (reservedMessageProperties2.has(name)) return fallback2(name);
-	return name;
-};
-var safeObjectProperty2 = (name) => {
-	if (reservedObjectProperties2.has(name)) return fallback2(name);
-	return name;
-};
-function checkSanitizeKey2(key) {
-	return typeof key === "string" && !!key.length && !reservedObjectProperties2.has(key);
-}
-function throwSanitizeKey2(key) {
-	if (typeof key !== "string") throw new Error("illegal non-string object key: " + typeof key);
-	if (!checkSanitizeKey2(key)) throw new Error("illegal object key: " + key);
-}
-var FieldList2 = class {
-	_fields;
-	_normalizer;
-	all;
-	numbersAsc;
-	jsonNames;
-	numbers;
-	members;
-	constructor(fields, normalizer) {
-		this._fields = fields;
-		this._normalizer = normalizer;
-	}
-	/**
-	* Find field information by field name or json_name.
-	*/
-	findJsonName(jsonName) {
-		if (!this.jsonNames) {
-			const t2 = {};
-			for (const f2 of this.list()) t2[f2.jsonName] = t2[f2.name] = f2;
-			this.jsonNames = t2;
-		}
-		return this.jsonNames[jsonName];
-	}
-	/**
-	* Find field information by proto field number.
-	*/
-	find(fieldNo) {
-		if (!this.numbers) {
-			const t2 = {};
-			for (const f2 of this.list()) t2[f2.no] = f2;
-			this.numbers = t2;
-		}
-		return this.numbers[fieldNo];
-	}
-	/**
-	* Return field information in the order they appear in the source.
-	*/
-	list() {
-		if (!this.all) this.all = this._normalizer(this._fields);
-		return this.all;
-	}
-	/**
-	* Return field information ordered by field number ascending.
-	*/
-	byNumber() {
-		if (!this.numbersAsc) this.numbersAsc = this.list().concat().sort((a2, b) => a2.no - b.no);
-		return this.numbersAsc;
-	}
-	/**
-	* In order of appearance in the source, list fields and
-	* oneof groups.
-	*/
-	byMember() {
-		if (!this.members) {
-			this.members = [];
-			const a2 = this.members;
-			let o2;
-			for (const f2 of this.list()) if (f2.oneof) {
-				if (f2.oneof !== o2) {
-					o2 = f2.oneof;
-					a2.push(o2);
-				}
-			} else a2.push(f2);
-		}
-		return this.members;
-	}
-};
-function newFieldList2(fields, packedByDefault) {
-	return new FieldList2(fields, (source) => normalizeFieldInfos2(source, packedByDefault));
-}
-function isFieldSet2(field, target) {
-	const localName3 = field.localName;
-	if (!target) return false;
-	if (field.repeated) return !!target[localName3]?.length;
-	if (field.oneof) return target[field.oneof.localName]?.case === localName3;
-	switch (field.kind) {
-		case "enum":
-		case "scalar":
-			if (field.opt || field.req) return target[localName3] != null;
-			if (field.kind == "enum") return target[localName3] !== field.T.values[0].no;
-			return !isScalarZeroValue2(field.T, target[localName3]);
-		case "message": return target[localName3] != null;
-		case "map": return target[localName3] != null && !!Object.keys(target[localName3]).length;
-	}
-}
-var fieldJsonName2 = protoCamelCase2;
-function resolveMessageType2(t2) {
-	if (t2 instanceof Function) return t2();
-	return t2;
-}
-var InternalOneofInfo2 = class {
-	kind = "oneof";
-	name;
-	localName;
-	repeated = false;
-	packed = false;
-	opt = false;
-	req = false;
-	default = void 0;
-	fields = [];
-	_lookup;
-	constructor(name) {
-		this.name = name;
-		this.localName = localOneofName2(name);
-	}
-	addField(field) {
-		assert2(field.oneof === this, `field ${field.name} not one of ${this.name}`);
-		this.fields.push(field);
-	}
-	findField(localName3) {
-		if (!this._lookup) {
-			this._lookup = /* @__PURE__ */ Object.create(null);
-			for (let i2 = 0; i2 < this.fields.length; i2++) this._lookup[this.fields[i2].localName] = this.fields[i2];
-		}
-		return this._lookup[localName3];
-	}
-};
-function normalizeFieldInfos2(fieldInfos, packedByDefault) {
-	const r2 = [];
-	let o2;
-	for (const field of typeof fieldInfos == "function" ? fieldInfos() : fieldInfos) {
-		const f2 = field;
-		f2.localName = localFieldName2(field.name, field.oneof !== void 0);
-		f2.jsonName = field.jsonName ?? fieldJsonName2(field.name);
-		f2.repeated = field.repeated ?? false;
-		if (field.kind == "scalar") f2.L = field.L ?? LongType2.BIGINT;
-		f2.delimited = field.delimited ?? false;
-		f2.req = field.req ?? false;
-		f2.opt = field.opt ?? false;
-		if (field.packed === void 0) if (packedByDefault) f2.packed = field.kind == "enum" || field.kind == "scalar" && field.T != ScalarType2.BYTES && field.T != ScalarType2.STRING;
-		else f2.packed = false;
-		if (field.oneof !== void 0) {
-			const ooname = typeof field.oneof == "string" ? field.oneof : field.oneof.name;
-			if (!o2 || o2.name != ooname) o2 = new InternalOneofInfo2(ooname);
-			f2.oneof = o2;
-			o2.addField(f2);
-		}
-		r2.push(f2);
-	}
-	return r2;
-}
-function createEnumType2(typeName, values) {
-	const names = /* @__PURE__ */ Object.create(null);
-	const numbers = /* @__PURE__ */ Object.create(null);
-	const normalValues = [];
-	for (const value of values) {
-		const n2 = "localName" in value ? value : {
-			...value,
-			localName: value.name
-		};
-		normalValues.push(n2);
-		names[value.name] = n2;
-		numbers[value.no] = n2;
-	}
-	return {
-		typeName,
-		values: normalValues,
-		findName(name) {
-			return names[name];
-		},
-		findNumber(no) {
-			return numbers[no];
-		}
-	};
-}
-function enumZeroValue2(info) {
-	if (info.values.length < 1) throw new Error("invalid enum: missing at least one value");
-	return info.values[0].no;
-}
-function normalizeEnumValue2(info, value) {
-	const zeroValue = enumZeroValue2(info);
-	if (value == null) return zeroValue;
-	if (value === "" || value === zeroValue) return zeroValue;
-	if (typeof value === "string") {
-		const val = info.findName(value);
-		if (!val) throw new Error(`enum ${info.typeName}: invalid value: "${value}"`);
-		return val.no;
-	}
-	return value;
-}
-function applyPartialMessage2(source, target, fields, clone = false) {
-	if (source == null || target == null) return;
-	const t2 = target, s2 = source;
-	for (const member of fields.byMember()) {
-		const localName3 = member.localName;
-		throwSanitizeKey2(localName3);
-		if (!(localName3 in s2) || s2[localName3] === void 0) continue;
-		const sourceValue = s2[localName3];
-		if (sourceValue === null) {
-			delete t2[localName3];
-			continue;
-		}
-		switch (member.kind) {
-			case "oneof": {
-				if (typeof sourceValue !== "object") throw new Error(`field ${localName3}: invalid oneof: must be an object with case and value`);
-				const { case: sk, value: sv } = sourceValue;
-				const sourceField = sk != null ? member.findField(sk) : null;
-				let dv = localName3 in t2 ? t2[localName3] : void 0;
-				if (typeof dv !== "object") dv = /* @__PURE__ */ Object.create(null);
-				if (sk != null && sourceField == null) throw new Error(`field ${localName3}: invalid oneof case: ${sk}`);
-				dv.case = sk;
-				if (dv.case !== sk || sk == null) delete dv.value;
-				t2[localName3] = dv;
-				if (!sourceField) break;
-				if (sourceField.kind === "message") {
-					let dest = dv.value;
-					if (typeof dest !== "object") dest = dv.value = /* @__PURE__ */ Object.create(null);
-					if (sv != null) {
-						const sourceFieldMt = resolveMessageType2(sourceField.T);
-						applyPartialMessage2(sv, dest, sourceFieldMt.fields);
-					}
-				} else if (sourceField.kind === "scalar") dv.value = normalizeScalarValue2(sourceField.T, sv, clone);
-				else dv.value = sv;
-				break;
-			}
-			case "scalar":
-				if (member.repeated) {
-					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName3}: invalid value: must be array`);
-					let dst = localName3 in t2 ? t2[localName3] : null;
-					if (dst == null || !Array.isArray(dst)) dst = t2[localName3] = [];
-					dst.push(...sourceValue.map((v2) => normalizeScalarValue2(member.T, v2, clone)));
-					break;
-				}
-				t2[localName3] = normalizeScalarValue2(member.T, sourceValue, clone);
-				break;
-			case "enum":
-				t2[localName3] = normalizeEnumValue2(member.T, sourceValue);
-				break;
-			case "map": {
-				if (typeof sourceValue !== "object") throw new Error(`field ${member.localName}: invalid value: must be object`);
-				let tMap = t2[localName3];
-				if (typeof tMap !== "object") tMap = t2[localName3] = /* @__PURE__ */ Object.create(null);
-				applyPartialMap2(sourceValue, tMap, member.V, clone);
-				break;
-			}
-			case "message": {
-				const mt = resolveMessageType2(member.T);
-				if (member.repeated) {
-					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName3}: invalid value: must be array`);
-					let tArr = t2[localName3];
-					if (!Array.isArray(tArr)) tArr = t2[localName3] = [];
-					for (const v2 of sourceValue) if (v2 != null) if (mt.fieldWrapper) tArr.push(mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(v2)));
-					else tArr.push(mt.create(v2));
-					break;
-				}
-				if (mt.fieldWrapper) t2[localName3] = mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(sourceValue));
-				else {
-					if (typeof sourceValue !== "object") throw new Error(`field ${member.localName}: invalid value: must be object`);
-					let destMsg = t2[localName3];
-					if (typeof destMsg !== "object") destMsg = t2[localName3] = /* @__PURE__ */ Object.create(null);
-					applyPartialMessage2(sourceValue, destMsg, mt.fields);
-				}
-				break;
-			}
-		}
-	}
-}
-function applyPartialMap2(sourceMap, targetMap, value, clone) {
-	if (sourceMap == null) return;
-	if (typeof sourceMap !== "object") throw new Error(`invalid map: must be object`);
-	switch (value.kind) {
-		case "scalar":
-			for (const [k, v2] of Object.entries(sourceMap)) {
-				throwSanitizeKey2(k);
-				if (v2 !== void 0) targetMap[k] = normalizeScalarValue2(value.T, v2, clone);
-				else delete targetMap[k];
-			}
-			break;
-		case "enum":
-			for (const [k, v2] of Object.entries(sourceMap)) {
-				throwSanitizeKey2(k);
-				if (v2 !== void 0) targetMap[k] = normalizeEnumValue2(value.T, v2);
-				else delete targetMap[k];
-			}
-			break;
-		case "message": {
-			const messageType = resolveMessageType2(value.T);
-			for (const [k, v2] of Object.entries(sourceMap)) {
-				throwSanitizeKey2(k);
-				if (v2 === void 0) {
-					delete targetMap[k];
-					continue;
-				}
-				if (typeof v2 !== "object") throw new Error(`invalid value: must be object`);
-				let val = targetMap[k];
-				if (messageType.fieldWrapper) val = targetMap[k] = createCompleteMessage2(messageType.fields);
-				else if (typeof val !== "object") val = targetMap[k] = /* @__PURE__ */ Object.create(null);
-				applyPartialMessage2(v2, val, messageType.fields);
-			}
-			break;
-		}
-	}
-}
-var unknownFieldsSymbol2 = /* @__PURE__ */ Symbol("@aptre/protobuf-es-lite/unknown-fields");
-function handleUnknownField2(message, no, wireType, data) {
-	if (typeof message !== "object") return;
-	const m = message;
-	if (!Array.isArray(m[unknownFieldsSymbol2])) m[unknownFieldsSymbol2] = [];
-	m[unknownFieldsSymbol2].push({
-		no,
-		wireType,
-		data
-	});
-}
-function wrapField2(fieldWrapper, value) {
-	if (!fieldWrapper) return value;
-	return fieldWrapper.wrapField(value);
-}
-function unwrapField2(fieldWrapper, value) {
-	return fieldWrapper ? fieldWrapper.unwrapField(value) : value;
-}
-ScalarType2.DATE, ScalarType2.DOUBLE, ScalarType2.FLOAT, ScalarType2.INT64, ScalarType2.UINT64, ScalarType2.INT32, ScalarType2.UINT32, ScalarType2.BOOL, ScalarType2.STRING, ScalarType2.BYTES;
-var WireType2;
-(function(WireType3) {
-	WireType3[WireType3["Varint"] = 0] = "Varint";
-	WireType3[WireType3["Bit64"] = 1] = "Bit64";
-	WireType3[WireType3["LengthDelimited"] = 2] = "LengthDelimited";
-	WireType3[WireType3["StartGroup"] = 3] = "StartGroup";
-	WireType3[WireType3["EndGroup"] = 4] = "EndGroup";
-	WireType3[WireType3["Bit32"] = 5] = "Bit32";
-})(WireType2 || (WireType2 = {}));
-var BinaryWriter2 = class {
-	/**
-	* We cannot allocate a buffer for the entire output
-	* because we don't know it's size.
-	*
-	* So we collect smaller chunks of known size and
-	* concat them later.
-	*
-	* Use `raw()` to push data to this array. It will flush
-	* `buf` first.
-	*/
-	chunks;
-	/**
-	* A growing buffer for byte values. If you don't know
-	* the size of the data you are writing, push to this
-	* array.
-	*/
-	buf;
-	/**
-	* Previous fork states.
-	*/
-	stack = [];
-	/**
-	* Text encoder instance to convert UTF-8 to bytes.
-	*/
-	textEncoder;
-	constructor(textEncoder) {
-		this.textEncoder = textEncoder ?? new TextEncoder();
-		this.chunks = [];
-		this.buf = [];
-	}
-	/**
-	* Return all bytes written and reset this writer.
-	*/
-	finish() {
-		this.chunks.push(new Uint8Array(this.buf));
-		let len = 0;
-		for (let i2 = 0; i2 < this.chunks.length; i2++) len += this.chunks[i2].length;
-		let bytes = new Uint8Array(len);
-		let offset = 0;
-		for (let i2 = 0; i2 < this.chunks.length; i2++) {
-			bytes.set(this.chunks[i2], offset);
-			offset += this.chunks[i2].length;
-		}
-		this.chunks = [];
-		return bytes;
-	}
-	/**
-	* Start a new fork for length-delimited data like a message
-	* or a packed repeated field.
-	*
-	* Must be joined later with `join()`.
-	*/
-	fork() {
-		this.stack.push({
-			chunks: this.chunks,
-			buf: this.buf
-		});
-		this.chunks = [];
-		this.buf = [];
-		return this;
-	}
-	/**
-	* Join the last fork. Write its length and bytes, then
-	* return to the previous state.
-	*/
-	join() {
-		let chunk = this.finish();
-		let prev = this.stack.pop();
-		if (!prev) throw new Error("invalid state, fork stack empty");
-		this.chunks = prev.chunks;
-		this.buf = prev.buf;
-		this.uint32(chunk.byteLength);
-		return this.raw(chunk);
-	}
-	/**
-	* Writes a tag (field number and wire type).
-	*
-	* Equivalent to `uint32( (fieldNo << 3 | type) >>> 0 )`.
-	*
-	* Generated code should compute the tag ahead of time and call `uint32()`.
-	*/
-	tag(fieldNo, type) {
-		return this.uint32((fieldNo << 3 | type) >>> 0);
-	}
-	/**
-	* Write a chunk of raw bytes.
-	*/
-	raw(chunk) {
-		if (this.buf.length) {
-			this.chunks.push(new Uint8Array(this.buf));
-			this.buf = [];
-		}
-		this.chunks.push(chunk);
-		return this;
-	}
-	/**
-	* Write a `uint32` value, an unsigned 32 bit varint.
-	*/
-	uint32(value) {
-		assertUInt322(value);
-		while (value > 127) {
-			this.buf.push(value & 127 | 128);
-			value = value >>> 7;
-		}
-		this.buf.push(value);
-		return this;
-	}
-	/**
-	* Write a `int32` value, a signed 32 bit varint.
-	*/
-	int32(value) {
-		assertInt322(value);
-		varint32write2(value, this.buf);
-		return this;
-	}
-	/**
-	* Write a `bool` value, a variant.
-	*/
-	bool(value) {
-		this.buf.push(value ? 1 : 0);
-		return this;
-	}
-	/**
-	* Write a `bytes` value, length-delimited arbitrary data.
-	*/
-	bytes(value) {
-		this.uint32(value.byteLength);
-		return this.raw(value);
-	}
-	/**
-	* Write a `string` value, length-delimited data converted to UTF-8 text.
-	*/
-	string(value) {
-		let chunk = this.textEncoder.encode(value);
-		this.uint32(chunk.byteLength);
-		return this.raw(chunk);
-	}
-	/**
-	* Write a `float` value, 32-bit floating point number.
-	*/
-	float(value) {
-		assertFloat322(value);
-		let chunk = new Uint8Array(4);
-		new DataView(chunk.buffer).setFloat32(0, value, true);
-		return this.raw(chunk);
-	}
-	/**
-	* Write a `double` value, a 64-bit floating point number.
-	*/
-	double(value) {
-		let chunk = new Uint8Array(8);
-		new DataView(chunk.buffer).setFloat64(0, value, true);
-		return this.raw(chunk);
-	}
-	/**
-	* Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
-	*/
-	fixed32(value) {
-		assertUInt322(value);
-		let chunk = new Uint8Array(4);
-		new DataView(chunk.buffer).setUint32(0, value, true);
-		return this.raw(chunk);
-	}
-	/**
-	* Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
-	*/
-	sfixed32(value) {
-		assertInt322(value);
-		let chunk = new Uint8Array(4);
-		new DataView(chunk.buffer).setInt32(0, value, true);
-		return this.raw(chunk);
-	}
-	/**
-	* Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
-	*/
-	sint32(value) {
-		assertInt322(value);
-		value = (value << 1 ^ value >> 31) >>> 0;
-		varint32write2(value, this.buf);
-		return this;
-	}
-	/**
-	* Write a `fixed64` value, a signed, fixed-length 64-bit integer.
-	*/
-	sfixed64(value) {
-		let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt642.enc(value);
-		view.setInt32(0, tc.lo, true);
-		view.setInt32(4, tc.hi, true);
-		return this.raw(chunk);
-	}
-	/**
-	* Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
-	*/
-	fixed64(value) {
-		let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt642.uEnc(value);
-		view.setInt32(0, tc.lo, true);
-		view.setInt32(4, tc.hi, true);
-		return this.raw(chunk);
-	}
-	/**
-	* Write a `int64` value, a signed 64-bit varint.
-	*/
-	int64(value) {
-		let tc = protoInt642.enc(value);
-		varint64write2(tc.lo, tc.hi, this.buf);
-		return this;
-	}
-	/**
-	* Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
-	*/
-	sint64(value) {
-		let tc = protoInt642.enc(value), sign = tc.hi >> 31;
-		varint64write2(tc.lo << 1 ^ sign, (tc.hi << 1 | tc.lo >>> 31) ^ sign, this.buf);
-		return this;
-	}
-	/**
-	* Write a `uint64` value, an unsigned 64-bit varint.
-	*/
-	uint64(value) {
-		let tc = protoInt642.uEnc(value);
-		varint64write2(tc.lo, tc.hi, this.buf);
-		return this;
-	}
-};
-var BinaryReader2 = class {
-	/**
-	* Current position.
-	*/
-	pos;
-	/**
-	* Number of bytes available in this reader.
-	*/
-	len;
-	buf;
-	view;
-	textDecoder;
-	constructor(buf, textDecoder) {
-		this.buf = buf;
-		this.len = buf.length;
-		this.pos = 0;
-		this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-		this.textDecoder = textDecoder ?? new TextDecoder();
-	}
-	/**
-	* Reads a tag - field number and wire type.
-	*/
-	tag() {
-		let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
-		if (fieldNo <= 0 || wireType < 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
-		return [fieldNo, wireType];
-	}
-	/**
-	* Skip one element on the wire and return the skipped data.
-	* Supports WireType.StartGroup since v2.0.0-alpha.23.
-	*/
-	skip(wireType) {
-		let start = this.pos;
-		switch (wireType) {
-			case WireType2.Varint:
-				while (this.buf[this.pos++] & 128);
-				break;
-			case WireType2.Bit64: this.pos += 4;
-			case WireType2.Bit32:
-				this.pos += 4;
-				break;
-			case WireType2.LengthDelimited:
-				let len = this.uint32();
-				this.pos += len;
-				break;
-			case WireType2.StartGroup:
-				let t2;
-				while ((t2 = this.tag()[1]) !== WireType2.EndGroup) this.skip(t2);
-				break;
-			default: throw new Error("cant skip wire type " + wireType);
-		}
-		this.assertBounds();
-		return this.buf.subarray(start, this.pos);
-	}
-	varint64 = varint64read2;
-	/**
-	* Throws error if position in byte array is out of range.
-	*/
-	assertBounds() {
-		if (this.pos > this.len) throw new RangeError("premature EOF");
-	}
-	/**
-	* Read a `uint32` field, an unsigned 32 bit varint.
-	*/
-	uint32 = varint32read2;
-	/**
-	* Read a `int32` field, a signed 32 bit varint.
-	*/
-	int32() {
-		return this.uint32() | 0;
-	}
-	/**
-	* Read a `sint32` field, a signed, zigzag-encoded 32-bit varint.
-	*/
-	sint32() {
-		let zze = this.uint32();
-		return zze >>> 1 ^ -(zze & 1);
-	}
-	/**
-	* Read a `int64` field, a signed 64-bit varint.
-	*/
-	int64() {
-		return protoInt642.dec(...this.varint64());
-	}
-	/**
-	* Read a `uint64` field, an unsigned 64-bit varint.
-	*/
-	uint64() {
-		return protoInt642.uDec(...this.varint64());
-	}
-	/**
-	* Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
-	*/
-	sint64() {
-		let [lo, hi] = this.varint64();
-		let s2 = -(lo & 1);
-		lo = (lo >>> 1 | (hi & 1) << 31) ^ s2;
-		hi = hi >>> 1 ^ s2;
-		return protoInt642.dec(lo, hi);
-	}
-	/**
-	* Read a `bool` field, a variant.
-	*/
-	bool() {
-		let [lo, hi] = this.varint64();
-		return lo !== 0 || hi !== 0;
-	}
-	/**
-	* Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
-	*/
-	fixed32() {
-		return this.view.getUint32((this.pos += 4) - 4, true);
-	}
-	/**
-	* Read a `sfixed32` field, a signed, fixed-length 32-bit integer.
-	*/
-	sfixed32() {
-		return this.view.getInt32((this.pos += 4) - 4, true);
-	}
-	/**
-	* Read a `fixed64` field, an unsigned, fixed-length 64 bit integer.
-	*/
-	fixed64() {
-		return protoInt642.uDec(this.sfixed32(), this.sfixed32());
-	}
-	/**
-	* Read a `fixed64` field, a signed, fixed-length 64-bit integer.
-	*/
-	sfixed64() {
-		return protoInt642.dec(this.sfixed32(), this.sfixed32());
-	}
-	/**
-	* Read a `float` field, 32-bit floating point number.
-	*/
-	float() {
-		return this.view.getFloat32((this.pos += 4) - 4, true);
-	}
-	/**
-	* Read a `double` field, a 64-bit floating point number.
-	*/
-	double() {
-		return this.view.getFloat64((this.pos += 8) - 8, true);
-	}
-	/**
-	* Read a `bytes` field, length-delimited arbitrary data.
-	*/
-	bytes() {
-		let len = this.uint32(), start = this.pos;
-		this.pos += len;
-		this.assertBounds();
-		return this.buf.subarray(start, start + len);
-	}
-	/**
-	* Read a `string` field, length-delimited data converted to UTF-8 text.
-	*/
-	string() {
-		return this.textDecoder.decode(this.bytes());
-	}
-};
-var readDefaults2 = {
-	readUnknownFields: true,
-	readerFactory: (bytes) => new BinaryReader2(bytes)
-};
-var writeDefaults2 = {
-	writeUnknownFields: true,
-	writerFactory: () => new BinaryWriter2()
-};
-function makeReadOptions3(options) {
-	return options ? {
-		...readDefaults2,
-		...options
-	} : readDefaults2;
-}
-function makeWriteOptions3(options) {
-	return options ? {
-		...writeDefaults2,
-		...options
-	} : writeDefaults2;
-}
-function readField3(target, reader, field, wireType, options) {
-	const { repeated } = field;
-	let { localName: localName3 } = field;
-	if (field.oneof) {
-		let oneofMsg = target[field.oneof.localName];
-		if (!oneofMsg) oneofMsg = target[field.oneof.localName] = /* @__PURE__ */ Object.create(null);
-		target = oneofMsg;
-		if (target.case != localName3) delete target.value;
-		target.case = localName3;
-		localName3 = "value";
-	}
-	switch (field.kind) {
-		case "scalar":
-		case "enum": {
-			const scalarType = field.kind == "enum" ? ScalarType2.INT32 : field.T;
-			let read = readScalar3;
-			if (field.kind == "scalar" && field.L > 0) read = readScalarLTString2;
-			if (repeated) {
-				let tgtArr = target[localName3];
-				if (!Array.isArray(tgtArr)) tgtArr = target[localName3] = [];
-				if (wireType == WireType2.LengthDelimited && scalarType != ScalarType2.STRING && scalarType != ScalarType2.BYTES) {
-					const e2 = reader.uint32() + reader.pos;
-					while (reader.pos < e2) tgtArr.push(read(reader, scalarType));
-				} else tgtArr.push(read(reader, scalarType));
-			} else target[localName3] = read(reader, scalarType);
-			break;
-		}
-		case "message": {
-			const fieldT = field.T;
-			const messageType = fieldT instanceof Function ? fieldT() : fieldT;
-			if (repeated) {
-				let tgtArr = target[localName3];
-				if (!Array.isArray(tgtArr)) tgtArr = target[localName3] = [];
-				tgtArr.push(unwrapField2(messageType.fieldWrapper, readMessageField2(reader, /* @__PURE__ */ Object.create(null), messageType.fields, options, field)));
-			} else target[localName3] = unwrapField2(messageType.fieldWrapper, readMessageField2(reader, /* @__PURE__ */ Object.create(null), messageType.fields, options, field));
-			break;
-		}
-		case "map": {
-			const [mapKey, mapVal] = readMapEntry2(field, reader, options);
-			if (typeof target[localName3] !== "object") target[localName3] = /* @__PURE__ */ Object.create(null);
-			target[localName3][mapKey] = mapVal;
-			break;
-		}
-	}
-}
-function readMapEntry2(field, reader, options) {
-	const length = reader.uint32(), end = reader.pos + length;
-	let key, val;
-	while (reader.pos < end) {
-		const [fieldNo] = reader.tag();
-		switch (fieldNo) {
-			case 1:
-				key = readScalar3(reader, field.K);
-				break;
-			case 2:
-				switch (field.V.kind) {
-					case "scalar":
-						val = readScalar3(reader, field.V.T);
-						break;
-					case "enum":
-						val = reader.int32();
-						break;
-					case "message":
-						val = readMessageField2(reader, /* @__PURE__ */ Object.create(null), resolveMessageType2(field.V.T).fields, options, void 0);
-						break;
-				}
-				break;
-		}
-	}
-	if (key === void 0) key = scalarZeroValue2(field.K, LongType2.BIGINT);
-	if (typeof key !== "string" && typeof key !== "number") key = key?.toString() ?? "";
-	if (val === void 0) switch (field.V.kind) {
-		case "scalar":
-			val = scalarZeroValue2(field.V.T, LongType2.BIGINT);
-			break;
-		case "enum":
-			val = field.V.T.values[0].no;
-			break;
-		case "message":
-			val = /* @__PURE__ */ Object.create(null);
-			break;
-	}
-	return [key, val];
-}
-function readScalar3(reader, type) {
-	switch (type) {
-		case ScalarType2.STRING: return reader.string();
-		case ScalarType2.BOOL: return reader.bool();
-		case ScalarType2.DOUBLE: return reader.double();
-		case ScalarType2.FLOAT: return reader.float();
-		case ScalarType2.INT32: return reader.int32();
-		case ScalarType2.INT64: return reader.int64();
-		case ScalarType2.UINT64: return reader.uint64();
-		case ScalarType2.FIXED64: return reader.fixed64();
-		case ScalarType2.BYTES: return reader.bytes();
-		case ScalarType2.FIXED32: return reader.fixed32();
-		case ScalarType2.SFIXED32: return reader.sfixed32();
-		case ScalarType2.SFIXED64: return reader.sfixed64();
-		case ScalarType2.SINT64: return reader.sint64();
-		case ScalarType2.UINT32: return reader.uint32();
-		case ScalarType2.SINT32: return reader.sint32();
-		case ScalarType2.DATE: throw new Error("cannot read a date with readScalar");
-		default: throw new Error("unknown scalar type");
-	}
-}
-function readScalarLTString2(reader, type) {
-	const v2 = readScalar3(reader, type);
-	return typeof v2 == "bigint" ? v2.toString() : v2;
-}
-function readMessageField2(reader, message, fields, options, field) {
-	readMessage3(message, fields, reader, field?.delimited ? field.no : reader.uint32(), options, field?.delimited ?? false);
-	return message;
-}
-function readMessage3(message, fields, reader, lengthOrEndTagFieldNo, options, delimitedMessageEncoding) {
-	const end = delimitedMessageEncoding ? reader.len : reader.pos + lengthOrEndTagFieldNo;
-	let fieldNo, wireType;
-	while (reader.pos < end) {
-		[fieldNo, wireType] = reader.tag();
-		if (wireType == WireType2.EndGroup) break;
-		const field = fields.find(fieldNo);
-		if (!field) {
-			const data = reader.skip(wireType);
-			if (options.readUnknownFields) handleUnknownField2(message, fieldNo, wireType, data);
-			continue;
-		}
-		readField3(message, reader, field, wireType, options);
-	}
-	if (delimitedMessageEncoding && (wireType != WireType2.EndGroup || fieldNo !== lengthOrEndTagFieldNo)) throw new Error(`invalid end group tag`);
-}
-function writeMessage3(message, fields, writer, options) {
-	for (const field of fields.byNumber()) {
-		if (!isFieldSet2(field, message)) {
-			if (field.req) throw new Error(`cannot encode field ${field.name} to binary: required field not set`);
-			continue;
-		}
-		const value = field.oneof ? message[field.oneof.localName].value : message[field.localName];
-		if (value !== void 0) writeField3(field, value, writer, options);
-	}
-	if (options.writeUnknownFields) writeUnknownFields2(message, writer);
-}
-function writeField3(field, value, writer, options) {
-	assert2(value !== void 0);
-	const repeated = field.repeated;
-	switch (field.kind) {
-		case "scalar":
-		case "enum": {
-			const scalarType = field.kind == "enum" ? ScalarType2.INT32 : field.T;
-			if (repeated) {
-				assert2(Array.isArray(value));
-				if (field.packed) writePacked2(writer, scalarType, field.no, value);
-				else for (const item of value) writeScalar3(writer, scalarType, field.no, item);
-			} else writeScalar3(writer, scalarType, field.no, value);
-			break;
-		}
-		case "message":
-			if (repeated) {
-				assert2(Array.isArray(value));
-				for (const item of value) writeMessageField2(writer, options, field, item);
-			} else writeMessageField2(writer, options, field, value);
-			break;
-		case "map":
-			assert2(typeof value == "object" && value != null);
-			for (const [key, val] of Object.entries(value)) writeMapEntry2(writer, options, field, key, val);
-			break;
-	}
-}
-function writeUnknownFields2(message, writer) {
-	const c2 = message[unknownFieldsSymbol2];
-	if (c2) for (const f2 of c2) writer.tag(f2.no, f2.wireType).raw(f2.data);
-}
-function writeMessageField2(writer, options, field, value) {
-	const messageType = resolveMessageType2(field.T);
-	const message = wrapField2(messageType.fieldWrapper, value);
-	if (field.delimited) writer.tag(field.no, WireType2.StartGroup).raw(messageType.toBinary(message, options)).tag(field.no, WireType2.EndGroup);
-	else writer.tag(field.no, WireType2.LengthDelimited).bytes(messageType.toBinary(message, options));
-}
-function writeScalar3(writer, type, fieldNo, value) {
-	assert2(value !== void 0);
-	const [wireType, method] = scalarTypeInfo2(type);
-	writer.tag(fieldNo, wireType)[method](value);
-}
-function writePacked2(writer, type, fieldNo, value) {
-	if (!value.length) return;
-	writer.tag(fieldNo, WireType2.LengthDelimited).fork();
-	const [, method] = scalarTypeInfo2(type);
-	for (let i2 = 0; i2 < value.length; i2++) writer[method](value[i2]);
-	writer.join();
-}
-function scalarTypeInfo2(type) {
-	let wireType = WireType2.Varint;
-	switch (type) {
-		case ScalarType2.BYTES:
-		case ScalarType2.STRING:
-			wireType = WireType2.LengthDelimited;
-			break;
-		case ScalarType2.DOUBLE:
-		case ScalarType2.FIXED64:
-		case ScalarType2.SFIXED64:
-			wireType = WireType2.Bit64;
-			break;
-		case ScalarType2.FIXED32:
-		case ScalarType2.SFIXED32:
-		case ScalarType2.FLOAT:
-			wireType = WireType2.Bit32;
-			break;
-	}
-	const method = ScalarType2[type].toLowerCase();
-	return [wireType, method];
-}
-function writeMapEntry2(writer, options, field, key, value) {
-	writer.tag(field.no, WireType2.LengthDelimited);
-	writer.fork();
-	let keyValue = key;
-	switch (field.K) {
-		case ScalarType2.INT32:
-		case ScalarType2.FIXED32:
-		case ScalarType2.UINT32:
-		case ScalarType2.SFIXED32:
-		case ScalarType2.SINT32:
-			keyValue = Number.parseInt(key);
-			break;
-		case ScalarType2.BOOL:
-			assert2(key == "true" || key == "false");
-			keyValue = key == "true";
-			break;
-	}
-	writeScalar3(writer, field.K, 1, keyValue);
-	switch (field.V.kind) {
-		case "scalar":
-			writeScalar3(writer, field.V.T, 2, value);
-			break;
-		case "enum":
-			writeScalar3(writer, ScalarType2.INT32, 2, value);
-			break;
-		case "message": {
-			assert2(value !== void 0);
-			const messageType = resolveMessageType2(field.V.T);
-			writer.tag(2, WireType2.LengthDelimited).bytes(messageType.toBinary(value, options));
-			break;
-		}
-	}
-	writer.join();
-}
-var encTable2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split("");
-var decTable2 = [];
-for (let i2 = 0; i2 < encTable2.length; i2++) decTable2[encTable2[i2].charCodeAt(0)] = i2;
-decTable2["-".charCodeAt(0)] = encTable2.indexOf("+");
-decTable2["_".charCodeAt(0)] = encTable2.indexOf("/");
-var protoBase642 = {
-	/**
-	* Decodes a base64 string to a byte array.
-	*
-	* - ignores white-space, including line breaks and tabs
-	* - allows inner padding (can decode concatenated base64 strings)
-	* - does not require padding
-	* - understands base64url encoding:
-	*   "-" instead of "+",
-	*   "_" instead of "/",
-	*   no padding
-	*/
-	dec(base64Str) {
-		let es = base64Str.length * 3 / 4;
-		if (base64Str[base64Str.length - 2] == "=") es -= 2;
-		else if (base64Str[base64Str.length - 1] == "=") es -= 1;
-		let bytes = new Uint8Array(es), bytePos = 0, groupPos = 0, b, p = 0;
-		for (let i2 = 0; i2 < base64Str.length; i2++) {
-			b = decTable2[base64Str.charCodeAt(i2)];
-			if (b === void 0) switch (base64Str[i2]) {
-				case "=": groupPos = 0;
-				case "\n":
-				case "\r":
-				case "	":
-				case " ": continue;
-				default: throw Error("invalid base64 string.");
-			}
-			switch (groupPos) {
-				case 0:
-					p = b;
-					groupPos = 1;
-					break;
-				case 1:
-					bytes[bytePos++] = p << 2 | (b & 48) >> 4;
-					p = b;
-					groupPos = 2;
-					break;
-				case 2:
-					bytes[bytePos++] = (p & 15) << 4 | (b & 60) >> 2;
-					p = b;
-					groupPos = 3;
-					break;
-				case 3:
-					bytes[bytePos++] = (p & 3) << 6 | b;
-					groupPos = 0;
-					break;
-			}
-		}
-		if (groupPos == 1) throw Error("invalid base64 string.");
-		return bytes.subarray(0, bytePos);
-	},
-	/**
-	* Encode a byte array to a base64 string.
-	*/
-	enc(bytes) {
-		let base64 = "", groupPos = 0, b, p = 0;
-		for (let i2 = 0; i2 < bytes.length; i2++) {
-			b = bytes[i2];
-			switch (groupPos) {
-				case 0:
-					base64 += encTable2[b >> 2];
-					p = (b & 3) << 4;
-					groupPos = 1;
-					break;
-				case 1:
-					base64 += encTable2[p | b >> 4];
-					p = (b & 15) << 2;
-					groupPos = 2;
-					break;
-				case 2:
-					base64 += encTable2[p | b >> 6];
-					base64 += encTable2[b & 63];
-					groupPos = 0;
-					break;
-			}
-		}
-		if (groupPos) {
-			base64 += encTable2[p];
-			base64 += "=";
-			if (groupPos == 1) base64 += "=";
-		}
-		return base64;
-	}
-};
-var jsonReadDefaults2 = { ignoreUnknownFields: false };
-var jsonWriteDefaults2 = {
-	emitDefaultValues: false,
-	enumAsInteger: false,
-	useProtoFieldName: false,
-	prettySpaces: 0
-};
-function makeReadOptions4(options) {
-	return options ? {
-		...jsonReadDefaults2,
-		...options
-	} : jsonReadDefaults2;
-}
-function makeWriteOptions4(options) {
-	return options ? {
-		...jsonWriteDefaults2,
-		...options
-	} : jsonWriteDefaults2;
-}
-function jsonDebugValue2(json) {
-	if (json === null) return "null";
-	switch (typeof json) {
-		case "object": return Array.isArray(json) ? "array" : "object";
-		case "string": return json.length > 100 ? "string" : `"${json.split("\"").join("\\\"")}"`;
-		default: return String(json);
-	}
-}
-function readMessage4(fields, typeName, json, options, message) {
-	if (json == null || Array.isArray(json) || typeof json != "object") throw new Error(`cannot decode message ${typeName} from JSON: ${jsonDebugValue2(json)}`);
-	const oneofSeen = /* @__PURE__ */ new Map();
-	for (const [jsonKey, jsonValue] of Object.entries(json)) {
-		const field = fields.findJsonName(jsonKey);
-		if (field) {
-			if (field.oneof) {
-				if (jsonValue === null && field.kind == "scalar") continue;
-				const seen = oneofSeen.get(field.oneof);
-				if (seen !== void 0) throw new Error(`cannot decode message ${typeName} from JSON: multiple keys for oneof "${field.oneof.name}" present: "${seen}", "${jsonKey}"`);
-				oneofSeen.set(field.oneof, jsonKey);
-			}
-			readField4(message, jsonValue, field, options);
-		} else if (!options.ignoreUnknownFields) throw new Error(`cannot decode message ${typeName} from JSON: key "${jsonKey}" is unknown`);
-	}
-	return message;
-}
-function writeMessage4(message, fields, options) {
-	const json = /* @__PURE__ */ Object.create(null);
-	let field;
-	try {
-		for (field of fields.byNumber()) {
-			if (!isFieldSet2(field, message)) {
-				if (field.req) throw `required field not set`;
-				if (!options.emitDefaultValues) continue;
-				if (!canEmitFieldDefaultValue2(field)) continue;
-			}
-			const value = field.oneof ? message[field.oneof.localName].value : message[field.localName];
-			const jsonValue = writeField4(field, value, options);
-			if (jsonValue !== void 0) json[options.useProtoFieldName ? field.name : field.jsonName] = jsonValue;
-		}
-	} catch (e2) {
-		const m = field ? `cannot encode field ${field.name} to JSON` : `cannot encode message to JSON`;
-		const r2 = e2 instanceof Error ? e2.message : String(e2);
-		throw new Error(m + (r2.length > 0 ? `: ${r2}` : ""), { cause: e2 });
-	}
-	return json;
-}
-function readField4(target, jsonValue, field, options) {
-	let localName3 = field.localName;
-	if (field.repeated) {
-		assert2(field.kind != "map");
-		if (jsonValue === null) return;
-		if (!Array.isArray(jsonValue)) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue2(jsonValue)}`);
-		let targetArray = target[localName3];
-		if (!Array.isArray(targetArray)) targetArray = target[localName3] = [];
-		for (const jsonItem of jsonValue) {
-			if (jsonItem === null) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue2(jsonItem)}`);
-			switch (field.kind) {
-				case "message": {
-					const messageType = resolveMessageType2(field.T);
-					targetArray.push(unwrapField2(messageType.fieldWrapper, messageType.fromJson(jsonItem, options)));
-					break;
-				}
-				case "enum": {
-					const enumValue = readEnum2(field.T, jsonItem, options.ignoreUnknownFields, true);
-					if (enumValue !== tokenIgnoredUnknownEnum2) targetArray.push(enumValue);
-					break;
-				}
-				case "scalar":
-					try {
-						targetArray.push(readScalar4(field.T, jsonItem, field.L, true));
-					} catch (e2) {
-						let m = `cannot decode field ${field.name} from JSON: ${jsonDebugValue2(jsonItem)}`;
-						if (e2 instanceof Error && e2.message.length > 0) m += `: ${e2.message}`;
-						throw new Error(m, { cause: e2 });
-					}
-					break;
-			}
-		}
-	} else if (field.kind == "map") {
-		if (jsonValue === null) return;
-		if (typeof jsonValue != "object" || Array.isArray(jsonValue)) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue2(jsonValue)}`);
-		let targetMap = target[localName3];
-		if (typeof targetMap !== "object") targetMap = target[localName3] = /* @__PURE__ */ Object.create(null);
-		for (const [jsonMapKey, jsonMapValue] of Object.entries(jsonValue)) {
-			if (jsonMapValue === null) throw new Error(`cannot decode field ${field.name} from JSON: map value null`);
-			let key;
-			try {
-				key = readMapKey2(field.K, jsonMapKey);
-			} catch (e2) {
-				let m = `cannot decode map key for field ${field.name} from JSON: ${jsonDebugValue2(jsonValue)}`;
-				if (e2 instanceof Error && e2.message.length > 0) m += `: ${e2.message}`;
-				throw new Error(m, { cause: e2 });
-			}
-			throwSanitizeKey2(key);
-			switch (field.V.kind) {
-				case "message": {
-					const messageType = resolveMessageType2(field.V.T);
-					targetMap[key] = messageType.fromJson(jsonMapValue, options);
-					break;
-				}
-				case "enum": {
-					const enumValue = readEnum2(field.V.T, jsonMapValue, options.ignoreUnknownFields, true);
-					if (enumValue !== tokenIgnoredUnknownEnum2) targetMap[key] = enumValue;
-					break;
-				}
-				case "scalar":
-					try {
-						targetMap[key] = readScalar4(field.V.T, jsonMapValue, LongType2.BIGINT, true);
-					} catch (e2) {
-						let m = `cannot decode map value for field ${field.name} from JSON: ${jsonDebugValue2(jsonValue)}`;
-						if (e2 instanceof Error && e2.message.length > 0) m += `: ${e2.message}`;
-						throw new Error(m, { cause: e2 });
-					}
-					break;
-			}
-		}
-	} else {
-		if (field.oneof) {
-			target = target[field.oneof.localName] = { case: localName3 };
-			localName3 = "value";
-		}
-		switch (field.kind) {
-			case "message": {
-				const messageType = resolveMessageType2(field.T);
-				if (jsonValue === null && messageType.typeName != "google.protobuf.Value") return;
-				target[localName3] = unwrapField2(messageType.fieldWrapper, messageType.fromJson(jsonValue, options));
-				break;
-			}
-			case "enum": {
-				const enumValue = readEnum2(field.T, jsonValue, options.ignoreUnknownFields, false);
-				switch (enumValue) {
-					case tokenNull2:
-						clearField2(field, target);
-						break;
-					case tokenIgnoredUnknownEnum2: break;
-					default:
-						target[localName3] = enumValue;
-						break;
-				}
-				break;
-			}
-			case "scalar":
-				try {
-					const scalarValue = readScalar4(field.T, jsonValue, field.L, false);
-					switch (scalarValue) {
-						case tokenNull2:
-							clearField2(field, target);
-							break;
-						default:
-							target[localName3] = scalarValue;
-							break;
-					}
-				} catch (e2) {
-					let m = `cannot decode field ${field.name} from JSON: ${jsonDebugValue2(jsonValue)}`;
-					if (e2 instanceof Error && e2.message.length > 0) m += `: ${e2.message}`;
-					throw new Error(m, { cause: e2 });
-				}
-				break;
-		}
-	}
-}
-var tokenNull2 = /* @__PURE__ */ Symbol();
-var tokenIgnoredUnknownEnum2 = /* @__PURE__ */ Symbol();
-function readEnum2(type, json, ignoreUnknownFields, nullAsZeroValue) {
-	if (json === null) {
-		if (type.typeName == "google.protobuf.NullValue") return 0;
-		return nullAsZeroValue ? type.values[0].no : tokenNull2;
-	}
-	switch (typeof json) {
-		case "number":
-			if (Number.isInteger(json)) return json;
-			break;
-		case "string": {
-			const value = type.findName(json);
-			if (value !== void 0) return value.no;
-			if (ignoreUnknownFields) return tokenIgnoredUnknownEnum2;
-			break;
-		}
-	}
-	throw new Error(`cannot decode enum ${type.typeName} from JSON: ${jsonDebugValue2(json)}`);
-}
-function readScalar4(type, json, longType = LongType2.BIGINT, nullAsZeroValue = true) {
-	if (json == null) {
-		if (nullAsZeroValue) return scalarZeroValue2(type, longType);
-		return tokenNull2;
-	}
-	switch (type) {
-		case ScalarType2.DOUBLE:
-		case ScalarType2.FLOAT: {
-			if (json === "NaN") return NaN;
-			if (json === "Infinity") return Number.POSITIVE_INFINITY;
-			if (json === "-Infinity") return Number.NEGATIVE_INFINITY;
-			if (json === "") break;
-			if (typeof json == "string" && json.trim().length !== json.length) break;
-			if (typeof json != "string" && typeof json != "number") break;
-			const float = Number(json);
-			if (Number.isNaN(float)) break;
-			if (!Number.isFinite(float)) break;
-			if (type == ScalarType2.FLOAT) assertFloat322(float);
-			return float;
-		}
-		case ScalarType2.INT32:
-		case ScalarType2.FIXED32:
-		case ScalarType2.SFIXED32:
-		case ScalarType2.SINT32:
-		case ScalarType2.UINT32: {
-			let int32;
-			if (typeof json == "number") int32 = json;
-			else if (typeof json == "string" && json.length > 0) {
-				if (json.trim().length === json.length) int32 = Number(json);
-			}
-			if (int32 === void 0) break;
-			if (type == ScalarType2.UINT32 || type == ScalarType2.FIXED32) assertUInt322(int32);
-			else assertInt322(int32);
-			return int32;
-		}
-		case ScalarType2.INT64:
-		case ScalarType2.SFIXED64:
-		case ScalarType2.SINT64: {
-			if (typeof json != "number" && typeof json != "string") break;
-			const long = protoInt642.parse(json);
-			return longType ? long.toString() : long;
-		}
-		case ScalarType2.FIXED64:
-		case ScalarType2.UINT64: {
-			if (typeof json != "number" && typeof json != "string") break;
-			const uLong = protoInt642.uParse(json);
-			return longType ? uLong.toString() : uLong;
-		}
-		case ScalarType2.BOOL:
-			if (typeof json !== "boolean") break;
-			return json;
-		case ScalarType2.STRING:
-			if (typeof json !== "string") break;
-			return json;
-		case ScalarType2.BYTES:
-			if (json === "") return new Uint8Array(0);
-			if (typeof json !== "string") break;
-			return protoBase642.dec(json);
-	}
-	throw new Error();
-}
-function readMapKey2(type, json) {
-	if (type === ScalarType2.BOOL) switch (json) {
-		case "true":
-			json = true;
-			break;
-		case "false":
-			json = false;
-			break;
-	}
-	return readScalar4(type, json, LongType2.BIGINT, true)?.toString() ?? "";
-}
-function clearField2(field, target) {
-	const localName3 = field.localName;
-	const implicitPresence = !field.opt && !field.req;
-	if (field.repeated) target[localName3] = [];
-	else if (field.oneof) target[field.oneof.localName] = { case: void 0 };
-	else switch (field.kind) {
-		case "map":
-			target[localName3] = /* @__PURE__ */ Object.create(null);
-			break;
-		case "enum":
-			target[localName3] = implicitPresence ? field.T.values[0].no : void 0;
-			break;
-		case "scalar":
-			target[localName3] = implicitPresence ? scalarZeroValue2(field.T, field.L) : void 0;
-			break;
-		case "message":
-			target[localName3] = void 0;
-			break;
-	}
-}
-function canEmitFieldDefaultValue2(field) {
-	if (field.repeated || field.kind == "map") return true;
-	if (field.oneof) return false;
-	if (field.kind == "message") return false;
-	if (field.opt || field.req) return false;
-	return true;
-}
-function writeField4(field, value, options) {
-	if (field.kind == "map") {
-		const jsonObj = /* @__PURE__ */ Object.create(null);
-		assert2(!value || typeof value === "object");
-		const entries2 = value ? Object.entries(value) : [];
-		switch (field.V.kind) {
-			case "scalar":
-				for (const [entryKey, entryValue] of entries2) jsonObj[entryKey.toString()] = writeScalar4(field.V.T, entryValue);
-				break;
-			case "message":
-				for (const [entryKey, entryValue] of entries2) {
-					const messageType = resolveMessageType2(field.V.T);
-					jsonObj[entryKey.toString()] = messageType.toJson(entryValue, options);
-				}
-				break;
-			case "enum": {
-				const enumType = field.V.T;
-				for (const [entryKey, entryValue] of entries2) jsonObj[entryKey.toString()] = writeEnum2(enumType, entryValue, options.enumAsInteger);
-				break;
-			}
-		}
-		return options.emitDefaultValues || entries2.length > 0 ? jsonObj : void 0;
-	}
-	if (field.repeated) {
-		assert2(!value || Array.isArray(value));
-		const jsonArr = [];
-		const valueArr = value;
-		if (valueArr && valueArr.length) switch (field.kind) {
-			case "scalar":
-				for (let i2 = 0; i2 < valueArr.length; i2++) jsonArr.push(writeScalar4(field.T, valueArr[i2]));
-				break;
-			case "enum":
-				for (let i2 = 0; i2 < valueArr.length; i2++) jsonArr.push(writeEnum2(field.T, valueArr[i2], options.enumAsInteger));
-				break;
-			case "message": {
-				const messageType = resolveMessageType2(field.T);
-				for (let i2 = 0; i2 < valueArr.length; i2++) jsonArr.push(messageType.toJson(wrapField2(messageType.fieldWrapper, valueArr[i2])));
-				break;
-			}
-		}
-		return options.emitDefaultValues || jsonArr.length > 0 ? jsonArr : void 0;
-	}
-	switch (field.kind) {
-		case "scalar": {
-			const scalarValue = normalizeScalarValue2(field.T, value, false);
-			if (!options.emitDefaultValues && isScalarZeroValue2(field.T, scalarValue)) return;
-			return writeScalar4(field.T, value);
-		}
-		case "enum": {
-			const enumValue = normalizeEnumValue2(field.T, value);
-			if (!options.emitDefaultValues && enumZeroValue2(field.T) === enumValue) return;
-			return writeEnum2(field.T, value, options.enumAsInteger);
-		}
-		case "message": {
-			if (!options.emitDefaultValues && value == null) return;
-			const messageType = resolveMessageType2(field.T);
-			return messageType.toJson(wrapField2(messageType.fieldWrapper, value));
-		}
-	}
-}
-function writeScalar4(type, value) {
-	switch (type) {
-		case ScalarType2.INT32:
-		case ScalarType2.SFIXED32:
-		case ScalarType2.SINT32:
-		case ScalarType2.FIXED32:
-		case ScalarType2.UINT32:
-			assert2(typeof value == "number");
-			return value;
-		case ScalarType2.FLOAT:
-		case ScalarType2.DOUBLE:
-			assert2(typeof value == "number");
-			if (Number.isNaN(value)) return "NaN";
-			if (value === Number.POSITIVE_INFINITY) return "Infinity";
-			if (value === Number.NEGATIVE_INFINITY) return "-Infinity";
-			return value;
-		case ScalarType2.STRING:
-			assert2(typeof value == "string");
-			return value;
-		case ScalarType2.BOOL:
-			assert2(typeof value == "boolean");
-			return value;
-		case ScalarType2.UINT64:
-		case ScalarType2.FIXED64:
-		case ScalarType2.INT64:
-		case ScalarType2.SFIXED64:
-		case ScalarType2.SINT64:
-			assert2(typeof value == "bigint" || typeof value == "string" || typeof value == "number");
-			return value.toString();
-		case ScalarType2.BYTES:
-			assert2(value instanceof Uint8Array);
-			return protoBase642.enc(value);
-		case ScalarType2.DATE: throw new Error("cannot write date with writeScalar");
-		default: throw new Error("unknown scalar type");
-	}
-}
-function writeEnum2(type, value, enumAsInteger) {
-	assert2(typeof value == "number");
-	if (type.typeName == "google.protobuf.NullValue") return null;
-	if (enumAsInteger) return value;
-	return type.findNumber(value)?.name ?? value;
-}
-function createMessageType2(params, exts) {
-	const { fields: fieldsSource, typeName, packedByDefault, delimitedMessageEncoding, fieldWrapper } = params;
-	const fields = newFieldList2(fieldsSource, packedByDefault);
-	const mt = {
-		typeName,
-		fields,
-		fieldWrapper,
-		create(partial) {
-			const message = /* @__PURE__ */ Object.create(null);
-			applyPartialMessage2(partial, message, fields);
-			return message;
-		},
-		createComplete(partial) {
-			const message = createCompleteMessage2(fields);
-			applyPartialMessage2(partial, message, fields);
-			return message;
-		},
-		equals(a2, b) {
-			return compareMessages2(fields, a2, b);
-		},
-		clone(a2) {
-			if (a2 == null) return a2;
-			return cloneMessage2(a2, fields);
-		},
-		fromBinary(bytes, options) {
-			const message = {};
-			if (bytes && bytes.length) {
-				const opt = makeReadOptions3(options);
-				readMessage3(message, fields, opt.readerFactory(bytes), bytes.byteLength, opt, delimitedMessageEncoding ?? false);
-			}
-			return message;
-		},
-		fromJson(jsonValue, options) {
-			const message = {};
-			if (jsonValue != null) readMessage4(fields, typeName, jsonValue, makeReadOptions4(options), message);
-			return message;
-		},
-		fromJsonString(jsonString, options) {
-			let json = null;
-			if (jsonString) try {
-				json = JSON.parse(jsonString);
-			} catch (e2) {
-				throw new Error(`cannot decode ${typeName} from JSON: ${e2 instanceof Error ? e2.message : String(e2)}`, { cause: e2 });
-			}
-			return mt.fromJson(json, options);
-		},
-		toBinary(a2, options) {
-			if (a2 == null) return new Uint8Array(0);
-			const opt = makeWriteOptions3(options);
-			const writer = opt.writerFactory();
-			writeMessage3(a2, fields, writer, opt);
-			return writer.finish();
-		},
-		toJson(a2, options) {
-			return writeMessage4(a2, fields, makeWriteOptions4(options));
-		},
-		toJsonString(a2, options) {
-			const value = mt.toJson(a2, options);
-			return JSON.stringify(value, null, options?.prettySpaces ?? 0);
-		},
-		...exts ?? {}
-	};
-	return mt;
-}
-function compareMessages2(fields, a2, b) {
-	if (a2 == null && b == null) return true;
-	if (a2 === b) return true;
-	if (!a2 || !b) return false;
-	return fields.byMember().every((m) => {
-		const va = a2[m.localName];
-		const vb = b[m.localName];
-		if (m.repeated) {
-			if ((va?.length ?? 0) !== (vb?.length ?? 0)) return false;
-			if (!va?.length) return true;
-			switch (m.kind) {
-				case "message": {
-					const messageType = resolveMessageType2(m.T);
-					return va.every((a3, i2) => messageType.equals(a3, vb[i2]));
-				}
-				case "scalar": return va.every((a3, i2) => scalarEquals2(m.T, a3, vb[i2]));
-				case "enum": return va.every((a3, i2) => scalarEquals2(ScalarType2.INT32, a3, vb[i2]));
-			}
-			throw new Error(`repeated cannot contain ${m.kind}`);
-		}
-		switch (m.kind) {
-			case "message": return resolveMessageType2(m.T).equals(va, vb);
-			case "enum": return scalarEquals2(ScalarType2.INT32, va, vb);
-			case "scalar": return scalarEquals2(m.T, va, vb);
-			case "oneof": {
-				if (va?.case !== vb?.case) return false;
-				if (va == null) return true;
-				const s2 = m.findField(va.case);
-				if (s2 === void 0) return true;
-				switch (s2.kind) {
-					case "message": return resolveMessageType2(s2.T).equals(va.value, vb.value);
-					case "enum": return scalarEquals2(ScalarType2.INT32, va.value, vb.value);
-					case "scalar": return scalarEquals2(s2.T, va.value, vb.value);
-				}
-				throw new Error(`oneof cannot contain ${s2.kind}`);
-			}
-			case "map": {
-				const ma = va ?? {};
-				const mb = vb ?? {};
-				const keys = Object.keys(ma).concat(Object.keys(mb));
-				switch (m.V.kind) {
-					case "message": {
-						const messageType = resolveMessageType2(m.V.T);
-						return keys.every((k) => messageType.equals(ma[k], mb[k]));
-					}
-					case "enum": return keys.every((k) => scalarEquals2(ScalarType2.INT32, ma[k], mb[k]));
-					case "scalar": {
-						const scalarType = m.V.T;
-						return keys.every((k) => scalarEquals2(scalarType, ma[k], mb[k]));
-					}
-				}
-			}
-		}
-	});
-}
-function cloneMessage2(message, fields) {
-	if (message == null) return null;
-	const clone = /* @__PURE__ */ Object.create(null);
-	applyPartialMessage2(message, clone, fields, true);
-	return clone;
-}
-function createCompleteMessage2(fields) {
-	const message = {};
-	for (const field of fields.byMember()) {
-		const { localName: localName3, kind: fieldKind } = field;
-		throwSanitizeKey2(localName3);
-		switch (fieldKind) {
-			case "oneof":
-				message[localName3] = /* @__PURE__ */ Object.create(null);
-				message[localName3].case = void 0;
-				break;
-			case "scalar":
-				if (field.repeated) message[localName3] = [];
-				else message[localName3] = scalarZeroValue2(field.T, LongType2.BIGINT);
-				break;
-			case "enum":
-				message[localName3] = field.repeated ? [] : enumZeroValue2(field.T);
-				break;
-			case "message": {
-				if (field.oneof) break;
-				if (field.repeated) {
-					message[localName3] = [];
-					break;
-				}
-				const messageType = resolveMessageType2(field.T);
-				message[localName3] = messageType.fieldWrapper ? messageType.fieldWrapper.unwrapField(null) : createCompleteMessage2(messageType.fields);
-				break;
-			}
-			case "map":
-				message[localName3] = /* @__PURE__ */ Object.create(null);
-				break;
-			default:
-		}
-	}
-	return message;
-}
-var MethodKind2;
-(function(MethodKind3) {
-	MethodKind3[MethodKind3["Unary"] = 0] = "Unary";
-	MethodKind3[MethodKind3["ServerStreaming"] = 1] = "ServerStreaming";
-	MethodKind3[MethodKind3["ClientStreaming"] = 2] = "ClientStreaming";
-	MethodKind3[MethodKind3["BiDiStreaming"] = 3] = "BiDiStreaming";
-})(MethodKind2 || (MethodKind2 = {}));
-var MethodIdempotency3;
-(function(MethodIdempotency4) {
-	MethodIdempotency4[MethodIdempotency4["NoSideEffects"] = 1] = "NoSideEffects";
-	MethodIdempotency4[MethodIdempotency4["Idempotent"] = 2] = "Idempotent";
-})(MethodIdempotency3 || (MethodIdempotency3 = {}));
-Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY;
-var packageName2 = "@aptre/protobuf-es-lite";
-var symbolInfo2 = (typeOnly, privateImportPath) => ({
-	typeOnly,
-	privateImportPath,
-	publicImportPath: packageName2
-});
-symbolInfo2(false, "./message.js"), symbolInfo2(true, "./field-list.js"), symbolInfo2(true, "./field.js"), symbolInfo2(true, "./message-type.js"), symbolInfo2(true, "./extension.js"), symbolInfo2(true, "./type-registry.js"), symbolInfo2(true, "./binary-format.js"), symbolInfo2(true, "./binary-format.js"), symbolInfo2(true, "./json.js"), symbolInfo2(true, "./json.js"), symbolInfo2(true, "./json.js"), symbolInfo2(true, "./json.js"), symbolInfo2(false, "./json.js"), symbolInfo2(false, "./json.js"), symbolInfo2(false, "./json.js"), symbolInfo2(false, "./json.js"), symbolInfo2(false, "./json.js"), symbolInfo2(false, "./proto-double.js"), symbolInfo2(false, "./proto-int64.js"), symbolInfo2(false, "./partial.js"), symbolInfo2(false, "./scalar.js"), symbolInfo2(false, "./scalar.js"), symbolInfo2(false, "./scalar.js"), symbolInfo2(false, "./service-type.js"), symbolInfo2(false, "./service-type.js"), symbolInfo2(false, "./enum.js"), symbolInfo2(false, "./message.js");
-var ControllerConfig = createMessageType2({
+var ControllerConfig = createMessageType({
 	typeName: "configset.proto.ControllerConfig",
 	fields: [
 		{
 			no: 1,
 			name: "id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "rev",
 			kind: "scalar",
-			T: ScalarType2.UINT64
+			T: ScalarType.UINT64
 		},
 		{
 			no: 3,
 			name: "config",
 			kind: "scalar",
-			T: ScalarType2.BYTES
+			T: ScalarType.BYTES
 		}
 	],
 	packedByDefault: true
 });
-var ConfigSet = createMessageType2({
+var ConfigSet = createMessageType({
 	typeName: "configset.proto.ConfigSet",
 	fields: [{
 		no: 1,
 		name: "configs",
 		kind: "map",
-		K: ScalarType2.STRING,
+		K: ScalarType.STRING,
 		V: {
 			kind: "message",
 			T: () => ControllerConfig
@@ -9404,31 +7085,31 @@ var ConfigSet = createMessageType2({
 	}],
 	packedByDefault: true
 });
-var Info = createMessageType2({
+var Info = createMessageType({
 	typeName: "controller.Info",
 	fields: [
 		{
 			no: 1,
 			name: "id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "version",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "description",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		}
 	],
 	packedByDefault: true
 });
-var ControllerStatus_Enum = createEnumType2("controller.exec.ControllerStatus", [
+var ControllerStatus_Enum = createEnumType("controller.exec.ControllerStatus", [
 	{
 		no: 0,
 		name: "ControllerStatus_UNKNOWN"
@@ -9446,7 +7127,7 @@ var ControllerStatus_Enum = createEnumType2("controller.exec.ControllerStatus", 
 		name: "ControllerStatus_ERROR"
 	}
 ]);
-var ExecControllerRequest = createMessageType2({
+var ExecControllerRequest = createMessageType({
 	typeName: "controller.exec.ExecControllerRequest",
 	fields: [
 		{
@@ -9459,25 +7140,25 @@ var ExecControllerRequest = createMessageType2({
 			no: 2,
 			name: "config_set_yaml",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "config_set_yaml_overwrite",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		}
 	],
 	packedByDefault: true
 });
-var ExecControllerResponse = createMessageType2({
+var ExecControllerResponse = createMessageType({
 	typeName: "controller.exec.ExecControllerResponse",
 	fields: [
 		{
 			no: 1,
 			name: "id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
@@ -9495,7 +7176,7 @@ var ExecControllerResponse = createMessageType2({
 			no: 4,
 			name: "error_info",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		}
 	],
 	packedByDefault: true
@@ -9603,7 +7284,7 @@ function retryWithAbort(abortSignal, cb, opts) {
 		abortSignal
 	}).result;
 }
-var WebRuntimeClientType_Enum = createEnumType2("web.runtime.WebRuntimeClientType", [
+var WebRuntimeClientType_Enum = createEnumType("web.runtime.WebRuntimeClientType", [
 	{
 		no: 0,
 		name: "WebRuntimeClientType_UNKNOWN"
@@ -9621,7 +7302,7 @@ var WebRuntimeClientType_Enum = createEnumType2("web.runtime.WebRuntimeClientTyp
 		name: "WebRuntimeClientType_WEB_WORKER"
 	}
 ]);
-createEnumType2("web.runtime.WebRenderer", [
+createEnumType("web.runtime.WebRenderer", [
 	{
 		no: 0,
 		name: "WEB_RENDERER_DEFAULT"
@@ -9635,63 +7316,63 @@ createEnumType2("web.runtime.WebRenderer", [
 		name: "WEB_RENDERER_SAUCER"
 	}
 ]);
-createMessageType2({
+createMessageType({
 	typeName: "web.runtime.WebRuntimeHostInit",
 	fields: [{
 		no: 1,
 		name: "web_runtime_id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var RequestRuntimeQuitRequest = createMessageType2({
+var RequestRuntimeQuitRequest = createMessageType({
 	typeName: "web.runtime.RequestRuntimeQuitRequest",
 	fields: [],
 	packedByDefault: true
 });
-var RequestRuntimeQuitResponse = createMessageType2({
+var RequestRuntimeQuitResponse = createMessageType({
 	typeName: "web.runtime.RequestRuntimeQuitResponse",
 	fields: [],
 	packedByDefault: true
 });
-var WatchWebRuntimeStatusRequest = createMessageType2({
+var WatchWebRuntimeStatusRequest = createMessageType({
 	typeName: "web.runtime.WatchWebRuntimeStatusRequest",
 	fields: [],
 	packedByDefault: true
 });
-var WebDocumentStatus = createMessageType2({
+var WebDocumentStatus = createMessageType({
 	typeName: "web.runtime.WebDocumentStatus",
 	fields: [
 		{
 			no: 1,
 			name: "id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "deleted",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 3,
 			name: "permanent",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		}
 	],
 	packedByDefault: true
 });
-var WebRuntimeStatus = createMessageType2({
+var WebRuntimeStatus = createMessageType({
 	typeName: "web.runtime.WebRuntimeStatus",
 	fields: [
 		{
 			no: 1,
 			name: "snapshot",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 2,
@@ -9704,81 +7385,81 @@ var WebRuntimeStatus = createMessageType2({
 			no: 3,
 			name: "closed",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		}
 	],
 	packedByDefault: true
 });
-var CreateWebDocumentRequest = createMessageType2({
+var CreateWebDocumentRequest = createMessageType({
 	typeName: "web.runtime.CreateWebDocumentRequest",
 	fields: [{
 		no: 1,
 		name: "id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var CreateWebDocumentResponse = createMessageType2({
+var CreateWebDocumentResponse = createMessageType({
 	typeName: "web.runtime.CreateWebDocumentResponse",
 	fields: [{
 		no: 1,
 		name: "created",
 		kind: "scalar",
-		T: ScalarType2.BOOL
+		T: ScalarType.BOOL
 	}],
 	packedByDefault: true
 });
-var RemoveWebDocumentRequest = createMessageType2({
+var RemoveWebDocumentRequest = createMessageType({
 	typeName: "web.runtime.RemoveWebDocumentRequest",
 	fields: [{
 		no: 1,
 		name: "id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var RemoveWebDocumentResponse = createMessageType2({
+var RemoveWebDocumentResponse = createMessageType({
 	typeName: "web.runtime.RemoveWebDocumentResponse",
 	fields: [{
 		no: 1,
 		name: "removed",
 		kind: "scalar",
-		T: ScalarType2.BOOL
+		T: ScalarType.BOOL
 	}],
 	packedByDefault: true
 });
-var FlushIndexCacheRequest = createMessageType2({
+var FlushIndexCacheRequest = createMessageType({
 	typeName: "web.runtime.FlushIndexCacheRequest",
 	fields: [],
 	packedByDefault: true
 });
-var FlushIndexCacheResponse = createMessageType2({
+var FlushIndexCacheResponse = createMessageType({
 	typeName: "web.runtime.FlushIndexCacheResponse",
 	fields: [],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "web.runtime.WebRuntimeClientInit",
 	fields: [
 		{
 			no: 1,
 			name: "web_runtime_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "client_uuid",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 5,
 			name: "logical_client_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
@@ -9790,53 +7471,53 @@ createMessageType2({
 			no: 4,
 			name: "disable_web_locks",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		}
 	],
 	packedByDefault: true
 });
-var RpcStreamInit3 = createMessageType2({
+var RpcStreamInit2 = createMessageType({
 	typeName: "rpcstream.RpcStreamInit",
 	fields: [{
 		no: 1,
 		name: "component_id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var RpcAck3 = createMessageType2({
+var RpcAck2 = createMessageType({
 	typeName: "rpcstream.RpcAck",
 	fields: [{
 		no: 1,
 		name: "error",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var RpcStreamPacket3 = createMessageType2({
+var RpcStreamPacket2 = createMessageType({
 	typeName: "rpcstream.RpcStreamPacket",
 	fields: [
 		{
 			no: 1,
 			name: "init",
 			kind: "message",
-			T: () => RpcStreamInit3,
+			T: () => RpcStreamInit2,
 			oneof: "body"
 		},
 		{
 			no: 2,
 			name: "ack",
 			kind: "message",
-			T: () => RpcAck3,
+			T: () => RpcAck2,
 			oneof: "body"
 		},
 		{
 			no: 3,
 			name: "data",
 			kind: "scalar",
-			T: ScalarType2.BYTES,
+			T: ScalarType.BYTES,
 			oneof: "body"
 		}
 	],
@@ -9854,7 +7535,7 @@ var RpcStreamPacket3 = createMessageType2({
 			name: "RequestRuntimeQuit",
 			I: RequestRuntimeQuitRequest,
 			O: RequestRuntimeQuitResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* WebDocumentRpc opens a stream for a RPC call to a WebDocument.
@@ -9865,9 +7546,9 @@ var RpcStreamPacket3 = createMessageType2({
 		*/
 		WebDocumentRpc: {
 			name: "WebDocumentRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		},
 		/**
 		* ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
@@ -9878,9 +7559,9 @@ var RpcStreamPacket3 = createMessageType2({
 		*/
 		ServiceWorkerRpc: {
 			name: "ServiceWorkerRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		},
 		/**
 		* WebWorkerRpc opens a stream for a RPC call from a WebWorker.
@@ -9891,9 +7572,9 @@ var RpcStreamPacket3 = createMessageType2({
 		*/
 		WebWorkerRpc: {
 			name: "WebWorkerRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		}
 	}
 }).typeName;
@@ -9909,7 +7590,7 @@ var RpcStreamPacket3 = createMessageType2({
 			name: "WatchWebRuntimeStatus",
 			I: WatchWebRuntimeStatusRequest,
 			O: WebRuntimeStatus,
-			kind: MethodKind2.ServerStreaming
+			kind: MethodKind.ServerStreaming
 		},
 		/**
 		* CreateWebDocument requests to create a new WebDocument.
@@ -9922,7 +7603,7 @@ var RpcStreamPacket3 = createMessageType2({
 			name: "CreateWebDocument",
 			I: CreateWebDocumentRequest,
 			O: CreateWebDocumentResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* RemoveWebDocument requests to delete a WebDocument.
@@ -9935,7 +7616,7 @@ var RpcStreamPacket3 = createMessageType2({
 			name: "RemoveWebDocument",
 			I: RemoveWebDocumentRequest,
 			O: RemoveWebDocumentResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* WebDocumentRpc opens a stream for a RPC call to a WebDocument.
@@ -9946,9 +7627,9 @@ var RpcStreamPacket3 = createMessageType2({
 		*/
 		WebDocumentRpc: {
 			name: "WebDocumentRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		},
 		/**
 		* WebWorkerRpc opens a stream for a RPC call to a WebWorker.
@@ -9961,9 +7642,9 @@ var RpcStreamPacket3 = createMessageType2({
 		*/
 		WebWorkerRpc: {
 			name: "WebWorkerRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		},
 		/**
 		* FlushIndexCache refreshes the cached browser index document.
@@ -9974,7 +7655,7 @@ var RpcStreamPacket3 = createMessageType2({
 			name: "FlushIndexCache",
 			I: FlushIndexCacheRequest,
 			O: FlushIndexCacheResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		}
 	}
 }).typeName;
@@ -10206,14 +7887,64 @@ function h(n2, t2) {
 		return this.Pn.has(n3) || this.Pn.set(n3, /* @__PURE__ */ new Set()), this.Pn.get(n3);
 	}, n2;
 })());
-var WebWorkerType_Enum = createEnumType2("web.document.WebWorkerType", [{
+var WebWorkerGenerationState_Enum = createEnumType("web.document.WebWorkerGenerationState", [
+	{
+		no: 0,
+		name: "WEB_WORKER_GENERATION_STATE_UNKNOWN"
+	},
+	{
+		no: 1,
+		name: "WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED"
+	},
+	{
+		no: 2,
+		name: "WEB_WORKER_GENERATION_STATE_WORKER_CREATED"
+	},
+	{
+		no: 3,
+		name: "WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING"
+	},
+	{
+		no: 4,
+		name: "WEB_WORKER_GENERATION_STATE_FRONTEND_READY"
+	},
+	{
+		no: 5,
+		name: "WEB_WORKER_GENERATION_STATE_CAPABILITY_READY"
+	},
+	{
+		no: 6,
+		name: "WEB_WORKER_GENERATION_STATE_RUNNING"
+	},
+	{
+		no: 7,
+		name: "WEB_WORKER_GENERATION_STATE_NORMAL_STOP"
+	},
+	{
+		no: 8,
+		name: "WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT"
+	},
+	{
+		no: 9,
+		name: "WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE"
+	},
+	{
+		no: 10,
+		name: "WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN"
+	},
+	{
+		no: 11,
+		name: "WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET"
+	}
+]);
+var WebWorkerType_Enum = createEnumType("web.document.WebWorkerType", [{
 	no: 0,
 	name: "WEB_WORKER_TYPE_NATIVE"
 }, {
 	no: 1,
 	name: "WEB_WORKER_TYPE_QUICKJS"
 }]);
-var WebWorkerMode_Enum = createEnumType2("web.document.WebWorkerMode", [
+var WebWorkerMode_Enum = createEnumType("web.document.WebWorkerMode", [
 	{
 		no: 0,
 		name: "WORKER_MODE_DEFAULT"
@@ -10227,97 +7958,103 @@ var WebWorkerMode_Enum = createEnumType2("web.document.WebWorkerMode", [
 		name: "WORKER_MODE_DEDICATED"
 	}
 ]);
-var WatchWebDocumentStatusRequest = createMessageType2({
+var WatchWebDocumentStatusRequest = createMessageType({
 	typeName: "web.document.WatchWebDocumentStatusRequest",
 	fields: [],
 	packedByDefault: true
 });
-var WebViewStatus = createMessageType2({
+var WebViewStatus = createMessageType({
 	typeName: "web.document.WebViewStatus",
 	fields: [
 		{
 			no: 1,
 			name: "id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "deleted",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 3,
 			name: "parent_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 4,
 			name: "permanent",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		}
 	],
 	packedByDefault: true
 });
-var WebWorkerStatus = createMessageType2({
+var WebWorkerStatus = createMessageType({
 	typeName: "web.document.WebWorkerStatus",
 	fields: [
 		{
 			no: 1,
 			name: "id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "deleted",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 3,
 			name: "shared",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 4,
 			name: "ready",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 5,
 			name: "failed",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 6,
 			name: "failure_reason",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
+		},
+		{
+			no: 7,
+			name: "generation_state",
+			kind: "enum",
+			T: WebWorkerGenerationState_Enum
 		}
 	],
 	packedByDefault: true
 });
-var WebDocumentStatus3 = createMessageType2({
+var WebDocumentStatus3 = createMessageType({
 	typeName: "web.document.WebDocumentStatus",
 	fields: [
 		{
 			no: 1,
 			name: "snapshot",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 2,
 			name: "hidden",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 3,
@@ -10337,45 +8074,45 @@ var WebDocumentStatus3 = createMessageType2({
 			no: 5,
 			name: "closed",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		}
 	],
 	packedByDefault: true
 });
-var CreateWebViewRequest = createMessageType2({
+var CreateWebViewRequest = createMessageType({
 	typeName: "web.document.CreateWebViewRequest",
 	fields: [{
 		no: 1,
 		name: "id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var CreateWebViewResponse = createMessageType2({
+var CreateWebViewResponse = createMessageType({
 	typeName: "web.document.CreateWebViewResponse",
 	fields: [{
 		no: 1,
 		name: "created",
 		kind: "scalar",
-		T: ScalarType2.BOOL
+		T: ScalarType.BOOL
 	}],
 	packedByDefault: true
 });
-var CreateWebWorkerRequest = createMessageType2({
+var CreateWebWorkerRequest = createMessageType({
 	typeName: "web.document.CreateWebWorkerRequest",
 	fields: [
 		{
 			no: 1,
 			name: "id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "path",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
@@ -10387,7 +8124,7 @@ var CreateWebWorkerRequest = createMessageType2({
 			no: 4,
 			name: "init_data",
 			kind: "scalar",
-			T: ScalarType2.BYTES
+			T: ScalarType.BYTES
 		},
 		{
 			no: 5,
@@ -10398,38 +8135,38 @@ var CreateWebWorkerRequest = createMessageType2({
 	],
 	packedByDefault: true
 });
-var CreateWebWorkerResponse = createMessageType2({
+var CreateWebWorkerResponse = createMessageType({
 	typeName: "web.document.CreateWebWorkerResponse",
 	fields: [{
 		no: 1,
 		name: "created",
 		kind: "scalar",
-		T: ScalarType2.BOOL
+		T: ScalarType.BOOL
 	}, {
 		no: 2,
 		name: "shared",
 		kind: "scalar",
-		T: ScalarType2.BOOL
+		T: ScalarType.BOOL
 	}],
 	packedByDefault: true
 });
-var RemoveWebWorkerRequest = createMessageType2({
+var RemoveWebWorkerRequest = createMessageType({
 	typeName: "web.document.RemoveWebWorkerRequest",
 	fields: [{
 		no: 1,
 		name: "id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var RemoveWebWorkerResponse = createMessageType2({
+var RemoveWebWorkerResponse = createMessageType({
 	typeName: "web.document.RemoveWebWorkerResponse",
 	fields: [{
 		no: 1,
 		name: "removed",
 		kind: "scalar",
-		T: ScalarType2.BOOL
+		T: ScalarType.BOOL
 	}],
 	packedByDefault: true
 });
@@ -10445,9 +8182,9 @@ var RemoveWebWorkerResponse = createMessageType2({
 	*/
 WebViewRpc: {
 		name: "WebViewRpc",
-		I: RpcStreamPacket3,
-		O: RpcStreamPacket3,
-		kind: MethodKind2.BiDiStreaming
+		I: RpcStreamPacket2,
+		O: RpcStreamPacket2,
+		kind: MethodKind.BiDiStreaming
 	} }
 }).typeName;
 ({
@@ -10462,7 +8199,7 @@ WebViewRpc: {
 			name: "WatchWebDocumentStatus",
 			I: WatchWebDocumentStatusRequest,
 			O: WebDocumentStatus3,
-			kind: MethodKind2.ServerStreaming
+			kind: MethodKind.ServerStreaming
 		},
 		/**
 		* CreateWebView requests to create a new WebView at the root level.
@@ -10474,7 +8211,7 @@ WebViewRpc: {
 			name: "CreateWebView",
 			I: CreateWebViewRequest,
 			O: CreateWebViewResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* WebViewRpc opens a stream for a RPC call to a WebView.
@@ -10484,9 +8221,9 @@ WebViewRpc: {
 		*/
 		WebViewRpc: {
 			name: "WebViewRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		},
 		/**
 		* CreateWebWorker requests to spawn a WebWorker with an instance identifier.
@@ -10502,7 +8239,7 @@ WebViewRpc: {
 			name: "CreateWebWorker",
 			I: CreateWebWorkerRequest,
 			O: CreateWebWorkerResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* RemoveWebWorker requests to terminate a WebWorker with the given id.
@@ -10513,18 +8250,18 @@ WebViewRpc: {
 			name: "RemoveWebWorker",
 			I: RemoveWebWorkerRequest,
 			O: RemoveWebWorkerResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		}
 	}
 }).typeName;
-var SetRenderModeRequest = createMessageType2({
+var SetRenderModeRequest = createMessageType({
 	typeName: "web.view.SetRenderModeRequest",
 	fields: [
 		{
 			no: 1,
 			name: "render_mode",
 			kind: "enum",
-			T: createEnumType2("web.view.RenderMode", [
+			T: createEnumType("web.view.RenderMode", [
 				{
 					no: 0,
 					name: "RenderMode_NONE"
@@ -10547,64 +8284,64 @@ var SetRenderModeRequest = createMessageType2({
 			no: 2,
 			name: "script_path",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "props",
 			kind: "scalar",
-			T: ScalarType2.BYTES
+			T: ScalarType.BYTES
 		},
 		{
 			no: 4,
 			name: "refresh",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		}
 	],
 	packedByDefault: true
 });
-var SetRenderModeResponse = createMessageType2({
+var SetRenderModeResponse = createMessageType({
 	typeName: "web.view.SetRenderModeResponse",
 	fields: [],
 	packedByDefault: true
 });
-var HtmlLink = createMessageType2({
+var HtmlLink = createMessageType({
 	typeName: "web.view.HtmlLink",
 	fields: [{
 		no: 1,
 		name: "href",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}, {
 		no: 2,
 		name: "rel",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var SetHtmlLinksRequest = createMessageType2({
+var SetHtmlLinksRequest = createMessageType({
 	typeName: "web.view.SetHtmlLinksRequest",
 	fields: [
 		{
 			no: 1,
 			name: "clear",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 2,
 			name: "remove",
 			kind: "scalar",
-			T: ScalarType2.STRING,
+			T: ScalarType.STRING,
 			repeated: true
 		},
 		{
 			no: 3,
 			name: "set_links",
 			kind: "map",
-			K: ScalarType2.STRING,
+			K: ScalarType.STRING,
 			V: {
 				kind: "message",
 				T: () => HtmlLink
@@ -10613,33 +8350,33 @@ var SetHtmlLinksRequest = createMessageType2({
 	],
 	packedByDefault: true
 });
-var SetHtmlLinksResponse = createMessageType2({
+var SetHtmlLinksResponse = createMessageType({
 	typeName: "web.view.SetHtmlLinksResponse",
 	fields: [],
 	packedByDefault: true
 });
-var ResetWebViewRequest = createMessageType2({
+var ResetWebViewRequest = createMessageType({
 	typeName: "web.view.ResetWebViewRequest",
 	fields: [],
 	packedByDefault: true
 });
-var ResetWebViewResponse = createMessageType2({
+var ResetWebViewResponse = createMessageType({
 	typeName: "web.view.ResetWebViewResponse",
 	fields: [],
 	packedByDefault: true
 });
-var RemoveWebViewRequest = createMessageType2({
+var RemoveWebViewRequest = createMessageType({
 	typeName: "web.view.RemoveWebViewRequest",
 	fields: [],
 	packedByDefault: true
 });
-var RemoveWebViewResponse = createMessageType2({
+var RemoveWebViewResponse = createMessageType({
 	typeName: "web.view.RemoveWebViewResponse",
 	fields: [{
 		no: 1,
 		name: "removed",
 		kind: "scalar",
-		T: ScalarType2.BOOL
+		T: ScalarType.BOOL
 	}],
 	packedByDefault: true
 });
@@ -10659,7 +8396,7 @@ var RemoveWebViewResponse = createMessageType2({
 			name: "SetRenderMode",
 			I: SetRenderModeRequest,
 			O: SetRenderModeResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load.
@@ -10670,7 +8407,7 @@ var RemoveWebViewResponse = createMessageType2({
 			name: "SetHtmlLinks",
 			I: SetHtmlLinksRequest,
 			O: SetHtmlLinksResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* ResetWebView clears the render mode, links, and contents of a WebView.
@@ -10681,7 +8418,7 @@ var RemoveWebViewResponse = createMessageType2({
 			name: "ResetWebView",
 			I: ResetWebViewRequest,
 			O: ResetWebViewResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* RemoveWebView requests to remove a WebView from the root level.
@@ -10692,7 +8429,7 @@ var RemoveWebViewResponse = createMessageType2({
 			name: "RemoveWebView",
 			I: RemoveWebViewRequest,
 			O: RemoveWebViewResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		}
 	}
 }).typeName;
@@ -10707,9 +8444,9 @@ var RemoveWebViewResponse = createMessageType2({
 	*/
 WebViewRpc: {
 		name: "WebViewRpc",
-		I: RpcStreamPacket3,
-		O: RpcStreamPacket3,
-		kind: MethodKind2.BiDiStreaming
+		I: RpcStreamPacket2,
+		O: RpcStreamPacket2,
+		kind: MethodKind.BiDiStreaming
 	} }
 }).typeName;
 navigator?.userAgentData?.platform;
@@ -10801,7 +8538,7 @@ function createResourceRef(id, client, onRelease) {
 	};
 	return ref;
 }
-var Client3 = class {
+var Client2 = class {
 	constructor(service, signal) {
 		this.service = service;
 		this.signal = signal;
@@ -10920,7 +8657,7 @@ var Client3 = class {
 	async openAttachSession() {
 		const state = await this.ensureInitialized();
 		const controller = createAbortController2(this.signal);
-		const outgoing = pushable2({ objectMode: true });
+		const outgoing = pushable({ objectMode: true });
 		const incomingIt = this.service.ResourceAttach((async function* () {
 			yield* outgoing;
 		})(), controller.signal)[Symbol.asyncIterator]();
@@ -10972,7 +8709,7 @@ var Client3 = class {
 			yamuxParams: { enableKeepAlive: false }
 		});
 		const releaseAttachedResource = (resourceId) => this.releaseAttachedResource(sess, resourceId);
-		pipe2((async function* () {
+		pipe((async function* () {
 			for (;;) {
 				const result = await incomingIt.next();
 				if (result.done) break;
@@ -11373,37 +9110,37 @@ var Client3 = class {
 		this.pendingResourceReleases.clear();
 	}
 };
-var ResourceClientRequest = createMessageType2({
+var ResourceClientRequest = createMessageType({
 	typeName: "resource.ResourceClientRequest",
 	fields: [],
 	packedByDefault: true
 });
-var ResourceClientInit = createMessageType2({
+var ResourceClientInit = createMessageType({
 	typeName: "resource.ResourceClientInit",
 	fields: [{
 		no: 1,
 		name: "client_handle_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}, {
 		no: 2,
 		name: "root_resource_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}],
 	packedByDefault: true
 });
-var ResourceReleasedResponse = createMessageType2({
+var ResourceReleasedResponse = createMessageType({
 	typeName: "resource.ResourceReleasedResponse",
 	fields: [{
 		no: 1,
 		name: "resource_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}],
 	packedByDefault: true
 });
-var ResourceClientResponse = createMessageType2({
+var ResourceClientResponse = createMessageType({
 	typeName: "resource.ResourceClientResponse",
 	fields: [
 		{
@@ -11424,68 +9161,68 @@ var ResourceClientResponse = createMessageType2({
 			no: 3,
 			name: "client_error",
 			kind: "scalar",
-			T: ScalarType2.STRING,
+			T: ScalarType.STRING,
 			oneof: "body"
 		}
 	],
 	packedByDefault: true
 });
-var ResourceRefReleaseRequest = createMessageType2({
+var ResourceRefReleaseRequest = createMessageType({
 	typeName: "resource.ResourceRefReleaseRequest",
 	fields: [{
 		no: 1,
 		name: "client_handle_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}, {
 		no: 2,
 		name: "resource_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}],
 	packedByDefault: true
 });
-var ResourceRefReleaseResponse = createMessageType2({
+var ResourceRefReleaseResponse = createMessageType({
 	typeName: "resource.ResourceRefReleaseResponse",
 	fields: [],
 	packedByDefault: true
 });
-var ResourceAttachInit = createMessageType2({
+var ResourceAttachInit = createMessageType({
 	typeName: "resource.ResourceAttachInit",
 	fields: [{
 		no: 1,
 		name: "client_handle_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}],
 	packedByDefault: true
 });
-var ResourceAttachAdd = createMessageType2({
+var ResourceAttachAdd = createMessageType({
 	typeName: "resource.ResourceAttachAdd",
 	fields: [{
 		no: 1,
 		name: "attach_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}, {
 		no: 2,
 		name: "label",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var ResourceAttachDetach = createMessageType2({
+var ResourceAttachDetach = createMessageType({
 	typeName: "resource.ResourceAttachDetach",
 	fields: [{
 		no: 1,
 		name: "resource_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}],
 	packedByDefault: true
 });
-var ResourceAttachRequest = createMessageType2({
+var ResourceAttachRequest = createMessageType({
 	typeName: "resource.ResourceAttachRequest",
 	fields: [
 		{
@@ -11513,57 +9250,57 @@ var ResourceAttachRequest = createMessageType2({
 			no: 4,
 			name: "mux_data",
 			kind: "scalar",
-			T: ScalarType2.BYTES,
+			T: ScalarType.BYTES,
 			oneof: "body"
 		}
 	],
 	packedByDefault: true
 });
-var ResourceAttachAck = createMessageType2({
+var ResourceAttachAck = createMessageType({
 	typeName: "resource.ResourceAttachAck",
 	fields: [{
 		no: 1,
 		name: "error",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var ResourceAttachAddAck = createMessageType2({
+var ResourceAttachAddAck = createMessageType({
 	typeName: "resource.ResourceAttachAddAck",
 	fields: [
 		{
 			no: 1,
 			name: "attach_id",
 			kind: "scalar",
-			T: ScalarType2.UINT32
+			T: ScalarType.UINT32
 		},
 		{
 			no: 2,
 			name: "error",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "resource_id",
 			kind: "scalar",
-			T: ScalarType2.UINT32
+			T: ScalarType.UINT32
 		}
 	],
 	packedByDefault: true
 });
-var ResourceAttachDetachAck = createMessageType2({
+var ResourceAttachDetachAck = createMessageType({
 	typeName: "resource.ResourceAttachDetachAck",
 	fields: [{
 		no: 1,
 		name: "resource_id",
 		kind: "scalar",
-		T: ScalarType2.UINT32
+		T: ScalarType.UINT32
 	}],
 	packedByDefault: true
 });
-var ResourceAttachResponse = createMessageType2({
+var ResourceAttachResponse = createMessageType({
 	typeName: "resource.ResourceAttachResponse",
 	fields: [
 		{
@@ -11591,7 +9328,7 @@ var ResourceAttachResponse = createMessageType2({
 			no: 4,
 			name: "mux_data",
 			kind: "scalar",
-			T: ScalarType2.BYTES,
+			T: ScalarType.BYTES,
 			oneof: "body"
 		}
 	],
@@ -11612,7 +9349,7 @@ var ResourceServiceDefinition = {
 			name: "ResourceClient",
 			I: ResourceClientRequest,
 			O: ResourceClientResponse,
-			kind: MethodKind2.ServerStreaming
+			kind: MethodKind.ServerStreaming
 		},
 		/**
 		* ResourceRpc is a rpc request for an open resource handle.
@@ -11623,9 +9360,9 @@ var ResourceServiceDefinition = {
 		*/
 		ResourceRpc: {
 			name: "ResourceRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		},
 		/**
 		* ResourceRefRelease releases a resource given a handle ID.
@@ -11637,7 +9374,7 @@ var ResourceServiceDefinition = {
 			name: "ResourceRefRelease",
 			I: ResourceRefReleaseRequest,
 			O: ResourceRefReleaseResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* ResourceAttach allows a client to provide resources that server-side
@@ -11651,7 +9388,7 @@ var ResourceServiceDefinition = {
 			name: "ResourceAttach",
 			I: ResourceAttachRequest,
 			O: ResourceAttachResponse,
-			kind: MethodKind2.BiDiStreaming
+			kind: MethodKind.BiDiStreaming
 		}
 	}
 };
@@ -11688,8 +9425,8 @@ var ResourceServiceClient = class {
 	* @generated from rpc resource.ResourceService.ResourceRpc
 	*/
 	ResourceRpc(request, abortSignal) {
-		const result = this.rpc.bidirectionalStreamingRequest(this.service, ResourceServiceDefinition.methods.ResourceRpc.name, buildEncodeMessageTransform(RpcStreamPacket3)(request), abortSignal || void 0);
-		return buildDecodeMessageTransform(RpcStreamPacket3)(result);
+		const result = this.rpc.bidirectionalStreamingRequest(this.service, ResourceServiceDefinition.methods.ResourceRpc.name, buildEncodeMessageTransform(RpcStreamPacket2)(request), abortSignal || void 0);
+		return buildDecodeMessageTransform(RpcStreamPacket2)(result);
 	}
 	/**
 	* ResourceRefRelease releases a resource given a handle ID.
@@ -11724,7 +9461,7 @@ var Timestamp_Wkt = {
 		if (Number.isNaN(ms)) throw new Error(`cannot decode google.protobuf.Timestamp from JSON: invalid RFC 3339 string`);
 		if (ms < Date.parse("0001-01-01T00:00:00Z") || ms > Date.parse("9999-12-31T23:59:59Z")) throw new Error(`cannot decode message google.protobuf.Timestamp from JSON: must be from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive`);
 		return {
-			seconds: protoInt642.parse(ms / 1e3),
+			seconds: protoInt64.parse(ms / 1e3),
 			nanos: !matches[7] ? 0 : parseInt("1" + matches[7] + "0".repeat(9 - matches[7].length)) - 1e9
 		};
 	},
@@ -11751,7 +9488,7 @@ var Timestamp_Wkt = {
 		const seconds = Math.floor(ms / 1e3);
 		const nanos = ms % 1e3 * 1e6;
 		return {
-			seconds: protoInt642.parse(seconds),
+			seconds: protoInt64.parse(seconds),
 			nanos
 		};
 	},
@@ -11763,18 +9500,18 @@ var Timestamp_Wkt = {
 		return +aDate === +bDate;
 	}
 };
-var Timestamp = createMessageType2({
+var Timestamp = createMessageType({
 	typeName: "google.protobuf.Timestamp",
 	fields: [{
 		no: 1,
 		name: "seconds",
 		kind: "scalar",
-		T: ScalarType2.INT64
+		T: ScalarType.INT64
 	}, {
 		no: 2,
 		name: "nanos",
 		kind: "scalar",
-		T: ScalarType2.INT32
+		T: ScalarType.INT32
 	}],
 	packedByDefault: true,
 	fieldWrapper: {
@@ -11787,7 +9524,7 @@ var Timestamp = createMessageType2({
 		}
 	}
 }, Timestamp_Wkt);
-var HashType_Enum = createEnumType2("hash.HashType", [
+var HashType_Enum = createEnumType("hash.HashType", [
 	{
 		no: 0,
 		name: "HashType_UNKNOWN"
@@ -11805,7 +9542,7 @@ var HashType_Enum = createEnumType2("hash.HashType", [
 		name: "HashType_BLAKE3"
 	}
 ]);
-var Hash = createMessageType2({
+var Hash = createMessageType({
 	typeName: "hash.Hash",
 	fields: [{
 		no: 1,
@@ -11816,11 +9553,11 @@ var Hash = createMessageType2({
 		no: 2,
 		name: "hash",
 		kind: "scalar",
-		T: ScalarType2.BYTES
+		T: ScalarType.BYTES
 	}],
 	packedByDefault: true
 });
-createEnumType2("block.StoreFeature", [
+createEnumType("block.StoreFeature", [
 	{
 		no: 0,
 		name: "STORE_FEATURE_UNKNOWN"
@@ -11846,7 +9583,7 @@ createEnumType2("block.StoreFeature", [
 		name: "STORE_FEATURE_NATIVE_DEFER_FLUSH"
 	}
 ]);
-createEnumType2("block.OverlayMode", [
+createEnumType("block.OverlayMode", [
 	{
 		no: 0,
 		name: "UPPER_ONLY"
@@ -11884,7 +9621,7 @@ createEnumType2("block.OverlayMode", [
 		name: "UPPER_READBACK_CACHE"
 	}
 ]);
-var BlockRef = createMessageType2({
+var BlockRef = createMessageType({
 	typeName: "block.BlockRef",
 	fields: [{
 		no: 1,
@@ -11894,7 +9631,7 @@ var BlockRef = createMessageType2({
 	}],
 	packedByDefault: true
 });
-var PutOpts = createMessageType2({
+var PutOpts = createMessageType({
 	typeName: "block.PutOpts",
 	fields: [
 		{
@@ -11919,22 +9656,22 @@ var PutOpts = createMessageType2({
 	],
 	packedByDefault: true
 });
-var StepConfig = createMessageType2({
+var StepConfig = createMessageType({
 	typeName: "block.transform.StepConfig",
 	fields: [{
 		no: 1,
 		name: "id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}, {
 		no: 2,
 		name: "config",
 		kind: "scalar",
-		T: ScalarType2.BYTES
+		T: ScalarType.BYTES
 	}],
 	packedByDefault: true
 });
-var Config = createMessageType2({
+var Config = createMessageType({
 	typeName: "block.transform.Config",
 	fields: [{
 		no: 1,
@@ -11945,13 +9682,13 @@ var Config = createMessageType2({
 	}],
 	packedByDefault: true
 });
-var LookupConfig = createMessageType2({
+var LookupConfig = createMessageType({
 	typeName: "bucket.LookupConfig",
 	fields: [{
 		no: 1,
 		name: "disable",
 		kind: "scalar",
-		T: ScalarType2.BOOL
+		T: ScalarType.BOOL
 	}, {
 		no: 2,
 		name: "controller",
@@ -11960,20 +9697,20 @@ var LookupConfig = createMessageType2({
 	}],
 	packedByDefault: true
 });
-var Config2 = createMessageType2({
+var Config2 = createMessageType({
 	typeName: "bucket.Config",
 	fields: [
 		{
 			no: 1,
 			name: "id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "rev",
 			kind: "scalar",
-			T: ScalarType2.UINT32
+			T: ScalarType.UINT32
 		},
 		{
 			no: 4,
@@ -11990,7 +9727,7 @@ var Config2 = createMessageType2({
 	],
 	packedByDefault: true
 });
-var BucketInfo = createMessageType2({
+var BucketInfo = createMessageType({
 	typeName: "bucket.BucketInfo",
 	fields: [{
 		no: 1,
@@ -12000,20 +9737,20 @@ var BucketInfo = createMessageType2({
 	}],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "bucket.ApplyBucketConfigResult",
 	fields: [
 		{
 			no: 1,
 			name: "volume_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "bucket_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
@@ -12037,18 +9774,18 @@ createMessageType2({
 			no: 6,
 			name: "updated",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 7,
 			name: "error",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		}
 	],
 	packedByDefault: true
 });
-var ObjectRef = createMessageType2({
+var ObjectRef = createMessageType({
 	typeName: "bucket.ObjectRef",
 	fields: [
 		{
@@ -12061,7 +9798,7 @@ var ObjectRef = createMessageType2({
 			no: 2,
 			name: "bucket_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
@@ -12078,58 +9815,58 @@ var ObjectRef = createMessageType2({
 	],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "bucket.BucketOpArgs",
 	fields: [{
 		no: 1,
 		name: "bucket_id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}, {
 		no: 2,
 		name: "volume_id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var ManifestMeta = createMessageType2({
+var ManifestMeta = createMessageType({
 	typeName: "bldr.manifest.ManifestMeta",
 	fields: [
 		{
 			no: 1,
 			name: "manifest_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "build_type",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "platform_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 4,
 			name: "rev",
 			kind: "scalar",
-			T: ScalarType2.UINT64
+			T: ScalarType.UINT64
 		},
 		{
 			no: 5,
 			name: "description",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		}
 	],
 	packedByDefault: true
 });
-var Manifest = createMessageType2({
+var Manifest = createMessageType({
 	typeName: "bldr.manifest.Manifest",
 	fields: [
 		{
@@ -12142,7 +9879,7 @@ var Manifest = createMessageType2({
 			no: 2,
 			name: "entrypoint",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
@@ -12159,7 +9896,7 @@ var Manifest = createMessageType2({
 	],
 	packedByDefault: true
 });
-var ManifestRef = createMessageType2({
+var ManifestRef = createMessageType({
 	typeName: "bldr.manifest.ManifestRef",
 	fields: [{
 		no: 1,
@@ -12174,7 +9911,7 @@ var ManifestRef = createMessageType2({
 	}],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "bldr.manifest.ManifestBundle",
 	fields: [{
 		no: 1,
@@ -12190,7 +9927,7 @@ createMessageType2({
 	}],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "bldr.manifest.ManifestSnapshot",
 	fields: [{
 		no: 1,
@@ -12205,39 +9942,39 @@ createMessageType2({
 	}],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "bldr.manifest.FetchManifestRequest",
 	fields: [
 		{
 			no: 1,
 			name: "manifest_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "build_types",
 			kind: "scalar",
-			T: ScalarType2.STRING,
+			T: ScalarType.STRING,
 			repeated: true
 		},
 		{
 			no: 3,
 			name: "platform_ids",
 			kind: "scalar",
-			T: ScalarType2.STRING,
+			T: ScalarType.STRING,
 			repeated: true
 		},
 		{
 			no: 4,
 			name: "rev",
 			kind: "scalar",
-			T: ScalarType2.UINT64
+			T: ScalarType.UINT64
 		}
 	],
 	packedByDefault: true
 });
-var FetchManifestValue = createMessageType2({
+var FetchManifestValue = createMessageType({
 	typeName: "bldr.manifest.FetchManifestValue",
 	fields: [{
 		no: 1,
@@ -12248,14 +9985,14 @@ var FetchManifestValue = createMessageType2({
 	}],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "bldr.manifest.FetchManifestResponse",
 	fields: [
 		{
 			no: 1,
 			name: "value_id",
 			kind: "scalar",
-			T: ScalarType2.UINT32
+			T: ScalarType.UINT32
 		},
 		{
 			no: 2,
@@ -12267,37 +10004,37 @@ createMessageType2({
 			no: 3,
 			name: "removed",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 4,
 			name: "idle",
 			kind: "scalar",
-			T: ScalarType2.UINT32
+			T: ScalarType.UINT32
 		}
 	],
 	packedByDefault: true
 });
-var VolumeInfo = createMessageType2({
+var VolumeInfo = createMessageType({
 	typeName: "volume.VolumeInfo",
 	fields: [
 		{
 			no: 1,
 			name: "volume_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "peer_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "peer_pub",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 4,
@@ -12314,22 +10051,22 @@ var VolumeInfo = createMessageType2({
 	],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "volume.StorageStats",
 	fields: [{
 		no: 1,
 		name: "total_bytes",
 		kind: "scalar",
-		T: ScalarType2.UINT64
+		T: ScalarType.UINT64
 	}, {
 		no: 2,
 		name: "block_count",
 		kind: "scalar",
-		T: ScalarType2.UINT64
+		T: ScalarType.UINT64
 	}],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "volume.VolumeBucketInfo",
 	fields: [{
 		no: 1,
@@ -12344,32 +10081,32 @@ createMessageType2({
 	}],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "volume.ListBucketsRequest",
 	fields: [
 		{
 			no: 1,
 			name: "bucket_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "volume_id_re",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "volume_id_list",
 			kind: "scalar",
-			T: ScalarType2.STRING,
+			T: ScalarType.STRING,
 			repeated: true
 		}
 	],
 	packedByDefault: true
 });
-var PluginState_Enum = createEnumType2("bldr.plugin.PluginState", [
+var PluginState_Enum = createEnumType("bldr.plugin.PluginState", [
 	{
 		no: 0,
 		name: "PluginState_UNKNOWN"
@@ -12383,26 +10120,26 @@ var PluginState_Enum = createEnumType2("bldr.plugin.PluginState", [
 		name: "PluginState_RUNNING"
 	}
 ]);
-var PluginStatus = createMessageType2({
+var PluginStatus = createMessageType({
 	typeName: "bldr.plugin.PluginStatus",
 	fields: [
 		{
 			no: 1,
 			name: "plugin_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "running",
 			kind: "scalar",
-			T: ScalarType2.BOOL
+			T: ScalarType.BOOL
 		},
 		{
 			no: 3,
 			name: "instance_key",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 4,
@@ -12414,7 +10151,7 @@ var PluginStatus = createMessageType2({
 			no: 5,
 			name: "last_error_message",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 6,
@@ -12425,19 +10162,19 @@ var PluginStatus = createMessageType2({
 	],
 	packedByDefault: true
 });
-var GetPluginInfoRequest = createMessageType2({
+var GetPluginInfoRequest = createMessageType({
 	typeName: "bldr.plugin.GetPluginInfoRequest",
 	fields: [],
 	packedByDefault: true
 });
-var GetPluginInfoResponse = createMessageType2({
+var GetPluginInfoResponse = createMessageType({
 	typeName: "bldr.plugin.GetPluginInfoResponse",
 	fields: [
 		{
 			no: 1,
 			name: "plugin_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
@@ -12454,22 +10191,22 @@ var GetPluginInfoResponse = createMessageType2({
 	],
 	packedByDefault: true
 });
-var LoadPluginRequest = createMessageType2({
+var LoadPluginRequest = createMessageType({
 	typeName: "bldr.plugin.LoadPluginRequest",
 	fields: [{
 		no: 1,
 		name: "plugin_id",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}, {
 		no: 2,
 		name: "instance_key",
 		kind: "scalar",
-		T: ScalarType2.STRING
+		T: ScalarType.STRING
 	}],
 	packedByDefault: true
 });
-var LoadPluginResponse = createMessageType2({
+var LoadPluginResponse = createMessageType({
 	typeName: "bldr.plugin.LoadPluginResponse",
 	fields: [{
 		no: 1,
@@ -12479,61 +10216,61 @@ var LoadPluginResponse = createMessageType2({
 	}],
 	packedByDefault: true
 });
-var PluginMeta = createMessageType2({
+var PluginMeta = createMessageType({
 	typeName: "bldr.plugin.PluginMeta",
 	fields: [
 		{
 			no: 1,
 			name: "project_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "plugin_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "platform_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 4,
 			name: "build_type",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		}
 	],
 	packedByDefault: true
 });
-var PluginStartInfo = createMessageType2({
+var PluginStartInfo = createMessageType({
 	typeName: "bldr.plugin.PluginStartInfo",
 	fields: [
 		{
 			no: 1,
 			name: "instance_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 2,
 			name: "plugin_id",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		},
 		{
 			no: 3,
 			name: "instance_key",
 			kind: "scalar",
-			T: ScalarType2.STRING
+			T: ScalarType.STRING
 		}
 	],
 	packedByDefault: true
 });
-createMessageType2({
+createMessageType({
 	typeName: "bldr.plugin.PluginContextInfo",
 	fields: [{
 		no: 1,
@@ -12555,7 +10292,7 @@ var PluginHostDefinition = {
 			name: "GetPluginInfo",
 			I: GetPluginInfoRequest,
 			O: GetPluginInfoResponse,
-			kind: MethodKind2.Unary
+			kind: MethodKind.Unary
 		},
 		/**
 		* ExecController executes a controller configuration on the bus.
@@ -12566,7 +10303,7 @@ var PluginHostDefinition = {
 			name: "ExecController",
 			I: ExecControllerRequest,
 			O: ExecControllerResponse,
-			kind: MethodKind2.ServerStreaming
+			kind: MethodKind.ServerStreaming
 		},
 		/**
 		* LoadPlugin requests to load the plugin with the given ID.
@@ -12579,7 +10316,7 @@ var PluginHostDefinition = {
 			name: "LoadPlugin",
 			I: LoadPluginRequest,
 			O: LoadPluginResponse,
-			kind: MethodKind2.ServerStreaming
+			kind: MethodKind.ServerStreaming
 		},
 		/**
 		* PluginRpc forwards an RPC call to a remote plugin.
@@ -12590,9 +10327,9 @@ var PluginHostDefinition = {
 		*/
 		PluginRpc: {
 			name: "PluginRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		},
 		/**
 		* PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
@@ -12604,9 +10341,9 @@ var PluginHostDefinition = {
 		*/
 		PluginFsRpc: {
 			name: "PluginFsRpc",
-			I: RpcStreamPacket3,
-			O: RpcStreamPacket3,
-			kind: MethodKind2.BiDiStreaming
+			I: RpcStreamPacket2,
+			O: RpcStreamPacket2,
+			kind: MethodKind.BiDiStreaming
 		}
 	}
 };
@@ -12663,8 +10400,8 @@ var PluginHostClient = class {
 	* @generated from rpc bldr.plugin.PluginHost.PluginRpc
 	*/
 	PluginRpc(request, abortSignal) {
-		const result = this.rpc.bidirectionalStreamingRequest(this.service, PluginHostDefinition.methods.PluginRpc.name, buildEncodeMessageTransform(RpcStreamPacket3)(request), abortSignal || void 0);
-		return buildDecodeMessageTransform(RpcStreamPacket3)(result);
+		const result = this.rpc.bidirectionalStreamingRequest(this.service, PluginHostDefinition.methods.PluginRpc.name, buildEncodeMessageTransform(RpcStreamPacket2)(request), abortSignal || void 0);
+		return buildDecodeMessageTransform(RpcStreamPacket2)(result);
 	}
 	/**
 	* PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
@@ -12675,8 +10412,8 @@ var PluginHostClient = class {
 	* @generated from rpc bldr.plugin.PluginHost.PluginFsRpc
 	*/
 	PluginFsRpc(request, abortSignal) {
-		const result = this.rpc.bidirectionalStreamingRequest(this.service, PluginHostDefinition.methods.PluginFsRpc.name, buildEncodeMessageTransform(RpcStreamPacket3)(request), abortSignal || void 0);
-		return buildDecodeMessageTransform(RpcStreamPacket3)(result);
+		const result = this.rpc.bidirectionalStreamingRequest(this.service, PluginHostDefinition.methods.PluginFsRpc.name, buildEncodeMessageTransform(RpcStreamPacket2)(request), abortSignal || void 0);
+		return buildDecodeMessageTransform(RpcStreamPacket2)(result);
 	}
 };
 ({
@@ -12690,9 +10427,9 @@ var PluginHostClient = class {
 	*/
 PluginRpc: {
 		name: "PluginRpc",
-		I: RpcStreamPacket3,
-		O: RpcStreamPacket3,
-		kind: MethodKind2.BiDiStreaming
+		I: RpcStreamPacket2,
+		O: RpcStreamPacket2,
+		kind: MethodKind.BiDiStreaming
 	} }
 }).typeName;
 var BackendApiImpl = class {
@@ -12745,7 +10482,7 @@ var BackendApiImpl = class {
 		this.client = new Client(openStream2);
 		this.handleStreamCtr = handleStreamCtr;
 		this.pluginHost = new PluginHostClient(this.client);
-		this.resourceClient = new Client3(new ResourceServiceClient(this.client), signal);
+		this.resourceClient = new Client2(new ResourceServiceClient(this.client), signal);
 	}
 	buildPluginOpenStream(pluginID, instanceKey) {
 		let componentID = pluginID;
@@ -12789,7 +10526,7 @@ var runtimeConn = new StreamConn({ handlePacketStream: handleIncomingStream }, {
 		maxMessageSize: 32 * 1024
 	}
 });
-var stdinStream = pushable2({ objectMode: true });
+var stdinStream = pushable({ objectMode: true });
 function stdinReadHandler() {
 	const bytesRead = quickjsGlobalThis.os.read(stdinFd, stdinReadBuffer.buffer, 0, stdinReadBuffer.length);
 	if (bytesRead === 0) return;
@@ -12798,7 +10535,7 @@ function stdinReadHandler() {
 }
 retainRuntimeRoot(stdinReadHandler);
 quickjsGlobalThis.os.setReadHandler(stdinFd, stdinReadHandler);
-pipe2(stdinStream, runtimeConn, async (source) => writeSourceToFd(quickjsGlobalThis.os, source, "/dev/out")).catch((err) => {
+pipe(stdinStream, runtimeConn, async (source) => writeSourceToFd(quickjsGlobalThis.os, source, "/dev/out")).catch((err) => {
 	logError("caught error in pipe", err);
 	quickjsGlobalThis.std.exit(1);
 });

@@ -4,7 +4,6 @@ import { Message } from '@aptre/protobuf-es-lite'
 import {
   buildWebDocumentLockName,
   ClientToWebDocument,
-  ConnectWebRtcBridgeAck,
   ConnectWebRuntimeAck,
   SabPairEndpointDescriptor,
   WebDocumentToClient,
@@ -14,11 +13,10 @@ import {
   WebRuntimeClientInit,
   WebRuntimeClientType,
 } from '../runtime/runtime.pb.js'
-import { timeoutPromise } from './timeout.js'
-import { WebRuntimeClient } from './web-runtime-client.js'
-
-const openViaWebDocumentTimeoutMs = 1000
-const waitForNextWebDocumentTimeoutMs = 3000
+import {
+  WebRuntimeClient,
+  type RuntimeClientStreamOpenGateResult,
+} from './web-runtime-client.js'
 
 interface WebDocumentWaiter {
   resume: () => void
@@ -30,14 +28,20 @@ interface WebDocumentResumeReadyWaiter extends WebDocumentWaiter {
 }
 
 interface SabPairOpenWaiter {
+  webDocumentId: string
   resolve: (endpoint: SabPairEndpointDescriptor) => void
   reject: (err: Error) => void
-  timeout: ReturnType<typeof globalThis.setTimeout>
+}
+
+interface WebRtcBridgeOpenWaiter {
+  webDocumentId: string
+  resolve: (port: MessagePort) => void
+  reject: (err: Error) => void
 }
 
 // WebDocumentTracker is a tracks a set of connected WebDocument and attempts to
-// connect to the remote WebRuntime via these documents, retrying if the remote
-// document(s) have been closed or are unreachable after a timeout.
+// connect to the remote WebRuntime via these documents, retrying when the
+// owning WebDocument lifecycle closes a stale route.
 //
 // onWebDocumentsExhausted is called if there are no available web documents to
 // connect to and we want a connection with the WebRuntime. Depending on the
@@ -53,6 +57,8 @@ export class WebDocumentTracker {
 
   // webDocuments is the list of active WebDocument MessagePorts.
   private webDocuments: Record<string, MessagePort> = {}
+  // closed records that the tracker is shutting down and should not accept new work.
+  private closed = false
   // webDocumentWaiters are callbacks waiting for the next WebDocument.
   private webDocumentWaiters: WebDocumentWaiter[] = []
   // webDocumentResumeReadyIds are WebDocuments that reported resume readiness.
@@ -66,6 +72,7 @@ export class WebDocumentTracker {
   private nextSabPairRequestNumber = 1
   private sabPairOpenWaiters = new Map<string, SabPairOpenWaiter>()
   private sabPairEndpoints = new Map<string, SabPairEndpointDescriptor>()
+  private webRtcBridgeOpenWaiters: WebRtcBridgeOpenWaiter[] = []
 
   constructor(
     clientUuid: string,
@@ -99,6 +106,9 @@ export class WebDocumentTracker {
 
   // handleWebDocumentMessage handles an incoming message from the WebDocument.
   public handleWebDocumentMessage(msg: WebDocumentToWorker) {
+    if (this.closed) {
+      return
+    }
     if (typeof msg !== 'object' || !msg.from || !msg.initPort) {
       return
     }
@@ -111,7 +121,7 @@ export class WebDocumentTracker {
     this.webDocuments[webDocumentId] = port
     port.onmessage = (ev) => {
       const data: WebDocumentToClient = ev.data
-      if (typeof data !== 'object') {
+      if (typeof data !== 'object' || data === null) {
         return
       }
 
@@ -125,6 +135,14 @@ export class WebDocumentTracker {
             )
             delete this.webDocuments[webDocumentId]
             this.webDocumentResumeReadyIds.delete(webDocumentId)
+            const closeErr = new Error(
+              `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed`,
+            )
+            this.rejectSabPairWaitersForWebDocument(webDocumentId, closeErr)
+            this.rejectWebRtcBridgeWaitersForWebDocument(
+              webDocumentId,
+              closeErr,
+            )
             this.rejectResumeReadyWaiters(
               webDocumentId,
               new Error(
@@ -168,7 +186,6 @@ export class WebDocumentTracker {
           return
         }
         this.sabPairOpenWaiters.delete(data.openSabPairAck.requestId)
-        clearTimeout(waiter.timeout)
         if (data.openSabPairAck.error) {
           waiter.reject(new Error(data.openSabPairAck.error))
           return
@@ -178,6 +195,21 @@ export class WebDocumentTracker {
           return
         }
         waiter.resolve(data.openSabPairAck.endpoint)
+        return
+      }
+
+      if (data.bridgePort) {
+        const waiterIdx = this.webRtcBridgeOpenWaiters.findIndex(
+          (waiter) => waiter.webDocumentId === webDocumentId,
+        )
+        if (waiterIdx === -1) {
+          return
+        }
+        const waiter = this.webRtcBridgeOpenWaiters.splice(waiterIdx, 1)[0]
+        if (!waiter) {
+          return
+        }
+        waiter.resolve(data.bridgePort)
         return
       }
 
@@ -203,6 +235,10 @@ export class WebDocumentTracker {
 
   // close tells all connected web documents that this client is closing.
   public close() {
+    if (this.closed) {
+      return
+    }
+    this.closed = true
     const msg: ClientToWebDocument = {
       from: this.clientUuid,
       close: true,
@@ -219,6 +255,8 @@ export class WebDocumentTracker {
     )
     this.rejectWaiters(err)
     this.rejectAllResumeReadyWaiters(err)
+    this.rejectAllSabPairWaiters(err)
+    this.rejectAllWebRtcBridgeWaiters(err)
   }
 
   // postMessage posts a message to all connected web documents.
@@ -244,14 +282,10 @@ export class WebDocumentTracker {
 
     const requestId = `sab-pair-open-${this.nextSabPairRequestNumber++}`
     return new Promise<SabPairEndpointDescriptor>((resolve, reject) => {
-      const timeout = globalThis.setTimeout(() => {
-        this.sabPairOpenWaiters.delete(requestId)
-        reject(new Error(`timeout opening SAB pair to ${targetWorkerId}`))
-      }, openViaWebDocumentTimeoutMs)
       this.sabPairOpenWaiters.set(requestId, {
+        webDocumentId: docId,
         resolve,
         reject,
-        timeout,
       })
       try {
         docPort.postMessage({
@@ -262,7 +296,6 @@ export class WebDocumentTracker {
           },
         } satisfies ClientToWebDocument)
       } catch (err) {
-        clearTimeout(timeout)
         this.sabPairOpenWaiters.delete(requestId)
         reject(err instanceof Error ? err : new Error(String(err)))
       }
@@ -281,8 +314,7 @@ export class WebDocumentTracker {
   }
 
   // requestWebRtcBridge requests a WebRTC bridge port from the first available
-  // WebDocument. Returns the bridge MessagePort, or null if no WebDocument
-  // responds within the timeout.
+  // WebDocument. Returns null only when no WebDocument is available.
   public async requestWebRtcBridge(): Promise<MessagePort | null> {
     const webDocumentIds = Object.keys(this.webDocuments)
     if (!webDocumentIds.length) return null
@@ -292,31 +324,23 @@ export class WebDocumentTracker {
     const docPort = this.webDocuments[docId]
     if (!docPort) return null
 
-    return new Promise<MessagePort | null>((resolve) => {
-      // Temporarily listen for the bridge ack on the initPort.
-      const prev = docPort.onmessage
-      const timeout = globalThis.setTimeout(() => {
-        docPort.onmessage = prev
-        resolve(null)
-      }, openViaWebDocumentTimeoutMs)
-
-      docPort.onmessage = (ev: MessageEvent) => {
-        const data = ev.data
-        if (data && data.bridgePort) {
-          clearTimeout(timeout)
-          docPort.onmessage = prev
-          resolve((data as ConnectWebRtcBridgeAck).bridgePort)
-          return
-        }
-        // Forward other messages to the original handler.
-        if (prev) prev.call(docPort, ev)
+    return new Promise<MessagePort | null>((resolve, reject) => {
+      const waiter: WebRtcBridgeOpenWaiter = {
+        webDocumentId: docId,
+        resolve,
+        reject,
       }
-
+      this.webRtcBridgeOpenWaiters.push(waiter)
       const msg: ClientToWebDocument = {
         from: this.clientUuid,
         connectWebRtcBridge: true,
       }
-      docPort.postMessage(msg)
+      try {
+        docPort.postMessage(msg)
+      } catch (err) {
+        this.removeWebRtcBridgeWaiter(waiter)
+        reject(err instanceof Error ? err : new Error(String(err)))
+      }
     })
   }
 
@@ -324,9 +348,14 @@ export class WebDocumentTracker {
   private async openWebRuntimeClient(
     initMsg: Message<WebRuntimeClientInit>,
   ): Promise<MessagePort> {
+    if (this.closed) {
+      throw new Error(
+        `WebDocumentTracker: ${this.clientUuid}: closed while waiting for WebDocument`,
+      )
+    }
     const init = WebRuntimeClientInit.toBinary(initMsg)
     const webDocumentIds = Object.keys(this.webDocuments)
-    for (let i = 0; i < webDocumentIds.length; i++) {
+    for (const i of webDocumentIds.keys()) {
       const x = (i + this.lastWebDocumentIdx + 1) % webDocumentIds.length
       const webDocumentId = webDocumentIds[x]
       const webDocumentPort = this.webDocuments[webDocumentId]
@@ -369,14 +398,11 @@ export class WebDocumentTracker {
         }
         webDocumentPort.postMessage(connectMsg, [ackChannel.port2])
 
-        // wait for the ack.
-        const result = await Promise.race([
-          ackPromise,
-          disconnectedPromise,
-          timeoutPromise(openViaWebDocumentTimeoutMs),
-        ])
+        const result = await Promise.race([ackPromise, disconnectedPromise])
         if (!result) {
-          throw new Error('timed out waiting for ack from WebDocument')
+          throw new Error(
+            `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed before ack`,
+          )
         }
         if (result instanceof Error) {
           throw result
@@ -389,13 +415,23 @@ export class WebDocumentTracker {
         return result.webRuntimePort
       } catch (err) {
         // message port must be closed.
-        console.error(
-          `ServiceWorker: connecting via WebDocument failed: ${webDocumentId}`,
-          err,
-        )
+        const expectedClose = isExpectedWebDocumentCloseError(err)
+        if (expectedClose) {
+          console.warn(
+            `ServiceWorker: connecting via WebDocument closed: ${webDocumentId}`,
+            err,
+          )
+        }
+        if (!expectedClose) {
+          console.error(
+            `ServiceWorker: connecting via WebDocument failed: ${webDocumentId}`,
+            err,
+          )
+        }
         delete this.webDocuments[webDocumentId]
         continue
       } finally {
+        ackChannel.port1.close()
         lockAbortController.abort()
       }
     }
@@ -411,16 +447,13 @@ export class WebDocumentTracker {
       })
     })
 
+    void waitPromise.catch(() => {})
+
     // notify all WebDocument that we are looking for a connection to them.
     await this.onWebDocumentsExhausted()
 
     console.log('ServiceWorker: waiting for next WebDocument to proxy conn')
-    return Promise.race([
-      waitPromise,
-      timeoutPromise(waitForNextWebDocumentTimeoutMs).then(() => {
-        throw new Error('timed out waiting for next WebDocument to proxy conn')
-      }),
-    ])
+    return waitPromise
   }
 
   // waitForWebDocumentDisconnect resolves when the web document liveness lock becomes available.
@@ -446,21 +479,31 @@ export class WebDocumentTracker {
       })
   }
 
-  private async waitForActiveWebDocumentResumeReady(): Promise<void> {
+  private async waitForActiveWebDocumentResumeReady(): Promise<RuntimeClientStreamOpenGateResult> {
     const webDocumentId = this.lastWebDocumentId
-    if (
-      !webDocumentId ||
-      !this.webDocuments[webDocumentId] ||
-      this.webDocumentResumeReadyIds.has(webDocumentId)
-    ) {
-      return
+    if (!webDocumentId || !this.webDocuments[webDocumentId]) {
+      return {
+        state: 'unavailable',
+        reason: 'no active WebDocument',
+      }
+    }
+    if (this.webDocumentResumeReadyIds.has(webDocumentId)) {
+      return {
+        state: 'ready',
+        documentId: webDocumentId,
+      }
     }
 
-    await new Promise<void>((resolve, reject) => {
+    return new Promise<RuntimeClientStreamOpenGateResult>((resolve) => {
       this.webDocumentResumeReadyWaiters.push({
         webDocumentId,
-        resume: resolve,
-        reject,
+        resume: () => resolve({ state: 'ready', documentId: webDocumentId }),
+        reject: (err) =>
+          resolve({
+            state: 'closed',
+            documentId: webDocumentId,
+            reason: err.message,
+          }),
       })
     })
   }
@@ -501,6 +544,55 @@ export class WebDocumentTracker {
       waiter.reject(err)
     }
   }
+
+  private rejectSabPairWaitersForWebDocument(
+    webDocumentId: string,
+    err: Error,
+  ) {
+    for (const [requestId, waiter] of this.sabPairOpenWaiters) {
+      if (waiter.webDocumentId !== webDocumentId) {
+        continue
+      }
+      this.sabPairOpenWaiters.delete(requestId)
+      waiter.reject(err)
+    }
+  }
+
+  private rejectAllSabPairWaiters(err: Error) {
+    const waiters = Array.from(this.sabPairOpenWaiters.values())
+    this.sabPairOpenWaiters.clear()
+    for (const waiter of waiters) {
+      waiter.reject(err)
+    }
+  }
+
+  private removeWebRtcBridgeWaiter(waiter: WebRtcBridgeOpenWaiter) {
+    const idx = this.webRtcBridgeOpenWaiters.indexOf(waiter)
+    if (idx !== -1) {
+      this.webRtcBridgeOpenWaiters.splice(idx, 1)
+    }
+  }
+
+  private rejectWebRtcBridgeWaitersForWebDocument(
+    webDocumentId: string,
+    err: Error,
+  ) {
+    const waiters = this.webRtcBridgeOpenWaiters
+    this.webRtcBridgeOpenWaiters = waiters.filter((waiter) => {
+      if (waiter.webDocumentId !== webDocumentId) {
+        return true
+      }
+      waiter.reject(err)
+      return false
+    })
+  }
+
+  private rejectAllWebRtcBridgeWaiters(err: Error) {
+    const waiters = this.webRtcBridgeOpenWaiters.splice(0)
+    for (const waiter of waiters) {
+      waiter.reject(err)
+    }
+  }
 }
 
 function isAbortError(err: unknown): boolean {
@@ -509,5 +601,13 @@ function isAbortError(err: unknown): boolean {
     err !== null &&
     'name' in err &&
     (err as { name?: string }).name === 'AbortError'
+  )
+}
+
+function isExpectedWebDocumentCloseError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return (
+    msg.includes('closed while waiting for WebDocument') ||
+    msg.includes('disconnected before ack')
   )
 }

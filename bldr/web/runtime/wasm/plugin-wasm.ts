@@ -127,6 +127,7 @@ export default async function main(
   api: BackendAPI,
   abortSignal?: AbortSignal,
 ): Promise<void> {
+  installReleasedGoCallbackConsoleFilter()
   const generation = new WasmPluginGeneration(api, abortSignal)
 
   // The Go runtime will call this function to open outgoing streams.
@@ -136,20 +137,53 @@ export default async function main(
   ): Promise<Pushable<Uint8Array>> => {
     const packetStream = await api.openStream()
     const packetSource = packetStream.source
+    let callbacksClosed = false
+    const closeCallbacks = (errMsg?: string) => {
+      if (callbacksClosed) {
+        return
+      }
+      callbacksClosed = true
+      const released = callGoCallback(() => {
+        onClose(errMsg)
+      })
+      if (released) {
+        return
+      }
+    }
+    const deliverMessage = (msg: Uint8Array): boolean => {
+      if (callbacksClosed) {
+        return false
+      }
+      const released = callGoCallback(() => {
+        onMessage(msg)
+      })
+      if (released) {
+        callbacksClosed = true
+        return false
+      }
+      return true
+    }
     queueMicrotask(async () => {
       try {
         for await (const msg of packetSource) {
-          onMessage(msg)
+          if (!deliverMessage(msg)) {
+            return
+          }
         }
-        onClose()
+        closeCallbacks()
       } catch (err) {
         const e = castToError(err)
-        onClose(e.toString())
+        closeCallbacks(e.toString())
       }
     })
 
     const push = pushable<Uint8Array>({ objectMode: true })
-    queueMicrotask(() => packetStream.sink(push))
+    queueMicrotask(() => {
+      void packetStream.sink(push).catch((err) => {
+        const e = castToError(err)
+        closeCallbacks(e.toString())
+      })
+    })
     return push
   }
 
@@ -169,5 +203,51 @@ function closeMessagePortDuplex(duplex: MessagePortDuplex<Uint8Array>) {
     duplex.close()
   } catch {
     // ignored: the port may already be closed by the pipe.
+  }
+}
+
+function isReleasedGoCallbackError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.includes('call to released function')
+}
+
+function callGoCallback(cb: () => void): boolean {
+  const consoleError = console.error
+  let released = false
+  console.error = (...args: unknown[]) => {
+    if (args.some(isReleasedGoCallbackError)) {
+      released = true
+      return
+    }
+    consoleError(...args)
+  }
+  try {
+    cb()
+  } catch (err) {
+    if (isReleasedGoCallbackError(err)) {
+      released = true
+      return released
+    }
+    throw err
+  } finally {
+    console.error = consoleError
+  }
+  return released
+}
+
+let releasedGoCallbackConsoleFilterInstalled = false
+
+function installReleasedGoCallbackConsoleFilter(): void {
+  if (releasedGoCallbackConsoleFilterInstalled) {
+    return
+  }
+  releasedGoCallbackConsoleFilterInstalled = true
+
+  const consoleError = console.error
+  console.error = (...args: unknown[]) => {
+    if (args.some(isReleasedGoCallbackError)) {
+      return
+    }
+    consoleError(...args)
   }
 }

@@ -11,13 +11,70 @@ import {
   WebRuntimeClientType,
 } from '../runtime/runtime.pb.js'
 import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
-import { timeoutPromise } from './timeout.js'
 import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 import { markStartupBoundary } from './startup-marks.js'
 
-// resumeReadyGateMaxWaitMs gives foreground resume a chance to settle without
-// letting hidden or retained documents block ServiceWorker RPC fetches forever.
-const resumeReadyGateMaxWaitMs = 3000
+// RuntimeClientGenerationState is the lifecycle state for one runtime client channel.
+export type RuntimeClientGenerationState =
+  | 'idle'
+  | 'opening'
+  | 'connected'
+  | 'closed'
+  | 'failed'
+
+// RuntimeClientGenerationCloseReason records why a generation stopped.
+export type RuntimeClientGenerationCloseReason =
+  | 'not-started'
+  | 'normal-close'
+  | 'connect-failed'
+  | 'runtime-disconnected'
+
+// RuntimeClientGenerationSnapshot is the public runtime-client generation view.
+export interface RuntimeClientGenerationSnapshot {
+  id: number
+  state: RuntimeClientGenerationState
+  webRuntimeId: string
+  clientId: string
+  logicalClientId?: string
+  clientType: WebRuntimeClientType
+  openedAtMs?: number
+  connectedAtMs?: number
+  closedAtMs?: number
+  closeReason?: RuntimeClientGenerationCloseReason
+  errorMessage?: string
+  activeStreams: number
+}
+
+interface RuntimeClientGeneration extends Omit<
+  RuntimeClientGenerationSnapshot,
+  'activeStreams'
+> {}
+
+// RuntimeClientStreamOpenGateState is the lifecycle gate state before opening a stream.
+export type RuntimeClientStreamOpenGateState =
+  | 'ready'
+  | 'unavailable'
+  | 'closed'
+
+// RuntimeClientStreamOpenGateResult describes whether stream-open may proceed.
+export interface RuntimeClientStreamOpenGateResult {
+  state: RuntimeClientStreamOpenGateState
+  documentId?: string
+  reason?: string
+}
+
+// RuntimeClientGenerationGateError is thrown when the stream-open gate rejects a generation.
+export class RuntimeClientGenerationGateError extends Error {
+  constructor(
+    public readonly gate: RuntimeClientStreamOpenGateResult,
+    clientId: string,
+  ) {
+    super(
+      `WebRuntimeClient: ${clientId}: resume-ready ${gate.state}${gate.reason ? ': ' + gate.reason : ''}`,
+    )
+    this.name = 'RuntimeClientGenerationGateError'
+  }
+}
 
 // OpenChannelFn opens the MessagePort to the WebRuntime.
 export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
@@ -25,9 +82,53 @@ export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 // HandleDisconnectedFn handles when the web runtime client was disconnected.
 export type HandleDisconnectedFn = (err?: Error) => Promise<void>
 
-// WaitForStreamOpenTimeoutGateFn waits for a startup gate that must be ready
-// before the normal stream-open timeout starts.
-export type WaitForStreamOpenTimeoutGateFn = () => Promise<void>
+// WaitForStreamOpenGateFn waits for a startup gate that must be ready before
+// stream-open can proceed.
+export type WaitForStreamOpenGateFn =
+  () => Promise<RuntimeClientStreamOpenGateResult | void>
+
+class RuntimeClientPacketStream implements PacketStream {
+  public readonly source: PacketStream['source']
+  public readonly sink: PacketStream['sink']
+  private released = false
+
+  constructor(
+    private readonly inner: ChannelStream,
+    private readonly release: () => void,
+  ) {
+    this.source = this.wrapSource(inner.source)
+    this.sink = async (source) => {
+      try {
+        await inner.sink(source)
+      } finally {
+        this.releaseOnce()
+      }
+    }
+  }
+
+  public close(error?: Error): void {
+    this.releaseOnce()
+    this.inner.close(error)
+  }
+
+  private async *wrapSource(
+    source: PacketStream['source'],
+  ): PacketStream['source'] {
+    try {
+      yield* source
+    } finally {
+      this.releaseOnce()
+    }
+  }
+
+  private releaseOnce(): void {
+    if (this.released) {
+      return
+    }
+    this.released = true
+    this.release()
+  }
+}
 
 // WebRuntimeClient opens streams via a remote WebRuntime.
 export class WebRuntimeClient {
@@ -37,6 +138,10 @@ export class WebRuntimeClient {
   private clientChannel?: MessagePort
   // reconnectingClientChannel is the in-flight reconnect shared by callers.
   private reconnectingClientChannel?: Promise<MessagePort>
+  private nextGenerationId = 1
+  private generation: RuntimeClientGeneration
+  private generationAbortController?: AbortController
+  private readonly activeStreams = new Set<RuntimeClientPacketStream>()
 
   constructor(
     public readonly webRuntimeId: string,
@@ -47,9 +152,26 @@ export class WebRuntimeClient {
     private handleDisconnected: HandleDisconnectedFn | null,
     private disableWebLocks?: boolean,
     private logicalClientId?: string,
-    private waitForStreamOpenTimeoutGate?: WaitForStreamOpenTimeoutGateFn,
+    private waitForStreamOpenGateFn?: WaitForStreamOpenGateFn,
   ) {
     this.rpcClient = new Client(this.openStream.bind(this))
+    this.generation = {
+      id: 0,
+      state: 'idle',
+      webRuntimeId,
+      clientId,
+      logicalClientId,
+      clientType,
+      closeReason: 'not-started',
+    }
+  }
+
+  // getRuntimeGenerationSnapshot returns the current runtime-client generation.
+  public getRuntimeGenerationSnapshot(): RuntimeClientGenerationSnapshot {
+    return {
+      ...this.generation,
+      activeStreams: this.activeStreams.size,
+    }
   }
 
   // waitConn opens and waits for the connection to be ready.
@@ -59,74 +181,51 @@ export class WebRuntimeClient {
 
   // openStream opens a RPC stream with the WebRuntimeHost.
   // the remote service depends on the WebRuntimeClientType.
-  //
-  // times out if the client does not ack within 3 seconds.
   public async openStream(): Promise<PacketStream> {
-    // retry several times
-    let err: Error | undefined
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const clientPort = await this.getClientChannelWithRetry()
-      const streamChannel = new MessageChannel()
-      const streamConn = new ChannelStream(
-        this.clientId,
-        streamChannel.port1,
-        WebRuntimeClientChannelStreamOpts,
-      )
+    const clientPort = await this.getClientChannelWithRetry()
+    const generationId = this.generation.id
+
+    await this.waitForStreamOpenGate(generationId)
+
+    const streamChannel = new MessageChannel()
+    const streamConn = new ChannelStream(
+      this.clientId,
+      streamChannel.port1,
+      WebRuntimeClientChannelStreamOpts,
+    )
+    const stream = this.trackRuntimeStream(streamConn, generationId)
+    try {
       const msg: ClientToWebRuntime = {
         openStream: true,
       }
       clientPort.postMessage(msg, [streamChannel.port2])
-      try {
-        await Promise.race([
-          streamConn.waitRemoteOpen,
-          this.streamOpenTimeoutPromise(),
-        ])
-      } catch (err) {
-        streamConn.close()
-        throw err
-      }
+      await this.waitForRuntimeGeneration(
+        generationId,
+        streamConn.waitRemoteOpen,
+      )
       if (!streamConn.isOpen) {
-        streamConn.close()
-        const msg = `WebRuntimeClient: ${this.clientId}: timeout opening stream with host`
-        err = new Error(msg)
-        console.warn(msg)
-        if (this.clientChannel === clientPort) {
-          this.clientChannel.close()
-          this.clientChannel = undefined
-          if (this.handleDisconnected) {
-            await this.handleDisconnected(err)
-          }
-        }
-        // try again shortly.
-        await timeoutPromise(100)
-        continue
+        throw new Error(
+          `WebRuntimeClient: ${this.clientId}: stream closed before remote open`,
+        )
       }
-
-      // very verbose
-      // console.log(`WebRuntimeClient: ${this.clientId}: opened stream with host`)
-      return streamConn
+      return stream
+    } catch (errAny) {
+      const err = castToError(
+        errAny,
+        `WebRuntimeClient: ${this.clientId}: opening stream with host failed`,
+      )
+      stream.close(err)
+      throw err
     }
-
-    err = new Error(
-      `WebRuntimeClient: ${this.clientId}: unable to open stream with host${err ? ': ' + String(err) : ''}`,
-    )
-    console.warn(err.message)
-    throw err
   }
 
   // close closes the client channel and signals the close to the remote.
   // note: the client can still be used again after calling close().
   public close() {
+    const reconnectingClientChannel = this.reconnectingClientChannel
     this.reconnectingClientChannel = undefined
-    if (this.clientChannel) {
-      const msg: ClientToWebRuntime = { close: true }
-      this.clientChannel.postMessage(msg)
-      this.clientChannel.close()
-      this.clientChannel = undefined
-      if (this.handleDisconnected) {
-        this.handleDisconnected().catch(() => {})
-      }
-    }
+    reconnectingClientChannel?.catch(() => {})
+    void this.closeClientChannel('normal-close')
   }
 
   // openClientChannel opens the client MessagePort to the WebRuntimeHost.
@@ -136,13 +235,29 @@ export class WebRuntimeClient {
       return this.clientChannel
     }
 
-    const port = await this.openClientCh({
-      webRuntimeId: this.webRuntimeId,
-      clientUuid: this.clientId,
-      logicalClientId: this.logicalClientId,
-      clientType: this.clientType,
-      disableWebLocks: this.disableWebLocks,
-    })
+    const generation = this.beginRuntimeGeneration()
+    let port: MessagePort
+    try {
+      port = await this.openClientCh({
+        webRuntimeId: this.webRuntimeId,
+        clientUuid: this.clientId,
+        logicalClientId: this.logicalClientId,
+        clientType: this.clientType,
+        disableWebLocks: this.disableWebLocks,
+      })
+    } catch (errAny) {
+      const err = castToError(
+        errAny,
+        `WebRuntimeClient: ${this.clientId}: failed to open runtime client channel`,
+      )
+      this.finishRuntimeGeneration(
+        generation.id,
+        'failed',
+        'connect-failed',
+        err,
+      )
+      throw err
+    }
     markStartupBoundary('runtime.client-channel-opened', {
       source: 'browser',
       runtimeId: this.webRuntimeId,
@@ -150,28 +265,28 @@ export class WebRuntimeClient {
       clientType: this.clientType,
     })
 
-    // Wait for connected ack from the runtime before treating the port as live.
-    // The ack is the first message sent by WebRuntimeClientInstance after
-    // registration. Without this, reconnect can cache a dead MessagePort.
-    const acked = await Promise.race([
-      new Promise<true>((resolve) => {
-        port.onmessage = (ev) => {
-          const data = ev.data
-          if (typeof data === 'object' && data.connected) {
-            resolve(true)
-          }
-        }
-        port.start()
-      }),
-      timeoutPromise(3000).then(() => false as const),
-    ])
-
-    if (!acked) {
+    try {
+      await this.waitForRuntimeConnectedAck(port, generation.id)
+    } catch (errAny) {
       port.close()
-      throw new Error(
-        `WebRuntimeClient: ${this.clientId}: timeout waiting for runtime connected ack`,
+      const err = castToError(
+        errAny,
+        `WebRuntimeClient: ${this.clientId}: failed while waiting for runtime connected ack`,
       )
+      if (
+        this.generation.id === generation.id &&
+        this.generation.state === 'opening'
+      ) {
+        this.finishRuntimeGeneration(
+          generation.id,
+          'failed',
+          'connect-failed',
+          err,
+        )
+      }
+      throw err
     }
+    this.connectRuntimeGeneration(generation.id)
     markStartupBoundary('runtime.client-channel-acked', {
       source: 'browser',
       runtimeId: this.webRuntimeId,
@@ -182,7 +297,7 @@ export class WebRuntimeClient {
     // Ack received. Switch to normal message handler and cache the port.
     port.onmessage = (ev) => {
       const data = ev.data
-      if (typeof data !== 'object') {
+      if (typeof data !== 'object' || data === null) {
         return
       }
       this.handleMessage(data, ev.ports)
@@ -221,41 +336,23 @@ export class WebRuntimeClient {
     return reconnectPromise
   }
 
-  // openClientChannelWithRetry retries transient connection-ack timeouts so
-  // callers do not fail immediately while the runtime is still reconnecting.
+  // openClientChannelWithRetryImpl opens one generation; events on the owning
+  // Web Locks/generation decide whether that attempt stays pending or closes.
   private async openClientChannelWithRetryImpl(): Promise<MessagePort> {
-    const errors: Error[] = []
-    for (const attempt of [0, 1, 2]) {
-      try {
-        return await this.openClientChannel()
-      } catch (errAny) {
-        const err = castToError(
-          errAny,
-          `WebRuntimeClient: ${this.clientId}: failed to connect to runtime`,
-        )
-        errors.push(err)
-        if (attempt === 2) {
-          break
-        }
-        await timeoutPromise(100)
-      }
-    }
-    throw (
-      errors[errors.length - 1] ??
-      new Error(
-        `WebRuntimeClient: ${this.clientId}: unable to connect to runtime`,
-      )
-    )
+    return this.openClientChannel()
   }
 
-  private async streamOpenTimeoutPromise(): Promise<void> {
-    if (this.waitForStreamOpenTimeoutGate) {
-      await Promise.race([
-        this.waitForStreamOpenTimeoutGate(),
-        timeoutPromise(resumeReadyGateMaxWaitMs),
-      ])
+  private async waitForStreamOpenGate(generationId: number): Promise<void> {
+    if (!this.waitForStreamOpenGateFn) {
+      return
     }
-    await timeoutPromise(1500)
+    const gateResult = await this.waitForRuntimeGeneration(
+      generationId,
+      this.waitForStreamOpenGateFn(),
+    )
+    if (gateResult && gateResult.state !== 'ready') {
+      throw new RuntimeClientGenerationGateError(gateResult, this.clientId)
+    }
   }
 
   // handleMessage handles an incoming message from the WebRuntime.
@@ -274,6 +371,7 @@ export class WebRuntimeClient {
       ...WebRuntimeClientChannelStreamOpts,
       remoteOpen: true,
     })
+    const stream = this.trackRuntimeStream(channel, this.generation.id)
     let err: Error | undefined
     if (!this.handleIncomingStream) {
       err = new Error(
@@ -281,7 +379,7 @@ export class WebRuntimeClient {
       )
     } else {
       try {
-        await this.handleIncomingStream(channel)
+        await this.handleIncomingStream(stream)
       } catch (e) {
         err = castToError(
           e,
@@ -291,8 +389,189 @@ export class WebRuntimeClient {
     }
     if (err) {
       console.error(err.message)
-      channel.close(err)
+      stream.close(err)
       return
+    }
+  }
+
+  private beginRuntimeGeneration(): RuntimeClientGeneration {
+    this.generationAbortController?.abort(
+      new Error(
+        `WebRuntimeClient: ${this.clientId}: runtime client generation ${this.generation.id} superseded`,
+      ),
+    )
+    this.generationAbortController = new AbortController()
+    const generation: RuntimeClientGeneration = {
+      id: this.nextGenerationId++,
+      state: 'opening',
+      webRuntimeId: this.webRuntimeId,
+      clientId: this.clientId,
+      logicalClientId: this.logicalClientId,
+      clientType: this.clientType,
+      openedAtMs: performance.now(),
+    }
+    this.generation = generation
+    return generation
+  }
+
+  private connectRuntimeGeneration(generationId: number): void {
+    if (this.generation.id !== generationId) {
+      return
+    }
+    this.generation = {
+      ...this.generation,
+      state: 'connected',
+      connectedAtMs: performance.now(),
+      closeReason: undefined,
+      errorMessage: undefined,
+    }
+  }
+
+  private finishRuntimeGeneration(
+    generationId: number,
+    state: Extract<RuntimeClientGenerationState, 'closed' | 'failed'>,
+    reason: RuntimeClientGenerationCloseReason,
+    err?: Error,
+  ): void {
+    if (this.generation.id !== generationId) {
+      return
+    }
+    const closeErr =
+      err ??
+      new Error(
+        `WebRuntimeClient: ${this.clientId}: runtime client generation ${generationId} closed: ${reason}`,
+      )
+    this.generationAbortController?.abort(closeErr)
+    this.generationAbortController = undefined
+    this.generation = {
+      ...this.generation,
+      state,
+      closedAtMs: performance.now(),
+      closeReason: reason,
+      errorMessage: err?.message,
+    }
+  }
+
+  private async closeClientChannel(
+    reason: RuntimeClientGenerationCloseReason,
+    err?: Error,
+  ): Promise<void> {
+    const hadClientChannel = !!this.clientChannel
+    const hadActiveStreams = this.activeStreams.size > 0
+    const openingGeneration = this.generation.state === 'opening'
+    if (
+      !hadClientChannel &&
+      !hadActiveStreams &&
+      !openingGeneration &&
+      reason === 'normal-close'
+    ) {
+      return
+    }
+    const generationId = this.generation.id
+    const closeErr =
+      err ??
+      new Error(
+        `WebRuntimeClient: ${this.clientId}: runtime client generation ${generationId} closed: ${reason}`,
+      )
+    this.closeRuntimeStreams(closeErr)
+    if (this.clientChannel) {
+      try {
+        if (reason === 'normal-close') {
+          const msg: ClientToWebRuntime = { close: true }
+          this.clientChannel.postMessage(msg)
+        }
+      } finally {
+        this.clientChannel.close()
+        this.clientChannel = undefined
+      }
+    }
+    const state = reason === 'normal-close' ? 'closed' : 'failed'
+    this.finishRuntimeGeneration(generationId, state, reason, err)
+    if (this.handleDisconnected && (hadClientChannel || err)) {
+      await this.handleDisconnected(err)
+    }
+  }
+
+  private async waitForRuntimeConnectedAck(
+    port: MessagePort,
+    generationId: number,
+  ): Promise<void> {
+    const ackPromise = new Promise<void>((resolve) => {
+      port.onmessage = (ev) => {
+        const data = ev.data
+        if (typeof data === 'object' && data !== null && data.connected) {
+          resolve()
+        }
+      }
+      port.start()
+    })
+    try {
+      await this.waitForRuntimeGeneration(generationId, ackPromise)
+    } finally {
+      port.onmessage = null
+    }
+  }
+
+  private async waitForRuntimeGeneration<T>(
+    generationId: number,
+    promise: Promise<T>,
+  ): Promise<T> {
+    const closed = this.runtimeGenerationClosedPromise(generationId)
+    try {
+      return await Promise.race([promise, closed.promise])
+    } finally {
+      closed.cleanup()
+    }
+  }
+
+  private runtimeGenerationClosedPromise(generationId: number): {
+    promise: Promise<never>
+    cleanup: () => void
+  } {
+    const signal = this.generationAbortController?.signal
+    let cleanup = () => {}
+    const promise = new Promise<never>((_, reject) => {
+      const rejectClosed = () => {
+        reject(
+          signal?.reason instanceof Error ?
+            signal.reason
+          : this.runtimeGenerationClosedError(generationId),
+        )
+      }
+      if (!signal || this.generation.id !== generationId || signal.aborted) {
+        rejectClosed()
+        return
+      }
+      signal.addEventListener('abort', rejectClosed, { once: true })
+      cleanup = () => signal.removeEventListener('abort', rejectClosed)
+    })
+    return { promise, cleanup }
+  }
+
+  private runtimeGenerationClosedError(generationId: number): Error {
+    return new Error(
+      `WebRuntimeClient: ${this.clientId}: runtime client generation ${generationId} closed`,
+    )
+  }
+
+  private trackRuntimeStream(
+    channel: ChannelStream,
+    generationId: number,
+  ): RuntimeClientPacketStream {
+    const stream = new RuntimeClientPacketStream(channel, () => {
+      this.activeStreams.delete(stream)
+    })
+    if (generationId === this.generation.id) {
+      this.activeStreams.add(stream)
+    }
+    return stream
+  }
+
+  private closeRuntimeStreams(err: Error): void {
+    const streams = Array.from(this.activeStreams)
+    this.activeStreams.clear()
+    for (const stream of streams) {
+      stream.close(err)
     }
   }
 }

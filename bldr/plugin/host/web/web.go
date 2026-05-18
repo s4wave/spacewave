@@ -432,6 +432,15 @@ func (h *WebHost) ExecutePlugin(
 				return err
 			}
 			if docStatus.GetClosed() {
+				unlock, err := cmtx.Lock(ctx)
+				if err != nil {
+					return err
+				}
+				if singletonWorkerDoc == webDocumentID {
+					singletonWorkerDoc = ""
+					wakeOtherWebDocs(webDocumentID)
+				}
+				unlock()
 				return nil
 			}
 
@@ -439,6 +448,9 @@ func (h *WebHost) ExecutePlugin(
 			workerInstance = nil
 			if !docStatus.GetHidden() {
 				for _, worker := range docStatus.GetWebWorkers() {
+					if worker.GetDeleted() {
+						continue
+					}
 					if worker.GetId() == pluginWebWorkerID {
 						workerInstance = worker
 						break

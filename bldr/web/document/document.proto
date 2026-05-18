@@ -85,6 +85,46 @@ message WebWorkerStatus {
   bool failed = 5;
   // FailureReason contains the worker-provided failure reason, if any.
   string failure_reason = 6;
+  // GenerationState is the typed lifecycle state for the worker generation.
+  WebWorkerGenerationState generation_state = 7;
+}
+
+// WebWorkerGenerationState is the browser plugin worker generation lifecycle.
+enum WebWorkerGenerationState {
+  // WEB_WORKER_GENERATION_STATE_UNKNOWN preserves old status producers.
+  WEB_WORKER_GENERATION_STATE_UNKNOWN = 0;
+  // WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED means the browser was asked
+  // to create a generation.
+  WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED = 1;
+  // WEB_WORKER_GENERATION_STATE_WORKER_CREATED means the Worker object and
+  // init port exist.
+  WEB_WORKER_GENERATION_STATE_WORKER_CREATED = 2;
+  // WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING means plugin startup is
+  // executing inside the worker.
+  WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING = 3;
+  // WEB_WORKER_GENERATION_STATE_FRONTEND_READY means frontend handlers/assets
+  // are usable for the generation.
+  WEB_WORKER_GENERATION_STATE_FRONTEND_READY = 4;
+  // WEB_WORKER_GENERATION_STATE_CAPABILITY_READY means the startup capability
+  // required by the current host path is ready.
+  WEB_WORKER_GENERATION_STATE_CAPABILITY_READY = 5;
+  // WEB_WORKER_GENERATION_STATE_RUNNING means the generation is fully running.
+  WEB_WORKER_GENERATION_STATE_RUNNING = 6;
+  // WEB_WORKER_GENERATION_STATE_NORMAL_STOP means the generation stopped by
+  // explicit lifecycle removal.
+  WEB_WORKER_GENERATION_STATE_NORMAL_STOP = 7;
+  // WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT means the host timed out while
+  // waiting for startup.
+  WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT = 8;
+  // WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE means the worker reported a
+  // terminal runtime failure.
+  WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE = 9;
+  // WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN means the document lifecycle
+  // prevented generation startup.
+  WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN = 10;
+  // WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET means a stream reset
+  // was handled as controlled lifecycle rather than terminal plugin failure.
+  WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET = 11;
 }
 
 // CreateWebViewRequest is a request to create a new web view.

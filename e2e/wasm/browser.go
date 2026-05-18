@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// LaunchBrowser starts a Playwright-managed Chromium instance. The browser
+// LaunchBrowser starts a Playwright-managed browser instance. The browser
 // process is shared across all test sessions. NewClean* helpers create a fresh
 // BrowserContext; NewRetainedState* helpers reuse the harness context.
 //
@@ -24,25 +24,48 @@ func (h *Harness) LaunchBrowser() error {
 	}
 	h.pw = pw
 
-	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: new(h.headless),
-		Args: []string{
-			"--allow-loopback-in-peer-connection",
-			"--disable-features=WebRtcHideLocalIpsWithMdns",
-		},
-	})
+	browserType, launchOpts, err := h.browserLaunchConfig()
 	if err != nil {
 		pw.Stop()
 		h.pw = nil
-		return errors.Wrap(err, "launch chromium")
+		return err
+	}
+	browser, err := browserType.Launch(launchOpts)
+	if err != nil {
+		pw.Stop()
+		h.pw = nil
+		return errors.Wrap(err, "launch "+h.browserName)
 	}
 	h.browser = browser
 
 	return nil
 }
 
+func (h *Harness) browserLaunchConfig() (playwright.BrowserType, playwright.BrowserTypeLaunchOptions, error) {
+	opts := playwright.BrowserTypeLaunchOptions{
+		Headless: new(h.headless),
+	}
+	switch h.browserName {
+	case "chromium":
+		opts.Args = []string{
+			"--allow-loopback-in-peer-connection",
+			"--disable-features=WebRtcHideLocalIpsWithMdns",
+		}
+		return h.pw.Chromium, opts, nil
+	case "firefox":
+		return h.pw.Firefox, opts, nil
+	case "webkit":
+		return h.pw.WebKit, opts, nil
+	default:
+		return nil, opts, errors.Errorf("unknown e2e wasm browser %q", h.browserName)
+	}
+}
+
 // Browser returns the raw Playwright Browser handle, or nil if not launched.
 func (h *Harness) Browser() playwright.Browser { return h.browser }
+
+// BrowserName returns the Playwright browser type selected for this harness.
+func (h *Harness) BrowserName() string { return h.browserName }
 
 // newBrowserContext creates a fresh BrowserContext on the shared browser and
 // wires up console/error forwarding. The context and page are stored on the

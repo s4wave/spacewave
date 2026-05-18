@@ -35,11 +35,16 @@ func TestRecreatedPageSharedObjectHealthGuard(t *testing.T) {
 
 	page = sess.Page()
 	WaitForApp(t, page)
+	AssertRootImportMap(t, testHarness, page)
+	AssertBrowserStartupDone(t, testHarness, page)
 
 	ctx, cancel := context.WithTimeout(testHarness.Context(), 90*time.Second)
 	defer cancel()
 	if err := sess.ConnectResources(ctx); err != nil {
 		t.Fatalf("connect resources after recreated page route load: %v", err)
+	}
+	if len(sess.browserPeer) == 0 {
+		t.Fatal("expected recreated page resource connection to attach a browser peer")
 	}
 	waitForSharedObjectReadyHealth(t, ctx, sess, scenario.GetSessionIndex(), scenario.GetSpaceID())
 

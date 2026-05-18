@@ -118,6 +118,13 @@ async function runSlowRegistrationScenario(): Promise<StartupResult> {
     from: webDocumentId,
     initPort: port1,
   })
+  port2.addEventListener('message', (ev) => {
+    const data = ev.data
+    if (typeof data !== 'object' || !data?.connectWebRuntime) {
+      return
+    }
+    releaseLock()
+  })
   port2.start()
   const start = performance.now()
   try {
@@ -221,6 +228,18 @@ async function runImportFailureScenario(): Promise<{
   let ready = false
   port2.addEventListener('message', (ev) => {
     const data = ev.data
+    if (typeof data === 'object' && data?.connectWebRtcBridge) {
+      const { port1: clientPort, port2: bridgePort } = new MessageChannel()
+      bridgePort.close()
+      port2.postMessage(
+        {
+          from: 'startup-failures-import-doc',
+          bridgePort: clientPort,
+        },
+        [clientPort],
+      )
+      return
+    }
     if (typeof data !== 'object' || !data?.connectWebRuntime) {
       if (typeof data === 'object' && data?.ready) {
         ready = true
@@ -264,8 +283,9 @@ async function runImportFailureScenario(): Promise<{
     await timeoutPromise(50)
     return {
       ok: !ready,
-      detail: ready
-        ? 'worker published ready before import failure closed it'
+      detail:
+        ready ?
+          'worker published ready before import failure closed it'
         : 'worker closed after import failure',
       ready,
     }

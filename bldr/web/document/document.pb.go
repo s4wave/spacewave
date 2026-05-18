@@ -17,6 +17,92 @@ import (
 	_ "github.com/aperturerobotics/starpc/rpcstream"
 )
 
+// WebWorkerGenerationState is the browser plugin worker generation lifecycle.
+type WebWorkerGenerationState int32
+
+const (
+	// WEB_WORKER_GENERATION_STATE_UNKNOWN preserves old status producers.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_UNKNOWN WebWorkerGenerationState = 0
+	// WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED means the browser was asked
+	// to create a generation.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED WebWorkerGenerationState = 1
+	// WEB_WORKER_GENERATION_STATE_WORKER_CREATED means the Worker object and
+	// init port exist.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_WORKER_CREATED WebWorkerGenerationState = 2
+	// WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING means plugin startup is
+	// executing inside the worker.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING WebWorkerGenerationState = 3
+	// WEB_WORKER_GENERATION_STATE_FRONTEND_READY means frontend handlers/assets
+	// are usable for the generation.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_FRONTEND_READY WebWorkerGenerationState = 4
+	// WEB_WORKER_GENERATION_STATE_CAPABILITY_READY means the startup capability
+	// required by the current host path is ready.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_CAPABILITY_READY WebWorkerGenerationState = 5
+	// WEB_WORKER_GENERATION_STATE_RUNNING means the generation is fully running.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_RUNNING WebWorkerGenerationState = 6
+	// WEB_WORKER_GENERATION_STATE_NORMAL_STOP means the generation stopped by
+	// explicit lifecycle removal.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_NORMAL_STOP WebWorkerGenerationState = 7
+	// WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT means the host timed out while
+	// waiting for startup.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT WebWorkerGenerationState = 8
+	// WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE means the worker reported a
+	// terminal runtime failure.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE WebWorkerGenerationState = 9
+	// WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN means the document lifecycle
+	// prevented generation startup.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN WebWorkerGenerationState = 10
+	// WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET means a stream reset
+	// was handled as controlled lifecycle rather than terminal plugin failure.
+	WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET WebWorkerGenerationState = 11
+)
+
+// Enum value maps for WebWorkerGenerationState.
+var (
+	WebWorkerGenerationState_name = map[int32]string{
+		0:  "WEB_WORKER_GENERATION_STATE_UNKNOWN",
+		1:  "WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED",
+		2:  "WEB_WORKER_GENERATION_STATE_WORKER_CREATED",
+		3:  "WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING",
+		4:  "WEB_WORKER_GENERATION_STATE_FRONTEND_READY",
+		5:  "WEB_WORKER_GENERATION_STATE_CAPABILITY_READY",
+		6:  "WEB_WORKER_GENERATION_STATE_RUNNING",
+		7:  "WEB_WORKER_GENERATION_STATE_NORMAL_STOP",
+		8:  "WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT",
+		9:  "WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE",
+		10: "WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN",
+		11: "WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET",
+	}
+	WebWorkerGenerationState_value = map[string]int32{
+		"WEB_WORKER_GENERATION_STATE_UNKNOWN":                 0,
+		"WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED":        1,
+		"WEB_WORKER_GENERATION_STATE_WORKER_CREATED":          2,
+		"WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING":         3,
+		"WEB_WORKER_GENERATION_STATE_FRONTEND_READY":          4,
+		"WEB_WORKER_GENERATION_STATE_CAPABILITY_READY":        5,
+		"WEB_WORKER_GENERATION_STATE_RUNNING":                 6,
+		"WEB_WORKER_GENERATION_STATE_NORMAL_STOP":             7,
+		"WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT":         8,
+		"WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE":        9,
+		"WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN":        10,
+		"WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET": 11,
+	}
+)
+
+func (x WebWorkerGenerationState) Enum() *WebWorkerGenerationState {
+	p := new(WebWorkerGenerationState)
+	*p = x
+	return p
+}
+
+func (x WebWorkerGenerationState) String() string {
+	name, valid := WebWorkerGenerationState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // WebWorkerType specifies the type of worker to create.
 type WebWorkerType int32
 
@@ -232,6 +318,8 @@ type WebWorkerStatus struct {
 	Failed bool `protobuf:"varint,5,opt,name=failed,proto3" json:"failed,omitempty"`
 	// FailureReason contains the worker-provided failure reason, if any.
 	FailureReason string `protobuf:"bytes,6,opt,name=failure_reason,json=failureReason,proto3" json:"failureReason,omitempty"`
+	// GenerationState is the typed lifecycle state for the worker generation.
+	GenerationState WebWorkerGenerationState `protobuf:"varint,7,opt,name=generation_state,json=generationState,proto3" json:"generationState,omitempty"`
 }
 
 func (x *WebWorkerStatus) Reset() {
@@ -280,6 +368,13 @@ func (x *WebWorkerStatus) GetFailureReason() string {
 		return x.FailureReason
 	}
 	return ""
+}
+
+func (x *WebWorkerStatus) GetGenerationState() WebWorkerGenerationState {
+	if x != nil {
+		return x.GenerationState
+	}
+	return WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_UNKNOWN
 }
 
 // CreateWebViewRequest is a request to create a new web view.
@@ -532,6 +627,7 @@ func (m *WebWorkerStatus) CloneVT() *WebWorkerStatus {
 	r.Ready = m.Ready
 	r.Failed = m.Failed
 	r.FailureReason = m.FailureReason
+	r.GenerationState = m.GenerationState
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -775,6 +871,9 @@ func (this *WebWorkerStatus) EqualVT(that *WebWorkerStatus) bool {
 	if this.FailureReason != that.FailureReason {
 		return false
 	}
+	if this.GenerationState != that.GenerationState {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -919,6 +1018,46 @@ func (this *RemoveWebWorkerResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the WebWorkerGenerationState to JSON.
+func (x WebWorkerGenerationState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), WebWorkerGenerationState_name)
+}
+
+// MarshalText marshals the WebWorkerGenerationState to text.
+func (x WebWorkerGenerationState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), WebWorkerGenerationState_name)), nil
+}
+
+// MarshalJSON marshals the WebWorkerGenerationState to JSON.
+func (x WebWorkerGenerationState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WebWorkerGenerationState from JSON.
+func (x *WebWorkerGenerationState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(WebWorkerGenerationState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read WebWorkerGenerationState enum: %v", err)
+		return
+	}
+	*x = WebWorkerGenerationState(v)
+}
+
+// UnmarshalText unmarshals the WebWorkerGenerationState from text.
+func (x *WebWorkerGenerationState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), WebWorkerGenerationState_value)
+	if err != nil {
+		return err
+	}
+	*x = WebWorkerGenerationState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the WebWorkerGenerationState from JSON.
+func (x *WebWorkerGenerationState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the WebWorkerType to JSON.
@@ -1251,6 +1390,11 @@ func (x *WebWorkerStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("failureReason")
 		s.WriteString(x.FailureReason)
 	}
+	if x.GenerationState != 0 || s.HasField("generationState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generationState")
+		x.GenerationState.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1286,6 +1430,9 @@ func (x *WebWorkerStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "failure_reason", "failureReason":
 			s.AddField("failure_reason")
 			x.FailureReason = s.ReadString()
+		case "generation_state", "generationState":
+			s.AddField("generation_state")
+			x.GenerationState.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1804,6 +1951,11 @@ func (m *WebWorkerStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.GenerationState != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GenerationState))
+		i--
+		dAtA[i] = 0x38
+	}
 	if len(m.FailureReason) > 0 {
 		i -= len(m.FailureReason)
 		copy(dAtA[i:], m.FailureReason)
@@ -2235,6 +2387,9 @@ func (m *WebWorkerStatus) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.GenerationState != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.GenerationState))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2335,6 +2490,10 @@ func (m *RemoveWebWorkerResponse) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x WebWorkerGenerationState) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x WebWorkerType) MarshalProtoText() string {
@@ -2497,6 +2656,15 @@ func (x *WebWorkerStatus) MarshalProtoText() string {
 		}
 		sb.WriteString("failure_reason: ")
 		sb.WriteString(strconv.Quote(x.FailureReason))
+	}
+	if x.GenerationState != 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("generation_state: ")
+		sb.WriteString("\"")
+		sb.WriteString(WebWorkerGenerationState(x.GenerationState).String())
+		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3052,6 +3220,17 @@ func (m *WebWorkerStatus) UnmarshalVT(dAtA []byte) error {
 			}
 			m.FailureReason = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GenerationState", wireType)
+			}
+			m.GenerationState = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.GenerationState = WebWorkerGenerationState(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

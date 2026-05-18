@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { WebDocumentToClient } from '../runtime/runtime.js'
-import { WebWorkerType } from '../document/document.pb.js'
+import {
+  WebWorkerGenerationState,
+  WebWorkerType,
+} from '../document/document.pb.js'
 import {
   WebDocument,
   registerUpdatedServiceWorker,
@@ -18,6 +21,7 @@ type TestWebDocument = {
   resumeReadySequence: number
   runtimeConnected: boolean
   serviceWorkerPort?: MessagePort
+  webViews: Record<string, unknown>
   webWorkers: Record<string, Record<string, unknown> & { port: MessagePort }>
   sabPairBroker: SabPairBroker
   webrtcBridgeEndpoints: Map<string, unknown>
@@ -31,8 +35,14 @@ type TestWebDocument = {
   onVisibilityChange(hidden: boolean): void
   onWebWorkerMessage(workerID: string, event: MessageEvent): void
   onWebDocumentClientMessage(event: MessageEvent): void
+  buildWebDocumentStatusSnapshot(): Promise<unknown>
   openWebDocumentHostStream(): Promise<unknown>
-  webRuntimeClient: { openStream: () => Promise<unknown> }
+  removeWebWorker(request: { id: string }): Promise<unknown>
+  taskEnsureWebRuntimeConn(): void
+  webRuntimeClient: {
+    openStream: () => Promise<unknown>
+    waitConn?: () => Promise<unknown>
+  }
 }
 
 function buildTestWebDocument(hidden = false): TestWebDocument {
@@ -47,6 +57,7 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     resumeReadySequence: 0,
     runtimeConnected: true,
     serviceWorkerPort: undefined,
+    webViews: {},
     webWorkers: {},
     sabPairBroker: new SabPairBroker(),
     webrtcBridgeEndpoints: new Map(),
@@ -61,10 +72,48 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
   return doc
 }
 
+function buildTestWorker(port: MessagePort = {} as MessagePort): Record<
+  string,
+  unknown
+> & {
+  port: MessagePort
+  isShared: boolean
+  ready: boolean
+  plugin: boolean
+  workerType: WebWorkerType
+  generationState: WebWorkerGenerationState
+  failureReason?: string
+  setGenerationState(
+    generationState: WebWorkerGenerationState,
+    failureReason?: string,
+  ): void
+  close: ReturnType<typeof vi.fn>
+} {
+  return {
+    port,
+    isShared: false,
+    ready: false,
+    plugin: true,
+    workerType: WebWorkerType.NATIVE,
+    generationState: WebWorkerGenerationState.STARTUP_RUNNING,
+    setGenerationState(
+      generationState: WebWorkerGenerationState,
+      failureReason?: string,
+    ) {
+      this.generationState = generationState
+      if (failureReason) {
+        this.failureReason = failureReason
+      }
+    },
+    close: vi.fn().mockResolvedValue(undefined),
+  }
+}
+
 describe('registerUpdatedServiceWorker', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
+    vi.useRealTimers()
     resetStartupMarksForTest()
     globalThis.__swWebDocumentResumeReady = undefined
   })
@@ -146,6 +195,7 @@ describe('WebDocument resume-ready state', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
+    vi.useRealTimers()
     resetStartupMarksForTest()
     globalThis.__swWebDocumentResumeReady = undefined
   })
@@ -326,6 +376,343 @@ describe('WebDocument resume-ready state', () => {
       'stream-open failed',
     )
   })
+
+  it('does not schedule a timer retry when runtime connection fails', async () => {
+    vi.useFakeTimers()
+    const doc = buildTestWebDocument()
+    const waitConn = vi.fn().mockRejectedValue(new Error('runtime unavailable'))
+    doc.webRuntimeClient = {
+      openStream: vi.fn(),
+      waitConn,
+    }
+    const setTimeout = vi.spyOn(globalThis, 'setTimeout')
+
+    doc.taskEnsureWebRuntimeConn()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(waitConn).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(waitConn).toHaveBeenCalledTimes(1)
+    expect(setTimeout).not.toHaveBeenCalledWith(expect.any(Function), 100)
+  })
+})
+
+describe('WebDocument plugin generation state', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    resetStartupMarksForTest()
+  })
+
+  it('publishes frontend, capability, and running states from the worker ready marker', () => {
+    vi.spyOn(performance, 'mark').mockImplementation(() => {
+      return {} as PerformanceMark
+    })
+    const doc = buildTestWebDocument()
+    const worker = buildTestWorker()
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    doc.onWebWorkerMessage('worker-1', {
+      data: {
+        from: 'worker-1',
+        ready: true,
+      },
+    } as MessageEvent)
+
+    expect(worker.ready).toBe(true)
+    expect(worker.generationState).toBe(WebWorkerGenerationState.RUNNING)
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      false,
+      undefined,
+      WebWorkerGenerationState.FRONTEND_READY,
+    )
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      false,
+      undefined,
+      WebWorkerGenerationState.CAPABILITY_READY,
+    )
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      true,
+      undefined,
+      WebWorkerGenerationState.RUNNING,
+    )
+  })
+
+  it('publishes frontend and capability states before the final ready marker', () => {
+    const doc = buildTestWebDocument()
+    const worker = buildTestWorker()
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    doc.onWebWorkerMessage(
+      'worker-1',
+      new MessageEvent('message', {
+        data: {
+          from: 'worker-1',
+          frontendReady: true,
+        },
+      }),
+    )
+
+    expect(worker.ready).toBe(false)
+    expect(worker.generationState).toBe(WebWorkerGenerationState.FRONTEND_READY)
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      false,
+      undefined,
+      WebWorkerGenerationState.FRONTEND_READY,
+    )
+
+    doc.onWebWorkerMessage(
+      'worker-1',
+      new MessageEvent('message', {
+        data: {
+          from: 'worker-1',
+          capabilityReady: true,
+        },
+      }),
+    )
+
+    expect(worker.ready).toBe(false)
+    expect(worker.generationState).toBe(
+      WebWorkerGenerationState.CAPABILITY_READY,
+    )
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      false,
+      undefined,
+      WebWorkerGenerationState.CAPABILITY_READY,
+    )
+
+    doc.onWebWorkerMessage(
+      'worker-1',
+      new MessageEvent('message', {
+        data: {
+          from: 'worker-1',
+          ready: true,
+        },
+      }),
+    )
+
+    expect(worker.ready).toBe(true)
+    expect(worker.generationState).toBe(WebWorkerGenerationState.RUNNING)
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      true,
+      undefined,
+      WebWorkerGenerationState.RUNNING,
+    )
+  })
+
+  it('publishes capability state after synthesizing missing frontend state', () => {
+    const doc = buildTestWebDocument()
+    const worker = buildTestWorker()
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    doc.onWebWorkerMessage(
+      'worker-1',
+      new MessageEvent('message', {
+        data: {
+          from: 'worker-1',
+          capabilityReady: true,
+        },
+      }),
+    )
+
+    expect(worker.ready).toBe(false)
+    expect(worker.generationState).toBe(
+      WebWorkerGenerationState.CAPABILITY_READY,
+    )
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      false,
+      undefined,
+      WebWorkerGenerationState.FRONTEND_READY,
+    )
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      false,
+      undefined,
+      WebWorkerGenerationState.CAPABILITY_READY,
+    )
+  })
+
+  it('classifies fatal worker close as terminal failure', () => {
+    const doc = buildTestWebDocument()
+    const port = { close: vi.fn() } as unknown as MessagePort
+    const worker = buildTestWorker(port)
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    doc.onWebWorkerMessage('worker-1', {
+      data: {
+        from: 'worker-1',
+        close: true,
+        failureReason: 'fatal wasm exit',
+      },
+    } as MessageEvent)
+
+    expect(port.close).toHaveBeenCalled()
+    expect(doc.webWorkers['worker-1']).toBeUndefined()
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      true,
+      false,
+      false,
+      'fatal wasm exit',
+      WebWorkerGenerationState.TERMINAL_FAILURE,
+    )
+  })
+
+  it('classifies controlled stream reset separately from terminal failure', () => {
+    const doc = buildTestWebDocument()
+    const port = { close: vi.fn() } as unknown as MessagePort
+    const worker = buildTestWorker(port)
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    doc.onWebWorkerMessage('worker-1', {
+      data: {
+        from: 'worker-1',
+        close: true,
+        failureReason: 'StreamResetError: stream reset',
+      },
+    } as MessageEvent)
+
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      true,
+      false,
+      false,
+      'StreamResetError: stream reset',
+      WebWorkerGenerationState.CONTROLLED_STREAM_RESET,
+    )
+  })
+
+  it('classifies startup timeout separately from terminal failure', () => {
+    const doc = buildTestWebDocument()
+    const port = { close: vi.fn() } as unknown as MessagePort
+    const worker = buildTestWorker(port)
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    doc.onWebWorkerMessage('worker-1', {
+      data: {
+        from: 'worker-1',
+        close: true,
+        failureReason: 'startup timeout waiting for capability',
+      },
+    } as MessageEvent)
+
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      true,
+      false,
+      false,
+      'startup timeout waiting for capability',
+      WebWorkerGenerationState.STARTUP_TIMEOUT,
+    )
+  })
+
+  it('publishes QuickJS ready markers as a running generation', () => {
+    const doc = buildTestWebDocument()
+    const worker = buildTestWorker()
+    worker.workerType = WebWorkerType.QUICKJS
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    doc.onWebWorkerMessage('worker-1', {
+      data: {
+        from: 'worker-1',
+        ready: true,
+      },
+    } as MessageEvent)
+
+    expect(worker.generationState).toBe(WebWorkerGenerationState.RUNNING)
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      false,
+      false,
+      true,
+      undefined,
+      WebWorkerGenerationState.RUNNING,
+    )
+  })
+
+  it('publishes normal stop for explicit worker removal', async () => {
+    const doc = buildTestWebDocument()
+    const worker = buildTestWorker()
+    worker.ready = true
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    await doc.removeWebWorker({ id: 'worker-1' })
+
+    expect(worker.close).toHaveBeenCalledOnce()
+    expect(doc.webWorkers['worker-1']).toBeUndefined()
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'worker-1',
+      true,
+      false,
+      true,
+      undefined,
+      WebWorkerGenerationState.NORMAL_STOP,
+    )
+  })
+
+  it('includes generation state and failure classification in status snapshots', async () => {
+    const doc = buildTestWebDocument()
+    const worker = buildTestWorker()
+    worker.setGenerationState(
+      WebWorkerGenerationState.TERMINAL_FAILURE,
+      'fatal wasm exit',
+    )
+    doc.webWorkers = {
+      'worker-1': worker,
+    }
+
+    await expect(doc.buildWebDocumentStatusSnapshot()).resolves.toMatchObject({
+      webWorkers: [
+        {
+          id: 'worker-1',
+          failed: true,
+          failureReason: 'fatal wasm exit',
+          generationState: WebWorkerGenerationState.TERMINAL_FAILURE,
+        },
+      ],
+    })
+  })
 })
 
 describe('WebDocument SAB pair broker', () => {
@@ -407,15 +794,9 @@ describe('WebDocument SAB pair broker', () => {
     const doc = buildTestWebDocument()
     const close = vi.fn()
     doc.webWorkers = {
-      'worker-a': {
-        ready: false,
-        isShared: false,
-        workerType: WebWorkerType.NATIVE,
-        plugin: true,
-        port: {
-          close,
-        } as unknown as MessagePort,
-      },
+      'worker-a': buildTestWorker({
+        close,
+      } as unknown as MessagePort),
     }
 
     doc.onWebWorkerMessage('worker-a', {
@@ -432,6 +813,8 @@ describe('WebDocument SAB pair broker', () => {
       false,
       false,
       true,
+      undefined,
+      WebWorkerGenerationState.RUNNING,
     )
   })
 
@@ -547,16 +930,12 @@ describe('WebDocument SAB pair broker', () => {
           close: vi.fn(),
         } as unknown as MessagePort,
       },
-      'worker-b': {
-        isShared: false,
-        ready: true,
-        workerType: WebWorkerType.NATIVE,
-        port: {
-          postMessage: targetPostMessage,
-          close: vi.fn(),
-        } as unknown as MessagePort,
-      },
+      'worker-b': buildTestWorker({
+        postMessage: targetPostMessage,
+        close: vi.fn(),
+      } as unknown as MessagePort),
     }
+    doc.webWorkers['worker-b'].ready = true
 
     doc.onWebDocumentClientMessage({
       data: {
@@ -590,15 +969,11 @@ describe('WebDocument SAB pair broker', () => {
     const doc = buildTestWebDocument()
     const close = vi.fn()
     doc.webWorkers = {
-      'worker-a': {
-        isShared: false,
-        ready: true,
-        workerType: WebWorkerType.NATIVE,
-        port: {
-          close,
-        } as unknown as MessagePort,
-      },
+      'worker-a': buildTestWorker({
+        close,
+      } as unknown as MessagePort),
     }
+    doc.webWorkers['worker-a'].ready = true
 
     doc.onWebWorkerMessage('worker-a', {
       data: {
@@ -616,6 +991,7 @@ describe('WebDocument SAB pair broker', () => {
       false,
       true,
       'fatal wasm exit',
+      WebWorkerGenerationState.TERMINAL_FAILURE,
     )
   })
 })

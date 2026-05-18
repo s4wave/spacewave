@@ -4,6 +4,7 @@ import { retryWithAbort } from '@aptre/bldr'
 import {
   entrypointRetryOpts,
   isEntrypointStreamReset,
+  loadBackendEntrypoints,
   startBackendEntrypoint,
 } from './entrypoint.js'
 
@@ -226,6 +227,37 @@ describe('plugin JS backend entrypoint startup', () => {
       abortController.abort()
       debug.mockRestore()
       error.mockRestore()
+    }
+  })
+
+  test('loads only selected backend startup entrypoints', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const backendAPI = {
+      startInfo: { pluginId: 'spacewave-app' },
+      utils: {
+        pluginAssetHttpPath: (_pluginId: string, path: string) =>
+          '/p/spacewave-app/a/' + path,
+      },
+    }
+    const abortController = new AbortController()
+    const imported: string[] = []
+
+    try {
+      await loadBackendEntrypoints(
+        backendAPI as never,
+        abortController.signal,
+        [{ importPath: '/assets/notes.js', importName: 'default' }],
+        async (importPath) => {
+          imported.push(importPath)
+          return { default: vi.fn() }
+        },
+      )
+
+      expect(imported).toEqual(['/p/spacewave-app/a/notes.js'])
+      expect(imported).not.toContain('/p/spacewave-app/a/vm.js')
+    } finally {
+      abortController.abort()
+      debug.mockRestore()
     }
   })
 })

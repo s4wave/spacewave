@@ -7,6 +7,9 @@ import type {
   BrowserReleaseState,
 } from './browser-release-state.js'
 import {
+  classifyBrowserFetchSource,
+  classifyBrowserRuntimeFetchError,
+  getBrowserControlCacheRow,
   handleBrowserReleaseRequest,
   handleServiceWorkerMessage,
   refreshBrowserIndexCache,
@@ -145,9 +148,14 @@ function buildMessageEvent(data: unknown): ExtendableMessageEvent {
   } as unknown as ExtendableMessageEvent
 }
 
-function buildFetchOnlyEvent(path: string, init?: RequestInit): FetchEvent {
+function buildFetchOnlyEvent(
+  path: string,
+  init?: RequestInit,
+  clientId?: string,
+): FetchEvent {
   return {
     request: new Request(new URL(path, self.location.href), init),
+    clientId,
   } as FetchEvent
 }
 
@@ -478,6 +486,281 @@ describe('service worker fetch release cache routing', () => {
     expect(fetch).not.toHaveBeenCalled()
     expect(proxyFetch).not.toHaveBeenCalled()
   })
+
+  it('classifies browser fetch sources before routing', () => {
+    expect(
+      classifyBrowserFetchSource(
+        new Request(new URL('/', self.location.href), {
+          headers: { Accept: 'text/html' },
+        }),
+      ).kind,
+    ).toBe('root-document')
+    expect(
+      classifyBrowserFetchSource(
+        new Request(new URL('/b/__index.html', self.location.href)),
+      ).kind,
+    ).toBe('browser-index')
+    expect(
+      classifyBrowserFetchSource(
+        new Request(new URL('/boot.mjs', self.location.href)),
+      ).kind,
+    ).toBe('boot-asset')
+    expect(
+      classifyBrowserFetchSource(
+        new Request(new URL('/browser-release.json', self.location.href)),
+      ).kind,
+    ).toBe('release-asset')
+    expect(
+      classifyBrowserFetchSource(
+        new Request(new URL('/b/pd/plugin/app.mjs', self.location.href)),
+      ).kind,
+    ).toBe('plugin-dist')
+    expect(
+      classifyBrowserFetchSource(
+        new Request(new URL('/b/pa/plugin/style.css', self.location.href)),
+      ).kind,
+    ).toBe('plugin-assets')
+    expect(
+      classifyBrowserFetchSource(
+        new Request(
+          new URL('/p/spacewave-core/fs/file.txt', self.location.href),
+        ),
+      ).kind,
+    ).toBe('plugin-assets')
+    expect(
+      classifyBrowserFetchSource(
+        new Request(new URL('/b/qjs/qjs-wasi.wasm', self.location.href)),
+      ).kind,
+    ).toBe('quickjs-runtime-asset')
+    expect(
+      classifyBrowserFetchSource(
+        new Request(new URL('/other.wasm', self.location.href)),
+      ).kind,
+    ).toBe('native-fetch')
+  })
+
+  it('keeps root navigation and browser index in distinct control cache rows', () => {
+    const rootRow = getBrowserControlCacheRow('root-document')
+    const indexRow = getBrowserControlCacheRow('browser-index')
+
+    expect(rootRow.cacheName).toBe('bldr-control')
+    expect(indexRow.cacheName).toBe('bldr-control')
+    expect(rootRow.kind).toBe('root-document')
+    expect(indexRow.kind).toBe('browser-index')
+    expect(rootRow.path).toBe('/')
+    expect(indexRow.path).toBe('/b/__index.html')
+    expect(rootRow.path).not.toBe(indexRow.path)
+  })
+
+  it('serves retained root navigation with the app import map from the root row', async () => {
+    await writeControlCacheResponse(
+      globalThis.caches as unknown as FakeCacheStorage,
+      '/',
+      new Response(
+        '<script type="importmap">{"imports":{"@spacewave/app":"/entrypoint/gen-a/app.mjs"}}</script>',
+        { status: 200 },
+      ),
+    )
+    await writeControlCacheResponse(
+      globalThis.caches as unknown as FakeCacheStorage,
+      '/b/__index.html',
+      new Response(
+        '<script type="importmap">{"imports":{"@bldr/runtime":"/b/runtime.mjs"}}</script>',
+        { status: 200 },
+      ),
+    )
+    vi.mocked(fetch).mockRejectedValue(new Error('network unavailable'))
+
+    const response = await swFetch(
+      buildFetchOnlyEvent('/', {
+        headers: { Accept: 'text/html' },
+      }),
+    )
+
+    const body = await response.text()
+    expect(body).toContain('@spacewave/app')
+    expect(body).not.toContain('@bldr/runtime')
+    expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('returns typed runtime-unavailable for plugin fetches without a client', async () => {
+    const response = await swFetch(
+      buildFetchOnlyEvent('/p/spacewave-core/fs/u/1/so/space/-/file.txt'),
+    )
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBe(
+      'runtime-unavailable',
+    )
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'runtime-unavailable',
+    )
+    expect(await response.json()).toMatchObject({
+      code: 'runtime-unavailable',
+      source: 'plugin-assets',
+      pluginAssetFetchResult: 'runtime-unavailable',
+    })
+    expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('returns typed runtime-unavailable for plugin worker import timeouts', async () => {
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(
+        'WebRuntimeClient: client-a: timeout opening stream with host',
+        {
+          status: 500,
+        },
+      ),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/backend.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-dist')
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBe(
+      'runtime-unavailable',
+    )
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'runtime-unavailable',
+    )
+    expect(await response.json()).toMatchObject({
+      code: 'runtime-unavailable',
+      source: 'plugin-dist',
+      path: '/b/pd/spacewave-app/backend.mjs',
+      pluginAssetFetchResult: 'runtime-unavailable',
+    })
+  })
+
+  it('returns live plugin asset lease state for successful plugin fetches', async () => {
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response('export const ok = true', { status: 200 }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/backend.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-dist')
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'live',
+    )
+    expect(await response.text()).toBe('export const ok = true')
+  })
+
+  it('returns a typed plugin asset missing response for missing plugin assets', async () => {
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response('plugin asset missing', { status: 404 }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pa/spacewave-app/style.css',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(404)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBe(
+      'plugin-asset-missing',
+    )
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'missing',
+    )
+    expect(await response.json()).toMatchObject({
+      code: 'plugin-asset-missing',
+      pluginAssetFetchResult: 'missing',
+    })
+  })
+
+  it('returns a typed plugin asset unavailable response for non-missing failures', async () => {
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response('plugin asset unavailable', { status: 503 }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pa/spacewave-app/style.css',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBe(
+      'plugin-asset-unavailable',
+    )
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'unavailable',
+    )
+  })
+
+  it('classifies retained runtime and cancellation failures with bounded codes', () => {
+    expect(
+      classifyBrowserRuntimeFetchError(
+        { kind: 'plugin-assets', path: '/p/spacewave-core/fs/file.txt' },
+        { message: 'resume-ready unavailable', status: 503 },
+      ),
+    ).toMatchObject({
+      code: 'runtime-unavailable',
+      status: 503,
+      pluginAssetFetchResult: 'runtime-unavailable',
+    })
+    expect(
+      classifyBrowserRuntimeFetchError(
+        { kind: 'quickjs-runtime-asset', path: '/b/qjs/qjs-wasi.wasm' },
+        { message: 'WebRuntimeClientInstance is closed', status: 500 },
+      ),
+    ).toMatchObject({
+      code: 'generation-closed',
+      status: 410,
+      pluginAssetFetchResult: 'generation-closed',
+    })
+    expect(
+      classifyBrowserRuntimeFetchError(
+        { kind: 'plugin-dist', path: '/b/pd/plugin/app.mjs' },
+        { message: 'service worker client closed', aborted: true, status: 500 },
+      ),
+    ).toMatchObject({
+      code: 'request-canceled',
+      status: 499,
+      pluginAssetFetchResult: 'canceled',
+    })
+    expect(
+      classifyBrowserRuntimeFetchError(
+        { kind: 'plugin-assets', path: '/b/pa/plugin/missing.css' },
+        { message: '404 page not found', status: 404 },
+      ),
+    ).toMatchObject({
+      code: 'plugin-asset-missing',
+      status: 404,
+      pluginAssetFetchResult: 'missing',
+    })
+    expect(
+      classifyBrowserRuntimeFetchError(
+        { kind: 'plugin-assets', path: '/b/pa/plugin/closed.css' },
+        { message: '404 not found', status: 404 },
+      ),
+    ).toMatchObject({
+      code: 'plugin-asset-unavailable',
+      status: 404,
+      pluginAssetFetchResult: 'unavailable',
+    })
+  })
 })
 
 describe('service worker messages', () => {
@@ -577,8 +860,33 @@ describe('service worker messages', () => {
       expect.anything(),
       expect.any(Request),
       'client-a',
-      expect.objectContaining({ headerTimeoutMs: 30_000 }),
     )
+  })
+
+  it('aborts outstanding fetch waiters when a client says goodbye', () => {
+    const deps = {
+      clients: {} as Clients,
+      fetchTracker: {
+        abortClient: vi.fn(),
+      },
+      webDocumentTracker: {
+        handleWebDocumentMessage: vi.fn(),
+      },
+      syncLatestBrowserRelease: vi.fn(),
+      refreshBrowserIndexCache: vi.fn(),
+      handleCrossTabMessage: vi.fn().mockResolvedValue(undefined),
+    }
+
+    const ev = buildMessageEvent({ crossTab: 'goodbye' })
+    handleServiceWorkerMessage(ev, deps)
+
+    expect(deps.fetchTracker.abortClient).toHaveBeenCalledWith(
+      'client-a',
+      expect.objectContaining({
+        message: 'service worker client closed',
+      }),
+    )
+    expect(ev.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
   })
 
   it('updates only cached browser index content when the browser index cache is refreshed', async () => {

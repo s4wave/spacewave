@@ -185,6 +185,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     refreshNonce: 0,
     cssLoaded: true,
   }))
+  const webViewStateRef = useRef(webViewState)
+  webViewStateRef.current = webViewState
   const [isComponentReady, setIsComponentReady] = useState(false)
 
   // TODO: hack: improve this
@@ -230,23 +232,30 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         options: SetRenderModeRequest,
       ): Promise<SetRenderModeResponse | void> {
         console.log(`WebView: set render mode: ${uuid}`, options)
-        setIsComponentReady(false)
+        const scriptPath =
+          (options.renderMode !== RenderMode.RenderMode_NONE &&
+            options.scriptPath?.trim()) ||
+          undefined
+        const prev = webViewStateRef.current
+        const renderTargetChanged =
+          options.refresh ||
+          prev.renderMode !== options.renderMode ||
+          prev.scriptPath !== scriptPath
+        if (renderTargetChanged) {
+          setIsComponentReady(false)
+          resetComponentRevealStartupMarks()
+          if (options.refresh) {
+            resetStylesheetStartupMarks()
+          }
+        }
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
-          refreshNonce: options.refresh
-            ? prev.refreshNonce + 1
-            : prev.refreshNonce,
-          scriptPath:
-            (options.renderMode !== RenderMode.RenderMode_NONE &&
-              options.scriptPath?.trim()) ||
-            undefined,
+          refreshNonce:
+            options.refresh ? prev.refreshNonce + 1 : prev.refreshNonce,
+          scriptPath,
           props: options.props,
         }))
-        resetComponentRevealStartupMarks()
-        if (options.refresh) {
-          resetStylesheetStartupMarks()
-        }
       },
       // setHtmlLinks sets or updates the list of HTML links.
       async setHtmlLinks(
@@ -349,6 +358,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       setHtmlLinksSeenRef,
       resetComponentRevealStartupMarks,
       resetStylesheetStartupMarks,
+      webViewStateRef,
     ],
   )
 

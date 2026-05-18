@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	playwright "github.com/playwright-community/playwright-go"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	space "github.com/s4wave/spacewave/core/space"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
@@ -40,12 +41,22 @@ func TestMain(m *testing.M) {
 
 	ctx := context.Background()
 
-	h, err := Boot(
-		ctx,
-		le,
-		WithConfigMutator(trace_service.InjectTraceConfig),
+	tinyGo := E2EWasmTinyGoEnabled()
+	opts := []Option{
 		WithSessionHarness(),
-	)
+	}
+	if tinyGo {
+		if err := ApplyE2EWasmTinyGoCompilerEnv(); err != nil {
+			le.WithError(err).Fatal("configure TinyGo e2e wasm compiler env")
+		}
+		le.Info("disabling trace service injection for TinyGo e2e/wasm mode")
+		opts = append(opts, WithTinyGoCore())
+		opts = append(opts, WithManifestBuildTimeout(20*time.Minute))
+	} else {
+		opts = append(opts, WithConfigMutator(trace_service.InjectTraceConfig))
+	}
+
+	h, err := Boot(ctx, le, opts...)
 	if err != nil {
 		le.WithError(err).Fatal("boot wasm harness")
 	}
@@ -86,6 +97,8 @@ func TestWasmHarnessBoot(t *testing.T) {
 
 // TestWasmHarnessTraceConfig verifies trace service wiring was injected.
 func TestWasmHarnessTraceConfig(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	h := testHarness
 	for name, manifest := range h.GetProjectConfig().GetManifests() {
 		builder := manifest.GetBuilder()
@@ -108,6 +121,13 @@ func TestWasmHarnessTraceConfig(t *testing.T) {
 		if _, ok := goConf.GetConfigSet()["trace-service"]; !ok {
 			t.Fatalf("manifest %s missing trace-service in configSet", name)
 		}
+	}
+}
+
+func skipTraceServiceForTinyGo(t testing.TB) {
+	t.Helper()
+	if E2EWasmTinyGoEnabled() {
+		t.Skip("trace service is disabled in TinyGo e2e/wasm mode")
 	}
 }
 
@@ -741,6 +761,8 @@ func TestResourceSetupHelpers(t *testing.T) {
 // TestTraceCaptureBytes verifies StartTrace and StopTrace capture a non-empty
 // raw trace and return the bytes to the Go test process.
 func TestTraceCaptureBytes(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
@@ -764,6 +786,8 @@ func TestTraceCaptureBytes(t *testing.T) {
 // TestTraceCaptureWritesFile verifies the returned bytes are written to an
 // explicit destination path owned by the Go test process.
 func TestTraceCaptureWritesFile(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
@@ -814,6 +838,8 @@ func TestTracePathDerivation(t *testing.T) {
 // TestTraceWindowControl verifies trace helpers can bracket only the profiled
 // interaction instead of full app boot.
 func TestTraceWindowControl(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
@@ -835,6 +861,8 @@ func TestTraceWindowControl(t *testing.T) {
 // TestTracePolicyBehavior verifies trace capture behavior: discard-on-replace,
 // no watchdog, no forced timeout.
 func TestTracePolicyBehavior(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
@@ -858,12 +886,25 @@ func TestTracePolicyBehavior(t *testing.T) {
 // TestQuickstartDriveRoute verifies the quickstart dashboard is reachable
 // via client-side routing without a full page reload.
 func TestQuickstartDriveRoute(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := testHarness.NewCleanPageSession(t)
+	console, stopConsole := sess.WatchConsole()
+	defer stopConsole()
+	defer func() {
+		report := DrainCrashReport(console)
+		if report.HasCrash() {
+			t.Errorf("unexpected browser/WASM crash report during drive route: %+v", report)
+		}
+		if report.HasExitedGoLoop() {
+			t.Errorf("unexpected exited-Go loop during drive route: %+v", report)
+		}
+	}()
 	page := sess.Page()
 
 	WaitForApp(t, page)
+	AssertRootImportMap(t, testHarness, page)
 	NavigateHash(t, testHarness, page, "#/quickstart/drive")
 	WaitForDriveReady(t, testHarness, page)
+	AssertBrowserStartupDone(t, testHarness, page)
 
 	url := page.URL()
 	if url == "" {
@@ -872,6 +913,33 @@ func TestQuickstartDriveRoute(t *testing.T) {
 	if !strings.Contains(url, "#/u/") || !strings.Contains(url, "/so/") {
 		t.Fatalf("expected drive quickstart URL, got %q", url)
 	}
+}
+
+// TestQuickstartDriveDirectRouteStartup verifies a fresh browser can boot
+// directly into the Drive quickstart route.
+func TestQuickstartDriveDirectRouteStartup(t *testing.T) {
+	sess := testHarness.NewCleanBlankSession(t)
+	console, stopConsole := sess.WatchConsole()
+	defer stopConsole()
+	defer func() {
+		report := DrainCrashReport(console)
+		if report.HasCrash() {
+			t.Errorf("unexpected browser/WASM crash report during direct drive startup: %+v", report)
+		}
+		if report.HasExitedGoLoop() {
+			t.Errorf("unexpected exited-Go loop during direct drive startup: %+v", report)
+		}
+	}()
+
+	if err := testHarness.loadAppPageURL(sess, testHarness.baseURL+"/#/quickstart/drive"); err != nil {
+		t.Fatalf("load direct drive route: %v", err)
+	}
+	page := sess.Page()
+	WaitForApp(t, page)
+	AssertRootImportMap(t, testHarness, page)
+	ready := WaitForDriveReady(t, testHarness, page)
+	AssertQuickstartContentAfterProgress(t, ready)
+	AssertBrowserStartupDone(t, testHarness, page)
 }
 
 // TestDriveScenarioSequence verifies the owned drive flow as one ordered
@@ -1199,6 +1267,8 @@ func TestQuickstartDriveDeleteSpace(t *testing.T) {
 // TestQuickstartDriveTrace writes a trace artifact for the drive quickstart
 // startup flow using client-side routing without a full page reload.
 func TestQuickstartDriveTrace(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -1234,6 +1304,8 @@ func TestQuickstartDriveTrace(t *testing.T) {
 // block commit hot path with sustained navigation traffic, producing
 // enough write transactions to measure coalescing and batching behavior.
 func TestDriveNavigationBurstTrace(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	const rounds = 12
 	const releasedErr = "resource or inode was released"
 	const welcomeMsg = "Welcome to your new drive"
@@ -1512,6 +1584,8 @@ func TestForgeWorkerExecution(t *testing.T) {
 // TestQuickstartForgeTrace writes a trace artifact for the forge quickstart
 // startup flow.
 func TestQuickstartForgeTrace(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -1545,6 +1619,8 @@ func TestQuickstartForgeTrace(t *testing.T) {
 // TestQuickstartDriveNavigateTrace writes a trace artifact for navigating from
 // the drive listing into a file via the real UI double-click path.
 func TestQuickstartDriveNavigateTrace(t *testing.T) {
+	skipTraceServiceForTinyGo(t)
+
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -1581,4 +1657,14 @@ func TestQuickstartDriveNavigateTrace(t *testing.T) {
 	if info.Size() == 0 {
 		t.Fatal("expected non-empty trace artifact")
 	}
+}
+
+func pageURLHash(t testing.TB, page playwright.Page) string {
+	t.Helper()
+	rawURL := page.URL()
+	hashIdx := strings.Index(rawURL, "#")
+	if hashIdx < 0 {
+		t.Fatalf("page URL %q has no hash route", rawURL)
+	}
+	return rawURL[hashIdx:]
 }

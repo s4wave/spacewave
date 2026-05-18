@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ChannelStream,
   Client as SRPCClient,
@@ -152,6 +152,26 @@ function createChannelPortPair(): [ChannelPort, ChannelPort] {
   ];
 }
 
+function installFakeMessageChannel(): { port(): MessagePort } {
+  class FakeMessagePort {
+    public onmessage: ((ev: MessageEvent) => void) | null = null
+    public postMessage = vi.fn()
+    public start = vi.fn()
+    public close = vi.fn()
+  }
+  class FakeMessageChannel {
+    public readonly port1 = new FakeMessagePort() as unknown as MessagePort
+    public readonly port2 = new FakeMessagePort() as unknown as MessagePort
+  }
+  vi.stubGlobal('MessagePort', FakeMessagePort)
+  vi.stubGlobal('MessageChannel', FakeMessageChannel)
+  return {
+    port() {
+      return new FakeMessagePort() as unknown as MessagePort
+    },
+  }
+}
+
 function connectRuntimeServer(runtime: WebRuntime): {
   client: SRPCClient;
   close(): Promise<void>;
@@ -192,11 +212,17 @@ function connectRuntimeServer(runtime: WebRuntime): {
   };
 }
 
-describe("WebRuntime", () => {
-  it("allows web runtime streams to stay idle", () => {
-    expect(WebRuntimeClientChannelStreamOpts.keepAliveMs).toBeUndefined();
-    expect(WebRuntimeClientChannelStreamOpts.idleTimeoutMs).toBeUndefined();
-  });
+describe('WebRuntime', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('allows web runtime streams to stay idle', () => {
+    expect(WebRuntimeClientChannelStreamOpts.keepAliveMs).toBeUndefined()
+    expect(WebRuntimeClientChannelStreamOpts.idleTimeoutMs).toBeUndefined()
+  })
 
   it("treats closed log streams as teardown", () => {
     const err = new Error("write EPIPE") as Error & { code: string };
@@ -406,9 +432,47 @@ describe("WebRuntime", () => {
     expect(close.mock.calls[0]?.[0]).toBeInstanceOf(Error);
   });
 
-  it("routes generated runtime clients through a stable logical id", async () => {
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
-    const { port1 } = new MessageChannel();
+  it('keeps runtime-to-client stream opens pending until client invalidation', async () => {
+    vi.useFakeTimers()
+    const fake = installFakeMessageChannel()
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+
+    runtime.handleClient(
+      {
+        clientUuid: 'document-1',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      fake.port(),
+    )
+
+    const client = runtime.lookupClient('document-1') as {
+      openStream(): Promise<unknown>
+    } | null
+    expect(client).not.toBeNull()
+
+    let settled = false
+    const openPromise = client!.openStream()
+    openPromise.then(
+      () => {
+        settled = true
+      },
+      () => {
+        settled = true
+      },
+    )
+
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    expect(settled).toBe(false)
+
+    runtime.invalidateClient('document-1', new Error('document lock released'))
+
+    await expect(openPromise).rejects.toThrow('closed')
+  })
+
+  it('routes generated runtime clients through a stable logical id', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const { port1 } = new MessageChannel()
 
     runtime.handleClient(
       {

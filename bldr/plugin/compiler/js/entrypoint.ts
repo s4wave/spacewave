@@ -42,6 +42,12 @@ declare const __BLDR_HANDLE_WEB_PKGS__:
   | HandleWebPkgsViaPluginAssetsRequest
   | undefined
 
+const quickJSPluginFrontendReadyMarker =
+  '__BLDR_QUICKJS_PLUGIN_FRONTEND_READY__'
+const quickJSPluginCapabilityReadyMarker =
+  '__BLDR_QUICKJS_PLUGIN_CAPABILITY_READY__'
+const quickJSPluginReadyMarker = '__BLDR_QUICKJS_PLUGIN_READY__'
+
 /**
  * Logs an error message and the full error object consistently.
  * @param message - The base error message.
@@ -197,13 +203,12 @@ export async function startBackendEntrypoint(
  * Loads and executes all configured backend entrypoints.
  * @param backendAPI - The backend API object.
  */
-async function loadBackendEntrypoints(
+export async function loadBackendEntrypoints(
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
+  backendEntrypoints: BackendEntrypoint[] = __BLDR_BACKEND_ENTRYPOINTS__ ?? [],
+  loadModule: BackendEntrypointModuleLoader = importBackendEntrypointModule,
 ): Promise<void> {
-  // Load backend entrypoints directly from the defined constant.
-  const backendEntrypoints = __BLDR_BACKEND_ENTRYPOINTS__ ?? []
-
   if (backendEntrypoints.length === 0) {
     console.debug('No backend entrypoints configured.')
     return
@@ -217,7 +222,16 @@ async function loadBackendEntrypoints(
     `Waiting for ${backendEntrypoints.length} backend entrypoints to start...`,
   )
   for (const entrypoint of backendEntrypoints) {
-    await startBackendEntrypoint(entrypoint, backendAPI, abortSignal)
+    try {
+      await startBackendEntrypoint(
+        entrypoint,
+        backendAPI,
+        abortSignal,
+        loadModule,
+      )
+    } catch (error) {
+      logError(`Backend entrypoint startup threw an error`, error)
+    }
   }
   console.debug('All backend entrypoints started successfully.')
 }
@@ -229,10 +243,12 @@ async function loadWebPkgs(
   ourPluginID: string,
   webPlugin: WebPlugin,
   abortSignal: AbortSignal,
+  onReady?: () => void,
 ): Promise<void> {
   const webPkgsIDs = __BLDR_HANDLE_WEB_PKGS__?.webPkgIdList
   if (!webPkgsIDs?.length) {
     console.debug('No web pkgs configured.')
+    onReady?.()
     return
   }
 
@@ -254,6 +270,7 @@ async function loadWebPkgs(
           console.debug(
             `Configured ${webPkgsIDs.length} web pkgs via web plugin.`,
           )
+          onReady?.()
           continue
         }
         console.debug('Web plugin is not ready yet.')
@@ -271,12 +288,14 @@ async function loadFrontendEntrypoints(
   ourPluginID: string,
   webPlugin: WebPlugin,
   abortSignal: AbortSignal,
+  onReady?: () => void,
 ): Promise<void> {
   // Load frontend entrypoints directly from the defined constant.
   // Use '?? []' to default to an empty array if the constant is undefined.
   const frontendEntrypoints = __BLDR_FRONTEND_ENTRYPOINTS__ ?? []
   if (frontendEntrypoints.length === 0) {
     console.debug('No frontend entrypoints configured.')
+    onReady?.()
     return
   }
 
@@ -345,6 +364,7 @@ async function loadFrontendEntrypoints(
 
   if (!handlers.length) {
     console.debug(`No web view handlers were configured.`)
+    onReady?.()
     return
   }
 
@@ -369,6 +389,7 @@ async function loadFrontendEntrypoints(
           console.debug(
             `Configured ${handlers.length} web view handlers via web plugin.`,
           )
+          onReady?.()
           continue
         }
         console.debug('Web plugin is not ready yet.')
@@ -385,63 +406,121 @@ function loadWebPlugin(
   backendAPI: BackendAPI,
   ourPluginID: string,
   abortSignal: AbortSignal,
-): void {
+): Promise<void> {
   // Load the web plugin.
   const webPluginID = __BLDR_WEB_PLUGIN_ID__ ?? ''
   if (!webPluginID?.length) {
     console.debug(
       'Skipping frontend entrypoints as no webPluginId was configured.',
     )
-    return
+    return Promise.resolve()
+  }
+
+  if (
+    !(__BLDR_FRONTEND_ENTRYPOINTS__ ?? []).length &&
+    !__BLDR_HANDLE_WEB_PKGS__?.webPkgIdList?.length
+  ) {
+    console.debug('No frontend handlers or web pkgs configured.')
+    return Promise.resolve()
   }
 
   console.debug(`Loading web plugin with ID: ${webPluginID}`)
   let pluginAbort: AbortController | undefined = undefined
-  function startPluginSetup(signal: AbortSignal) {
-    if (pluginAbort) {
+  return new Promise<void>((resolve, reject) => {
+    const frontend = { ready: false }
+    const resolveFrontendReady = () => {
+      if (frontend.ready) {
+        return
+      }
+      frontend.ready = true
+      abortSignal.removeEventListener('abort', rejectFrontendReady)
+      resolve()
+    }
+    const rejectFrontendReady = () => {
+      if (frontend.ready) {
+        return
+      }
+      reject(new Error('frontend setup aborted'))
+    }
+    abortSignal.addEventListener('abort', rejectFrontendReady, { once: true })
+
+    function startPluginSetup(signal: AbortSignal) {
+      if (pluginAbort) {
+        return
+      }
+      pluginAbort = createAbortController(signal)
+      const setupReady = createReadinessBarrier(2, () => {
+        resolveFrontendReady()
+      })
+      retryWithAbort(
+        pluginAbort.signal,
+        async (signal) => {
+          const openStream = backendAPI.buildPluginOpenStream(webPluginID)
+          const srpcClient = new Client(openStream)
+          const client = new WebPluginClient(srpcClient)
+          await Promise.all([
+            loadFrontendEntrypoints(
+              backendAPI,
+              ourPluginID,
+              client,
+              signal,
+              setupReady,
+            ),
+            loadWebPkgs(ourPluginID, client, signal, setupReady),
+          ])
+        },
+        {
+          errorCb: entrypointRetryOpts('error loading frontend entrypoints')
+            .errorCb,
+        },
+      )
+    }
+
+    retryWithAbort(
+      abortSignal,
+      async (signal) => {
+        const respStream = backendAPI.pluginHost.LoadPlugin(
+          { pluginId: webPluginID },
+          signal,
+        )
+        for await (const resp of respStream) {
+          const currRunning = resp?.pluginStatus?.running || false
+          console.debug(`web plugin status running=${currRunning}`)
+          if (!currRunning) {
+            if (pluginAbort) {
+              pluginAbort.abort()
+              pluginAbort = undefined
+            }
+            continue
+          }
+          startPluginSetup(signal)
+        }
+      },
+      entrypointRetryOpts('error watching web plugin status'),
+    )
+  })
+}
+
+function createReadinessBarrier(
+  count: number,
+  onReady: () => void,
+): () => void {
+  const state = { remaining: count }
+  return () => {
+    if (state.remaining <= 0) {
       return
     }
-    pluginAbort = createAbortController(signal)
-    retryWithAbort(
-      pluginAbort.signal,
-      async (signal) => {
-        const openStream = backendAPI.buildPluginOpenStream(webPluginID)
-        const srpcClient = new Client(openStream)
-        const client = new WebPluginClient(srpcClient)
-        await Promise.all([
-          loadFrontendEntrypoints(backendAPI, ourPluginID, client, signal),
-          loadWebPkgs(ourPluginID, client, signal),
-        ])
-      },
-      {
-        errorCb: entrypointRetryOpts('error loading frontend entrypoints')
-          .errorCb,
-      },
-    )
+    state.remaining -= 1
+    if (state.remaining === 0) {
+      onReady()
+    }
   }
+}
 
-  retryWithAbort(
-    abortSignal,
-    async (signal) => {
-      const respStream = backendAPI.pluginHost.LoadPlugin(
-        { pluginId: webPluginID },
-        signal,
-      )
-      for await (const resp of respStream) {
-        const currRunning = resp?.pluginStatus?.running || false
-        console.debug(`web plugin status running=${currRunning}`)
-        if (!currRunning) {
-          if (pluginAbort) {
-            pluginAbort.abort()
-            pluginAbort = undefined
-          }
-          continue
-        }
-        startPluginSetup(signal)
-      }
-    },
-    entrypointRetryOpts('error watching web plugin status'),
-  )
+function reportQuickJSReadiness(marker: string): void {
+  if (isQuickJSRuntime()) {
+    console.info(marker)
+  }
 }
 
 /**
@@ -480,15 +559,14 @@ export default async function main(
     )
   }
 
-  // Start frontend handlers before backend registrations so first paint is not
-  // gated on cross-plugin backend RPC readiness.
-  loadWebPlugin(backendAPI, pluginId, abortSignal)
+  const frontendReady = loadWebPlugin(backendAPI, pluginId, abortSignal)
+  const capabilityReady = loadBackendEntrypoints(backendAPI, abortSignal)
 
-  // Load and execute backend entrypoints.
-  await loadBackendEntrypoints(backendAPI, abortSignal)
+  await frontendReady
+  reportQuickJSReadiness(quickJSPluginFrontendReadyMarker)
+  await capabilityReady
+  reportQuickJSReadiness(quickJSPluginCapabilityReadyMarker)
 
   console.info('Bldr JS plugin entrypoint finished initialization.')
-  if (isQuickJSRuntime()) {
-    console.info('__BLDR_QUICKJS_PLUGIN_READY__')
-  }
+  reportQuickJSReadiness(quickJSPluginReadyMarker)
 }

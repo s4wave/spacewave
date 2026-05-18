@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { projectBrowserStartupView } from './browser-startup.js'
+import { projectBrowserStartup } from './browser-startup-model.js'
 
 describe('projectBrowserStartupView', () => {
   it('maps browser startup phases to the user-facing startup rail', () => {
@@ -164,5 +165,64 @@ describe('projectBrowserStartupView', () => {
       error:
         'Startup did not finish. Check the browser console or startup marks for details.',
     })
+  })
+
+  it('exposes typed runtime state as projection evidence', () => {
+    const startup = projectBrowserStartup(
+      {
+        phase: 'runtime',
+        detail: 'Starting...',
+        state: 'loading',
+      },
+      [
+        {
+          name: 'spacewave.startup.runtime.client-channel-acked',
+          label: 'runtime.client-channel-acked',
+          sequence: 1,
+          detail: { label: 'runtime.client-channel-acked', sequence: 1 },
+        },
+        {
+          name: 'spacewave.startup.service-worker.control-ready',
+          label: 'service-worker.control-ready',
+          sequence: 2,
+          detail: { label: 'service-worker.control-ready', sequence: 2 },
+        },
+      ],
+    )
+
+    expect(startup.evidence.runtime.runtimeClient.state).toBe('connected')
+    expect(startup.evidence.runtime.serviceWorker.state).toBe('controlled')
+    expect(startup.phase.id).toBe('runtime')
+  })
+
+  it('marks plugin terminal failure as a runtime phase error', () => {
+    const startup = projectBrowserStartup(
+      {
+        phase: 'runtime',
+        detail: 'Starting...',
+        state: 'loading',
+      },
+      [
+        {
+          name: 'spacewave.startup.plugin.terminal-failure',
+          label: 'plugin.terminal-failure',
+          sequence: 1,
+          detail: {
+            label: 'plugin.terminal-failure',
+            sequence: 1,
+            reason: 'spacewave-core exited',
+          },
+        },
+      ],
+    )
+
+    expect(startup.view.state).toBe('error')
+    expect(startup.phase.id).toBe('runtime')
+    expect(startup.phases.find((phase) => phase.id === 'runtime')?.state).toBe(
+      'error',
+    )
+    expect(startup.evidence.runtime.terminalFailure?.owner).toBe(
+      'plugin-generation',
+    )
   })
 })

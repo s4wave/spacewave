@@ -59,9 +59,9 @@ type Remote struct {
 	// sorted by ID
 	// do not retain this slice without holding mtx
 	remoteWebWorkers []*remoteWebWorker
-	// remoteWebWorkerFailures contains failed worker removal events that should
-	// be exposed once through the status container.
-	remoteWebWorkerFailures []*WebWorkerStatus
+	// remoteWebWorkerDeleted contains worker removal events that should be
+	// exposed once through the status container.
+	remoteWebWorkerDeleted []*WebWorkerStatus
 }
 
 // NewRemote constructs a new browser runtime.
@@ -284,7 +284,10 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 			return false, nil
 		}
 
-		dirty, err = r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{Id: webWorkerID, Shared: resp.GetShared()}})
+		dirty, err = r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
+			Id:     webWorkerID,
+			Shared: resp.GetShared(),
+		}})
 		if err != nil {
 			return dirty, err
 		}
@@ -508,13 +511,16 @@ func (r *Remote) updateStatusSnapshot() {
 		}
 		for _, remoteWebWorker := range r.remoteWebWorkers {
 			status.WebWorkers = append(status.WebWorkers, &WebWorkerStatus{
-				Id:     remoteWebWorker.id,
-				Shared: remoteWebWorker.shared,
-				Ready:  remoteWebWorker.ready,
+				Id:              remoteWebWorker.id,
+				Shared:          remoteWebWorker.shared,
+				Ready:           remoteWebWorker.ready,
+				Failed:          remoteWebWorker.failed,
+				FailureReason:   remoteWebWorker.failureReason,
+				GenerationState: remoteWebWorker.generationState,
 			})
 		}
-		status.WebWorkers = append(status.WebWorkers, r.remoteWebWorkerFailures...)
-		r.remoteWebWorkerFailures = nil
+		status.WebWorkers = append(status.WebWorkers, r.remoteWebWorkerDeleted...)
+		r.remoteWebWorkerDeleted = nil
 	}
 	r.snapshotCtr.SetValue(status)
 }
@@ -600,28 +606,23 @@ func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerSta
 
 		// delete
 		if status.GetDeleted() {
-			if status.GetFailed() {
-				r.remoteWebWorkerFailures = append(r.remoteWebWorkerFailures, &WebWorkerStatus{
-					Id:            webWorkerID,
-					Deleted:       true,
-					Shared:        status.GetShared(),
-					Ready:         status.GetReady(),
-					Failed:        true,
-					FailureReason: status.GetFailureReason(),
-				})
-				dirty = true
-			}
+			r.remoteWebWorkerDeleted = append(r.remoteWebWorkerDeleted, &WebWorkerStatus{
+				Id:              webWorkerID,
+				Deleted:         true,
+				Shared:          status.GetShared(),
+				Ready:           status.GetReady(),
+				Failed:          status.GetFailed(),
+				FailureReason:   status.GetFailureReason(),
+				GenerationState: status.GetGenerationState(),
+			})
+			dirty = true
 			if r.removeRemoteWebWorker(webWorkerID) != nil {
 				dirty = true
 			}
 			continue
 		}
 
-		_, _, inserted, changed := r.upsertRemoteWebWorker(
-			webWorkerID,
-			status.GetShared(),
-			status.GetReady(),
-		)
+		_, _, inserted, changed := r.upsertRemoteWebWorker(status)
 		if inserted || changed {
 			dirty = true
 		}
@@ -710,32 +711,36 @@ func (r *Remote) lookupRemoteWebView(id string) (i int, rwv *remoteWebView) {
 // upsertRemoteWebWorker adds a new remote web worker if not exists.
 // returns the web worker, its index, whether it was inserted, and whether
 // any tracked state changed.
-func (r *Remote) upsertRemoteWebWorker(
-	webWorkerID string,
-	shared bool,
-	ready bool,
-) (*remoteWebWorker, int, bool, bool) {
+func (r *Remote) upsertRemoteWebWorker(status *WebWorkerStatus) (*remoteWebWorker, int, bool, bool) {
 	// insert if not exists
 	var inserted, changed bool
+	webWorkerID := status.GetId()
 	insertIdx, rwv := r.lookupRemoteWebWorker(webWorkerID)
 	if rwv == nil {
-		rwv = r.buildRemoteWebWorker(
-			webWorkerID,
-			r.documentID,
-			shared,
-			ready,
-		)
+		rwv = r.buildRemoteWebWorker(r.documentID, status)
 		r.insertRemoteWebWorker(insertIdx, rwv)
 		inserted = true
 		changed = true
 	}
 	if !inserted {
-		if rwv.shared != shared {
-			rwv.shared = shared
+		if rwv.shared != status.GetShared() {
+			rwv.shared = status.GetShared()
 			changed = true
 		}
-		if rwv.ready != ready {
-			rwv.ready = ready
+		if rwv.ready != status.GetReady() {
+			rwv.ready = status.GetReady()
+			changed = true
+		}
+		if rwv.failed != status.GetFailed() {
+			rwv.failed = status.GetFailed()
+			changed = true
+		}
+		if rwv.failureReason != status.GetFailureReason() {
+			rwv.failureReason = status.GetFailureReason()
+			changed = true
+		}
+		if rwv.generationState != status.GetGenerationState() {
+			rwv.generationState = status.GetGenerationState()
 			changed = true
 		}
 	}

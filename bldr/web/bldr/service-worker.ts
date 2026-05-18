@@ -41,13 +41,17 @@ const bootAssetPath = '/boot.mjs'
 const browserIndexPath = '/b/__index.html'
 const rootNavigationPath = '/'
 const browserReleaseStatePath = '/__bldr/browser-release-state.json'
+const pluginDistPathPrefix = '/b/pd/'
+const pluginAssetsPathPrefix = '/b/pa/'
+const pluginWebPkgPathPrefix = '/b/pkg/'
+const quickJSRuntimePathPrefix = '/b/qjs/'
+const pluginHttpPathPrefix = '/p/'
 
 // CACHES is the list of fixed caches.
 const CACHES: Record<string, Cache | undefined> = {
   [controlCacheName]: undefined,
 }
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
-const proxyFetchHeaderTimeoutMs = 30_000
 const browserReleaseNetworkRaceTimeoutMs = 800
 const browserReleaseNetworkRaceTimedOut = Symbol(
   'browserReleaseNetworkRaceTimedOut',
@@ -77,6 +81,77 @@ export interface BrowserIndexRefreshMessage {
   bldrRefreshBrowserIndex?: boolean
 }
 
+// BrowserFetchSourceKind classifies the ServiceWorker fetch authority.
+export type BrowserFetchSourceKind =
+  | 'root-document'
+  | 'browser-index'
+  | 'boot-asset'
+  | 'release-asset'
+  | 'plugin-dist'
+  | 'plugin-assets'
+  | 'quickjs-runtime-asset'
+  | 'bldr-runtime'
+  | 'native-fetch'
+
+// BrowserFetchSource records the typed owner for a ServiceWorker request.
+export interface BrowserFetchSource {
+  kind: BrowserFetchSourceKind
+  path: string
+  sameOrigin: boolean
+  runtime: boolean
+}
+
+// BrowserControlCacheRowKind names fixed rows in the control cache.
+export type BrowserControlCacheRowKind =
+  | 'root-document'
+  | 'browser-index'
+  | 'stable-boot-asset'
+  | 'browser-release-state'
+
+// BrowserControlCacheRow records a fixed control-cache row.
+export interface BrowserControlCacheRow {
+  kind: BrowserControlCacheRowKind
+  path: string
+  cacheName: typeof controlCacheName
+}
+
+// BrowserRuntimeFetchErrorCode is the bounded failure vocabulary for runtime fetches.
+export type BrowserRuntimeFetchErrorCode =
+  | 'no-ready-document'
+  | 'resume-unavailable'
+  | 'stream-open-timeout'
+  | 'generation-closed'
+  | 'runtime-unavailable'
+  | 'plugin-asset-missing'
+  | 'plugin-asset-unavailable'
+  | 'request-canceled'
+
+// BrowserPluginAssetFetchResultCode is the plugin asset lease result surfaced
+// to browser importers and QuickJS backend asset loading.
+export type BrowserPluginAssetFetchResultCode =
+  | 'live'
+  | 'missing'
+  | 'unavailable'
+  | 'generation-closed'
+  | 'runtime-unavailable'
+  | 'canceled'
+
+// BrowserRuntimeFetchError is serialized to runtime fetch failure responses.
+export interface BrowserRuntimeFetchError {
+  code: BrowserRuntimeFetchErrorCode
+  source: BrowserFetchSourceKind
+  path: string
+  message: string
+  status: number
+  pluginAssetFetchResult?: BrowserPluginAssetFetchResultCode
+}
+
+export interface BrowserRuntimeFetchFailureInput {
+  status?: number
+  message?: string
+  aborted?: boolean
+}
+
 // resetServiceWorkerTestState clears module-level cache handles for unit tests.
 export function resetServiceWorkerTestState(): void {
   CACHES[controlCacheName] = undefined
@@ -87,8 +162,45 @@ export function resetServiceWorkerTestState(): void {
 let browserReleaseSyncInFlight: Promise<BrowserReleaseState> | null = null
 let firstWebDocumentMessageMarked = false
 
+const browserControlCacheRows: Record<
+  BrowserControlCacheRowKind,
+  BrowserControlCacheRow
+> = {
+  'root-document': {
+    kind: 'root-document',
+    path: rootNavigationPath,
+    cacheName: controlCacheName,
+  },
+  'browser-index': {
+    kind: 'browser-index',
+    path: browserIndexPath,
+    cacheName: controlCacheName,
+  },
+  'stable-boot-asset': {
+    kind: 'stable-boot-asset',
+    path: bootAssetPath,
+    cacheName: controlCacheName,
+  },
+  'browser-release-state': {
+    kind: 'browser-release-state',
+    path: browserReleaseStatePath,
+    cacheName: controlCacheName,
+  },
+}
+
+// getBrowserControlCacheRow returns the typed fixed row for a control-cache entry.
+export function getBrowserControlCacheRow(
+  kind: BrowserControlCacheRowKind,
+): BrowserControlCacheRow {
+  return browserControlCacheRows[kind]
+}
+
 function buildCacheRequest(path: string): Request {
   return new Request(new URL(path, baseURL).toString())
+}
+
+function buildControlCacheRequest(row: BrowserControlCacheRow): Request {
+  return buildCacheRequest(row.path)
 }
 
 function canCacheRequest(request: Request): boolean {
@@ -156,8 +268,10 @@ function responseForMethod(request: Request, response: Response): Response {
   return response
 }
 
-async function readCachedJson<T>(path: string): Promise<T | null> {
-  const request = buildCacheRequest(path)
+async function readCachedJson<T>(
+  row: BrowserControlCacheRow,
+): Promise<T | null> {
+  const request = buildControlCacheRequest(row)
   if (!canCacheRequest(request)) {
     return null
   }
@@ -169,8 +283,11 @@ async function readCachedJson<T>(path: string): Promise<T | null> {
   return (await response.json()) as T
 }
 
-async function writeCachedJson(path: string, value: unknown): Promise<void> {
-  const request = buildCacheRequest(path)
+async function writeCachedJson(
+  row: BrowserControlCacheRow,
+  value: unknown,
+): Promise<void> {
+  const request = buildControlCacheRequest(row)
   if (!canCacheRequest(request)) {
     return
   }
@@ -180,7 +297,7 @@ async function writeCachedJson(path: string, value: unknown): Promise<void> {
 
 async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
   const state = await readCachedJson<BrowserReleaseState>(
-    browserReleaseStatePath,
+    getBrowserControlCacheRow('browser-release-state'),
   )
   if (!state) {
     return createEmptyBrowserReleaseState()
@@ -194,11 +311,16 @@ async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
 async function saveBrowserReleaseState(
   state: BrowserReleaseState,
 ): Promise<void> {
-  await writeCachedJson(browserReleaseStatePath, state)
+  await writeCachedJson(
+    getBrowserControlCacheRow('browser-release-state'),
+    state,
+  )
 }
 
 async function cacheStableBootAsset(): Promise<void> {
-  const request = buildCacheRequest(bootAssetPath)
+  const request = buildControlCacheRequest(
+    getBrowserControlCacheRow('stable-boot-asset'),
+  )
   if (!canCacheRequest(request)) {
     return
   }
@@ -380,7 +502,9 @@ async function syncLatestBrowserRelease(
 async function matchStableBootAsset(
   request: Request,
 ): Promise<Response | null> {
-  const cacheRequest = buildCacheRequest(bootAssetPath)
+  const cacheRequest = buildControlCacheRequest(
+    getBrowserControlCacheRow('stable-boot-asset'),
+  )
   if (!canCacheRequest(cacheRequest)) {
     return null
   }
@@ -395,7 +519,9 @@ async function matchStableBootAsset(
 async function matchBrowserIndexCache(
   request: Request,
 ): Promise<Response | null> {
-  const cacheRequest = buildCacheRequest(browserIndexPath)
+  const cacheRequest = buildControlCacheRequest(
+    getBrowserControlCacheRow('browser-index'),
+  )
   if (!canCacheRequest(cacheRequest)) {
     return null
   }
@@ -410,7 +536,9 @@ async function matchBrowserIndexCache(
 async function matchRootNavigationCache(
   request: Request,
 ): Promise<Response | null> {
-  const cacheRequest = buildCacheRequest(rootNavigationPath)
+  const cacheRequest = buildControlCacheRequest(
+    getBrowserControlCacheRow('root-document'),
+  )
   if (!canCacheRequest(cacheRequest)) {
     return null
   }
@@ -427,7 +555,9 @@ async function cacheBrowserIndexResponse(response: Response): Promise<void> {
     return
   }
   const cache = await getControlCache()
-  const request = buildCacheRequest(browserIndexPath)
+  const request = buildControlCacheRequest(
+    getBrowserControlCacheRow('browser-index'),
+  )
   if (canCacheRequest(request)) {
     await cache.put(request, response.clone())
   }
@@ -437,7 +567,9 @@ async function cacheRootNavigationResponse(response: Response): Promise<void> {
   if (!response.ok) {
     return
   }
-  const request = buildCacheRequest(rootNavigationPath)
+  const request = buildControlCacheRequest(
+    getBrowserControlCacheRow('root-document'),
+  )
   if (!canCacheRequest(request)) {
     return
   }
@@ -449,10 +581,10 @@ async function cacheRootNavigationResponse(response: Response): Promise<void> {
 export async function refreshBrowserIndexCache(
   clientId: string,
 ): Promise<Response> {
-  const request = buildCacheRequest(browserIndexPath)
-  const response = await proxyFetch(swHost, request, clientId, {
-    headerTimeoutMs: proxyFetchHeaderTimeoutMs,
-  })
+  const request = buildControlCacheRequest(
+    getBrowserControlCacheRow('browser-index'),
+  )
+  const response = await proxyFetch(swHost, request, clientId)
   if (response.ok) {
     await cacheBrowserIndexResponse(response)
   }
@@ -724,6 +856,363 @@ function isNavigationRequest(request: Request): boolean {
   )
 }
 
+// classifyBrowserFetchSource returns the ServiceWorker owner for a request.
+export function classifyBrowserFetchSource(
+  request: Request,
+  matchPrefixes: readonly string[] = BLDR_URI_PREFIXES,
+): BrowserFetchSource {
+  const requestURL = new URL(request.url)
+  const path = requestURL.pathname
+  const sameOrigin = isSwOrigin(requestURL.origin)
+  const runtime =
+    sameOrigin &&
+    matchPrefixes.some((matchPrefix) => path.startsWith(matchPrefix))
+
+  let kind: BrowserFetchSourceKind = 'native-fetch'
+  if (
+    sameOrigin &&
+    path === rootNavigationPath &&
+    isNavigationRequest(request)
+  ) {
+    kind = 'root-document'
+  } else if (sameOrigin && path === browserIndexPath) {
+    kind = 'browser-index'
+  } else if (sameOrigin && path === bootAssetPath) {
+    kind = 'boot-asset'
+  } else if (sameOrigin && path === browserReleasePath) {
+    kind = 'release-asset'
+  } else if (sameOrigin && path.startsWith(pluginDistPathPrefix)) {
+    kind = 'plugin-dist'
+  } else if (
+    sameOrigin &&
+    (path.startsWith(pluginAssetsPathPrefix) ||
+      path.startsWith(pluginWebPkgPathPrefix) ||
+      path.startsWith(pluginHttpPathPrefix))
+  ) {
+    kind = 'plugin-assets'
+  } else if (sameOrigin && path.startsWith(quickJSRuntimePathPrefix)) {
+    kind = 'quickjs-runtime-asset'
+  } else if (runtime) {
+    kind = 'bldr-runtime'
+  }
+
+  return { kind, path, sameOrigin, runtime }
+}
+
+function isRuntimeFetchSource(source: BrowserFetchSource): boolean {
+  return source.runtime || source.kind === 'browser-index'
+}
+
+function isPluginRuntimeFetchSource(source: BrowserFetchSource): boolean {
+  return isPluginRuntimeFetchSourceKind(source.kind)
+}
+
+function isPluginRuntimeFetchSourceKind(kind: BrowserFetchSourceKind): boolean {
+  return (
+    kind === 'plugin-assets' ||
+    kind === 'plugin-dist' ||
+    kind === 'quickjs-runtime-asset'
+  )
+}
+
+function browserRuntimeFetchStatusForCode(
+  code: BrowserRuntimeFetchErrorCode,
+  fallbackStatus: number | undefined,
+): number {
+  if (code === 'request-canceled') {
+    return 499
+  }
+  if (code === 'stream-open-timeout') {
+    return 504
+  }
+  if (code === 'generation-closed') {
+    return 410
+  }
+  if (code === 'plugin-asset-missing') {
+    return 404
+  }
+  if (code === 'runtime-unavailable') {
+    return 503
+  }
+  if (fallbackStatus && fallbackStatus >= 400 && fallbackStatus <= 599) {
+    return fallbackStatus
+  }
+  return 503
+}
+
+function pluginAssetFetchResultForErrorCode(
+  code: BrowserRuntimeFetchErrorCode,
+): BrowserPluginAssetFetchResultCode | undefined {
+  switch (code) {
+    case 'request-canceled':
+      return 'canceled'
+    case 'generation-closed':
+      return 'generation-closed'
+    case 'runtime-unavailable':
+    case 'no-ready-document':
+    case 'resume-unavailable':
+    case 'stream-open-timeout':
+      return 'runtime-unavailable'
+    case 'plugin-asset-missing':
+      return 'missing'
+    case 'plugin-asset-unavailable':
+      return 'unavailable'
+  }
+}
+
+function isAbortFailure(message: string): boolean {
+  return (
+    message.includes('aborterror') ||
+    message.includes('aborted') ||
+    message.includes('client closed') ||
+    message.includes('service worker client closed')
+  )
+}
+
+function isResumeUnavailableFailure(message: string): boolean {
+  return (
+    message.includes('resume') &&
+    (message.includes('not ready') ||
+      message.includes('unavailable') ||
+      message.includes('timed out') ||
+      message.includes('timeout'))
+  )
+}
+
+function isStreamOpenTimeoutFailure(message: string): boolean {
+  return (
+    message.includes('timeout opening stream with host') ||
+    message.includes('unable to open stream with host') ||
+    message.includes('timed out waiting') ||
+    message.includes('proxied fetch response headers')
+  )
+}
+
+function isGenerationClosedFailure(message: string): boolean {
+  return (
+    message.includes('generation closed') ||
+    message.includes('runtime closed') ||
+    message.includes('worker closed') ||
+    message.includes('webruntimeclientinstance is closed') ||
+    message.includes('closed before resume-ready')
+  )
+}
+
+function isPluginAssetMissingFailure(message: string): boolean {
+  return message.includes('missing') || message.includes('404 page not found')
+}
+
+function shouldNormalizeRuntimeFetchFailure(
+  source: BrowserFetchSource,
+  failure: BrowserRuntimeFetchFailureInput,
+): boolean {
+  if (isPluginRuntimeFetchSource(source)) {
+    return true
+  }
+  const lowerMessage = (failure.message ?? '').toLowerCase()
+  return (
+    failure.aborted ||
+    isAbortFailure(lowerMessage) ||
+    isResumeUnavailableFailure(lowerMessage) ||
+    isStreamOpenTimeoutFailure(lowerMessage) ||
+    isGenerationClosedFailure(lowerMessage)
+  )
+}
+
+// classifyBrowserRuntimeFetchError maps proxy/runtime failures to bounded fetch errors.
+export function classifyBrowserRuntimeFetchError(
+  source: Pick<BrowserFetchSource, 'kind' | 'path'>,
+  failure: BrowserRuntimeFetchFailureInput = {},
+): BrowserRuntimeFetchError {
+  const message = failure.message || 'runtime fetch unavailable'
+  const lowerMessage = message.toLowerCase()
+  const code = classifyBrowserRuntimeFetchErrorCode(
+    source.kind,
+    failure,
+    lowerMessage,
+  )
+  const pluginAssetFetchResult =
+    isPluginRuntimeFetchSourceKind(source.kind) ?
+      pluginAssetFetchResultForErrorCode(code)
+    : undefined
+  return {
+    code,
+    source: source.kind,
+    path: source.path,
+    message,
+    status: browserRuntimeFetchStatusForCode(code, failure.status),
+    pluginAssetFetchResult,
+  }
+}
+
+function classifyBrowserRuntimeFetchErrorCode(
+  sourceKind: BrowserFetchSourceKind,
+  failure: BrowserRuntimeFetchFailureInput,
+  lowerMessage: string,
+): BrowserRuntimeFetchErrorCode {
+  if (failure.aborted || isAbortFailure(lowerMessage)) {
+    return 'request-canceled'
+  }
+  if (isGenerationClosedFailure(lowerMessage)) {
+    return 'generation-closed'
+  }
+  if (!isPluginRuntimeFetchSourceKind(sourceKind)) {
+    if (isResumeUnavailableFailure(lowerMessage)) {
+      return 'resume-unavailable'
+    }
+    if (isStreamOpenTimeoutFailure(lowerMessage)) {
+      return 'stream-open-timeout'
+    }
+    return 'plugin-asset-unavailable'
+  }
+  if (
+    isResumeUnavailableFailure(lowerMessage) ||
+    isStreamOpenTimeoutFailure(lowerMessage)
+  ) {
+    return 'runtime-unavailable'
+  }
+  if (failure.status === 404 && isPluginAssetMissingFailure(lowerMessage)) {
+    return 'plugin-asset-missing'
+  }
+  return 'plugin-asset-unavailable'
+}
+
+async function readRuntimeFetchFailureMessage(
+  response: Response,
+): Promise<string> {
+  try {
+    const message = await response.clone().text()
+    return message.trim() || response.statusText || 'runtime fetch unavailable'
+  } catch (error) {
+    return castToError(error, 'runtime fetch unavailable').message
+  }
+}
+
+function buildBrowserRuntimeFetchErrorResponse(
+  error: BrowserRuntimeFetchError,
+  method: string,
+): Response {
+  const body =
+    method === 'HEAD' ? null : (
+      JSON.stringify({
+        schemaVersion: 1,
+        code: error.code,
+        source: error.source,
+        path: error.path,
+        message: error.message,
+        pluginAssetFetchResult: error.pluginAssetFetchResult,
+      })
+    )
+  const headers = new Headers({
+    'Cache-Control': 'no-store',
+    'Content-Type': 'application/json; charset=utf-8',
+    'X-Bldr-Fetch-Source': error.source,
+    'X-Bldr-Runtime-Fetch-Error': error.code,
+  })
+  if (error.pluginAssetFetchResult) {
+    headers.set(
+      'X-Bldr-Plugin-Asset-Fetch-Result',
+      error.pluginAssetFetchResult,
+    )
+  }
+  return new Response(body, {
+    status: error.status,
+    headers,
+  })
+}
+
+function buildNoReadyDocumentResponse(
+  source: BrowserFetchSource,
+  method: string,
+): Response {
+  return buildBrowserRuntimeFetchErrorResponse(
+    {
+      code:
+        isPluginRuntimeFetchSource(source) ?
+          'runtime-unavailable'
+        : 'no-ready-document',
+      source: source.kind,
+      path: source.path,
+      message: 'runtime fetch requires a ready browser document',
+      status: 503,
+      pluginAssetFetchResult:
+        isPluginRuntimeFetchSource(source) ? 'runtime-unavailable' : undefined,
+    },
+    method,
+  )
+}
+
+function addPluginAssetFetchResultHeader(
+  response: Response,
+  source: BrowserFetchSource,
+  result: BrowserPluginAssetFetchResultCode,
+): Response {
+  if (!isPluginRuntimeFetchSource(source)) {
+    return response
+  }
+  const headers = new Headers(response.headers)
+  headers.set('X-Bldr-Fetch-Source', source.kind)
+  headers.set('X-Bldr-Plugin-Asset-Fetch-Result', result)
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
+async function normalizeRuntimeFetchResponse(
+  source: BrowserFetchSource,
+  request: Request,
+  response: Response,
+  abortSignal?: AbortSignal,
+): Promise<Response> {
+  if (response.ok) {
+    return addPluginAssetFetchResultHeader(response, source, 'live')
+  }
+  if (!isRuntimeFetchSource(source)) {
+    return response
+  }
+  if (
+    !isPluginRuntimeFetchSource(source) &&
+    source.kind !== 'browser-index' &&
+    source.kind !== 'bldr-runtime'
+  ) {
+    return response
+  }
+  const message = await readRuntimeFetchFailureMessage(response)
+  const failure = {
+    status: response.status,
+    message,
+    aborted: request.signal.aborted || abortSignal?.aborted,
+  }
+  if (!shouldNormalizeRuntimeFetchFailure(source, failure)) {
+    return response
+  }
+  const error = classifyBrowserRuntimeFetchError(source, {
+    status: failure.status,
+    message: failure.message,
+    aborted: failure.aborted,
+  })
+  return buildBrowserRuntimeFetchErrorResponse(error, request.method)
+}
+
+async function proxyBrowserRuntimeFetch(
+  source: BrowserFetchSource,
+  request: Request,
+  clientId: string,
+  opts?: {
+    abortSignal?: AbortSignal
+  },
+): Promise<Response> {
+  const response = await proxyFetch(swHost, request, clientId, opts)
+  return normalizeRuntimeFetchResponse(
+    source,
+    request,
+    response,
+    opts?.abortSignal,
+  )
+}
+
 // isSwOrigin checks if the given origin matches the local origin.
 function isSwOrigin(origin: string): boolean {
   return origin === self.location.origin
@@ -749,10 +1238,10 @@ export async function swFetch(
       status: 400,
     })
   }
-  const requestOrigin = requestURL.origin
   const requestPath = requestURL.pathname
+  const source = classifyBrowserFetchSource(request, matchPrefixes)
 
-  if (isSwOrigin(requestOrigin) && requestPath === browserReleasePath) {
+  if (source.kind === 'release-asset' && requestPath === browserReleasePath) {
     return handleBrowserReleaseRequest(ev)
   }
 
@@ -776,9 +1265,7 @@ export async function swFetch(
   })
   */
 
-  const useRuntimeFetch =
-    isSwOrigin(requestOrigin) &&
-    matchPrefixes.some((matchPrefix) => requestPath.startsWith(matchPrefix))
+  const useRuntimeFetch = source.runtime
 
   if (!useRuntimeFetch) {
     const promotedResponse =
@@ -825,7 +1312,7 @@ export async function swFetch(
 
     // request failed, attempt to fall back to cache.
     if (!response || response.status < 200 || response.status >= 300) {
-      if (requestPath === rootNavigationPath && isNavigationRequest(request)) {
+      if (source.kind === 'root-document') {
         const cachedRoot = await matchRootNavigationCache(request)
         if (cachedRoot) {
           return cachedRoot
@@ -850,11 +1337,7 @@ export async function swFetch(
       throw responseErr
     }
 
-    if (
-      requestPath === rootNavigationPath &&
-      isNavigationRequest(request) &&
-      response
-    ) {
+    if (source.kind === 'root-document' && response) {
       await cacheRootNavigationResponse(response)
     }
 
@@ -869,9 +1352,11 @@ export async function swFetch(
     )
   }
   if (requestPath === browserIndexPath) {
-    const response = await proxyFetch(swHost, request, ev.clientId || '', {
-      headerTimeoutMs: proxyFetchHeaderTimeoutMs,
-    })
+    const response = await proxyBrowserRuntimeFetch(
+      source,
+      request,
+      ev.clientId || '',
+    )
     if (response.ok) {
       await cacheBrowserIndexResponse(response)
       return response
@@ -883,15 +1368,12 @@ export async function swFetch(
     return response
   }
   if (!ev.clientId) {
-    return proxyFetch(swHost, request, ev.clientId || '', {
-      headerTimeoutMs: proxyFetchHeaderTimeoutMs,
-    })
+    return buildNoReadyDocumentResponse(source, request.method)
   }
 
   const trackedFetch = serviceWorkerFetchTracker.trackFetch(ev.clientId)
-  return proxyFetch(swHost, request, ev.clientId, {
+  return proxyBrowserRuntimeFetch(source, request, ev.clientId, {
     abortSignal: trackedFetch.abortController.signal,
-    headerTimeoutMs: proxyFetchHeaderTimeoutMs,
   }).finally(() => trackedFetch.release())
 
   /*

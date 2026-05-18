@@ -5,11 +5,11 @@
     "": {
       "name": "@aperturerobotics/bldr",
       "dependencies": {
-        "@aptre/protobuf-es-lite": "^1.0.2",
-        "react": "^19.2.4",
-        "react-dom": "^19.2.4",
+        "@aptre/protobuf-es-lite": "1.0.2",
+        "react": "^19.2.5",
+        "react-dom": "^19.2.5",
         "ulid": "^3.0.2",
-        "workbox-window": "^7.4.0",
+        "workbox-window": "^7.4.1",
       },
     },
   },
@@ -36,8 +36,8 @@
 
     "ulid": ["ulid@3.0.2", "", { "bin": { "ulid": "dist/cli.js" } }, "sha512-yu26mwteFYzBAot7KVMqFGCVpsF6g8wXfJzQUHvu1no3+rRRSFcSV2nKeYvNPLD2J4b08jYBDhHUjeH0ygIl9w=="],
 
-    "workbox-core": ["workbox-core@7.4.0", "", {}, "sha512-6BMfd8tYEnN4baG4emG9U0hdXM4gGuDU3ectXuVHnj71vwxTFI7WOpQJC4siTOlVtGqCUtj0ZQNsrvi6kZZTAQ=="],
+    "workbox-core": ["workbox-core@7.4.1", "", {}, "sha512-DT+vu46eh/2vRsSHTY4Xmc32Z1rr9PRlQUXr1Dx30ZuXRWwOsvZgGgcwxcasubQLQmbTNYZjv44LkBAQ4tT5tQ=="],
 
-    "workbox-window": ["workbox-window@7.4.0", "", { "dependencies": { "@types/trusted-types": "^2.0.2", "workbox-core": "7.4.0" } }, "sha512-/bIYdBLAVsNR3v7gYGaV4pQW3M3kEPx5E8vDxGvxo6khTrGtSSCS7QiFKv9ogzBgZiy0OXLP9zO28U/1nF1mfw=="],
+    "workbox-window": ["workbox-window@7.4.1", "", { "dependencies": { "@types/trusted-types": "^2.0.2", "workbox-core": "7.4.1" } }, "sha512-notZDH2u8VXaqyuD7xaqIfEFi6SRM4SUSd7ewe9PDsVqADuepxX2ZMY3uvuZGxzY5ZOsGC/vD3A/3smFtJt4/A=="],
   }
 }

@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -50,6 +51,9 @@ type Harness struct {
 	port          int
 	baseURL       string
 	headless      bool
+	browserName   string
+	workerMode    WorkerMode
+	manifestWait  time.Duration
 	ctx           context.Context
 	cancel        context.CancelFunc
 	wasmErr       error
@@ -97,6 +101,16 @@ func resolveHeadless(explicit *bool) bool {
 	return v != "false" && v != "0"
 }
 
+func resolveBrowserName(explicit string) string {
+	if explicit != "" {
+		return explicit
+	}
+	if v := strings.ToLower(strings.TrimSpace(os.Getenv("E2E_WASM_BROWSER"))); v != "" {
+		return v
+	}
+	return "chromium"
+}
+
 // project controller (which compiles plugin manifests), builds the web
 // entrypoint and runtime.wasm, and serves the app over HTTP.
 //
@@ -120,7 +134,18 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	if err != nil {
 		return nil, err
 	}
-	if err := clearHarnessStateRoot(stateRoot); err != nil {
+	preserveStartupBuildCache := E2EWasmStartupBuildCacheEnabled()
+	if o.preserveStartupBuildCache != nil {
+		preserveStartupBuildCache = *o.preserveStartupBuildCache
+	}
+	workerMode, err := ResolveE2EWasmWorkerMode(o.workerMode)
+	if err != nil {
+		return nil, err
+	}
+	if preserveStartupBuildCache {
+		le.WithField("state-root", stateRoot).Info("preserving e2e wasm startup build cache")
+	}
+	if err := clearHarnessStateRoot(stateRoot, preserveStartupBuildCache); err != nil {
 		return nil, err
 	}
 	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
@@ -128,12 +153,19 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	}
 
 	hctx, cancel := context.WithCancel(ctx)
+	manifestWait := o.manifestBuildTimeout
+	if manifestWait == 0 {
+		manifestWait = defaultManifestBuildTimeout
+	}
 
 	h := &Harness{
-		ctx:      hctx,
-		cancel:   cancel,
-		headless: resolveHeadless(o.headless),
-		le:       le,
+		ctx:          hctx,
+		cancel:       cancel,
+		headless:     resolveHeadless(o.headless),
+		browserName:  resolveBrowserName(o.browserName),
+		workerMode:   workerMode,
+		manifestWait: manifestWait,
+		le:           le,
 	}
 	defer func() {
 		if retErr != nil {
@@ -156,7 +188,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		return nil, errors.Wrap(err, "sync dist sources")
 	}
 
-	cloudEndpoint, stopCloudEndpoint, err := startE2ECloudAuthConfigEndpoint()
+	cloudEndpoint, stopCloudEndpoint, err := startE2ECloudAuthConfigEndpoint(stableE2ECloudAuthConfigAddr(stateRoot))
 	if err != nil {
 		return nil, errors.Wrap(err, "start cloud auth config endpoint")
 	}
@@ -237,7 +269,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 			appID,
 			startPlugins,
 			webStartupSrcPath,
-			true, // useDedicatedWorkers (Playwright can capture dedicated worker console)
+			workerMode == WorkerModeDedicated,
 		)
 		close(h.wasmDone)
 	}()
@@ -492,7 +524,7 @@ type manifestWait struct {
 	done <-chan error
 }
 
-const manifestBuildTimeout = 2 * time.Minute
+const defaultManifestBuildTimeout = 2 * time.Minute
 
 func (r manifestFetchRequest) directive() directive.Directive {
 	return bldr_manifest.NewFetchManifest(r.pluginID, r.buildTypes, r.platformIDs, 0)
@@ -610,7 +642,7 @@ func (h *Harness) assertStartupManifestFetches() error {
 // before Playwright loads the app.
 func (h *Harness) waitForManifests(ctx context.Context) error {
 	le := h.le.WithField("component", "harness")
-	waitCtx, cancel := context.WithTimeout(ctx, manifestBuildTimeout)
+	waitCtx, cancel := context.WithTimeout(ctx, h.manifestWait)
 	defer cancel()
 
 	fns := make([]ccall.CallConcurrentlyFunc, 0, len(h.manifestWaits))
@@ -633,7 +665,7 @@ func (h *Harness) waitForManifests(ctx context.Context) error {
 		if waitCtx.Err() == context.DeadlineExceeded {
 			return errors.Errorf(
 				"timed out after %s waiting for startup manifest callbacks: %s",
-				manifestBuildTimeout,
+				h.manifestWait,
 				h.startupManifestSummary(),
 			)
 		}
@@ -824,9 +856,12 @@ func buildHarnessStateRoot(repoRoot string) (string, error) {
 	return filepath.Join(stateRoot, label+"-"+token), nil
 }
 
-var harnessStateCleanupGlobs = []string{
+var harnessStartupBuildCacheGlobs = []string{
 	"devtool.db*",
 	"devtool.s4wave*",
+}
+
+var harnessTransientStateCleanupGlobs = []string{
 	"logs",
 	"src",
 	"plugin",
@@ -837,8 +872,12 @@ var harnessStateCleanupGlobs = []string{
 // clearHarnessStateRoot removes the transient .bldr entries that the harness
 // needs to rebuild from a clean state. This matches the repo clean target more
 // closely than deleting the entire .bldr tree.
-func clearHarnessStateRoot(stateRoot string) error {
-	for _, pattern := range harnessStateCleanupGlobs {
+func clearHarnessStateRoot(stateRoot string, preserveStartupBuildCache bool) error {
+	patterns := harnessTransientStateCleanupGlobs
+	if !preserveStartupBuildCache {
+		patterns = append(slices.Clone(harnessStartupBuildCacheGlobs), patterns...)
+	}
+	for _, pattern := range patterns {
 		matches, err := filepath.Glob(filepath.Join(stateRoot, pattern))
 		if err != nil {
 			return errors.Wrapf(err, "expand state cleanup pattern %q", pattern)

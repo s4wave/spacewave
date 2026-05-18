@@ -30,6 +30,35 @@ const pluginWorkerGlobal = globalThis as typeof globalThis & {
   BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?: (err: unknown) => void
 }
 
+let releasedGoCallbackConsoleFilterInstalled = false
+
+function isReleasedGoCallbackConsoleMessage(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return value === 'call to released function'
+  }
+  return value instanceof Error && value.message === 'call to released function'
+}
+
+function installReleasedGoCallbackConsoleFilter(): void {
+  if (releasedGoCallbackConsoleFilterInstalled) {
+    return
+  }
+  releasedGoCallbackConsoleFilterInstalled = true
+
+  const consoleError = console.error
+  console.error = (...args: unknown[]) => {
+    if (
+      args.length === 1 &&
+      isReleasedGoCallbackConsoleMessage(args[0])
+    ) {
+      return
+    }
+    consoleError(...args)
+  }
+}
+
+installReleasedGoCallbackConsoleFilter()
+
 // parseUrlParams parses the URL parameters.
 // Format: ?s=<scriptPath>&t=<workerType>&p=<plugin>
 function parseUrlParams(): {
@@ -113,6 +142,12 @@ if (isPlugin) {
         abortSignal,
         scriptPath,
         {
+          onFrontendReady: () => {
+            pluginWorker.notifyFrontendReady()
+          },
+          onCapabilityReady: () => {
+            pluginWorker.notifyCapabilityReady()
+          },
           onReady: () => {
             ready = true
             resolveReady()

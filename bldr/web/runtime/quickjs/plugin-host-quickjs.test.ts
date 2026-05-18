@@ -19,6 +19,7 @@ import quickJSRunner, {
   collectViteManifestStaticAssetPaths,
   createBackendAssetMount,
   createBackendAssetPreopens,
+  handleQuickJSReadinessMarker,
   loadBackendAssets,
   pipeQuickJSBridgeStreams,
   resolveBackendAssetPath,
@@ -980,6 +981,10 @@ describe("plugin-host-quickjs asset helpers", () => {
         this.url = url;
       }
 
+      getResponseHeader() {
+        return null
+      }
+
       send() {
         requests.push(this.url);
         if (this.url.endsWith("/v/b/be/plugin/app.mjs")) {
@@ -1196,6 +1201,10 @@ describe("plugin-host-quickjs asset helpers", () => {
         expect(async).toBe(false);
       }
 
+      getResponseHeader() {
+        return null
+      }
+
       send() {}
     }
 
@@ -1205,18 +1214,184 @@ describe("plugin-host-quickjs asset helpers", () => {
       writable: true,
     });
 
-    const mount = createBackendAssetMount(api, new AbortController().signal);
-    expect(() => mount?.getFile("v/b/be/plugin/app.mjs")).toThrow(
-      "Failed to fetch backend asset /asset/notes/v/b/be/plugin/app.mjs: 503",
-    );
-  });
-});
+    const mount = createBackendAssetMount(api, new AbortController().signal)
+    expect(() => mount?.getFile('v/b/be/plugin/app.mjs')).toThrow(
+      'QuickJS backend asset unavailable /asset/notes/v/b/be/plugin/app.mjs: 503',
+    )
+  })
+
+  it('surfaces typed lazy backend asset runtime unavailability', () => {
+    class MockXMLHttpRequest {
+      status = 503
+      response: ArrayBuffer | null = null
+      responseText = '{"code":"runtime-unavailable"}'
+      responseType = ''
+
+      open(_method: string, _url: string, async: boolean) {
+        expect(async).toBe(false)
+      }
+
+      getResponseHeader(name: string) {
+        if (name === 'X-Bldr-Plugin-Asset-Fetch-Result') {
+          return 'runtime-unavailable'
+        }
+        return null
+      }
+
+      send() {}
+    }
+
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
+      value: MockXMLHttpRequest,
+      configurable: true,
+      writable: true,
+    })
+
+    const mount = createBackendAssetMount(api, new AbortController().signal)
+    expect(() => mount?.getFile('v/b/be/plugin/app.mjs')).toThrow(
+      'QuickJS backend asset runtime unavailable /asset/notes/v/b/be/plugin/app.mjs: 503: {"code":"runtime-unavailable"}',
+    )
+  })
+
+  it('returns false for optional missing backend manifests', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('missing', { status: 404 })),
+    )
+
+    const loaded = await loadBackendAssets(
+      api,
+      new AbortController().signal,
+      new Map<string, string | Uint8Array>(),
+      ['/assets/v/b/be/plugin/notes/backend-abc123.mjs'],
+    )
+
+    expect(loaded).toBe(false)
+  })
+
+  it('surfaces typed bounded-preload backend manifest generation closure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response('generation closed', {
+          status: 410,
+          headers: {
+            'X-Bldr-Plugin-Asset-Fetch-Result': 'generation-closed',
+          },
+        })
+      }),
+    )
+
+    await expect(
+      loadBackendAssets(
+        api,
+        new AbortController().signal,
+        new Map<string, string | Uint8Array>(),
+        ['/assets/v/b/be/plugin/notes/backend-abc123.mjs'],
+      ),
+    ).rejects.toThrow(
+      'QuickJS backend asset generation closed /asset/notes/v/b/be/.vite/manifest.json: 410: generation closed',
+    )
+  })
+
+  it('surfaces typed bounded-preload backend asset misses', async () => {
+    const manifest = JSON.stringify({
+      'plugin/notes/backend.ts': {
+        file: 'plugin/notes/backend-abc123.mjs',
+      },
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.endsWith('/v/b/be/.vite/manifest.json')) {
+          return new Response(manifest, { status: 200 })
+        }
+        return new Response('asset missing', {
+          status: 404,
+          headers: {
+            'X-Bldr-Plugin-Asset-Fetch-Result': 'missing',
+          },
+        })
+      }),
+    )
+
+    await expect(
+      loadBackendAssets(
+        api,
+        new AbortController().signal,
+        new Map<string, string | Uint8Array>(),
+        ['/assets/v/b/be/plugin/notes/backend-abc123.mjs'],
+      ),
+    ).rejects.toThrow(
+      'Missing backend asset /asset/notes/v/b/be/plugin/notes/backend-abc123.mjs: 404: asset missing',
+    )
+  })
+
+  it('maps QuickJS readiness markers to frontend, capability, and running callbacks', () => {
+    const readiness = {
+      frontendReady: false,
+      capabilityReady: false,
+      ready: false,
+    }
+    const onFrontendReady = vi.fn()
+    const onCapabilityReady = vi.fn()
+    const onReady = vi.fn()
+
+    expect(
+      handleQuickJSReadinessMarker(
+        '__BLDR_QUICKJS_PLUGIN_FRONTEND_READY__',
+        readiness,
+        { onFrontendReady, onCapabilityReady, onReady },
+      ),
+    ).toBe(true)
+    expect(readiness).toMatchObject({
+      frontendReady: true,
+      capabilityReady: false,
+      ready: false,
+    })
+    expect(onFrontendReady).toHaveBeenCalledOnce()
+    expect(onCapabilityReady).not.toHaveBeenCalled()
+    expect(onReady).not.toHaveBeenCalled()
+
+    expect(
+      handleQuickJSReadinessMarker(
+        '__BLDR_QUICKJS_PLUGIN_CAPABILITY_READY__',
+        readiness,
+        { onFrontendReady, onCapabilityReady, onReady },
+      ),
+    ).toBe(true)
+    expect(readiness).toMatchObject({
+      frontendReady: true,
+      capabilityReady: true,
+      ready: false,
+    })
+    expect(onFrontendReady).toHaveBeenCalledOnce()
+    expect(onCapabilityReady).toHaveBeenCalledOnce()
+    expect(onReady).not.toHaveBeenCalled()
+
+    expect(
+      handleQuickJSReadinessMarker('__BLDR_QUICKJS_PLUGIN_READY__', readiness, {
+        onFrontendReady,
+        onCapabilityReady,
+        onReady,
+      }),
+    ).toBe(true)
+    expect(readiness).toMatchObject({
+      frontendReady: true,
+      capabilityReady: true,
+      ready: true,
+    })
+    expect(onFrontendReady).toHaveBeenCalledOnce()
+    expect(onCapabilityReady).toHaveBeenCalledOnce()
+    expect(onReady).toHaveBeenCalledOnce()
+  })
+})
 
 function buildPacketStream(): PacketStream {
   return {
     source: (async function* () {})(),
     sink: vi.fn(async () => {}),
-  };
+  }
 }
 
 function failingSource(error: Error): AsyncGenerator<Uint8Array> {
@@ -1236,13 +1411,13 @@ function failingSource(error: Error): AsyncGenerator<Uint8Array> {
 }
 
 function requestInfoURL(input: RequestInfo | URL): string {
-  if (typeof input === "string") {
-    return input;
+  if (typeof input === 'string') {
+    return input
   }
   if (input instanceof URL) {
-    return input.toString();
+    return input.toString()
   }
-  return input.url;
+  return input.url
 }
 
 async function waitFor(
@@ -1251,9 +1426,9 @@ async function waitFor(
 ): Promise<void> {
   for (let attempt = 0; attempt < 25; attempt++) {
     if (predicate()) {
-      return;
+      return
     }
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 10))
   }
-  throw new Error(errorMessage);
+  throw new Error(errorMessage)
 }
