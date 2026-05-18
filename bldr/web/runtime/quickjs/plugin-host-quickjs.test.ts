@@ -1219,15 +1219,19 @@ function buildPacketStream(): PacketStream {
   };
 }
 
-function failingSource(error: Error): AsyncIterable<Uint8Array> {
+function failingSource(error: Error): AsyncGenerator<Uint8Array> {
   return {
-    [Symbol.asyncIterator](): AsyncIterator<Uint8Array> {
-      return {
-        next: async () => {
-          throw error;
-        },
-      };
+    [Symbol.asyncIterator]() {
+      return this;
     },
+    next: async () => {
+      throw error;
+    },
+    return: async () => ({ done: true, value: undefined }),
+    throw: async (err?: unknown) => {
+      throw err ?? error;
+    },
+    [Symbol.asyncDispose]: async () => {},
   };
 }
 
