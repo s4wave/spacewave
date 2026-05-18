@@ -200,6 +200,15 @@ func (c *Controller) executeWatchSOStateOnce(
 					continue
 				}
 
+				queuedWorldOp := &SOWorldOp{}
+				if err := queuedWorldOp.UnmarshalVT(queuedOp.GetOpData()); err != nil {
+					task.End()
+					return err
+				}
+				if !queuedWorldOp.speculativeLocalQueueSafe() {
+					continue
+				}
+
 				nhs, _, err := c.processOp(
 					taskCtx,
 					le,

@@ -240,3 +240,14 @@ func (c *Controller) processApplyTxOpWithEngine(
 		nil,
 	), nil
 }
+
+func (o *SOWorldOp) speculativeLocalQueueSafe() bool {
+	body, ok := o.GetBody().(*SOWorldOp_ApplyTxOp)
+	if !ok {
+		return true
+	}
+	// GC sweeps are derived cleanup and must run only after authoritative
+	// processing chooses the head they sweep. Replaying them speculatively can
+	// collect data while later queued ops still depend on the old block graph.
+	return body.ApplyTxOp.GetTx().GetTxType() != world_block_tx.TxType_TxType_GC_SWEEP
+}
