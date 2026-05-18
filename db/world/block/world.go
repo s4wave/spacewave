@@ -386,7 +386,7 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 			objTree.Discard()
 			return err
 		}
-		journal, err = newGCJournal(journalTree)
+		journal, err = newGCJournal(ctx, journalTree, t.write)
 		if err != nil {
 			journalTree.Discard()
 			if refGraph != nil {
@@ -574,15 +574,6 @@ func (t *WorldState) Commit(ctx context.Context) error {
 			return err
 		}
 	}
-	// Reconcile the journal if it exceeds the threshold.
-	if t.gcJournal != nil && t.gcJournal.Entries() >= gcJournalReconcileThreshold {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/reconcile-gc-journal")
-		_, err := t.ReconcileGCJournal(taskCtx)
-		subtask.End()
-		if err != nil {
-			return err
-		}
-	}
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/set-block-transaction")
 	err = t.SetBlockTransaction(taskCtx, t.btx, bcs)
 	subtask.End()
@@ -605,10 +596,6 @@ func (t *WorldState) GetGCJournalEntries() uint64 {
 	}
 	return t.gcJournal.Entries()
 }
-
-// gcJournalReconcileThreshold is the journal entry count that triggers
-// automatic reconciliation during Commit.
-const gcJournalReconcileThreshold = 64
 
 // GarbageCollect sweeps unreferenced nodes from the GC ref graph.
 // Only valid on writable WorldState instances with GC enabled.

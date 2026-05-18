@@ -12,6 +12,8 @@ import (
 // gcJournalSubBlock is the sub-block index for the GC deferred journal.
 const gcJournalSubBlock = 6
 
+var gcJournalSeqKey = []byte("seq")
+
 // gcJournal implements block_gc.WALAppender by writing ref edge batches
 // to a world-owned kvtx tree. Entries are keyed by sequential uint64 and
 // valued with binary-encoded ref edge batches. The journal lives inside
@@ -22,12 +24,27 @@ type gcJournal struct {
 }
 
 // newGCJournal creates a journal over the given kv tree.
-// It scans existing entries to restore the sequence counter.
-func newGCJournal(tree kvtx.BlockTx) (*gcJournal, error) {
+// It reads the sequence counter from metadata. Older journals without
+// metadata are scanned once and upgraded on the next write.
+func newGCJournal(ctx context.Context, tree kvtx.BlockTx, write bool) (*gcJournal, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	j := &gcJournal{tree: tree}
-	// Scan to find the highest existing sequence key.
-	err := tree.ScanPrefixKeys(context.Background(), nil, func(key []byte) error {
-		if len(key) == 8 {
+	seqData, found, err := tree.Get(ctx, gcJournalSeqKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "get gc journal sequence")
+	}
+	if found {
+		if len(seqData) != 8 {
+			return nil, errors.New("gc journal sequence metadata has invalid length")
+		}
+		j.seq = binary.BigEndian.Uint64(seqData)
+		return j, nil
+	}
+
+	err = tree.ScanPrefixKeys(ctx, nil, func(key []byte) error {
+		if isGCJournalEntryKey(key) {
 			seq := binary.BigEndian.Uint64(key)
 			if seq > j.seq {
 				j.seq = seq
@@ -38,19 +55,34 @@ func newGCJournal(tree kvtx.BlockTx) (*gcJournal, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "scan gc journal")
 	}
+	if write && j.seq != 0 {
+		if err := j.storeSeq(ctx, j.seq); err != nil {
+			return nil, errors.Wrap(err, "store gc journal sequence")
+		}
+	}
 	return j, nil
 }
 
 // Append writes a ref edge batch to the journal.
-func (j *gcJournal) Append(_ context.Context, adds, removes []block_gc.RefEdge) error {
+func (j *gcJournal) Append(ctx context.Context, adds, removes []block_gc.RefEdge) error {
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
-	j.seq++
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	nextSeq := j.seq + 1
 	var key [8]byte
-	binary.BigEndian.PutUint64(key[:], j.seq)
+	binary.BigEndian.PutUint64(key[:], nextSeq)
 	val := encodeRefBatch(adds, removes)
-	return j.tree.Set(context.Background(), key[:], val)
+	if err := j.tree.Set(ctx, key[:], val); err != nil {
+		return err
+	}
+	if err := j.storeSeq(ctx, nextSeq); err != nil {
+		return err
+	}
+	j.seq = nextSeq
+	return nil
 }
 
 // Entries returns the number of pending journal entries.
@@ -61,6 +93,9 @@ func (j *gcJournal) Entries() uint64 {
 // Iterate calls cb for each journal entry in sequence order.
 func (j *gcJournal) Iterate(ctx context.Context, cb func(adds, removes []block_gc.RefEdge) error) error {
 	return j.tree.ScanPrefix(ctx, nil, func(key, value []byte) error {
+		if !isGCJournalEntryKey(key) {
+			return nil
+		}
 		adds, removes, err := decodeRefBatch(value)
 		if err != nil {
 			return err
@@ -71,8 +106,14 @@ func (j *gcJournal) Iterate(ctx context.Context, cb func(adds, removes []block_g
 
 // Clear removes all journal entries and resets the sequence counter.
 func (j *gcJournal) Clear(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	var keys [][]byte
 	err := j.tree.ScanPrefixKeys(ctx, nil, func(key []byte) error {
+		if !isGCJournalEntryKey(key) {
+			return nil
+		}
 		k := make([]byte, len(key))
 		copy(k, key)
 		keys = append(keys, k)
@@ -86,8 +127,24 @@ func (j *gcJournal) Clear(ctx context.Context) error {
 			return err
 		}
 	}
+	if err := j.tree.Delete(ctx, gcJournalSeqKey); err != nil {
+		return err
+	}
 	j.seq = 0
 	return nil
+}
+
+func (j *gcJournal) storeSeq(ctx context.Context, seq uint64) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], seq)
+	return j.tree.Set(ctx, gcJournalSeqKey, buf[:])
+}
+
+func isGCJournalEntryKey(key []byte) bool {
+	return len(key) == 8
 }
 
 // encodeRefBatch serializes adds and removes into a binary batch.
