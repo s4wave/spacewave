@@ -149,13 +149,10 @@ export async function startBackendEntrypoint(
   abortSignal: AbortSignal,
   loadModule: BackendEntrypointModuleLoader = importBackendEntrypointModule,
 ): Promise<void> {
-  // Ensure entrypoint and importPath are valid before proceeding.
   if (!entrypoint?.importPath) {
-    console.warn(
-      `Skipping invalid backend entrypoint object: ${JSON.stringify(entrypoint)}`,
+    throw new Error(
+      `Invalid backend entrypoint object: ${JSON.stringify(entrypoint)}`,
     )
-    // Return a resolved promise for invalid entrypoints to not break Promise.all
-    return Promise.resolve()
   }
 
   const importPath = resolveBackendEntrypointImportPath(
@@ -172,11 +169,12 @@ export async function startBackendEntrypoint(
     const modFunc = mod[importName]
 
     if (typeof modFunc !== 'function') {
-      console.error(
+      // Backend readiness must fail closed: a configured entrypoint owns the
+      // capability startup marker, so a missing export cannot be treated as
+      // successful startup.
+      throw new Error(
         `Backend entrypoint function '${importName}' not found or not a function in module: ${importPath}`,
       )
-      // Treat as resolved to avoid breaking Promise.all for other valid entrypoints
-      return Promise.resolve()
     }
 
     console.debug(`Executing backend entrypoint: ${entrypointId}`)

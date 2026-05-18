@@ -157,7 +157,12 @@ if (isPlugin) {
       void runnerPromise.then(
         () => {
           if (!ready) {
-            resolveReady()
+            // QuickJS readiness is owned by the explicit plugin marker. Browser
+            // tabs can throttle timers, so there is intentionally no timeout
+            // fallback; a clean exit before the marker is a startup failure.
+            rejectReady(
+              new Error('shared-worker: QuickJS plugin exited before ready'),
+            )
           }
         },
         (err: unknown) => {

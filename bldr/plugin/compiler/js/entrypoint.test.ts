@@ -292,4 +292,34 @@ describe('plugin JS backend entrypoint startup', () => {
       error.mockRestore()
     }
   })
+
+  test('rejects missing backend entrypoint exports before readiness can be reported', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const backendAPI = {
+      startInfo: { pluginId: 'spacewave-app' },
+      utils: {
+        pluginAssetHttpPath: (_pluginId: string, path: string) =>
+          '/p/spacewave-app/a/' + path,
+      },
+    }
+    const abortController = new AbortController()
+
+    try {
+      await expect(
+        loadBackendEntrypoints(
+          backendAPI as never,
+          abortController.signal,
+          [{ importPath: '/assets/notes.js', importName: 'start' }],
+          async () => ({ default: vi.fn() }),
+        ),
+      ).rejects.toThrow(
+        "Backend entrypoint function 'start' not found or not a function",
+      )
+    } finally {
+      abortController.abort()
+      debug.mockRestore()
+      error.mockRestore()
+    }
+  })
 })
