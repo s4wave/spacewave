@@ -1,4 +1,6 @@
 // randomId generates a random identifier string.
 export function randomId(): string {
-  return Math.random().toString(36).substring(2, 9)
+  const bytes = new Uint8Array(8)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
