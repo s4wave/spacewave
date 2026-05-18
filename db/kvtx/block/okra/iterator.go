@@ -288,11 +288,9 @@ func (i *Iterator) lastBefore(path okraPagePath, key []byte) error {
 }
 
 func (i *Iterator) next() bool {
-	for idx := i.current.index + 1; idx < len(i.current.page.GetEntries()); idx++ {
-		if i.setCurrent(i.path, idx) {
-			return true
-		}
-		return false
+	idx := i.current.index + 1
+	if idx < len(i.current.page.GetEntries()) {
+		return i.setCurrent(i.path, idx)
 	}
 	next, ok, err := i.tx.nextPagePath(i.ctx, i.path, 0)
 	if err != nil {
@@ -310,11 +308,9 @@ func (i *Iterator) next() bool {
 }
 
 func (i *Iterator) previous() bool {
-	for idx := i.current.index - 1; idx >= 0; idx-- {
-		if i.setCurrent(i.path, idx) {
-			return true
-		}
-		return false
+	idx := i.current.index - 1
+	if idx >= 0 {
+		return i.setCurrent(i.path, idx)
 	}
 	prev, ok, err := i.tx.previousPagePath(i.ctx, i.path, 0)
 	if err != nil {
