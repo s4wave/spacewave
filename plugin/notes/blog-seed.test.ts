@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
 
 const h = vi.hoisted(() => ({
   mockCreateObjectWithBlockData: vi.fn(),
@@ -40,6 +42,18 @@ describe('createBlogClientSide', () => {
       '',
       timestamp,
     )
+
+    expect(worldState.applyWorldOp).toHaveBeenCalledWith(
+      INIT_UNIXFS_OP_ID,
+      expect.any(Uint8Array),
+      '',
+      undefined,
+    )
+    const initOp = InitUnixFSOp.fromBinary(
+      worldState.applyWorldOp.mock.calls[0]?.[1] as Uint8Array,
+    )
+    expect(initOp.objectKey).toBe('fs/blog/site')
+    expect(initOp.timestamp?.toISOString()).toBe(timestamp.toISOString())
 
     expect(h.mockUploadSeedTree).toHaveBeenCalledWith(
       worldState,

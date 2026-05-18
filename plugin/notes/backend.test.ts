@@ -24,6 +24,7 @@ const h = vi.hoisted(() => ({
     resourceId: number
     ref: { [Symbol.dispose](): void }
   }>,
+  accessRootResource: undefined as undefined | (() => Promise<unknown>),
   quickstartRegistrationFailureId: undefined as string | undefined,
   viewerRegistrationFailure: undefined as Error | undefined,
   nextResourceId: 1,
@@ -42,10 +43,7 @@ vi.mock('starpc', () => ({
     return created
   }),
   handleRpcStream: vi.fn(
-    (
-      iterator: unknown,
-      getter: (componentId: string) => Promise<unknown>,
-    ) => {
+    (iterator: unknown, getter: (componentId: string) => Promise<unknown>) => {
       h.handleRpcStream(iterator, getter)
       h.handleRpcStreamCalls.push({ iterator, getter })
       return { [Symbol.asyncIterator]: async function* () {} }
@@ -66,9 +64,12 @@ vi.mock('starpc', () => ({
   },
 }))
 
-vi.mock('@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js', () => ({
-  PluginDefinition: h.pluginDefinition,
-}))
+vi.mock(
+  '@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js',
+  () => ({
+    PluginDefinition: h.pluginDefinition,
+  }),
+)
 
 vi.mock('@aptre/bldr-sdk/resource/index.js', () => ({
   ResourceServiceClient: class {
@@ -78,6 +79,9 @@ vi.mock('@aptre/bldr-sdk/resource/index.js', () => ({
     constructor(_service: unknown, _signal: AbortSignal) {}
 
     accessRootResource() {
+      if (h.accessRootResource) {
+        return h.accessRootResource()
+      }
       return Promise.resolve(h.rootRef)
     }
   },
@@ -215,9 +219,26 @@ function buildApi(pluginId: string) {
 async function startMain(
   api: Parameters<typeof main>[0],
   signal: AbortSignal,
-): Promise<void> {
+): Promise<ReturnType<typeof main>> {
   const lifecycle = main(api, signal)
   await lifecycle.startup
+  await waitForPublicationComplete()
+  return lifecycle
+}
+
+async function startMainReady(
+  api: Parameters<typeof main>[0],
+  signal: AbortSignal,
+): Promise<ReturnType<typeof main>> {
+  const lifecycle = main(api, signal)
+  await lifecycle.startup
+  return lifecycle
+}
+
+async function waitForPublicationComplete(): Promise<void> {
+  await vi.waitFor(() => {
+    expect(h.quickstartRegistrations).toHaveLength(3)
+  })
 }
 
 describe('notes backend registration', () => {
@@ -232,6 +253,7 @@ describe('notes backend registration', () => {
     h.createdHandlers.length = 0
     h.serverInstances.length = 0
     h.handleRpcStreamCalls.length = 0
+    h.accessRootResource = undefined
     h.quickstartRegistrationFailureId = undefined
     h.viewerRegistrationFailure = undefined
     h.nextResourceId = 1
@@ -434,9 +456,17 @@ describe('notes backend registration', () => {
 
   it('keeps the backend lifecycle pending until abort after startup', async () => {
     const abort = new AbortController()
+    let resolveRoot!: () => void
+    h.accessRootResource = () =>
+      new Promise((resolve) => {
+        resolveRoot = () => resolve(h.rootRef)
+      })
     const lifecycle = main(buildApi('spacewave-notes') as never, abort.signal)
 
     await lifecycle.startup
+
+    expect(h.handleStreamSet).toHaveBeenCalledTimes(1)
+    expect(h.quickstartRegistrations).toHaveLength(0)
 
     expect(lifecycle.done).toBeDefined()
     let doneResolved = false
@@ -446,6 +476,12 @@ describe('notes backend registration', () => {
 
     await Promise.resolve()
 
+    expect(doneResolved).toBe(false)
+
+    resolveRoot()
+    await waitForPublicationComplete()
+
+    await Promise.resolve()
     expect(doneResolved).toBe(false)
 
     abort.abort()
@@ -458,9 +494,11 @@ describe('notes backend registration', () => {
     const abort = new AbortController()
     h.viewerRegistrationFailure = new Error('viewer registry unavailable')
 
-    await expect(
-      startMain(buildApi('spacewave-notes') as never, abort.signal),
-    ).rejects.toThrow('viewer registry unavailable')
+    const lifecycle = await startMainReady(
+      buildApi('spacewave-notes') as never,
+      abort.signal,
+    )
+    await expect(lifecycle.done).rejects.toThrow('viewer registry unavailable')
 
     expect(h.quickstartRegistrations).toHaveLength(0)
     expect(
@@ -488,9 +526,13 @@ describe('notes backend registration', () => {
     const abort = new AbortController()
     h.quickstartRegistrationFailureId = 'blog'
 
-    await expect(
-      startMain(buildApi('spacewave-notes') as never, abort.signal),
-    ).rejects.toThrow('quickstart registry unavailable')
+    const lifecycle = await startMainReady(
+      buildApi('spacewave-notes') as never,
+      abort.signal,
+    )
+    await expect(lifecycle.done).rejects.toThrow(
+      'quickstart registry unavailable',
+    )
 
     expect(
       h.quickstartRegistrations.map(
@@ -516,9 +558,13 @@ describe('notes backend registration', () => {
   })
 
   it('requires a backend startInfo plugin id', async () => {
-    await expect(
-      startMain(buildApi('') as never, new AbortController().signal),
-    ).rejects.toThrow('missing plugin id in backend start info')
+    const abort = new AbortController()
+    const lifecycle = main(buildApi('') as never, abort.signal)
+    await expect(lifecycle.startup).rejects.toThrow(
+      'missing plugin id in backend start info',
+    )
+    abort.abort()
+    await lifecycle.done
     expect(h.objectTypeRegistrations).toHaveLength(0)
     expect(h.worldOpRegistrations).toHaveLength(0)
     expect(h.quickstartRegistrations).toHaveLength(0)

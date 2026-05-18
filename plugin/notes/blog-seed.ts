@@ -1,10 +1,8 @@
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
-import {
-  FsInitOp,
-  FSType,
-} from '@go/github.com/s4wave/spacewave/db/unixfs/world/unixfs.pb.js'
+import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { Blog } from './proto/blog.pb.js'
 import { Notebook } from './proto/notebook.pb.js'
 import { createObjectWithBlockData } from './object-block.js'
@@ -102,12 +100,7 @@ export async function ensureBlogCompanionNotebook(
   })
 
   await runBlogSeedStep('set companion notebook type', async () => {
-    await setObjectType(
-      worldState,
-      notebookKey,
-      'notes/notebook',
-      abortSignal,
-    )
+    await setObjectType(worldState, notebookKey, 'notes/notebook', abortSignal)
   })
 }
 
@@ -132,10 +125,9 @@ export async function createBlogClientSide(
 
     await runBlogSeedStep('initialize blog unixfs root', async () => {
       await writeState.applyWorldOp(
-        'hydra/unixfs/init',
-        FsInitOp.toBinary({
+        INIT_UNIXFS_OP_ID,
+        InitUnixFSOp.toBinary({
           objectKey: unixfsKey,
-          fsType: FSType.FSType_FS_NODE,
           timestamp,
         }),
         '',
@@ -177,12 +169,7 @@ export async function createBlogClientSide(
     })
 
     await runBlogSeedStep('set blog type', async () => {
-      await setObjectType(
-        writeState,
-        blogObjectKey,
-        'notes/blog',
-        abortSignal,
-      )
+      await setObjectType(writeState, blogObjectKey, 'notes/blog', abortSignal)
     })
     await ensureBlogCompanionNotebook(
       writeState,
