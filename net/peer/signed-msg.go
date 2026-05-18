@@ -97,7 +97,7 @@ func (m *SignedMsg) ExtractAndVerify(encContext string) (crypto.PubKey, ID, erro
 
 	sigErr := m.Verify(encContext, pubKey)
 	if sigErr != nil {
-		return pubKey, peerID, err
+		return pubKey, peerID, sigErr
 	}
 
 	return pubKey, peerID, nil

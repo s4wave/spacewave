@@ -3,6 +3,7 @@ package peer
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/s4wave/spacewave/net/hash"
@@ -41,5 +42,28 @@ func TestSignedMsg(t *testing.T) {
 
 	if !bytes.Equal(smsg.Data, []byte(msg)) {
 		t.FailNow()
+	}
+}
+
+func TestSignedMsgExtractAndVerifyRejectsTamperedData(t *testing.T) {
+	p, err := NewPeer(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	privKey, err := p.GetPrivKey(context.Background())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	encContext := "bifrost/peer TestSignedMsg tamper"
+	smsg, err := NewSignedMsg(encContext, privKey, hash.RecommendedHashType, []byte("signed body"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	smsg.Data = []byte("tampered body")
+	_, _, err = smsg.ExtractAndVerify(encContext)
+	if !errors.Is(err, ErrSignatureInvalid) {
+		t.Fatalf("expected ErrSignatureInvalid, got %v", err)
 	}
 }
