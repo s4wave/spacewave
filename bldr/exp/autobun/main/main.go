@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
@@ -97,7 +99,18 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
+		if exitCode, ok := childExitCode(err); ok {
+			os.Exit(exitCode)
+		}
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
+}
+
+func childExitCode(err error) (int, bool) {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return exitErr.ExitCode(), true
+	}
+	return 0, false
 }
