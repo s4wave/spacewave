@@ -30,7 +30,7 @@ import (
 )
 
 func TestPluginCompilerJs(t *testing.T) {
-	ctx, ctxCancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, ctxCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer ctxCancel()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

@@ -6,6 +6,7 @@ import {
 } from "./polyfill-event.js";
 import {
   createAbortController,
+  type AbortControllerPolyfillConstructor,
   type AbortSignalPolyfillConstructor,
 } from "./polyfill-abort-controller.js";
 import { createSymbolPolyfills } from "./polyfill-symbol.js";
@@ -23,7 +24,7 @@ import { atob, btoa } from "./base64.js";
 // QuickjsPolyfillGlobalScope represents QuickjsGlobalScope after the polyfills are applied.
 export interface QuickjsPolyfillGlobalScope extends QuickjsGlobalScope {
   // AbortController is the polyfilled abort controller type.
-  AbortController: new () => AbortController;
+  AbortController: AbortControllerPolyfillConstructor;
   // AbortSignal is the polyfilled abort signal constructor and static helpers.
   AbortSignal: AbortSignalPolyfillConstructor;
   // Event is the polyfilled event constructor type.

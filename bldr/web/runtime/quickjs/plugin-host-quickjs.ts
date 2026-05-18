@@ -808,7 +808,7 @@ export default async function main(
   // Pipe devOut to hostConn, and hostConn output to stdin
   startQuickJSHostConnectionPipe(
     devOutStream,
-    hostConn,
+    hostConn as unknown as QuickJSHostConnectionPipe,
     (data) => qjs.pushStdin(data),
     (err) => finishWithError("quickjs-runner: yamux pipe error:", err),
   );

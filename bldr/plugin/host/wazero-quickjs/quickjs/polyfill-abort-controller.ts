@@ -124,12 +124,14 @@ export function createAbortController(): AbortControllerPolyfillConstructor {
   }
 
   // Add static methods to AbortSignal
-  Object.defineProperty(AbortControllerImpl, "AbortSignal", {
+  const AbortControllerConstructor =
+    AbortControllerImpl as unknown as AbortControllerPolyfillConstructor;
+  Object.defineProperty(AbortControllerConstructor, "AbortSignal", {
     value: AbortSignalImpl,
     writable: false,
     enumerable: false,
     configurable: false,
   });
 
-  return AbortControllerImpl as AbortControllerPolyfillConstructor;
+  return AbortControllerConstructor;
 }

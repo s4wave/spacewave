@@ -143,5 +143,5 @@ function buildPolyfillTarget(): QuickjsGlobalScope {
       clearInterval: ((handle: NodeJS.Timeout) =>
         clearInterval(handle)) as QuickjsGlobalScope["os"]["clearInterval"],
     },
-  } as QuickjsGlobalScope;
+  } as unknown as QuickjsGlobalScope;
 }

@@ -220,7 +220,7 @@ describe('ResourceServer', () => {
             try {
               for await (const packetData of source) {
                 const packet = Packet.fromBinary(packetData)
-                if (packet.body.case === 'callData') {
+                if (packet.body?.case === 'callData') {
                   resolve(packet)
                   return
                 }
@@ -237,13 +237,12 @@ describe('ResourceServer', () => {
         firstResponse,
         'ResourceClient init over detached packet stream',
       )
-      expect(packet.body.case).toBe('callData')
-      if (packet.body.case !== 'callData') {
+      const body = packet.body
+      expect(body?.case).toBe('callData')
+      if (body?.case !== 'callData') {
         throw new Error('expected ResourceClient callData packet')
       }
-      const response = ResourceClientResponse.fromBinary(
-        packet.body.value.data,
-      )
+      const response = ResourceClientResponse.fromBinary(body.value.data)
       expect(response.body?.case).toBe('init')
       if (response.body?.case === 'init') {
         expect(response.body.value.clientHandleId).toBe(1)

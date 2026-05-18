@@ -127,7 +127,8 @@ func assertOkraIteratorKeys(t *testing.T, iter interface {
 	Key() []byte
 	Next() bool
 	Err() error
-}, expected []string) {
+}, expected []string,
+) {
 	t.Helper()
 	for idx, exp := range expected {
 		if idx != 0 && !iter.Next() {

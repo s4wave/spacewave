@@ -19,11 +19,13 @@ import (
 
 var testHarness *harness
 
-const browserWaitMS = 420000
-const foregroundResumeReadyRecordMS = 10000
-const quickstartContentReadyRecordMS = 60000
-const quickstartPostLoadSOOperationCount = 25
-const quickstartPostLoadSOWorkloadTimeoutMS = 120000
+const (
+	browserWaitMS                         = 420000
+	foregroundResumeReadyRecordMS         = 10000
+	quickstartContentReadyRecordMS        = 60000
+	quickstartPostLoadSOOperationCount    = 25
+	quickstartPostLoadSOWorkloadTimeoutMS = 120000
+)
 
 // TIER: nightly
 func TestMain(m *testing.M) {

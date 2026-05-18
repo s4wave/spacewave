@@ -630,7 +630,9 @@ describe('UnixFSBrowser drag gating', () => {
 
     expect(screen.getByTestId('drive-welcome-surface')).toBeTruthy()
     expect(
-      screen.getByText('Add files, organize folders, or open the starter guide.'),
+      screen.getByText(
+        'Add files, organize folders, or open the starter guide.',
+      ),
     ).toBeTruthy()
     expect(screen.getByTestId('file-entry-guide')).toBeTruthy()
     expect(screen.getByTestId('file-entry-docs')).toBeTruthy()

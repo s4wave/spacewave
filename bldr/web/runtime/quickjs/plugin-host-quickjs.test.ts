@@ -429,14 +429,7 @@ describe("plugin-host-quickjs bridge handlers", () => {
       rpcError: "context canceled",
     });
     const targetStream: PacketStream = {
-      source: {
-        [Symbol.asyncIterator]() {
-          return this;
-        },
-        async next(): Promise<IteratorResult<Uint8Array>> {
-          throw remoteError;
-        },
-      },
+      source: failingSource(remoteError),
       sink: vi.fn(async () => {}),
     };
 
@@ -463,15 +456,8 @@ describe("plugin-host-quickjs bridge handlers", () => {
     const devOutStream = pushable<Uint8Array>({ objectMode: true });
     const failure = new Error("root mux broke");
     const hostConn = {
-      source: {
-        [Symbol.asyncIterator]() {
-          return this;
-        },
-        async next(): Promise<IteratorResult<Uint8Array>> {
-          throw failure;
-        },
-      },
-      sink: vi.fn(async (packets: AsyncIterable<Uint8Array>) => {
+      source: failingSource(failure),
+      sink: vi.fn(async (packets: Parameters<PacketStream["sink"]>[0]) => {
         for await (const _packet of packets) {
           // drain devOutStream while the host connection source reports failure
         }
@@ -1230,6 +1216,18 @@ function buildPacketStream(): PacketStream {
   return {
     source: (async function* () {})(),
     sink: vi.fn(async () => {}),
+  };
+}
+
+function failingSource(error: Error): AsyncIterable<Uint8Array> {
+  return {
+    [Symbol.asyncIterator](): AsyncIterator<Uint8Array> {
+      return {
+        next: async () => {
+          throw error;
+        },
+      };
+    },
   };
 }
 
