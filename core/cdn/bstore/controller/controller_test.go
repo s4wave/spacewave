@@ -53,3 +53,26 @@ func TestControllerResolvesBlockStore(t *testing.T) {
 		t.Fatalf("store id = %q", store.GetID())
 	}
 }
+
+func TestBlockStoreBuilderReleaseClosesCdnStore(t *testing.T) {
+	ctx := context.Background()
+	conf := NewConfig("release-cdn", "01release", "https://cdn.example.invalid")
+	builder := NewBlockStoreBuilder(logrus.NewEntry(logrus.New()), nil, conf)
+
+	store, release, err := builder(ctx, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	handle, ok := store.(*blockStoreHandle)
+	if !ok {
+		t.Fatalf("store type = %T, want *blockStoreHandle", store)
+	}
+	if handle.cdnStore.GetDecodedBlockCache() == nil {
+		t.Fatal("expected CDN store decoded cache before release")
+	}
+
+	release()
+	if handle.cdnStore.GetDecodedBlockCache() != nil {
+		t.Fatal("release did not close CDN store decoded cache")
+	}
+}

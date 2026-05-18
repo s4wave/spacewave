@@ -2,9 +2,11 @@ package provider_local
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -106,5 +108,38 @@ func TestBlockStoreReadOperationSharesDecodedBlockCache(t *testing.T) {
 	}
 	if scopedStore.GetDecodedBlockCache() != decodedBlocks {
 		t.Fatal("scoped read operation did not borrow block-store decoded cache")
+	}
+}
+
+func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
+	ctx := context.Background()
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	store := &BlockStore{
+		store:         newBatchForwardTestStore(),
+		decodedBlocks: decodedBlocks,
+	}
+	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "removed"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx, cursor := block.NewTransaction(store, nil, ref, nil)
+	tx.SetDecodedBlockCache(decodedBlocks)
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks.Wait()
+
+	if err := store.RmBlock(ctx, ref); err != nil {
+		t.Fatal(err.Error())
+	}
+	tx, cursor = block.NewTransaction(store, nil, ref, nil)
+	tx.SetDecodedBlockCache(decodedBlocks)
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("Unmarshal after RmBlock error = %v, want %v", err, block.ErrNotFound)
 	}
 }

@@ -36,6 +36,10 @@ const (
 	forceSyncTimeout          = 30 * time.Second
 )
 
+type decodedBlockRefInvalidator interface {
+	InvalidateDecodedBlockRef(context.Context, *block.BlockRef)
+}
+
 // BlockStore wraps a block store overlay with packfile-backed cloud storage.
 type BlockStore struct {
 	// store is the inner block store overlay.
@@ -64,6 +68,11 @@ func (b *BlockStore) GetSupportedFeatures() block.StoreFeature {
 // GetDecodedBlockCache returns the lifecycle-owned decoded-block cache.
 func (b *BlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return b.decodedBlocks
+}
+
+// InvalidateDecodedBlockRef removes decoded-cache entries for ref.
+func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.BlockRef) {
+	b.decodedBlocks.InvalidateRef(ctx, ref)
 }
 
 // BeginReadOperation opens a read scope on the inner store.
@@ -111,7 +120,11 @@ func (b *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Bloc
 
 // RmBlock forwards to the inner store.
 func (b *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	return b.store.RmBlock(ctx, ref)
+	if err := b.store.RmBlock(ctx, ref); err != nil {
+		return err
+	}
+	b.InvalidateDecodedBlockRef(ctx, ref)
+	return nil
 }
 
 // StatBlock forwards to the inner store.
@@ -478,7 +491,13 @@ func (d *dirtyTrackingStore) GetBlockExistsBatch(ctx context.Context, refs []*bl
 
 // RmBlock removes a block.
 func (d *dirtyTrackingStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	return d.store.RmBlock(ctx, ref)
+	if err := d.store.RmBlock(ctx, ref); err != nil {
+		return err
+	}
+	if invalidator, ok := d.store.(decodedBlockRefInvalidator); ok {
+		invalidator.InvalidateDecodedBlockRef(ctx, ref)
+	}
+	return nil
 }
 
 // StatBlock returns block metadata.

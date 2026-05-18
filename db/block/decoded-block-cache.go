@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/pkg/errors"
@@ -35,6 +36,9 @@ const decodedBlockCacheEntryOverheadCost int64 = 256
 type DecodedBlockCache struct {
 	cache *ristretto.Cache[string, Block]
 	opts  DecodedBlockCacheOptions
+
+	mtx   sync.Mutex
+	byRef map[string]map[string]struct{}
 }
 
 type decodedBlockCacheKey struct {
@@ -57,7 +61,7 @@ func NewDecodedBlockCache() *DecodedBlockCache {
 func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlockCache, error) {
 	opts = opts.normalize()
 	if opts.Disabled {
-		return &DecodedBlockCache{opts: opts}, nil
+		return &DecodedBlockCache{opts: opts, byRef: make(map[string]map[string]struct{})}, nil
 	}
 	db, err := ristretto.NewCache(&ristretto.Config[string, Block]{
 		NumCounters: opts.NumCounters,
@@ -68,7 +72,7 @@ func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlo
 	if err != nil {
 		return nil, err
 	}
-	return &DecodedBlockCache{cache: db, opts: opts}, nil
+	return &DecodedBlockCache{cache: db, opts: opts, byRef: make(map[string]map[string]struct{})}, nil
 }
 
 // WithDecodedBlockCache attaches an owner-provided decoded-block cache to ctx.
@@ -103,7 +107,13 @@ func (c *DecodedBlockCache) Wait() {
 
 // Close releases the cache goroutine.
 func (c *DecodedBlockCache) Close() {
-	if c == nil || c.cache == nil {
+	if c == nil {
+		return
+	}
+	c.mtx.Lock()
+	c.byRef = nil
+	c.mtx.Unlock()
+	if c.cache == nil {
 		return
 	}
 	c.cache.Close()
@@ -207,12 +217,66 @@ func (c *DecodedBlockCache) Store(
 		RecordDecodedBlockUncacheable(ctx)
 		return nil
 	}
-	accepted := c.cache.Set(key.String(), cloned, cost)
+	cacheKey := key.String()
+	accepted := c.cache.Set(cacheKey, cloned, cost)
 	recordDecodedBlockCacheStore(ctx, accepted, cost)
 	if !accepted {
 		recordDecodedBlockCacheRejected(ctx)
+		return nil
 	}
+	c.recordRefKey(key.ref, cacheKey)
 	return nil
+}
+
+// InvalidateRef removes decoded cache entries for ref.
+func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
+	refKey, ok := decodedBlockCacheRefKey(ref)
+	if !ok {
+		return
+	}
+	decodedBlockFrontCacheFromContext(ctx).invalidateRef(refKey)
+	if c == nil || c.cache == nil {
+		return
+	}
+	c.mtx.Lock()
+	keys := c.byRef[refKey]
+	delete(c.byRef, refKey)
+	c.mtx.Unlock()
+	for key := range keys {
+		c.cache.Del(key)
+	}
+}
+
+func (c *DecodedBlockCache) recordRefKey(refKey, key string) {
+	if c == nil || refKey == "" || key == "" {
+		return
+	}
+	c.mtx.Lock()
+	if c.byRef == nil {
+		c.byRef = make(map[string]map[string]struct{})
+	}
+	keys := c.byRef[refKey]
+	if keys == nil {
+		keys = make(map[string]struct{})
+		c.byRef[refKey] = keys
+	}
+	keys[key] = struct{}{}
+	c.mtx.Unlock()
+}
+
+func invalidateDecodedBlockRef(ctx context.Context, cache *DecodedBlockCache, ref *BlockRef) {
+	cache.InvalidateRef(ctx, ref)
+}
+
+func decodedBlockCacheRefKey(ref *BlockRef) (string, bool) {
+	if ref == nil || ref.GetEmpty() {
+		return "", false
+	}
+	refKey, err := ref.MarshalKey()
+	if err != nil || len(refKey) == 0 {
+		return "", false
+	}
+	return string(refKey), true
 }
 
 func lookupDecodedBlock(ctx context.Context, key decodedBlockCacheKey) (Block, bool, error) {
@@ -280,12 +344,12 @@ func decodedBlockCacheKeyFor(ref *BlockRef, blk Block, xfrm Transformer) (decode
 	if !ok {
 		return decodedBlockCacheKey{}, false
 	}
-	refKey, err := ref.MarshalKey()
-	if err != nil || len(refKey) == 0 {
+	refKey, ok := decodedBlockCacheRefKey(ref)
+	if !ok {
 		return decodedBlockCacheKey{}, false
 	}
 	return decodedBlockCacheKey{
-		ref:       string(refKey),
+		ref:       refKey,
 		blockType: blockType,
 		transform: transform,
 		trust:     decodedBlockCacheTrustKey,

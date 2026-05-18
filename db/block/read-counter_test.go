@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -391,6 +392,45 @@ func TestDecodedBlockCacheDisabledDoesNotRetain(t *testing.T) {
 		snapshot.DecodedBlockCacheHitCount != 0 ||
 		snapshot.DecodedBlockStoreAttemptCount != 0 {
 		t.Fatalf("disabled cache should not retain or count shared attempts: %+v", snapshot)
+	}
+}
+
+func TestDecodedBlockCacheInvalidateRefRemovesSharedEntries(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "removed"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	opCtx, counter := block.WithReadCounter(ctx)
+	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
+	_, first := block.NewTransaction(store, nil, ref, nil)
+	if _, err := first.Unmarshal(opCtx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks.Wait()
+
+	if err := store.RmBlock(ctx, ref); err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks.InvalidateRef(opCtx, ref)
+	_, second := block.NewTransaction(store, nil, ref, nil)
+	if _, err := second.Unmarshal(opCtx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("Unmarshal after invalidation error = %v, want %v", err, block.ErrNotFound)
+	}
+
+	snapshot := counter.Snapshot()
+	if snapshot.BlockReadCount != 2 ||
+		snapshot.DecodedBlockUnmarshalCount != 1 ||
+		snapshot.DecodedBlockCacheAttemptCount != 2 ||
+		snapshot.DecodedBlockCacheHitCount != 0 {
+		t.Fatalf("invalidated ref should miss shared cache after removal: %+v", snapshot)
 	}
 }
 

@@ -21,6 +21,11 @@ var Version = controller.MustParseVersion("0.0.1")
 // Controller implements the anonymous CDN block store controller.
 type Controller = block_store_controller.Controller
 
+type blockStoreHandle struct {
+	block_store.Store
+	cdnStore *cdn_bstore.CdnBlockStore
+}
+
 // NewController builds a new anonymous CDN block store controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config) *Controller {
 	return block_store_controller.NewController(
@@ -56,13 +61,22 @@ func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store
 		if cacheID := conf.GetCacheBlockStoreId(); cacheID != "" {
 			cacheStore, _, cacheRef, err := block_store.ExLookupFirstBlockStore(ctx, b, cacheID, false, released)
 			if err != nil {
+				cdnStore.Close()
 				return nil, nil, err
 			}
 			cdnStore.SetWriteback(ctx, cacheStore, conf.GetWritebackWindowBytes())
 			rel = cacheRef.Release
 		}
 
-		store := block_store.NewStore(conf.GetBlockStoreId(), cdnStore)
-		return store, rel, nil
+		store := &blockStoreHandle{
+			Store:    block_store.NewStore(conf.GetBlockStoreId(), cdnStore),
+			cdnStore: cdnStore,
+		}
+		return store, func() {
+			cdnStore.Close()
+			if rel != nil {
+				rel()
+			}
+		}, nil
 	}
 }

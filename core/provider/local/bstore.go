@@ -44,6 +44,11 @@ func (b *BlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return b.decodedBlocks
 }
 
+// InvalidateDecodedBlockRef removes decoded-cache entries for ref.
+func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.BlockRef) {
+	b.decodedBlocks.InvalidateRef(ctx, ref)
+}
+
 // BeginReadOperation opens a read scope on the inner store.
 func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	store, release, err := b.store.BeginReadOperation(ctx)
@@ -89,7 +94,11 @@ func (b *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Bloc
 
 // RmBlock forwards to the inner store.
 func (b *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	return b.store.RmBlock(ctx, ref)
+	if err := b.store.RmBlock(ctx, ref); err != nil {
+		return err
+	}
+	b.InvalidateDecodedBlockRef(ctx, ref)
+	return nil
 }
 
 // StatBlock forwards to the inner store.

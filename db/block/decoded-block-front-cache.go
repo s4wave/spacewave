@@ -30,3 +30,16 @@ func (c *decodedBlockFrontCache) store(key decodedBlockCacheKey, blk Block) {
 	c.entries[key] = blk
 	c.mtx.Unlock()
 }
+
+func (c *decodedBlockFrontCache) invalidateRef(refKey string) {
+	if c == nil || refKey == "" {
+		return
+	}
+	c.mtx.Lock()
+	for key := range c.entries {
+		if key.ref == refKey {
+			delete(c.entries, key)
+		}
+	}
+	c.mtx.Unlock()
+}
