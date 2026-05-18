@@ -42,7 +42,9 @@ type DecodedBlockCache struct {
 	byRef map[string]map[string]struct{}
 	// byHash lets async Ristretto callbacks prune byRef; rejected or evicted
 	// entries must not leave old refs pinned in the invalidation index.
-	byHash map[decodedBlockCacheHash]decodedBlockCacheTrackedKey
+	byHash     map[decodedBlockCacheHash]decodedBlockCacheTrackedKey
+	refEpoch   map[string]uint64
+	clearEpoch uint64
 }
 
 type decodedBlockCacheKey struct {
@@ -62,6 +64,14 @@ type decodedBlockCacheTrackedKey struct {
 	key string
 }
 
+type decodedBlockCacheStoreToken struct {
+	cache      *DecodedBlockCache
+	ref        string
+	refEpoch   uint64
+	clearEpoch uint64
+	ok         bool
+}
+
 // NewDecodedBlockCache constructs a decoded-block cache with default options.
 func NewDecodedBlockCache() *DecodedBlockCache {
 	cache, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
@@ -75,9 +85,10 @@ func NewDecodedBlockCache() *DecodedBlockCache {
 func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlockCache, error) {
 	opts = opts.normalize()
 	cache := &DecodedBlockCache{
-		opts:   opts,
-		byRef:  make(map[string]map[string]struct{}),
-		byHash: make(map[decodedBlockCacheHash]decodedBlockCacheTrackedKey),
+		opts:     opts,
+		byRef:    make(map[string]map[string]struct{}),
+		byHash:   make(map[decodedBlockCacheHash]decodedBlockCacheTrackedKey),
+		refEpoch: make(map[string]uint64),
 	}
 	if opts.Disabled {
 		return cache, nil
@@ -139,6 +150,7 @@ func (c *DecodedBlockCache) Close() {
 	c.mtx.Lock()
 	c.byRef = nil
 	c.byHash = nil
+	c.refEpoch = nil
 	c.mtx.Unlock()
 	if c.cache == nil {
 		return
@@ -211,6 +223,7 @@ func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFront
 func (c *DecodedBlockCache) Store(
 	ctx context.Context,
 	front *decodedBlockFrontCache,
+	token decodedBlockCacheStoreToken,
 	key decodedBlockCacheKey,
 	ref *BlockRef,
 	blk Block,
@@ -235,6 +248,9 @@ func (c *DecodedBlockCache) Store(
 		RecordDecodedBlockUncloneable(ctx)
 		return nil
 	}
+	if c != nil && !c.storeTokenCurrent(token) {
+		return nil
+	}
 	front.store(key, cloned)
 	if c == nil || c.cache == nil {
 		return nil
@@ -247,11 +263,20 @@ func (c *DecodedBlockCache) Store(
 	cacheKey := key.String()
 	// Ristretto can reject asynchronously, so record before Set and let reject
 	// callbacks remove entries that never become durable cache contents.
-	c.recordRefKey(key.ref, cacheKey)
+	c.mtx.Lock()
+	if !c.storeTokenCurrentLocked(token) {
+		c.mtx.Unlock()
+		front.invalidateRef(key.ref)
+		return nil
+	}
+	c.recordRefKeyLocked(key.ref, cacheKey)
 	accepted := c.cache.Set(cacheKey, cloned, cost)
+	if !accepted {
+		c.removeRefKeyHashLocked(decodedBlockCacheHashFor(cacheKey))
+	}
+	c.mtx.Unlock()
 	recordDecodedBlockCacheStore(ctx, accepted, cost)
 	if !accepted {
-		c.removeRefKey(cacheKey)
 		recordDecodedBlockCacheRejected(ctx)
 		return nil
 	}
@@ -265,20 +290,73 @@ func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
 		return
 	}
 	decodedBlockFrontCacheFromContext(ctx).invalidateRef(refKey)
-	if c == nil || c.cache == nil {
+	if c == nil {
 		return
 	}
 	keys := c.takeRefKeys(refKey)
+	if c.cache == nil {
+		return
+	}
 	for key := range keys {
 		c.cache.Del(key)
 	}
 }
 
-func (c *DecodedBlockCache) recordRefKey(refKey, key string) {
+// InvalidateAll removes every decoded cache entry owned by c.
+func (c *DecodedBlockCache) InvalidateAll(ctx context.Context) {
+	decodedBlockFrontCacheFromContext(ctx).clear()
+	if c == nil {
+		return
+	}
+	keys := c.takeAllKeys()
+	if c.cache == nil {
+		return
+	}
+	for key := range keys {
+		c.cache.Del(key)
+	}
+}
+
+func (c *DecodedBlockCache) storeToken(refKey string) decodedBlockCacheStoreToken {
+	if c == nil || refKey == "" {
+		return decodedBlockCacheStoreToken{}
+	}
+	c.mtx.Lock()
+	if c.refEpoch == nil {
+		c.refEpoch = make(map[string]uint64)
+	}
+	token := decodedBlockCacheStoreToken{
+		cache:      c,
+		ref:        refKey,
+		refEpoch:   c.refEpoch[refKey],
+		clearEpoch: c.clearEpoch,
+		ok:         true,
+	}
+	c.mtx.Unlock()
+	return token
+}
+
+func (c *DecodedBlockCache) storeTokenCurrent(token decodedBlockCacheStoreToken) bool {
+	c.mtx.Lock()
+	ok := c.storeTokenCurrentLocked(token)
+	c.mtx.Unlock()
+	return ok
+}
+
+func (c *DecodedBlockCache) storeTokenCurrentLocked(token decodedBlockCacheStoreToken) bool {
+	if !token.ok {
+		return true
+	}
+	if token.cache != c {
+		return false
+	}
+	return c.clearEpoch == token.clearEpoch && c.refEpoch[token.ref] == token.refEpoch
+}
+
+func (c *DecodedBlockCache) recordRefKeyLocked(refKey, key string) {
 	if c == nil || refKey == "" || key == "" {
 		return
 	}
-	c.mtx.Lock()
 	if c.byRef == nil {
 		c.byRef = make(map[string]map[string]struct{})
 	}
@@ -293,7 +371,6 @@ func (c *DecodedBlockCache) recordRefKey(refKey, key string) {
 	keys[key] = struct{}{}
 	h := decodedBlockCacheHashFor(key)
 	c.byHash[h] = decodedBlockCacheTrackedKey{ref: refKey, key: key}
-	c.mtx.Unlock()
 }
 
 func (c *DecodedBlockCache) removeRefKey(key string) {
@@ -305,6 +382,11 @@ func (c *DecodedBlockCache) removeRefKeyHash(h decodedBlockCacheHash) {
 		return
 	}
 	c.mtx.Lock()
+	c.removeRefKeyHashLocked(h)
+	c.mtx.Unlock()
+}
+
+func (c *DecodedBlockCache) removeRefKeyHashLocked(h decodedBlockCacheHash) {
 	tracked, ok := c.byHash[h]
 	if ok {
 		delete(c.byHash, h)
@@ -314,7 +396,6 @@ func (c *DecodedBlockCache) removeRefKeyHash(h decodedBlockCacheHash) {
 			delete(c.byRef, tracked.ref)
 		}
 	}
-	c.mtx.Unlock()
 }
 
 func (c *DecodedBlockCache) takeRefKeys(refKey string) map[string]struct{} {
@@ -322,11 +403,37 @@ func (c *DecodedBlockCache) takeRefKeys(refKey string) map[string]struct{} {
 		return nil
 	}
 	c.mtx.Lock()
+	if c.refEpoch == nil {
+		c.refEpoch = make(map[string]uint64)
+	}
+	c.refEpoch[refKey]++
 	keys := c.byRef[refKey]
 	delete(c.byRef, refKey)
 	for key := range keys {
 		delete(c.byHash, decodedBlockCacheHashFor(key))
 	}
+	c.mtx.Unlock()
+	return keys
+}
+
+func (c *DecodedBlockCache) takeAllKeys() map[string]struct{} {
+	if c == nil {
+		return nil
+	}
+	c.mtx.Lock()
+	c.clearEpoch++
+	keys := make(map[string]struct{})
+	for refKey, refKeys := range c.byRef {
+		if c.refEpoch == nil {
+			c.refEpoch = make(map[string]uint64)
+		}
+		c.refEpoch[refKey]++
+		for key := range refKeys {
+			keys[key] = struct{}{}
+		}
+	}
+	c.byRef = make(map[string]map[string]struct{})
+	c.byHash = make(map[decodedBlockCacheHash]decodedBlockCacheTrackedKey)
 	c.mtx.Unlock()
 	return keys
 }
@@ -355,8 +462,19 @@ func lookupDecodedBlock(ctx context.Context, key decodedBlockCacheKey) (Block, b
 	return decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key)
 }
 
-func storeDecodedBlock(ctx context.Context, key decodedBlockCacheKey, ref *BlockRef, blk Block, data []byte) error {
-	return decodedBlockCacheFromContext(ctx).Store(ctx, decodedBlockFrontCacheFromContext(ctx), key, ref, blk, data)
+func decodedBlockCacheStoreTokenFromContext(ctx context.Context, refKey string) decodedBlockCacheStoreToken {
+	return decodedBlockCacheFromContext(ctx).storeToken(refKey)
+}
+
+func storeDecodedBlock(
+	ctx context.Context,
+	key decodedBlockCacheKey,
+	token decodedBlockCacheStoreToken,
+	ref *BlockRef,
+	blk Block,
+	data []byte,
+) error {
+	return decodedBlockCacheFromContext(ctx).Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, ref, blk, data)
 }
 
 type decodedBlockCacheContextKey struct{}

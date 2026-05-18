@@ -17,7 +17,6 @@ import {
   type StaticMux,
 } from 'starpc'
 import { pipe } from 'it-pipe'
-import { Duplex, Source } from 'it-stream-types'
 
 import {
   WebRuntimeClientInit,
@@ -82,6 +81,61 @@ export function isClosedStreamWriteError(err: unknown): boolean {
 }
 
 // WebRuntimeClientInstance is an attached client instance.
+class WebRuntimeClientChildStream implements PacketStream {
+  public readonly source: PacketStream['source']
+  public readonly sink: PacketStream['sink']
+  private sourceClosed = false
+  private sinkClosed = false
+  private released = false
+
+  constructor(
+    private readonly inner: ChannelStream,
+    private readonly release: () => void,
+  ) {
+    this.source = this.wrapSource(inner.source)
+    this.sink = async (source) => {
+      try {
+        await inner.sink(source)
+      } finally {
+        this.sinkClosed = true
+        this.releaseIfBothDirectionsClosed()
+      }
+    }
+  }
+
+  public close(err?: Error): void {
+    this.releaseOnce()
+    this.inner.close(err)
+  }
+
+  private async *wrapSource(
+    source: PacketStream['source'],
+  ): PacketStream['source'] {
+    try {
+      yield* source
+    } finally {
+      this.sourceClosed = true
+      this.releaseIfBothDirectionsClosed()
+    }
+  }
+
+  private releaseIfBothDirectionsClosed(): void {
+    // Runtime-to-client streams are generation-owned until both duplex halves
+    // end or the parent client closes; a single EOF can leave replies live.
+    if (this.sourceClosed && this.sinkClosed) {
+      this.releaseOnce()
+    }
+  }
+
+  private releaseOnce(): void {
+    if (this.released) {
+      return
+    }
+    this.released = true
+    this.release()
+  }
+}
+
 class WebRuntimeClientInstance {
   // waitClosed is resolved when the instance is closed.
   public readonly waitClosed: Promise<void>
@@ -177,7 +231,7 @@ class WebRuntimeClientInstance {
   // openStream opens a RPC stream with the remote client.
   // note: the stream has message framing (via postMessage)
   // it is not necessary to use length prefixing for packets
-  public async openStream(): Promise<Duplex<Source<Uint8Array>>> {
+  public async openStream(): Promise<PacketStream> {
     if (this.closed) {
       throw new Error('WebRuntimeClientInstance is closed')
     }
@@ -189,22 +243,26 @@ class WebRuntimeClientInstance {
       localPort,
       WebRuntimeClientChannelStreamOpts,
     )
+    const trackedStream = new WebRuntimeClientChildStream(stream, () => {
+      this.childStreams.delete(trackedStream)
+    })
+    this.childStreams.add(trackedStream)
     this.postMessage({ openStream: true }, [remotePort])
     // Do not add timer timeouts to stream handshakes. Background tabs can
     // throttle timers, so the parent client invalidation owns cancellation.
     await Promise.race([stream.waitRemoteAck, this.waitClosed])
     if (this.closed) {
-      stream.close()
+      trackedStream.close()
       throw new Error('WebRuntimeClientInstance is closed')
     }
     // wait for the stream to be fully opened
     await Promise.race([stream.waitRemoteOpen, this.waitClosed])
     if (this.closed) {
-      stream.close()
+      trackedStream.close()
       throw new Error('WebRuntimeClientInstance is closed')
     }
     // return the stream
-    return stream
+    return trackedStream
   }
 
   // close closes the client.

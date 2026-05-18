@@ -152,7 +152,11 @@ function createChannelPortPair(): [ChannelPort, ChannelPort] {
   ];
 }
 
-function installFakeMessageChannel(): { port(): MessagePort } {
+function installFakeMessageChannel(): {
+  channels: Array<{ port1: MessagePort; port2: MessagePort }>
+  port(): MessagePort
+} {
+  const channels: Array<{ port1: MessagePort; port2: MessagePort }> = []
   class FakeMessagePort {
     public onmessage: ((ev: MessageEvent) => void) | null = null
     public postMessage = vi.fn()
@@ -162,10 +166,15 @@ function installFakeMessageChannel(): { port(): MessagePort } {
   class FakeMessageChannel {
     public readonly port1 = new FakeMessagePort() as unknown as MessagePort
     public readonly port2 = new FakeMessagePort() as unknown as MessagePort
+
+    public constructor() {
+      channels.push({ port1: this.port1, port2: this.port2 })
+    }
   }
   vi.stubGlobal('MessagePort', FakeMessagePort)
   vi.stubGlobal('MessageChannel', FakeMessageChannel)
   return {
+    channels,
     port() {
       return new FakeMessagePort() as unknown as MessagePort
     },
@@ -468,6 +477,40 @@ describe('WebRuntime', () => {
     runtime.invalidateClient('document-1', new Error('document lock released'))
 
     await expect(openPromise).rejects.toThrow('closed')
+  })
+
+  it('tracks opened runtime-to-client streams under the client generation', async () => {
+    const fake = installFakeMessageChannel()
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+
+    runtime.handleClient(
+      {
+        clientUuid: 'document-1',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      fake.port(),
+    )
+
+    const client = runtime.lookupClient('document-1') as {
+      childStreams: Set<{ close: (err?: Error) => void }>
+      openStream(): Promise<unknown>
+    } | null
+    expect(client).not.toBeNull()
+
+    const openPromise = client!.openStream()
+    await Promise.resolve()
+    expect(fake.channels).toHaveLength(1)
+    fake.channels[0].port1.onmessage?.({
+      data: { from: 'document', ack: true, opened: true },
+    } as MessageEvent)
+
+    await expect(openPromise).resolves.toBeDefined()
+    expect(client!.childStreams.size).toBe(1)
+
+    runtime.invalidateClient('document-1', new Error('document lock released'))
+
+    expect(client!.childStreams.size).toBe(0)
+    expect(fake.channels[0].port1.close).toHaveBeenCalled()
   })
 
   it('routes generated runtime clients through a stable logical id', async () => {

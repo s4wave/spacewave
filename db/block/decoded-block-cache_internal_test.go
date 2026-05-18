@@ -29,12 +29,13 @@ func TestDecodedBlockCacheRejectedStorePrunesRefIndex(t *testing.T) {
 		t.Fatal("decoded block cache ref key was empty")
 	}
 
-	if err := decodedBlocks.Store(ctx, nil, decodedBlockCacheKey{
+	key := decodedBlockCacheKey{
 		ref:       refKey,
 		blockType: "db/block.decodedBlockCacheIndexTestBlock",
 		transform: DecodedBlockCacheNoTransformKey,
 		trust:     decodedBlockCacheTrustKey,
-	}, ref, &blk, data); err != nil {
+	}
+	if err := decodedBlocks.Store(ctx, nil, decodedBlocks.storeToken(refKey), key, ref, &blk, data); err != nil {
 		t.Fatal(err.Error())
 	}
 	decodedBlocks.Wait()
@@ -45,6 +46,45 @@ func TestDecodedBlockCacheRejectedStorePrunesRefIndex(t *testing.T) {
 	decodedBlocks.mtx.Unlock()
 	if refEntries != 0 || hashEntries != 0 {
 		t.Fatalf("rejected cache entry left index refs: byRef=%d byHash=%d", refEntries, hashEntries)
+	}
+}
+
+func TestDecodedBlockCacheInvalidatedStoreTokenSkipsStore(t *testing.T) {
+	ctx := context.Background()
+	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	blk := decodedBlockCacheIndexTestBlock{data: []byte("removed before admission")}
+	data, err := blk.MarshalBlock()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref, err := BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	refKey, ok := decodedBlockCacheRefKey(ref)
+	if !ok {
+		t.Fatal("decoded block cache ref key was empty")
+	}
+	key := decodedBlockCacheKey{
+		ref:       refKey,
+		blockType: "db/block.decodedBlockCacheIndexTestBlock",
+		transform: DecodedBlockCacheNoTransformKey,
+		trust:     decodedBlockCacheTrustKey,
+	}
+	token := decodedBlocks.storeToken(refKey)
+	decodedBlocks.InvalidateRef(ctx, ref)
+
+	if err := decodedBlocks.Store(ctx, nil, token, key, ref, &blk, data); err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks.Wait()
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || ok {
+		t.Fatalf("invalidated store token lookup ok=%v err=%v, want miss", ok, err)
 	}
 }
 

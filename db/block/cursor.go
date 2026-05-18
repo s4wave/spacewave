@@ -672,6 +672,10 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 			return c.setUnmarshaledBlock(cached)
 		}
 	}
+	storeToken := decodedBlockCacheStoreToken{}
+	if cacheable {
+		storeToken = decodedBlockCacheStoreTokenFromContext(ctx, cacheKey.ref)
+	}
 
 	// returns nil, false, nil if reference was empty.
 	// returns nil, false, ErrNotFound if reference was not found.
@@ -687,7 +691,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 			return nil, err
 		}
 		if cacheable {
-			if err := storeDecodedBlock(ctx, cacheKey, c.pos.ref, b, storedDat); err != nil {
+			if err := storeDecodedBlock(ctx, cacheKey, storeToken, c.pos.ref, b, storedDat); err != nil {
 				return nil, err
 			}
 		}

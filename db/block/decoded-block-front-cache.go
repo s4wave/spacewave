@@ -43,3 +43,12 @@ func (c *decodedBlockFrontCache) invalidateRef(refKey string) {
 	}
 	c.mtx.Unlock()
 }
+
+func (c *decodedBlockFrontCache) clear() {
+	if c == nil {
+		return
+	}
+	c.mtx.Lock()
+	c.entries = make(map[decodedBlockCacheKey]Block)
+	c.mtx.Unlock()
+}

@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -294,6 +295,58 @@ func TestCdnBlockStoreReadsBlock(t *testing.T) {
 	}
 	if !found || !bytes.Equal(got, block1) {
 		t.Fatalf("expected block after re-fetch, found=%v", found)
+	}
+}
+
+func TestCdnBlockStoreInvalidateClearsDecodedBlockCache(t *testing.T) {
+	ctx := context.Background()
+
+	example := &block_mock.Example{Msg: "old pointer"}
+	raw, err := example.MarshalBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pack := buildSinglePack(t, "01kcdnpack0000000000000004", map[string][]byte{"b1": raw})
+	ptr := &cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Packs: []*packfile.PackfileEntry{{
+			Id:          pack.id,
+			BloomFilter: pack.bloom,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(pack.data)),
+		}},
+	}
+	srv := newTestCdnServer(t, testSpaceID, encodePointer(t, ptr), []testPack{pack})
+	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
+	defer hs.Close()
+
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bs.Close()
+	ref, err := block.BuildBlockRef(raw, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tx, cursor := block.NewTransaction(bs, nil, ref, nil)
+	tx.SetDecodedBlockCache(bs.GetDecodedBlockCache())
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err)
+	}
+	bs.GetDecodedBlockCache().Wait()
+
+	srv.pointer = nil
+	bs.Invalidate()
+	tx, cursor = block.NewTransaction(bs, nil, ref, nil)
+	tx.SetDecodedBlockCache(bs.GetDecodedBlockCache())
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("Unmarshal after CDN invalidate error = %v, want %v", err, block.ErrNotFound)
 	}
 }
 

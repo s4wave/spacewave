@@ -241,6 +241,7 @@ func (s *CdnBlockStore) Invalidate() {
 		broadcastFn()
 	})
 	s.cache.reset()
+	s.invalidateDecodedBlocks()
 	s.pfs.UpdateManifest(nil)
 }
 
@@ -258,6 +259,7 @@ func (s *CdnBlockStore) setPointer(ptr *cdn.CdnRootPointer) {
 		broadcastFn()
 	})
 	s.cache.reset()
+	s.invalidateDecodedBlocks()
 	if ptr == nil {
 		s.pfs.UpdateManifest(nil)
 		return
@@ -291,6 +293,16 @@ func (s *CdnBlockStore) getCachedBlock(ctx context.Context, ref *block.BlockRef)
 		return nil, false, nil
 	}
 	return target.GetBlock(ctx, ref)
+}
+
+func (s *CdnBlockStore) invalidateDecodedBlocks() {
+	if s.decodedBlocks == nil {
+		return
+	}
+	// A CDN pointer swap changes the manifest owner under the store. Decoded
+	// hits must be equivalent to reading through the current manifest, not an
+	// older CDN root that happened to decode the same ref earlier.
+	s.decodedBlocks.InvalidateAll(context.Background())
 }
 
 func (s *CdnBlockStore) getWritebackTarget() block.StoreOps {
