@@ -100,7 +100,7 @@ func RunDemoCayley(
 	if err != nil {
 		return err
 	}
-	le.Infof("fetched block with data: %s", string(data))
+	le.Infof("fetched block with data length: %d", len(data))
 
 	// build the key/value "object store" for the volume
 	objStoreAv, _, objStoreRef, err := bus.ExecOneOff(

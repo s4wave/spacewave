@@ -23,6 +23,13 @@ func NewBlockTx(le *logrus.Entry, tx kvtx.BlockTx) *BlockTx {
 	}
 }
 
+func blockCursorForLogging(bcs *block.Cursor) string {
+	if bcs == nil {
+		return "nil"
+	}
+	return "present"
+}
+
 // GetCursor returns the block cursor at the root of the tree.
 func (t *BlockTx) GetCursor() *block.Cursor {
 	return t.btx.GetCursor()
@@ -34,9 +41,9 @@ func (t *BlockTx) GetCursor() *block.Cursor {
 func (t *BlockTx) GetCursorAtKey(ctx context.Context, key []byte) (rbcs *block.Cursor, rerr error) {
 	defer func() {
 		t.le.Debugf(
-			"GetCursorAtKey(%s) => ref(%v) found(%v) err(%v)",
+			"GetCursorAtKey(%s) => cursor(%s) found(%v) err(%v)",
 			keyForLogging(key),
-			rbcs.GetRef().MarshalLog(),
+			blockCursorForLogging(rbcs),
 			rbcs != nil,
 			rerr,
 		)
@@ -51,9 +58,9 @@ func (t *BlockTx) GetCursorAtKey(ctx context.Context, key []byte) (rbcs *block.C
 func (t *BlockTx) SetCursorAtKey(ctx context.Context, key []byte, bcs *block.Cursor, isBlob bool) (rerr error) {
 	defer func() {
 		t.le.Debugf(
-			"SetCursorAtKey(%s, %s, %v) => err(%v)",
+			"SetCursorAtKey(%s, cursor(%s), %v) => err(%v)",
 			keyForLogging(key),
-			bcs.GetRef().MarshalLog(),
+			blockCursorForLogging(bcs),
 			isBlob,
 			rerr,
 		)
@@ -66,9 +73,9 @@ func (t *BlockTx) SetCursorAtKey(ctx context.Context, key []byte, bcs *block.Cur
 func (t *BlockTx) DeleteCursorAtKey(ctx context.Context, key []byte) (rbcs *block.Cursor, rerr error) {
 	defer func() {
 		t.le.Debugf(
-			"DeleteCursorAtKey(%s) => ref(%v) found(%v) err(%v)",
+			"DeleteCursorAtKey(%s) => cursor(%s) found(%v) err(%v)",
 			keyForLogging(key),
-			rbcs.GetRef().MarshalLog(),
+			blockCursorForLogging(rbcs),
 			rbcs != nil,
 			rerr,
 		)

@@ -26,8 +26,8 @@ func (b *BlockIterator) ValueCursor() (rbcs *block.Cursor) {
 	defer func() {
 		err := b.blk.Err()
 		b.le.Debugf(
-			"ValueCursor() => ref(%v) found(%v) err(%v)",
-			rbcs.GetRef().MarshalLog(),
+			"ValueCursor() => cursor(%s) found(%v) err(%v)",
+			blockCursorForLogging(rbcs),
 			rbcs != nil,
 			err,
 		)

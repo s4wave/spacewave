@@ -27,11 +27,9 @@ func NewTx(le *logrus.Entry, tx kvtx.Tx) *Tx {
 	}
 }
 
-// keyForLogging formats a key as a string suitable for logging
-//
-// removes non ascii chars
+// keyForLogging formats a key summary without exposing key material.
 func keyForLogging(key []byte) string {
-	return strconv.QuoteToASCII(string(key))
+	return "len=" + strconv.Itoa(len(key))
 }
 
 // Get returns values for a key.

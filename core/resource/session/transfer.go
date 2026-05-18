@@ -605,7 +605,7 @@ func readLinkedCloudAccountID(ctx context.Context, b bus.Bus, entry *session.Ses
 // read before the transfer starts (since the source volume is deleted during
 // the cleanup phase).
 func cleanupLinkedCloudRef(ctx context.Context, le *logrus.Entry, b bus.Bus, sessCtrl session.SessionController, cloudAccountID string) error {
-	le.WithField("cloud-account-id", cloudAccountID).Info("cleaning up linked-cloud reference")
+	le.Info("cleaning up linked-cloud reference")
 
 	sessions, err := sessCtrl.ListSessions(ctx)
 	if err != nil {
