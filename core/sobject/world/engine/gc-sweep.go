@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
-	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 )
 
@@ -18,10 +17,14 @@ const gcSweepDefaultIdleWindow = 5 * time.Second
 // gcSweepDefaultBackstopInterval is the default periodic backstop interval.
 const gcSweepDefaultBackstopInterval = 5 * time.Minute
 
+type gcJournalEntryCounter interface {
+	GetGCJournalEntries() uint64
+}
+
 // executeGCSweepMaintenance runs the GC sweep maintenance routine.
 // GC sweep queueing is gated on validator/owner role and re-checked on every
 // attempted enqueue so role changes are picked up without restarting.
-func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.SharedObject, bengine *world_block.Engine) error {
+func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.SharedObject, bengine gcJournalEntryCounter) error {
 	// Read configurable durations from the config proto.
 	idleWindow := gcSweepDefaultIdleWindow
 	if d := c.conf.GetGcSweepIdleWindowDur(); d != 0 {
@@ -88,13 +91,16 @@ func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.S
 		case <-idleCh:
 			idleTimer = nil
 			entries := bengine.GetGCJournalEntries()
-			if entries > 0 {
+			// Idle expiry is only a latency shortcut for threshold-sized garbage.
+			// Sparse journal entries wait for the backstop so small write bursts do
+			// not queue a GC sweep after every idle window.
+			if entries >= gcSweepJournalThreshold {
 				queued, err := c.queueGCSweepTx(ctx, so)
 				if err != nil {
 					return err
 				}
 				if queued {
-					c.le.WithField("gc-journal-entries", entries).Debug("idle window expired with garbage, queued gc sweep")
+					c.le.WithField("gc-journal-entries", entries).Debug("idle window expired with threshold garbage, queued gc sweep")
 				}
 			}
 		case <-backstopTicker.C:

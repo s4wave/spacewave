@@ -132,10 +132,123 @@ func TestExecuteGCSweepMaintenanceWaitsForRoleChanges(t *testing.T) {
 	}
 }
 
+func TestExecuteGCSweepMaintenanceDefersSubthresholdIdleJournal(t *testing.T) {
+	ctx := context.Background()
+
+	c := &Controller{
+		le: logrus.NewEntry(logrus.New()),
+		conf: &Config{
+			GcSweepIdleWindowDur: uint64(time.Millisecond),
+		},
+	}
+	so := &testGCSweepSharedObject{
+		snapshot: &testGCSweepSnapshot{
+			role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
+		},
+		queueCh: make(chan struct{}, 1),
+	}
+	counter := &testGCJournalEntryCounter{entries: 1}
+
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.executeGCSweepMaintenance(runCtx, so, counter)
+	}()
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("maintenance routine returned early: %v", err)
+	case <-time.After(10 * time.Millisecond):
+	}
+	c.notifyGCSweepMaintenance()
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("maintenance routine returned early: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	if len(so.queueOps) != 0 {
+		t.Fatalf("subthreshold idle journal queued %d gc sweep ops", len(so.queueOps))
+	}
+
+	cancel()
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected context.Canceled, got %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("maintenance routine did not exit after cancel")
+	}
+}
+
+func TestExecuteGCSweepMaintenanceQueuesThresholdJournal(t *testing.T) {
+	ctx := context.Background()
+
+	c := &Controller{
+		le: logrus.NewEntry(logrus.New()),
+		conf: &Config{
+			GcSweepIdleWindowDur:       uint64(time.Millisecond),
+			GcSweepBackstopIntervalDur: uint64(time.Millisecond),
+		},
+	}
+	so := &testGCSweepSharedObject{
+		snapshot: &testGCSweepSnapshot{
+			role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
+		},
+		queueCh: make(chan struct{}, 1),
+	}
+	counter := &testGCJournalEntryCounter{entries: gcSweepJournalThreshold}
+
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.executeGCSweepMaintenance(runCtx, so, counter)
+	}()
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("maintenance routine returned early: %v", err)
+	case <-time.After(10 * time.Millisecond):
+	}
+	c.notifyGCSweepMaintenance()
+
+	select {
+	case <-so.queueCh:
+	case err := <-errCh:
+		t.Fatalf("maintenance routine returned early: %v", err)
+	case <-time.After(time.Second):
+		t.Fatal("threshold journal did not queue gc sweep")
+	}
+
+	cancel()
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected context.Canceled, got %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("maintenance routine did not exit after cancel")
+	}
+}
+
 type testGCSweepSharedObject struct {
 	snapshot   sobject.SharedObjectStateSnapshot
 	blockStore bstore.BlockStore
 	queueOps   [][]byte
+	queueCh    chan struct{}
+}
+
+type testGCJournalEntryCounter struct {
+	entries uint64
+}
+
+func (c *testGCJournalEntryCounter) GetGCJournalEntries() uint64 {
+	return c.entries
 }
 
 func (s *testGCSweepSharedObject) GetBus() bus.Bus {
@@ -168,6 +281,12 @@ func (s *testGCSweepSharedObject) AccessSharedObjectState(ctx context.Context, r
 
 func (s *testGCSweepSharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
 	s.queueOps = append(s.queueOps, append([]byte(nil), op...))
+	if s.queueCh != nil {
+		select {
+		case s.queueCh <- struct{}{}:
+		default:
+		}
+	}
 	return "gc-sweep-op", nil
 }
 
