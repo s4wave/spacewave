@@ -563,11 +563,11 @@ describe("plugin-host-quickjs runner lifecycle", () => {
     const pluginScript = `
       export default function main(api) {
         api.handleStreamCtr.set(async (stream) => {
-          const packets = []
-          for await (const packet of stream.source) {
-            packets.push(packet)
-          }
-          const first = packets[0] || new Uint8Array(0)
+          // Duplex WebRuntime streams may keep the response side open after the
+          // request packet. Read one packet without closing the source iterator.
+          const first =
+            (await stream.source[Symbol.asyncIterator]().next()).value ||
+            new Uint8Array(0)
           await stream.sink((async function* () {
             const response = new Uint8Array(first.length + 1)
             response[0] = 42

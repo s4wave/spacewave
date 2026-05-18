@@ -199,6 +199,8 @@ export class WebRuntimeClient {
         openStream: true,
       }
       clientPort.postMessage(msg, [streamChannel.port2])
+      // Do not add a timer timeout here. Browser background tabs throttle
+      // timers aggressively, so liveness is owned by generation close instead.
       await this.waitForRuntimeGeneration(
         generationId,
         streamConn.waitRemoteOpen,
@@ -506,6 +508,8 @@ export class WebRuntimeClient {
       port.start()
     })
     try {
+      // Do not timeout this ack with setTimeout. Background tabs can delay
+      // browser timers long enough to falsely kill a valid retained runtime.
       await this.waitForRuntimeGeneration(generationId, ackPromise)
     } finally {
       port.onmessage = null

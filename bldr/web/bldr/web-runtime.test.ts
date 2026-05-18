@@ -512,11 +512,10 @@ describe('WebRuntime', () => {
           remoteOpen: true,
         });
         const requestPromise = (async () => {
-          const request: Uint8Array[] = [];
-          for await (const packet of workerStream.source) {
-            request.push(packet);
-          }
-          return request[0] ?? new Uint8Array();
+          // Channel streams are duplex; waiting for EOF or breaking a for-await
+          // loop can close the response path before the worker writes back.
+          const result = await workerStream.source[Symbol.asyncIterator]().next();
+          return result.value ?? new Uint8Array();
         })();
         const responsePromise = workerStream.sink(
           (async function* () {

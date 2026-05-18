@@ -3151,8 +3151,13 @@ function alloc(size = 0) {
 function allocUnsafe(size = 0) {
 	return new Uint8Array(size);
 }
+function isByteArrayWithArrayBuffer(b) {
+	return b?.buffer instanceof ArrayBuffer;
+}
 function asUint8Array(buf) {
-	return buf;
+	if (isByteArrayWithArrayBuffer(buf)) return buf;
+	const b = buf.slice();
+	return new Uint8Array(b.buffer, 0, b.byteLength);
 }
 function concat(arrays, length) {
 	if (length == null) length = arrays.reduce((acc, curr) => acc + curr.length, 0);
@@ -5035,7 +5040,7 @@ var AbstractStream = class {
 	}
 };
 function peekable(iterable) {
-	const [iterator, symbol5] = iterable[Symbol.asyncIterator] != null ? [iterable[Symbol.asyncIterator](), Symbol.asyncIterator] : [iterable[Symbol.iterator](), Symbol.iterator];
+	const [iterator, symbol4] = iterable[Symbol.asyncIterator] != null ? [iterable[Symbol.asyncIterator](), Symbol.asyncIterator] : [iterable[Symbol.iterator](), Symbol.iterator];
 	const queue = [];
 	return {
 		peek: () => {
@@ -5051,7 +5056,7 @@ function peekable(iterable) {
 			};
 			return iterator.next();
 		},
-		[symbol5]() {
+		[symbol4]() {
 			return this;
 		}
 	};
@@ -5699,7 +5704,14 @@ function streamToPacketStream(stream) {
 	return {
 		source: pipe(stream, parseLengthPrefixTransform(), combineUint8ArrayListTransform()),
 		sink: async (source) => {
-			await pipe(source, prependLengthPrefixTransform(), stream).catch((err) => stream.close(err)).then(() => stream.close());
+			try {
+				await pipe(source, prependLengthPrefixTransform(), stream);
+				await stream.closeWrite();
+			} catch (err) {
+				const error = err instanceof Error ? err : new Error(String(err));
+				stream.abort(error);
+				throw error;
+			}
 		}
 	};
 }
@@ -5986,10 +5998,6 @@ var Empty = createMessageType({
 		}
 	}
 }).typeName;
-var symbol4 = /* @__PURE__ */ Symbol.for("@achingbrain/uint8arraylist");
-function isUint8ArrayList4(value) {
-	return Boolean(value?.[symbol4]);
-}
 function writeCompleteChunk(os, fd, data) {
 	let offset = 0;
 	while (offset < data.length) {
@@ -6006,7 +6014,7 @@ async function writeSourceToFd(os, source, filePath) {
 	try {
 		fd = os.open(filePath, flags, mode);
 		if (fd < 0) throw new Error(`Failed to open file ${filePath}. Error code: ${fd}`);
-		for await (const chunk of source) if (isUint8ArrayList4(chunk)) for (const internalBuf of chunk) writeCompleteChunk(os, fd, internalBuf);
+		for await (const chunk of source) if (isUint8ArrayList(chunk)) for (const internalBuf of chunk) writeCompleteChunk(os, fd, internalBuf);
 		else if (chunk instanceof Uint8Array) writeCompleteChunk(os, fd, chunk);
 		else throw new Error(`Received unsupported chunk type in stream: ${typeof chunk}`);
 	} finally {
@@ -6228,7 +6236,7 @@ function decoderError(fatal, opt_code_point) {
 	return opt_code_point || 65533;
 }
 function Decoder2() {}
-Decoder2.prototype = { 
+Decoder2.prototype = {
 /**
 * @param {Stream} stream The stream of bytes being decoded.
 * @param {number} bite The next byte read from the stream.
@@ -6238,7 +6246,7 @@ Decoder2.prototype = {
 */
 handler: function(_stream, _bite) {} };
 function Encoder() {}
-Encoder.prototype = { 
+Encoder.prototype = {
 /**
 * @param {Stream} stream The stream of code points being encoded.
 * @param {number} code_point Next code point read from the stream.
@@ -6261,7 +6269,7 @@ function TextDecoder2(encoding, options) {
 	Object.defineProperty(this, "fatal", { value: this._fatal });
 	Object.defineProperty(this, "ignoreBOM", { value: this._ignoreBOM });
 }
-TextDecoder2.prototype = { 
+TextDecoder2.prototype = {
 /**
 * @param {ArrayBufferView=} input The buffer of bytes to decode.
 * @param {Object=} options
@@ -6325,7 +6333,7 @@ function TextEncoder2(encoding, options) {
 	this._options = { fatal: Boolean(options["fatal"]) };
 	Object.defineProperty(this, "encoding", { value: "utf-8" });
 }
-TextEncoder2.prototype = { 
+TextEncoder2.prototype = {
 /**
 * @param {string=} opt_string The string to encode.
 * @param {Object=} options
@@ -8172,7 +8180,7 @@ var RemoveWebWorkerResponse = createMessageType({
 });
 ({
 	typeName: "web.document.WebDocumentHost",
-	methods: { 
+	methods: {
 	/**
 	* WebViewRpc opens a stream for a RPC call from a WebView.
 	* Exposes the WebViewHost service.
@@ -8435,7 +8443,7 @@ var RemoveWebViewResponse = createMessageType({
 }).typeName;
 ({
 	typeName: "web.view.AccessWebViews",
-	methods: { 
+	methods: {
 	/**
 	* WebViewRpc accesses the WebView service for a view by ID.
 	* Id: web view id
@@ -10418,7 +10426,7 @@ var PluginHostClient = class {
 };
 ({
 	typeName: "bldr.plugin.Plugin",
-	methods: { 
+	methods: {
 	/**
 	* PluginRpc handles an RPC call from a remote plugin.
 	* Component ID: remote plugin id

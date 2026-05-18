@@ -190,6 +190,8 @@ class WebRuntimeClientInstance {
       WebRuntimeClientChannelStreamOpts,
     )
     this.postMessage({ openStream: true }, [remotePort])
+    // Do not add timer timeouts to stream handshakes. Background tabs can
+    // throttle timers, so the parent client invalidation owns cancellation.
     await Promise.race([stream.waitRemoteAck, this.waitClosed])
     if (this.closed) {
       stream.close()
