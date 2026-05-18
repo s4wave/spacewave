@@ -2,14 +2,16 @@ package block
 
 import (
 	"context"
-	"sync"
+	"strconv"
+	"strings"
 
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/pkg/errors"
 )
 
 const (
 	decodedBlockCacheNoTransformKey = "transform:none"
-	decodedBlockCacheTrustKey       = "trust:store-returned"
+	decodedBlockCacheTrustKey       = "trust:verified-block-ref"
 )
 
 // DecodedBlockCacheable identifies a block type for decoded-block caching.
@@ -22,10 +24,10 @@ type DecodedBlockCacheTransformer interface {
 	DecodedBlockCacheTransformKey() string
 }
 
-// DecodedBlockCache owns decoded block reuse for one bounded owner lifetime.
+// DecodedBlockCache owns shared decoded block reuse.
 type DecodedBlockCache struct {
-	mtx     sync.Mutex
-	entries map[decodedBlockCacheKey]Block
+	cache *ristretto.Cache[string, Block]
+	opts  DecodedBlockCacheOptions
 }
 
 type decodedBlockCacheKey struct {
@@ -35,15 +37,31 @@ type decodedBlockCacheKey struct {
 	trust     string
 }
 
-// NewDecodedBlockCache constructs an empty decoded-block cache.
+// NewDecodedBlockCache constructs a decoded-block cache with default options.
 func NewDecodedBlockCache() *DecodedBlockCache {
-	return &DecodedBlockCache{
-		entries: make(map[decodedBlockCacheKey]Block),
+	cache, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		panic(err)
 	}
+	return cache
 }
 
-func newDecodedBlockCache() *DecodedBlockCache {
-	return NewDecodedBlockCache()
+// NewDecodedBlockCacheWithOptions constructs a decoded-block cache owner.
+func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlockCache, error) {
+	opts = opts.normalize()
+	if opts.Disabled {
+		return &DecodedBlockCache{opts: opts}, nil
+	}
+	db, err := ristretto.NewCache(&ristretto.Config[string, Block]{
+		NumCounters: opts.NumCounters,
+		MaxCost:     opts.MaxCost,
+		BufferItems: opts.BufferItems,
+		Metrics:     true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &DecodedBlockCache{cache: db, opts: opts}, nil
 }
 
 // WithDecodedBlockCache attaches an owner-provided decoded-block cache to ctx.
@@ -57,23 +75,88 @@ func WithDecodedBlockCache(ctx context.Context, cache *DecodedBlockCache) contex
 	return context.WithValue(ctx, decodedBlockCacheContextKey{}, cache)
 }
 
-func (c *DecodedBlockCache) Lookup(ctx context.Context, key decodedBlockCacheKey) (Block, bool, error) {
+// MaxCost returns the configured decoded-cache budget.
+func (c *DecodedBlockCache) MaxCost() int64 {
 	if c == nil {
+		return 0
+	}
+	if c.cache != nil {
+		return c.cache.MaxCost()
+	}
+	return c.opts.MaxCost
+}
+
+// Wait blocks until buffered cache writes have reached Ristretto.
+func (c *DecodedBlockCache) Wait() {
+	if c == nil || c.cache == nil {
+		return
+	}
+	c.cache.Wait()
+}
+
+// Close releases the cache goroutine.
+func (c *DecodedBlockCache) Close() {
+	if c == nil || c.cache == nil {
+		return
+	}
+	c.cache.Close()
+}
+
+// Snapshot returns shared decoded-cache metrics.
+func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
+	if c == nil {
+		return DecodedBlockCacheSnapshot{}
+	}
+	snapshot := DecodedBlockCacheSnapshot{MaxCost: c.MaxCost()}
+	if c.cache == nil {
+		return snapshot
+	}
+	snapshot.RemainingCost = c.cache.RemainingCost()
+	snapshot.RetainedCost = snapshot.MaxCost - snapshot.RemainingCost
+	metrics := c.cache.Metrics
+	if metrics == nil {
+		return snapshot
+	}
+	snapshot.Hits = metrics.Hits()
+	snapshot.Misses = metrics.Misses()
+	snapshot.Stores = metrics.KeysAdded() + metrics.KeysUpdated()
+	snapshot.Rejections = metrics.SetsDropped() + metrics.SetsRejected()
+	snapshot.Evictions = metrics.KeysEvicted()
+	snapshot.CostAdded = metrics.CostAdded()
+	snapshot.CostEvicted = metrics.CostEvicted()
+	return snapshot
+}
+
+func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFrontCache, key decodedBlockCacheKey) (Block, bool, error) {
+	if cached := front.lookup(key); cached != nil {
+		cloned, ok, err := cloneDecodedBlock(cached)
+		if err != nil {
+			return nil, false, err
+		}
+		if !ok {
+			RecordDecodedBlockUncloneable(ctx)
+			return nil, false, nil
+		}
+		RecordDecodedBlockCacheHit(ctx, true)
+		return cloned, true, nil
+	}
+	if c == nil || c.cache == nil {
+		if front != nil {
+			recordDecodedBlockCacheMiss(ctx)
+		}
+		return nil, false, nil
+	}
+	cached, ok := c.cache.Get(key.String())
+	if !ok {
 		recordDecodedBlockCacheMiss(ctx)
 		return nil, false, nil
 	}
-	c.mtx.Lock()
-	cached := c.entries[key]
-	c.mtx.Unlock()
-	if cached == nil {
-		recordDecodedBlockCacheMiss(ctx)
-		return nil, false, nil
-	}
-	cloned, ok, err := cloneDecodedBlock(cached)
+	front.store(key, cached)
+	cloned, cloneOK, err := cloneDecodedBlock(cached)
 	if err != nil {
 		return nil, false, err
 	}
-	if !ok {
+	if !cloneOK {
 		RecordDecodedBlockUncloneable(ctx)
 		return nil, false, nil
 	}
@@ -81,8 +164,23 @@ func (c *DecodedBlockCache) Lookup(ctx context.Context, key decodedBlockCacheKey
 	return cloned, true, nil
 }
 
-func (c *DecodedBlockCache) Store(ctx context.Context, key decodedBlockCacheKey, blk Block) error {
-	if c == nil || blk == nil {
+func (c *DecodedBlockCache) Store(
+	ctx context.Context,
+	front *decodedBlockFrontCache,
+	key decodedBlockCacheKey,
+	ref *BlockRef,
+	blk Block,
+	data []byte,
+) error {
+	if blk == nil {
+		return nil
+	}
+	if c == nil && front == nil {
+		RecordDecodedBlockUncacheable(ctx)
+		return nil
+	}
+	if ref == nil || ref.VerifyData(data, false) != nil {
+		RecordDecodedBlockUncacheable(ctx)
 		return nil
 	}
 	cloned, ok, err := cloneDecodedBlock(blk)
@@ -93,21 +191,43 @@ func (c *DecodedBlockCache) Store(ctx context.Context, key decodedBlockCacheKey,
 		RecordDecodedBlockUncloneable(ctx)
 		return nil
 	}
-	c.mtx.Lock()
-	c.entries[key] = cloned
-	c.mtx.Unlock()
+	front.store(key, cloned)
+	if c == nil || c.cache == nil {
+		return nil
+	}
+	cost := int64(len(data))
+	if cost <= 0 {
+		RecordDecodedBlockUncacheable(ctx)
+		return nil
+	}
+	accepted := c.cache.Set(key.String(), cloned, cost)
+	recordDecodedBlockCacheStore(ctx, accepted, cost)
+	if !accepted {
+		recordDecodedBlockCacheRejected(ctx)
+	}
 	return nil
+}
+
+func lookupDecodedBlock(ctx context.Context, key decodedBlockCacheKey) (Block, bool, error) {
+	return decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key)
+}
+
+func storeDecodedBlock(ctx context.Context, key decodedBlockCacheKey, ref *BlockRef, blk Block, data []byte) error {
+	return decodedBlockCacheFromContext(ctx).Store(ctx, decodedBlockFrontCacheFromContext(ctx), key, ref, blk, data)
 }
 
 type decodedBlockCacheContextKey struct{}
 
 func decodedBlockCacheFromContext(ctx context.Context) *DecodedBlockCache {
-	if ctx == nil {
-		return nil
+	if ctx != nil {
+		if cache, _ := ctx.Value(decodedBlockCacheContextKey{}).(*DecodedBlockCache); cache != nil {
+			return cache
+		}
 	}
-	if cache, _ := ctx.Value(decodedBlockCacheContextKey{}).(*DecodedBlockCache); cache != nil {
-		return cache
-	}
+	return nil
+}
+
+func decodedBlockFrontCacheFromContext(ctx context.Context) *decodedBlockFrontCache {
 	op := readOperationContextFromContext(ctx)
 	if op == nil {
 		return nil
@@ -156,6 +276,20 @@ func decodedBlockCacheTransformKey(xfrm Transformer) (string, bool) {
 		return "", false
 	}
 	return key, true
+}
+
+func (k decodedBlockCacheKey) String() string {
+	var b strings.Builder
+	writePart := func(part string) {
+		b.WriteString(strconv.Itoa(len(part)))
+		b.WriteByte(':')
+		b.WriteString(part)
+	}
+	writePart(k.ref)
+	writePart(k.blockType)
+	writePart(k.transform)
+	writePart(k.trust)
+	return b.String()
 }
 
 func cloneDecodedBlock(blk Block) (Block, bool, error) {

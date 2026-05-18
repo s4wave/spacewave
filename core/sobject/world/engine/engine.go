@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -42,14 +43,16 @@ func StartEngineWithConfig(
 
 // blkEngine contains a world state with engine.
 type blkEngine struct {
-	bengine  *world_block.Engine
-	cursor   *bucket_lookup.Cursor
-	lookupOp world.LookupOp
+	bengine       *world_block.Engine
+	cursor        *bucket_lookup.Cursor
+	decodedBlocks *block.DecodedBlockCache
+	lookupOp      world.LookupOp
 }
 
 // Release releases the engine resources.
 func (w *blkEngine) Release() {
 	w.cursor.Release()
+	w.decodedBlocks.Close()
 }
 
 // buildBlkEngine builds a world state with engine from a head ref.
@@ -85,6 +88,17 @@ func (c *Controller) buildBlkEngine(
 		}
 	}
 
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		return nil, err
+	}
+	releaseDecodedBlocks := true
+	defer func() {
+		if releaseDecodedBlocks {
+			decodedBlocks.Close()
+		}
+	}()
+
 	// the bucket ID is equivalent to the block store id
 	bucketID := so.GetBlockStore().GetID()
 	headRef.BucketId = bucketID
@@ -107,6 +121,7 @@ func (c *Controller) buildBlkEngine(
 			},
 			transformConf,
 		)
+		cursor.SetDecodedBlockCache(decodedBlocks)
 		task.End()
 	}
 
@@ -135,10 +150,12 @@ func (c *Controller) buildBlkEngine(
 		}
 	}
 
+	releaseDecodedBlocks = false
 	return &blkEngine{
-		bengine:  bengine,
-		cursor:   cursor,
-		lookupOp: lookupWorldOp,
+		bengine:       bengine,
+		cursor:        cursor,
+		decodedBlocks: decodedBlocks,
+		lookupOp:      lookupWorldOp,
 	}, nil
 }
 

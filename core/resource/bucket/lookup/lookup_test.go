@@ -86,6 +86,12 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	cursor.SetRootRef(rootRef)
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+	cursor.SetDecodedBlockCache(decodedBlocks)
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
 
 	opCtx, counter := block.WithReadCounter(ctx)
@@ -94,6 +100,7 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	assertExampleResponse(t, resp.GetData(), "typed resource")
+	decodedBlocks.Wait()
 
 	resp, err = resource.Unmarshal(opCtx, &s4wave_bucket_lookup.UnmarshalRequest{BlockType: exampleBlockTypeID})
 	if err != nil {

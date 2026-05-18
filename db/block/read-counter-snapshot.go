@@ -32,4 +32,12 @@ type ReadCounterSnapshot struct {
 	DecodedBlockUncloneableCount uint64
 	// DecodedBlockUncacheableCount is the number of decoded-block cache bypasses for missing exact keys.
 	DecodedBlockUncacheableCount uint64
+	// DecodedBlockStoreAttemptCount is the number of decoded-block cache store submissions.
+	DecodedBlockStoreAttemptCount uint64
+	// DecodedBlockStoreAcceptedCount is the number of store submissions accepted by the cache buffer.
+	DecodedBlockStoreAcceptedCount uint64
+	// DecodedBlockStoreRejectedCount is the number of store submissions rejected or dropped immediately.
+	DecodedBlockStoreRejectedCount uint64
+	// DecodedBlockStoreCost is the cost submitted for decoded-block cache retention.
+	DecodedBlockStoreCost uint64
 }

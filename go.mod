@@ -12,6 +12,8 @@ replace (
 // https://github.com/dgraph-io/badger/pull/2048
 replace github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
 
+replace github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260517212455-e8ae7254a03d // main
+
 // https://github.com/wazero/wazero/pull/2479
 // https://github.com/wazero/wazero/pull/2481
 replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2

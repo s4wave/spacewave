@@ -6,7 +6,7 @@ type readOperationStoreContextKey struct{}
 
 type readOperationContext struct {
 	store         StoreOps
-	decodedBlocks *DecodedBlockCache
+	decodedBlocks *decodedBlockFrontCache
 }
 
 // WithReadOperationStore returns a context that routes block fetches through store.
@@ -14,7 +14,7 @@ func WithReadOperationStore(ctx context.Context, store StoreOps) context.Context
 	if store == nil {
 		return ctx
 	}
-	cache := newDecodedBlockCache()
+	cache := newDecodedBlockFrontCache()
 	if op := readOperationContextFromContext(ctx); op != nil && op.decodedBlocks != nil {
 		cache = op.decodedBlocks
 	}

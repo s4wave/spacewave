@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -35,6 +36,8 @@ type WorldEngine struct {
 	// Cursor is the underlying root bucket cursor held by the engine. Release
 	// via WorldEngine.Release when done; Engine itself does not own it.
 	Cursor *bucket_lookup.Cursor
+	// decodedBlocks is the decoded-block cache owned by this CDN object engine.
+	decodedBlocks *block.DecodedBlockCache
 
 	// refresh runs the head-ref watcher goroutine; owned by Release.
 	refresh *routine.RoutineContainer
@@ -54,6 +57,10 @@ func (w *WorldEngine) Release() {
 	if w.Cursor != nil {
 		w.Cursor.Release()
 		w.Cursor = nil
+	}
+	if w.decodedBlocks != nil {
+		w.decodedBlocks.Close()
+		w.decodedBlocks = nil
 	}
 }
 
@@ -111,6 +118,17 @@ func NewWorldEngine(
 		}
 	}
 
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		return nil, errors.Wrap(err, "build decoded block cache")
+	}
+	releaseDecodedBlocks := true
+	defer func() {
+		if releaseDecodedBlocks {
+			decodedBlocks.Close()
+		}
+	}()
+
 	cursor := bucket_lookup.NewCursor(
 		ctx,
 		b,
@@ -125,6 +143,7 @@ func NewWorldEngine(
 		},
 		transformConf,
 	)
+	cursor.SetDecodedBlockCache(decodedBlocks)
 
 	bengine, err := world_block.NewEngine(ctx, le, cursor, lookupOp, nil, false)
 	if err != nil {
@@ -133,8 +152,9 @@ func NewWorldEngine(
 	}
 
 	w := &WorldEngine{
-		Engine: bengine,
-		Cursor: cursor,
+		Engine:        bengine,
+		Cursor:        cursor,
+		decodedBlocks: decodedBlocks,
 	}
 
 	watchable, _, _ := so.AccessSharedObjectState(ctx, nil)
@@ -171,5 +191,6 @@ func NewWorldEngine(
 	})
 	w.refresh.SetContext(ctx, true)
 
+	releaseDecodedBlocks = false
 	return w, nil
 }

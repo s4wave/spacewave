@@ -644,28 +644,24 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		return b, nil
 	}
 
-	// note: ctor is called before fetch so the read-operation cache can key by
-	// exact block type before deciding whether storage must be touched.
+	// note: ctor is called before fetch so the decoded cache can key by exact
+	// block type before deciding whether storage must be touched.
 	b = ctor()
 	if b == nil {
 		return nil, nil
 	}
-	cache := decodedBlockCacheFromContext(ctx)
 	cacheKey, cacheable := decodedBlockCacheKeyFor(c.pos.ref, b, c.transformer())
-	useCache := cache != nil && cacheable
-	if cache != nil && !cacheable {
+	if !cacheable {
 		RecordDecodedBlockUncacheable(ctx)
 	}
-	if useCache {
-		cached, ok, err := cache.Lookup(ctx, cacheKey)
+	if cacheable {
+		cached, ok, err := lookupDecodedBlock(ctx, cacheKey)
 		if err != nil {
 			return nil, err
 		}
 		if ok {
 			return c.setUnmarshaledBlock(cached)
 		}
-	} else if cache == nil {
-		recordDecodedBlockCacheMiss(ctx)
 	}
 
 	// returns nil, false, nil if reference was empty.
@@ -681,8 +677,8 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		if err != nil {
 			return nil, err
 		}
-		if useCache {
-			if err := cache.Store(ctx, cacheKey, b); err != nil {
+		if cacheable {
+			if err := storeDecodedBlock(ctx, cacheKey, c.pos.ref, b, dat); err != nil {
 				return nil, err
 			}
 		}

@@ -35,7 +35,7 @@ type Cursor struct {
 	xfrm block.Transformer
 	// transformConf is the transform conf used for xfrm
 	transformConf *block_transform.Config
-	// decodedBlocks reuses decoded blocks for this cursor resource lifetime.
+	// decodedBlocks borrows decoded-block retention from the owning object lifecycle.
 	decodedBlocks *block.DecodedBlockCache
 	// rel is a release function
 	rel func()
@@ -103,7 +103,6 @@ func NewCursorWithRelease(
 		ref:           ref,
 		opArgs:        opArgs,
 		transformConf: transformConf,
-		decodedBlocks: block.NewDecodedBlockCache(),
 		rel:           rel,
 	}
 }
@@ -148,7 +147,6 @@ func BuildCursor(
 		opArgs:        &bucket.BucketOpArgs{VolumeId: volumeID},
 		xfrm:          xfrm,
 		transformConf: transformConf,
-		decodedBlocks: block.NewDecodedBlockCache(),
 	}
 	refBucketID := ref.GetBucketId()
 	if !ref.GetEmpty() && refBucketID == "" {
@@ -581,6 +579,14 @@ func (c *Cursor) GetRefWithOpArgs() *bucket.ObjectRef {
 // GetTransformConf returns the current transform config.
 func (c *Cursor) GetTransformConf() *block_transform.Config {
 	return c.transformConf
+}
+
+// SetDecodedBlockCache sets the lifecycle-owned decoded-block cache borrowed by the cursor.
+func (c *Cursor) SetDecodedBlockCache(cache *block.DecodedBlockCache) {
+	if c == nil {
+		return
+	}
+	c.decodedBlocks = cache
 }
 
 // GetStepFactorySet returns the step factory set for the cursor.

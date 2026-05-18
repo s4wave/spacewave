@@ -10,10 +10,113 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 )
 
-func TestCursorUnmarshalReusesDecodedBlocksForResourceLifetime(t *testing.T) {
+func TestCursorUnmarshalBorrowsLifecycleDecodedCache(t *testing.T) {
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "resource-cache"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	cursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		nil,
+		nil,
+		store,
+		nil,
+		&bucket.ObjectRef{RootRef: ref},
+		nil,
+		nil,
+	)
+	cursor.SetDecodedBlockCache(decodedBlocks)
+	defer cursor.Release()
+
+	firstCtx, firstCounter := block.WithReadCounter(ctx)
+	first, err := cursor.Unmarshal(firstCtx, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	first.(*block_mock.Example).Msg = "mutated"
+	decodedBlocks.Wait()
+
+	secondCursor := cursor.Clone()
+	defer secondCursor.Release()
+
+	secondCtx, secondCounter := block.WithReadCounter(ctx)
+	second, err := secondCursor.Unmarshal(secondCtx, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := second.(*block_mock.Example).GetMsg(); got != "resource-cache" {
+		t.Fatalf("lifecycle cache clone msg = %q, want resource-cache", got)
+	}
+
+	firstSnapshot := firstCounter.Snapshot()
+	if firstSnapshot.BlockReadCount != 1 ||
+		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
+		firstSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		firstSnapshot.DecodedBlockCacheMissCount != 1 {
+		t.Fatalf("unexpected first decoded cache counters: %+v", firstSnapshot)
+	}
+	secondSnapshot := secondCounter.Snapshot()
+	if secondSnapshot.BlockReadCount != 0 ||
+		secondSnapshot.DecodedBlockUnmarshalCount != 0 ||
+		secondSnapshot.DecodedBlockCacheAttemptCount != 1 ||
+		secondSnapshot.DecodedBlockCacheHitCount != 1 ||
+		secondSnapshot.DecodedBlockCloneCount != 1 {
+		t.Fatalf("unexpected second decoded cache counters: %+v", secondSnapshot)
+	}
+
+	thirdCursor, err := cursor.FollowRef(ctx, &bucket.ObjectRef{RootRef: ref})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer thirdCursor.Release()
+	thirdCtx, thirdCounter := block.WithReadCounter(ctx)
+	if _, err := thirdCursor.Unmarshal(thirdCtx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	thirdSnapshot := thirdCounter.Snapshot()
+	if thirdSnapshot.BlockReadCount != 0 ||
+		thirdSnapshot.DecodedBlockCacheHitCount != 1 {
+		t.Fatalf("followed cursor should borrow lifecycle cache: %+v", thirdSnapshot)
+	}
+
+	cursor.Release()
+	fourthCursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		nil,
+		nil,
+		store,
+		nil,
+		&bucket.ObjectRef{RootRef: ref},
+		nil,
+		nil,
+	)
+	fourthCursor.SetDecodedBlockCache(decodedBlocks)
+	defer fourthCursor.Release()
+	fourthCtx, fourthCounter := block.WithReadCounter(ctx)
+	if _, err := fourthCursor.Unmarshal(fourthCtx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	fourthSnapshot := fourthCounter.Snapshot()
+	if fourthSnapshot.BlockReadCount != 0 ||
+		fourthSnapshot.DecodedBlockCacheHitCount != 1 {
+		t.Fatalf("cursor release should not close lifecycle cache: %+v", fourthSnapshot)
+	}
+}
+
+func TestCursorUnmarshalWithoutOwnerUsesUncachedPath(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "uncached"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -30,43 +133,139 @@ func TestCursorUnmarshalReusesDecodedBlocksForResourceLifetime(t *testing.T) {
 	)
 	defer cursor.Release()
 
-	opCtx, counter := block.WithReadCounter(ctx)
-	first, err := cursor.Unmarshal(opCtx, block_mock.NewExampleBlock)
+	firstCtx, firstCounter := block.WithReadCounter(ctx)
+	if _, err := cursor.Unmarshal(firstCtx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	secondCursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		nil,
+		nil,
+		store,
+		nil,
+		&bucket.ObjectRef{RootRef: ref},
+		nil,
+		nil,
+	)
+	defer secondCursor.Release()
+	secondCtx, secondCounter := block.WithReadCounter(ctx)
+	if _, err := secondCursor.Unmarshal(secondCtx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	firstSnapshot := firstCounter.Snapshot()
+	if firstSnapshot.BlockReadCount != 1 ||
+		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
+		firstSnapshot.DecodedBlockCacheAttemptCount != 0 ||
+		firstSnapshot.DecodedBlockUncacheableCount != 1 {
+		t.Fatalf("unexpected first uncached counters: %+v", firstSnapshot)
+	}
+	secondSnapshot := secondCounter.Snapshot()
+	if secondSnapshot.BlockReadCount != 1 ||
+		secondSnapshot.DecodedBlockUnmarshalCount != 1 ||
+		secondSnapshot.DecodedBlockCacheHitCount != 0 {
+		t.Fatalf("unexpected second uncached counters: %+v", secondSnapshot)
+	}
+}
+
+func TestLifecycleDecodedCacheRepeatedReadWorkloadCounters(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "workload"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	first.(*block_mock.Example).Msg = "mutated"
+	const operations = 8
 
-	second, err := cursor.Unmarshal(opCtx, block_mock.NewExampleBlock)
+	uncached := runRepeatedUnmarshalWorkload(t, ctx, store, ref, nil, operations)
+	if uncached.BlockReadCount != operations ||
+		uncached.DecodedBlockUnmarshalCount != operations ||
+		uncached.DecodedBlockCacheHitCount != 0 ||
+		uncached.DecodedBlockUncacheableCount != operations {
+		t.Fatalf("uncached workload counters: %+v", uncached)
+	}
+
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if got := second.(*block_mock.Example).GetMsg(); got != "resource-cache" {
-		t.Fatalf("resource cache clone msg = %q, want resource-cache", got)
+	defer decodedBlocks.Close()
+
+	cached := runRepeatedUnmarshalWorkload(t, ctx, store, ref, decodedBlocks, operations)
+	if cached.BlockReadCount != 1 ||
+		cached.DecodedBlockUnmarshalCount != 1 ||
+		cached.DecodedBlockCacheAttemptCount != operations ||
+		cached.DecodedBlockCacheMissCount != 1 ||
+		cached.DecodedBlockCacheHitCount != operations-1 ||
+		cached.DecodedBlockCloneCount != operations-1 ||
+		cached.DecodedBlockStoreAttemptCount != 1 ||
+		cached.DecodedBlockStoreAcceptedCount != 1 ||
+		cached.DecodedBlockStoreCost == 0 {
+		t.Fatalf("cached workload counters: %+v", cached)
 	}
 
-	snapshot := counter.Snapshot()
-	if snapshot.BlockReadCount != 1 ||
-		snapshot.DecodedBlockUnmarshalCount != 1 ||
-		snapshot.DecodedBlockCacheAttemptCount != 2 ||
-		snapshot.DecodedBlockCacheMissCount != 1 ||
-		snapshot.DecodedBlockCacheHitCount != 1 ||
-		snapshot.DecodedBlockCloneCount != 1 {
-		t.Fatalf("unexpected decoded cache counters: %+v", snapshot)
+	cacheSnapshot := decodedBlocks.Snapshot()
+	if cacheSnapshot.MaxCost != block.DefaultDecodedBlockCacheMaxCost ||
+		cacheSnapshot.RetainedCost == 0 ||
+		cacheSnapshot.RetainedCost > cacheSnapshot.MaxCost ||
+		cacheSnapshot.Hits == 0 ||
+		cacheSnapshot.Stores == 0 ||
+		cacheSnapshot.CostAdded == 0 {
+		t.Fatalf("cached workload snapshot: %+v", cacheSnapshot)
 	}
+}
 
-	cursor.Release()
-	opCtx, counter = block.WithReadCounter(ctx)
-	if _, err := cursor.Unmarshal(opCtx, block_mock.NewExampleBlock); err != nil {
-		t.Fatal(err.Error())
+func runRepeatedUnmarshalWorkload(
+	t *testing.T,
+	ctx context.Context,
+	store bucket.BucketOps,
+	ref *block.BlockRef,
+	decodedBlocks *block.DecodedBlockCache,
+	operations uint64,
+) block.ReadCounterSnapshot {
+	t.Helper()
+	var total block.ReadCounterSnapshot
+	for range operations {
+		func() {
+			cursor := bucket_lookup.NewCursor(
+				ctx,
+				nil,
+				nil,
+				nil,
+				store,
+				nil,
+				&bucket.ObjectRef{RootRef: ref},
+				nil,
+				nil,
+			)
+			defer cursor.Release()
+			if decodedBlocks != nil {
+				cursor.SetDecodedBlockCache(decodedBlocks)
+			}
+			opCtx, counter := block.WithReadCounter(ctx)
+			blk, err := cursor.Unmarshal(opCtx, block_mock.NewExampleBlock)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if got := blk.(*block_mock.Example).GetMsg(); got != "workload" {
+				t.Fatalf("decoded message = %q, want workload", got)
+			}
+			if decodedBlocks != nil {
+				decodedBlocks.Wait()
+			}
+			snapshot := counter.Snapshot()
+			total.BlockReadCount += snapshot.BlockReadCount
+			total.DecodedBlockUnmarshalCount += snapshot.DecodedBlockUnmarshalCount
+			total.DecodedBlockCacheAttemptCount += snapshot.DecodedBlockCacheAttemptCount
+			total.DecodedBlockCacheMissCount += snapshot.DecodedBlockCacheMissCount
+			total.DecodedBlockCacheHitCount += snapshot.DecodedBlockCacheHitCount
+			total.DecodedBlockCloneCount += snapshot.DecodedBlockCloneCount
+			total.DecodedBlockUncacheableCount += snapshot.DecodedBlockUncacheableCount
+			total.DecodedBlockStoreAttemptCount += snapshot.DecodedBlockStoreAttemptCount
+			total.DecodedBlockStoreAcceptedCount += snapshot.DecodedBlockStoreAcceptedCount
+			total.DecodedBlockStoreCost += snapshot.DecodedBlockStoreCost
+		}()
 	}
-	if _, err := cursor.Unmarshal(opCtx, block_mock.NewExampleBlock); err != nil {
-		t.Fatal(err.Error())
-	}
-	snapshot = counter.Snapshot()
-	if snapshot.BlockReadCount != 2 ||
-		snapshot.DecodedBlockUnmarshalCount != 2 ||
-		snapshot.DecodedBlockCacheHitCount != 0 {
-		t.Fatalf("decoded cache should be released: %+v", snapshot)
-	}
+	return total
 }

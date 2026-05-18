@@ -49,8 +49,9 @@ func TestUnmarshalWithBlockTypeReusesDecodedCursor(t *testing.T) {
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 1 ||
 		snapshot.DecodedBlockUnmarshalCount != 1 ||
-		snapshot.DecodedBlockCacheAttemptCount != 1 ||
-		snapshot.DecodedBlockCacheMissCount != 1 {
+		snapshot.DecodedBlockCacheAttemptCount != 0 ||
+		snapshot.DecodedBlockCacheMissCount != 0 ||
+		snapshot.DecodedBlockUncacheableCount != 1 {
 		t.Fatalf("unexpected typed cursor counters: %+v", snapshot)
 	}
 }

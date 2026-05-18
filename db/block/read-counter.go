@@ -39,6 +39,14 @@ type ReadCounter struct {
 	decodedBlockUncloneable atomic.Uint64
 	// decodedBlockUncacheable is the number of decoded-block cache bypasses for missing exact keys.
 	decodedBlockUncacheable atomic.Uint64
+	// decodedBlockStoreAttempts is the number of decoded-block cache store submissions.
+	decodedBlockStoreAttempts atomic.Uint64
+	// decodedBlockStoreAccepted is the number of store submissions accepted by the cache buffer.
+	decodedBlockStoreAccepted atomic.Uint64
+	// decodedBlockStoreRejected is the number of store submissions rejected or dropped immediately.
+	decodedBlockStoreRejected atomic.Uint64
+	// decodedBlockStoreCost is the cost submitted for decoded-block cache retention.
+	decodedBlockStoreCost atomic.Uint64
 }
 
 // WithReadCounter returns a context that records aggregate block reads.
@@ -56,21 +64,25 @@ func (c *ReadCounter) Snapshot() ReadCounterSnapshot {
 		return ReadCounterSnapshot{}
 	}
 	return ReadCounterSnapshot{
-		BlockReadCount:                c.count.Load(),
-		BlockReadBytes:                c.bytes.Load(),
-		BlockReadMissCount:            c.misses.Load(),
-		ResourceGetBlockCount:         c.resourceGetBlockCount.Load(),
-		ResourceGetBlockRefCount:      c.resourceGetBlockRefs.Load(),
-		ResourceGetBlockBytes:         c.resourceGetBlockBytes.Load(),
-		ResourceGetBlockMissCount:     c.resourceGetBlockMisses.Load(),
-		DecodedBlockUnmarshalCount:    c.decodedBlockUnmarshalCount.Load(),
-		DecodedBlockUnmarshalBytes:    c.decodedBlockUnmarshalBytes.Load(),
-		DecodedBlockCacheAttemptCount: c.decodedBlockCacheAttempts.Load(),
-		DecodedBlockCacheHitCount:     c.decodedBlockCacheHits.Load(),
-		DecodedBlockCacheMissCount:    c.decodedBlockCacheMisses.Load(),
-		DecodedBlockCloneCount:        c.decodedBlockClones.Load(),
-		DecodedBlockUncloneableCount:  c.decodedBlockUncloneable.Load(),
-		DecodedBlockUncacheableCount:  c.decodedBlockUncacheable.Load(),
+		BlockReadCount:                 c.count.Load(),
+		BlockReadBytes:                 c.bytes.Load(),
+		BlockReadMissCount:             c.misses.Load(),
+		ResourceGetBlockCount:          c.resourceGetBlockCount.Load(),
+		ResourceGetBlockRefCount:       c.resourceGetBlockRefs.Load(),
+		ResourceGetBlockBytes:          c.resourceGetBlockBytes.Load(),
+		ResourceGetBlockMissCount:      c.resourceGetBlockMisses.Load(),
+		DecodedBlockUnmarshalCount:     c.decodedBlockUnmarshalCount.Load(),
+		DecodedBlockUnmarshalBytes:     c.decodedBlockUnmarshalBytes.Load(),
+		DecodedBlockCacheAttemptCount:  c.decodedBlockCacheAttempts.Load(),
+		DecodedBlockCacheHitCount:      c.decodedBlockCacheHits.Load(),
+		DecodedBlockCacheMissCount:     c.decodedBlockCacheMisses.Load(),
+		DecodedBlockCloneCount:         c.decodedBlockClones.Load(),
+		DecodedBlockUncloneableCount:   c.decodedBlockUncloneable.Load(),
+		DecodedBlockUncacheableCount:   c.decodedBlockUncacheable.Load(),
+		DecodedBlockStoreAttemptCount:  c.decodedBlockStoreAttempts.Load(),
+		DecodedBlockStoreAcceptedCount: c.decodedBlockStoreAccepted.Load(),
+		DecodedBlockStoreRejectedCount: c.decodedBlockStoreRejected.Load(),
+		DecodedBlockStoreCost:          c.decodedBlockStoreCost.Load(),
 	}
 }
 
@@ -151,4 +163,26 @@ func RecordDecodedBlockUncacheable(ctx context.Context) {
 		return
 	}
 	counter.decodedBlockUncacheable.Add(1)
+}
+
+func recordDecodedBlockCacheStore(ctx context.Context, accepted bool, cost int64) {
+	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	if counter == nil {
+		return
+	}
+	counter.decodedBlockStoreAttempts.Add(1)
+	if accepted {
+		counter.decodedBlockStoreAccepted.Add(1)
+	}
+	if cost > 0 {
+		counter.decodedBlockStoreCost.Add(uint64(cost))
+	}
+}
+
+func recordDecodedBlockCacheRejected(ctx context.Context) {
+	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	if counter == nil {
+		return
+	}
+	counter.decodedBlockStoreRejected.Add(1)
 }
