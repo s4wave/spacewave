@@ -219,10 +219,9 @@ func waitSignal(t *testing.T, ch <-chan struct{}, name string) {
 	}
 }
 
-func TestBufferedStoreStartsBackgroundDrainBeforeFlush(t *testing.T) {
+func TestBufferedStoreKeepsPendingUntilFlush(t *testing.T) {
 	ctx := context.Background()
 	inner := newCountStore(hash.HashType_HashType_BLAKE3)
-	started := inner.setBatchBlocker()
 	store := NewBufferedStore(ctx, inner)
 
 	ref, exists, err := store.PutBlock(ctx, []byte("hello"), nil)
@@ -232,19 +231,32 @@ func TestBufferedStoreStartsBackgroundDrainBeforeFlush(t *testing.T) {
 	if exists {
 		t.Fatal("expected buffered put to be new")
 	}
-	waitSignal(t, started, "background drain")
 
 	found, err := inner.GetBlockExists(ctx, ref)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if found {
-		t.Fatal("expected blocked background drain to keep block pending")
+		t.Fatal("expected buffered put to stay pending before flush")
 	}
 
-	inner.releaseBatchBlocker()
+	found, err = store.GetBlockExists(ctx, ref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found {
+		t.Fatal("expected buffered store to read through pending block")
+	}
+
 	if err := store.Flush(ctx); err != nil {
 		t.Fatal(err.Error())
+	}
+	found, err = inner.GetBlockExists(ctx, ref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found {
+		t.Fatal("expected block to be durable after flush")
 	}
 }
 
@@ -258,12 +270,12 @@ func TestBufferedStoreFlushWaitsForDurableDrain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	waitSignal(t, started, "background drain")
 
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- store.Flush(ctx)
 	}()
+	waitSignal(t, started, "flush drain")
 
 	select {
 	case err := <-errCh:
@@ -318,7 +330,7 @@ func TestBufferedStoreDedupsPendingBlock(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	if inner.batchCalls != 1 {
-		t.Fatalf("expected one background batch after deduped flush, got %d", inner.batchCalls)
+		t.Fatalf("expected one batch after deduped flush, got %d", inner.batchCalls)
 	}
 	if inner.putCalls != 0 {
 		t.Fatalf("expected batch path instead of serial PutBlock, got %d single puts", inner.putCalls)
@@ -328,7 +340,6 @@ func TestBufferedStoreDedupsPendingBlock(t *testing.T) {
 func TestBufferedStoreReadsThroughPendingBlock(t *testing.T) {
 	ctx := context.Background()
 	inner := newCountStore(hash.HashType_HashType_BLAKE3)
-	started := inner.setBatchBlocker()
 	store := NewBufferedStore(ctx, inner)
 
 	ref, exists, err := store.PutBlock(ctx, []byte("hello"), nil)
@@ -338,7 +349,6 @@ func TestBufferedStoreReadsThroughPendingBlock(t *testing.T) {
 	if exists {
 		t.Fatal("expected buffered put to be new")
 	}
-	waitSignal(t, started, "background drain")
 
 	data, found, err := store.GetBlock(ctx, ref)
 	if err != nil {
@@ -370,7 +380,6 @@ func TestBufferedStoreReadsThroughPendingBlock(t *testing.T) {
 		t.Fatalf("unexpected pending stat size: %d", stat.Size)
 	}
 
-	inner.releaseBatchBlocker()
 	if err := store.Flush(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -483,7 +492,6 @@ func TestBufferedStoreBlocksWhenPendingLimitExceeded(t *testing.T) {
 	if exists {
 		t.Fatal("expected first buffered put to be new")
 	}
-	waitSignal(t, started, "background drain")
 
 	// Second PutBlock should block until the first drains instead of returning
 	// ErrBufferedStoreFull.
@@ -496,6 +504,7 @@ func TestBufferedStoreBlocksWhenPendingLimitExceeded(t *testing.T) {
 		_, exists, err := store.PutBlock(ctx, []byte("two"), nil)
 		done <- putResult{exists: exists, err: err}
 	}()
+	waitSignal(t, started, "capacity drain")
 
 	select {
 	case res := <-done:
@@ -533,7 +542,6 @@ func TestBufferedStoreUnblocksOnContextCancel(t *testing.T) {
 	if _, _, err := store.PutBlock(ctx, []byte("one"), nil); err != nil {
 		t.Fatal(err.Error())
 	}
-	waitSignal(t, started, "background drain")
 
 	cancelCtx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
@@ -541,6 +549,7 @@ func TestBufferedStoreUnblocksOnContextCancel(t *testing.T) {
 		_, _, err := store.PutBlock(cancelCtx, []byte("two"), nil)
 		done <- err
 	}()
+	waitSignal(t, started, "capacity drain")
 
 	select {
 	case err := <-done:
@@ -598,14 +607,12 @@ func TestBufferedStoreUsesBatchPut(t *testing.T) {
 func TestBufferedStoreRemovesPendingBlockWithoutResurrection(t *testing.T) {
 	ctx := context.Background()
 	inner := newCountStore(hash.HashType_HashType_BLAKE3)
-	started := inner.setBatchBlocker()
 	store := NewBufferedStore(ctx, inner)
 
 	ref, _, err := store.PutBlock(ctx, []byte("hello"), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	waitSignal(t, started, "background drain")
 
 	if err := store.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err.Error())
@@ -619,7 +626,6 @@ func TestBufferedStoreRemovesPendingBlockWithoutResurrection(t *testing.T) {
 		t.Fatal("expected pending tombstone to hide block")
 	}
 
-	inner.releaseBatchBlocker()
 	if err := store.Flush(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -633,21 +639,36 @@ func TestBufferedStoreRemovesPendingBlockWithoutResurrection(t *testing.T) {
 	}
 }
 
-func TestBufferedStoreDrainUsesStoreContext(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+func TestBufferedStoreFlushContextCancelCanRetry(t *testing.T) {
+	ctx := context.Background()
 	inner := newCountStore(hash.HashType_HashType_BLAKE3)
 	started := inner.setBatchBlocker()
 	store := NewBufferedStore(ctx, inner)
 
-	if _, _, err := store.PutBlock(context.Background(), []byte("hello"), nil); err != nil {
+	if _, _, err := store.PutBlock(ctx, []byte("hello"), nil); err != nil {
 		t.Fatal(err.Error())
 	}
-	waitSignal(t, started, "background drain")
+
+	cancelCtx, cancel := context.WithCancel(ctx)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- store.Flush(cancelCtx)
+	}()
+	waitSignal(t, started, "flush drain")
 
 	cancel()
 
-	err := store.Flush(context.Background())
-	if err != context.Canceled {
-		t.Fatalf("expected context.Canceled, got %v", err)
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected context.Canceled, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("flush did not return after context cancel")
+	}
+
+	inner.releaseBatchBlocker()
+	if err := store.Flush(ctx); err != nil {
+		t.Fatal(err.Error())
 	}
 }

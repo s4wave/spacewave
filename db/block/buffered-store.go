@@ -9,7 +9,7 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/routine"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -18,7 +18,6 @@ type pendingBlock struct {
 	ref       *BlockRef
 	data      []byte
 	refs      []*BlockRef
-	seq       uint64
 	tombstone bool
 	queued    bool
 }
@@ -26,25 +25,22 @@ type pendingBlock struct {
 type drainBatch struct {
 	keys    []string
 	entries []*PutBatchEntry
-	lastSeq uint64
 }
 
-// BufferedStore buffers PutBlock calls in memory, drains them in the
-// background, and exposes Flush as a durability fence.
+// BufferedStore buffers PutBlock calls in memory and drains them explicitly on
+// Flush or when a caller must free capacity.
 type BufferedStore struct {
 	inner StoreOps
-	rc    *routine.RoutineContainer
 
 	bcast             broadcast.Broadcast
+	drainMu           csync.Mutex
 	pending           map[string]*pendingBlock
 	pendingBytes      int
 	maxPendingBytes   int
 	maxPendingBlocks  int
 	drainBatchEntries int
 
-	queue      []string
-	nextSeq    uint64
-	durableSeq uint64
+	queue []string
 
 	// deferFlush counts active defer-flush scopes.
 	deferFlush atomic.Int64
@@ -52,33 +48,25 @@ type BufferedStore struct {
 	drainErr error
 }
 
-// NewBufferedStore constructs a buffered store around an inner
-// store and uses ctx for background draining.
+// NewBufferedStore constructs a buffered store around an inner store.
 func NewBufferedStore(ctx context.Context, inner StoreOps) *BufferedStore {
 	return NewBufferedStoreWithSettings(ctx, inner, nil)
 }
 
 // NewBufferedStoreWithSettings constructs a buffered store with explicit settings.
 func NewBufferedStoreWithSettings(
-	ctx context.Context,
+	_ context.Context,
 	inner StoreOps,
 	settings *BufferedStoreSettings,
 ) *BufferedStore {
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	settings = normalizeBufferedStoreSettings(settings)
-	s := &BufferedStore{
+	return &BufferedStore{
 		inner:             inner,
-		rc:                routine.NewRoutineContainer(),
 		pending:           make(map[string]*pendingBlock),
 		maxPendingBytes:   settings.MaxPendingBytes,
 		maxPendingBlocks:  settings.MaxPendingEntries,
 		drainBatchEntries: settings.DrainBatchEntries,
 	}
-	_, _ = s.rc.SetRoutine(s.drainLoop)
-	_ = s.rc.SetContext(ctx, false)
-	return s
 }
 
 // GetHashType returns the preferred hash type.
@@ -96,7 +84,8 @@ func (s *BufferedStore) BeginReadOperation(context.Context) (StoreOps, func(), e
 	return s, func() {}, nil
 }
 
-// PutBlock buffers a block in memory and starts background draining if needed.
+// PutBlock buffers a block in memory and drains synchronously only when
+// backpressure requires capacity.
 func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
 	if len(data) == 0 {
 		return nil, false, ErrEmptyBlock
@@ -150,7 +139,6 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 		refs: CloneBlockRefs(opts.GetRefs()),
 	}
 	for {
-		var waitCh <-chan struct{}
 		var done bool
 		var alreadyExists bool
 		var putErr error
@@ -180,7 +168,6 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 				done = true
 				return
 			}
-			waitCh = getWaitCh()
 		})
 		if done {
 			if putErr != nil {
@@ -191,14 +178,12 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 			}
 			return ref, false, nil
 		}
-		_, waitTask := trace.NewTask(ctx, "hydra/block/buffered-store/enqueue/wait-capacity")
-		select {
-		case <-ctx.Done():
-			waitTask.End()
-			return nil, false, ctx.Err()
-		case <-waitCh:
+		_, drainTask := trace.NewTask(ctx, "hydra/block/buffered-store/enqueue/drain-capacity")
+		if err := s.drainForCapacity(ctx); err != nil {
+			drainTask.End()
+			return nil, false, err
 		}
-		waitTask.End()
+		drainTask.End()
 	}
 }
 
@@ -293,7 +278,6 @@ func (s *BufferedStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 		tombstone: true,
 	}
 	for {
-		var waitCh <-chan struct{}
 		var done bool
 		var rmErr error
 		s.bcast.HoldLock(func(broadcastFn func(), getWaitCh func() <-chan struct{}) {
@@ -316,20 +300,18 @@ func (s *BufferedStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 				done = true
 				return
 			}
-			waitCh = getWaitCh()
 		})
 		if done {
 			return rmErr
 		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-waitCh:
+		if err := s.drainForCapacity(ctx); err != nil {
+			return err
 		}
 	}
 }
 
-// PutBlockBackground forwards to PutBlock because buffered writes already drain asynchronously.
+// PutBlockBackground forwards to PutBlock. BufferedStore does not own
+// background workers.
 func (s *BufferedStore) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
 	return s.PutBlock(ctx, data, opts)
 }
@@ -352,10 +334,14 @@ func (s *BufferedStore) StatBlock(ctx context.Context, ref *BlockRef) (*BlockSta
 	return s.inner.StatBlock(ctx, ref)
 }
 
-// Flush waits for background block draining through the current fence.
+// Flush drains buffered blocks through the current fence.
 func (s *BufferedStore) Flush(ctx context.Context) error {
 	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/flush/wait-durable")
-	if err := s.waitForDurable(ctx); err != nil {
+	if err := s.drainAll(ctx); err != nil {
+		subtask.End()
+		return err
+	}
+	if err := s.inner.Flush(ctx); err != nil {
 		subtask.End()
 		return err
 	}
@@ -375,83 +361,113 @@ func (s *BufferedStore) EndDeferFlush(ctx context.Context) error {
 	if depth < 0 {
 		return errors.New("block: EndDeferFlush called more than BeginDeferFlush")
 	}
-	innerErr := s.inner.EndDeferFlush(ctx)
 	if depth != 0 {
-		return innerErr
+		return s.inner.EndDeferFlush(ctx)
 	}
-	if err := s.Flush(ctx); err != nil {
-		return err
+	drainErr := s.drainAll(ctx)
+	innerErr := s.inner.EndDeferFlush(ctx)
+	if drainErr != nil {
+		return drainErr
 	}
 	return innerErr
 }
 
-func (s *BufferedStore) drainLoop(ctx context.Context) error {
+func (s *BufferedStore) drainForCapacity(ctx context.Context) error {
+	release, err := s.drainMu.Lock(ctx)
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return err
+	}
+	defer release()
+
+	drained, err := s.drainNextBatch(ctx)
+	if err != nil {
+		return err
+	}
+	if !drained {
+		return ErrBufferedStoreFull
+	}
+	return nil
+}
+
+func (s *BufferedStore) drainAll(ctx context.Context) error {
+	release, err := s.drainMu.Lock(ctx)
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return err
+	}
+	defer release()
+
 	for {
-		var batch *drainBatch
-		var waitCh <-chan struct{}
-		var loopErr error
-		var batchCtx context.Context
-		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			if s.drainErr != nil {
-				loopErr = s.drainErr
-				return
-			}
-			var subtask *trace.Task
-			batchCtx, subtask = trace.NewTask(ctx, "hydra/block/buffered-store/drain-loop/take-batch")
-			batch = s.takeDrainBatchLocked()
-			subtask.End()
-			if batch == nil {
-				waitCh = getWaitCh()
-			}
-		})
-		if loopErr != nil {
-			return loopErr
+		drained, err := s.drainNextBatch(ctx)
+		if err != nil {
+			return err
 		}
-		if batch == nil {
-			_, waitTask := trace.NewTask(ctx, "hydra/block/buffered-store/drain-loop/wait")
-			select {
-			case <-ctx.Done():
-				waitTask.End()
-				return ctx.Err()
-			case <-waitCh:
-			}
-			waitTask.End()
-			continue
-		}
-
-		writeCtx, writeTask := trace.NewTask(batchCtx, "hydra/block/buffered-store/drain-loop/write-batch")
-		err := s.writeBatch(writeCtx, batch.entries)
-		writeTask.End()
-
-		var returnErr error
-		s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
-			if err != nil {
-				s.queue = append(batch.keys, s.queue...)
-				s.drainErr = err
-				broadcastFn()
-				returnErr = err
-				return
-			}
-			for _, key := range batch.keys {
-				pending := s.pending[key]
-				if pending == nil {
-					continue
-				}
-				if pending.queued {
-					continue
-				}
-				s.pendingBytes -= len(pending.data)
-				delete(s.pending, key)
-			}
-			if batch.lastSeq > s.durableSeq {
-				s.durableSeq = batch.lastSeq
-			}
-			broadcastFn()
-		})
-		if returnErr != nil {
-			return returnErr
+		if !drained {
+			return nil
 		}
 	}
+}
+
+func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
+	var batch *drainBatch
+	var drainErr error
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if s.drainErr != nil {
+			drainErr = s.drainErr
+			return
+		}
+		var subtask *trace.Task
+		_, subtask = trace.NewTask(ctx, "hydra/block/buffered-store/drain/take-batch")
+		batch = s.takeDrainBatchLocked()
+		subtask.End()
+	})
+	if drainErr != nil {
+		return false, drainErr
+	}
+	if batch == nil {
+		return false, nil
+	}
+
+	writeCtx, writeTask := trace.NewTask(ctx, "hydra/block/buffered-store/drain/write-batch")
+	err := s.writeBatch(writeCtx, batch.entries)
+	writeTask.End()
+
+	var returnErr error
+	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		if err != nil {
+			s.returnDrainBatchLocked(batch)
+			if ctx.Err() == nil {
+				s.drainErr = err
+			}
+			broadcastFn()
+			returnErr = err
+			return
+		}
+		for _, key := range batch.keys {
+			pending := s.pending[key]
+			if pending == nil {
+				continue
+			}
+			if pending.queued {
+				continue
+			}
+			s.pendingBytes -= len(pending.data)
+			delete(s.pending, key)
+		}
+		broadcastFn()
+	})
+	if returnErr != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return true, ctxErr
+		}
+		return true, returnErr
+	}
+	return true, nil
 }
 
 func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
@@ -484,11 +500,29 @@ func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
 			Refs:      CloneBlockRefs(pending.refs),
 			Tombstone: pending.tombstone,
 		})
-		if pending.seq > batch.lastSeq {
-			batch.lastSeq = pending.seq
-		}
 	}
 	return batch
+}
+
+func (s *BufferedStore) returnDrainBatchLocked(batch *drainBatch) {
+	if batch == nil || len(batch.keys) == 0 {
+		return
+	}
+	requeue := make([]string, 0, len(batch.keys))
+	for _, key := range batch.keys {
+		pending := s.pending[key]
+		if pending == nil {
+			continue
+		}
+		if pending.queued {
+			continue
+		}
+		pending.queued = true
+		requeue = append(requeue, key)
+	}
+	if len(requeue) != 0 {
+		s.queue = append(requeue, s.queue...)
+	}
 }
 
 func (s *BufferedStore) writeBatch(ctx context.Context, entries []*PutBatchEntry) error {
@@ -499,38 +533,6 @@ func (s *BufferedStore) writeBatch(ctx context.Context, entries []*PutBatchEntry
 	err := s.inner.PutBlockBatch(batchCtx, entries)
 	batchTask.End()
 	return err
-}
-
-func (s *BufferedStore) waitForDurable(ctx context.Context) error {
-	for {
-		var waitCh <-chan struct{}
-		var done bool
-		var waitErr error
-		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			if s.drainErr != nil {
-				waitErr = s.drainErr
-				done = true
-				return
-			}
-			if s.durableSeq >= s.nextSeq {
-				done = true
-				return
-			}
-			waitCh = getWaitCh()
-		})
-		if done {
-			return waitErr
-		}
-
-		_, waitTask := trace.NewTask(ctx, "hydra/block/buffered-store/flush/wait-durable/wait-notify")
-		select {
-		case <-ctx.Done():
-			waitTask.End()
-			return ctx.Err()
-		case <-waitCh:
-		}
-		waitTask.End()
-	}
 }
 
 func marshalRefKey(ref *BlockRef) (string, error) {
@@ -571,8 +573,6 @@ func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending
 		return ErrBufferedStoreFull
 	}
 
-	s.nextSeq++
-	pending.seq = s.nextSeq
 	pending.queued = prev == nil || !prev.queued
 	s.pending[key] = pending
 	s.pendingBytes = nextBytes
