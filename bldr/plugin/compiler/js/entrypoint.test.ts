@@ -260,4 +260,36 @@ describe('plugin JS backend entrypoint startup', () => {
       debug.mockRestore()
     }
   })
+
+  test('propagates backend startup failures before readiness can be reported', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const backendAPI = {
+      startInfo: { pluginId: 'spacewave-app' },
+      utils: {
+        pluginAssetHttpPath: (_pluginId: string, path: string) =>
+          '/p/spacewave-app/a/' + path,
+      },
+    }
+    const abortController = new AbortController()
+
+    try {
+      await expect(
+        loadBackendEntrypoints(
+          backendAPI as never,
+          abortController.signal,
+          [{ importPath: '/assets/notes.js', importName: 'default' }],
+          async () => ({
+            default: () => ({
+              startup: Promise.reject(new Error('startup failed')),
+            }),
+          }),
+        ),
+      ).rejects.toThrow('startup failed')
+    } finally {
+      abortController.abort()
+      debug.mockRestore()
+      error.mockRestore()
+    }
+  })
 })

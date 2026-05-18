@@ -613,11 +613,9 @@ export async function registerUpdatedServiceWorker(
 // It's best to have a single WebDocument per browser tab/window (HTML body).
 //
 // Browsers throttle background tabs, and timers / callbacks can be delayed by
-// up to a minute. WebDocument watches the Page Visibility API and marks the
-// document as hidden, increasing the ping/pong timings and timeouts. This
-// allows the WebDocument to respond to RPC calls and pings while operating in a
-// low-CPU-usage suspended state. In Electron, we can disable background
-// throttling in the BrowserWindow.
+// up to a minute. WebDocument treats Page Visibility as state for runtime
+// handoff, but liveness is owned by ports and Web Locks rather than timeouts.
+// In Electron, we can disable background throttling in the BrowserWindow.
 //
 // Note: to put libp2p into debugging mode:
 //  - Node: set the environment variable DEBUG="*"
@@ -697,6 +695,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // pluginSingletonReady resolves when this tab can create plugin workers.
   // In DedicatedWorker runtime mode (no SharedWorker), a Web Lock ensures only
   // one tab creates plugin workers at a time (single-instance invariant).
+  // Without Web Locks, dedicated plugin workers stay unavailable.
   private pluginSingletonReady: Promise<void> = Promise.resolve()
   // singletonAbort aborts the singleton lock request on close.
   private singletonAbort?: AbortController
@@ -1027,7 +1026,20 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // tab creates plugin workers at a time. SharedWorker mode doesn't need this
     // because the Go runtime's singletonWorkerDoc handles it within the shared
     // process. The lock is held until this document closes.
-    if (useDedicatedRuntime && !this.isElectron && navigator.locks) {
+    const usePluginSingletonLock = useDedicatedRuntime && !this.isElectron
+    if (usePluginSingletonLock && !shouldUseWebDocumentLivenessLock()) {
+      // There is no timer fallback here: backgrounded tabs throttle timers, and
+      // plugin startup needs a real cross-tab singleton owner.
+      this.pluginSingletonReady = Promise.reject(
+        new Error('Web Locks unavailable for dedicated plugin workers'),
+      )
+      this.pluginSingletonReady.catch(() => {})
+      markStartupBoundary('singleton-lock.unavailable', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+      })
+    } else if (usePluginSingletonLock) {
       this.singletonAbort = new AbortController()
       markStartupBoundary('singleton-lock.request-start', {
         source: 'browser',

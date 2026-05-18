@@ -222,16 +222,14 @@ export async function loadBackendEntrypoints(
     `Waiting for ${backendEntrypoints.length} backend entrypoints to start...`,
   )
   for (const entrypoint of backendEntrypoints) {
-    try {
-      await startBackendEntrypoint(
-        entrypoint,
-        backendAPI,
-        abortSignal,
-        loadModule,
-      )
-    } catch (error) {
-      logError(`Backend entrypoint startup threw an error`, error)
-    }
+    // Startup failure means this plugin's backend capabilities are not ready.
+    // Let the caller suppress ready markers instead of reporting a partial boot.
+    await startBackendEntrypoint(
+      entrypoint,
+      backendAPI,
+      abortSignal,
+      loadModule,
+    )
   }
   console.debug('All backend entrypoints started successfully.')
 }

@@ -28,6 +28,13 @@ type TinyGoHelperGlobal = typeof globalThis & {
     ptr: number,
     len: number,
   ) => number
+  BLDR_OPFS_ACQUIRE_WEB_LOCK?: (
+    name: string,
+    mode: LockMode,
+    ifAvailable: boolean,
+    resolve: (release: () => void, acquired: boolean) => void,
+    reject: (code: number) => void,
+  ) => void
   BLDR_TINYGO_PUSH_BYTES?: (
     sink: { push: (message: Uint8Array) => void },
     ptr: number,
@@ -154,10 +161,12 @@ afterEach(() => {
   delete (
     globalThis as typeof globalThis & {
       BLDR_TINYGO_COPY_STORED_BYTES?: unknown
+      BLDR_OPFS_ACQUIRE_WEB_LOCK?: unknown
       BLDR_TINYGO_PUSH_BYTES?: unknown
       BLDR_OPFS_READ_FILE?: unknown
     }
   ).BLDR_TINYGO_COPY_STORED_BYTES
+  delete (globalThis as TinyGoHelperGlobal).BLDR_OPFS_ACQUIRE_WEB_LOCK
   delete (
     globalThis as typeof globalThis & {
       BLDR_TINYGO_COPY_STORED_BYTES?: unknown
@@ -315,6 +324,7 @@ describe('installTinyGoJSHelpers', () => {
     await expect(unknown).resolves.toBe(0)
 
     expect(g.BLDR_TINYGO_COPY_STORED_BYTES).toBeTypeOf('function')
+    expect(g.BLDR_OPFS_ACQUIRE_WEB_LOCK).toBeTypeOf('function')
     expect(g.BLDR_TINYGO_PUSH_BYTES).toBeTypeOf('function')
     expect(g.BLDR_TINYGO_POST_BYTES).toBeTypeOf('function')
     expect(g.BLDR_OPFS_READ_FILE).toBeTypeOf('function')
@@ -322,6 +332,24 @@ describe('installTinyGoJSHelpers', () => {
     expect(g.BLDR_OPFS_LIST_DIRECTORY).toBeTypeOf('function')
     expect(g.BLDR_OPFS_WRITE_AT).toBeTypeOf('function')
     expect(g.BLDR_OPFS_WRITE_FILE).toBeTypeOf('function')
+  })
+
+  it('rejects OPFS Web Locks requests when the runtime lacks Web Locks', async () => {
+    vi.stubGlobal('navigator', {})
+    installTinyGoJSHelpers()
+    const g = globalThis as TinyGoHelperGlobal
+
+    const rejected = new Promise<number>((resolve) => {
+      g.BLDR_OPFS_ACQUIRE_WEB_LOCK?.(
+        'spacewave-opfs',
+        'exclusive',
+        false,
+        () => resolve(-1),
+        resolve,
+      )
+    })
+
+    await expect(rejected).resolves.toBe(0)
   })
 })
 

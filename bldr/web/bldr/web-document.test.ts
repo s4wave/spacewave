@@ -23,6 +23,7 @@ type TestWebDocument = {
   serviceWorkerPort?: MessagePort
   webViews: Record<string, unknown>
   webWorkers: Record<string, Record<string, unknown> & { port: MessagePort }>
+  pluginSingletonReady: Promise<void>
   sabPairBroker: SabPairBroker
   webrtcBridgeEndpoints: Map<string, unknown>
   firstWorkerReadyMarked: boolean
@@ -59,6 +60,7 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     serviceWorkerPort: undefined,
     webViews: {},
     webWorkers: {},
+    pluginSingletonReady: Promise.resolve(),
     sabPairBroker: new SabPairBroker(),
     webrtcBridgeEndpoints: new Map(),
     firstWorkerReadyMarked: false,
@@ -667,6 +669,20 @@ describe('WebDocument plugin generation state', () => {
       undefined,
       WebWorkerGenerationState.RUNNING,
     )
+  })
+
+  it('does not create plugin workers when singleton ownership is unavailable', async () => {
+    const doc = buildTestWebDocument()
+    doc.pluginSingletonReady = Promise.reject(new Error('Web Locks unavailable'))
+    doc.pluginSingletonReady.catch(() => {})
+
+    await expect(
+      WebDocument.prototype.createWebWorker.call(doc, {
+        id: 'worker-1',
+        path: '/worker.js',
+        initData: new Uint8Array([1]),
+      }),
+    ).resolves.toEqual({ created: false, shared: false })
   })
 
   it('publishes normal stop for explicit worker removal', async () => {

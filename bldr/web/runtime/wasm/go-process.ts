@@ -28,6 +28,8 @@ const tinyGoPromiseErrorUnknown = 0
 const tinyGoPromiseErrorNotFound = 1
 const tinyGoPromiseErrorNoModificationAllowed = 2
 
+type NavigatorWithLocks = Navigator & { locks?: LockManager }
+
 let tinyGoWasmMemory: WebAssembly.Memory | undefined
 let tinyGoStoredValueID = 1
 const tinyGoStoredBytes = new Map<number, Uint8Array>()
@@ -285,11 +287,19 @@ export function installTinyGoJSHelpers(): void {
     resolve: (release: () => void, acquired: boolean) => void,
     reject: (code: number) => void,
   ) => {
+    const locks = (globalThis.navigator as NavigatorWithLocks | undefined)
+      ?.locks
+    if (!locks) {
+      // TinyGo waits for exactly one helper callback. Missing Web Locks must
+      // reject asynchronously instead of throwing before Go can unblock.
+      deferTinyGoCallback(() => reject(tinyGoPromiseErrorUnknown))
+      return
+    }
     const lockOptions: LockOptions = { mode }
     if (ifAvailable) {
       lockOptions.ifAvailable = true
     }
-    navigator.locks
+    locks
       .request(name, lockOptions, (lock) => {
         if (ifAvailable && !lock) {
           deferTinyGoCallback(() => resolve(() => {}, false))
