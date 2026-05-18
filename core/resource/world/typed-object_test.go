@@ -23,6 +23,8 @@ import (
 	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
+	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
+	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
@@ -266,6 +268,189 @@ func TestTypedObjectResource(t *testing.T) {
 		typedRef.Release()
 	})
 
+	t.Run("AccessTypedObjectUnixFSEngineResource", func(t *testing.T) {
+		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
+		defer cleanup()
+
+		objectKey := "fs/typed-object-engine"
+		sdkTx, err := engine.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatalf("NewTransaction failed: %v", err)
+		}
+
+		op := space_world_ops.NewInitUnixFSOp(objectKey, time.Now())
+		opData, err := op.MarshalBlock()
+		if err != nil {
+			sdkTx.Release()
+			t.Fatalf("MarshalBlock failed: %v", err)
+		}
+		_, _, err = sdkTx.ApplyWorldOp(ctx, space_world_ops.InitUnixFSOpId, opData, "")
+		if err != nil {
+			sdkTx.Release()
+			t.Fatalf("ApplyWorldOp failed: %v", err)
+		}
+		if err := sdkTx.Commit(ctx); err != nil {
+			sdkTx.Release()
+			t.Fatalf("Commit failed: %v", err)
+		}
+		sdkTx.Release()
+
+		readTx, err := engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatalf("NewTransaction failed: %v", err)
+		}
+		obj, found, err := readTx.GetObject(ctx, objectKey)
+		if err != nil {
+			readTx.Release()
+			t.Fatalf("GetObject failed: %v", err)
+		}
+		if !found {
+			readTx.Release()
+			t.Fatal("expected UnixFS object to exist")
+		}
+		rootRef, _, err := obj.GetRootRef(ctx)
+		if err != nil {
+			readTx.Release()
+			t.Fatalf("GetRootRef failed: %v", err)
+		}
+		if rootRef.GetRootRef().GetEmpty() {
+			readTx.Release()
+			t.Fatal("expected UnixFS object to have a root ref")
+		}
+		readTx.Release()
+
+		engineClient, err := engine.GetResourceRef().GetClient()
+		if err != nil {
+			t.Fatalf("GetClient(engine) failed: %v", err)
+		}
+		typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineClient)
+		resp, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+			ObjectKey: objectKey,
+		})
+		if err != nil {
+			t.Fatalf("AccessTypedObject via engine failed: %v", err)
+		}
+		if resp.GetTypeId() != s4wave_unixfs_world.UnixFSTypeID {
+			t.Fatalf("expected type %q, got %q", s4wave_unixfs_world.UnixFSTypeID, resp.GetTypeId())
+		}
+
+		fsRef := resClient.CreateResourceReference(resp.GetResourceId())
+		defer fsRef.Release()
+		fsClient, err := fsRef.GetClient()
+		if err != nil {
+			t.Fatalf("GetClient(unixfs) failed: %v", err)
+		}
+		fsSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fsClient)
+		nodeType, err := fsSvc.GetNodeType(ctx, &s4wave_unixfs.HandleGetNodeTypeRequest{})
+		if err != nil {
+			t.Fatalf("GetNodeType failed: %v", err)
+		}
+		if !nodeType.GetNodeType().GetIsDir() {
+			t.Fatal("expected root UnixFS handle to resolve as a directory")
+		}
+		if _, err := fsSvc.Mknod(ctx, &s4wave_unixfs.HandleMknodRequest{
+			Names:      []string{"probe.txt"},
+			NodeType:   s4wave_unixfs.MknodType_MKNOD_TYPE_FILE,
+			Mode:       0o644,
+			CheckExist: true,
+		}); err != nil {
+			t.Fatalf("Mknod failed: %v", err)
+		}
+
+		fileResp, err := fsSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "probe.txt"})
+		if err != nil {
+			t.Fatalf("Lookup(probe.txt) failed: %v", err)
+		}
+		fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
+		defer fileRef.Release()
+		fileClient, err := fileRef.GetClient()
+		if err != nil {
+			t.Fatalf("GetClient(probe.txt) failed: %v", err)
+		}
+		fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+		writeResp, err := fileSvc.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{
+			Data: []byte("engine typed-object unixfs probe\n"),
+		})
+		if err != nil {
+			t.Fatalf("WriteAt failed: %v", err)
+		}
+		if writeResp.GetBytesWritten() != int64(len("engine typed-object unixfs probe\n")) {
+			t.Fatalf("expected full write, wrote %d", writeResp.GetBytesWritten())
+		}
+	})
+
+	t.Run("AccessTypedObjectUnixFSWritableTxBeforeCommit", func(t *testing.T) {
+		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
+		defer cleanup()
+
+		objectKey := "fs/typed-object-write-tx"
+		sdkTx, err := engine.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatalf("NewTransaction failed: %v", err)
+		}
+		defer sdkTx.Release()
+
+		op := space_world_ops.NewInitUnixFSOp(objectKey, time.Now())
+		opData, err := op.MarshalBlock()
+		if err != nil {
+			t.Fatalf("MarshalBlock failed: %v", err)
+		}
+		_, _, err = sdkTx.ApplyWorldOp(ctx, space_world_ops.InitUnixFSOpId, opData, "")
+		if err != nil {
+			t.Fatalf("ApplyWorldOp failed: %v", err)
+		}
+
+		txClient, err := sdkTx.GetResourceRef().GetClient()
+		if err != nil {
+			t.Fatalf("GetClient(tx) failed: %v", err)
+		}
+		typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(txClient)
+		resp, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+			ObjectKey: objectKey,
+		})
+		if err != nil {
+			t.Fatalf("AccessTypedObject via write tx failed: %v", err)
+		}
+		if resp.GetTypeId() != s4wave_unixfs_world.UnixFSTypeID {
+			t.Fatalf("expected type %q, got %q", s4wave_unixfs_world.UnixFSTypeID, resp.GetTypeId())
+		}
+
+		fsRef := resClient.CreateResourceReference(resp.GetResourceId())
+		defer fsRef.Release()
+		fsClient, err := fsRef.GetClient()
+		if err != nil {
+			t.Fatalf("GetClient(unixfs) failed: %v", err)
+		}
+		fsSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fsClient)
+		if _, err := fsSvc.Mknod(ctx, &s4wave_unixfs.HandleMknodRequest{
+			Names:      []string{"before-commit.txt"},
+			NodeType:   s4wave_unixfs.MknodType_MKNOD_TYPE_FILE,
+			Mode:       0o644,
+			CheckExist: true,
+		}); err != nil {
+			t.Fatalf("Mknod before commit failed: %v", err)
+		}
+		fileResp, err := fsSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "before-commit.txt"})
+		if err != nil {
+			t.Fatalf("Lookup(before-commit.txt) failed: %v", err)
+		}
+		fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
+		defer fileRef.Release()
+		fileClient, err := fileRef.GetClient()
+		if err != nil {
+			t.Fatalf("GetClient(before-commit.txt) failed: %v", err)
+		}
+		fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+		if _, err := fileSvc.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{
+			Data: []byte("write tx typed-object unixfs probe\n"),
+		}); err != nil {
+			t.Fatalf("WriteAt before commit failed: %v", err)
+		}
+		if err := sdkTx.Commit(ctx); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+	})
+
 	t.Run("AccessTypedObjectGitRepo", func(t *testing.T) {
 		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypes(ctx, t, tb)
 		defer cleanup()
@@ -392,6 +577,7 @@ func setupWorldResourceClientWithObjectTypes(ctx context.Context, t *testing.T, 
 	objectTypes := map[string]objecttype.ObjectType{
 		s4wave_layout_world.ObjectLayoutTypeID: s4wave_layout_world.ObjectLayoutType,
 		s4wave_git_world.GitRepoTypeID:         s4wave_git_world.GitRepoType,
+		s4wave_unixfs_world.UnixFSTypeID:       s4wave_unixfs_world.UnixFSType,
 	}
 	lookupFunc := func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
 		return objectTypes[typeID], nil

@@ -32,6 +32,7 @@ import (
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
+	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
 	"github.com/sirupsen/logrus"
@@ -210,6 +211,7 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 	// Register ObjectType controller with known types
 	objectTypes := map[string]objecttype.ObjectType{
 		s4wave_layout_world.ObjectLayoutTypeID: s4wave_layout_world.ObjectLayoutType,
+		s4wave_unixfs_world.UnixFSTypeID:       s4wave_unixfs_world.UnixFSType,
 	}
 	lookupFunc := func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
 		return objectTypes[typeID], nil

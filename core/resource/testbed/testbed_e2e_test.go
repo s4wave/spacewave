@@ -31,3 +31,26 @@ func TestTestbedE2EWazeroQuickjs(t *testing.T) {
 
 	t.Log("test completed successfully")
 }
+
+func TestTestbedE2EWazeroQuickjsUnixFSTypedObject(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	success, errorMsg, err := resource_testbed.RunTypeScriptTest(
+		ctx,
+		le,
+		"testbed-unixfs-typed-object-plugin",
+		"testbed-unixfs-typed-object.ts",
+	)
+	if err != nil {
+		t.Fatalf("error running test: %v", err)
+	}
+
+	if !success {
+		t.Fatalf("test failed: %s", errorMsg)
+	}
+
+	t.Log("test completed successfully")
+}

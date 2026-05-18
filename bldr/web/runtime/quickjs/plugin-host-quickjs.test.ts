@@ -1,13 +1,19 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { build as viteBuild } from "vite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ChannelStream,
+  Client as SRPCClient,
+  createHandler,
+  createMux,
   combineUint8ArrayListTransform,
   HandleStreamCtr,
+  Server,
   StreamConn,
   type PacketStream,
 } from "starpc";
+import { MockClient, MockDefinition, type Mock } from "starpc/mock";
 import { pushable } from "it-pushable";
 import { pipe } from "it-pipe";
 
@@ -30,6 +36,16 @@ import quickJSRunner, {
   type BackendAssetCacheEntry,
 } from "./plugin-host-quickjs.js";
 import type { BackendAPI } from "@aptre/bldr-sdk";
+import {
+  getCurrentResourceClient,
+  ResourceServer,
+} from "../../../sdk/resource/server/server.js";
+import { Client as ResourceClient } from "../../../sdk/resource/client.js";
+import { ResourceServiceClient } from "../../../sdk/resource/resource_srpc.pb.js";
+import {
+  buildGoAliases,
+  goTsResolver,
+} from "../../bundler/vite/go-ts-resolver.js";
 
 describe("plugin-host-quickjs bridge handlers", () => {
   it("keeps QuickJS and WebRuntime stream directions separate", async () => {
@@ -830,6 +846,947 @@ describe("plugin-host-quickjs runner lifecycle", () => {
       await runner;
     }
   });
+
+  it("runs sequential QuickJS-originated StreamConn RPCs in the production runner", async () => {
+    const wasm = readFileSync(
+      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
+    );
+    const pluginPath = "/b/pd/quickjs-streamconn-sequential-test/plugin.mjs";
+    const pluginScript = await buildQuickJSPluginScript(`
+      import {
+        combineUint8ArrayListTransform,
+        StreamConn,
+      } from 'starpc'
+      import { MockClient } from 'starpc/mock'
+      import { pipe } from 'it-pipe'
+
+      export default async function main(api, abortSignal) {
+        const transport = await api.openStream()
+        const conn = new StreamConn(undefined, {
+          direction: 'outbound',
+          yamuxParams: { enableKeepAlive: false },
+        })
+        const connPipe = pipe(
+          transport.source,
+          conn,
+          combineUint8ArrayListTransform(),
+          transport.sink,
+        )
+        connPipe.catch((err) => conn.close(err))
+
+        const mock = new MockClient(conn.buildClient())
+        const first = await mock.MockRequest({ body: 'one' }, abortSignal)
+        const second = await mock.MockRequest({ body: 'two' }, abortSignal)
+        if (first.body !== 'one-ok' || second.body !== 'two-ok') {
+          throw new Error('unexpected StreamConn responses: ' + first.body + ',' + second.body)
+        }
+
+        conn.close()
+        await connPipe.catch(() => {})
+        console.info('__BLDR_QUICKJS_PLUGIN_READY__')
+      }
+    `);
+
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = requestInfoURL(input);
+      if (url === "/b/qjs/qjs-wasi.wasm") {
+        return new Response(wasm, {
+          headers: { "Content-Type": "application/wasm" },
+        });
+      }
+      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+        return new Response(
+          readFileSync(
+            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
+            "utf8",
+          ),
+        );
+      }
+      if (url === pluginPath) {
+        return new Response(pluginScript);
+      }
+      return new Response("", { status: 404 });
+    });
+    Object.defineProperty(globalThis, "fetch", {
+      value: fetch,
+      configurable: true,
+      writable: true,
+    });
+    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+      WebAssembly.compile(wasm),
+    );
+
+    const events: string[] = [];
+    const hostConns: StreamConn[] = [];
+    const hostPipes: Promise<unknown>[] = [];
+    const hostMux = createMux();
+    const hostService: Mock = {
+      async MockRequest(request) {
+        const body = request.body ?? "";
+        events.push(body);
+        return { body: `${body}-ok` };
+      },
+    };
+    hostMux.register(createHandler(MockDefinition, hostService));
+    const api = {
+      startInfo: { pluginId: "quickjs-streamconn-sequential-test" },
+      openStream: vi.fn(async () => {
+        const [quickJSStream, hostStream] = buildPacketStreamPair();
+        const hostConn = new StreamConn(
+          new Server(hostMux.lookupMethod),
+          {
+            direction: "inbound",
+            yamuxParams: { enableKeepAlive: false },
+          },
+        );
+        hostConns.push(hostConn);
+        const hostPipe = pipe(
+          hostStream.source,
+          hostConn,
+          combineUint8ArrayListTransform(),
+          hostStream.sink,
+        ) as Promise<unknown>;
+        hostPipe.catch((err: unknown) => {
+          hostConn.close(err instanceof Error ? err : new Error(String(err)));
+        });
+        hostPipes.push(hostPipe);
+        return quickJSStream;
+      }),
+      handleStreamCtr: new HandleStreamCtr(),
+      utils: {
+        pluginAssetHttpPath(pluginId: string, path: string): string {
+          return `/b/pa/${pluginId}/${path}`;
+        },
+      },
+    } as unknown as BackendAPI;
+
+    const controller = new AbortController();
+    let ready = false;
+    const runner = quickJSRunner(api, controller.signal, pluginPath, {
+      onReady: () => {
+        ready = true;
+      },
+    });
+
+    try {
+      await Promise.race([
+        waitFor(() => ready, "QuickJS StreamConn sequential RPCs did not finish"),
+        runner.then(
+          () => {
+            throw new Error("QuickJS runner exited before StreamConn ready");
+          },
+          (err) => {
+            throw err;
+          },
+        ),
+      ]);
+
+      expect(api.openStream).toHaveBeenCalledTimes(1);
+      expect(events).toEqual(["one", "two"]);
+    } finally {
+      controller.abort();
+      for (const conn of hostConns) {
+        conn.close();
+      }
+      await Promise.allSettled(hostPipes);
+      await runner;
+    }
+  });
+
+  it("runs nested QuickJS StreamConn RPCs while handling an inbound stream", async () => {
+    const wasm = readFileSync(
+      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
+    );
+    const pluginPath = "/b/pd/quickjs-streamconn-nested-test/plugin.mjs";
+    const pluginScript = await buildQuickJSPluginScript(`
+      import {
+        combineUint8ArrayListTransform,
+        StreamConn,
+      } from 'starpc'
+      import { MockClient } from 'starpc/mock'
+      import { pipe } from 'it-pipe'
+
+      async function callHost(api, abortSignal) {
+        const transport = await api.openStream()
+        const conn = new StreamConn(undefined, {
+          direction: 'outbound',
+          yamuxParams: { enableKeepAlive: false },
+        })
+        const connPipe = pipe(
+          transport.source,
+          conn,
+          combineUint8ArrayListTransform(),
+          transport.sink,
+        )
+        connPipe.catch((err) => conn.close(err))
+
+        const mock = new MockClient(conn.buildClient())
+        const first = await mock.MockRequest({ body: 'nested-one' }, abortSignal)
+        const second = await mock.MockRequest({ body: 'nested-two' }, abortSignal)
+        conn.close()
+        await connPipe.catch(() => {})
+        if (first.body !== 'nested-one-ok' || second.body !== 'nested-two-ok') {
+          throw new Error('unexpected nested responses: ' + first.body + ',' + second.body)
+        }
+      }
+
+      export default function main(api, abortSignal) {
+        api.handleStreamCtr.set(async (stream) => {
+          const request =
+            (await stream.source[Symbol.asyncIterator]().next()).value ||
+            new Uint8Array(0)
+          await callHost(api, abortSignal)
+          await stream.sink((async function* () {
+            yield new Uint8Array([request[0] || 0, 42])
+          })())
+        })
+        console.info('__BLDR_QUICKJS_PLUGIN_READY__')
+      }
+    `);
+
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = requestInfoURL(input);
+      if (url === "/b/qjs/qjs-wasi.wasm") {
+        return new Response(wasm, {
+          headers: { "Content-Type": "application/wasm" },
+        });
+      }
+      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+        return new Response(
+          readFileSync(
+            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
+            "utf8",
+          ),
+        );
+      }
+      if (url === pluginPath) {
+        return new Response(pluginScript);
+      }
+      return new Response("", { status: 404 });
+    });
+    Object.defineProperty(globalThis, "fetch", {
+      value: fetch,
+      configurable: true,
+      writable: true,
+    });
+    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+      WebAssembly.compile(wasm),
+    );
+
+    const events: string[] = [];
+    const hostConns: StreamConn[] = [];
+    const hostPipes: Promise<unknown>[] = [];
+    const hostMux = createMux();
+    const hostService: Mock = {
+      async MockRequest(request) {
+        const body = request.body ?? "";
+        events.push(body);
+        return { body: `${body}-ok` };
+      },
+    };
+    hostMux.register(createHandler(MockDefinition, hostService));
+    const api = {
+      startInfo: { pluginId: "quickjs-streamconn-nested-test" },
+      openStream: vi.fn(async () => {
+        const [quickJSStream, hostStream] = buildPacketStreamPair();
+        const hostConn = new StreamConn(
+          new Server(hostMux.lookupMethod),
+          {
+            direction: "inbound",
+            yamuxParams: { enableKeepAlive: false },
+          },
+        );
+        hostConns.push(hostConn);
+        const hostPipe = pipe(
+          hostStream.source,
+          hostConn,
+          combineUint8ArrayListTransform(),
+          hostStream.sink,
+        ) as Promise<unknown>;
+        hostPipe.catch((err: unknown) => {
+          hostConn.close(err instanceof Error ? err : new Error(String(err)));
+        });
+        hostPipes.push(hostPipe);
+        return quickJSStream;
+      }),
+      handleStreamCtr: new HandleStreamCtr(),
+      utils: {
+        pluginAssetHttpPath(pluginId: string, path: string): string {
+          return `/b/pa/${pluginId}/${path}`;
+        },
+      },
+    } as unknown as BackendAPI;
+
+    const controller = new AbortController();
+    let ready = false;
+    const runner = quickJSRunner(api, controller.signal, pluginPath, {
+      onReady: () => {
+        ready = true;
+      },
+    });
+
+    try {
+      await Promise.race([
+        waitFor(() => ready, "QuickJS nested StreamConn handler did not start"),
+        runner.then(
+          () => {
+            throw new Error("QuickJS runner exited before nested handler ready");
+          },
+          (err) => {
+            throw err;
+          },
+        ),
+      ]);
+
+      const requestSource = pushable<Uint8Array>({ objectMode: true });
+      const responses: Uint8Array[] = [];
+      const inbound: PacketStream = {
+        source: requestSource,
+        sink: async (packets) => {
+          for await (const packet of packets) {
+            responses.push(packet);
+          }
+        },
+      };
+      void api.handleStreamCtr.handleStreamFunc(inbound);
+      requestSource.push(new Uint8Array([7]));
+
+      await waitFor(
+        () => responses.length === 1,
+        "QuickJS nested StreamConn handler did not respond",
+        100,
+      );
+      expect([...responses[0]]).toEqual([7, 42]);
+      expect(events).toEqual(["nested-one", "nested-two"]);
+    } finally {
+      controller.abort();
+      for (const conn of hostConns) {
+        conn.close();
+      }
+      await Promise.allSettled(hostPipes);
+      await runner;
+    }
+  });
+
+  it("runs Vite-transformed using resource cleanup in the production runner", async () => {
+    const wasm = readFileSync(
+      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
+    );
+    const pluginPath = "/b/pd/quickjs-using-resource-test/plugin.mjs";
+    const pluginScript = await buildQuickJSPluginScript(`
+      import { Client as SRPCClient } from 'starpc'
+      import { Client as ResourceClient } from '@aptre/bldr-sdk/resource/client.js'
+      import { ResourceServiceClient } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
+      import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
+
+      class ProbeResource extends Resource {
+        constructor(ref, events) {
+          super(ref)
+          this.events = events
+        }
+
+        [Symbol.dispose]() {
+          this.events.push('dispose:' + this.id)
+          this.release()
+        }
+      }
+
+      export default async function main(api, abortSignal) {
+        const client = new ResourceClient(
+          new ResourceServiceClient(new SRPCClient(api.openStream)),
+          abortSignal,
+        )
+        const events = []
+        try {
+          {
+            using resource = new ProbeResource(
+              await client.accessRootResource(),
+              events,
+            )
+            events.push('entered:' + resource.id)
+            await Promise.resolve()
+            events.push('after await')
+          }
+
+          if (events.join(',') !== 'entered:1,after await,dispose:1') {
+            throw new Error('unexpected using events: ' + events.join(','))
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 0))
+        } finally {
+          client.dispose()
+        }
+
+        console.info('__BLDR_QUICKJS_PLUGIN_READY__')
+      }
+    `);
+    expect(pluginScript).not.toContain("using resource");
+
+    const resourceMux = createMux();
+    const resourceServer = new ResourceServer(resourceMux);
+    const releaseSpy = vi.spyOn(resourceServer, "ResourceRefRelease");
+    const srpcMux = createMux();
+    resourceServer.register(srpcMux);
+    const srpcServer = new Server(srpcMux.lookupMethod);
+    const serverErrors: unknown[] = [];
+
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = requestInfoURL(input);
+      if (url === "/b/qjs/qjs-wasi.wasm") {
+        return new Response(wasm, {
+          headers: { "Content-Type": "application/wasm" },
+        });
+      }
+      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+        return new Response(
+          readFileSync(
+            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
+            "utf8",
+          ),
+        );
+      }
+      if (url === pluginPath) {
+        return new Response(pluginScript);
+      }
+      return new Response("", { status: 404 });
+    });
+    Object.defineProperty(globalThis, "fetch", {
+      value: fetch,
+      configurable: true,
+      writable: true,
+    });
+    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+      WebAssembly.compile(wasm),
+    );
+
+    const api = {
+      startInfo: { pluginId: "quickjs-using-resource-test" },
+      openStream: vi.fn(async () => {
+        const [clientStream, serverStream] = buildPacketStreamPair();
+        Promise.resolve(srpcServer.handlePacketStream(serverStream)).catch(
+          (err: unknown) => {
+            serverErrors.push(err);
+          },
+        );
+        return clientStream;
+      }),
+      handleStreamCtr: new HandleStreamCtr(),
+      utils: {
+        pluginAssetHttpPath(pluginId: string, path: string): string {
+          return `/b/pa/${pluginId}/${path}`;
+        },
+      },
+    } as unknown as BackendAPI;
+
+    const controller = new AbortController();
+    let ready = false;
+    const runner = quickJSRunner(api, controller.signal, pluginPath, {
+      onReady: () => {
+        ready = true;
+      },
+    });
+
+    try {
+      await Promise.race([
+        waitFor(
+          () => ready && releaseSpy.mock.calls.length === 1,
+          "QuickJS using resource repro did not release the resource",
+          100,
+        ),
+        runner.then(
+          () => {
+            throw new Error("QuickJS runner exited before using repro ready");
+          },
+          (err) => {
+            throw err;
+          },
+        ),
+      ]);
+
+      expect(api.openStream).toHaveBeenCalled();
+      expect(serverErrors).toEqual([]);
+      expect(releaseSpy).toHaveBeenCalledOnce();
+      expect(releaseSpy.mock.calls[0]?.[0]).toEqual({
+        clientHandleId: 1,
+        resourceId: 1,
+      });
+    } finally {
+      controller.abort();
+      await runner;
+    }
+  });
+
+  it("runs Vite-transformed using child resource cleanup before the next parent RPC", async () => {
+    const wasm = readFileSync(
+      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
+    );
+    const pluginPath = "/b/pd/quickjs-using-child-resource-test/plugin.mjs";
+    const pluginScript = await buildQuickJSPluginScript(`
+      import { Client as SRPCClient } from 'starpc'
+      import { MockClient } from 'starpc/mock'
+      import { Client as ResourceClient } from '@aptre/bldr-sdk/resource/client.js'
+      import { ResourceServiceClient } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
+      import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
+
+      class ProbeResource extends Resource {
+        constructor(ref, events) {
+          super(ref)
+          this.events = events
+          this.service = new MockClient(ref.client)
+        }
+
+        async touch(abortSignal) {
+          const resp = await this.service.MockRequest(
+            { body: 'child' },
+            abortSignal,
+          )
+          this.events.push(resp.body)
+        }
+
+        [Symbol.dispose]() {
+          this.events.push('dispose:' + this.id)
+          this.release()
+        }
+      }
+
+      export default async function main(api, abortSignal) {
+        const client = new ResourceClient(
+          new ResourceServiceClient(new SRPCClient(api.openStream)),
+          abortSignal,
+        )
+        const events = []
+        try {
+          const rootRef = await client.accessRootResource()
+          const root = new MockClient(rootRef.client)
+          const childResp = await root.MockRequest(
+            { body: 'create-child' },
+            abortSignal,
+          )
+          const childId = Number(childResp.body)
+
+          {
+            using child = new ProbeResource(rootRef.createRef(childId), events)
+            events.push('entered:' + child.id)
+            await child.touch(abortSignal)
+          }
+
+          const after = await root.MockRequest(
+            { body: 'after-release' },
+            abortSignal,
+          )
+          events.push(after.body)
+
+          if (
+            events.join(',') !==
+            'entered:2,child-ok,dispose:2,after-ok'
+          ) {
+            throw new Error('unexpected child resource events: ' + events.join(','))
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 0))
+        } finally {
+          client.dispose()
+        }
+
+        console.info('__BLDR_QUICKJS_PLUGIN_READY__')
+      }
+    `);
+    expect(pluginScript).not.toContain("using child");
+
+    const events: string[] = [];
+    const resourceMux = createMux();
+    const rootService: Mock = {
+      async MockRequest(request) {
+        if (request.body === "create-child") {
+          const owner = getCurrentResourceClient();
+          const childMux = createMux();
+          const childService: Mock = {
+            async MockRequest(childRequest) {
+              events.push(`child:${childRequest.body}`);
+              return { body: "child-ok" };
+            },
+          };
+          childMux.register(createHandler(MockDefinition, childService));
+
+          let resourceId = 0;
+          resourceId = owner.addResource(childMux, () => {
+            events.push(`release:${resourceId}`);
+          });
+          events.push(`create:${resourceId}`);
+          return { body: String(resourceId) };
+        }
+        if (request.body === "after-release") {
+          events.push("after-root");
+          return { body: "after-ok" };
+        }
+        return { body: "root-ok" };
+      },
+    };
+    resourceMux.register(createHandler(MockDefinition, rootService));
+
+    const resourceServer = new ResourceServer(resourceMux);
+    const releaseSpy = vi.spyOn(resourceServer, "ResourceRefRelease");
+    const srpcMux = createMux();
+    resourceServer.register(srpcMux);
+    const srpcServer = new Server(srpcMux.lookupMethod);
+    const serverErrors: unknown[] = [];
+
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = requestInfoURL(input);
+      if (url === "/b/qjs/qjs-wasi.wasm") {
+        return new Response(wasm, {
+          headers: { "Content-Type": "application/wasm" },
+        });
+      }
+      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+        return new Response(
+          readFileSync(
+            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
+            "utf8",
+          ),
+        );
+      }
+      if (url === pluginPath) {
+        return new Response(pluginScript);
+      }
+      return new Response("", { status: 404 });
+    });
+    Object.defineProperty(globalThis, "fetch", {
+      value: fetch,
+      configurable: true,
+      writable: true,
+    });
+    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+      WebAssembly.compile(wasm),
+    );
+
+    const api = {
+      startInfo: { pluginId: "quickjs-using-child-resource-test" },
+      openStream: vi.fn(async () => {
+        const [clientStream, serverStream] = buildPacketStreamPair();
+        Promise.resolve(srpcServer.handlePacketStream(serverStream)).catch(
+          (err: unknown) => {
+            serverErrors.push(err);
+          },
+        );
+        return clientStream;
+      }),
+      handleStreamCtr: new HandleStreamCtr(),
+      utils: {
+        pluginAssetHttpPath(pluginId: string, path: string): string {
+          return `/b/pa/${pluginId}/${path}`;
+        },
+      },
+    } as unknown as BackendAPI;
+
+    const controller = new AbortController();
+    let ready = false;
+    const runner = quickJSRunner(api, controller.signal, pluginPath, {
+      onReady: () => {
+        ready = true;
+      },
+    });
+
+    try {
+      await Promise.race([
+        waitFor(
+          () =>
+            ready &&
+            events.includes("after-root") &&
+            events.includes("release:2") &&
+            releaseSpy.mock.calls.some(
+              ([request]) =>
+                request.clientHandleId === 1 && request.resourceId === 2,
+            ),
+          "QuickJS using child resource repro did not complete release and next RPC",
+          100,
+        ),
+        runner.then(
+          () => {
+            throw new Error(
+              "QuickJS runner exited before child resource repro ready",
+            );
+          },
+          (err) => {
+            throw err;
+          },
+        ),
+      ]);
+
+      expect(api.openStream).toHaveBeenCalled();
+      expect(serverErrors).toEqual([]);
+      expect(events).toContain("create:2");
+      expect(events).toContain("child:child");
+      expect(events).toContain("after-root");
+      expect(events).toContain("release:2");
+      expect(
+        releaseSpy.mock.calls.filter(
+          ([request]) =>
+            request.clientHandleId === 1 && request.resourceId === 2,
+        ),
+      ).toHaveLength(1);
+    } finally {
+      controller.abort();
+      await runner;
+    }
+  });
+
+  it("runs Vite-transformed using attached child cleanup before the next attached parent RPC", async () => {
+    const wasm = readFileSync(
+      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
+    );
+    const pluginPath = "/b/pd/quickjs-using-attached-resource-test/plugin.mjs";
+    const pluginScript = await buildQuickJSPluginScript(`
+      import { createHandler, createMux, Server } from 'starpc'
+      import { MockClient, MockDefinition } from 'starpc/mock'
+      import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
+      import {
+        getCurrentResourceClient,
+        ResourceServer,
+      } from '@aptre/bldr-sdk/resource/server/server.js'
+
+      class ProbeResource extends Resource {
+        constructor(ref, events) {
+          super(ref)
+          this.events = events
+          this.service = new MockClient(ref.client)
+        }
+
+        async touch(abortSignal) {
+          const resp = await this.service.MockRequest(
+            { body: 'child' },
+            abortSignal,
+          )
+          this.events.push(resp.body)
+        }
+
+        [Symbol.dispose]() {
+          this.events.push('dispose:' + this.id)
+          this.release()
+        }
+      }
+
+      export default function main(api, abortSignal) {
+        const events = []
+        const rootMux = createMux()
+        rootMux.register(
+          createHandler(MockDefinition, {
+            async MockRequest(request) {
+              const [op, id] = (request.body || '').split(':')
+              if (op !== 'seed') {
+                return { body: 'root-ok' }
+              }
+
+              const owner = getCurrentResourceClient()
+              const engineRef = owner.getAttachedRef(Number(id))
+              const engine = new MockClient(engineRef.client)
+              const childResp = await engine.MockRequest(
+                { body: 'access-child' },
+                abortSignal,
+              )
+              const childId = Number(childResp.body)
+
+              {
+                using child = new ProbeResource(engineRef.createRef(childId), events)
+                events.push('entered:' + child.id)
+                await child.touch(abortSignal)
+              }
+
+              const after = await engine.MockRequest(
+                { body: 'after-release' },
+                abortSignal,
+              )
+              events.push(after.body)
+
+              const expected =
+                'entered:' + childId + ',child-ok,dispose:' + childId + ',after-ok'
+              if (events.join(',') !== expected) {
+                throw new Error('unexpected attached events: ' + events.join(','))
+              }
+              return { body: 'seed-ok' }
+            },
+          }),
+        )
+
+        const resourceServer = new ResourceServer(rootMux)
+        const outerMux = createMux()
+        resourceServer.register(outerMux)
+        const server = new Server(outerMux.lookupMethod)
+        api.handleStreamCtr.set((stream) => {
+          server.handlePacketStream(stream)
+          return Promise.resolve()
+        })
+
+        console.info('__BLDR_QUICKJS_PLUGIN_READY__')
+      }
+    `);
+    expect(pluginScript).not.toContain("using child");
+
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = requestInfoURL(input);
+      if (url === "/b/qjs/qjs-wasi.wasm") {
+        return new Response(wasm, {
+          headers: { "Content-Type": "application/wasm" },
+        });
+      }
+      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+        return new Response(
+          readFileSync(
+            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
+            "utf8",
+          ),
+        );
+      }
+      if (url === pluginPath) {
+        return new Response(pluginScript);
+      }
+      return new Response("", { status: 404 });
+    });
+    Object.defineProperty(globalThis, "fetch", {
+      value: fetch,
+      configurable: true,
+      writable: true,
+    });
+    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+      WebAssembly.compile(wasm),
+    );
+
+    const events: string[] = [];
+    const api = {
+      startInfo: { pluginId: "quickjs-using-attached-resource-test" },
+      openStream: vi.fn(async () => buildPacketStream()),
+      handleStreamCtr: new HandleStreamCtr(),
+      utils: {
+        pluginAssetHttpPath(pluginId: string, path: string): string {
+          return `/b/pa/${pluginId}/${path}`;
+        },
+      },
+    } as unknown as BackendAPI;
+
+    const controller = new AbortController();
+    let ready = false;
+    const runner = quickJSRunner(api, controller.signal, pluginPath, {
+      onReady: () => {
+        ready = true;
+      },
+    });
+    let hostClient: ResourceClient | undefined;
+    let seedDone = false;
+
+    try {
+      await Promise.race([
+        waitFor(
+          () => ready,
+          "QuickJS attached resource repro did not report ready",
+          100,
+        ),
+        runner.then(
+          () => {
+            throw new Error(
+              "QuickJS runner exited before attached resource repro ready",
+            );
+          },
+          (err) => {
+            throw err;
+          },
+        ),
+      ]);
+
+      const openPluginResourceStream = async () => {
+        const [clientStream, serverStream] = buildPacketStreamPair();
+        await api.handleStreamCtr.handleStreamFunc(serverStream);
+        return clientStream;
+      };
+      hostClient = new ResourceClient(
+        new ResourceServiceClient(new SRPCClient(openPluginResourceStream)),
+        controller.signal,
+      );
+      const rootRef = await hostClient.accessRootResource();
+      const root = new MockClient(rootRef.client);
+
+      const engineMux = createMux();
+      const engineService: Mock = {
+        async MockRequest(request) {
+          if (request.body === "access-child") {
+            const childMux = createMux();
+            const childService: Mock = {
+              async MockRequest(childRequest) {
+                events.push(`child:${childRequest.body}`);
+                return { body: "child-ok" };
+              },
+            };
+            childMux.register(createHandler(MockDefinition, childService));
+            const child = await hostClient!.attachResourceTree(
+              "child",
+              childMux.lookupMethod,
+              controller.signal,
+              () => {
+                events.push("release:child");
+              },
+            );
+            events.push(`attach-child:${child.resourceId}`);
+            return { body: String(child.resourceId) };
+          }
+          if (request.body === "after-release") {
+            events.push("after-engine");
+            return { body: "after-ok" };
+          }
+          return { body: "engine-ok" };
+        },
+      };
+      engineMux.register(createHandler(MockDefinition, engineService));
+      const engine = await hostClient.attachResourceTree(
+        "engine",
+        engineMux.lookupMethod,
+        controller.signal,
+      );
+      events.push(`attach-engine:${engine.resourceId}`);
+
+      const seedResp = await Promise.race([
+        root.MockRequest({
+          body: `seed:${engine.resourceId}`,
+        }),
+        runner.then(
+          () => {
+            throw new Error(
+              "QuickJS runner exited before attached seed response; events=" +
+                events.join(","),
+            );
+          },
+          (err) => {
+            throw new Error(
+              "QuickJS runner failed before attached seed response; events=" +
+                events.join(","),
+              { cause: err },
+            );
+          },
+        ),
+      ]);
+      seedDone = true;
+      expect(seedResp.body).toBe("seed-ok");
+
+      await waitFor(
+        () =>
+          events.includes("after-engine") && events.includes("release:child"),
+        "QuickJS attached child resource repro did not release and continue",
+        100,
+      );
+
+      expect(events).toContain("attach-engine:2");
+      expect(events).toContain("attach-child:3");
+      expect(events).toContain("child:child");
+      expect(events).toContain("after-engine");
+      expect(events).toContain("release:child");
+    } finally {
+      hostClient?.dispose();
+      controller.abort();
+      if (seedDone) {
+        await runner;
+      } else {
+        await runner.catch(() => {});
+      }
+    }
+  });
 });
 
 describe("plugin-host-quickjs asset helpers", () => {
@@ -1449,6 +2406,109 @@ function buildPacketStream(): PacketStream {
   }
 }
 
+function buildPacketStreamPair(): [PacketStream, PacketStream] {
+  const leftToRight = pushable<Uint8Array>({ objectMode: true });
+  const rightToLeft = pushable<Uint8Array>({ objectMode: true });
+
+  return [
+    {
+      source: rightToLeft,
+      sink: async (packets) => {
+        try {
+          for await (const packet of packets) {
+            leftToRight.push(packet);
+          }
+        } finally {
+          leftToRight.end();
+        }
+      },
+    },
+    {
+      source: leftToRight,
+      sink: async (packets) => {
+        try {
+          for await (const packet of packets) {
+            rightToLeft.push(packet);
+          }
+        } finally {
+          rightToLeft.end();
+        }
+      },
+    },
+  ];
+}
+
+async function buildQuickJSPluginScript(source: string): Promise<string> {
+  const repoRoot = resolve(".");
+  const virtualID = "\0quickjs-using-resource-test.ts";
+  const result = await viteBuild({
+    configFile: false,
+    logLevel: "silent",
+    root: repoRoot,
+    plugins: [
+      goTsResolver(repoRoot),
+      {
+        name: "quickjs-using-resource-test",
+        resolveId(id) {
+          if (id === "virtual:quickjs-using-resource-test") {
+            return virtualID;
+          }
+        },
+        load(id) {
+          if (id === virtualID) {
+            return source;
+          }
+        },
+      },
+    ],
+    resolve: {
+      alias: [
+        ...buildGoAliases(repoRoot),
+        {
+          find: /^@aptre\/bldr$/,
+          replacement: resolve(repoRoot, "bldr/web/bldr/index.js"),
+        },
+        {
+          find: /^@aptre\/bldr-sdk$/,
+          replacement: resolve(repoRoot, "bldr/sdk/plugin.ts"),
+        },
+        {
+          find: /^@aptre\/bldr-sdk\/(.*)$/,
+          replacement: resolve(repoRoot, "bldr/sdk/$1"),
+        },
+      ],
+    },
+    build: {
+      target: "es2022",
+      minify: false,
+      sourcemap: false,
+      write: false,
+      rollupOptions: {
+        input: "virtual:quickjs-using-resource-test",
+        preserveEntrySignatures: "strict",
+        output: {
+          format: "es",
+          inlineDynamicImports: true,
+          entryFileNames: "plugin.mjs",
+        },
+      },
+    },
+  });
+
+  const outputs = Array.isArray(result) ? result : [result];
+  for (const output of outputs) {
+    if (!("output" in output)) {
+      continue;
+    }
+    for (const item of output.output) {
+      if (item.type === "chunk" && item.isEntry) {
+        return item.code;
+      }
+    }
+  }
+  throw new Error("Vite did not produce a QuickJS plugin entry chunk");
+}
+
 function failingSource(error: Error): AsyncGenerator<Uint8Array> {
   return {
     [Symbol.asyncIterator]() {
@@ -1478,8 +2538,9 @@ function requestInfoURL(input: RequestInfo | URL): string {
 async function waitFor(
   predicate: () => boolean,
   errorMessage: string,
+  attempts = 25,
 ): Promise<void> {
-  for (let attempt = 0; attempt < 25; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     if (predicate()) {
       return
     }

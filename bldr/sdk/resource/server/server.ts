@@ -9,6 +9,7 @@ import {
 import type { Mux, LookupMethod, MessageStream } from 'starpc'
 import type { RpcStreamPacket } from 'starpc'
 import { pushable } from 'it-pushable'
+import type { Pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 import type {
   ResourceAttachRequest,
@@ -175,10 +176,46 @@ class ResourceServer implements ResourceService {
   // server-side RPC handlers can invoke via getAttachedRef(id).
   // Session-only Init/Ack, then Add/AddAck per resource.
   // After Init/Ack, mux_data carries yamux frames for all resources.
-  async *ResourceAttach(
+  ResourceAttach(
     request: MessageStream<ResourceAttachRequest>,
-    _abortSignal?: AbortSignal,
+    abortSignal?: AbortSignal,
   ): MessageStream<ResourceAttachResponse> {
+    let cleanup: (() => void) | undefined
+    const outgoing = pushable<ResourceAttachResponse>({
+      objectMode: true,
+      onEnd: () => {
+        cleanup?.()
+      },
+    })
+
+    this.runResourceAttach(
+      request,
+      outgoing,
+      abortSignal,
+      (cleanupFn) => {
+        cleanup = cleanupFn
+      },
+    )
+      .catch((err: Error) => {
+        outgoing.end(err)
+      })
+      .finally(() => {
+        outgoing.end()
+      })
+
+    return outgoing
+  }
+
+  // runResourceAttach owns the ResourceAttach session protocol while
+  // ResourceAttach itself returns a plain async queue. The browser QuickJS
+  // backend has historically crashed when this long-lived control/mux stream
+  // is represented as a class async generator resumed by unrelated RPC work.
+  private async runResourceAttach(
+    request: MessageStream<ResourceAttachRequest>,
+    outgoing: Pushable<ResourceAttachResponse>,
+    abortSignal: AbortSignal | undefined,
+    setCleanup: (cleanup: () => void) => void,
+  ): Promise<void> {
     const packetRx = request[Symbol.asyncIterator]()
 
     // 1. Read Init packet.
@@ -195,17 +232,16 @@ class ResourceServer implements ResourceService {
     // 2. Find owning client.
     const client = this.clients.get(clientHandleId)
     if (!client || client.released) {
-      yield {
+      outgoing.push({
         body: {
           case: 'ack' as const,
           value: { error: 'client not found' },
         },
-      }
+      })
       return
     }
 
     // 3. Send session Ack.
-    const outgoing = pushable<ResourceAttachResponse>({ objectMode: true })
     outgoing.push({
       body: {
         case: 'ack' as const,
@@ -321,16 +357,25 @@ class ResourceServer implements ResourceService {
       outgoing.end(err)
     })
 
-    // 7. Yield outgoing packets and clean up.
-    try {
-      yield* outgoing
-      await pipePromise
-    } finally {
+    // 7. Keep the session task alive until the transport ends, then clean up.
+    let cleaned = false
+    const cleanup = () => {
+      if (cleaned) return
+      cleaned = true
       attachController.abort()
       conn.close()
       for (const id of attachedIds) {
         client.attachedResources.delete(id)
       }
+    }
+    setCleanup(cleanup)
+    abortSignal?.addEventListener('abort', cleanup, { once: true })
+
+    try {
+      await pipePromise
+    } finally {
+      abortSignal?.removeEventListener('abort', cleanup)
+      cleanup()
     }
   }
 
