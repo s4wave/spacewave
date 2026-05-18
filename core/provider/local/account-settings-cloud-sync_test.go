@@ -72,14 +72,9 @@ func TestLoadLinkedCloudAccountID(t *testing.T) {
 	defer provRef.Release()
 
 	localProv := prov.(*Provider)
-	sessRef, err := localProv.CreateLocalAccountAndSession(ctx, "cloud-account-123")
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	accIface, accRel, err := localProv.AccessProviderAccount(
 		ctx,
-		sessRef.GetProviderResourceRef().GetProviderAccountId(),
+		"local-account-123",
 		nil,
 	)
 	if err != nil {
@@ -88,6 +83,9 @@ func TestLoadLinkedCloudAccountID(t *testing.T) {
 	defer accRel()
 
 	acc := accIface.(*ProviderAccount)
+	if err := acc.writeLinkedCloudAccountID(ctx, "local-session-123", "cloud-account-123"); err != nil {
+		t.Fatal(err)
+	}
 	cloudAccountID, err := acc.loadLinkedCloudAccountID(ctx)
 	if err != nil {
 		t.Fatal(err)
