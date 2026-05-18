@@ -445,25 +445,36 @@ function loadWebPlugin(
         return
       }
       pluginAbort = createAbortController(signal)
-      const setupReady = createReadinessBarrier(2, () => {
-        resolveFrontendReady()
-      })
+      let setupAttempt = 0
       retryWithAbort(
         pluginAbort.signal,
         async (signal) => {
+          const attempt = ++setupAttempt
+          const setupReady = createReadinessBarrier(2, () => {
+            if (setupAttempt === attempt) {
+              resolveFrontendReady()
+            }
+          })
           const openStream = backendAPI.buildPluginOpenStream(webPluginID)
           const srpcClient = new Client(openStream)
           const client = new WebPluginClient(srpcClient)
-          await Promise.all([
-            loadFrontendEntrypoints(
-              backendAPI,
-              ourPluginID,
-              client,
-              signal,
-              setupReady,
-            ),
-            loadWebPkgs(ourPluginID, client, signal, setupReady),
-          ])
+          try {
+            await Promise.all([
+              loadFrontendEntrypoints(
+                backendAPI,
+                ourPluginID,
+                client,
+                signal,
+                setupReady,
+              ),
+              loadWebPkgs(ourPluginID, client, signal, setupReady),
+            ])
+          } catch (err) {
+            if (setupAttempt === attempt) {
+              setupAttempt++
+            }
+            throw err
+          }
         },
         {
           errorCb: entrypointRetryOpts('error loading frontend entrypoints')
@@ -519,6 +530,12 @@ function reportQuickJSReadiness(marker: string): void {
   }
 }
 
+function pendingForever(): Promise<never> {
+  return new Promise((resolve) => {
+    void resolve
+  })
+}
+
 /**
  * Main execution function for the plugin entrypoint.
  * Loads and executes configured backend and frontend modules.
@@ -557,8 +574,12 @@ export default async function main(
 
   const frontendReady = loadWebPlugin(backendAPI, pluginId, abortSignal)
   const capabilityReady = loadBackendEntrypoints(backendAPI, abortSignal)
+  const capabilityFailure = capabilityReady.then(pendingForever)
 
-  await frontendReady
+  // Keep frontend/capability marker order stable, but do not let a frontend
+  // retry loop hide backend startup rejection. Backgrounded tabs may throttle
+  // timers, so readiness is event-driven instead of timeout-driven.
+  await Promise.race([frontendReady, capabilityFailure])
   reportQuickJSReadiness(quickJSPluginFrontendReadyMarker)
   await capabilityReady
   reportQuickJSReadiness(quickJSPluginCapabilityReadyMarker)

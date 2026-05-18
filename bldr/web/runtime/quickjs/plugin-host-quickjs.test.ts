@@ -555,6 +555,61 @@ describe("plugin-host-quickjs runner lifecycle", () => {
     ).rejects.toThrow("quickjs-runner: Plugin exited with code 1");
   });
 
+  it("resolves when QuickJS exits cleanly before readiness", async () => {
+    const wasm = readFileSync(
+      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
+    );
+    const pluginPath = "/b/pd/quickjs-clean-exit-test/plugin.mjs";
+    const pluginScript = `
+      export default async function main() {
+        std.exit(0)
+      }
+    `;
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = requestInfoURL(input);
+      if (url === "/b/qjs/qjs-wasi.wasm") {
+        return new Response(wasm, {
+          headers: { "Content-Type": "application/wasm" },
+        });
+      }
+      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+        return new Response(
+          readFileSync(
+            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
+            "utf8",
+          ),
+        );
+      }
+      if (url === pluginPath) {
+        return new Response(pluginScript);
+      }
+      return new Response("", { status: 404 });
+    });
+    Object.defineProperty(globalThis, "fetch", {
+      value: fetch,
+      configurable: true,
+      writable: true,
+    });
+    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+      WebAssembly.compile(wasm),
+    );
+
+    const api = {
+      startInfo: { pluginId: "quickjs-clean-exit-test" },
+      openStream: vi.fn(async () => buildPacketStream()),
+      handleStreamCtr: new HandleStreamCtr(),
+      utils: {
+        pluginAssetHttpPath(pluginId: string, path: string): string {
+          return `/b/pa/${pluginId}/${path}`;
+        },
+      },
+    } as unknown as BackendAPI;
+
+    await expect(
+      quickJSRunner(api, new AbortController().signal, pluginPath),
+    ).resolves.toBeUndefined();
+  });
+
   it("delivers WebRuntime streams through the production runner after ready", async () => {
     const wasm = readFileSync(
       resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),

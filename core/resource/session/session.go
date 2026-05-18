@@ -341,7 +341,7 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 		r.session.GetPeerId().String(),
 		r.hostPluginID,
 	)
-	spaceBodyID, err := resourceCtx.AddResource(spaceResource.GetMux(), spaceBodyRef.Release)
+	spaceBodyID, err := addMountedSpaceResource(resourceCtx, spaceResource, spaceBodyRef.Release)
 	if err != nil {
 		spaceBodyRef.Release()
 		return nil, err
@@ -368,6 +368,16 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 		SharedObjectBodyResourceId: spaceBodyID,
 		SpaceWorldResourceId:       spaceWorldID,
 	}, nil
+}
+
+func addMountedSpaceResource(
+	resourceCtx resource_server.ResourceClientContext,
+	spaceResource *resource_space.SpaceResource,
+	releaseFn func(),
+) (uint32, error) {
+	// Quickstarts resolve this resource id back to the mounted SpaceResource
+	// value; registering only its mux breaks typed owner handoff.
+	return resourceCtx.AddResourceValue(spaceResource.GetMux(), spaceResource, releaseFn)
 }
 
 // WatchResourcesList returns the list of resources the session has access to.

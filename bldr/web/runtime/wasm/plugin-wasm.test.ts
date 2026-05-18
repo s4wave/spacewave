@@ -199,13 +199,19 @@ describe('plugin-wasm generation lifecycle', () => {
 
   it('stops packet delivery after Go stream callbacks are released', async () => {
     goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+    let sinkCompleted = false
     const api = buildBackendAPI(
       vi.fn(async () => ({
         source: (async function* () {
           yield new Uint8Array([1])
           yield new Uint8Array([2])
         })(),
-        sink: vi.fn(async () => {}),
+        sink: vi.fn(async (packets: Parameters<PacketStream['sink']>[0]) => {
+          for await (const packet of packets) {
+            void packet
+          }
+          sinkCompleted = true
+        }),
       })),
     )
 
@@ -243,6 +249,50 @@ describe('plugin-wasm generation lifecycle', () => {
     expect(onMessage).toHaveBeenCalledTimes(1)
     expect(onClose).not.toHaveBeenCalled()
     expect(consoleError).not.toHaveBeenCalled()
+    expect(sinkCompleted).toBe(true)
+  })
+
+  it('does not classify substring callback errors as Go released callbacks', async () => {
+    goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+    const api = buildBackendAPI(
+      vi.fn(async () => ({
+        source: (async function* () {
+          yield new Uint8Array([1])
+        })(),
+        sink: vi.fn(async () => {}),
+      })),
+    )
+
+    const { default: main } = await import('./plugin-wasm.js')
+    await main(api)
+    const openStream = (
+      globalThis as {
+        BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
+          onMessage: (message: Uint8Array) => void,
+          onClose: (errMsg?: string) => void,
+          onResolve: (sink: {
+            push: (message: Uint8Array) => void
+            end: () => void
+          }) => void,
+          onReject: (errMsg: string) => void,
+        ) => void
+      }
+    ).BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME
+    expect(openStream).toBeTypeOf('function')
+
+    const onMessage = vi.fn(() => {
+      throw new Error('not the call to released function sentinel')
+    })
+    const onClose = vi.fn()
+    const onResolve = vi.fn()
+    const onReject = vi.fn()
+    openStream!(onMessage, onClose, onResolve, onReject)
+    await waitForGoCallbackQueue()
+
+    expect(onMessage).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledWith(
+      'Error: not the call to released function sentinel',
+    )
   })
 
   it('reports open stream failures through the reject callback', async () => {
@@ -279,7 +329,7 @@ describe('plugin-wasm generation lifecycle', () => {
     expect(onReject).toHaveBeenCalledWith('Error: stream unavailable')
   })
 
-  it('classifies Go released-callback logs inside the plugin worker', async () => {
+  it('does not globally filter Go released-callback logs inside the plugin worker', async () => {
     goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
     const consoleError = vi.spyOn(console, 'error')
 
@@ -289,8 +339,9 @@ describe('plugin-wasm generation lifecycle', () => {
     console.error('call to released function')
     console.error('other failure')
 
-    expect(consoleError).toHaveBeenCalledTimes(1)
-    expect(consoleError).toHaveBeenCalledWith('other failure')
+    expect(consoleError).toHaveBeenCalledTimes(2)
+    expect(consoleError).toHaveBeenNthCalledWith(1, 'call to released function')
+    expect(consoleError).toHaveBeenNthCalledWith(2, 'other failure')
   })
 })
 

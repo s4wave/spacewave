@@ -22,6 +22,7 @@ const sharedObjectBodiesBySessionAndId = new Map<string, SharedObjectBody>()
 const spacesBySessionAndId = new Map<string, Space>()
 const spaceContentsBySessionAndId = new Map<string, SpaceContents>()
 const spaceWorldsBySessionAndId = new Map<string, EngineWorldState>()
+const sharedObjectRoutesAwaitingResourcesList = new Set<string>()
 const initialObjectsBySessionAndId = new Map<
   string,
   QuickstartInitialObjectHandoff
@@ -182,6 +183,47 @@ export function consumeQuickstartSharedObjectHandoff(
   )
 }
 
+export function hasQuickstartSharedObjectHandoff(
+  sessionIndex: number,
+  sharedObjectId: string,
+): boolean {
+  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
+  return (
+    sharedObjectsBySessionAndId.has(key) ||
+    sharedObjectBodiesBySessionAndId.has(key) ||
+    spacesBySessionAndId.has(key) ||
+    spaceContentsBySessionAndId.has(key) ||
+    spaceWorldsBySessionAndId.has(key)
+  )
+}
+
+export function markQuickstartSharedObjectHandoffAwaitingResourcesList(
+  sessionIndex: number,
+  sharedObjectId: string,
+): void {
+  sharedObjectRoutesAwaitingResourcesList.add(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+  )
+}
+
+export function clearQuickstartSharedObjectHandoffAwaitingResourcesList(
+  sessionIndex: number,
+  sharedObjectId: string,
+): void {
+  sharedObjectRoutesAwaitingResourcesList.delete(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+  )
+}
+
+export function isQuickstartSharedObjectHandoffAwaitingResourcesList(
+  sessionIndex: number,
+  sharedObjectId: string,
+): boolean {
+  return sharedObjectRoutesAwaitingResourcesList.has(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+  )
+}
+
 export function consumeQuickstartSharedObjectBodyHandoff(
   sessionIndex: number,
   sharedObjectId: string,
@@ -249,6 +291,7 @@ export function getQuickstartInitialObjectHandoff(
 
 function releaseQuickstartSharedObjectHandoffNow(key: string): void {
   cancelScheduledRelease(key)
+  sharedObjectRoutesAwaitingResourcesList.delete(key)
   initialObjectsBySessionAndId.delete(key)
   const world = spaceWorldsBySessionAndId.get(key)
   if (world) {
@@ -475,6 +518,7 @@ export function releaseQuickstartSessionHandoffsForTests(): void {
     clearTimeout(timer)
   }
   releaseTimersBySessionAndId.clear()
+  sharedObjectRoutesAwaitingResourcesList.clear()
 
   for (const world of spaceWorldsBySessionAndId.values()) {
     world.release()

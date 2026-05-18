@@ -61,6 +61,15 @@ func (s *store) BeginReadOperation(ctx context.Context) (block.StoreOps, func(),
 	return &store{ops: ops, id: s.id}, release, nil
 }
 
+// EnsureDecodedBlockCacheFresh forwards decoded-cache freshness to the wrapped store.
+func (s *store) EnsureDecodedBlockCacheFresh(ctx context.Context) error {
+	freshener, ok := s.ops.(block.DecodedBlockCacheFreshener)
+	if !ok {
+		return nil
+	}
+	return freshener.EnsureDecodedBlockCacheFresh(ctx)
+}
+
 // PutBlock forwards to the inner StoreOps.
 func (s *store) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	return s.ops.PutBlock(ctx, data, opts)
@@ -118,5 +127,6 @@ func (s *store) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ Store = ((*store)(nil))
+	_ Store                            = ((*store)(nil))
+	_ block.DecodedBlockCacheFreshener = ((*store)(nil))
 )

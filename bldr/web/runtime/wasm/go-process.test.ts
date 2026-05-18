@@ -410,7 +410,7 @@ describe('installOPFSBroadcastHelpers', () => {
 })
 
 describe('GoWasmProcess', () => {
-  it('suppresses Go released-callback console errors and exposes TinyGo memory helpers', async () => {
+  it('scopes Go released-callback console errors and exposes TinyGo memory helpers', async () => {
     const memory = new WebAssembly.Memory({ initial: 1 })
     const pushed: Uint8Array[] = []
     const run = vi.fn(async () => {
@@ -604,7 +604,16 @@ describe('GoWasmProcess', () => {
         [21, 22, 23],
       ])
 
-      console.error('call to released function')
+      await new Promise<void>((resolve) => {
+        g.BLDR_TINYGO_PROMISE_AWAIT?.(
+          Promise.resolve(undefined),
+          () => {
+            console.error('call to released function')
+            resolve()
+          },
+          () => resolve(),
+        )
+      })
       console.error('other failure')
     })
     class FakeGo {

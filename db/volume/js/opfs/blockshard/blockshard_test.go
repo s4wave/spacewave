@@ -80,9 +80,9 @@ func compactShard(t testing.TB, s *Shard) {
 }
 
 func TestBroadcastChannelInvalidationUsesTypedArrayPayload(t *testing.T) {
-	b := NewBroadcaster()
+	b := NewBroadcaster("test-typed-array")
 	defer b.Close()
-	l := NewListener()
+	l := NewListener("test-typed-array")
 	defer l.Close()
 
 	const shardID uint16 = 0x8003
@@ -105,7 +105,7 @@ func TestBroadcastChannelInvalidationUsesTypedArrayPayload(t *testing.T) {
 }
 
 func TestBroadcastChannelInvalidationAcceptsArrayBufferPayload(t *testing.T) {
-	l := NewListener()
+	l := NewListener("test-array-buffer")
 	defer l.Close()
 
 	const shardID uint16 = 0x7004
@@ -133,6 +133,20 @@ func TestBroadcastChannelInvalidationAcceptsArrayBufferPayload(t *testing.T) {
 	}
 	if msgs[0].ShardID != shardID || msgs[0].Generation != generation {
 		t.Fatalf("pending message = %+v, want shard=%d generation=%d", msgs[0], shardID, generation)
+	}
+}
+
+func TestBroadcastChannelInvalidationScopesByLockPrefix(t *testing.T) {
+	b := NewBroadcaster("test-scope-a")
+	defer b.Close()
+	l := NewListener("test-scope-b")
+	defer l.Close()
+
+	b.Send(1, 2)
+	select {
+	case <-l.Notify():
+		t.Fatal("listener received invalidation from another blockshard scope")
+	case <-time.After(50 * time.Millisecond):
 	}
 }
 

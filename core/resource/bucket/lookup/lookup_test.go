@@ -340,6 +340,39 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 	}
 }
 
+func TestGetRefPreservesEmptyCursorOpArgs(t *testing.T) {
+	ctx := context.Background()
+	transformConf := newResourceTransformConfig(t, &transform_s2.Config{})
+	cursor := bucket_lookup.NewCursorWithRelease(
+		ctx,
+		nil,
+		nil,
+		nil,
+		block_mock.NewMockStore(0),
+		nil,
+		nil,
+		&bucket.BucketOpArgs{BucketId: "test"},
+		transformConf,
+		nil,
+	)
+	resource := NewBucketLookupCursorResource(nil, nil, cursor)
+
+	resp, err := resource.GetRef(ctx, &s4wave_bucket_lookup.GetRefRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref := resp.GetRef()
+	if !ref.GetRootRef().GetEmpty() {
+		t.Fatalf("root ref = %s, want empty", ref.GetRootRef().MarshalString())
+	}
+	if ref.GetBucketId() != "test" {
+		t.Fatalf("bucket id = %q, want test", ref.GetBucketId())
+	}
+	if !ref.GetTransformConf().EqualVT(transformConf) {
+		t.Fatal("empty cursor ref did not preserve cursor transform config")
+	}
+}
+
 func TestPutBlockBatchUsesCursorBatch(t *testing.T) {
 	ctx := context.Background()
 	store := &recordingBucketOps{StoreOps: block_mock.NewMockStore(0)}

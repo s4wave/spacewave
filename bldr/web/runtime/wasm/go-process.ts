@@ -103,11 +103,40 @@ function writeUint32(bytes: Uint8Array, off: number, value: number): number {
   return off + 4
 }
 
+function isReleasedGoCallbackConsoleMessage(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return value === 'call to released function'
+  }
+  return value instanceof Error && value.message === 'call to released function'
+}
+
+function runTinyGoCallback(callback: () => void): void {
+  const consoleError = console.error
+  console.error = (...args: unknown[]) => {
+    if (args.length === 1 && isReleasedGoCallbackConsoleMessage(args[0])) {
+      return
+    }
+    consoleError(...args)
+  }
+  try {
+    callback()
+  } catch (err) {
+    if (!isReleasedGoCallbackConsoleMessage(err)) {
+      throw err
+    }
+  } finally {
+    console.error = consoleError
+  }
+}
+
 function flushTinyGoCallbacks(): void {
   tinyGoCallbackScheduled = false
   const callbacks = tinyGoCallbackQueue.splice(0)
   for (const callback of callbacks) {
-    callback()
+    // Go/TinyGo can release callback functions before a queued JS callback
+    // runs. Filter that known runtime edge only while invoking the callback
+    // owner; do not patch worker console state globally.
+    runTinyGoCallback(callback)
   }
   if (tinyGoCallbackQueue.length !== 0) {
     scheduleTinyGoCallbackFlush()
@@ -137,7 +166,6 @@ function deferTinyGoCallback(callback: () => void): void {
 // worker-hosted Go WASM modules. Some JS/WASM libraries still reach through
 // window even when the equivalent constructor already exists on globalThis.
 function patchWorkerBrowserGlobals() {
-  installReleasedGoCallbackConsoleFilter()
   installTinyGoJSHelpers()
   installOPFSBroadcastHelpers()
   if (typeof globalThis.window === 'undefined') {
@@ -522,30 +550,6 @@ export function installOPFSBroadcastHelpers(): void {
   }
   g.BLDR_OPFS_BROADCAST_CLOSE ??= (channel: BroadcastChannel) => {
     channel.close()
-  }
-}
-
-let releasedGoCallbackConsoleFilterInstalled = false
-
-function isReleasedGoCallbackConsoleMessage(value: unknown): boolean {
-  if (typeof value === 'string') {
-    return value === 'call to released function'
-  }
-  return value instanceof Error && value.message === 'call to released function'
-}
-
-function installReleasedGoCallbackConsoleFilter(): void {
-  if (releasedGoCallbackConsoleFilterInstalled) {
-    return
-  }
-  releasedGoCallbackConsoleFilterInstalled = true
-
-  const consoleError = console.error
-  console.error = (...args: unknown[]) => {
-    if (args.length === 1 && isReleasedGoCallbackConsoleMessage(args[0])) {
-      return
-    }
-    consoleError(...args)
   }
 }
 

@@ -215,11 +215,13 @@ func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFront
 		}
 		return nil, false, nil
 	}
-	cached, ok := c.cache.Get(key.String())
+	cacheKey := key.String()
+	cached, ok := c.cache.Get(cacheKey)
 	if !ok {
 		recordDecodedBlockCacheMiss(ctx)
 		return nil, false, nil
 	}
+	c.compactRefKeyGenerations(key.ref, cacheKey, cached.generation)
 	front.store(key, cached.block)
 	cloned, cloneOK, err := cloneDecodedBlock(cached.block)
 	if err != nil {
@@ -274,6 +276,7 @@ func (c *DecodedBlockCache) Store(
 		return nil
 	}
 	cacheKey := key.String()
+	_, replacing := c.cache.Get(cacheKey)
 	// Ristretto can reject asynchronously, so record before Set and let reject
 	// callbacks remove entries that never become durable cache contents.
 	c.mtx.Lock()
@@ -289,6 +292,11 @@ func (c *DecodedBlockCache) Store(
 	}, cost)
 	if !accepted {
 		c.removeRefKeyHashGenerationLocked(decodedBlockCacheHashFor(cacheKey), generation)
+	}
+	if accepted && replacing {
+		// Ristretto updates replace the stored value immediately without an old
+		// entry eviction callback. Keep the side index on the resident generation.
+		c.compactRefKeyGenerationsLocked(decodedBlockCacheHashFor(cacheKey), key.ref, cacheKey, generation)
 	}
 	c.mtx.Unlock()
 	recordDecodedBlockCacheStore(ctx, accepted, cost)
@@ -432,6 +440,32 @@ func (c *DecodedBlockCache) removeRefKeyHashGenerationLocked(h decodedBlockCache
 	}
 }
 
+func (c *DecodedBlockCache) compactRefKeyGenerations(ref, key string, generation uint64) {
+	if c == nil {
+		return
+	}
+	c.mtx.Lock()
+	c.compactRefKeyGenerationsLocked(decodedBlockCacheHashFor(key), ref, key, generation)
+	c.mtx.Unlock()
+}
+
+func (c *DecodedBlockCache) compactRefKeyGenerationsLocked(
+	h decodedBlockCacheHash,
+	ref string,
+	key string,
+	generation uint64,
+) {
+	for gen, tracked := range c.byHash[h] {
+		if gen == generation || tracked.ref != ref || tracked.key != key {
+			continue
+		}
+		delete(c.byHash[h], gen)
+	}
+	if len(c.byHash[h]) == 0 {
+		delete(c.byHash, h)
+	}
+}
+
 func (c *DecodedBlockCache) hasRefKeyGenerationLocked(h decodedBlockCacheHash, ref, key string) bool {
 	for _, tracked := range c.byHash[h] {
 		if tracked.ref == ref && tracked.key == key {
@@ -484,10 +518,6 @@ func (c *DecodedBlockCache) takeAllKeys() map[string]struct{} {
 func decodedBlockCacheHashFor(key string) decodedBlockCacheHash {
 	keyHash, conflictHash := ristrettoz.KeyToHash[string](key)
 	return decodedBlockCacheHash{key: keyHash, conflict: conflictHash}
-}
-
-func invalidateDecodedBlockRef(ctx context.Context, cache *DecodedBlockCache, ref *BlockRef) {
-	cache.InvalidateRef(ctx, ref)
 }
 
 func decodedBlockCacheRefKey(ref *BlockRef) (string, bool) {

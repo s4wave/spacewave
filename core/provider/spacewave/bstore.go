@@ -95,11 +95,13 @@ func (b *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch forwards batched writes to the inner store.
 func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Tombstone publication and decoded-cache ownership are separate lower
+	// owners; invalidate on both sides so in-flight decoded stores cannot cross
+	// the mutation boundary.
+	b.invalidateBatchTombstones(ctx, entries)
 	if err := b.store.PutBlockBatch(ctx, entries); err != nil {
 		return err
 	}
-	// Batch tombstones bypass RmBlock, so the provider wrapper must invalidate
-	// decoded entries here before any future read can reuse stale content.
 	b.invalidateBatchTombstones(ctx, entries)
 	return nil
 }
@@ -126,6 +128,10 @@ func (b *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Bloc
 
 // RmBlock forwards to the inner store.
 func (b *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	// Delete publication and decoded-cache ownership are separate lower owners;
+	// invalidate on both sides so in-flight decoded stores cannot cross the
+	// mutation boundary.
+	b.InvalidateDecodedBlockRef(ctx, ref)
 	if err := b.store.RmBlock(ctx, ref); err != nil {
 		return err
 	}
@@ -640,6 +646,9 @@ func (r *publicReadRemote) Refresh(ctx context.Context) error {
 	r.mtx.Lock()
 	r.entries = entries
 	r.mtx.Unlock()
+	// Repeat after publication so a read that crossed the old lower manifest
+	// cannot store decoded entries with a token from the first invalidation.
+	r.decodedBlocks.InvalidateAll(ctx)
 	return nil
 }
 

@@ -8,7 +8,7 @@ import (
 	"syscall/js"
 )
 
-// BroadcastChannelName is the channel name for shard generation invalidation.
+// BroadcastChannelName is the base channel name for shard generation invalidation.
 const BroadcastChannelName = "hydra-blockshard-gen"
 
 const (
@@ -49,8 +49,8 @@ type Broadcaster struct {
 }
 
 // NewBroadcaster creates a BroadcastChannel for sending invalidation messages.
-func NewBroadcaster() *Broadcaster {
-	ch := newBroadcastChannel()
+func NewBroadcaster(scope string) *Broadcaster {
+	ch := newBroadcastChannel(scope)
 	return &Broadcaster{channel: ch}
 }
 
@@ -96,8 +96,8 @@ type Listener struct {
 }
 
 // NewListener creates a BroadcastChannel listener for invalidation messages.
-func NewListener() *Listener {
-	ch := newBroadcastChannel()
+func NewListener(scope string) *Listener {
+	ch := newBroadcastChannel(scope)
 	l := &Listener{
 		channel: ch,
 		pending: make(map[uint16]uint64),
@@ -186,12 +186,23 @@ func (l *Listener) Close() {
 	l.cleanup.Release()
 }
 
-func newBroadcastChannel() js.Value {
+func newBroadcastChannel(scope string) js.Value {
 	newChannel := js.Global().Get(bldrOPFSBroadcastChannelNew)
+	name := scopedBroadcastChannelName(scope)
 	if jsFuncAvailable(newChannel) {
-		return newChannel.Invoke(BroadcastChannelName)
+		return newChannel.Invoke(name)
 	}
-	return js.Global().Get("BroadcastChannel").New(BroadcastChannelName)
+	return js.Global().Get("BroadcastChannel").New(name)
+}
+
+func scopedBroadcastChannelName(scope string) string {
+	if scope == "" {
+		return BroadcastChannelName
+	}
+	// Lock prefixes identify the OPFS blockshard storage owner. Broadcasts stay
+	// within that owner so another engine on the same origin cannot advance this
+	// engine's shard generations and force refreshes on every read.
+	return BroadcastChannelName + ":" + scope
 }
 
 func closeBroadcastChannel(channel js.Value) {

@@ -138,7 +138,6 @@ export default async function main(
   api: BackendAPI,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  installReleasedGoCallbackConsoleFilter()
   const generation = new WasmPluginGeneration(api, abortSignal)
 
   // The Go runtime will call this function to open outgoing streams.
@@ -151,6 +150,7 @@ export default async function main(
     void (async () => {
       const packetStream = await api.openStream()
       const packetSource = packetStream.source
+      const push = pushable<Uint8Array>({ objectMode: true })
       let callbacksClosed = false
       const closeCallbacks = (errMsg?: string) => {
         if (callbacksClosed) {
@@ -182,6 +182,7 @@ export default async function main(
         try {
           for await (const msg of packetSource) {
             if (!(await deliverMessage(msg))) {
+              push.end()
               return
             }
           }
@@ -192,7 +193,6 @@ export default async function main(
         }
       })
 
-      const push = pushable<Uint8Array>({ objectMode: true })
       queueMicrotask(() => {
         void packetStream.sink(push).catch((err) => {
           const e = castToError(err)
@@ -290,14 +290,18 @@ function deferGoCallbackResult<T>(callback: () => T): Promise<T> {
 }
 
 function isReleasedGoCallbackError(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err)
-  return msg.includes('call to released function')
+  if (typeof err === 'string') {
+    return err === 'call to released function'
+  }
+  return err instanceof Error && err.message === 'call to released function'
 }
 
 function callGoCallback(cb: () => void): boolean {
   const consoleError = console.error
   let released = false
   console.error = (...args: unknown[]) => {
+    // Go may release a callback before this owner invokes it. Filter that
+    // known callback edge only inside the invocation, never for the whole worker.
     if (args.some(isReleasedGoCallbackError)) {
       released = true
       return
@@ -316,21 +320,4 @@ function callGoCallback(cb: () => void): boolean {
     console.error = consoleError
   }
   return released
-}
-
-let releasedGoCallbackConsoleFilterInstalled = false
-
-function installReleasedGoCallbackConsoleFilter(): void {
-  if (releasedGoCallbackConsoleFilterInstalled) {
-    return
-  }
-  releasedGoCallbackConsoleFilterInstalled = true
-
-  const consoleError = console.error
-  console.error = (...args: unknown[]) => {
-    if (args.some(isReleasedGoCallbackError)) {
-      return
-    }
-    consoleError(...args)
-  }
 }

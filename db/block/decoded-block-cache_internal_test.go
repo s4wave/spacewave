@@ -158,6 +158,39 @@ func TestDecodedBlockCacheRejectedDuplicateKeepsResidentIndexEntry(t *testing.T)
 	}
 }
 
+func TestDecodedBlockCacheUpdateCompactsOldGeneration(t *testing.T) {
+	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	refKey := "ref-a"
+	key := decodedBlockCacheKey{
+		ref:       refKey,
+		blockType: "db/block.decodedBlockCacheIndexTestBlock",
+		transform: DecodedBlockCacheNoTransformKey,
+		trust:     decodedBlockCacheTrustKey,
+	}.String()
+	h := decodedBlockCacheHashFor(key)
+
+	decodedBlocks.mtx.Lock()
+	_ = decodedBlocks.recordRefKeyLocked(refKey, key)
+	currentGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
+	decodedBlocks.compactRefKeyGenerationsLocked(h, refKey, key, currentGeneration)
+	remainingGenerations := len(decodedBlocks.byHash[h])
+	decodedBlocks.removeRefKeyHashGenerationLocked(h, currentGeneration)
+	_, removed := decodedBlocks.byRef[refKey]
+	decodedBlocks.mtx.Unlock()
+
+	if remainingGenerations != 1 {
+		t.Fatalf("remaining generations = %d, want 1", remainingGenerations)
+	}
+	if removed {
+		t.Fatal("current generation did not prune decoded-cache index entry")
+	}
+}
+
 type decodedBlockCacheIndexTestBlock struct {
 	data []byte
 }

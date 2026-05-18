@@ -569,6 +569,9 @@ func (c *Cursor) GetOpArgs() *bucket.BucketOpArgs {
 // GetRefWithOpArgs gets the ref and sets the BucketId and TransformConf (if unset).
 func (c *Cursor) GetRefWithOpArgs() *bucket.ObjectRef {
 	ref := c.ref.Clone()
+	if ref == nil {
+		ref = &bucket.ObjectRef{}
+	}
 	if ref.BucketId == "" {
 		ref.BucketId = c.opArgs.GetBucketId()
 	}

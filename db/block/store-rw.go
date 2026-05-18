@@ -63,6 +63,15 @@ func (b *StoreRW) BeginReadOperation(ctx context.Context) (StoreOps, func(), err
 	return NewStoreRW(readHandle, readHandle), release, nil
 }
 
+// EnsureDecodedBlockCacheFresh forwards decoded-cache freshness to the read owner.
+func (b *StoreRW) EnsureDecodedBlockCacheFresh(ctx context.Context) error {
+	freshener, ok := b.readHandle.(DecodedBlockCacheFreshener)
+	if !ok {
+		return nil
+	}
+	return freshener.EnsureDecodedBlockCacheFresh(ctx)
+}
+
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (b *StoreRW) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
@@ -128,5 +137,6 @@ func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ StoreOps = ((*StoreRW)(nil))
+	_ StoreOps                   = ((*StoreRW)(nil))
+	_ DecodedBlockCacheFreshener = ((*StoreRW)(nil))
 )

@@ -455,6 +455,20 @@ class NotesQuickstartHandler {
     this.pluginId = pluginId
   }
 
+  private async runQuickstartStep<T>(
+    label: string,
+    cb: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await cb()
+    } catch (err) {
+      throw new Error(
+        label + ': ' + (err instanceof Error ? err.message : String(err)),
+        { cause: err },
+      )
+    }
+  }
+
   async SeedQuickstart(
     request: SeedQuickstartRequest,
     abortSignal?: AbortSignal,
@@ -470,41 +484,47 @@ class NotesQuickstartHandler {
     try {
       switch (request.quickstartId ?? '') {
         case 'notebook':
-          await createNotebookClientSide(
-            worldState,
-            NOTEBOOK_OBJECT_KEY,
-            UNIXFS_OBJECT_KEY,
-            'Notes',
-            new Date(),
-            abortSignal,
-          )
+          await this.runQuickstartStep('seed notebook quickstart', async () => {
+            await createNotebookClientSide(
+              worldState,
+              NOTEBOOK_OBJECT_KEY,
+              UNIXFS_OBJECT_KEY,
+              'Notes',
+              new Date(),
+              abortSignal,
+            )
+          })
           return {
             indexPath: NOTEBOOK_OBJECT_KEY,
             pluginIds: [this.pluginId],
           }
         case 'docs':
-          await createDocsClientSide(
-            worldState,
-            DOCS_QUICKSTART_OBJECT_KEY,
-            'Documentation',
-            '',
-            new Date(),
-            abortSignal,
-          )
+          await this.runQuickstartStep('seed docs quickstart', async () => {
+            await createDocsClientSide(
+              worldState,
+              DOCS_QUICKSTART_OBJECT_KEY,
+              'Documentation',
+              '',
+              new Date(),
+              abortSignal,
+            )
+          })
           return {
             indexPath: DOCS_QUICKSTART_OBJECT_KEY,
             pluginIds: [this.pluginId],
           }
         case 'blog':
-          await createBlogClientSide(
-            worldState,
-            BLOG_OBJECT_KEY,
-            'Blog',
-            '',
-            '',
-            new Date(),
-            abortSignal,
-          )
+          await this.runQuickstartStep('seed blog quickstart', async () => {
+            await createBlogClientSide(
+              worldState,
+              BLOG_OBJECT_KEY,
+              'Blog',
+              '',
+              '',
+              new Date(),
+              abortSignal,
+            )
+          })
           return {
             indexPath: BLOG_OBJECT_KEY,
             pluginIds: [this.pluginId],

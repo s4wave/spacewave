@@ -28,6 +28,19 @@ const mockOrgListUseContextSafe = vi.hoisted(() => vi.fn())
 const mockRepairSharedObject = vi.hoisted(() => vi.fn())
 const mockReinitializeSharedObject = vi.hoisted(() => vi.fn())
 const mockSelfEnrollmentStart = vi.hoisted(() => vi.fn())
+const mockConsumeQuickstartSharedObjectHandoff = vi.hoisted(() => vi.fn())
+const mockConsumeQuickstartSharedObjectBodyHandoff = vi.hoisted(() => vi.fn())
+const mockHasQuickstartSharedObjectHandoff = vi.hoisted(() => vi.fn())
+const mockIsQuickstartSharedObjectHandoffAwaitingResourcesList = vi.hoisted(
+  () => vi.fn(),
+)
+const mockMarkQuickstartSharedObjectHandoffAwaitingResourcesList = vi.hoisted(
+  () => vi.fn(),
+)
+const mockClearQuickstartSharedObjectHandoffAwaitingResourcesList = vi.hoisted(
+  () => vi.fn(),
+)
+const mockReleaseQuickstartSharedObjectHandoff = vi.hoisted(() => vi.fn())
 const mockSelfEnrollmentStatus = vi.hoisted(() => ({
   value: {
     resource: null as null | { start: () => Promise<void> },
@@ -146,6 +159,22 @@ vi.mock('./SessionSelfEnrollmentStatusContext.js', () => ({
   useSessionSelfEnrollmentStatus: () => mockSelfEnrollmentStatus.value,
 }))
 
+vi.mock('@s4wave/app/quickstart/session-handoff.js', () => ({
+  consumeQuickstartSharedObjectHandoff:
+    mockConsumeQuickstartSharedObjectHandoff,
+  consumeQuickstartSharedObjectBodyHandoff:
+    mockConsumeQuickstartSharedObjectBodyHandoff,
+  hasQuickstartSharedObjectHandoff: mockHasQuickstartSharedObjectHandoff,
+  isQuickstartSharedObjectHandoffAwaitingResourcesList:
+    mockIsQuickstartSharedObjectHandoffAwaitingResourcesList,
+  markQuickstartSharedObjectHandoffAwaitingResourcesList:
+    mockMarkQuickstartSharedObjectHandoffAwaitingResourcesList,
+  clearQuickstartSharedObjectHandoffAwaitingResourcesList:
+    mockClearQuickstartSharedObjectHandoffAwaitingResourcesList,
+  releaseQuickstartSharedObjectHandoff:
+    mockReleaseQuickstartSharedObjectHandoff,
+}))
+
 vi.mock('./SessionFrame.js', () => ({
   SessionFrame: ({ children }: { children?: ReactNode }) => (
     <div data-testid="session-frame">{children}</div>
@@ -197,9 +226,22 @@ describe('SessionSharedObjectContainer', () => {
     mockRepairSharedObject.mockReset()
     mockReinitializeSharedObject.mockReset()
     mockSelfEnrollmentStart.mockReset()
+    mockConsumeQuickstartSharedObjectHandoff.mockReset()
+    mockConsumeQuickstartSharedObjectBodyHandoff.mockReset()
+    mockHasQuickstartSharedObjectHandoff.mockReset()
+    mockIsQuickstartSharedObjectHandoffAwaitingResourcesList.mockReset()
+    mockMarkQuickstartSharedObjectHandoffAwaitingResourcesList.mockReset()
+    mockClearQuickstartSharedObjectHandoffAwaitingResourcesList.mockReset()
+    mockReleaseQuickstartSharedObjectHandoff.mockReset()
     mockRepairSharedObject.mockResolvedValue(undefined)
     mockReinitializeSharedObject.mockResolvedValue(undefined)
     mockSelfEnrollmentStart.mockResolvedValue(undefined)
+    mockConsumeQuickstartSharedObjectHandoff.mockReturnValue(null)
+    mockConsumeQuickstartSharedObjectBodyHandoff.mockReturnValue(null)
+    mockHasQuickstartSharedObjectHandoff.mockReturnValue(false)
+    mockIsQuickstartSharedObjectHandoffAwaitingResourcesList.mockReturnValue(
+      false,
+    )
     mockSelfEnrollmentStatus.value = {
       resource: null,
       snapshot: null,
@@ -274,6 +316,58 @@ describe('SessionSharedObjectContainer', () => {
     render(<SessionSharedObjectContainer />)
 
     expect(mockNavigateSession).not.toHaveBeenCalled()
+  })
+
+  it('redirects mounted shared objects missing from the resources list', async () => {
+    setResourceMocks(
+      {
+        value: { meta: { sharedObjectId: SPACE_ID } },
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+      {
+        value: null,
+        loading: true,
+        error: null,
+        retry: vi.fn(),
+      },
+    )
+
+    render(<SessionSharedObjectContainer />)
+
+    await waitFor(() => {
+      expect(mockNavigateSession).toHaveBeenCalledWith({
+        path: '',
+        replace: true,
+      })
+    })
+  })
+
+  it('waits for the resources list after a quickstart handoff mount', async () => {
+    mockHasQuickstartSharedObjectHandoff.mockReturnValue(true)
+    setResourceMocks(
+      {
+        value: { meta: { sharedObjectId: SPACE_ID } },
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+      {
+        value: null,
+        loading: true,
+        error: null,
+        retry: vi.fn(),
+      },
+    )
+
+    render(<SessionSharedObjectContainer />)
+    await Promise.resolve()
+
+    expect(mockNavigateSession).not.toHaveBeenCalledWith({
+      path: '',
+      replace: true,
+    })
   })
 
   it('renders closed shared object health from the session watch', () => {

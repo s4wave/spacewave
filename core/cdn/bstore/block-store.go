@@ -48,6 +48,7 @@ type CdnBlockStore struct {
 	bcast           broadcast.Broadcast
 	pointer         *cdn.CdnRootPointer
 	pointerTime     time.Time
+	pointerEpoch    uint64
 	writebackTarget block.StoreOps
 }
 
@@ -134,46 +135,50 @@ func (s *CdnBlockStore) SetRangeCacheMaxBytes(maxBytes int64) {
 
 // GetBlock reads a block by reference, refreshing the pointer if needed.
 func (s *CdnBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	if data, ok, err := s.getCachedBlock(ctx, ref); err != nil || ok {
+	if data, ok, err := s.getCurrentCachedBlock(ctx, ref); err != nil || ok {
 		return data, ok, err
 	}
-	if _, err := s.ensurePointer(ctx); err != nil {
-		return nil, false, err
-	}
-	return s.pfs.GetBlock(ctx, ref)
+	var data []byte
+	var found bool
+	err := s.withCurrentManifest(ctx, func() error {
+		var err error
+		data, found, err = s.pfs.GetBlock(ctx, ref)
+		return err
+	})
+	return data, found, err
 }
 
 // GetBlockExists checks if a block exists.
 func (s *CdnBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	if _, ok, err := s.getCachedBlock(ctx, ref); err != nil || ok {
-		return ok, err
-	}
-	if _, err := s.ensurePointer(ctx); err != nil {
-		return false, err
-	}
-	return s.pfs.GetBlockExists(ctx, ref)
+	var found bool
+	err := s.withCurrentManifest(ctx, func() error {
+		var err error
+		found, err = s.pfs.GetBlockExists(ctx, ref)
+		return err
+	})
+	return found, err
 }
 
 // GetBlockExistsBatch checks whether each block exists.
 func (s *CdnBlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	if _, err := s.ensurePointer(ctx); err != nil {
-		return nil, err
-	}
-	return s.pfs.GetBlockExistsBatch(ctx, refs)
+	var found []bool
+	err := s.withCurrentManifest(ctx, func() error {
+		var err error
+		found, err = s.pfs.GetBlockExistsBatch(ctx, refs)
+		return err
+	})
+	return found, err
 }
 
 // StatBlock returns block metadata without reading the data.
 func (s *CdnBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	if target := s.getWritebackTarget(); target != nil {
-		stat, err := target.StatBlock(ctx, ref)
-		if err == nil && stat != nil {
-			return stat, nil
-		}
-	}
-	if _, err := s.ensurePointer(ctx); err != nil {
-		return nil, err
-	}
-	return s.pfs.StatBlock(ctx, ref)
+	var stat *block.BlockStat
+	err := s.withCurrentManifest(ctx, func() error {
+		var err error
+		stat, err = s.pfs.StatBlock(ctx, ref)
+		return err
+	})
+	return stat, err
 }
 
 // PutBlock is not supported on an anonymous CDN block store.
@@ -229,18 +234,19 @@ func (s *CdnBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error
 	if err != nil {
 		return nil, err
 	}
-	s.setPointer(ptr)
+	s.setPointer(ctx, ptr)
 	return ptr, nil
 }
 
 // Invalidate drops the cached pointer so the next read re-fetches.
 func (s *CdnBlockStore) Invalidate() {
-	s.cache.reset()
-	s.invalidateDecodedBlocks()
-	s.pfs.UpdateManifest(nil)
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		s.cache.reset()
+		s.invalidateDecodedBlocks(context.Background())
+		s.pfs.UpdateManifest(nil)
 		s.pointer = nil
 		s.pointerTime = time.Time{}
+		s.pointerEpoch++
 		broadcastFn()
 	})
 }
@@ -249,29 +255,41 @@ func (s *CdnBlockStore) Invalidate() {
 // Used by callers that receive a pointer via an external channel (for example
 // the cdn-root-changed session WS frame which will land in Phase F).
 func (s *CdnBlockStore) SetPointer(ptr *cdn.CdnRootPointer) {
-	s.setPointer(ptr)
+	s.setPointer(context.Background(), ptr)
 }
 
-func (s *CdnBlockStore) setPointer(ptr *cdn.CdnRootPointer) {
-	s.cache.reset()
-	// Invalidate before publishing the new pointer or manifest. Decoded keys are
-	// scoped by ref/type and can otherwise outlive the CDN root that sourced them.
-	s.invalidateDecodedBlocks()
-	if ptr == nil {
-		s.pfs.UpdateManifest(nil)
-	} else {
-		s.pfs.UpdateManifest(ptr.GetPacks())
-	}
+func (s *CdnBlockStore) EnsureDecodedBlockCacheFresh(ctx context.Context) error {
+	// Decoded cache hits can otherwise bypass ensurePointer entirely. Keep CDN
+	// pointer TTL freshness on the store owner, before any decoded object reuse.
+	_, _, err := s.ensurePointer(ctx)
+	return err
+}
+
+func (s *CdnBlockStore) setPointer(ctx context.Context, ptr *cdn.CdnRootPointer) uint64 {
+	var epoch uint64
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		s.cache.reset()
+		// Pointer, manifest, and decoded-cache epoch publish under one owner lock.
+		// Reads take the same lock while snapshotting the manifest so they cannot
+		// pair an old pointer decision with a new manifest view.
+		s.invalidateDecodedBlocks(ctx)
+		if ptr == nil {
+			s.pfs.UpdateManifest(nil)
+		} else {
+			s.pfs.UpdateManifest(ptr.GetPacks())
+		}
 		s.pointer = ptr
 		s.pointerTime = time.Now()
+		s.pointerEpoch++
+		epoch = s.pointerEpoch
 		broadcastFn()
 	})
+	return epoch
 }
 
 // ensurePointer returns the cached pointer if fresh, otherwise refreshes.
 // Returns nil, nil if the CDN Space has no content.
-func (s *CdnBlockStore) ensurePointer(ctx context.Context) (*cdn.CdnRootPointer, error) {
+func (s *CdnBlockStore) ensurePointer(ctx context.Context) (*cdn.CdnRootPointer, uint64, error) {
 	ttl := s.opts.PointerTTL
 	if ttl == 0 {
 		ttl = DefaultPointerTTL
@@ -279,14 +297,58 @@ func (s *CdnBlockStore) ensurePointer(ctx context.Context) (*cdn.CdnRootPointer,
 
 	var cached *cdn.CdnRootPointer
 	var fetchedAt time.Time
+	var epoch uint64
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		cached = s.pointer
 		fetchedAt = s.pointerTime
+		epoch = s.pointerEpoch
 	})
-	if cached != nil && (ttl < 0 || time.Since(fetchedAt) < ttl) {
-		return cached, nil
+	if !fetchedAt.IsZero() && (ttl < 0 || time.Since(fetchedAt) < ttl) {
+		return cached, epoch, nil
 	}
-	return s.Refresh(ctx)
+	ptr, err := FetchRootPointer(ctx, s.cli, s.opts.CdnBaseURL, s.opts.SpaceID)
+	if err != nil {
+		return nil, 0, err
+	}
+	epoch = s.setPointer(ctx, ptr)
+	return ptr, epoch, nil
+}
+
+func (s *CdnBlockStore) withCurrentManifest(ctx context.Context, read func() error) error {
+	for {
+		_, epoch, err := s.ensurePointer(ctx)
+		if err != nil {
+			return err
+		}
+		err = read()
+		stale := false
+		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			stale = s.pointerEpoch != epoch
+		})
+		if !stale {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+}
+
+func (s *CdnBlockStore) getCurrentCachedBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	data, found, err := s.getCachedBlock(ctx, ref)
+	if err != nil || !found {
+		return data, found, err
+	}
+	var exists bool
+	err = s.withCurrentManifest(ctx, func() error {
+		var err error
+		exists, err = s.pfs.GetBlockExists(ctx, ref)
+		return err
+	})
+	if err != nil || !exists {
+		return nil, false, err
+	}
+	return data, true, nil
 }
 
 func (s *CdnBlockStore) getCachedBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
@@ -297,14 +359,14 @@ func (s *CdnBlockStore) getCachedBlock(ctx context.Context, ref *block.BlockRef)
 	return target.GetBlock(ctx, ref)
 }
 
-func (s *CdnBlockStore) invalidateDecodedBlocks() {
+func (s *CdnBlockStore) invalidateDecodedBlocks(ctx context.Context) {
 	if s.decodedBlocks == nil {
 		return
 	}
 	// A CDN pointer swap changes the manifest owner under the store. Decoded
 	// hits must be equivalent to reading through the current manifest, not an
 	// older CDN root that happened to decode the same ref earlier.
-	s.decodedBlocks.InvalidateAll(context.Background())
+	s.decodedBlocks.InvalidateAll(ctx)
 }
 
 func (s *CdnBlockStore) getWritebackTarget() block.StoreOps {

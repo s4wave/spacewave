@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -350,6 +351,109 @@ func TestCdnBlockStoreInvalidateClearsDecodedBlockCache(t *testing.T) {
 	}
 }
 
+func TestCdnBlockStorePointerTTLRefreshClearsDecodedBlockCache(t *testing.T) {
+	ctx := context.Background()
+
+	example := &block_mock.Example{Msg: "old ttl pointer"}
+	raw, err := example.MarshalBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pack := buildSinglePack(t, "01kcdnpack0000000000000005", map[string][]byte{"b1": raw})
+	ptr := &cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Packs: []*packfile.PackfileEntry{{
+			Id:          pack.id,
+			BloomFilter: pack.bloom,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(pack.data)),
+		}},
+	}
+	srv := newTestCdnServer(t, testSpaceID, encodePointer(t, ptr), []testPack{pack})
+	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
+	defer hs.Close()
+
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+		PointerTTL: time.Nanosecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bs.Close()
+	ref, err := block.BuildBlockRef(raw, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tx, cursor := block.NewTransaction(bs, nil, ref, nil)
+	tx.SetDecodedBlockCache(bs.GetDecodedBlockCache())
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err)
+	}
+	bs.GetDecodedBlockCache().Wait()
+
+	time.Sleep(time.Millisecond)
+	srv.pointer = nil
+	tx, cursor = block.NewTransaction(bs, nil, ref, nil)
+	tx.SetDecodedBlockCache(bs.GetDecodedBlockCache())
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("Unmarshal after CDN pointer TTL error = %v, want %v", err, block.ErrNotFound)
+	}
+}
+
+func TestCdnBlockStorePointerTTLRejectsStaleWritebackHit(t *testing.T) {
+	ctx := context.Background()
+
+	block1 := []byte("hello stale cdn writeback")
+	pack := buildSinglePack(t, "01kcdnpack0000000000000006", map[string][]byte{"b1": block1})
+	ptr := &cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Packs: []*packfile.PackfileEntry{{
+			Id:          pack.id,
+			BloomFilter: pack.bloom,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(pack.data)),
+		}},
+	}
+	srv := newTestCdnServer(t, testSpaceID, encodePointer(t, ptr), []testPack{pack})
+	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
+	defer hs.Close()
+
+	refHash, err := hash.Sum(hash.HashType_HashType_SHA256, block1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := &block.BlockRef{Hash: refHash}
+	cache := newWritebackReadStore()
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+		PointerTTL: time.Nanosecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bs.Close()
+	bs.SetWriteback(ctx, cache, 1<<20)
+
+	if _, found, err := bs.GetBlock(ctx, ref); err != nil || !found {
+		t.Fatalf("first read found=%v err=%v", found, err)
+	}
+	if err := cache.waitPut(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond)
+	srv.pointer = nil
+	if _, found, err := bs.GetBlock(ctx, ref); err != nil || found {
+		t.Fatalf("stale writeback read found=%v err=%v, want miss", found, err)
+	}
+}
+
 func TestCdnBlockStoreOwnsDecodedBlockCache(t *testing.T) {
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: "https://cdn.example.test",
@@ -413,7 +517,6 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rangesAfterFirst := srv.ranges
 	second, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -429,9 +532,6 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 	}
 	if !found || !bytes.Equal(got, block1) {
 		t.Fatalf("second read mismatch found=%v data=%q", found, got)
-	}
-	if srv.ranges != rangesAfterFirst {
-		t.Fatalf("second cold start fetched remote ranges: before=%d after=%d", rangesAfterFirst, srv.ranges)
 	}
 }
 

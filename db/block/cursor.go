@@ -664,6 +664,12 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		RecordDecodedBlockUncacheable(ctx)
 	}
 	if cacheable {
+		store := c.readStore(ctx)
+		if freshener, ok := store.(DecodedBlockCacheFreshener); ok {
+			if err := freshener.EnsureDecodedBlockCacheFresh(ctx); err != nil {
+				return nil, err
+			}
+		}
 		cached, ok, err := lookupDecodedBlock(ctx, cacheKey)
 		if err != nil {
 			return nil, err

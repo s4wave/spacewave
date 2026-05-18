@@ -33,10 +33,14 @@ async function withWritableBlogState<T>(
 
   const engine = worldState.getEngine()
   let committed = false
-  const tx = await engine.newTransaction(true, abortSignal)
+  const tx = await runBlogSeedStep('open blog seed transaction', async () => {
+    return await engine.newTransaction(true, abortSignal)
+  })
   try {
     const result = await cb(tx)
-    await tx.commit(abortSignal)
+    await runBlogSeedStep('commit blog seed transaction', async () => {
+      await tx.commit(abortSignal)
+    })
     committed = true
     return result
   } finally {

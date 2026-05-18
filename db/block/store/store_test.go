@@ -20,6 +20,7 @@ type wrapperBatchTestStore struct {
 	batchCalls       int
 	backgroundCalls  int
 	existsBatchCalls int
+	freshenCalls     int
 }
 
 func newWrapperBatchTestStore() *wrapperBatchTestStore {
@@ -58,6 +59,15 @@ func (s *wrapperBatchTestStore) GetBlockExistsBatch(ctx context.Context, refs []
 	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
 }
 
+func (s *wrapperBatchTestStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return s, func() {}, nil
+}
+
+func (s *wrapperBatchTestStore) EnsureDecodedBlockCacheFresh(ctx context.Context) error {
+	s.freshenCalls++
+	return nil
+}
+
 func TestStoreForwardsBatchAndBackground(t *testing.T) {
 	ctx := context.Background()
 	inner := newWrapperBatchTestStore()
@@ -84,6 +94,40 @@ func TestStoreForwardsBatchAndBackground(t *testing.T) {
 	}
 	if inner.existsBatchCalls != 1 {
 		t.Fatalf("expected one batch exists call, got %d", inner.existsBatchCalls)
+	}
+}
+
+func TestStoreForwardsDecodedBlockCacheFreshness(t *testing.T) {
+	ctx := context.Background()
+	inner := newWrapperBatchTestStore()
+	store := block_store.NewStore("test", inner)
+	freshener, ok := store.(block.DecodedBlockCacheFreshener)
+	if !ok {
+		t.Fatal("wrapped store does not expose decoded cache freshness")
+	}
+
+	if err := freshener.EnsureDecodedBlockCacheFresh(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if inner.freshenCalls != 1 {
+		t.Fatalf("expected one freshness call, got %d", inner.freshenCalls)
+	}
+
+	scoped, release, err := store.BeginReadOperation(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer release()
+	scopedFreshener, ok := scoped.(block.DecodedBlockCacheFreshener)
+	if !ok {
+		t.Fatal("scoped wrapped store does not expose decoded cache freshness")
+	}
+
+	if err := scopedFreshener.EnsureDecodedBlockCacheFresh(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if inner.freshenCalls != 2 {
+		t.Fatalf("expected scoped freshness call, got %d", inner.freshenCalls)
 	}
 }
 

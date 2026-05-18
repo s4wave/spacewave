@@ -61,8 +61,8 @@ func NewEngineWithSettings(
 		bgActors:    make([]chan writeReq, settings.ShardCount),
 		cancel:      cancel,
 		compactionN: settings.CompactionTrigger,
-		broadcaster: NewBroadcaster(),
-		listener:    NewListener(),
+		broadcaster: NewBroadcaster(lockPrefix),
+		listener:    NewListener(lockPrefix),
 	}
 
 	for i := range e.shards {

@@ -60,6 +60,13 @@ type StoreOps interface {
 	EndDeferFlush(ctx context.Context) error
 }
 
+// DecodedBlockCacheFreshener is implemented by stores whose decoded-cache hits
+// depend on external freshness state that ordinary block reads would refresh.
+type DecodedBlockCacheFreshener interface {
+	// EnsureDecodedBlockCacheFresh updates owner state before decoded-cache lookup.
+	EnsureDecodedBlockCacheFresh(ctx context.Context) error
+}
+
 // BlockStat contains metadata about a stored block.
 type BlockStat struct {
 	// Ref is the block reference.

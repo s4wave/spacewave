@@ -60,7 +60,9 @@ describe('EditorShell E2E', () => {
     // In normal mode, it renders ShellTabStrip which includes the menu bar area
     // The Home tab should be present
     await expect
-      .element(page.getByRole('button', { name: 'Home' }), { timeout: 5000 })
+      .element(page.getByRole('button', { name: 'Home' }).first(), {
+        timeout: 5000,
+      })
       .toBeInTheDocument()
   })
 
@@ -73,7 +75,9 @@ describe('EditorShell E2E', () => {
 
     // The landing page should show [SPACEWAVE] title
     await expect
-      .element(page.getByText('[SPACEWAVE]'), { timeout: 5000 })
+      .element(page.getByRole('heading', { name: '[SPACEWAVE]' }).first(), {
+        timeout: 5000,
+      })
       .toBeInTheDocument()
   })
 
@@ -102,7 +106,9 @@ describe('EditorShell E2E', () => {
 
     // Wait for initial render - Home tab button should be present
     await expect
-      .element(page.getByRole('button', { name: 'Home' }), { timeout: 5000 })
+      .element(page.getByRole('button', { name: 'Home' }).first(), {
+        timeout: 5000,
+      })
       .toBeInTheDocument()
 
     // Find and click the add tab button (has title="New tab")
@@ -172,7 +178,9 @@ describe('EditorShell E2E', () => {
 
     // The landing page should show navigation links
     await expect
-      .element(page.getByText('the community'), { timeout: 5000 })
+      .element(page.getByRole('button', { name: 'the community' }).first(), {
+        timeout: 5000,
+      })
       .toBeInTheDocument()
   })
 

@@ -770,6 +770,14 @@ export function handleQuickJSReadinessMarker(
   return false
 }
 
+function quickJSReactorExited(qjs: QuickJS): boolean {
+  return Reflect.get(qjs, "running") === false
+}
+
+function markQuickJSReactorRunning(qjs: QuickJS): void {
+  Reflect.set(qjs, "running", true)
+}
+
 // main runs a JavaScript plugin in the QuickJS WASI reactor.
 //
 // Unlike native JS plugins that run directly in the browser, QuickJS plugins
@@ -878,6 +886,7 @@ export default async function main(
   // Initialize QuickJS with --std flag and boot harness path.
   // This sets up the module loader and evaluates the boot harness as the main script.
   qjs.init(["qjs", "--std", "/boot/plugin-quickjs.esm.js"]);
+  markQuickJSReactorRunning(qjs)
 
   console.log("quickjs-runner: starting reactor event loop...");
 
@@ -1042,10 +1051,16 @@ export default async function main(
         scheduleRunLoop();
         return;
       }
+      if (quickJSReactorExited(qjs)) {
+        running = false;
+        exitResolve?.();
+        return;
+      }
       if (!running) {
         return;
       }
-      // No data - wait for onStdinWake callback to restart the loop
+      // No data - wait for onStdinWake callback to restart the loop. There is
+      // intentionally no timeout here because backgrounded tabs throttle timers.
       return;
     }
   };

@@ -1763,6 +1763,27 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
   }
 
+  private markPluginStartupBoundary(
+    workerID: string,
+    worker: WebDocumentWebWorker,
+    label: string,
+    reason?: string,
+  ) {
+    if (!worker.plugin) {
+      return
+    }
+    markStartupBoundary(label, {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      workerId: workerID,
+      shared: worker.isShared,
+      workerType: worker.workerType,
+      plugin: true,
+      reason,
+    })
+  }
+
   // onWebWorkerMessage handles an incoming web worker message.
   private onWebWorkerMessage(
     workerID: string,
@@ -1779,10 +1800,24 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (data.close) {
       // Web worker was closed / removed.
       const failureReason = data.failureReason
-      worker.setGenerationState(
-        classifyWorkerCloseGenerationState(failureReason),
-        failureReason,
-      )
+      const generationState = classifyWorkerCloseGenerationState(failureReason)
+      worker.setGenerationState(generationState, failureReason)
+      if (isFailedWorkerGenerationState(generationState)) {
+        this.markPluginStartupBoundary(
+          workerID,
+          worker,
+          'plugin.terminal-failure',
+          failureReason,
+        )
+      }
+      if (generationState === WebWorkerGenerationState.NORMAL_STOP) {
+        this.markPluginStartupBoundary(
+          workerID,
+          worker,
+          'plugin.normal-stop',
+          failureReason,
+        )
+      }
       this.closeWorkerBridgeEndpoint(workerID)
       this.closeSabPairsForWorker(workerID, 'worker closed')
       worker.port.close()
@@ -1814,6 +1849,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         undefined,
         worker.generationState,
       )
+      this.markPluginStartupBoundary(workerID, worker, 'plugin.frontend-ready')
     }
 
     if (data.capabilityReady && !worker.ready) {
@@ -1831,6 +1867,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           undefined,
           worker.generationState,
         )
+        this.markPluginStartupBoundary(
+          workerID,
+          worker,
+          'plugin.frontend-ready',
+        )
       }
       if (
         advanceWorkerGenerationState(
@@ -1845,6 +1886,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           false,
           undefined,
           worker.generationState,
+        )
+        this.markPluginStartupBoundary(
+          workerID,
+          worker,
+          'plugin.capability-ready',
         )
       }
     }
@@ -1864,6 +1910,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           undefined,
           worker.generationState,
         )
+        this.markPluginStartupBoundary(
+          workerID,
+          worker,
+          'plugin.frontend-ready',
+        )
       }
       if (
         advanceWorkerGenerationState(
@@ -1878,6 +1929,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           false,
           undefined,
           worker.generationState,
+        )
+        this.markPluginStartupBoundary(
+          workerID,
+          worker,
+          'plugin.capability-ready',
         )
       }
       advanceWorkerGenerationState(worker, WebWorkerGenerationState.RUNNING)

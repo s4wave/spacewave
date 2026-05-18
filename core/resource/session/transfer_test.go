@@ -12,7 +12,9 @@ import (
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	"github.com/s4wave/spacewave/db/volume"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	"github.com/s4wave/spacewave/testbed"
@@ -38,6 +40,8 @@ func setupTestEnv(ctx context.Context, t *testing.T) *testEnv {
 
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
 
 	peerID := tb.Volume.GetPeerID()
 	providerID := "local"

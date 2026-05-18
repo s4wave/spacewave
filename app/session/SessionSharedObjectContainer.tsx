@@ -82,8 +82,12 @@ import {
   getSharedObjectRouteHealth,
 } from './sharedObjectHealthFallback.js'
 import {
+  clearQuickstartSharedObjectHandoffAwaitingResourcesList,
   consumeQuickstartSharedObjectBodyHandoff,
   consumeQuickstartSharedObjectHandoff,
+  hasQuickstartSharedObjectHandoff,
+  isQuickstartSharedObjectHandoffAwaitingResourcesList,
+  markQuickstartSharedObjectHandoffAwaitingResourcesList,
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
 
@@ -629,6 +633,10 @@ export function SessionSharedObjectContainer() {
   const dmcaHref = useStaticHref('/dmca')
   const parentPaths = useParentPaths()
   const orgListCtx = SpacewaveOrgListContext.useContextSafe()
+  const quickstartSharedObjectHandoffPresent = hasQuickstartSharedObjectHandoff(
+    sessionIndex,
+    sharedObjectId,
+  )
 
   // Redirect legacy /u/:idx/so/:spaceId to /u/:idx/org/:orgId/so/:spaceId
   // when the space is org-owned. Skip when already nested under /org/.
@@ -772,21 +780,66 @@ export function SessionSharedObjectContainer() {
 
   useEffect(() => {
     return () => {
+      clearQuickstartSharedObjectHandoffAwaitingResourcesList(
+        sessionIndex,
+        sharedObjectId,
+      )
       releaseQuickstartSharedObjectHandoff(sessionIndex, sharedObjectId)
     }
   }, [sessionIndex, sharedObjectId])
 
+  const sharedObjectInResourcesList = useMemo(
+    () =>
+      resourcesList?.spacesList?.some(
+        (entry) => entry.entry?.ref?.providerResourceRef?.id === sharedObjectId,
+      ) ?? false,
+    [resourcesList, sharedObjectId],
+  )
+
+  const quickstartSharedObjectHandoffActive =
+    !sharedObjectInResourcesList &&
+    (quickstartSharedObjectHandoffPresent ||
+      isQuickstartSharedObjectHandoffAwaitingResourcesList(
+        sessionIndex,
+        sharedObjectId,
+      ))
+
+  useEffect(() => {
+    if (sharedObjectInResourcesList) {
+      clearQuickstartSharedObjectHandoffAwaitingResourcesList(
+        sessionIndex,
+        sharedObjectId,
+      )
+      return
+    }
+    if (quickstartSharedObjectHandoffPresent) {
+      markQuickstartSharedObjectHandoffAwaitingResourcesList(
+        sessionIndex,
+        sharedObjectId,
+      )
+    }
+  }, [
+    quickstartSharedObjectHandoffPresent,
+    sessionIndex,
+    sharedObjectInResourcesList,
+    sharedObjectId,
+  ])
+
+  // Quickstart handoff can mount this SharedObject before WatchResourcesList
+  // publishes the new Space. Keep the guard event-driven; background tabs
+  // throttle timers, so a timeout would reintroduce the false redirect.
   const shouldRedirectMissingSpace = useMemo(
     () =>
       !!sharedObjectResource.value &&
       !!resourcesList &&
-      !(
-        resourcesList.spacesList?.some(
-          (entry) =>
-            entry.entry?.ref?.providerResourceRef?.id === sharedObjectId,
-        ) ?? false
-      ),
-    [sharedObjectResource.value, resourcesList, sharedObjectId],
+      !quickstartSharedObjectHandoffActive &&
+      !sharedObjectInResourcesList,
+    [
+      quickstartSharedObjectHandoffActive,
+      sharedObjectInResourcesList,
+      sharedObjectResource.value,
+      resourcesList,
+    ],
   )
 
   const debugInfo = (
