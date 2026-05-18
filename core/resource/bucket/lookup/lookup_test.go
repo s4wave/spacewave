@@ -298,6 +298,48 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 	}
 }
 
+func TestGetRefReturnsCursorOpArgs(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	transformConf := newResourceTransformConfig(t, &transform_s2.Config{})
+	cursor, err := bucket_lookup.BuildCursor(
+		ctx,
+		tb.Bus,
+		le,
+		tb.StepFactorySet,
+		tb.Volume.GetID(),
+		&bucket.ObjectRef{BucketId: tb.BucketId},
+		transformConf,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(cursor.Release)
+	if !cursor.GetRef().GetTransformConf().GetEmpty() {
+		t.Fatal("test cursor unexpectedly stores transform config in raw ref")
+	}
+
+	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
+	resp, err := resource.GetRef(ctx, &s4wave_bucket_lookup.GetRefRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref := resp.GetRef()
+	if ref.GetBucketId() != tb.BucketId {
+		t.Fatalf("bucket id = %q, want %q", ref.GetBucketId(), tb.BucketId)
+	}
+	if !ref.GetTransformConf().EqualVT(transformConf) {
+		t.Fatal("resource ref did not preserve cursor transform config")
+	}
+}
+
 func TestPutBlockBatchUsesCursorBatch(t *testing.T) {
 	ctx := context.Background()
 	store := &recordingBucketOps{StoreOps: block_mock.NewMockStore(0)}
