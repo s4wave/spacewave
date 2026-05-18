@@ -95,7 +95,13 @@ func (b *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch forwards batched writes to the inner store.
 func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	return b.store.PutBlockBatch(ctx, entries)
+	if err := b.store.PutBlockBatch(ctx, entries); err != nil {
+		return err
+	}
+	// Batch tombstones bypass RmBlock, so the provider wrapper must invalidate
+	// decoded entries here before any future read can reuse stale content.
+	b.invalidateBatchTombstones(ctx, entries)
+	return nil
 }
 
 // PutBlockBackground forwards background writes to the inner store.
@@ -125,6 +131,14 @@ func (b *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	}
 	b.InvalidateDecodedBlockRef(ctx, ref)
 	return nil
+}
+
+func (b *BlockStore) invalidateBatchTombstones(ctx context.Context, entries []*block.PutBatchEntry) {
+	for _, entry := range entries {
+		if entry != nil && entry.Tombstone {
+			b.InvalidateDecodedBlockRef(ctx, entry.Ref)
+		}
+	}
 }
 
 // StatBlock forwards to the inner store.
@@ -301,7 +315,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	bstoreCtrl := block_store_controller.NewController(
 		le,
 		controller.NewInfo(ControllerID+"/bstore", Version, "cloud block store for: "+localID),
-		block_store_controller.NewBlockStoreBuilder(bstoreHandle.store),
+		block_store_controller.NewBlockStoreBuilder(bstoreHandle),
 		[]string{localID},
 		true,
 		[]string{localID},
@@ -436,7 +450,7 @@ func (d *dirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*block
 	if d.markDirty != nil {
 		refs := make([]*block.BlockRef, 0, len(entries))
 		for i, entry := range entries {
-			if entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
+			if entry == nil || entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
 				continue
 			}
 			valid = append(valid, i)
@@ -460,6 +474,15 @@ func (d *dirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*block
 			}
 			entry := entries[i]
 			d.markDirty(ctx, entry.Ref.GetHash(), int64(len(entry.Data)))
+		}
+	}
+	if invalidator, ok := d.store.(decodedBlockRefInvalidator); ok {
+		// Dirty-tracking batches can wrap cache-owning stores directly; keep
+		// tombstone invalidation with the wrapper that observes the deletion.
+		for _, entry := range entries {
+			if entry != nil && entry.Tombstone {
+				invalidator.InvalidateDecodedBlockRef(ctx, entry.Ref)
+			}
 		}
 	}
 	return nil

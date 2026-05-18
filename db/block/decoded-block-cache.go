@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/dgraph-io/ristretto/v2"
+	ristrettoz "github.com/dgraph-io/ristretto/v2/z"
 	"github.com/pkg/errors"
 )
 
@@ -39,6 +40,9 @@ type DecodedBlockCache struct {
 
 	mtx   sync.Mutex
 	byRef map[string]map[string]struct{}
+	// byHash lets async Ristretto callbacks prune byRef; rejected or evicted
+	// entries must not leave old refs pinned in the invalidation index.
+	byHash map[decodedBlockCacheHash]decodedBlockCacheTrackedKey
 }
 
 type decodedBlockCacheKey struct {
@@ -46,6 +50,16 @@ type decodedBlockCacheKey struct {
 	blockType string
 	transform string
 	trust     string
+}
+
+type decodedBlockCacheHash struct {
+	key      uint64
+	conflict uint64
+}
+
+type decodedBlockCacheTrackedKey struct {
+	ref string
+	key string
 }
 
 // NewDecodedBlockCache constructs a decoded-block cache with default options.
@@ -60,19 +74,31 @@ func NewDecodedBlockCache() *DecodedBlockCache {
 // NewDecodedBlockCacheWithOptions constructs a decoded-block cache owner.
 func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlockCache, error) {
 	opts = opts.normalize()
+	cache := &DecodedBlockCache{
+		opts:   opts,
+		byRef:  make(map[string]map[string]struct{}),
+		byHash: make(map[decodedBlockCacheHash]decodedBlockCacheTrackedKey),
+	}
 	if opts.Disabled {
-		return &DecodedBlockCache{opts: opts, byRef: make(map[string]map[string]struct{})}, nil
+		return cache, nil
 	}
 	db, err := ristretto.NewCache(&ristretto.Config[string, Block]{
 		NumCounters: opts.NumCounters,
 		MaxCost:     opts.MaxCost,
 		BufferItems: opts.BufferItems,
 		Metrics:     true,
+		OnEvict: func(item *ristretto.Item[Block]) {
+			cache.removeRefKeyHash(decodedBlockCacheHash{key: item.Key, conflict: item.Conflict})
+		},
+		OnReject: func(item *ristretto.Item[Block]) {
+			cache.removeRefKeyHash(decodedBlockCacheHash{key: item.Key, conflict: item.Conflict})
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &DecodedBlockCache{cache: db, opts: opts, byRef: make(map[string]map[string]struct{})}, nil
+	cache.cache = db
+	return cache, nil
 }
 
 // WithDecodedBlockCache attaches an owner-provided decoded-block cache to ctx.
@@ -112,6 +138,7 @@ func (c *DecodedBlockCache) Close() {
 	}
 	c.mtx.Lock()
 	c.byRef = nil
+	c.byHash = nil
 	c.mtx.Unlock()
 	if c.cache == nil {
 		return
@@ -218,13 +245,16 @@ func (c *DecodedBlockCache) Store(
 		return nil
 	}
 	cacheKey := key.String()
+	// Ristretto can reject asynchronously, so record before Set and let reject
+	// callbacks remove entries that never become durable cache contents.
+	c.recordRefKey(key.ref, cacheKey)
 	accepted := c.cache.Set(cacheKey, cloned, cost)
 	recordDecodedBlockCacheStore(ctx, accepted, cost)
 	if !accepted {
+		c.removeRefKey(cacheKey)
 		recordDecodedBlockCacheRejected(ctx)
 		return nil
 	}
-	c.recordRefKey(key.ref, cacheKey)
 	return nil
 }
 
@@ -238,10 +268,7 @@ func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
 	if c == nil || c.cache == nil {
 		return
 	}
-	c.mtx.Lock()
-	keys := c.byRef[refKey]
-	delete(c.byRef, refKey)
-	c.mtx.Unlock()
+	keys := c.takeRefKeys(refKey)
 	for key := range keys {
 		c.cache.Del(key)
 	}
@@ -255,13 +282,58 @@ func (c *DecodedBlockCache) recordRefKey(refKey, key string) {
 	if c.byRef == nil {
 		c.byRef = make(map[string]map[string]struct{})
 	}
+	if c.byHash == nil {
+		c.byHash = make(map[decodedBlockCacheHash]decodedBlockCacheTrackedKey)
+	}
 	keys := c.byRef[refKey]
 	if keys == nil {
 		keys = make(map[string]struct{})
 		c.byRef[refKey] = keys
 	}
 	keys[key] = struct{}{}
+	h := decodedBlockCacheHashFor(key)
+	c.byHash[h] = decodedBlockCacheTrackedKey{ref: refKey, key: key}
 	c.mtx.Unlock()
+}
+
+func (c *DecodedBlockCache) removeRefKey(key string) {
+	c.removeRefKeyHash(decodedBlockCacheHashFor(key))
+}
+
+func (c *DecodedBlockCache) removeRefKeyHash(h decodedBlockCacheHash) {
+	if c == nil {
+		return
+	}
+	c.mtx.Lock()
+	tracked, ok := c.byHash[h]
+	if ok {
+		delete(c.byHash, h)
+		keys := c.byRef[tracked.ref]
+		delete(keys, tracked.key)
+		if len(keys) == 0 {
+			delete(c.byRef, tracked.ref)
+		}
+	}
+	c.mtx.Unlock()
+}
+
+func (c *DecodedBlockCache) takeRefKeys(refKey string) map[string]struct{} {
+	if c == nil {
+		return nil
+	}
+	c.mtx.Lock()
+	keys := c.byRef[refKey]
+	delete(c.byRef, refKey)
+	for key := range keys {
+		delete(c.byHash, decodedBlockCacheHashFor(key))
+	}
+	c.mtx.Unlock()
+	return keys
+}
+
+func decodedBlockCacheHashFor(key string) decodedBlockCacheHash {
+	keyHash, conflictHash := ristrettoz.KeyToHash[string](key)
+	return decodedBlockCacheHash{key: keyHash, conflict: conflictHash}
 }
 
 func invalidateDecodedBlockRef(ctx context.Context, cache *DecodedBlockCache, ref *BlockRef) {

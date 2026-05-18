@@ -143,3 +143,36 @@ func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
 		t.Fatalf("Unmarshal after RmBlock error = %v, want %v", err, block.ErrNotFound)
 	}
 }
+
+func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
+	ctx := context.Background()
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	store := &BlockStore{
+		store:         newBatchForwardTestStore(),
+		decodedBlocks: decodedBlocks,
+	}
+	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "removed"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx, cursor := block.NewTransaction(store, nil, ref, nil)
+	tx.SetDecodedBlockCache(decodedBlocks)
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks.Wait()
+
+	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
+		t.Fatal(err.Error())
+	}
+	tx, cursor = block.NewTransaction(store, nil, ref, nil)
+	tx.SetDecodedBlockCache(decodedBlocks)
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("Unmarshal after tombstone batch error = %v, want %v", err, block.ErrNotFound)
+	}
+}
