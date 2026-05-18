@@ -226,7 +226,6 @@ func (d *fetchManifest) GetDebugVals() directive.DebugValues {
 	if d.GetRev() != 0 {
 		vals["rev"] = []string{strconv.FormatUint(d.GetRev(), 10)}
 	}
-
 	return vals
 }
 

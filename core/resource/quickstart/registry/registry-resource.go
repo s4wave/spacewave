@@ -166,7 +166,8 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 		return nil, ErrSpaceResourceRequired
 	}
 
-	resources, err := s4wave_plugin.ConnectPluginResources(ctx, r.b, reg.GetPluginId())
+	resourceClientCtx := resourceCtx.Context()
+	resources, err := s4wave_plugin.ConnectPluginResources(resourceClientCtx, r.b, reg.GetPluginId())
 	if err != nil {
 		return nil, errors.Wrap(err, "connect to quickstart plugin")
 	}

@@ -64,7 +64,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	}
 
 	le.Info("building release web bundle")
-	if err := runBun(ctx, repoRoot, "run", "build:release:web"); err != nil {
+	if err := runBun(ctx, repoRoot, "run", releaseWasmBuildScript()); err != nil {
 		return nil, errors.Wrap(err, "build release web bundle")
 	}
 
@@ -177,6 +177,14 @@ func releaseWasmBrowserName() (string, error) {
 	default:
 		return "", errors.Errorf("unsupported E2E_RELEASE_WASM_BROWSER %q", name)
 	}
+}
+
+func releaseWasmBuildScript() string {
+	script := strings.TrimSpace(os.Getenv("E2E_RELEASE_WASM_BUILD_SCRIPT"))
+	if script == "" {
+		return "build:release:web:e2e"
+	}
+	return script
 }
 
 func playwrightBrowserType(pw *playwright.Playwright, browserName string) (playwright.BrowserType, error) {

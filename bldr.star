@@ -22,6 +22,24 @@ CORE_GO_PKGS = [
 # Shared encryption key for peer object store
 PEER_ENCRYPTION_KEY = "KY8Lo3c7L+bXa8BFZcU/YFfHysRdl4aZqmDd9TeZ+p4="
 
+LAUNCHER_GO_PKGS = [
+    "./core/provider/spacewave/launcher/controller",
+    "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
+    "github.com/s4wave/spacewave/core/cdn/world/controller",
+    "github.com/s4wave/spacewave/core/space/world/optypes",
+    "github.com/s4wave/spacewave/db/block/store/overlay",
+    "github.com/s4wave/spacewave/db/block/store/rpc/server",
+    "github.com/s4wave/spacewave/db/object/peer",
+]
+
+PRODUCTION_DIST_PEER_ID = "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
+PRODUCTION_RELEASE_CONFIG_URL = "https://spacewave.app/api/release/config"
+
+# Signed by a checked-in test-only peer ID. The private key is not needed at
+# runtime; this packed DistConfig only seeds the release-WASM e2e fixture.
+E2E_RELEASE_WASM_INIT_DIST_CONFIG = "QnF9fgszS28jFAMjKER3ciABGzwDZkg7BRMvIixUcVEWdSA5EXc8Yi8SfgQsamlyJXIWHy1nEkRcQlQISZbVKR4BNZYv-UzPrdwbTabvlAEk2wWd9WE4-IHcGqhqXSaKWF6lXUUQjlrPKQR-xmsBQCI5ypSqcorbixh5QlUx33-kteLxWSSPBEI1a61XSXzSjK4pORWs5oYDFLzJw0Qd8qFPYHRgOveAs1Xs9-Cr9CnWCLmiqXtF"
+E2E_RELEASE_WASM_DIST_PEER_ID = "12D3KooWMkaFstnFSvNbN9MVcncTqQZ6nqXu8daU6Nanopm7ZSbg"
+
 # Core configSet shared between Go plugin and CLI manifests.
 def core_config_set(listener_path="git:.spacewave/spacewave.sock"):
     return {
@@ -99,6 +117,74 @@ def spacewave_core_config(enable_tinygo_web=False):
         },
     }
 
+def spacewave_launcher_controller_config(
+        dist_peer_ids=[PRODUCTION_DIST_PEER_ID],
+        endpoints=[{"url": PRODUCTION_RELEASE_CONFIG_URL}],
+        refetch_dur="1h",
+        init_dist_config="",
+        disable_endpoint_fetch=False):
+    conf = {
+        "projectId": "spacewave",
+        # Public defaults are production-only. Release-owned overlays replace
+        # endpoints and distPeerIds for other release environments.
+        "distPeerIds": dist_peer_ids,
+    }
+    if not disable_endpoint_fetch:
+        conf["endpoints"] = endpoints
+    if disable_endpoint_fetch:
+        conf["disableEndpointFetch"] = True
+    if refetch_dur != "":
+        conf["refetchDur"] = refetch_dur
+    if init_dist_config != "":
+        conf["initDistConfig"] = init_dist_config
+    return conf
+
+def spacewave_launcher_config(launcher_controller_config=spacewave_launcher_controller_config()):
+    return {
+        "goPkgs": LAUNCHER_GO_PKGS,
+        "configSet": {
+            "spacewave-launcher": config_entry(
+                "spacewave/launcher/controller", 1,
+                launcher_controller_config,
+            ),
+            "store-peer": config_entry("object/peer", 1, {
+                "objectStoreId": "s4wave-peer",
+                "volumeId": "plugin-host",
+                "transformConf": {
+                    "steps": [{
+                        "id": "hydra/transform/blockenc",
+                        "config": {
+                            "blockEnc": "BlockEnc_XCHACHA20_POLY1305",
+                            "key": PEER_ENCRYPTION_KEY,
+                        },
+                    }],
+                },
+            }),
+            "release-world": config_entry("spacewave/cdn/world", 1, {
+                "engineId": "spacewave-release-world",
+                "spaceId": "01kqjmfxd44r7ggrq78efad3d2",
+                "cdnBaseUrl": "https://cdn.spacewave.app",
+            }),
+            "release-world-ops": config_entry("space/world/ops", 1, {
+                "engineId": "spacewave-release-world",
+            }),
+            "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
+                "engineId": "spacewave-release-world",
+                "objectKeys": ["spacewave/release/manifests"],
+            }),
+        },
+    }
+
+def e2e_release_wasm_launcher_config():
+    return spacewave_launcher_config(
+        spacewave_launcher_controller_config(
+            dist_peer_ids=[E2E_RELEASE_WASM_DIST_PEER_ID],
+            refetch_dur="",
+            init_dist_config=E2E_RELEASE_WASM_INIT_DIST_CONFIG,
+            disable_endpoint_fetch=True,
+        ),
+    )
+
 # Web packages excluded by JS plugins that consume spacewave-web packages.
 EXCLUDED_WEB_PKGS = [
     web_pkg("@s4wave/web", exclude=True),
@@ -134,60 +220,7 @@ manifest("web",
 manifest("spacewave-launcher",
     builder="bldr/plugin/compiler/go",
     rev=1,
-    config={
-        "goPkgs": [
-            "./core/provider/spacewave/launcher/controller",
-            "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
-            "github.com/s4wave/spacewave/core/cdn/world/controller",
-            "github.com/s4wave/spacewave/core/space/world/optypes",
-            "github.com/s4wave/spacewave/db/block/store/overlay",
-            "github.com/s4wave/spacewave/db/block/store/rpc/server",
-            "github.com/s4wave/spacewave/db/object/peer",
-        ],
-        "configSet": {
-            "spacewave-launcher": config_entry(
-                "spacewave/launcher/controller", 1,
-                {
-                    "projectId": "spacewave",
-                    # Public defaults are production-only. Release-owned
-                    # overlays replace endpoints and distPeerIds for other
-                    # release environments.
-                    "distPeerIds": [
-                        "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW",
-                    ],
-                    "endpoints": [{
-                        "url": "https://spacewave.app/api/release/config",
-                    }],
-                    "refetchDur": "1h",
-                },
-            ),
-            "store-peer": config_entry("object/peer", 1, {
-                "objectStoreId": "s4wave-peer",
-                "volumeId": "plugin-host",
-                "transformConf": {
-                    "steps": [{
-                        "id": "hydra/transform/blockenc",
-                        "config": {
-                            "blockEnc": "BlockEnc_XCHACHA20_POLY1305",
-                            "key": PEER_ENCRYPTION_KEY,
-                        },
-                    }],
-                },
-            }),
-            "release-world": config_entry("spacewave/cdn/world", 1, {
-                "engineId": "spacewave-release-world",
-                "spaceId": "01kqjmfxd44r7ggrq78efad3d2",
-                "cdnBaseUrl": "https://cdn.spacewave.app",
-            }),
-            "release-world-ops": config_entry("space/world/ops", 1, {
-                "engineId": "spacewave-release-world",
-            }),
-            "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
-                "engineId": "spacewave-release-world",
-                "objectKeys": ["spacewave/release/manifests"],
-            }),
-        },
-    },
+    config=spacewave_launcher_config(),
 )
 
 # spacewave-loader spawns the cross-platform loading-UI helper during plugin
@@ -318,6 +351,11 @@ BROWSER_RELEASE_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
+BROWSER_RELEASE_E2E_LOAD_PLUGINS = [
+    "spacewave-launcher",
+    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+]
+
 def dist_release_config(embed_manifests, load_plugins):
     return dist_compiler_config(
         cliPkgs=["./cmd/spacewave/cli"],
@@ -350,6 +388,11 @@ BROWSER_RELEASE_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
     "spacewave-dist",
 ]
+BROWSER_RELEASE_E2E_MANIFESTS = [
+    "spacewave-launcher",
+    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    "spacewave-dist",
+]
 DESKTOP_RELEASE_MANIFESTS = [
     "spacewave-launcher", "spacewave-loader",
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
@@ -374,6 +417,18 @@ BROWSER_RELEASE_EMBED_MANIFESTS = [
     {"manifestId": "spacewave-app",
      "platformId": "js"},
 ]
+BROWSER_RELEASE_E2E_EMBED_MANIFESTS = [
+    {"manifestId": "spacewave-launcher",
+     "platformId": "web/js/wasm"},
+    {"manifestId": "spacewave-core",
+     "platformId": "web/js/wasm"},
+    {"manifestId": "web",
+     "platformId": "web/js/wasm"},
+    {"manifestId": "spacewave-web",
+     "platformId": "js"},
+    {"manifestId": "spacewave-app",
+     "platformId": "js"},
+]
 
 build("app",         manifests=DEV_MANIFESTS,     targets=["desktop"])
 build("web",         manifests=DEV_MANIFESTS,     targets=["browser"])
@@ -384,6 +439,17 @@ build("release-web",
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
+        ),
+    },
+)
+build("release-web-e2e",
+    manifests=BROWSER_RELEASE_E2E_MANIFESTS,
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-launcher": e2e_release_wasm_launcher_config(),
+        "spacewave-dist": dist_release_config(
+            BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
+            BROWSER_RELEASE_E2E_LOAD_PLUGINS,
         ),
     },
 )

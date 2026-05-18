@@ -202,7 +202,9 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	})
 
 	// start the dist conf update fetcher
-	_ = c.confFetcherRoutine.SetContext(ctx, true)
+	if len(c.endps) != 0 {
+		_ = c.confFetcherRoutine.SetContext(ctx, true)
+	}
 	return nil
 }
 

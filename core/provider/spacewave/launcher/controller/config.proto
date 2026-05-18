@@ -30,6 +30,9 @@ message Config {
   // InitDistConfig is the initial distribution configuration packedmsg.
   // If unset, uses a blank config.
   string init_dist_config = 9;
+  // DisableEndpointFetch disables all endpoint DistConfig fetches.
+  // Use this only for embedded/offline builds that must run from init_dist_config.
+  bool disable_endpoint_fetch = 10;
 }
 
 // HttpEndpoint is an http endpoint.

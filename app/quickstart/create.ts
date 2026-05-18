@@ -59,6 +59,7 @@ import { type QuickstartSpaceCreateId } from './options.js'
 
 const NOTES_PLUGIN_ID = 'spacewave-notes'
 const QUICKSTART_REGISTRATION_TIMEOUT_MS = import.meta.env?.DEV ? 240000 : 30000
+const QUICKSTART_LOCAL_PROVIDER_READY_TIMEOUT_MS = 120000
 
 type NotesQuickstartId = Extract<
   QuickstartSpaceCreateId,
@@ -241,9 +242,10 @@ async function retryQuickstartRpc<T>(
   abortSignal: AbortSignal | undefined,
   timeoutMs: number,
   cb: (signal: AbortSignal) => Promise<T>,
+  maxAttempts = 3,
 ): Promise<T> {
   let lastErr: unknown
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (abortSignal?.aborted) {
       throw new DOMException('Aborted', 'AbortError')
     }
@@ -362,7 +364,13 @@ export async function createLocalSession(
   using provider = await timeQuickstartPhase(
     timing,
     'lookup-local-provider',
-    () => root.lookupProvider('local'),
+    () =>
+      retryQuickstartRpc(
+        abortSignal,
+        QUICKSTART_LOCAL_PROVIDER_READY_TIMEOUT_MS,
+        (signal) => root.lookupProvider('local', signal),
+        2,
+      ),
   )
   const lp = new LocalProvider(provider.resourceRef)
   let accountResp: CreateAccountResponse

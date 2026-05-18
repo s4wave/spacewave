@@ -107,6 +107,25 @@ func (h *WebQuickJSHost) ExecutePlugin(
 ) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
+	fatalErrCh := make(chan error, 1)
+	reportFatalErr := func(err error) {
+		if err == nil || err == context.Canceled || !isWebWorkerFailureError(err) {
+			return
+		}
+		select {
+		case fatalErrCh <- err:
+			ctxCancel()
+		default:
+		}
+	}
+	popFatalErr := func() error {
+		select {
+		case err := <-fatalErrCh:
+			return err
+		default:
+			return nil
+		}
+	}
 
 	// restrict to .mjs and .js only
 	if !strings.HasSuffix(entrypoint, ".mjs") && !strings.HasSuffix(entrypoint, ".js") {
@@ -369,6 +388,9 @@ func (h *WebQuickJSHost) ExecutePlugin(
 					}
 				}
 			}
+			if workerInstance != nil && workerInstance.GetFailed() {
+				return webWorkerFailureError(workerInstance, "QuickJS web worker failed")
+			}
 		}
 	}
 
@@ -420,7 +442,9 @@ func (h *WebQuickJSHost) ExecutePlugin(
 	webDocumentsKeyed = keyed.NewKeyedWithLogger(
 		func(webDocumentId string) (keyed.Routine, struct{}) {
 			return func(ctx context.Context) error {
-				return trackWebDocument(ctx, webDocumentId)
+				err := trackWebDocument(ctx, webDocumentId)
+				reportFatalErr(err)
+				return err
 			}, struct{}{}
 		},
 		h.le,
@@ -433,7 +457,13 @@ func (h *WebQuickJSHost) ExecutePlugin(
 	for {
 		webRuntimeStatus, err = webRuntimeStatusCtr.WaitValueChange(ctx, webRuntimeStatus, nil)
 		if err != nil {
+			if fatalErr := popFatalErr(); fatalErr != nil {
+				return fatalErr
+			}
 			return err
+		}
+		if fatalErr := popFatalErr(); fatalErr != nil {
+			return fatalErr
 		}
 		if webRuntimeStatus.GetClosed() {
 			return errors.New("web runtime is closed")

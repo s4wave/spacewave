@@ -1,6 +1,10 @@
 // Import types generated from protobuf definitions.
 import { Client } from 'starpc'
-import type { BackendAPI, BackendEntrypointFunc } from '@aptre/bldr-sdk'
+import type {
+  BackendAPI,
+  BackendEntrypointFunc,
+  BackendEntrypointLifecycle,
+} from '@aptre/bldr-sdk'
 import { BackendEntrypoint, FrontendEntrypoint } from './compiler.pb.js'
 import { ConfigSet } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import {
@@ -116,6 +120,16 @@ function observeBackendEntrypointCompletion(
     })
 }
 
+function isBackendEntrypointLifecycle(
+  result: ReturnType<BackendEntrypointFunc>,
+): result is BackendEntrypointLifecycle {
+  return (
+    typeof result === 'object' &&
+    result !== null &&
+    ('startup' in result || 'done' in result)
+  )
+}
+
 /**
  * Loads and executes a single backend entrypoint module.
  * @param entrypoint - The backend entrypoint configuration.
@@ -160,11 +174,16 @@ export async function startBackendEntrypoint(
     }
 
     console.debug(`Executing backend entrypoint: ${entrypointId}`)
-    const entrypointPromise = (modFunc as BackendEntrypointFunc)(
+    const entrypointResult = (modFunc as BackendEntrypointFunc)(
       backendAPI,
       abortSignal,
     )
-    observeBackendEntrypointCompletion(entrypointId, entrypointPromise)
+    if (isBackendEntrypointLifecycle(entrypointResult)) {
+      await entrypointResult.startup
+      observeBackendEntrypointCompletion(entrypointId, entrypointResult.done)
+      return
+    }
+    observeBackendEntrypointCompletion(entrypointId, entrypointResult)
   } catch (error) {
     logError(
       `Failed to load or start backend entrypoint ${entrypointId}`,
@@ -198,11 +217,7 @@ async function loadBackendEntrypoints(
     `Waiting for ${backendEntrypoints.length} backend entrypoints to start...`,
   )
   for (const entrypoint of backendEntrypoints) {
-    try {
-      await startBackendEntrypoint(entrypoint, backendAPI, abortSignal)
-    } catch (error) {
-      logError(`Backend entrypoint startup threw an error`, error)
-    }
+    await startBackendEntrypoint(entrypoint, backendAPI, abortSignal)
   }
   console.debug('All backend entrypoints started successfully.')
 }

@@ -47,7 +47,33 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 		var releasePacketCallbacks sync.Once
 		var jsOnMessage js.Func
 		var jsOnClose js.Func
+		var packetMtx sync.Mutex
+		packetClosed := false
+		markPacketClosed := func() bool {
+			packetMtx.Lock()
+			defer packetMtx.Unlock()
+			if packetClosed {
+				return false
+			}
+			packetClosed = true
+			return true
+		}
+		isPacketClosed := func() bool {
+			packetMtx.Lock()
+			defer packetMtx.Unlock()
+			return packetClosed
+		}
+		releasePackets := func() {
+			releasePacketCallbacks.Do(func() {
+				jsOnMessage.Release()
+				jsOnClose.Release()
+			})
+		}
 		jsOnMessage = js.FuncOf(func(this js.Value, args []js.Value) any {
+			if isPacketClosed() {
+				return nil
+			}
+
 			// copy packet from Uint8Array to []byte
 			packet := args[0]
 			dlen := packet.Length()
@@ -56,11 +82,9 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 
 			// call handler and handle error
 			if err := msgHandler(bin); err != nil {
-				closeHandler(err)
-				releasePacketCallbacks.Do(func() {
-					jsOnMessage.Release()
-					jsOnClose.Release()
-				})
+				if markPacketClosed() {
+					closeHandler(err)
+				}
 			}
 
 			return nil
@@ -80,11 +104,10 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 				err = errors.New(errMsg)
 			}
 
-			closeHandler(err)
-			releasePacketCallbacks.Do(func() {
-				jsOnMessage.Release()
-				jsOnClose.Release()
-			})
+			if markPacketClosed() {
+				closeHandler(err)
+			}
+			releasePackets()
 			return nil
 		})
 
@@ -94,38 +117,39 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 		var releasePromiseCallbacks sync.Once
 		var jsThen js.Func
 		var jsCatch js.Func
+		var promiseMtx sync.Mutex
+		promiseCanceled := false
+		cancelPromiseWait := func() {
+			promiseMtx.Lock()
+			promiseCanceled = true
+			promiseMtx.Unlock()
+		}
+		isPromiseCanceled := func() bool {
+			promiseMtx.Lock()
+			defer promiseMtx.Unlock()
+			return promiseCanceled
+		}
 		jsThen = js.FuncOf(func(this js.Value, args []js.Value) any {
 			releasePromiseCallbacks.Do(func() {
 				jsThen.Release()
 				jsCatch.Release()
 			})
-			select {
-			case <-ctx.Done():
+			if ctx.Err() != nil || isPromiseCanceled() {
 				args[0].Call("end")
-				releasePacketCallbacks.Do(func() {
-					jsOnMessage.Release()
-					jsOnClose.Release()
-				})
-				return nil
-			case doneCh <- srpc.NewPacketWriterWithClose(NewPushablePacketWriter(args[0]), func() error {
-				releasePacketCallbacks.Do(func() {
-					jsOnMessage.Release()
-					jsOnClose.Release()
-				})
-				return nil
-			}):
 				return nil
 			}
+			doneCh <- srpc.NewPacketWriterWithClose(NewPushablePacketWriter(args[0]), func() error {
+				args[0].Call("end")
+				return nil
+			})
+			return nil
 		})
 		jsCatch = js.FuncOf(func(this js.Value, args []js.Value) any {
 			releasePromiseCallbacks.Do(func() {
 				jsThen.Release()
 				jsCatch.Release()
 			})
-			releasePacketCallbacks.Do(func() {
-				jsOnMessage.Release()
-				jsOnClose.Release()
-			})
+			releasePackets()
 			if args[0].Type() == js.TypeObject {
 				// Error
 				errCh <- errors.New(strings.TrimPrefix(args[0].Call("toString").String(), "Error: "))
@@ -143,14 +167,7 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 		case err := <-errCh:
 			return nil, err
 		case <-ctx.Done():
-			releasePromiseCallbacks.Do(func() {
-				jsThen.Release()
-				jsCatch.Release()
-			})
-			releasePacketCallbacks.Do(func() {
-				jsOnMessage.Release()
-				jsOnClose.Release()
-			})
+			cancelPromiseWait()
 			return nil, context.Canceled
 		}
 	}

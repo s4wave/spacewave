@@ -162,20 +162,13 @@ if (pathname === '/' && window.location.hash.length > 1) {
     }
   }
 } else if (pathname.startsWith('/quickstart/')) {
-  // Quickstart loading pages: hydrate, then auto-boot when WASM ready.
+  // Quickstart loading pages are transient boot surfaces. The boot script may
+  // update their status text before this module loads, so do not hydrate the
+  // already-mutated DOM; auto-boot and let the deferred entrypoint replace it.
   const container = document.getElementById('bldr-root')
   if (container?.hasAttribute('data-prerendered')) {
     const Component = getStaticPageComponent(pathname)
     if (Component) {
-      globalThis.__swPrerenderContainer = container
-      globalThis.__swPrerenderRoot = hydrateRoot(
-        container,
-        <RouterProvider path={pathname} onNavigate={handleNavigate}>
-          <StaticProvider>
-            <Component />
-          </StaticProvider>
-        </RouterProvider>,
-      )
       // Auto-transition to app quickstart when entrypoint is ready.
       markBrowserStartupBoundary('quickstart.static-handoff-requested', {
         source: 'browser',

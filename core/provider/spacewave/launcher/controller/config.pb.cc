@@ -99,7 +99,8 @@ inline constexpr Config::Impl_::Impl_(
         init_dist_config_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        endpoints_backoff_{nullptr} {}
+        endpoints_backoff_{nullptr},
+        disable_endpoint_fetch_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -132,7 +133,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::Config, _impl_._has_bits_),
-        12, // hasbit index offset
+        13, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::Config, _impl_.object_store_id_),
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::Config, _impl_.object_store_key_),
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::Config, _impl_.volume_id_),
@@ -142,6 +143,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::Config, _impl_.refetch_dur_),
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::Config, _impl_.endpoints_backoff_),
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::Config, _impl_.init_dist_config_),
+        PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::Config, _impl_.disable_endpoint_fetch_),
         2,
         3,
         4,
@@ -151,6 +153,7 @@ const ::uint32_t
         6,
         8,
         7,
+        9,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::spacewave::launcher::controller::HttpEndpoint_HeadersEntry_DoNotUse, _impl_._has_bits_),
         5, // hasbit index offset
@@ -170,8 +173,8 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::spacewave::launcher::controller::Config)},
-        {21, sizeof(::spacewave::launcher::controller::HttpEndpoint_HeadersEntry_DoNotUse)},
-        {28, sizeof(::spacewave::launcher::controller::HttpEndpoint)},
+        {23, sizeof(::spacewave::launcher::controller::HttpEndpoint_HeadersEntry_DoNotUse)},
+        {30, sizeof(::spacewave::launcher::controller::HttpEndpoint)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::spacewave::launcher::controller::_Config_default_instance_._instance,
@@ -184,18 +187,19 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "der/spacewave/launcher/controller/config"
     ".proto\022\035spacewave.launcher.controller\0326g"
     "ithub.com/aperturerobotics/util/backoff/"
-    "backoff.proto\"\225\002\n\006Config\022\027\n\017object_store"
+    "backoff.proto\"\265\002\n\006Config\022\027\n\017object_store"
     "_id\030\001 \001(\t\022\030\n\020object_store_key\030\002 \001(\t\022\021\n\tv"
     "olume_id\030\003 \001(\t\022\022\n\nproject_id\030\004 \001(\t\022\025\n\rdi"
     "st_peer_ids\030\005 \003(\t\022>\n\tendpoints\030\006 \003(\0132+.s"
     "pacewave.launcher.controller.HttpEndpoin"
     "t\022\023\n\013refetch_dur\030\007 \001(\t\022+\n\021endpoints_back"
     "off\030\010 \001(\0132\020.backoff.Backoff\022\030\n\020init_dist"
-    "_config\030\t \001(\t\"\226\001\n\014HttpEndpoint\022\013\n\003url\030\001 "
-    "\001(\t\022I\n\007headers\030\002 \003(\01328.spacewave.launche"
-    "r.controller.HttpEndpoint.HeadersEntry\032."
-    "\n\014HeadersEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001"
-    "(\t:\0028\001b\006proto3"
+    "_config\030\t \001(\t\022\036\n\026disable_endpoint_fetch\030"
+    "\n \001(\010\"\226\001\n\014HttpEndpoint\022\013\n\003url\030\001 \001(\t\022I\n\007h"
+    "eaders\030\002 \003(\01328.spacewave.launcher.contro"
+    "ller.HttpEndpoint.HeadersEntry\032.\n\014Header"
+    "sEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001b\006"
+    "proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2fcontroller_2fconfig_2eproto_deps[1] = {
@@ -205,7 +209,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2fcontroller_2fconfig_2eproto = {
     false,
     false,
-    614,
+    646,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2fcontroller_2fconfig_2eproto,
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller/config.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2flauncher_2fcontroller_2fconfig_2eproto_once,
@@ -278,6 +282,7 @@ Config::Config(
   _impl_.endpoints_backoff_ = (CheckHasBit(cached_has_bits, 0x00000100U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.endpoints_backoff_)
                 : nullptr;
+  _impl_.disable_endpoint_fetch_ = from._impl_.disable_endpoint_fetch_;
 
   // @@protoc_insertion_point(copy_constructor:spacewave.launcher.controller.Config)
 }
@@ -296,7 +301,12 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.endpoints_backoff_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, endpoints_backoff_),
+           0,
+           offsetof(Impl_, disable_endpoint_fetch_) -
+               offsetof(Impl_, endpoints_backoff_) +
+               sizeof(Impl_::disable_endpoint_fetch_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:spacewave.launcher.controller.Config)
@@ -378,16 +388,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 2, 143, 2>
+const ::_pbi::TcParseTable<4, 10, 2, 143, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    10, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294966272,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
+    10,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -434,7 +444,10 @@ Config::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {74, 7, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.init_dist_config_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // bool disable_endpoint_fetch = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_endpoint_fetch_), 9>(),
+     {80, 9, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_endpoint_fetch_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -461,6 +474,8 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.endpoints_backoff_), _Internal::kHasBitsOffset + 8, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // string init_dist_config = 9;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.init_dist_config_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool disable_endpoint_fetch = 10;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_endpoint_fetch_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::spacewave::launcher::controller::HttpEndpoint>()},
@@ -516,6 +531,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
     ABSL_DCHECK(_impl_.endpoints_backoff_ != nullptr);
     _impl_.endpoints_backoff_->Clear();
   }
+  _impl_.disable_endpoint_fetch_ = false;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -629,6 +645,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // bool disable_endpoint_fetch = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_disable_endpoint_fetch() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          10, this_._internal_disable_endpoint_fetch(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -714,11 +739,17 @@ PROTOBUF_NOINLINE void Config::Clear() {
       }
     }
   }
-   {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
     // .backoff.Backoff endpoints_backoff = 8;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.endpoints_backoff_);
+    }
+    // bool disable_endpoint_fetch = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_disable_endpoint_fetch() != 0) {
+        total_size += 2;
+      }
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -806,12 +837,19 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    ABSL_DCHECK(from._impl_.endpoints_backoff_ != nullptr);
-    if (_this->_impl_.endpoints_backoff_ == nullptr) {
-      _this->_impl_.endpoints_backoff_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.endpoints_backoff_);
-    } else {
-      _this->_impl_.endpoints_backoff_->MergeFrom(*from._impl_.endpoints_backoff_);
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      ABSL_DCHECK(from._impl_.endpoints_backoff_ != nullptr);
+      if (_this->_impl_.endpoints_backoff_ == nullptr) {
+        _this->_impl_.endpoints_backoff_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.endpoints_backoff_);
+      } else {
+        _this->_impl_.endpoints_backoff_->MergeFrom(*from._impl_.endpoints_backoff_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_disable_endpoint_fetch() != 0) {
+        _this->_impl_.disable_endpoint_fetch_ = from._impl_.disable_endpoint_fetch_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -841,7 +879,12 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.project_id_, &other->_impl_.project_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.refetch_dur_, &other->_impl_.refetch_dur_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.init_dist_config_, &other->_impl_.init_dist_config_, arena);
-  swap(_impl_.endpoints_backoff_, other->_impl_.endpoints_backoff_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_endpoint_fetch_)
+      + sizeof(Config::_impl_.disable_endpoint_fetch_)
+      - PROTOBUF_FIELD_OFFSET(Config, _impl_.endpoints_backoff_)>(
+          reinterpret_cast<char*>(&_impl_.endpoints_backoff_),
+          reinterpret_cast<char*>(&other->_impl_.endpoints_backoff_));
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {

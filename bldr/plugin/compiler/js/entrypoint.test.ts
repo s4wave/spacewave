@@ -118,6 +118,83 @@ describe('plugin JS backend entrypoint startup', () => {
     }
   })
 
+  test('waits for declared backend startup lifecycle before startup resolves', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const backendAPI = {
+      startInfo: { pluginId: 'spacewave-notes' },
+      utils: {
+        pluginAssetHttpPath: (_pluginId: string, path: string) =>
+          '/p/spacewave-notes/a/' + path,
+      },
+    }
+    const abortController = new AbortController()
+    let resolveStartup!: () => void
+    const startup = new Promise<void>((resolve) => {
+      resolveStartup = resolve
+    })
+    const done = new Promise<void>(() => {})
+    let resolved = false
+
+    try {
+      const result = startBackendEntrypoint(
+        { importPath: '/assets/backend.js', importName: 'default' },
+        backendAPI as never,
+        abortController.signal,
+        async () => ({
+          default: () => ({ startup, done }),
+        }),
+      )
+      result.then(() => {
+        resolved = true
+      })
+
+      await Promise.resolve()
+      expect(resolved).toBe(false)
+
+      resolveStartup()
+      await result
+      expect(resolved).toBe(true)
+      expect(debug).toHaveBeenCalledWith(
+        'Executing backend entrypoint: /p/spacewave-notes/a/backend.js#default',
+      )
+    } finally {
+      abortController.abort()
+      debug.mockRestore()
+    }
+  })
+
+  test('rejects declared backend startup lifecycle failures', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const backendAPI = {
+      startInfo: { pluginId: 'spacewave-notes' },
+      utils: {
+        pluginAssetHttpPath: (_pluginId: string, path: string) =>
+          '/p/spacewave-notes/a/' + path,
+      },
+    }
+    const abortController = new AbortController()
+
+    try {
+      await expect(
+        startBackendEntrypoint(
+          { importPath: '/assets/backend.js', importName: 'default' },
+          backendAPI as never,
+          abortController.signal,
+          async () => ({
+            default: () => ({
+              startup: Promise.reject(new Error('startup failed')),
+            }),
+          }),
+        ),
+      ).rejects.toThrow('startup failed')
+    } finally {
+      abortController.abort()
+      debug.mockRestore()
+      error.mockRestore()
+    }
+  })
+
   test('observes backend lifecycle failures after startup', async () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})

@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 )
@@ -77,15 +78,23 @@ func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) 
 	// Start ResourceClient stream
 	stream, err := service.ResourceClient(clientCtx, &resource.ResourceClientRequest{})
 	if err != nil {
+		ctxErr := clientCtx.Err()
 		clientCancel()
-		return nil, err
+		if ctxErr != nil {
+			return nil, pkgerrors.Wrap(err, "start resource client stream after context cancellation")
+		}
+		return nil, pkgerrors.Wrap(err, "start resource client stream")
 	}
 
 	// Wait for init message
 	resp, err := stream.Recv()
 	if err != nil {
+		ctxErr := clientCtx.Err()
 		clientCancel()
-		return nil, err
+		if ctxErr != nil {
+			return nil, pkgerrors.Wrap(err, "receive resource client init after context cancellation")
+		}
+		return nil, pkgerrors.Wrap(err, "receive resource client init")
 	}
 
 	// Handle error response

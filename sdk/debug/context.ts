@@ -32,6 +32,16 @@ export function setDebugContext(ctx: DebugContext): void {
   globalStore()[GLOBAL_KEY] = ctx
 }
 
+// clearDebugContext removes the debug context when it still matches the
+// caller's generation.
+export function clearDebugContext(ctx?: DebugContext): void {
+  const store = globalStore()
+  if (ctx && store[GLOBAL_KEY] !== ctx) {
+    return
+  }
+  Reflect.deleteProperty(store, GLOBAL_KEY)
+}
+
 // getDebugContext retrieves the debug context set by the app.
 // Throws if the context has not been initialized.
 export function getDebugContext<T = DebugContext>(): T {

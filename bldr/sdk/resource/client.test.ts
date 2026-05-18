@@ -364,6 +364,42 @@ describe('ResourceClient', () => {
     vi.useRealTimers()
   })
 
+  it('retries ResourceClient streams that hang before init', async () => {
+    vi.useFakeTimers()
+    const service = buildUnusedService()
+    let calls = 0
+    service.ResourceClient = vi.fn(async function* (_request, signal) {
+      calls++
+      if (calls === 1) {
+        await new Promise<void>((resolve) => {
+          signal?.addEventListener('abort', resolve, { once: true })
+        })
+        return
+      }
+      yield {
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId: 8, rootResourceId: 2 },
+        },
+      }
+      await new Promise<void>((resolve) => {
+        signal?.addEventListener('abort', resolve, { once: true })
+      })
+    })
+
+    const client = new Client(service, new AbortController().signal)
+    const rootPromise = client.accessRootResource()
+
+    await vi.advanceTimersByTimeAsync(30500)
+    const root = await rootPromise
+
+    expect(root.resourceId).toBe(2)
+    expect(calls).toBe(2)
+
+    client.dispose()
+    vi.useRealTimers()
+  })
+
   it('retries queued resource releases after runtime ack timeouts', async () => {
     vi.useFakeTimers()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})

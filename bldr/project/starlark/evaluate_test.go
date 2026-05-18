@@ -422,6 +422,9 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if browserOverride == nil {
 		t.Fatal("override for browser 'spacewave-dist' not found")
 	}
+	if browserRelease.GetManifestOverrides()["spacewave-launcher"] != nil {
+		t.Fatal("production browser release should not override spacewave-launcher")
+	}
 	browserCfg := string(browserOverride.GetConfig())
 	if strings.Contains(browserCfg, `"spacewave-loader"`) {
 		t.Fatalf("browser release override unexpectedly includes spacewave-loader: %s", browserCfg)
@@ -440,6 +443,70 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	for _, coldPlugin := range []string{`"spacewave-notes"`, `"spacewave-v86"`} {
 		if strings.Contains(browserCfg, coldPlugin) {
 			t.Fatalf("browser release embed/load config unexpectedly includes cold plugin %s: %s", coldPlugin, browserCfg)
+		}
+	}
+
+	e2eBrowserRelease := result.Config.GetBuild()["release-web-e2e"]
+	if e2eBrowserRelease == nil {
+		t.Fatal("build target 'release-web-e2e' not found")
+	}
+	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "web", "spacewave-dist"} {
+		if !slices.Contains(e2eBrowserRelease.GetManifests(), want) {
+			t.Fatalf("release-web-e2e manifests missing %s: %v", want, e2eBrowserRelease.GetManifests())
+		}
+	}
+	for _, coldPlugin := range []string{"spacewave-notes", "spacewave-v86"} {
+		if slices.Contains(e2eBrowserRelease.GetManifests(), coldPlugin) {
+			t.Fatalf("release-web-e2e should not build %s: %v", coldPlugin, e2eBrowserRelease.GetManifests())
+		}
+	}
+	if !slices.Equal(e2eBrowserRelease.GetTargets(), []string{"browser"}) {
+		t.Fatalf("release-web-e2e targets: got %v, want [browser]", e2eBrowserRelease.GetTargets())
+	}
+	e2eLauncherOverride := e2eBrowserRelease.GetManifestOverrides()["spacewave-launcher"]
+	if e2eLauncherOverride == nil {
+		t.Fatal("release-web-e2e should override spacewave-launcher")
+	}
+	e2eLauncherCfg := string(e2eLauncherOverride.GetConfig())
+	for _, want := range []string{
+		`"distPeerIds":["12D3KooWMkaFstnFSvNbN9MVcncTqQZ6nqXu8daU6Nanopm7ZSbg"]`,
+		`"initDistConfig":"QnF9fgszS28jFAMjKER3ciABGzwDZkg7BRMvIixUcVEWdSA5EXc8Yi8SfgQsamlyJXIWHy1nEkRcQlQISZbVKR4BNZYv-UzPrdwbTabvlAEk2wWd9WE4-IHcGqhqXSaKWF6lXUUQjlrPKQR-xmsBQCI5ypSqcorbixh5QlUx33-kteLxWSSPBEI1a61XSXzSjK4pORWs5oYDFLzJw0Qd8qFPYHRgOveAs1Xs9-Cr9CnWCLmiqXtF"`,
+		`"disableEndpointFetch":true`,
+	} {
+		if !strings.Contains(e2eLauncherCfg, want) {
+			t.Fatalf("release-web-e2e spacewave-launcher override missing %s: %s", want, e2eLauncherCfg)
+		}
+	}
+	if strings.Contains(e2eLauncherCfg, `"endpoints"`) {
+		t.Fatalf("release-web-e2e spacewave-launcher override contains endpoints: %s", e2eLauncherCfg)
+	}
+	if strings.Contains(e2eLauncherCfg, "https://spacewave.app/api/release/config") {
+		t.Fatalf("release-web-e2e spacewave-launcher override contains production endpoint: %s", e2eLauncherCfg)
+	}
+	e2eBrowserOverride := e2eBrowserRelease.GetManifestOverrides()["spacewave-dist"]
+	if e2eBrowserOverride == nil {
+		t.Fatal("release-web-e2e override for 'spacewave-dist' not found")
+	}
+	e2eDistCfg := string(e2eBrowserOverride.GetConfig())
+	for _, want := range []string{
+		`"spacewave-launcher"`,
+		`"spacewave-core"`,
+		`"spacewave-web"`,
+		`"spacewave-app"`,
+		`"web"`,
+	} {
+		if !strings.Contains(e2eDistCfg, want) {
+			t.Fatalf("release-web-e2e dist override missing %s: %s", want, e2eDistCfg)
+		}
+	}
+	for _, unexpected := range []string{
+		`"embeddedManifestOverrides"`,
+		`"spacewave-notes"`,
+		`"spacewave-v86"`,
+		"https://spacewave.app/api/release/config",
+	} {
+		if strings.Contains(e2eDistCfg, unexpected) {
+			t.Fatalf("release-web-e2e dist override contains %s: %s", unexpected, e2eDistCfg)
 		}
 	}
 

@@ -496,6 +496,7 @@ class Config final : public ::google::protobuf::Message
     kRefetchDurFieldNumber = 7,
     kInitDistConfigFieldNumber = 9,
     kEndpointsBackoffFieldNumber = 8,
+    kDisableEndpointFetchFieldNumber = 10,
   };
   // repeated string dist_peer_ids = 5;
   int dist_peer_ids_size() const;
@@ -641,11 +642,21 @@ class Config final : public ::google::protobuf::Message
   ::backoff::Backoff* PROTOBUF_NONNULL _internal_mutable_endpoints_backoff();
 
   public:
+  // bool disable_endpoint_fetch = 10;
+  void clear_disable_endpoint_fetch() ;
+  bool disable_endpoint_fetch() const;
+  void set_disable_endpoint_fetch(bool value);
+
+  private:
+  bool _internal_disable_endpoint_fetch() const;
+  void _internal_set_disable_endpoint_fetch(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:spacewave.launcher.controller.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
                                    2, 143,
                                    2>
       _table_;
@@ -676,6 +687,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr refetch_dur_;
     ::google::protobuf::internal::ArenaStringPtr init_dist_config_;
     ::backoff::Backoff* PROTOBUF_NULLABLE endpoints_backoff_;
+    bool disable_endpoint_fetch_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1309,6 +1321,31 @@ inline void Config::set_allocated_init_dist_config(::std::string* PROTOBUF_NULLA
     _impl_.init_dist_config_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:spacewave.launcher.controller.Config.init_dist_config)
+}
+
+// bool disable_endpoint_fetch = 10;
+inline void Config::clear_disable_endpoint_fetch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.disable_endpoint_fetch_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline bool Config::disable_endpoint_fetch() const {
+  // @@protoc_insertion_point(field_get:spacewave.launcher.controller.Config.disable_endpoint_fetch)
+  return _internal_disable_endpoint_fetch();
+}
+inline void Config::set_disable_endpoint_fetch(bool value) {
+  _internal_set_disable_endpoint_fetch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:spacewave.launcher.controller.Config.disable_endpoint_fetch)
+}
+inline bool Config::_internal_disable_endpoint_fetch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.disable_endpoint_fetch_;
+}
+inline void Config::_internal_set_disable_endpoint_fetch(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.disable_endpoint_fetch_ = value;
 }
 
 // -------------------------------------------------------------------

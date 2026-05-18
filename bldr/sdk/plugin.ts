@@ -104,4 +104,12 @@ export interface BackendAPI {
 export type BackendEntrypointFunc = (
   api: BackendAPI,
   abortSignal: AbortSignal,
-) => Promise<void>
+) => void | Promise<void> | BackendEntrypointLifecycle
+
+// BackendEntrypointLifecycle lets a backend distinguish startup work from
+// process-lifetime work. The generic plugin entrypoint waits for startup before
+// publishing plugin readiness, then observes done as the long-lived lifecycle.
+export interface BackendEntrypointLifecycle {
+  startup?: void | Promise<void>
+  done?: void | Promise<void>
+}

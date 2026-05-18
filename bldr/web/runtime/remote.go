@@ -547,7 +547,10 @@ func (r *Remote) GetWebWorkerHost(ctx context.Context, webWorkerID string, _ fun
 		})
 		return mux, nil, err
 	*/
-	return bifrost_rpc.NewInvoker(r.bus, "web-worker/"+webWorkerID, true), nil, nil
+	return &webWorkerHostInvoker{
+		webWorkerID: webWorkerID,
+		invoker:     bifrost_rpc.NewInvoker(r.bus, "web-worker/"+webWorkerID, true),
+	}, nil, nil
 }
 
 // removeRemoteWebDocument removes a remote web document, if found.

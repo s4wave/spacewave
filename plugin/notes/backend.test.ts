@@ -13,6 +13,8 @@ const h = vi.hoisted(() => ({
     resourceId: number
     ref: { [Symbol.dispose](): void }
   }>,
+  quickstartRegistrationFailureId: undefined as string | undefined,
+  viewerRegistrationFailure: undefined as Error | undefined,
   nextResourceId: 1,
   rootRef: undefined as unknown as {
     client: Record<string, never>
@@ -97,6 +99,12 @@ vi.mock('@s4wave/sdk/quickstart/registry/registry_srpc.pb.js', () => ({
 
     RegisterQuickstart(req: { registration?: Record<string, unknown> }) {
       h.quickstartRegistrations.push(req.registration ?? {})
+      if (
+        h.quickstartRegistrationFailureId &&
+        req.registration?.quickstartId === h.quickstartRegistrationFailureId
+      ) {
+        return Promise.reject(new Error('quickstart registry unavailable'))
+      }
       return Promise.resolve({ resourceId: h.nextResourceId++ })
     }
   },
@@ -119,6 +127,9 @@ vi.mock('@s4wave/sdk/viewer/registry/registry_srpc.pb.js', () => ({
 
     RegisterViewer(req: { registration: Record<string, unknown> }) {
       h.viewerRegistrations.push(req.registration)
+      if (h.viewerRegistrationFailure) {
+        return Promise.reject(h.viewerRegistrationFailure)
+      }
       return Promise.resolve({ resourceId: h.nextResourceId++ })
     }
   },
@@ -170,6 +181,14 @@ function buildApi(pluginId: string) {
   }
 }
 
+async function startMain(
+  api: Parameters<typeof main>[0],
+  signal: AbortSignal,
+): Promise<void> {
+  const lifecycle = main(api, signal)
+  await lifecycle.startup
+}
+
 describe('notes backend registration', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -179,6 +198,8 @@ describe('notes backend registration', () => {
     h.wizardRegistrations.length = 0
     h.viewerRegistrations.length = 0
     h.retainedRefs.length = 0
+    h.quickstartRegistrationFailureId = undefined
+    h.viewerRegistrationFailure = undefined
     h.nextResourceId = 1
     h.pluginAssetHttpPath.mockImplementation(
       (pluginId: string, path: string) => `/asset/${pluginId}/${path}`,
@@ -197,7 +218,7 @@ describe('notes backend registration', () => {
   it('registers notes interfaces with the startInfo plugin id and retained lifetimes', async () => {
     const abort = new AbortController()
 
-    await main(buildApi('spacewave-notes') as never, abort.signal)
+    await startMain(buildApi('spacewave-notes') as never, abort.signal)
 
     expect(h.objectTypeRegistrations).toEqual([
       { typeId: 'notes/notebook', pluginId: 'spacewave-notes' },
@@ -337,9 +358,92 @@ describe('notes backend registration', () => {
     expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps the backend lifecycle pending until abort after startup', async () => {
+    const abort = new AbortController()
+    const lifecycle = main(buildApi('spacewave-notes') as never, abort.signal)
+
+    await lifecycle.startup
+
+    expect(lifecycle.done).toBeDefined()
+    let doneResolved = false
+    const done = Promise.resolve(lifecycle.done).then(() => {
+      doneResolved = true
+    })
+
+    await Promise.resolve()
+
+    expect(doneResolved).toBe(false)
+
+    abort.abort()
+    await done
+
+    expect(doneResolved).toBe(true)
+  })
+
+  it('does not publish quickstarts before viewer startup finishes', async () => {
+    const abort = new AbortController()
+    h.viewerRegistrationFailure = new Error('viewer registry unavailable')
+
+    await expect(
+      startMain(buildApi('spacewave-notes') as never, abort.signal),
+    ).rejects.toThrow('viewer registry unavailable')
+
+    expect(h.quickstartRegistrations).toHaveLength(0)
+    expect(
+      h.wizardRegistrations.map((registration) => registration.typeId),
+    ).toEqual(['notes/notebook', 'notes/docs', 'notes/blog'])
+    expect(h.viewerRegistrations).toHaveLength(1)
+    expect(h.rootRef.createRef).toHaveBeenCalledTimes(9)
+    expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9,
+    ])
+    for (const entry of h.retainedRefs) {
+      expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
+    }
+    expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
+
+    abort.abort()
+
+    for (const entry of h.retainedRefs) {
+      expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
+    }
+    expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
+  })
+
+  it('releases partial quickstart registrations when final startup publication fails', async () => {
+    const abort = new AbortController()
+    h.quickstartRegistrationFailureId = 'blog'
+
+    await expect(
+      startMain(buildApi('spacewave-notes') as never, abort.signal),
+    ).rejects.toThrow('quickstart registry unavailable')
+
+    expect(
+      h.quickstartRegistrations.map(
+        (registration) => registration.quickstartId,
+      ),
+    ).toEqual(['notebook', 'docs', 'blog'])
+    expect(h.viewerRegistrations).toHaveLength(6)
+    expect(h.rootRef.createRef).toHaveBeenCalledTimes(17)
+    expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+    ])
+    for (const entry of h.retainedRefs) {
+      expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
+    }
+    expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
+
+    abort.abort()
+
+    for (const entry of h.retainedRefs) {
+      expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
+    }
+    expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
+  })
+
   it('requires a backend startInfo plugin id', async () => {
     await expect(
-      main(buildApi('') as never, new AbortController().signal),
+      startMain(buildApi('') as never, new AbortController().signal),
     ).rejects.toThrow('missing plugin id in backend start info')
     expect(h.objectTypeRegistrations).toHaveLength(0)
     expect(h.worldOpRegistrations).toHaveLength(0)

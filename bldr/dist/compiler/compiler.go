@@ -289,7 +289,12 @@ func (c *Controller) BuildManifest(
 	var embedWG sync.WaitGroup
 	for _, em := range embedSpecs {
 		embedWG.Go(func() {
-			dir := bldr_manifest.NewFetchManifest(em.GetManifestId(), nil, []string{em.GetPlatformId()}, 0)
+			dir := bldr_manifest.NewFetchManifest(
+				em.GetManifestId(),
+				[]bldr_manifest.BuildType{buildType},
+				[]string{em.GetPlatformId()},
+				0,
+			)
 			_, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
 				embedCtx,
 				c.GetBus(),

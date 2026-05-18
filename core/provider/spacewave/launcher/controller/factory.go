@@ -49,6 +49,7 @@ func (t *Factory) Construct(
 	if err := cc.Validate(); err != nil {
 		return nil, err
 	}
+	endpointFetchDisabled := cc.GetDisableEndpointFetch()
 
 	distPeerIDs, err := ResolveDistPeerIDs(cc)
 	if err != nil {
@@ -62,7 +63,7 @@ func (t *Factory) Construct(
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve endpoints")
 	}
-	if len(endpoints) == 0 {
+	if len(endpoints) == 0 && !endpointFetchDisabled {
 		return nil, errors.New("endpoints: no DistConfig endpoints from config or build-time embedding")
 	}
 
@@ -78,6 +79,12 @@ func ResolveEndpoints(conf *Config) ([]*HttpEndpoint, error) {
 		return nil, err
 	}
 	configEndps := dedupEndpoints(endps)
+	if conf.GetDisableEndpointFetch() {
+		if len(configEndps) != 0 {
+			return nil, errors.New("disable_endpoint_fetch: cannot be set with endpoints")
+		}
+		return nil, nil
+	}
 	if len(configEndps) != 0 {
 		return configEndps, nil
 	}

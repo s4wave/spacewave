@@ -61,6 +61,9 @@ const releasedResourceClient: ReleasedResourceClient = new Proxy(
 )
 
 const resourceAttachClientNotFound = 'client not found'
+const resourceClientInitTimeoutMS = 30000
+const resourceClientInitTimeoutMessage =
+  'ResourceClient stream did not initialize before timeout'
 
 /**
  * A reference to a remote resource that can be used to communicate with it.
@@ -756,17 +759,46 @@ export class Client {
     await retryWithAbort(
       controller.signal,
       async (signal) => {
-        const stream = this.service.ResourceClient({}, signal)
+        const attemptController = createAbortController(signal)
         let initialized = false
+        let initTimedOut = false
+        let initTimeout: ReturnType<typeof setTimeout> | undefined = setTimeout(
+          () => {
+            if (initialized || attemptController.signal.aborted) return
+            initTimedOut = true
+            attemptController.abort()
+          },
+          resourceClientInitTimeoutMS,
+        )
+        const throwInitTimeout = (): never => {
+          throw new ResourceClientError(
+            resourceClientInitTimeoutMessage,
+            'CONNECTION_FAILED',
+          )
+        }
+        const clearInitTimeout = () => {
+          if (!initTimeout) return
+          clearTimeout(initTimeout)
+          initTimeout = undefined
+        }
 
         try {
+          const stream = this.service.ResourceClient(
+            {},
+            attemptController.signal,
+          )
           for await (const msg of stream) {
             if (signal.aborted) return
+            if (attemptController.signal.aborted) {
+              if (initTimedOut) throwInitTimeout()
+              return
+            }
 
             // Handle initialization message
             const body = msg.body
             if (body?.case === 'init') {
               initialized = true
+              clearInitTimeout()
               const clientHandleId = body.value.clientHandleId ?? 0
               const rootResourceId = body.value.rootResourceId ?? 0
 
@@ -810,7 +842,13 @@ export class Client {
               throw error
             }
           }
+        } catch (err) {
+          if (!signal.aborted && initTimedOut) {
+            throwInitTimeout()
+          }
+          throw err
         } finally {
+          clearInitTimeout()
           // Release all resources when connection ends (disconnect/error/reconnect).
           if (
             this.connectionController === controller &&
@@ -820,6 +858,9 @@ export class Client {
           }
         }
         if (!signal.aborted) {
+          if (initTimedOut) {
+            throwInitTimeout()
+          }
           throw new Error(
             initialized
               ? 'ResourceClient stream closed'
@@ -1049,6 +1090,12 @@ export class Client {
   }
 
   private shouldRetryResourceClientStreamSilently(error: unknown): boolean {
+    if (
+      error instanceof ResourceClientError &&
+      error.message === resourceClientInitTimeoutMessage
+    ) {
+      return true
+    }
     const errText = String(error)
     if (errText === 'StreamResetError: stream reset') return true
     if (typeof error !== 'object' || error === null) return false

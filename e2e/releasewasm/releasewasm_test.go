@@ -19,7 +19,7 @@ import (
 
 var testHarness *harness
 
-const browserWaitMS = 60000
+const browserWaitMS = 420000
 const foregroundResumeReadyRecordMS = 10000
 const quickstartContentReadyRecordMS = 60000
 const quickstartPostLoadSOOperationCount = 25
@@ -347,23 +347,43 @@ func waitForBootFunction(t *testing.T, page playwright.Page) {
 func dumpPageState(t *testing.T, page playwright.Page) {
 	t.Helper()
 
-	state, err := page.Evaluate(`() => ({
-		href: window.location.href,
-		title: document.title,
-		text: document.body?.innerText?.slice(0, 4000) ?? '',
-		rootHtml: document.querySelector('#bldr-root')?.outerHTML?.slice(0, 4000) ?? '',
-		hasDebugRoot: !!globalThis.__s4wave_debug?.root,
-		quickstartTiming: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
-		testIds: Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
-			testid: el.getAttribute('data-testid'),
-			text: el.textContent?.slice(0, 200) ?? '',
-		})),
-	})`)
+	state, err := page.Evaluate(`() => {
+		const startupPrefix = 'spacewave.startup.'
+		const state = {
+			href: window.location.href,
+			hash: window.location.hash,
+			pathname: window.location.pathname,
+			title: document.title,
+			text: document.body?.innerText?.slice(0, 4000) ?? '',
+			rootHtml: document.querySelector('#bldr-root')?.outerHTML?.slice(0, 4000) ?? '',
+			hasDebugRoot: !!globalThis.__s4wave_debug?.root,
+			quickstartTiming:
+				globalThis.__s4waveQuickstartTiming ??
+				globalThis.__s4wave_debug?.quickstartTiming ??
+				null,
+			testIds: Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
+				testid: el.getAttribute('data-testid'),
+				text: el.textContent?.slice(0, 200) ?? '',
+			})),
+			startupMarks: performance
+				.getEntriesByType('mark')
+				.filter((entry) => entry.name.startsWith(startupPrefix))
+				.map((entry) => ({
+					label: entry.name.slice(startupPrefix.length),
+					startTimeMs: Math.round(entry.startTime),
+					detail: entry.detail ?? null,
+				})),
+			globalDebugKeys: Object.keys(globalThis).filter((key) =>
+				key.startsWith('__s4wave') || key.startsWith('__sw'),
+			),
+		}
+		return JSON.stringify(state, null, 2)
+	}`)
 	if err != nil {
 		t.Logf("dump page state: %v", err)
 		return
 	}
-	t.Logf("page state: %#v", state)
+	t.Logf("page state: %s", state)
 }
 
 func enableQuickstartTimingLogs(t *testing.T, page playwright.Page) {

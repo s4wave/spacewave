@@ -111,6 +111,13 @@ export interface Config {
    * @generated from field: string init_dist_config = 9;
    */
   initDistConfig?: string
+  /**
+   * DisableEndpointFetch disables all endpoint DistConfig fetches.
+   * Use this only for embedded/offline builds that must run from init_dist_config.
+   *
+   * @generated from field: bool disable_endpoint_fetch = 10;
+   */
+  disableEndpointFetch?: boolean
 }
 
 // Config contains the message type declaration for Config.
@@ -138,6 +145,12 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 7, name: 'refetch_dur', kind: 'scalar', T: ScalarType.STRING },
     { no: 8, name: 'endpoints_backoff', kind: 'message', T: () => Backoff },
     { no: 9, name: 'init_dist_config', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 10,
+      name: 'disable_endpoint_fetch',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

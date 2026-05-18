@@ -96,7 +96,7 @@ describe('hydrate root hash boot', () => {
     expect(boot).toHaveBeenCalledWith('#/login')
   }, 15000)
 
-  it('auto-boots a prerendered quickstart page into the app quickstart route', async () => {
+  it('auto-boots a prerendered quickstart page without hydrating the transient loading DOM', async () => {
     const ready = createReady()
     globalThis.__swReady = ready.promise
     window.history.replaceState({}, '', '/quickstart/drive')
@@ -104,7 +104,7 @@ describe('hydrate root hash boot', () => {
     window.addEventListener('spacewave-startup-mark', startupMark)
 
     await import('./hydrate.js')
-    expect(mockHydrateRoot).toHaveBeenCalledTimes(1)
+    expect(mockHydrateRoot).not.toHaveBeenCalled()
     const startupMarkNames = startupMark.mock.calls.map(
       ([event]) => (event as CustomEvent<{ name: string }>).detail.name,
     )

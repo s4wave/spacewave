@@ -23,7 +23,16 @@ function logError(message: string, err: unknown): void {
   }
 }
 
-const quickjsGlobalThis = globalThis as typeof globalThis & QuickjsGlobalScope
+const quickjsGlobalThis = globalThis as typeof globalThis &
+  QuickjsGlobalScope & {
+    __bldrQuickJSRuntimeRoots?: unknown[]
+  }
+
+function retainRuntimeRoot(value: unknown): void {
+  const roots = quickjsGlobalThis.__bldrQuickJSRuntimeRoots ?? []
+  roots.push(value)
+  quickjsGlobalThis.__bldrQuickJSRuntimeRoots = roots
+}
 
 // expect the script path via the environment variable.
 const scriptPath = quickjsGlobalThis.std.getenv('BLDR_SCRIPT_PATH')!
@@ -93,6 +102,7 @@ function stdinReadHandler() {
   const readData = stdinReadBuffer.slice(0, bytesRead)
   stdinStream.push(readData)
 }
+retainRuntimeRoot(stdinReadHandler)
 quickjsGlobalThis.os.setReadHandler(stdinFd, stdinReadHandler)
 
 // pipe stdin to the runtimeConn and then out to /dev/out.
@@ -136,12 +146,12 @@ async function startPlugin() {
     handleIncomingStreamCtr,
     abortSignal,
   )
-
-  // Garbage collect
-  quickjsGlobalThis.gc?.()
+  const pluginLifetime = new Promise<void>(() => {})
+  retainRuntimeRoot({ script, backendAPI, abortController, pluginLifetime })
 
   // Call the imported module's main function, passing the API implementation.
   await script.default(backendAPI, abortSignal)
+  await pluginLifetime
 }
 
 // immediately call startPlugin

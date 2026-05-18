@@ -45,6 +45,9 @@ type Config struct {
 	// InitDistConfig is the initial distribution configuration packedmsg.
 	// If unset, uses a blank config.
 	InitDistConfig string `protobuf:"bytes,9,opt,name=init_dist_config,json=initDistConfig,proto3" json:"initDistConfig,omitempty"`
+	// DisableEndpointFetch disables all endpoint DistConfig fetches.
+	// Use this only for embedded/offline builds that must run from init_dist_config.
+	DisableEndpointFetch bool `protobuf:"varint,10,opt,name=disable_endpoint_fetch,json=disableEndpointFetch,proto3" json:"disableEndpointFetch,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -116,6 +119,13 @@ func (x *Config) GetInitDistConfig() string {
 	return ""
 }
 
+func (x *Config) GetDisableEndpointFetch() bool {
+	if x != nil {
+		return x.DisableEndpointFetch
+	}
+	return false
+}
+
 // HttpEndpoint is an http endpoint.
 type HttpEndpoint struct {
 	unknownFields []byte
@@ -182,6 +192,7 @@ func (m *Config) CloneVT() *Config {
 	r.ProjectId = m.ProjectId
 	r.RefetchDur = m.RefetchDur
 	r.InitDistConfig = m.InitDistConfig
+	r.DisableEndpointFetch = m.DisableEndpointFetch
 	if rhs := m.DistPeerIds; rhs != nil {
 		r.DistPeerIds = slices.Clone(rhs)
 	}
@@ -274,6 +285,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.InitDistConfig != that.InitDistConfig {
+		return false
+	}
+	if this.DisableEndpointFetch != that.DisableEndpointFetch {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -378,6 +392,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("initDistConfig")
 		s.WriteString(x.InitDistConfig)
 	}
+	if x.DisableEndpointFetch || s.HasField("disableEndpointFetch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("disableEndpointFetch")
+		s.WriteBool(x.DisableEndpointFetch)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -445,6 +464,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "init_dist_config", "initDistConfig":
 			s.AddField("init_dist_config")
 			x.InitDistConfig = s.ReadString()
+		case "disable_endpoint_fetch", "disableEndpointFetch":
+			s.AddField("disable_endpoint_fetch")
+			x.DisableEndpointFetch = s.ReadBool()
 		}
 	})
 }
@@ -597,6 +619,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisableEndpointFetch {
+		i--
+		if m.DisableEndpointFetch {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
 	}
 	if len(m.InitDistConfig) > 0 {
 		i -= len(m.InitDistConfig)
@@ -779,6 +811,9 @@ func (m *Config) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.DisableEndpointFetch {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -882,6 +917,13 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("init_dist_config: ")
 		sb.WriteString(strconv.Quote(x.InitDistConfig))
+	}
+	if x.DisableEndpointFetch != false {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("disable_endpoint_fetch: ")
+		sb.WriteString(strconv.FormatBool(x.DisableEndpointFetch))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1176,6 +1218,18 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.InitDistConfig = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableEndpointFetch", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.DisableEndpointFetch = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

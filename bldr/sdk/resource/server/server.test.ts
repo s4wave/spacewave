@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMux } from 'starpc'
+import { createMux, Packet, Server } from 'starpc'
 import { RemoteResourceClient } from './tracked-client.js'
 import { ResourceServer } from './server.js'
 import { constructChildResource } from './construct.js'
 import { newResourceMux } from './mux.js'
+import { ResourceServiceDefinition } from '../resource_srpc.pb.js'
+import { ResourceClientResponse } from '../resource.pb.js'
 import type {
   ResourceAttachRequest,
   ResourceAttachResponse,
-  ResourceClientResponse,
 } from '../resource.pb.js'
 
 describe('RemoteResourceClient', () => {
@@ -184,6 +185,64 @@ describe('ResourceServer', () => {
   })
 
   describe('ResourceClient handler', () => {
+    it('sends init through a detached StarPC packet stream', async () => {
+      const rootMux = createMux()
+      const resourceServer = new ResourceServer(rootMux)
+      const outerMux = createMux()
+      resourceServer.register(outerMux)
+      const srpcServer = new Server(outerMux.lookupMethod)
+
+      const firstResponse = new Promise<Packet>((resolve, reject) => {
+        srpcServer.handlePacketStream({
+          source: (async function* () {
+            yield Packet.toBinary({
+              body: {
+                case: 'callStart',
+                value: {
+                  rpcService: ResourceServiceDefinition.typeName,
+                  rpcMethod:
+                    ResourceServiceDefinition.methods.ResourceClient.name,
+                  data: new Uint8Array(0),
+                  dataIsZero: true,
+                },
+              },
+            })
+          })(),
+          sink: async (source) => {
+            try {
+              for await (const packetData of source) {
+                const packet = Packet.fromBinary(packetData)
+                if (packet.body.case === 'callData') {
+                  resolve(packet)
+                  return
+                }
+              }
+              reject(new Error('ResourceClient stream ended before init'))
+            } catch (err) {
+              reject(err)
+            }
+          },
+        })
+      })
+
+      const packet = await promiseWithTimeout(
+        firstResponse,
+        'ResourceClient init over detached packet stream',
+      )
+      expect(packet.body.case).toBe('callData')
+      if (packet.body.case !== 'callData') {
+        throw new Error('expected ResourceClient callData packet')
+      }
+      const response = ResourceClientResponse.fromBinary(
+        packet.body.value.data,
+      )
+      expect(response.body?.case).toBe('init')
+      if (response.body?.case === 'init') {
+        expect(response.body.value.clientHandleId).toBe(1)
+        expect(response.body.value.rootResourceId).toBe(1)
+      }
+    })
+
     it('sends init with clientHandleId and rootResourceId', async () => {
       const rootMux = createMux()
       const server = new ResourceServer(rootMux)
@@ -1456,4 +1515,13 @@ function buildMockSRPCClient() {
     serverStreamingRequest: vi.fn(),
     bidirectionalStreamingRequest: vi.fn(),
   } as never
+}
+
+function promiseWithTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(`timed out waiting for ${label}`)), 100)
+    }),
+  ])
 }

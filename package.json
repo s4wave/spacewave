@@ -55,6 +55,7 @@
     "build:release:desktop": "bun run bldr -- --build-type=release build -b release-desktop-darwin-arm64",
     "build:release:desktop:debug": "bun run bldr -- --build-type=debug build -b release-desktop-darwin-arm64",
     "build:release:web": "bun run bldr -- --state-path=.bldr-dist --build-type=release build -b release-web",
+    "build:release:web:e2e": "bun run bldr -- --state-path=.bldr-dist --build-type=release build -b release-web-e2e",
     "build:release:web:debug": "bun run bldr -- --state-path=.bldr-dist --build-type=debug build -b release-web",
     "build:net": "tsgo --project tsconfig.net.json --noEmit false --outDir ./dist/",
     "licenses": "bun scripts/license-gen.ts",

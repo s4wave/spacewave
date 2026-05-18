@@ -37,6 +37,10 @@ pub struct Config {
     /// If unset, uses a blank config.
     #[prost(string, tag="9")]
     pub init_dist_config: ::prost::alloc::string::String,
+    /// DisableEndpointFetch disables all endpoint DistConfig fetches.
+    /// Use this only for embedded/offline builds that must run from init_dist_config.
+    #[prost(bool, tag="10")]
+    pub disable_endpoint_fetch: bool,
 }
 /// HttpEndpoint is an http endpoint.
 #[derive(Clone, PartialEq, ::prost::Message)]

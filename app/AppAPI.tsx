@@ -2,7 +2,10 @@ import { useBldrContext } from '@aptre/bldr-react'
 import { Client as SRPCClient } from 'starpc'
 import { useEffect, useMemo, useState } from 'react'
 
-import { setDebugContext } from '@s4wave/sdk/debug/context.js'
+import {
+  clearDebugContext,
+  setDebugContext,
+} from '@s4wave/sdk/debug/context.js'
 import {
   createLocalSession,
   createDrive,
@@ -118,21 +121,27 @@ function AppAPIInner({
 
   // Expose resources to debug eval scripts via globalThis.
   useEffect(() => {
-    if (resourceClient && rootResource.value) {
-      setDebugContext({
-        client: resourceClient,
-        root: rootResource.value,
-        createLocalSession,
-        createDrive,
-        createQuickstartSetup,
-        mountSpace,
-        FSHandle,
-        MknodType,
-        SpacewaveProvider,
-        UNIXFS_OBJECT_KEY,
-        runSOPerfTest,
-        runPostLoadSOPerfTest,
-      })
+    if (!resourceClient || !rootResource.value) {
+      return
+    }
+
+    const debugContext = {
+      client: resourceClient,
+      root: rootResource.value,
+      createLocalSession,
+      createDrive,
+      createQuickstartSetup,
+      mountSpace,
+      FSHandle,
+      MknodType,
+      SpacewaveProvider,
+      UNIXFS_OBJECT_KEY,
+      runSOPerfTest,
+      runPostLoadSOPerfTest,
+    }
+    setDebugContext(debugContext)
+    return () => {
+      clearDebugContext(debugContext)
     }
   }, [resourceClient, rootResource.value])
 
@@ -155,6 +164,17 @@ function AppAPIInner({
     }
   }, [rootResource])
 
+  if (rootResource.error) {
+    return (
+      <ErrorState
+        variant="fullscreen"
+        title="Failed to load"
+        message={rootResource.error.message}
+        onRetry={rootResource.retry}
+      />
+    )
+  }
+
   if (rootResource.loading || !rootResource.value) {
     return (
       <div className="bg-background/80 flex h-full min-h-0 w-full flex-1 items-center justify-center p-6 backdrop-blur-sm">
@@ -168,17 +188,6 @@ function AppAPIInner({
           />
         </div>
       </div>
-    )
-  }
-
-  if (rootResource.error) {
-    return (
-      <ErrorState
-        variant="fullscreen"
-        title="Failed to load"
-        message={rootResource.error.message}
-        onRetry={rootResource.retry}
-      />
     )
   }
 

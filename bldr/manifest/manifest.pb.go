@@ -362,8 +362,12 @@ func (m *Manifest) CloneVT() *Manifest {
 	r := new(Manifest)
 	r.Meta = m.Meta.CloneVT()
 	r.Entrypoint = m.Entrypoint
-	r.DistFsRef = m.DistFsRef.CloneVT()
-	r.AssetsFsRef = m.AssetsFsRef.CloneVT()
+	if rhs := m.DistFsRef; rhs != nil {
+		r.DistFsRef = rhs.CloneVT()
+	}
+	if rhs := m.AssetsFsRef; rhs != nil {
+		r.AssetsFsRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -380,7 +384,9 @@ func (m *ManifestRef) CloneVT() *ManifestRef {
 	}
 	r := new(ManifestRef)
 	r.Meta = m.Meta.CloneVT()
-	r.ManifestRef = m.ManifestRef.CloneVT()
+	if rhs := m.ManifestRef; rhs != nil {
+		r.ManifestRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -420,8 +426,10 @@ func (m *ManifestSnapshot) CloneVT() *ManifestSnapshot {
 		return (*ManifestSnapshot)(nil)
 	}
 	r := new(ManifestSnapshot)
-	r.ManifestRef = m.ManifestRef.CloneVT()
 	r.Manifest = m.Manifest.CloneVT()
+	if rhs := m.ManifestRef; rhs != nil {
+		r.ManifestRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

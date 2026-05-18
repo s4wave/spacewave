@@ -244,6 +244,7 @@ describe('quickstart create', () => {
       }),
     }
     const cleanup: RegisterCleanup = (value) => value
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout')
 
     await createLocalSession(
       root as never,
@@ -251,8 +252,13 @@ describe('quickstart create', () => {
       cleanup,
     )
 
+    expect(timeoutSpy).toHaveBeenNthCalledWith(1, 120000)
+    timeoutSpy.mockRestore()
     expect(root.listSessions).not.toHaveBeenCalled()
-    expect(root.lookupProvider).toHaveBeenCalledWith('local')
+    expect(root.lookupProvider).toHaveBeenCalledWith(
+      'local',
+      expect.any(AbortSignal),
+    )
     expect(localProviderMocks.createAccount).toHaveBeenCalled()
     expect(root.mountSession).toHaveBeenCalledWith(
       {

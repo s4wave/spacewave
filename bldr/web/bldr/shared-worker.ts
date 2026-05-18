@@ -131,7 +131,7 @@ if (isPlugin) {
             return
           }
           console.warn('shared-worker: QuickJS plugin exited:', err)
-          self.close()
+          void pluginWorker.reportRuntimeFailure(err)
         },
       )
       await readyPromise

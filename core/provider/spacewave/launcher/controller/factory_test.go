@@ -43,6 +43,32 @@ func TestResolveEndpointsConfigReplacesProductionDefault(t *testing.T) {
 	}
 }
 
+func TestResolveEndpointsCanDisableEndpointFetch(t *testing.T) {
+	got, err := ResolveEndpoints(&Config{
+		ProjectId:            "spacewave",
+		DisableEndpointFetch: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("endpoints = %d, want none: %#v", len(got), got)
+	}
+}
+
+func TestResolveEndpointsRejectsDisableWithEndpoints(t *testing.T) {
+	_, err := ResolveEndpoints(&Config{
+		ProjectId:            "spacewave",
+		DisableEndpointFetch: true,
+		Endpoints: []*HttpEndpoint{
+			{Url: "https://release-overlay.example/api/release/config"},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected disable_endpoint_fetch with endpoints to fail")
+	}
+}
+
 func TestResolveDistPeerIDsFallsBackToProductionDefault(t *testing.T) {
 	got, err := ResolveDistPeerIDs(&Config{ProjectId: "spacewave"})
 	if err != nil {
