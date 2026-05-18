@@ -1,4 +1,12 @@
-import { createMux, createHandler, Server, Client as SRPCClient } from 'starpc'
+import {
+  createMux,
+  createHandler,
+  Server,
+  Client as SRPCClient,
+  handleRpcStream,
+  type MessageStream,
+  type RpcStreamPacket,
+} from 'starpc'
 import type { BackendAPI, BackendEntrypointLifecycle } from '@aptre/bldr-sdk'
 import {
   Client as ResourcesClient,
@@ -49,6 +57,10 @@ import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
 import {
+  PluginDefinition,
+  type Plugin as SRPCPlugin,
+} from '@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js'
+import {
   FsInitOp,
   FSType,
 } from '@go/github.com/s4wave/spacewave/db/unixfs/world/unixfs.pb.js'
@@ -77,6 +89,20 @@ import { uploadSeedTree } from './unixfs-seed.js'
 
 type ViteManifestEntry = {
   file?: string
+}
+
+class NotesPlugin implements SRPCPlugin {
+  constructor(private readonly resourceServer: Server) {}
+
+  PluginRpc(
+    request: MessageStream<RpcStreamPacket>,
+    _abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket> {
+    return handleRpcStream(
+      request[Symbol.asyncIterator](),
+      () => Promise.resolve(this.resourceServer.rpcStreamHandler),
+    )
+  }
 }
 
 const DOCS_QUICKSTART_OBJECT_KEY = 'documentation'
@@ -518,10 +544,13 @@ export async function startNotesBackend(
   const outerMux = createMux()
   resourceServer.register(outerMux)
 
-  // Wire incoming streams to the server.
-  const server = new Server(outerMux.lookupMethod)
+  const resourceRpcServer = new Server(outerMux.lookupMethod)
+  const plugin = new NotesPlugin(resourceRpcServer)
+  const pluginMux = createMux()
+  pluginMux.register(createHandler(PluginDefinition, plugin))
+  const pluginServer = new Server(pluginMux.lookupMethod)
   api.handleStreamCtr.set((channel) => {
-    server.handlePacketStream(channel)
+    pluginServer.handlePacketStream(channel)
     return Promise.resolve()
   })
 
@@ -538,7 +567,10 @@ export async function startNotesBackend(
     rootMux,
     resourceServer,
     outerMux,
-    server,
+    resourceRpcServer,
+    plugin,
+    pluginMux,
+    pluginServer,
   ]
   const rootRef = await resourcesClient.accessRootResource()
   const refs: ClientResourceRef[] = [rootRef]

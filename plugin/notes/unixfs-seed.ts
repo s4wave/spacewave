@@ -7,6 +7,33 @@ export interface SeedFile {
   mode?: number
 }
 
+function bytesToStream(data: Uint8Array): ReadableStream<Uint8Array> {
+  if (typeof ReadableStream !== 'undefined') {
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(data)
+        controller.close()
+      },
+    })
+  }
+
+  let done = false
+  return {
+    getReader() {
+      return {
+        read() {
+          if (done) {
+            return Promise.resolve({ done: true, value: undefined })
+          }
+          done = true
+          return Promise.resolve({ done: false, value: data })
+        },
+        releaseLock() {},
+      }
+    },
+  } as ReadableStream<Uint8Array>
+}
+
 // uploadSeedTree uploads a text-file tree into the UnixFS object root.
 export async function uploadSeedTree(
   worldState: IWorldState,
@@ -34,7 +61,7 @@ export async function uploadSeedTree(
       kind: 'file',
       path: file.path,
       totalSize: BigInt(data.byteLength),
-      stream: new Blob([data]).stream(),
+      stream: bytesToStream(data),
       mode: file.mode ?? 0o644,
     })
   }

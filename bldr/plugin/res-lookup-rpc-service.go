@@ -2,6 +2,7 @@ package bldr_plugin
 
 import (
 	"context"
+	stderrors "errors"
 	"io"
 	"strings"
 	"sync"
@@ -119,14 +120,13 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 	if err != nil {
 		return true, errors.Wrap(err, "failed to create outgoing stream")
 	}
+	defer outgoingStream.Close()
 
 	// NOTE: do not defer strm.Close() here. strm.Close() writes a CallCancel
 	// packet which sets remoteErr=context.Canceled on the client, breaking
 	// server-streaming RPCs. The caller (invokeRPC) handles stream completion
 	// by sending CallData(complete=true) and closing the writer.
 
-	// Bridge the streams bidirectionally
-	// Start a routine to write messages from server to client
 	writeServerToClient := func() error {
 		serverMsg := &srpc.RawMessage{}
 		for {
@@ -142,12 +142,9 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 
 	serverDone := make(chan error, 1)
 	go func() {
-		defer outgoingStream.Close()
-		err := writeServerToClient()
-		serverDone <- err
+		serverDone <- writeServerToClient()
 	}()
 
-	// Write messages from client to server
 	writeClientToServer := func() error {
 		clientMsg := &srpc.RawMessage{}
 		for {
@@ -161,23 +158,35 @@ func (f *clientForwardingInvoker) InvokeMethod(serviceID, methodID string, strm 
 		}
 	}
 
-	writeErr := writeClientToServer()
+	clientDone := make(chan error, 1)
+	go func() {
+		clientDone <- writeClientToServer()
+	}()
 
-	// Client closed send side (EOF): forward the half-close to the
-	// outgoing stream and wait for the server->client direction to finish.
-	// This handles server-streaming RPCs where the client sends one message
-	// then calls CloseSend() before reading responses.
-	if writeErr == nil || writeErr == io.EOF {
-		_ = outgoingStream.CloseSend()
-		srvErr := <-serverDone
-		if srvErr != nil && srvErr != io.EOF {
-			writeErr = srvErr
-		} else {
-			writeErr = nil
+	normalizeDone := func(err error) error {
+		if err == io.EOF {
+			return nil
 		}
+		return err
 	}
 
-	return true, writeErr
+	for {
+		select {
+		case writeErr := <-clientDone:
+			if writeErr == nil || writeErr == io.EOF {
+				if err := outgoingStream.CloseSend(); err != nil && !stderrors.Is(err, srpc.ErrCompleted) {
+					return true, err
+				}
+				return true, normalizeDone(<-serverDone)
+			}
+			if stderrors.Is(writeErr, srpc.ErrCompleted) {
+				return true, normalizeDone(<-serverDone)
+			}
+			return true, writeErr
+		case srvErr := <-serverDone:
+			return true, normalizeDone(srvErr)
+		}
+	}
 }
 
 // Resolve resolves the values, emitting them to the handler.

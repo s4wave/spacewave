@@ -3,7 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const h = vi.hoisted(() => ({
   buildPluginOpenStream: vi.fn(),
   handleStreamSet: vi.fn(),
+  handleRpcStream: vi.fn(),
   pluginAssetHttpPath: vi.fn(),
+  pluginDefinition: { typeName: 'bldr.plugin.Plugin' },
+  createdHandlers: [] as Array<{ definition: unknown; handler: unknown }>,
+  serverInstances: [] as Array<{
+    rpcStreamHandler: unknown
+    handlePacketStream: ReturnType<typeof vi.fn>
+  }>,
+  handleRpcStreamCalls: [] as Array<{
+    iterator: unknown
+    getter: (componentId: string) => Promise<unknown>
+  }>,
   objectTypeRegistrations: [] as Array<Record<string, unknown>>,
   worldOpRegistrations: [] as Array<Record<string, unknown>>,
   quickstartRegistrations: [] as Array<Record<string, unknown>>,
@@ -24,19 +35,39 @@ const h = vi.hoisted(() => ({
 }))
 
 vi.mock('starpc', () => ({
-  createMux: vi.fn(() => ({ lookupMethod: vi.fn() })),
-  createHandler: vi.fn((definition: unknown, handler: unknown) => ({
-    definition,
-    handler,
-  })),
+  createMux: vi.fn(() => ({ lookupMethod: vi.fn(), register: vi.fn() })),
+  createHandler: vi.fn((definition: unknown, handler: unknown) => {
+    const created = { definition, handler }
+    h.createdHandlers.push(created)
+    return created
+  }),
+  handleRpcStream: vi.fn(
+    (
+      iterator: unknown,
+      getter: (componentId: string) => Promise<unknown>,
+    ) => {
+      h.handleRpcStream(iterator, getter)
+      h.handleRpcStreamCalls.push({ iterator, getter })
+      return { [Symbol.asyncIterator]: async function* () {} }
+    },
+  ),
   Server: class {
+    rpcStreamHandler = vi.fn()
     handlePacketStream = vi.fn()
+
+    constructor(_lookupMethod: unknown) {
+      h.serverInstances.push(this)
+    }
   },
   Client: class {
     constructor(stream: unknown) {
       h.buildPluginOpenStream(stream)
     }
   },
+}))
+
+vi.mock('@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js', () => ({
+  PluginDefinition: h.pluginDefinition,
 }))
 
 vi.mock('@aptre/bldr-sdk/resource/index.js', () => ({
@@ -198,6 +229,9 @@ describe('notes backend registration', () => {
     h.wizardRegistrations.length = 0
     h.viewerRegistrations.length = 0
     h.retainedRefs.length = 0
+    h.createdHandlers.length = 0
+    h.serverInstances.length = 0
+    h.handleRpcStreamCalls.length = 0
     h.quickstartRegistrationFailureId = undefined
     h.viewerRegistrationFailure = undefined
     h.nextResourceId = 1
@@ -356,6 +390,46 @@ describe('notes backend registration', () => {
       expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
     }
     expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
+  })
+
+  it('routes incoming plugin RPC streams to the notes ResourceServer', async () => {
+    const abort = new AbortController()
+
+    await startMain(buildApi('spacewave-notes') as never, abort.signal)
+
+    expect(h.handleStreamSet).toHaveBeenCalledTimes(1)
+    const pluginHandler = h.createdHandlers.find(
+      (entry) => entry.definition === h.pluginDefinition,
+    )?.handler as {
+      PluginRpc(request: unknown, signal?: AbortSignal): unknown
+    }
+    expect(pluginHandler).toBeDefined()
+
+    const iterator = {} as AsyncIterator<unknown>
+    const request = {
+      [Symbol.asyncIterator]: vi.fn(() => iterator),
+    }
+    const rpcResponse = pluginHandler.PluginRpc(request)
+
+    expect(request[Symbol.asyncIterator]).toHaveBeenCalledTimes(1)
+    expect(h.handleRpcStream).toHaveBeenCalledTimes(1)
+    expect(h.handleRpcStreamCalls).toHaveLength(1)
+    expect(h.handleRpcStreamCalls[0].iterator).toBe(iterator)
+    await expect(
+      h.handleRpcStreamCalls[0].getter('spacewave-core'),
+    ).resolves.toBe(h.serverInstances[0].rpcStreamHandler)
+    expect(rpcResponse).toBeDefined()
+
+    const streamHandler: unknown = h.handleStreamSet.mock.calls[0]?.[0]
+    const channel = {}
+    expect(streamHandler).toBeTypeOf('function')
+    await (streamHandler as (channel: unknown) => Promise<void>)(channel)
+
+    expect(h.serverInstances[1].handlePacketStream).toHaveBeenCalledWith(
+      channel,
+    )
+
+    abort.abort()
   })
 
   it('keeps the backend lifecycle pending until abort after startup', async () => {

@@ -207,6 +207,14 @@ describe('ResourceServer', () => {
                 },
               },
             })
+            yield Packet.toBinary({
+              body: {
+                case: 'callData',
+                value: {
+                  complete: true,
+                },
+              },
+            })
           })(),
           sink: async (source) => {
             try {

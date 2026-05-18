@@ -1,5 +1,6 @@
 /.trace
 /.env
+/.claw*
 node_modules
 /plugin-release
 /coverage
