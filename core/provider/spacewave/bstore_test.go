@@ -102,7 +102,7 @@ func TestPublicReadRemoteRefreshUsesAnonymousCdnManifest(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	remote := newPublicReadRemote(srv.Client(), srv.URL, "space-1", nil)
+	remote := newPublicReadRemote(srv.Client(), srv.URL, "space-1", nil, nil)
 	if err := remote.Refresh(context.Background()); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
@@ -112,6 +112,70 @@ func TestPublicReadRemoteRefreshUsesAnonymousCdnManifest(t *testing.T) {
 	}
 	if got := remote.lower.SnapshotStats().ManifestEntries; got != 1 {
 		t.Fatalf("lower manifest entries = %d, want 1", got)
+	}
+}
+
+func TestPublicReadRemoteRefreshInvalidatesDecodedCache(t *testing.T) {
+	ctx := context.Background()
+	ptr := &alpha_cdn.CdnRootPointer{
+		SpaceId: "space-1",
+		Packs: []*packfile.PackfileEntry{{
+			Id:         "pack-2",
+			BlockCount: 1,
+			SizeBytes:  128,
+		}},
+	}
+	raw, err := ptr.MarshalVT()
+	if err != nil {
+		t.Fatalf("marshal pointer: %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/space-1/root.packedmsg" {
+			t.Fatalf("unexpected anonymous CDN request: %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(packedmsg.EncodePackedMessage(raw)))
+	}))
+	defer srv.Close()
+
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+	inner := newWrapperForwardTestStore("test", 0)
+	store := &BlockStore{
+		store:         inner,
+		decodedBlocks: decodedBlocks,
+	}
+	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "cached"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx, cursor := block.NewTransaction(store, nil, ref, nil)
+	tx.SetDecodedBlockCache(decodedBlocks)
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks.Wait()
+
+	if err := inner.StoreOps.RmBlock(ctx, ref); err != nil {
+		t.Fatal(err.Error())
+	}
+	tx, cursor = block.NewTransaction(store, nil, ref, nil)
+	tx.SetDecodedBlockCache(decodedBlocks)
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
+		t.Fatalf("expected stale decoded cache hit before refresh, got %v", err)
+	}
+
+	remote := newPublicReadRemote(srv.Client(), srv.URL, "space-1", nil, decodedBlocks)
+	if err := remote.Refresh(ctx); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	tx, cursor = block.NewTransaction(store, nil, ref, nil)
+	tx.SetDecodedBlockCache(decodedBlocks)
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("Unmarshal after public-read refresh error = %v, want %v", err, block.ErrNotFound)
 	}
 }
 

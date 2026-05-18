@@ -235,8 +235,15 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Build index cache.
 	idxCache := manifest.NewIndexCache(objStore)
 
+	// Build the block store handle.
+	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		return errors.Wrap(err, "building decoded block cache")
+	}
+	defer decodedBlocks.Close()
+
 	// Build lower store (read-only, packfile-backed).
-	lower, publicRemote := t.buildLowerStore(ctx, idxCache)
+	lower, publicRemote := t.buildLowerStore(ctx, idxCache, decodedBlocks)
 	lower.UpdateManifest(mfst.GetEntries())
 	releaseSyncTelemetry := t.a.registerSyncTelemetryStore(t.id, lower)
 	defer releaseSyncTelemetry()
@@ -300,12 +307,6 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	localID := BlockStoreID(accountID, t.id)
 	overlay := newCloudOverlay(ctx, le, lower, dirtyUpper)
 
-	// Build the block store handle.
-	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
-	if err != nil {
-		return errors.Wrap(err, "building decoded block cache")
-	}
-	defer decodedBlocks.Close()
 	bstoreHandle := &BlockStore{
 		store:         block_store.NewStore(localID, overlay),
 		decodedBlocks: decodedBlocks,
@@ -576,9 +577,10 @@ func (t *bstoreTracker) buildOpener() packfile_store.Opener {
 func (t *bstoreTracker) buildLowerStore(
 	ctx context.Context,
 	cache packfile_store.IndexCache,
+	decodedBlocks *block.DecodedBlockCache,
 ) (*packfile_store.PackfileStore, *publicReadRemote) {
 	if t.isPublicReadSpaceBlockStore(ctx) {
-		remote := newPublicReadRemote(t.a.p.httpCli, cdn.BaseURL(), t.id, cache)
+		remote := newPublicReadRemote(t.a.p.httpCli, cdn.BaseURL(), t.id, cache, decodedBlocks)
 		return remote.lower, remote
 	}
 	return packfile_store.NewPackfileStore(t.buildOpener(), cache), nil
@@ -593,10 +595,11 @@ func (t *bstoreTracker) isPublicReadSpaceBlockStore(ctx context.Context) bool {
 }
 
 type publicReadRemote struct {
-	cli        *http.Client
-	cdnBaseURL string
-	spaceID    string
-	lower      *packfile_store.PackfileStore
+	cli           *http.Client
+	cdnBaseURL    string
+	spaceID       string
+	lower         *packfile_store.PackfileStore
+	decodedBlocks *block.DecodedBlockCache
 
 	mtx     sync.Mutex
 	entries []*packfile.PackfileEntry
@@ -607,11 +610,13 @@ func newPublicReadRemote(
 	cdnBaseURL string,
 	spaceID string,
 	cache packfile_store.IndexCache,
+	decodedBlocks *block.DecodedBlockCache,
 ) *publicReadRemote {
 	remote := &publicReadRemote{
-		cli:        cli,
-		cdnBaseURL: cdnBaseURL,
-		spaceID:    spaceID,
+		cli:           cli,
+		cdnBaseURL:    cdnBaseURL,
+		spaceID:       spaceID,
+		decodedBlocks: decodedBlocks,
 	}
 	remote.lower = packfile_store.NewPackfileStore(
 		cdn_bstore.NewAnonymousOpener(cli, cdnBaseURL, spaceID),
@@ -631,6 +636,9 @@ func (r *publicReadRemote) Refresh(ctx context.Context) error {
 	r.entries = entries
 	r.mtx.Unlock()
 	r.lower.UpdateManifest(entries)
+	// A public CDN root replacement changes which packfile bytes are current.
+	// Invalidate decoded entries by owner epoch instead of trying to diff packs.
+	r.decodedBlocks.InvalidateAll(ctx)
 	return nil
 }
 

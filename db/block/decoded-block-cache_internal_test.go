@@ -88,6 +88,43 @@ func TestDecodedBlockCacheInvalidatedStoreTokenSkipsStore(t *testing.T) {
 	}
 }
 
+func TestDecodedBlockCacheOldCallbackDoesNotPruneNewIndexEntry(t *testing.T) {
+	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer decodedBlocks.Close()
+
+	refKey := "ref-a"
+	key := decodedBlockCacheKey{
+		ref:       refKey,
+		blockType: "db/block.decodedBlockCacheIndexTestBlock",
+		transform: DecodedBlockCacheNoTransformKey,
+		trust:     decodedBlockCacheTrustKey,
+	}.String()
+	h := decodedBlockCacheHashFor(key)
+
+	decodedBlocks.mtx.Lock()
+	oldGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
+	decodedBlocks.mtx.Unlock()
+	decodedBlocks.takeRefKeys(refKey)
+
+	decodedBlocks.mtx.Lock()
+	newGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
+	decodedBlocks.removeRefKeyHashGenerationLocked(h, oldGeneration)
+	_, stillTracked := decodedBlocks.byRef[refKey][key]
+	decodedBlocks.removeRefKeyHashGenerationLocked(h, newGeneration)
+	_, removed := decodedBlocks.byRef[refKey]
+	decodedBlocks.mtx.Unlock()
+
+	if !stillTracked {
+		t.Fatal("old async callback pruned newer decoded-cache index entry")
+	}
+	if removed {
+		t.Fatal("current async callback did not prune decoded-cache index entry")
+	}
+}
+
 type decodedBlockCacheIndexTestBlock struct {
 	data []byte
 }

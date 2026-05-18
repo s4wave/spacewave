@@ -35,7 +35,7 @@ const decodedBlockCacheEntryOverheadCost int64 = 256
 
 // DecodedBlockCache owns shared decoded block reuse.
 type DecodedBlockCache struct {
-	cache *ristretto.Cache[string, Block]
+	cache *ristretto.Cache[string, decodedBlockCacheEntry]
 	opts  DecodedBlockCacheOptions
 
 	mtx   sync.Mutex
@@ -45,6 +45,7 @@ type DecodedBlockCache struct {
 	byHash     map[decodedBlockCacheHash]decodedBlockCacheTrackedKey
 	refEpoch   map[string]uint64
 	clearEpoch uint64
+	generation uint64
 }
 
 type decodedBlockCacheKey struct {
@@ -60,8 +61,14 @@ type decodedBlockCacheHash struct {
 }
 
 type decodedBlockCacheTrackedKey struct {
-	ref string
-	key string
+	ref        string
+	key        string
+	generation uint64
+}
+
+type decodedBlockCacheEntry struct {
+	block      Block
+	generation uint64
 }
 
 type decodedBlockCacheStoreToken struct {
@@ -93,16 +100,22 @@ func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlo
 	if opts.Disabled {
 		return cache, nil
 	}
-	db, err := ristretto.NewCache(&ristretto.Config[string, Block]{
+	db, err := ristretto.NewCache(&ristretto.Config[string, decodedBlockCacheEntry]{
 		NumCounters: opts.NumCounters,
 		MaxCost:     opts.MaxCost,
 		BufferItems: opts.BufferItems,
 		Metrics:     true,
-		OnEvict: func(item *ristretto.Item[Block]) {
-			cache.removeRefKeyHash(decodedBlockCacheHash{key: item.Key, conflict: item.Conflict})
+		OnEvict: func(item *ristretto.Item[decodedBlockCacheEntry]) {
+			cache.removeRefKeyHashGeneration(
+				decodedBlockCacheHash{key: item.Key, conflict: item.Conflict},
+				item.Value.generation,
+			)
 		},
-		OnReject: func(item *ristretto.Item[Block]) {
-			cache.removeRefKeyHash(decodedBlockCacheHash{key: item.Key, conflict: item.Conflict})
+		OnReject: func(item *ristretto.Item[decodedBlockCacheEntry]) {
+			cache.removeRefKeyHashGeneration(
+				decodedBlockCacheHash{key: item.Key, conflict: item.Conflict},
+				item.Value.generation,
+			)
 		},
 	})
 	if err != nil {
@@ -207,8 +220,8 @@ func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFront
 		recordDecodedBlockCacheMiss(ctx)
 		return nil, false, nil
 	}
-	front.store(key, cached)
-	cloned, cloneOK, err := cloneDecodedBlock(cached)
+	front.store(key, cached.block)
+	cloned, cloneOK, err := cloneDecodedBlock(cached.block)
 	if err != nil {
 		return nil, false, err
 	}
@@ -269,10 +282,13 @@ func (c *DecodedBlockCache) Store(
 		front.invalidateRef(key.ref)
 		return nil
 	}
-	c.recordRefKeyLocked(key.ref, cacheKey)
-	accepted := c.cache.Set(cacheKey, cloned, cost)
+	generation := c.recordRefKeyLocked(key.ref, cacheKey)
+	accepted := c.cache.Set(cacheKey, decodedBlockCacheEntry{
+		block:      cloned,
+		generation: generation,
+	}, cost)
 	if !accepted {
-		c.removeRefKeyHashLocked(decodedBlockCacheHashFor(cacheKey))
+		c.removeRefKeyHashGenerationLocked(decodedBlockCacheHashFor(cacheKey), generation)
 	}
 	c.mtx.Unlock()
 	recordDecodedBlockCacheStore(ctx, accepted, cost)
@@ -353,9 +369,9 @@ func (c *DecodedBlockCache) storeTokenCurrentLocked(token decodedBlockCacheStore
 	return c.clearEpoch == token.clearEpoch && c.refEpoch[token.ref] == token.refEpoch
 }
 
-func (c *DecodedBlockCache) recordRefKeyLocked(refKey, key string) {
+func (c *DecodedBlockCache) recordRefKeyLocked(refKey, key string) uint64 {
 	if c == nil || refKey == "" || key == "" {
-		return
+		return 0
 	}
 	if c.byRef == nil {
 		c.byRef = make(map[string]map[string]struct{})
@@ -370,31 +386,36 @@ func (c *DecodedBlockCache) recordRefKeyLocked(refKey, key string) {
 	}
 	keys[key] = struct{}{}
 	h := decodedBlockCacheHashFor(key)
-	c.byHash[h] = decodedBlockCacheTrackedKey{ref: refKey, key: key}
+	c.generation++
+	c.byHash[h] = decodedBlockCacheTrackedKey{
+		ref:        refKey,
+		key:        key,
+		generation: c.generation,
+	}
+	return c.generation
 }
 
-func (c *DecodedBlockCache) removeRefKey(key string) {
-	c.removeRefKeyHash(decodedBlockCacheHashFor(key))
-}
-
-func (c *DecodedBlockCache) removeRefKeyHash(h decodedBlockCacheHash) {
+func (c *DecodedBlockCache) removeRefKeyHashGeneration(h decodedBlockCacheHash, generation uint64) {
 	if c == nil {
 		return
 	}
 	c.mtx.Lock()
-	c.removeRefKeyHashLocked(h)
+	c.removeRefKeyHashGenerationLocked(h, generation)
 	c.mtx.Unlock()
 }
 
-func (c *DecodedBlockCache) removeRefKeyHashLocked(h decodedBlockCacheHash) {
+func (c *DecodedBlockCache) removeRefKeyHashGenerationLocked(h decodedBlockCacheHash, generation uint64) {
 	tracked, ok := c.byHash[h]
-	if ok {
-		delete(c.byHash, h)
-		keys := c.byRef[tracked.ref]
-		delete(keys, tracked.key)
-		if len(keys) == 0 {
-			delete(c.byRef, tracked.ref)
-		}
+	if !ok || tracked.generation != generation {
+		return
+	}
+	// Ristretto can reject or evict after a ref was invalidated and re-stored.
+	// Only the callback for the current admission may prune the side index.
+	delete(c.byHash, h)
+	keys := c.byRef[tracked.ref]
+	delete(keys, tracked.key)
+	if len(keys) == 0 {
+		delete(c.byRef, tracked.ref)
 	}
 }
 
