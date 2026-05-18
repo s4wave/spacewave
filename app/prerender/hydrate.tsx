@@ -129,12 +129,11 @@ if (pathname === '/' && window.location.hash.length > 1) {
           summary: data.summary as string,
           tags: data.tags as string[],
           draft: data.draft as boolean,
-          body: '',
+          body: data.body as string,
         }
         element = (
           <BlogPostPage
             post={post}
-            bodyHtml={data.bodyHtml as string}
             prevPost={data.prev as { title: string; url: string } | undefined}
             nextPost={data.next as { title: string; url: string } | undefined}
           />

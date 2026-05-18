@@ -24,7 +24,6 @@ import { serializeJsonScriptData } from '../prerender/json-script.js'
 import { prerenderElement, type PrerenderContext } from '../prerender/build.js'
 import { authors } from './authors.js'
 import { BlogIndex, metadata as blogIndexMetadata } from './BlogIndex.js'
-import { BlogMarkdown } from './BlogMarkdown.js'
 import { BlogPostPage } from './BlogPost.js'
 import { BlogTagPage } from './BlogTagPage.js'
 import type { BlogPost, BlogPostFrontmatter } from './types.js'
@@ -171,8 +170,8 @@ function highlightCodeBlocks(
   )
 }
 
-// postToHydrationMeta strips the body and normalizes a BlogPost for
-// serialization into the blog-data hydration JSON.
+// postToHydrationMeta normalizes a BlogPost for serialization into the
+// blog-data hydration JSON.
 function postToHydrationMeta(p: BlogPost) {
   return {
     slug: p.slug,
@@ -185,7 +184,7 @@ function postToHydrationMeta(p: BlogPost) {
     tags: p.tags,
     draft: p.draft,
     ogImage: p.ogImage,
-    body: '',
+    body: p.body,
   }
 }
 
@@ -283,18 +282,10 @@ export async function buildBlog(
       description: post.summary,
     }
 
-    // Prerender just the markdown body to HTML so the hydration bundle
-    // does not need to bundle markdown-to-jsx or shiki.
-    const renderedBody = await prerenderElement(
-      createElement(BlogMarkdown, null, post.body),
-      post.url,
-    )
-
     const meta = postToHydrationMeta(post)
     const blogData = {
       type: 'post' as const,
       ...meta,
-      bodyHtml: renderedBody,
       prev: prevPost ? { title: prevPost.title, url: prevPost.url } : null,
       next: nextPost ? { title: nextPost.title, url: nextPost.url } : null,
     }

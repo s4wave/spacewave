@@ -20,18 +20,10 @@ export interface BlogPostPageProps {
   post: BlogPostType
   prevPost?: BlogPostNavLink
   nextPost?: BlogPostNavLink
-  // When set, renders pre-rendered HTML via dangerouslySetInnerHTML instead
-  // of running markdown-to-jsx. Used during hydration from blog-data JSON.
-  bodyHtml?: string
 }
 
 // BlogPostPage renders a single blog post in clean reading mode.
-export function BlogPostPage({
-  post,
-  prevPost,
-  nextPost,
-  bodyHtml,
-}: BlogPostPageProps) {
+export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
   const navigate = useNavigate()
 
   const navigatePrev = useCallback(() => {
@@ -111,16 +103,9 @@ export function BlogPostPage({
         </header>
 
         {/* Post body */}
-        {bodyHtml ? (
-          <div
-            className="blog-prose"
-            dangerouslySetInnerHTML={{ __html: bodyHtml }}
-          />
-        ) : (
-          <div className="blog-prose">
-            <BlogMarkdown>{post.body}</BlogMarkdown>
-          </div>
-        )}
+        <div className="blog-prose">
+          <BlogMarkdown>{post.body}</BlogMarkdown>
+        </div>
 
         <BlogCta />
 
