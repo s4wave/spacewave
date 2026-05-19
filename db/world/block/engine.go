@@ -7,6 +7,7 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/aperturerobotics/util/csync"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -44,6 +45,8 @@ type Engine struct {
 	// commitFn is a function to be called just before a commit is confirmed.
 	// can be nil
 	commitFn CommitFn
+	// closed is set after Close releases cursor and transaction resources.
+	closed bool
 }
 
 // CommitFn is a function to call with the updated root before confirming it.
@@ -110,6 +113,9 @@ func (e *Engine) GetGCJournalEntries() uint64 {
 func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
+	if e.closed {
+		return errors.New("world block engine is closed")
+	}
 
 	return e.setRootRefLocked(ctx, ref)
 }
@@ -166,6 +172,12 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 
 	// writeTx is nil if it's a read-only tx
 	if !write {
+		e.rmtx.RLock()
+		closed := e.closed
+		e.rmtx.RUnlock()
+		if closed {
+			return nil, errors.New("world block engine is closed")
+		}
 		return newEngineTx(e, nil), nil
 	}
 
@@ -178,6 +190,10 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction/build-world-state")
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
+	if e.closed {
+		relLock()
+		return nil, errors.New("world block engine is closed")
+	}
 
 	world, err := e.buildWorldState(taskCtx, false)
 	subtask.End()
@@ -201,6 +217,9 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	e.rmtx.RLock()
 	subtask.End()
 	defer e.rmtx.RUnlock()
+	if e.closed {
+		return nil, errors.New("world block engine is closed")
+	}
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
 	ws, err := e.buildWorldState(taskCtx, !write)
@@ -218,6 +237,11 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.
 func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	e.rmtx.RLock()
+	defer e.rmtx.RUnlock()
+	if e.closed {
+		return nil, errors.New("world block engine is closed")
+	}
 	ncs := e.baseRoot.Clone()
 	ncs.SetRootRef(nil)
 	return ncs, nil
@@ -233,6 +257,12 @@ func (e *Engine) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
+	e.rmtx.RLock()
+	closed := e.closed
+	e.rmtx.RUnlock()
+	if closed {
+		return errors.New("world block engine is closed")
+	}
 	if ref == nil {
 		ncs := e.root.Clone()
 		defer ncs.Release()
@@ -257,6 +287,10 @@ func (e *Engine) AccessWorldState(
 // Initializes at 0 for initial world state.
 func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 	e.rmtx.Lock()
+	if e.closed {
+		e.rmtx.Unlock()
+		return 0, errors.New("world block engine is closed")
+	}
 	seqno, err := e.readTx.GetSeqno(ctx)
 	e.rmtx.Unlock()
 	return seqno, err
@@ -268,6 +302,10 @@ func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	for {
 		e.rmtx.RLock()
+		if e.closed {
+			e.rmtx.RUnlock()
+			return 0, errors.New("world block engine is closed")
+		}
 		readTx := e.readTx
 		e.rmtx.RUnlock()
 
@@ -284,6 +322,36 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 			return seqno, nil
 		}
 	}
+}
+
+// Close releases root cursors and active transaction state owned by the engine.
+func (e *Engine) Close() error {
+	if e == nil {
+		return nil
+	}
+	e.rmtx.Lock()
+	if e.closed {
+		e.rmtx.Unlock()
+		return nil
+	}
+	e.closed = true
+	if e.writeTx != nil {
+		e.writeTx.discardLocked()
+	}
+	if e.readTx != nil {
+		e.readTx.Discard()
+		e.readTx = nil
+	}
+	if e.root != nil {
+		e.root.Release()
+		e.root = nil
+	}
+	if e.baseRoot != nil {
+		e.baseRoot.Release()
+		e.baseRoot = nil
+	}
+	e.rmtx.Unlock()
+	return nil
 }
 
 // updateReadWriteTxns updates the readTx and cancels writeTx if the state changed

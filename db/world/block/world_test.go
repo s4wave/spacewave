@@ -66,6 +66,49 @@ func TestWorldEngine(t *testing.T) {
 	t.Log("tests successful")
 }
 
+func TestWorldEngineCloseReleasesReadState(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	eng, err := world_block.NewEngine(
+		ctx,
+		le,
+		ocs,
+		world_mock.LookupMockOp,
+		nil,
+		false,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := eng.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := eng.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := eng.NewTransaction(ctx, false); err == nil {
+		t.Fatal("expected closed engine to reject read transaction")
+	}
+	if _, err := eng.BuildStorageCursor(ctx); err == nil {
+		t.Fatal("expected closed engine to reject storage cursor")
+	}
+	if _, err := eng.GetSeqno(ctx); err == nil {
+		t.Fatal("expected closed engine to reject seqno read")
+	}
+}
+
 // TestWorldState_GetObjectMetadataBatch checks batched parent+type lookup behavior.
 func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 	ctx := context.Background()
