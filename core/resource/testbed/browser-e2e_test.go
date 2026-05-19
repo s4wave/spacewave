@@ -1,4 +1,4 @@
-//go:build !js
+//go:build !skip_e2e && !js
 
 package resource_testbed_test
 

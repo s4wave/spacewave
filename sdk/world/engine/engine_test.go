@@ -1,3 +1,5 @@
+//go:build !js
+
 package sdk_world_engine_test
 
 import (

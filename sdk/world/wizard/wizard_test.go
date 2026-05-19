@@ -1,3 +1,5 @@
+//go:build !js
+
 package s4wave_wizard_test
 
 import (

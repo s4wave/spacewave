@@ -1,3 +1,5 @@
+//go:build !js
+
 package world_types_test
 
 import (
