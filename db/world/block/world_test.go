@@ -1509,6 +1509,54 @@ func TestWorldState_GC_SetRootRef_OrphanBlock(t *testing.T) {
 	}
 }
 
+func TestWorldState_GC_PinsCurrentRootDuringPhysicalSweep(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(ocs.Release)
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for i := range 70 {
+		if _, err := world_block.BuildMockObject(ctx, ws, "gc-journal-"+strconv.Itoa(i)); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if entries := ws.GetGCJournalEntries(); entries == 0 {
+		t.Fatal("expected committed writes to leave deferred GC journal entries")
+	}
+
+	stats, err := ws.GarbageCollect(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats == nil {
+		t.Fatal("expected GC stats")
+	}
+
+	reopened, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := reopened.ReconcileGCJournal(ctx); err != nil {
+		t.Fatalf("old root journal should remain readable until reconcile commits: %v", err)
+	}
+}
+
 // TestWorldState_GC_Fork verifies that forking a WorldState preserves
 // GC tracking: the forked state has a RefGraph, existing GC edges are
 // visible, new objects get GC edges, and GarbageCollect works.

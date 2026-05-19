@@ -161,7 +161,6 @@ func (c *Controller) queueGCSweepTx(ctx context.Context, so sobject.SharedObject
 	if err != nil {
 		return false, err
 	}
-
 	op := &SOWorldOp{
 		Body: &SOWorldOp_ApplyTxOp{
 			ApplyTxOp: &ApplyTxOp{Tx: tx},

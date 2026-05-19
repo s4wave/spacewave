@@ -117,7 +117,9 @@ func (c *Collector) Collect(ctx context.Context) (*Stats, error) {
 				if ctx.Err() != nil {
 					return stats, context.Canceled
 				}
-				return stats, errors.Wrap(err, "remove node refs")
+				if !errors.Is(err, block.ErrNotFound) {
+					return stats, errors.Wrap(err, "remove node refs")
+				}
 			}
 			stats.RemoveNodeRefsDuration += time.Since(phaseStart)
 			stats.RemoveNodeRefsCount++
@@ -129,7 +131,9 @@ func (c *Collector) Collect(ctx context.Context) (*Stats, error) {
 				if ctx.Err() != nil {
 					return stats, context.Canceled
 				}
-				return stats, errors.Wrap(err, "remove unreferenced edge")
+				if !errors.Is(err, block.ErrNotFound) {
+					return stats, errors.Wrap(err, "remove unreferenced edge")
+				}
 			}
 			stats.RemoveUnreferencedEdgeDuration += time.Since(phaseStart)
 			stats.RemoveUnreferencedEdgeCount++
