@@ -685,13 +685,19 @@ func (h *Harness) startupManifestSummary() string {
 }
 
 func (h *Harness) startupManifestRequests() []manifestFetchRequest {
-	platformIDs := []string{"js", "web/js/wasm"}
+	jsPlatform := []string{"js"}
+	webWASMPlatform := []string{"web/js/wasm"}
 	return []manifestFetchRequest{
-		{pluginID: "spacewave-core", platformIDs: platformIDs},
-		{pluginID: "spacewave-debug", platformIDs: platformIDs},
-		{pluginID: "web", platformIDs: platformIDs},
-		{pluginID: "spacewave-web", platformIDs: platformIDs},
-		{pluginID: "spacewave-app", platformIDs: platformIDs},
+		{pluginID: "spacewave-core", platformIDs: webWASMPlatform},
+		{pluginID: "spacewave-debug", platformIDs: webWASMPlatform},
+		{pluginID: "web", platformIDs: webWASMPlatform},
+		{pluginID: "spacewave-web", platformIDs: webWASMPlatform},
+		{pluginID: "spacewave-app", platformIDs: webWASMPlatform},
+		// Browser plugin startup later requests app plugins with exactly
+		// platform-ids=js. Keep equivalent directives warm so those pages reuse
+		// prebuilt values instead of starting cancelable per-page rebuilds.
+		{pluginID: "spacewave-web", platformIDs: jsPlatform},
+		{pluginID: "spacewave-app", platformIDs: jsPlatform},
 	}
 }
 
