@@ -7,7 +7,6 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
-import { MknodType } from '@s4wave/sdk/unixfs/index.js'
 import {
   useUnixFSRootHandle,
   useUnixFSHandle,
@@ -32,6 +31,7 @@ import {
   parseNote,
 } from './frontmatter.js'
 import { readFileText } from './read-file.js'
+import { createTextFile } from './write-file.js'
 
 interface NoteListEntry {
   name: string
@@ -186,13 +186,9 @@ function NoteList({
       counter++
     }
 
-    await handle.mknod([name], MknodType.FILE)
-    const child = await handle.lookup(name)
     const title = name.replace(/\.md$/, '')
     const template = `---\ncreated: ${new Date().toISOString().slice(0, 10)}\ntags: []\n---\n\n# ${title}\n\n`
-    const encoded = new TextEncoder().encode(template)
-    await child.writeAt(0n, encoded)
-    child.release()
+    await createTextFile(handle, name, template)
     onSelectNote(joinNotePath(currentPath, name))
   }, [pathHandle.value, entriesResource.value, currentPath, onSelectNote])
 

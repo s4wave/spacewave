@@ -7,7 +7,6 @@ import { getObjectKey } from '@s4wave/web/object/object.js'
 import { ViewerStatusShell } from '@s4wave/web/object/ViewerStatusShell.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
-import { MknodType } from '@s4wave/sdk/unixfs/index.js'
 import {
   useUnixFSRootHandle,
   useUnixFSHandle,
@@ -22,6 +21,7 @@ import { useAuthorRegistry } from './blog/authors.js'
 import { BlogReadingView } from './blog/BlogReadingView.js'
 import type { BlogPostData } from './blog/types.js'
 import { useWorldObjectMessageState } from './useWorldObjectMessageState.js'
+import { createTextFile } from './write-file.js'
 
 import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
@@ -174,11 +174,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
       '# New Post\n' +
       '\n'
 
-    await handle.mknod([name], MknodType.FILE)
-    const child = await handle.lookup(name)
-    const encoded = new TextEncoder().encode(template)
-    await child.writeAt(0n, encoded)
-    child.release()
+    await createTextFile(handle, name, template)
     handleSelectPostEditing(name)
   }, [pathHandle.value, entriesResource.value, handleSelectPostEditing])
 

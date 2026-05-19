@@ -74,6 +74,7 @@ function makeDirectoryHandle(files: Record<string, string> = {}) {
       }),
     ),
     mknod: vi.fn(() => Promise.resolve()),
+    uploadFile: vi.fn(() => Promise.resolve(0n)),
     mkdirAll: vi.fn(() => Promise.resolve()),
     remove: vi.fn(() => Promise.resolve()),
     rename: vi.fn(() => Promise.resolve()),
@@ -353,6 +354,33 @@ describe('NoteList', () => {
     expect(handle.mkdirAll).toHaveBeenCalledWith(['projects', 'client-a'])
   })
 
+  it('creates a note with template content atomically', async () => {
+    const handle = mockDirectory([])
+    const onSelectNote = vi.fn()
+
+    renderList({ currentPath: 'projects', onSelectNote })
+
+    fireEvent.click(screen.getByText('Create your first note'))
+
+    await waitFor(() => {
+      expect(handle.uploadFile).toHaveBeenCalledWith(
+        'untitled.md',
+        expect.anything(),
+        expect.anything(),
+      )
+      expect(onSelectNote).toHaveBeenCalledWith('projects/untitled.md')
+    })
+
+    expect(handle.mknod).not.toHaveBeenCalled()
+    const uploadCall = handle.uploadFile.mock.calls[0] as unknown as [
+      string,
+      bigint,
+      ReadableStream<Uint8Array>,
+    ]
+    const text = new TextDecoder().decode(await readStreamBytes(uploadCall[2]))
+    expect(text).toContain('# untitled')
+  })
+
   it('renames a note and reports the path change', async () => {
     const handle = mockDirectory([{ name: 'draft.md', isDir: false }], {
       'draft.md': '# Draft',
@@ -394,3 +422,7 @@ describe('NoteList', () => {
     })
   })
 })
+
+async function readStreamBytes(stream: ReadableStream<Uint8Array>) {
+  return new Uint8Array(await new Response(stream).arrayBuffer())
+}

@@ -129,13 +129,8 @@ describe('BlogViewer', () => {
   })
 
   it('includes author frontmatter in the new-post template', async () => {
-    const child = {
-      writeAt: vi.fn(() => Promise.resolve(0n)),
-      release: vi.fn(),
-    }
     const handle = {
-      mknod: vi.fn(() => Promise.resolve()),
-      lookup: vi.fn(() => Promise.resolve(child)),
+      uploadFile: vi.fn(() => Promise.resolve(0n)),
     }
     const pathHandle = buildResource(handle)
     const entries = buildResource([])
@@ -160,20 +155,25 @@ describe('BlogViewer', () => {
     fireEvent.click(screen.getByTitle('New note'))
 
     await waitFor(() => {
-      expect(handle.mknod).toHaveBeenCalledWith(
-        ['new-post.md'],
+      expect(handle.uploadFile).toHaveBeenCalledWith(
+        'new-post.md',
+        expect.anything(),
         expect.anything(),
       )
-      expect(child.writeAt).toHaveBeenCalled()
     })
 
-    const writeCall = child.writeAt.mock.calls[0] as unknown as [
+    const uploadCall = handle.uploadFile.mock.calls[0] as unknown as [
+      string,
       bigint,
-      Uint8Array,
+      ReadableStream<Uint8Array>,
     ]
-    const encoded = writeCall[1]
+    const encoded = await readStreamBytes(uploadCall[2])
     const text = new TextDecoder().decode(encoded)
     expect(text).toContain('author: \n')
     expect(text).toContain('draft: true\n')
   })
 })
+
+async function readStreamBytes(stream: ReadableStream<Uint8Array>) {
+  return new Uint8Array(await new Response(stream).arrayBuffer())
+}
