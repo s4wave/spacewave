@@ -44,7 +44,7 @@ func okraDigest(parts ...[]byte) ([]byte, error) {
 }
 
 func hashKeyValue(key, value []byte) ([]byte, error) {
-	if len(key) > math.MaxUint32 || len(value) > math.MaxUint32 {
+	if uint64(len(key)) > math.MaxUint32 || uint64(len(value)) > math.MaxUint32 {
 		return nil, errors.New("okra hash input exceeds uint32 length")
 	}
 	var size [4]byte
@@ -123,7 +123,7 @@ func hashPage(page *Page) ([]byte, error) {
 		return nil, err
 	}
 	for _, part := range [][]byte{page.GetLowerBound(), page.GetUpperBound()} {
-		if len(part) > math.MaxUint32 {
+		if uint64(len(part)) > math.MaxUint32 {
 			return nil, errors.New("okra page bound exceeds uint32 length")
 		}
 		binary.BigEndian.PutUint32(buf[:4], uint32(len(part)))
@@ -147,7 +147,7 @@ func hashPage(page *Page) ([]byte, error) {
 		if _, err := h.Write(buf[:1]); err != nil {
 			return nil, err
 		}
-		if len(ent.GetKey()) > math.MaxUint32 {
+		if uint64(len(ent.GetKey())) > math.MaxUint32 {
 			return nil, errors.New("okra entry key exceeds uint32 length")
 		}
 		binary.BigEndian.PutUint32(buf[:4], uint32(len(ent.GetKey())))
