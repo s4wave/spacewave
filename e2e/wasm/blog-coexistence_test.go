@@ -121,21 +121,24 @@ func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) 
 func openNotebookNote(t testing.TB, page playwright.Page, noteTitle string) {
 	t.Helper()
 
-	row := page.Locator("text=" + noteTitle).First()
+	row := page.Locator("[data-testid='notes-note-row']:has-text('" + noteTitle + "')").First()
 	if err := row.WaitFor(); err != nil {
 		t.Fatalf("wait for notebook row %q: %v", noteTitle, err)
 	}
 	if err := row.Click(); err != nil {
 		t.Fatalf("click notebook row %q: %v", noteTitle, err)
 	}
+	if err := page.Locator("[data-testid='notes-content-view']").First().WaitFor(); err != nil {
+		t.Fatalf("wait for notebook content view %q: %v\ndebug: %v", noteTitle, err, collectNotebookDebug(page))
+	}
 }
 
 func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 	t.Helper()
 
-	sourceBtn := page.Locator("button:has-text('Source')").First()
+	sourceBtn := page.Locator("[data-testid='notes-source-toggle'][title='Switch to source']").First()
 	if err := sourceBtn.WaitFor(); err != nil {
-		t.Fatalf("wait for source button: %v", err)
+		t.Fatalf("wait for source button: %v\ndebug: %v", err, collectNotebookDebug(page))
 	}
 	if err := sourceBtn.Click(); err != nil {
 		t.Fatalf("click source button: %v", err)
@@ -149,10 +152,53 @@ func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 		t.Fatalf("fill source editor: %v", err)
 	}
 
-	saveBtn := page.Locator("button:has-text('WYSIWYG')").First()
+	saveBtn := page.Locator("[data-testid='notes-source-toggle'][title='Switch to WYSIWYG']").First()
 	if err := saveBtn.Click(); err != nil {
 		t.Fatalf("click WYSIWYG button: %v", err)
 	}
+	if err := sourceBtn.WaitFor(); err != nil {
+		t.Fatalf("wait for source edit save to settle: %v\ndebug: %v", err, collectNotebookDebug(page))
+	}
+}
+
+func collectNotebookDebug(page playwright.Page) any {
+	debug, err := page.Evaluate(`() => JSON.stringify({
+		url: window.location.href,
+		hash: window.location.hash,
+		appText: document.querySelector('#bldr-root')?.textContent?.replace(/\s+/g, ' ').slice(0, 1600) ?? '',
+		activeElement: document.activeElement ? {
+			tag: document.activeElement.tagName,
+			text: document.activeElement.textContent?.replace(/\s+/g, ' ').slice(0, 120) ?? '',
+			testid: document.activeElement.getAttribute('data-testid'),
+		} : null,
+		rows: Array.from(document.querySelectorAll('[data-testid="notes-note-row"]')).map((row) => {
+			const rect = row.getBoundingClientRect()
+			return {
+				text: row.textContent?.replace(/\s+/g, ' ').slice(0, 120) ?? '',
+				path: row.getAttribute('data-note-path'),
+				visible: rect.width > 0 && rect.height > 0,
+				rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+				className: row.getAttribute('class'),
+			}
+		}),
+		contentViews: Array.from(document.querySelectorAll('[data-testid="notes-content-view"]')).map((view) => {
+			const rect = view.getBoundingClientRect()
+			return {
+				text: view.textContent?.replace(/\s+/g, ' ').slice(0, 300) ?? '',
+				visible: rect.width > 0 && rect.height > 0,
+				rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+			}
+		}),
+		buttons: Array.from(document.querySelectorAll('button')).map((button) => ({
+			title: button.getAttribute('title'),
+			testid: button.getAttribute('data-testid'),
+			text: button.textContent?.replace(/\s+/g, ' ').slice(0, 80) ?? '',
+		})),
+	})`)
+	if err != nil {
+		return "failed to collect notebook debug: " + err.Error()
+	}
+	return debug
 }
 
 func TestBlogCoexistenceScenario(t *testing.T) {

@@ -13,7 +13,11 @@ import { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { BucketLookupCursor } from '@s4wave/sdk/bucket/lookup/lookup.js'
-import { SPACE_SETTINGS_OBJECT_KEY } from '@s4wave/core/space/world/world.js'
+import {
+  isValidSpacePluginId,
+  SPACE_SETTINGS_BLOCK_TYPE,
+  SPACE_SETTINGS_OBJECT_KEY,
+} from '@s4wave/core/space/world/world.js'
 import { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import {
   InitUnixFSOp,
@@ -735,9 +739,20 @@ export async function createSpaceSettingsObject(
               undefined,
               abortSignal,
             )
-            const blockResp = await cursor.getBlock({}, abortSignal)
-            if (blockResp.found && blockResp.data) {
-              return SpaceSettings.fromBinary(blockResp.data)
+            const blockResp = await cursor.unmarshal(
+              { blockType: SPACE_SETTINGS_BLOCK_TYPE },
+              abortSignal,
+            )
+            if (blockResp.found && blockResp.data?.length) {
+              const settings = SpaceSettings.fromBinary(blockResp.data)
+              return {
+                ...settings,
+                // A corrupted settings block can decode arbitrary bytes into
+                // pluginIds; never re-persist invalid manifest IDs.
+                pluginIds: (settings.pluginIds ?? []).filter(
+                  isValidSpacePluginId,
+                ),
+              }
             }
             return undefined
           },
@@ -747,12 +762,17 @@ export async function createSpaceSettingsObject(
       }
     }
 
+    const requestedPluginIds = pluginIds ?? []
+    const invalidPluginId = requestedPluginIds.find(
+      (pluginId) => !isValidSpacePluginId(pluginId),
+    )
+    if (invalidPluginId !== undefined) {
+      throw new Error(
+        `quickstart returned invalid plugin id with length ${invalidPluginId.length}`,
+      )
+    }
     const mergedPluginIds = Array.from(
-      new Set(
-        [...(existingSettings?.pluginIds ?? []), ...(pluginIds ?? [])].filter(
-          Boolean,
-        ),
-      ),
+      new Set([...(existingSettings?.pluginIds ?? []), ...requestedPluginIds]),
     )
     const settings: SpaceSettings = {
       indexPath: indexPath ?? existingSettings?.indexPath ?? '',

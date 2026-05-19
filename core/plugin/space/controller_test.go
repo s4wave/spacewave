@@ -1,6 +1,10 @@
 package plugin_space
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/sirupsen/logrus"
+)
 
 func TestControllerLoadedPluginIDsSnapshotAndWake(t *testing.T) {
 	c := &Controller{}
@@ -22,5 +26,21 @@ func TestControllerLoadedPluginIDsSnapshotAndWake(t *testing.T) {
 	case <-ch:
 	default:
 		t.Fatal("expected wait channel to close after loaded plugin set changed")
+	}
+}
+
+func TestFilterValidPluginIDsDropsCorruptSettingsEntries(t *testing.T) {
+	got := filterValidPluginIDs(
+		logrus.NewEntry(logrus.New()),
+		[]string{"spacewave-notes", "\b\x02\x1aBbinary-plugin-id", "spacewave-app"},
+	)
+	want := []string{"spacewave-notes", "spacewave-app"}
+	if len(got) != len(want) {
+		t.Fatalf("plugin ids = %q, want %q", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("plugin ids = %q, want %q", got, want)
+		}
 	}
 }

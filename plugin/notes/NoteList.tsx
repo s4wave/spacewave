@@ -123,12 +123,10 @@ function NoteList({
         entries.push({
           name: entry.name,
           title:
-            (
-              typeof note.frontmatter.title === 'string' &&
-              note.frontmatter.title.trim()
-            ) ?
-              note.frontmatter.title.trim()
-            : entry.name.replace(/\.md$/, ''),
+            typeof note.frontmatter.title === 'string' &&
+            note.frontmatter.title.trim()
+              ? note.frontmatter.title.trim()
+              : entry.name.replace(/\.md$/, ''),
           frontmatter: note.frontmatter,
           tags: getFrontmatterTags(note.frontmatter),
           status: normalizeFrontmatterStatus(note.frontmatter.status),
@@ -204,12 +202,10 @@ function NoteList({
     if (!prompt || !handle) return
 
     const name = prompt('Folder name')?.trim() ?? ''
-    const parts = name
-      .split('/')
-      .flatMap((part) => {
-        const trimmed = part.trim()
-        return trimmed ? [trimmed] : []
-      })
+    const parts = name.split('/').flatMap((part) => {
+      const trimmed = part.trim()
+      return trimmed ? [trimmed] : []
+    })
     if (parts.length === 0) return
 
     await handle.mkdirAll(parts)
@@ -308,7 +304,10 @@ function NoteList({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div
+      className="flex h-full flex-col overflow-y-auto"
+      data-testid="notes-note-list"
+    >
       <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
         <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
           <LuSearch className="text-muted-foreground size-3 shrink-0" />
@@ -378,9 +377,9 @@ function NoteList({
         </div>
       )}
       <div className="flex-1 overflow-y-auto">
-        {showEmptyState ?
+        {showEmptyState ? (
           <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
-            {isEmptyDirectory ?
+            {isEmptyDirectory ? (
               <>
                 <span className="text-xs">No notes yet</span>
                 <button
@@ -391,9 +390,12 @@ function NoteList({
                   Create your first note
                 </button>
               </>
-            : <span className="text-xs">No matching notes</span>}
+            ) : (
+              <span className="text-xs">No matching notes</span>
+            )}
           </div>
-        : <>
+        ) : (
+          <>
             {filteredDirEntries.map((entry) => (
               <button
                 key={entry.name}
@@ -421,6 +423,8 @@ function NoteList({
                 >
                   <button
                     type="button"
+                    data-testid="notes-note-row"
+                    data-note-path={notePath}
                     className="hover:bg-list-hover-background flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-xs"
                     onClick={() => onSelectNote(notePath)}
                   >
@@ -450,7 +454,7 @@ function NoteList({
               )
             })}
           </>
-        }
+        )}
       </div>
     </div>
   )

@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import {
+  render,
+  screen,
+  cleanup,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react'
 
 vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
   useUnixFSRootHandle: vi.fn(() => ({
@@ -48,15 +54,18 @@ vi.mock('./LexicalEditor.js', () => ({
 vi.mock('./FrontmatterDisplay.js', () => ({
   default: ({ frontmatter }: { frontmatter: Record<string, unknown> }) => (
     <div data-testid="frontmatter-display">
-      {frontmatter.tags ?
-        `tags: ${(frontmatter.tags as string[]).join(',')}`
-      : null}
+      {frontmatter.tags
+        ? `tags: ${(frontmatter.tags as string[]).join(',')}`
+        : null}
     </div>
   ),
 }))
 
 import NoteContentView from './NoteContentView.js'
-import { useUnixFSHandleTextContent } from '@s4wave/web/hooks/useUnixFSHandle.js'
+import {
+  useUnixFSHandle,
+  useUnixFSHandleTextContent,
+} from '@s4wave/web/hooks/useUnixFSHandle.js'
 
 const mockWorldState = {
   value: null,
@@ -241,6 +250,94 @@ describe('NoteContentView', () => {
     )
     fireEvent.click(screen.getByText('WYSIWYG'))
     expect(onToggleEdit).toHaveBeenCalledOnce()
+  })
+
+  it('waits for source content to save before leaving source mode', async () => {
+    vi.mocked(useUnixFSHandleTextContent).mockReturnValue({
+      value: 'original',
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    let resolveWriteAt: (() => void) | undefined
+    const writeAt = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveWriteAt = resolve
+        }),
+    )
+    const truncate = vi.fn(() => Promise.resolve())
+    vi.mocked(useUnixFSHandle).mockReturnValue({
+      value: { writeAt, truncate } as never,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    const onToggleEdit = vi.fn()
+    const { container } = render(
+      <NoteContentView
+        worldState={mockWorldState as never}
+        sourceRef="obj-key/-/docs"
+        noteName="note.md"
+        editing={true}
+        onToggleEdit={onToggleEdit}
+      />,
+    )
+
+    const textarea = container.querySelector('textarea')!
+    fireEvent.change(textarea, { target: { value: 'updated' } })
+    fireEvent.click(screen.getByText('WYSIWYG'))
+
+    expect(writeAt).toHaveBeenCalledWith(
+      0n,
+      new TextEncoder().encode('updated'),
+    )
+    expect(onToggleEdit).not.toHaveBeenCalled()
+
+    resolveWriteAt?.()
+
+    await waitFor(() => expect(truncate).toHaveBeenCalledOnce())
+    await waitFor(() => expect(onToggleEdit).toHaveBeenCalledOnce())
+  })
+
+  it('does not duplicate source saves when the WYSIWYG button blurs the editor', async () => {
+    vi.mocked(useUnixFSHandleTextContent).mockReturnValue({
+      value: 'original',
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    const writeAt = vi.fn(() => Promise.resolve())
+    const truncate = vi.fn(() => Promise.resolve())
+    vi.mocked(useUnixFSHandle).mockReturnValue({
+      value: { writeAt, truncate } as never,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    const { container } = render(
+      <NoteContentView
+        worldState={mockWorldState as never}
+        sourceRef="obj-key/-/docs"
+        noteName="note.md"
+        editing={true}
+        onToggleEdit={vi.fn()}
+      />,
+    )
+
+    const textarea = container.querySelector('textarea')!
+    const toggle = screen.getByText('WYSIWYG')
+    fireEvent.change(textarea, { target: { value: 'updated' } })
+    fireEvent.pointerDown(toggle)
+    fireEvent.blur(textarea)
+    fireEvent.click(toggle)
+
+    await waitFor(() => expect(writeAt).toHaveBeenCalledOnce())
+    expect(truncate).toHaveBeenCalledOnce()
   })
 
   it('updates textarea content on change in source mode', () => {

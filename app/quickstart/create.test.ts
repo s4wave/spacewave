@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { SPACE_SETTINGS_BLOCK_TYPE } from '@s4wave/core/space/world/world.js'
+import { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import {
   INIT_UNIXFS_OP_ID,
   UNIXFS_OBJECT_KEY,
@@ -880,7 +882,7 @@ describe('quickstart create', () => {
   })
 
   it('overwrites an existing unreadable settings object instead of failing setup', async () => {
-    const getBlock = vi.fn(() =>
+    const unmarshal = vi.fn(() =>
       Promise.reject(new Error('object must be a block')),
     )
     const release = vi.fn()
@@ -897,7 +899,7 @@ describe('quickstart create', () => {
         accessWorldState: vi
           .fn()
           .mockResolvedValueOnce({
-            getBlock,
+            unmarshal,
             release,
             [Symbol.dispose]: release,
           })
@@ -940,6 +942,10 @@ describe('quickstart create', () => {
     ])
 
     expect(getObject).toHaveBeenCalledWith('settings', undefined)
+    expect(unmarshal).toHaveBeenCalledWith(
+      { blockType: SPACE_SETTINGS_BLOCK_TYPE },
+      undefined,
+    )
     expect(markDirty).not.toHaveBeenCalled()
     expect(write).not.toHaveBeenCalled()
     const settingsCall = spaceWorld.applyWorldOp.mock.calls[0]
@@ -956,6 +962,63 @@ describe('quickstart create', () => {
     expect(op.overwrite).toBe(true)
     expect(settings.indexPath).toBe('blog')
     expect(settings.pluginIds).toEqual(['spacewave-app'])
+  })
+
+  it('does not re-persist invalid plugin ids from existing settings', async () => {
+    const invalidPluginId = '\b\x02\x1aBbinary-plugin-id'
+    const unmarshal = vi.fn(() =>
+      Promise.resolve({
+        found: true,
+        data: SpaceSettings.toBinary({
+          indexPath: 'old-index',
+          pluginIds: [invalidPluginId, 'spacewave-app'],
+        }),
+      }),
+    )
+    const release = vi.fn()
+    const getObject = vi.fn(() =>
+      Promise.resolve({
+        accessWorldState: vi.fn().mockResolvedValue({
+          unmarshal,
+          release,
+          [Symbol.dispose]: release,
+        }),
+        release,
+        [Symbol.dispose]: release,
+      }),
+    )
+    const spaceWorld = {
+      applyWorldOp: vi.fn<ApplyWorldOp>().mockResolvedValue({
+        seqno: 1n,
+        sysErr: false,
+      }),
+      getObject,
+    }
+
+    await createSpaceSettingsObject(spaceWorld as never, undefined, undefined, [
+      'spacewave-notes',
+    ])
+
+    const settingsCall = spaceWorld.applyWorldOp.mock.calls[0]
+    if (!settingsCall) {
+      throw new Error('expected settings op call')
+    }
+    const settings = SetSpaceSettingsOp.fromBinary(settingsCall[1]).settings
+    expect(settings?.indexPath).toBe('old-index')
+    expect(settings?.pluginIds).toEqual(['spacewave-app', 'spacewave-notes'])
+  })
+
+  it('rejects invalid plugin ids returned by dynamic quickstarts', async () => {
+    const { world, applyWorldOp } = buildQuickstartWorld()
+
+    await expect(
+      createSpaceSettingsObject(world as never, undefined, 'blog', [
+        'spacewave-notes',
+        'not/a-plugin',
+      ]),
+    ).rejects.toThrow('quickstart returned invalid plugin id')
+
+    expect(applyWorldOp).not.toHaveBeenCalled()
   })
 
   it('seeds the v86 quickstart as a persistent wizard and indexes the space to it', async () => {

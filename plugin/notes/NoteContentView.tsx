@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -55,14 +55,24 @@ function NoteContentView({
 
   // Source mode edit state.
   const [sourceContent, setSourceContent] = useState<string | null>(null)
+  const [sourceSaving, setSourceSaving] = useState(false)
+  const [writeError, setWriteError] = useState<Error | null>(null)
+  const skipNextSourceBlurSave = useRef(false)
 
   const writeFile = useCallback(
     async (content: string) => {
       const handle = fileHandle.value
       if (!handle) return
       const encoded = new TextEncoder().encode(content)
-      await handle.writeAt(0n, encoded)
-      await handle.truncate(BigInt(encoded.byteLength))
+      try {
+        await handle.writeAt(0n, encoded)
+        await handle.truncate(BigInt(encoded.byteLength))
+        setWriteError(null)
+      } catch (err) {
+        const nextError = err instanceof Error ? err : new Error(String(err))
+        setWriteError(nextError)
+        throw nextError
+      }
     },
     [fileHandle.value],
   )
@@ -71,15 +81,20 @@ function NoteContentView({
   const handleWysiwygSave = useCallback(
     (body: string) => {
       const full = reassembleNote(rawFrontmatter, body)
-      void writeFile(full)
+      void writeFile(full).catch(() => {
+        // writeFile already surfaced the error in component state.
+      })
     },
     [rawFrontmatter, writeFile],
   )
 
   // Source mode blur: write the raw content.
   const handleSourceBlur = useCallback(() => {
+    if (skipNextSourceBlurSave.current) return
     if (sourceContent !== null) {
-      void writeFile(sourceContent)
+      void writeFile(sourceContent).catch(() => {
+        // writeFile already surfaced the error in component state.
+      })
     }
   }, [sourceContent, writeFile])
 
@@ -87,15 +102,35 @@ function NoteContentView({
     if (editing) {
       // Switching from source to WYSIWYG.
       if (sourceContent !== null) {
-        void writeFile(sourceContent)
-        setSourceContent(null)
+        void (async () => {
+          setSourceSaving(true)
+          try {
+            await writeFile(sourceContent)
+            setSourceContent(null)
+            onToggleEdit()
+          } catch {
+            // writeFile already surfaced the error in component state.
+          } finally {
+            skipNextSourceBlurSave.current = false
+            setSourceSaving(false)
+          }
+        })()
+        return
       }
+      skipNextSourceBlurSave.current = false
     } else {
       // Switching from WYSIWYG to source.
+      skipNextSourceBlurSave.current = false
       setSourceContent(textResource.value ?? '')
     }
     onToggleEdit()
   }, [editing, sourceContent, textResource.value, onToggleEdit, writeFile])
+
+  const handleTogglePointerDown = useCallback(() => {
+    if (editing) {
+      skipNextSourceBlurSave.current = true
+    }
+  }, [editing])
 
   if (!noteName) {
     return (
@@ -117,14 +152,16 @@ function NoteContentView({
     return (
       <div className="text-destructive flex h-full flex-col items-center justify-center gap-2 p-4 text-xs">
         <span>Failed to load note</span>
-        <span className="text-foreground-alt/50 text-xs">{textResource.error.message}</span>
+        <span className="text-foreground-alt/50 text-xs">
+          {textResource.error.message}
+        </span>
       </div>
     )
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
+    <div className="flex h-full flex-col" data-testid="notes-content-view">
+      <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
         <span className="text-xs font-medium">
           {noteName.split('/').pop()?.replace(/\.md$/, '') ?? noteName}
         </span>
@@ -136,21 +173,30 @@ function NoteContentView({
             editing ? 'text-brand' : 'text-foreground-alt',
           )}
           onClick={handleToggle}
+          onPointerDown={handleTogglePointerDown}
+          disabled={sourceSaving}
+          data-testid="notes-source-toggle"
           title={editing ? 'Switch to WYSIWYG' : 'Switch to source'}
         >
-          {editing ?
+          {editing ? (
             <>
               <LuPenLine className="size-3" />
               WYSIWYG
             </>
-          : <>
+          ) : (
+            <>
               <LuCode className="size-3" />
               Source
             </>
-          }
+          )}
         </button>
       </div>
-      {editing ?
+      {writeError && (
+        <div className="border-destructive/30 text-destructive border-b px-3 py-1 text-xs">
+          Failed to save note: {writeError.message}
+        </div>
+      )}
+      {editing ? (
         <div className="flex-1 overflow-auto">
           <textarea
             className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
@@ -159,7 +205,8 @@ function NoteContentView({
             onBlur={handleSourceBlur}
           />
         </div>
-      : <>
+      ) : (
+        <>
           {parsedNote && (
             <FrontmatterDisplay
               frontmatter={parsedNote.frontmatter}
@@ -174,7 +221,7 @@ function NoteContentView({
             />
           </div>
         </>
-      }
+      )}
     </div>
   )
 }

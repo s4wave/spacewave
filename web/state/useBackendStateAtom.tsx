@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLatestRef, useWatchStateRpc } from '@aptre/bldr-react'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -26,10 +26,17 @@ export type BackendStateAtomValue<T> = {
   setValue: (update: T | ((prev: T) => T)) => void
 }
 
+type PendingBackendState<T> = {
+  storeId: string
+  stateJson: string
+  value: T
+}
+
 // useBackendStateAtom provides access to a single backend-persisted state atom.
 // The storeId identifies the atom (derived from namespace + key).
 // Values are superjson-encoded for Date/Map/Set support.
-// When accessor has no value (loading or null), returns defaultValue with no-op setter.
+// When the backend atom is still loading, updates are kept locally and flushed
+// once the backend atom becomes available.
 export function useBackendStateAtomValue<T>(
   accessor: StateAtomAccessor,
   storeId: string,
@@ -47,6 +54,8 @@ export function useBackendStateAtomValue<T>(
   )
 
   const stateAtom = stateAtomResource.value
+  const [pendingState, setPendingState] =
+    useState<PendingBackendState<T> | null>(null)
 
   // Watch for state changes via streaming RPC.
   const watchFn = useCallback(
@@ -77,25 +86,41 @@ export function useBackendStateAtomValue<T>(
       return defaultValue
     }
   }, [stateJson, defaultValue])
+  const pendingForStore =
+    pendingState?.storeId === storeId ? pendingState : null
+  const activePendingState =
+    pendingForStore && stateJson !== pendingForStore.stateJson
+      ? pendingForStore
+      : null
+  const value = activePendingState?.value ?? currentValue
 
   // Keep a ref to currentValue for the updater function.
-  const currentValueLatest = useLatestRef(currentValue)
+  const currentValueLatest = useLatestRef(value)
+
+  useEffect(() => {
+    if (!stateAtom || !pendingForStore) return
+    if (stateJson === pendingForStore.stateJson) return
+    stateAtom.setState(pendingForStore.stateJson).catch(console.error)
+  }, [stateAtom, stateJson, pendingForStore])
 
   // Update function: superjson-encode and send to backend.
   const setValue = useCallback(
     (update: T | ((prev: T) => T)) => {
-      if (!stateAtom) return
       const newValue =
         typeof update === 'function'
           ? (update as (prev: T) => T)(currentValueLatest.current)
           : update
-      stateAtom.setState(superjson.stringify(newValue)).catch(console.error)
+      setPendingState({
+        storeId,
+        stateJson: superjson.stringify(newValue),
+        value: newValue,
+      })
     },
-    [stateAtom, currentValueLatest],
+    [storeId, currentValueLatest],
   )
 
   return {
-    value: currentValue,
+    value,
     loading,
     setValue,
   }

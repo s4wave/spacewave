@@ -152,6 +152,29 @@ describe('StateNamespaceProvider', () => {
       expect(screen.getByTestId('path').textContent).toBe('test')
     })
 
+    it('preserves updates in a namespace without a provider', () => {
+      function NamespacedCounter() {
+        const namespace = useStateNamespace(['standalone'])
+        const [count, setCount] = useStateAtom(namespace, 'count', 0)
+        return (
+          <button
+            type="button"
+            data-testid="standalone-counter"
+            onClick={() => setCount((prev) => prev + 1)}
+          >
+            Count: {count}
+          </button>
+        )
+      }
+
+      render(<NamespacedCounter />)
+
+      const button = screen.getByTestId('standalone-counter')
+      fireEvent.click(button)
+
+      expect(button.textContent).toBe('Count: 1')
+    })
+
     it('handles empty input path', () => {
       function TestComponent() {
         const { namespace: path } = useStateNamespace()

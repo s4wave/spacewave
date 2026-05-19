@@ -288,6 +288,7 @@ export function useStateNamespace(
   const context = use(StateNamespaceContext)
   const contextNamespace = context?.namespace ?? []
   const segmentPath = segments ?? []
+  const fallbackStateAtom = useMemo(() => atom<StateType>({}), [])
 
   // If partial.namespace exists, it overrides everything
   // Otherwise combine context path with segments
@@ -295,7 +296,7 @@ export function useStateNamespace(
     partial?.namespace ?? [...contextNamespace, ...segmentPath],
   )
   const stateAtom =
-    partial?.stateAtom ?? context?.stateAtom ?? atom<StateType>({})
+    partial?.stateAtom ?? context?.stateAtom ?? fallbackStateAtom
   const stateAtomAccessor =
     partial?.stateAtomAccessor ?? context?.stateAtomAccessor
 

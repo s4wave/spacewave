@@ -26,6 +26,7 @@ import (
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
+	"github.com/sirupsen/logrus"
 )
 
 // ControllerID is the controller ID.
@@ -311,7 +312,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 
 	var ids []string
 	if settings != nil {
-		ids = settings.GetPluginIds()
+		ids = filterValidPluginIDs(le, settings.GetPluginIds())
 	}
 
 	// Update the stored pluginIDs for FetchManifest filtering.
@@ -359,6 +360,21 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		}
 	}
 	c.setLoadedPluginIDs(loaded)
+}
+
+func filterValidPluginIDs(le *logrus.Entry, ids []string) []string {
+	if len(ids) == 0 {
+		return nil
+	}
+	filtered := make([]string, 0, len(ids))
+	for _, pid := range ids {
+		if err := bldr_plugin.ValidatePluginID(pid, false); err != nil {
+			le.WithError(err).WithField("plugin-id", pid).Warn("ignoring invalid SpaceSettings plugin id")
+			continue
+		}
+		filtered = append(filtered, pid)
+	}
+	return filtered
 }
 
 func (c *Controller) setLoadedPluginIDs(ids []string) {
