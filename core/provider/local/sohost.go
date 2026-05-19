@@ -139,7 +139,14 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 	}
 
 	processUpdatedSoState := func(updatedSoState *sobject.SOState) error {
-		if err := l.writeAcceptedLocalOpResults(ctx, soState, updatedSoState); err != nil {
+		prevSoState := soState
+		soState = updatedSoState
+		updateSnapshot()
+
+		// WaitOperation can resolve from the persisted local op result. Publish
+		// the accepted snapshot first so callers that immediately read state do
+		// not observe the pre-acceptance snapshot.
+		if err := l.writeAcceptedLocalOpResults(ctx, prevSoState, updatedSoState); err != nil {
 			l.le.WithError(err).Warn("failed to write accepted operation result")
 			return err
 		}
@@ -201,9 +208,6 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 				}
 			}
 		}
-
-		soState = updatedSoState
-		updateSnapshot()
 		return nil
 	}
 
