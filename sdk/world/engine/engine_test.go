@@ -88,6 +88,32 @@ func TestSDKEngine_GetSeqno(t *testing.T) {
 	t.Logf("initial seqno: %d", seqno)
 }
 
+func TestSDKEngine_WorldRootSnapshots(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	initial, err := engine.GetWorldRootSnapshot(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if initial.GetRootRef().GetBucketId() == "" {
+		t.Fatalf("expected root bucket id, got %#v", initial.GetRootRef())
+	}
+
+	stream, err := engine.WatchWorldRootSnapshots(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	watched, err := stream.Recv()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if watched.GetSeqno() != initial.GetSeqno() || !watched.GetRootRef().EqualsRef(initial.GetRootRef()) {
+		t.Fatalf("initial snapshot mismatch: get=%#v watch=%#v", initial, watched)
+	}
+}
+
 // TestSDKEngine_WaitSeqno tests waiting for a sequence number.
 func TestSDKEngine_WaitSeqno(t *testing.T) {
 	ctx := context.Background()

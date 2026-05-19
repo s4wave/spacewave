@@ -73,6 +73,16 @@ func (e *SDKEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, error)
 	return resp.Seqno, nil
 }
 
+// GetWorldRootSnapshot returns the current committed World root snapshot.
+func (e *SDKEngine) GetWorldRootSnapshot(ctx context.Context) (*s4wave_world.WorldRootSnapshot, error) {
+	return e.service.GetWorldRootSnapshot(ctx, &s4wave_world.GetWorldRootSnapshotRequest{})
+}
+
+// WatchWorldRootSnapshots streams committed World root snapshots.
+func (e *SDKEngine) WatchWorldRootSnapshots(ctx context.Context) (s4wave_world.SRPCEngineResourceService_WatchWorldRootSnapshotsClient, error) {
+	return e.service.WatchWorldRootSnapshots(ctx, &s4wave_world.WatchWorldRootSnapshotsRequest{})
+}
+
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 func (e *SDKEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	resp, err := e.service.BuildStorageCursor(ctx, &s4wave_world.BuildStorageCursorRequest{})
