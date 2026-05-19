@@ -109,7 +109,53 @@ func (s *Session) GetLockState(ctx context.Context) (session.SessionLockMode, bo
 
 // UnlockSession unlocks a PIN-locked session. No-op if already unlocked.
 func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
-	// Session is already unlocked if we reached this point.
+	if s.sessionPriv != nil {
+		return nil
+	}
+	if s.lockMode != session_lock.SessionLockMode_PIN_ENCRYPTED {
+		return errors.New("session is not PIN-locked")
+	}
+
+	encPriv, encSymKey, config, err := session_lock.ReadPINLockFiles(ctx, s.objStore, s.tkr.id)
+	if err != nil {
+		return errors.Wrap(err, "read PIN lock files")
+	}
+	if encPriv == nil || encSymKey == nil || config == nil {
+		return errors.New("PIN lock files not found")
+	}
+
+	privPEM, err := session_lock.UnlockPIN(encPriv, encSymKey, config, pin)
+	if err != nil {
+		return err
+	}
+	defer scrub.Scrub(privPEM)
+
+	privKey, err := keypem.ParsePrivKeyPem(privPEM)
+	if err != nil {
+		return errors.Wrap(err, "parse unlocked key")
+	}
+
+	s.sessionPriv = privKey
+	s.tkr.sessionProm.SetResult(s, nil)
+
+	transportCtx := context.WithoutCancel(ctx)
+	signalingURL := ""
+	if s.tkr.cloudAccountID != "" {
+		signalingURL = s.tkr.a.lookupCloudEndpoint(transportCtx)
+	}
+	if _, _, err := s.tkr.a.ensureSessionTransport(transportCtx, privKey, signalingURL); err != nil {
+		s.tkr.a.le.WithError(err).Warn("failed to start session transport after unlock")
+	}
+	if st := s.tkr.a.GetSessionTransport(); st != nil {
+		if err := s.tkr.a.AutoStartP2PSyncIfPaired(transportCtx, st); err != nil {
+			s.tkr.a.le.WithError(err).Warn("failed to auto-start P2P sync after unlock")
+		}
+	}
+
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		broadcast()
+	})
+
 	return nil
 }
 
@@ -187,8 +233,8 @@ func (s *Session) SetLockMode(ctx context.Context, mode session.SessionLockMode,
 // updateSessionMetadata updates the session controller metadata with the current lock mode.
 // Reads existing metadata first to avoid clobbering other fields.
 func (s *Session) updateSessionMetadata(ctx context.Context, mode session.SessionLockMode) {
-	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.GetBus(), "", false, nil)
-	if err != nil {
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.GetBus(), "", true, nil)
+	if err != nil || sessionCtrl == nil {
 		return
 	}
 	defer sessionCtrlRef.Release()

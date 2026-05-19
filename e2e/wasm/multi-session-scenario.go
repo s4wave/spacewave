@@ -101,6 +101,20 @@ func (s *MultiSessionScenario) WaitForLocalBadge(t testing.TB) {
 	t.Helper()
 
 	page := s.session.Page()
+	state, err := waitForLocalBadgeOrPIN(page)
+	if err != nil {
+		failWithPageBody(t, page, "wait for session provider badge or PIN unlock", err)
+	}
+	if state == "pin" {
+		s.submitVisiblePIN(t)
+	}
+	s.waitForLocalBadge(t)
+}
+
+func (s *MultiSessionScenario) waitForLocalBadge(t testing.TB) {
+	t.Helper()
+
+	page := s.session.Page()
 	badge := page.Locator("[data-testid='session-account-provider-badge']").First()
 	if err := badge.WaitFor(playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)}); err != nil {
 		failWithPageBody(t, page, "wait for session provider badge", err)
@@ -154,6 +168,16 @@ func (s *MultiSessionScenario) LockFirstSessionAtNestedRoute(t testing.TB) {
 func (s *MultiSessionScenario) UnlockVisiblePIN(t testing.TB) {
 	t.Helper()
 
+	s.submitVisiblePIN(t)
+	WaitForDriveShell(t, s.session.Page())
+	if !strings.Contains(s.session.Page().URL(), "/u/"+strconv.FormatUint(uint64(s.firstSessionIndex), 10)+"/so/"+s.firstSpaceID) {
+		t.Fatalf("unlock did not restore first nested route, got %q", s.session.Page().URL())
+	}
+}
+
+func (s *MultiSessionScenario) submitVisiblePIN(t testing.TB) {
+	t.Helper()
+
 	page := s.session.Page()
 	WaitForPinUnlockOverlay(t, page)
 	if err := page.Locator("[data-testid='pin-unlock-input']").Fill(multiSessionPIN); err != nil {
@@ -162,10 +186,34 @@ func (s *MultiSessionScenario) UnlockVisiblePIN(t testing.TB) {
 	if err := page.Locator("[data-testid='pin-unlock-submit']").Click(); err != nil {
 		failWithPageBody(t, page, "submit pin unlock", err)
 	}
-	WaitForDriveShell(t, page)
-	if !strings.Contains(page.URL(), "/u/"+strconv.FormatUint(uint64(s.firstSessionIndex), 10)+"/so/"+s.firstSpaceID) {
-		t.Fatalf("unlock did not restore first nested route, got %q", page.URL())
+}
+
+func waitForLocalBadgeOrPIN(page playwright.Page) (string, error) {
+	raw, err := page.Evaluate(`async ({ deadlineMs }) => {
+		const deadline = Date.now() + deadlineMs
+		for (;;) {
+			if (document.querySelector('[data-testid="session-account-provider-badge"]')) {
+				return 'badge'
+			}
+			if (document.querySelector('[data-testid="pin-unlock-overlay"]')) {
+				return 'pin'
+			}
+			if (Date.now() > deadline) {
+				throw new Error('session provider badge or PIN unlock did not appear before deadline')
+			}
+			await new Promise((resolve) => requestAnimationFrame(resolve))
+		}
+	}`, map[string]any{
+		"deadlineMs": 120000,
+	})
+	if err != nil {
+		return "", err
 	}
+	state, ok := raw.(string)
+	if !ok {
+		return "", errors.Errorf("session badge/PIN wait returned %T: %#v", raw, raw)
+	}
+	return state, nil
 }
 
 // WaitForPinUnlockOverlay waits for the session PIN unlock gate.
