@@ -111,6 +111,23 @@ describe('readUnixFSHandleStat', () => {
     },
   )
 
+  it('treats root handles with empty cached metadata as directories', async () => {
+    const root = {
+      getPath: vi.fn(() => '/'),
+      getInfo: vi.fn(() => ({})),
+      getFileInfo: vi.fn(),
+    }
+
+    const stat = await readUnixFSHandleStat(
+      root as unknown as FSHandle,
+      new AbortController().signal,
+    )
+
+    expect(stat.info).toEqual({ isDir: true })
+    expect(stat.mimeType).toBe('inode/directory')
+    expect(root.getFileInfo).not.toHaveBeenCalled()
+  })
+
   it('fetches fresh metadata for non-root handles', async () => {
     const file = {
       getPath: vi.fn(() => 'getting-started.md'),

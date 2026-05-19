@@ -125,13 +125,17 @@ export async function readUnixFSHandleStat(
   handle: FSHandle,
   signal: AbortSignal,
 ): Promise<StatResult> {
-  const info =
-    isRootFSHandle(handle) && handle.getInfo().isDir !== undefined
-      ? handle.getInfo()
-      : await handle.getFileInfo(signal)
+  const info = isRootFSHandle(handle)
+    ? rootFSHandleInfo(handle)
+    : await handle.getFileInfo(signal)
   const name = info.name ?? ''
   const mimeType = info.isDir ? 'inode/directory' : getMimeType(name)
   return { info, mimeType }
+}
+
+function rootFSHandleInfo(handle: FSHandle): FileInfo {
+  const info = handle.getInfo()
+  return info.isDir === undefined ? { ...info, isDir: true } : info
 }
 
 function isRootFSHandle(handle: FSHandle): boolean {
