@@ -91,22 +91,25 @@ describe('resolveUnixFSHandle', () => {
 })
 
 describe('readUnixFSHandleStat', () => {
-  it('uses cached metadata for root handles', async () => {
-    const root = {
-      getPath: vi.fn(() => ''),
-      getInfo: vi.fn(() => ({ isDir: true })),
-      getFileInfo: vi.fn(),
-    }
+  it.each(['', '/', '.'])(
+    'uses cached metadata for root handle path %s',
+    async (path) => {
+      const root = {
+        getPath: vi.fn(() => path),
+        getInfo: vi.fn(() => ({ isDir: true })),
+        getFileInfo: vi.fn(),
+      }
 
-    const stat = await readUnixFSHandleStat(
-      root as unknown as FSHandle,
-      new AbortController().signal,
-    )
+      const stat = await readUnixFSHandleStat(
+        root as unknown as FSHandle,
+        new AbortController().signal,
+      )
 
-    expect(stat.info).toEqual({ isDir: true })
-    expect(stat.mimeType).toBe('inode/directory')
-    expect(root.getFileInfo).not.toHaveBeenCalled()
-  })
+      expect(stat.info).toEqual({ isDir: true })
+      expect(stat.mimeType).toBe('inode/directory')
+      expect(root.getFileInfo).not.toHaveBeenCalled()
+    },
+  )
 
   it('fetches fresh metadata for non-root handles', async () => {
     const file = {

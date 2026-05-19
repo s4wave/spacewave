@@ -135,7 +135,8 @@ export async function readUnixFSHandleStat(
 }
 
 function isRootFSHandle(handle: FSHandle): boolean {
-  return handle.getPath() === ''
+  const path = handle.getPath()
+  return path === '' || path === '/' || path === '.'
 }
 
 // ReadFileResult contains the result of a readFile operation.
