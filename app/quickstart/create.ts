@@ -12,7 +12,6 @@ import { Space } from '@s4wave/sdk/space/space.js'
 import { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
-import { BucketLookupCursor } from '@s4wave/sdk/bucket/lookup/lookup.js'
 import {
   isValidSpacePluginId,
   SPACE_SETTINGS_BLOCK_TYPE,
@@ -482,7 +481,6 @@ export interface QuickstartSetup {
   space: Space
   spaceContents?: SpaceContents
   spaceWorld: EngineWorldState
-  spaceWorldState: BucketLookupCursor
 }
 
 // QuickstartSetupParams contains the parameters for creating a quickstart setup.
@@ -552,19 +550,10 @@ export async function createQuickstartSetupFromSession(
     )
   }
 
-  // Access the world state bucket storage.
-  reportQuickstartProgress(progress, 'frame', 'Preparing world state')
-  const spaceWorldState = cleanup(
-    await timeQuickstartPhase(timing, 'access-space-world-state', () =>
-      spaceWorld.accessWorldState(undefined, abortSignal),
-    ),
-  )
-
   return {
     space,
     ...(spaceContents ? { spaceContents } : {}),
     spaceWorld,
-    spaceWorldState,
   }
 }
 
@@ -622,8 +611,6 @@ export async function createQuickstartSetup(
       ...setup,
     }
 
-    markQuickstartProgressReady(timing)
-
     // Populate the space with quickstart-specific content.
     reportQuickstartProgress(
       progress,
@@ -633,6 +620,8 @@ export async function createQuickstartSetup(
     await timeQuickstartPhase(timing, 'populate-space', () =>
       populateSpace(quickstartId, result, abortSignal, timing),
     )
+
+    markQuickstartProgressReady(timing)
 
     finishQuickstartTiming(timing)
     return result

@@ -419,7 +419,7 @@ describe('quickstart create', () => {
     )
   })
 
-  it('publishes quickstart progress-ready before Drive content seeding finishes', async () => {
+  it('does not hold a world-state cursor while Drive content is seeded', async () => {
     vi.stubGlobal('__s4waveQuickstartTiming', undefined)
     vi.stubGlobal('__s4wave_debug', {})
     const abortSignal = new AbortController().signal
@@ -446,19 +446,13 @@ describe('quickstart create', () => {
       }),
     }
     const { world, applyWorldOp } = buildQuickstartWorld()
-    const spaceWorldState = {
-      release: vi.fn(),
-      [Symbol.dispose]: vi.fn(),
-    }
     const spaceContents = {
       release: vi.fn(),
       [Symbol.dispose]: vi.fn(),
     }
-    Object.assign(world, {
-      accessWorldState: vi.fn().mockResolvedValue(spaceWorldState),
-    })
+    const accessWorldState = vi.fn().mockResolvedValue(world)
     spaceMocks.mountSpace.mockResolvedValue({
-      accessWorldState: vi.fn().mockResolvedValue(world),
+      accessWorldState,
       mountSpaceContents: vi.fn().mockResolvedValue(spaceContents),
     })
 
@@ -485,10 +479,12 @@ describe('quickstart create', () => {
     const populatePhase = timing?.phases.find(
       (phase) => phase.name === 'populate-space',
     )
-    expect(populatePhase?.startedMs ?? 0).toBeGreaterThanOrEqual(
-      timing?.progressReadyMs ?? 0,
+    expect(populatePhase?.finishedMs).toEqual(expect.any(Number))
+    expect(timing?.progressReadyMs ?? 0).toBeGreaterThanOrEqual(
+      populatePhase?.finishedMs ?? 0,
     )
     expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
+    expect(accessWorldState).toHaveBeenCalledTimes(1)
     expect(globalThis.__s4wave_debug?.quickstartTiming?.progressReadyMs).toBe(
       timing?.progressReadyMs,
     )
@@ -508,7 +504,7 @@ describe('quickstart create', () => {
     )
   })
 
-  it('records a setup error after progress-ready without marking content-ready', async () => {
+  it('records a seed error without marking progress-ready or content-ready', async () => {
     vi.stubGlobal('__s4waveQuickstartTiming', undefined)
     vi.stubGlobal('__s4wave_debug', {})
     const abortSignal = new AbortController().signal
@@ -537,12 +533,6 @@ describe('quickstart create', () => {
     const { world, applyWorldOp } = buildQuickstartWorld()
     const seedError = new Error('drive seed failed')
     applyWorldOp.mockRejectedValue(seedError)
-    Object.assign(world, {
-      accessWorldState: vi.fn().mockResolvedValue({
-        release: vi.fn(),
-        [Symbol.dispose]: vi.fn(),
-      }),
-    })
     spaceMocks.mountSpace.mockResolvedValue({
       accessWorldState: vi.fn().mockResolvedValue(world),
       mountSpaceContents: vi.fn().mockResolvedValue({
@@ -557,7 +547,7 @@ describe('quickstart create', () => {
 
     const timing = globalThis.__s4waveQuickstartTiming
     expect(timing?.state).toBe('error')
-    expect(timing?.progressReadyMs).toEqual(expect.any(Number))
+    expect(timing?.progressReadyMs).toBeUndefined()
     expect(timing?.contentReadyMs).toBeUndefined()
     expect(timing?.finishedMs).toEqual(expect.any(Number))
     expect(timing?.error).toBe('drive seed failed')
@@ -647,12 +637,7 @@ describe('quickstart create', () => {
   it('reuses the CreateSpace world resource instead of remounting it', async () => {
     const abortSignal = new AbortController().signal
     const cleanup: RegisterCleanup = (value) => value
-    const spaceWorldState = {
-      release: vi.fn(),
-      [Symbol.dispose]: vi.fn(),
-    }
     const engine = {
-      accessWorldState: vi.fn().mockResolvedValue(spaceWorldState),
       release: vi.fn(),
       [Symbol.dispose]: vi.fn(),
     }
