@@ -363,6 +363,11 @@ func BuildDistBundle(
 		// entrypoint is located under /entrypoint/{hash}/pkgs/@aptre/bldr
 		entrypointToRootPrefix := "../../../../../"
 
+		// TinyGo release bundles use the conservative MessagePort transport.
+		// The SAB/OPFS worker transport can strand startup RPCs after the
+		// quickstart frame is ready, leaving the browser stuck before content.
+		forceMessagePortWorkerComms := enableTinygo
+
 		// Compile the bldr entrypoint (js bundle and index.html)
 		le.Debug("building browser bundle")
 		entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
@@ -378,9 +383,10 @@ func BuildDistBundle(
 			entrypointToRootPrefix+"shw.mjs",
 			webStartupSrcPath, // startupPath
 			entrypointHash,
-			isRelease, // minify
-			false,     // devMode
-			false,     // forceDedicatedWorkers
+			isRelease,                   // minify
+			false,                       // devMode
+			false,                       // forceDedicatedWorkers
+			forceMessagePortWorkerComms, // forceMessagePortWorkerComms
 		)
 		if err != nil {
 			return err

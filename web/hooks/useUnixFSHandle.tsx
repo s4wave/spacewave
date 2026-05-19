@@ -9,6 +9,7 @@ import { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import type { FileInfo, DirEntry } from '@s4wave/sdk/unixfs/handle.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
+import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 // UnixFSTypeID is the type identifier for UnixFS objects.
 export const UnixFSTypeID = 'unixfs/fs-node'
@@ -30,17 +31,25 @@ export function useUnixFSHandle(
 ): Resource<FSHandle> {
   return useResource(
     rootHandle,
-    async (root, signal, cleanup) => {
-      if (!root) return null
-      // Empty or root path returns a clone of the root handle
-      if (!path || path === '/' || path === '.') {
-        return cleanup(await root.clone(signal))
-      }
-      const { handle } = await root.lookupPath(path, signal)
-      return cleanup(handle)
-    },
+    async (root, signal, cleanup) =>
+      root ? resolveUnixFSHandle(root, path, signal, cleanup) : null,
     [path],
   )
+}
+
+// resolveUnixFSHandle resolves a display path while preserving ownership of the
+// root handle resource.
+export async function resolveUnixFSHandle(
+  root: FSHandle,
+  path: string,
+  signal: AbortSignal,
+  cleanup: RegisterCleanup,
+): Promise<FSHandle> {
+  if (!path || path === '/' || path === '.') {
+    return root
+  }
+  const { handle } = await root.lookupPath(path, signal)
+  return cleanup(handle)
 }
 
 // convertDirEntriesToFileEntries converts DirEntry[] to FileEntry[].
@@ -104,13 +113,29 @@ export function useUnixFSHandleStat(
     handle,
     async (h, signal) => {
       if (!h) return null
-      const info = await h.getFileInfo(signal)
-      const name = info.name ?? ''
-      const mimeType = info.isDir ? 'inode/directory' : getMimeType(name)
-      return { info, mimeType }
+      return readUnixFSHandleStat(h, signal)
     },
     [],
   )
+}
+
+// readUnixFSHandleStat uses the root handle's cached metadata because the
+// root resource already owns that state.
+export async function readUnixFSHandleStat(
+  handle: FSHandle,
+  signal: AbortSignal,
+): Promise<StatResult> {
+  const info =
+    isRootFSHandle(handle) && handle.getInfo().isDir !== undefined
+      ? handle.getInfo()
+      : await handle.getFileInfo(signal)
+  const name = info.name ?? ''
+  const mimeType = info.isDir ? 'inode/directory' : getMimeType(name)
+  return { info, mimeType }
+}
+
+function isRootFSHandle(handle: FSHandle): boolean {
+  return handle.getPath() === ''
 }
 
 // ReadFileResult contains the result of a readFile operation.

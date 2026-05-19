@@ -194,6 +194,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 		minifyEntrypoint,
 		devMode,
 		false,
+		false,
 	)
 	if err != nil {
 		return err

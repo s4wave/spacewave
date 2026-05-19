@@ -550,6 +550,9 @@ export interface WebDocumentOptions {
   // console output from dedicated workers but not shared. Also used as the
   // automatic fallback when SharedWorker is not supported (e.g. Chrome Android).
   forceDedicatedWorkers?: boolean
+  // forceMessagePortWorkerComms forces Config A worker communication even when
+  // SAB and OPFS are available.
+  forceMessagePortWorkerComms?: boolean
   // watchVisibility watches the page visibility API.
   // the callback should be called when the visibility changes.
   // call the callback with the initial visibility before returning.
@@ -662,6 +665,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private runtimeWorker?: Worker
   // forceDedicatedWorkers forces dedicated Worker mode for the runtime.
   private forceDedicatedWorkers?: boolean
+  // forceMessagePortWorkerComms forces MessagePort-only worker communication.
+  private forceMessagePortWorkerComms?: boolean
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
   // Not used in saucer mode (uses HTTP-based communication instead).
   private webRuntimePort?: MessagePort
@@ -799,6 +804,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.forceDedicatedWorkers = shouldForceDedicatedWorkers(
       opts?.forceDedicatedWorkers,
     )
+    this.forceMessagePortWorkerComms = !!opts?.forceMessagePortWorkerComms
 
     // Detect if we can use WebAssembly (not needed for saucer - Go runtime is native).
     if (!this.isSaucer) {
@@ -809,7 +815,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     // Detect worker communication capabilities (SAB, OPFS, etc.).
-    this.workerCommsDetect = detectWorkerCommsConfig()
+    this.workerCommsDetect = detectWorkerCommsConfig().then((result) =>
+      this.forceMessagePortWorkerComms ? { ...result, config: 'A' } : result,
+    )
     this.workerCommsDetect.then((result) => {
       const desc = configDescription(result.config)
       markStartupBoundary('worker-comms.detected', {
@@ -2229,7 +2237,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       runtimeId: this.webRuntimeId,
       from,
     })
-
   }
 
   // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.

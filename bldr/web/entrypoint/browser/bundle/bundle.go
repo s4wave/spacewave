@@ -484,6 +484,7 @@ func BuildRendererBundle(
 	entrypointHash string,
 	minify,
 	forceDedicatedWorkers,
+	forceMessagePortWorkerComms,
 	devMode bool,
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
@@ -542,6 +543,9 @@ func BuildRendererBundle(
 	if forceDedicatedWorkers {
 		rendererBuildOpts.Define["BLDR_FORCE_DEDICATED_WORKERS"] = "true"
 	}
+	if forceMessagePortWorkerComms {
+		rendererBuildOpts.Define["BLDR_FORCE_MESSAGEPORT_WORKER_COMMS"] = "true"
+	}
 
 	if !minify {
 		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
@@ -584,7 +588,8 @@ func BuildBrowserBundle(
 	entrypointHash string,
 	minify,
 	devMode,
-	forceDedicatedWorkers bool,
+	forceDedicatedWorkers,
+	forceMessagePortWorkerComms bool,
 ) (*BrowserBundleResult, error) {
 	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
@@ -631,7 +636,7 @@ func BuildBrowserBundle(
 	}
 
 	// renderer bundle
-	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, forceDedicatedWorkers, devMode, webPkgImportMap)
+	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}

@@ -66,6 +66,16 @@ if (
   webDocumentOpts.forceDedicatedWorkers = true
 }
 
+// BLDR_FORCE_MESSAGEPORT_WORKER_COMMS is injected for runtimes that need the
+// conservative MessagePort worker transport.
+declare const BLDR_FORCE_MESSAGEPORT_WORKER_COMMS: boolean | undefined
+if (
+  typeof BLDR_FORCE_MESSAGEPORT_WORKER_COMMS === 'boolean' &&
+  BLDR_FORCE_MESSAGEPORT_WORKER_COMMS
+) {
+  webDocumentOpts.forceMessagePortWorkerComms = true
+}
+
 const bldrRootProps: IBldrRootProps = { webDocumentOpts }
 
 initBrowserReleaseAutoReload()
