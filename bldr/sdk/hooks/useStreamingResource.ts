@@ -18,6 +18,7 @@ export function useStreamingResource<P, T>(
   const parentValueChangeCountRef = useRef(0)
   const startedParentValueChangeCountRef = useRef(0)
   const startedStreamGenerationRef = useRef(0)
+  const abortRetriedParentValueChangeRef = useRef<number | null>(null)
 
   if (prevParentValueRef.current !== parent.value) {
     prevParentValueRef.current = parent.value
@@ -63,6 +64,11 @@ export function useStreamingResource<P, T>(
             break
           }
           emitted = true
+          if (
+            abortRetriedParentValueChangeRef.current === parentValueChangeCount
+          ) {
+            abortRetriedParentValueChangeRef.current = null
+          }
           setValue(item)
           setLoading(false)
         }
@@ -79,9 +85,19 @@ export function useStreamingResource<P, T>(
       } catch (err) {
         if (abort.signal.aborted) return
         if (generation !== startedStreamGenerationRef.current) return
-        if (isAbortError(err)) return
-        if (err instanceof Error && err.name === 'AbortError') return
         const e = err instanceof Error ? err : new Error(String(err))
+        if (isAbortError(err) || e.name === 'AbortError') {
+          if (
+            abortRetriedParentValueChangeRef.current !== parentValueChangeCount
+          ) {
+            abortRetriedParentValueChangeRef.current = parentValueChangeCount
+            setRetryCount((c) => c + 1)
+            return
+          }
+          setError(e)
+          setLoading(false)
+          return
+        }
         setError(e)
         setLoading(false)
       }

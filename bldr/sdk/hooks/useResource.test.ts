@@ -465,6 +465,109 @@ describe('useResource', () => {
     expect(container.firstElementChild?.getAttribute('data-error')).toBe('')
   })
 
+  it('retries a current stream abort without staying loading forever', async () => {
+    const streams: Array<ReturnType<typeof createManualAsyncIterable<string>>> =
+      []
+    const factory = vi.fn(async (version: number) => ({ version }))
+    const streamFactory = vi.fn(() => {
+      const next = createManualAsyncIterable<string>()
+      streams.push(next)
+      return next.iterable
+    })
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        React.createElement(TestStreamValue, {
+          factory,
+          version: 1,
+          streamFactory,
+        }),
+      )
+      await flush()
+      await flush()
+    })
+
+    expect(streamFactory).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      streams[0].fail(new Error('ERR_RPC_ABORT'))
+      await flush()
+      await flush()
+      await flush()
+    })
+
+    expect(streamFactory).toHaveBeenCalledTimes(2)
+    expect(container.firstElementChild?.getAttribute('data-loading')).toBe(
+      'true',
+    )
+    expect(container.firstElementChild?.getAttribute('data-error')).toBe('')
+
+    await act(async () => {
+      streams[1].push('stream-1-retry')
+      await flush()
+    })
+
+    expect(container.firstElementChild?.getAttribute('data-loading')).toBe(
+      'false',
+    )
+    expect(container.firstElementChild?.getAttribute('data-value')).toBe(
+      'stream-1-retry',
+    )
+    expect(container.firstElementChild?.getAttribute('data-error')).toBe('')
+  })
+
+  it('surfaces repeated current stream aborts instead of hanging', async () => {
+    const streams: Array<ReturnType<typeof createManualAsyncIterable<string>>> =
+      []
+    const factory = vi.fn(async (version: number) => ({ version }))
+    const streamFactory = vi.fn(() => {
+      const next = createManualAsyncIterable<string>()
+      streams.push(next)
+      return next.iterable
+    })
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        React.createElement(TestStreamValue, {
+          factory,
+          version: 1,
+          streamFactory,
+        }),
+      )
+      await flush()
+      await flush()
+    })
+
+    await act(async () => {
+      streams[0].fail(new Error('ERR_RPC_ABORT'))
+      await flush()
+      await flush()
+      await flush()
+    })
+
+    expect(streamFactory).toHaveBeenCalledTimes(2)
+
+    await act(async () => {
+      streams[1].fail(new Error('ERR_RPC_ABORT'))
+      await flush()
+      await flush()
+    })
+
+    expect(container.firstElementChild?.getAttribute('data-loading')).toBe(
+      'false',
+    )
+    expect(container.firstElementChild?.getAttribute('data-value')).toBe('')
+    expect(container.firstElementChild?.getAttribute('data-error')).toBe(
+      'ERR_RPC_ABORT',
+    )
+  })
+
   it('settles as not loading when the parent resolves to null', async () => {
     const factory = vi.fn(async (): Promise<{ version: number } | null> => null)
     container = document.createElement('div')
