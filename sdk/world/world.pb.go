@@ -166,6 +166,75 @@ func (x *GetEngineInfoResponse) GetEngineInfo() *EngineInfo {
 	return nil
 }
 
+// WorldRootSnapshot identifies one committed Engine root.
+type WorldRootSnapshot struct {
+	unknownFields []byte
+	// RootRef is the committed World root reference.
+	RootRef *bucket.ObjectRef `protobuf:"bytes,1,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	// Seqno is the world sequence number observed with RootRef.
+	Seqno uint64 `protobuf:"varint,2,opt,name=seqno,proto3" json:"seqno,omitempty"`
+	// EngineInfo is the Engine metadata associated with RootRef.
+	EngineInfo *EngineInfo `protobuf:"bytes,3,opt,name=engine_info,json=engineInfo,proto3" json:"engineInfo,omitempty"`
+	// StorageVolumeId is the local storage volume hint, when visible to the Engine.
+	StorageVolumeId string `protobuf:"bytes,4,opt,name=storage_volume_id,json=storageVolumeId,proto3" json:"storageVolumeId,omitempty"`
+}
+
+func (x *WorldRootSnapshot) Reset() {
+	*x = WorldRootSnapshot{}
+}
+
+func (*WorldRootSnapshot) ProtoMessage() {}
+
+func (x *WorldRootSnapshot) GetRootRef() *bucket.ObjectRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+func (x *WorldRootSnapshot) GetSeqno() uint64 {
+	if x != nil {
+		return x.Seqno
+	}
+	return 0
+}
+
+func (x *WorldRootSnapshot) GetEngineInfo() *EngineInfo {
+	if x != nil {
+		return x.EngineInfo
+	}
+	return nil
+}
+
+func (x *WorldRootSnapshot) GetStorageVolumeId() string {
+	if x != nil {
+		return x.StorageVolumeId
+	}
+	return ""
+}
+
+// GetWorldRootSnapshotRequest is the request type for GetWorldRootSnapshot.
+type GetWorldRootSnapshotRequest struct {
+	unknownFields []byte
+}
+
+func (x *GetWorldRootSnapshotRequest) Reset() {
+	*x = GetWorldRootSnapshotRequest{}
+}
+
+func (*GetWorldRootSnapshotRequest) ProtoMessage() {}
+
+// WatchWorldRootSnapshotsRequest is the request type for WatchWorldRootSnapshots.
+type WatchWorldRootSnapshotsRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchWorldRootSnapshotsRequest) Reset() {
+	*x = WatchWorldRootSnapshotsRequest{}
+}
+
+func (*WatchWorldRootSnapshotsRequest) ProtoMessage() {}
+
 // NewTransactionRequest is the request type for NewTransaction.
 type NewTransactionRequest struct {
 	unknownFields []byte
@@ -2145,6 +2214,57 @@ func (m *GetEngineInfoResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *WorldRootSnapshot) CloneVT() *WorldRootSnapshot {
+	if m == nil {
+		return (*WorldRootSnapshot)(nil)
+	}
+	r := new(WorldRootSnapshot)
+	r.Seqno = m.Seqno
+	r.EngineInfo = m.EngineInfo.CloneVT()
+	r.StorageVolumeId = m.StorageVolumeId
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WorldRootSnapshot) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetWorldRootSnapshotRequest) CloneVT() *GetWorldRootSnapshotRequest {
+	if m == nil {
+		return (*GetWorldRootSnapshotRequest)(nil)
+	}
+	r := new(GetWorldRootSnapshotRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetWorldRootSnapshotRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchWorldRootSnapshotsRequest) CloneVT() *WatchWorldRootSnapshotsRequest {
+	if m == nil {
+		return (*WatchWorldRootSnapshotsRequest)(nil)
+	}
+	r := new(WatchWorldRootSnapshotsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchWorldRootSnapshotsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *NewTransactionRequest) CloneVT() *NewTransactionRequest {
 	if m == nil {
 		return (*NewTransactionRequest)(nil)
@@ -2246,7 +2366,9 @@ func (m *AccessWorldStateRequest) CloneVT() *AccessWorldStateRequest {
 		return (*AccessWorldStateRequest)(nil)
 	}
 	r := new(AccessWorldStateRequest)
-	r.Ref = m.Ref.CloneVT()
+	if rhs := m.Ref; rhs != nil {
+		r.Ref = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2401,7 +2523,9 @@ func (m *CreateObjectRequest) CloneVT() *CreateObjectRequest {
 	}
 	r := new(CreateObjectRequest)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2568,7 +2692,9 @@ func (m *SetGraphQuadRequest) CloneVT() *SetGraphQuadRequest {
 		return (*SetGraphQuadRequest)(nil)
 	}
 	r := new(SetGraphQuadRequest)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2599,7 +2725,9 @@ func (m *DeleteGraphQuadRequest) CloneVT() *DeleteGraphQuadRequest {
 		return (*DeleteGraphQuadRequest)(nil)
 	}
 	r := new(DeleteGraphQuadRequest)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2630,8 +2758,10 @@ func (m *LookupGraphQuadsRequest) CloneVT() *LookupGraphQuadsRequest {
 		return (*LookupGraphQuadsRequest)(nil)
 	}
 	r := new(LookupGraphQuadsRequest)
-	r.Filter = m.Filter.CloneVT()
 	r.Limit = m.Limit
+	if rhs := m.Filter; rhs != nil {
+		r.Filter = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2839,9 +2969,11 @@ func (m *ObjectRootRef) CloneVT() *ObjectRootRef {
 	}
 	r := new(ObjectRootRef)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
 	r.Exists = m.Exists
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3454,8 +3586,10 @@ func (m *GetRootRefResponse) CloneVT() *GetRootRefResponse {
 		return (*GetRootRefResponse)(nil)
 	}
 	r := new(GetRootRefResponse)
-	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3471,7 +3605,9 @@ func (m *SetRootRefRequest) CloneVT() *SetRootRefRequest {
 		return (*SetRootRefRequest)(nil)
 	}
 	r := new(SetRootRefRequest)
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3686,6 +3822,69 @@ func (this *GetEngineInfoResponse) EqualVT(that *GetEngineInfoResponse) bool {
 
 func (this *GetEngineInfoResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GetEngineInfoResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WorldRootSnapshot) EqualVT(that *WorldRootSnapshot) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.RootRef.EqualVT(that.RootRef) {
+		return false
+	}
+	if this.Seqno != that.Seqno {
+		return false
+	}
+	if !this.EngineInfo.EqualVT(that.EngineInfo) {
+		return false
+	}
+	if this.StorageVolumeId != that.StorageVolumeId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WorldRootSnapshot) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WorldRootSnapshot)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetWorldRootSnapshotRequest) EqualVT(that *GetWorldRootSnapshotRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetWorldRootSnapshotRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetWorldRootSnapshotRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchWorldRootSnapshotsRequest) EqualVT(that *WatchWorldRootSnapshotsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchWorldRootSnapshotsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchWorldRootSnapshotsRequest)
 	if !ok {
 		return false
 	}
@@ -5896,6 +6095,140 @@ func (x *GetEngineInfoResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the GetEngineInfoResponse from JSON.
 func (x *GetEngineInfoResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WorldRootSnapshot message to JSON.
+func (x *WorldRootSnapshot) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	if x.Seqno != 0 || s.HasField("seqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("seqno")
+		s.WriteUint64(x.Seqno)
+	}
+	if x.EngineInfo != nil || s.HasField("engineInfo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("engineInfo")
+		x.EngineInfo.MarshalProtoJSON(s.WithField("engineInfo"))
+	}
+	if x.StorageVolumeId != "" || s.HasField("storageVolumeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageVolumeId")
+		s.WriteString(x.StorageVolumeId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WorldRootSnapshot to JSON.
+func (x *WorldRootSnapshot) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WorldRootSnapshot message from JSON.
+func (x *WorldRootSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &bucket.ObjectRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "seqno":
+			s.AddField("seqno")
+			x.Seqno = s.ReadUint64()
+		case "engine_info", "engineInfo":
+			if s.ReadNil() {
+				x.EngineInfo = nil
+				return
+			}
+			x.EngineInfo = &EngineInfo{}
+			x.EngineInfo.UnmarshalProtoJSON(s.WithField("engine_info", true))
+		case "storage_volume_id", "storageVolumeId":
+			s.AddField("storage_volume_id")
+			x.StorageVolumeId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WorldRootSnapshot from JSON.
+func (x *WorldRootSnapshot) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetWorldRootSnapshotRequest message to JSON.
+func (x *GetWorldRootSnapshotRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetWorldRootSnapshotRequest to JSON.
+func (x *GetWorldRootSnapshotRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetWorldRootSnapshotRequest message from JSON.
+func (x *GetWorldRootSnapshotRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the GetWorldRootSnapshotRequest from JSON.
+func (x *GetWorldRootSnapshotRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchWorldRootSnapshotsRequest message to JSON.
+func (x *WatchWorldRootSnapshotsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchWorldRootSnapshotsRequest to JSON.
+func (x *WatchWorldRootSnapshotsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchWorldRootSnapshotsRequest message from JSON.
+func (x *WatchWorldRootSnapshotsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchWorldRootSnapshotsRequest from JSON.
+func (x *WatchWorldRootSnapshotsRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10040,6 +10373,137 @@ func (m *GetEngineInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *WorldRootSnapshot) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WorldRootSnapshot) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WorldRootSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.StorageVolumeId) > 0 {
+		i -= len(m.StorageVolumeId)
+		copy(dAtA[i:], m.StorageVolumeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StorageVolumeId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.EngineInfo != nil {
+		size, err := m.EngineInfo.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Seqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Seqno))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetWorldRootSnapshotRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetWorldRootSnapshotRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetWorldRootSnapshotRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchWorldRootSnapshotsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchWorldRootSnapshotsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchWorldRootSnapshotsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *NewTransactionRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -13783,6 +14247,51 @@ func (m *GetEngineInfoResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *WorldRootSnapshot) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Seqno != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Seqno))
+	}
+	if m.EngineInfo != nil {
+		l = m.EngineInfo.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.StorageVolumeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetWorldRootSnapshotRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchWorldRootSnapshotsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *NewTransactionRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -15123,6 +15632,67 @@ func (x *GetEngineInfoResponse) MarshalProtoText() string {
 }
 
 func (x *GetEngineInfoResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WorldRootSnapshot) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WorldRootSnapshot {")
+	if x.RootRef != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("root_ref: ")
+		sb.WriteString(x.RootRef.MarshalProtoText())
+	}
+	if x.Seqno != 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("seqno: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Seqno), 10))
+	}
+	if x.EngineInfo != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("engine_info: ")
+		sb.WriteString(x.EngineInfo.MarshalProtoText())
+	}
+	if x.StorageVolumeId != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("storage_volume_id: ")
+		sb.WriteString(strconv.Quote(x.StorageVolumeId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WorldRootSnapshot) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetWorldRootSnapshotRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetWorldRootSnapshotRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetWorldRootSnapshotRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchWorldRootSnapshotsRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchWorldRootSnapshotsRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchWorldRootSnapshotsRequest) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -17119,6 +17689,222 @@ func (m *GetEngineInfoResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WorldRootSnapshot) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WorldRootSnapshot: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WorldRootSnapshot: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RootRef == nil {
+				m.RootRef = &bucket.ObjectRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seqno", wireType)
+			}
+			m.Seqno = 0
+			m.Seqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EngineInfo", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.EngineInfo == nil {
+				m.EngineInfo = &EngineInfo{}
+			}
+			if err := m.EngineInfo.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageVolumeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StorageVolumeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetWorldRootSnapshotRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetWorldRootSnapshotRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetWorldRootSnapshotRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchWorldRootSnapshotsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchWorldRootSnapshotsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchWorldRootSnapshotsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

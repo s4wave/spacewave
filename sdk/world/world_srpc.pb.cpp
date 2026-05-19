@@ -12,6 +12,22 @@ starpc::Error SRPCEngineResourceServiceClientImpl::GetEngineInfo(const s4wave::w
   return cc_->ExecCall(service_id_, "GetEngineInfo", in, out);
 }
 
+starpc::Error SRPCEngineResourceServiceClientImpl::GetWorldRootSnapshot(const s4wave::world::GetWorldRootSnapshotRequest& in, s4wave::world::WorldRootSnapshot* out) {
+  return cc_->ExecCall(service_id_, "GetWorldRootSnapshot", in, out);
+}
+
+std::pair<std::unique_ptr<SRPCEngineResourceService_WatchWorldRootSnapshotsClient>, starpc::Error> SRPCEngineResourceServiceClientImpl::WatchWorldRootSnapshots(const s4wave::world::WatchWorldRootSnapshotsRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchWorldRootSnapshots", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCEngineResourceService_WatchWorldRootSnapshotsClient>(std::move(strm)), starpc::Error::OK};
+}
+
 starpc::Error SRPCEngineResourceServiceClientImpl::NewTransaction(const s4wave::world::NewTransactionRequest& in, s4wave::world::NewTransactionResponse* out) {
   return cc_->ExecCall(service_id_, "NewTransaction", in, out);
 }
@@ -35,6 +51,8 @@ starpc::Error SRPCEngineResourceServiceClientImpl::AccessWorldState(const s4wave
 std::vector<std::string> SRPCEngineResourceServiceHandler::GetMethodIDs() const {
   return {
     "GetEngineInfo",
+    "GetWorldRootSnapshot",
+    "WatchWorldRootSnapshots",
     "NewTransaction",
     "GetSeqno",
     "WaitSeqno",
@@ -59,6 +77,20 @@ std::pair<bool, starpc::Error> SRPCEngineResourceServiceHandler::InvokeMethod(
     err = impl_->GetEngineInfo(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetWorldRootSnapshot") {
+    s4wave::world::GetWorldRootSnapshotRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::world::WorldRootSnapshot resp;
+    err = impl_->GetWorldRootSnapshot(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "WatchWorldRootSnapshots") {
+    s4wave::world::WatchWorldRootSnapshotsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCEngineResourceService_WatchWorldRootSnapshotsStream serverStrm(strm);
+    return {true, impl_->WatchWorldRootSnapshots(req, &serverStrm)};
   } else if (method_id == "NewTransaction") {
     s4wave::world::NewTransactionRequest req;
     starpc::Error err = strm->MsgRecv(&req);

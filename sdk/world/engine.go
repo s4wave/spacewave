@@ -52,6 +52,16 @@ func (e *Engine) GetEngineInfo(ctx context.Context) (*GetEngineInfoResponse, err
 	return e.service.GetEngineInfo(ctx, &GetEngineInfoRequest{})
 }
 
+// GetWorldRootSnapshot returns the current committed World root.
+func (e *Engine) GetWorldRootSnapshot(ctx context.Context) (*WorldRootSnapshot, error) {
+	return e.service.GetWorldRootSnapshot(ctx, &GetWorldRootSnapshotRequest{})
+}
+
+// WatchWorldRootSnapshots streams committed World root snapshots.
+func (e *Engine) WatchWorldRootSnapshots(ctx context.Context) (SRPCEngineResourceService_WatchWorldRootSnapshotsClient, error) {
+	return e.service.WatchWorldRootSnapshots(ctx, &WatchWorldRootSnapshotsRequest{})
+}
+
 // NewTransaction creates a new transaction against the world state.
 // Set write=true if the transaction will perform write operations.
 // Always call Release() when done with the transaction.

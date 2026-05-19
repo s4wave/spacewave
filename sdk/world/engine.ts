@@ -39,6 +39,16 @@ export class Engine extends Resource {
     return await this.service.GetEngineInfo({}, abortSignal)
   }
 
+  // getWorldRootSnapshot returns the current committed World root.
+  public async getWorldRootSnapshot(abortSignal?: AbortSignal) {
+    return await this.service.GetWorldRootSnapshot({}, abortSignal)
+  }
+
+  // watchWorldRootSnapshots streams committed World root snapshots.
+  public watchWorldRootSnapshots(abortSignal?: AbortSignal) {
+    return this.service.WatchWorldRootSnapshots({}, abortSignal)
+  }
+
   // NewTransaction creates a new transaction against the world state.
   // Set write=true if the transaction will perform write operations.
   // Always call discard() when done with the transaction.

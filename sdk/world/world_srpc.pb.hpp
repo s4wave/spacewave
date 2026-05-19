@@ -20,6 +20,8 @@ namespace s4wave::world {
 // Service ID for EngineResourceService
 constexpr const char* kSRPCEngineResourceServiceServiceID = "s4wave.world.EngineResourceService";
 
+class SRPCEngineResourceService_WatchWorldRootSnapshotsClient;
+class SRPCEngineResourceService_WatchWorldRootSnapshotsStream;
 
 // SRPCEngineResourceServiceClient is the client API for EngineResourceService service.
 class SRPCEngineResourceServiceClient {
@@ -31,6 +33,10 @@ class SRPCEngineResourceServiceClient {
 
   // GetEngineInfo
   virtual starpc::Error GetEngineInfo(const s4wave::world::GetEngineInfoRequest& in, s4wave::world::GetEngineInfoResponse* out) = 0;
+  // GetWorldRootSnapshot
+  virtual starpc::Error GetWorldRootSnapshot(const s4wave::world::GetWorldRootSnapshotRequest& in, s4wave::world::WorldRootSnapshot* out) = 0;
+  // WatchWorldRootSnapshots
+  virtual std::pair<std::unique_ptr<SRPCEngineResourceService_WatchWorldRootSnapshotsClient>, starpc::Error> WatchWorldRootSnapshots(const s4wave::world::WatchWorldRootSnapshotsRequest& in) = 0;
   // NewTransaction
   virtual starpc::Error NewTransaction(const s4wave::world::NewTransactionRequest& in, s4wave::world::NewTransactionResponse* out) = 0;
   // GetSeqno
@@ -53,6 +59,10 @@ class SRPCEngineResourceServiceClientImpl : public SRPCEngineResourceServiceClie
 
   // GetEngineInfo
   virtual starpc::Error GetEngineInfo(const s4wave::world::GetEngineInfoRequest& in, s4wave::world::GetEngineInfoResponse* out) override;
+  // GetWorldRootSnapshot
+  virtual starpc::Error GetWorldRootSnapshot(const s4wave::world::GetWorldRootSnapshotRequest& in, s4wave::world::WorldRootSnapshot* out) override;
+  // WatchWorldRootSnapshots
+  virtual std::pair<std::unique_ptr<SRPCEngineResourceService_WatchWorldRootSnapshotsClient>, starpc::Error> WatchWorldRootSnapshots(const s4wave::world::WatchWorldRootSnapshotsRequest& in) override;
   // NewTransaction
   virtual starpc::Error NewTransaction(const s4wave::world::NewTransactionRequest& in, s4wave::world::NewTransactionResponse* out) override;
   // GetSeqno
@@ -81,6 +91,10 @@ class SRPCEngineResourceServiceServer {
 
   // GetEngineInfo
   virtual starpc::Error GetEngineInfo(const s4wave::world::GetEngineInfoRequest& req, s4wave::world::GetEngineInfoResponse* resp) = 0;
+  // GetWorldRootSnapshot
+  virtual starpc::Error GetWorldRootSnapshot(const s4wave::world::GetWorldRootSnapshotRequest& req, s4wave::world::WorldRootSnapshot* resp) = 0;
+  // WatchWorldRootSnapshots
+  virtual starpc::Error WatchWorldRootSnapshots(const s4wave::world::WatchWorldRootSnapshotsRequest& req, SRPCEngineResourceService_WatchWorldRootSnapshotsStream* strm) = 0;
   // NewTransaction
   virtual starpc::Error NewTransaction(const s4wave::world::NewTransactionRequest& req, s4wave::world::NewTransactionResponse* resp) = 0;
   // GetSeqno
@@ -126,6 +140,41 @@ inline std::pair<std::unique_ptr<SRPCEngineResourceServiceHandler>, starpc::Erro
   }
   return {std::move(handler), starpc::Error::OK};
 }
+
+// SRPCEngineResourceService_WatchWorldRootSnapshotsClient is the client stream for WatchWorldRootSnapshots.
+class SRPCEngineResourceService_WatchWorldRootSnapshotsClient {
+ public:
+  explicit SRPCEngineResourceService_WatchWorldRootSnapshotsClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::world::WorldRootSnapshot* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCEngineResourceService_WatchWorldRootSnapshotsStream is the server stream for WatchWorldRootSnapshots.
+class SRPCEngineResourceService_WatchWorldRootSnapshotsStream {
+ public:
+  explicit SRPCEngineResourceService_WatchWorldRootSnapshotsStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::world::WorldRootSnapshot& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::world::WorldRootSnapshot& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
 
 // Service ID for WorldStateResourceService
 constexpr const char* kSRPCWorldStateResourceServiceServiceID = "s4wave.world.WorldStateResourceService";

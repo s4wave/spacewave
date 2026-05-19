@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
+	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -61,6 +62,38 @@ func (r *EngineResource) GetMux() srpc.Invoker {
 // GetEngineInfo returns information about the world engine.
 func (r *EngineResource) GetEngineInfo(ctx context.Context, req *s4wave_world.GetEngineInfoRequest) (*s4wave_world.GetEngineInfoResponse, error) {
 	return &s4wave_world.GetEngineInfoResponse{EngineInfo: r.engineInfo}, nil
+}
+
+// GetWorldRootSnapshot returns the current committed World root.
+func (r *EngineResource) GetWorldRootSnapshot(ctx context.Context, req *s4wave_world.GetWorldRootSnapshotRequest) (*s4wave_world.WorldRootSnapshot, error) {
+	return r.loadWorldRootSnapshot(ctx)
+}
+
+// WatchWorldRootSnapshots streams committed World root snapshots.
+func (r *EngineResource) WatchWorldRootSnapshots(
+	req *s4wave_world.WatchWorldRootSnapshotsRequest,
+	stream s4wave_world.SRPCEngineResourceService_WatchWorldRootSnapshotsStream,
+) error {
+	ctx := stream.Context()
+	var sentSeqno uint64
+	var sent bool
+	for {
+		snapshot, err := r.loadWorldRootSnapshot(ctx)
+		if err != nil {
+			return err
+		}
+		if !sent || snapshot.GetSeqno() != sentSeqno {
+			if err := stream.Send(snapshot); err != nil {
+				return err
+			}
+			sentSeqno = snapshot.GetSeqno()
+			sent = true
+		}
+		_, err = r.engine.WaitSeqno(ctx, sentSeqno+1)
+		if err != nil {
+			return err
+		}
+	}
 }
 
 // GetSeqno returns the current seqno of the world state.
@@ -158,6 +191,35 @@ func (r *EngineResource) AccessWorldState(ctx context.Context, req *s4wave_world
 	}
 
 	return &s4wave_world.AccessWorldStateResponse{ResourceId: id}, nil
+}
+
+func (r *EngineResource) loadWorldRootSnapshot(ctx context.Context) (*s4wave_world.WorldRootSnapshot, error) {
+	wtx, err := r.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer wtx.Discard()
+
+	seqno, err := wtx.GetSeqno(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var rootRef *bucket.ObjectRef
+	var storageVolumeID string
+	err = wtx.AccessWorldState(ctx, nil, func(c *bucket_lookup.Cursor) error {
+		rootRef = c.GetRefWithOpArgs()
+		storageVolumeID = c.GetOpArgs().GetVolumeId()
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_world.WorldRootSnapshot{
+		RootRef:         rootRef,
+		Seqno:           seqno,
+		EngineInfo:      r.engineInfo,
+		StorageVolumeId: storageVolumeID,
+	}, nil
 }
 
 // WatchWorldState implements the streaming watch RPC.

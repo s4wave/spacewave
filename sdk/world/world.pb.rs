@@ -21,6 +21,30 @@ pub struct GetEngineInfoResponse {
     #[prost(message, optional, tag="1")]
     pub engine_info: ::core::option::Option<EngineInfo>,
 }
+/// WorldRootSnapshot identifies one committed Engine root.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WorldRootSnapshot {
+    /// RootRef is the committed World root reference.
+    #[prost(message, optional, tag="1")]
+    pub root_ref: ::core::option::Option<super::super::bucket::ObjectRef>,
+    /// Seqno is the world sequence number observed with RootRef.
+    #[prost(uint64, tag="2")]
+    pub seqno: u64,
+    /// EngineInfo is the Engine metadata associated with RootRef.
+    #[prost(message, optional, tag="3")]
+    pub engine_info: ::core::option::Option<EngineInfo>,
+    /// StorageVolumeId is the local storage volume hint, when visible to the Engine.
+    #[prost(string, tag="4")]
+    pub storage_volume_id: ::prost::alloc::string::String,
+}
+/// GetWorldRootSnapshotRequest is the request type for GetWorldRootSnapshot.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetWorldRootSnapshotRequest {
+}
+/// WatchWorldRootSnapshotsRequest is the request type for WatchWorldRootSnapshots.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchWorldRootSnapshotsRequest {
+}
 /// NewTransactionRequest is the request type for NewTransaction.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct NewTransactionRequest {

@@ -175,6 +175,86 @@ export const GetEngineInfoResponse: MessageType<GetEngineInfoResponse> =
   })
 
 /**
+ * WorldRootSnapshot identifies one committed Engine root.
+ *
+ * @generated from message s4wave.world.WorldRootSnapshot
+ */
+export interface WorldRootSnapshot {
+  /**
+   * RootRef is the committed World root reference.
+   *
+   * @generated from field: bucket.ObjectRef root_ref = 1;
+   */
+  rootRef?: ObjectRef
+  /**
+   * Seqno is the world sequence number observed with RootRef.
+   *
+   * @generated from field: uint64 seqno = 2;
+   */
+  seqno?: bigint
+  /**
+   * EngineInfo is the Engine metadata associated with RootRef.
+   *
+   * @generated from field: s4wave.world.EngineInfo engine_info = 3;
+   */
+  engineInfo?: EngineInfo
+  /**
+   * StorageVolumeId is the local storage volume hint, when visible to the Engine.
+   *
+   * @generated from field: string storage_volume_id = 4;
+   */
+  storageVolumeId?: string
+}
+
+// WorldRootSnapshot contains the message type declaration for WorldRootSnapshot.
+export const WorldRootSnapshot: MessageType<WorldRootSnapshot> =
+  createMessageType({
+    typeName: 's4wave.world.WorldRootSnapshot',
+    fields: [
+      { no: 1, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+      { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'engine_info', kind: 'message', T: () => EngineInfo },
+      {
+        no: 4,
+        name: 'storage_volume_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetWorldRootSnapshotRequest is the request type for GetWorldRootSnapshot.
+ *
+ * @generated from message s4wave.world.GetWorldRootSnapshotRequest
+ */
+export interface GetWorldRootSnapshotRequest {}
+
+// GetWorldRootSnapshotRequest contains the message type declaration for GetWorldRootSnapshotRequest.
+export const GetWorldRootSnapshotRequest: MessageType<GetWorldRootSnapshotRequest> =
+  createMessageType({
+    typeName: 's4wave.world.GetWorldRootSnapshotRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchWorldRootSnapshotsRequest is the request type for WatchWorldRootSnapshots.
+ *
+ * @generated from message s4wave.world.WatchWorldRootSnapshotsRequest
+ */
+export interface WatchWorldRootSnapshotsRequest {}
+
+// WatchWorldRootSnapshotsRequest contains the message type declaration for WatchWorldRootSnapshotsRequest.
+export const WatchWorldRootSnapshotsRequest: MessageType<WatchWorldRootSnapshotsRequest> =
+  createMessageType({
+    typeName: 's4wave.world.WatchWorldRootSnapshotsRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * NewTransactionRequest is the request type for NewTransaction.
  *
  * @generated from message s4wave.world.NewTransactionRequest

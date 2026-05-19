@@ -929,6 +929,93 @@ func TestWorldStateBasicOperations(t *testing.T) {
 	})
 }
 
+func TestEngineWorldRootSnapshots(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	_, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
+	defer cleanup()
+
+	initial, err := engine.GetWorldRootSnapshot(ctx)
+	if err != nil {
+		t.Fatalf("GetWorldRootSnapshot failed: %v", err)
+	}
+	if initial.GetRootRef().GetBucketId() == "" {
+		t.Fatalf("initial root bucket id is empty: %#v", initial.GetRootRef())
+	}
+	if initial.GetEngineInfo().GetEngineId() == "" || initial.GetEngineInfo().GetBucketId() == "" {
+		t.Fatalf("missing engine info: %#v", initial.GetEngineInfo())
+	}
+	if initial.GetEngineInfo().GetBucketId() != initial.GetRootRef().GetBucketId() {
+		t.Fatalf("engine bucket %q differs from root bucket %q", initial.GetEngineInfo().GetBucketId(), initial.GetRootRef().GetBucketId())
+	}
+	if initial.GetStorageVolumeId() == "" {
+		t.Fatal("storage volume id is empty")
+	}
+
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatalf("NewTransaction(read) failed: %v", err)
+	}
+	readTx.Release()
+	afterReadOnly, err := engine.GetWorldRootSnapshot(ctx)
+	if err != nil {
+		t.Fatalf("GetWorldRootSnapshot after read-only tx failed: %v", err)
+	}
+	if afterReadOnly.GetSeqno() != initial.GetSeqno() || !afterReadOnly.GetRootRef().EqualsRef(initial.GetRootRef()) {
+		t.Fatalf("read-only transaction changed root: before=%#v after=%#v", initial, afterReadOnly)
+	}
+
+	stream, err := engine.WatchWorldRootSnapshots(ctx)
+	if err != nil {
+		t.Fatalf("WatchWorldRootSnapshots failed: %v", err)
+	}
+	watchedInitial, err := stream.Recv()
+	if err != nil {
+		t.Fatalf("initial root snapshot recv failed: %v", err)
+	}
+	if watchedInitial.GetSeqno() != initial.GetSeqno() || !watchedInitial.GetRootRef().EqualsRef(initial.GetRootRef()) {
+		t.Fatalf("initial stream snapshot mismatch: get=%#v watch=%#v", initial, watchedInitial)
+	}
+
+	writeTx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("NewTransaction(write) failed: %v", err)
+	}
+	obj, err := writeTx.CreateObject(ctx, "root-snapshot/object", &bucket.ObjectRef{})
+	if err != nil {
+		t.Fatalf("CreateObject failed: %v", err)
+	}
+	if _, err := obj.IncrementRev(ctx); err != nil {
+		t.Fatalf("IncrementRev failed: %v", err)
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatalf("Commit failed: %v", err)
+	}
+	writeTx.Release()
+
+	next, err := stream.Recv()
+	if err != nil {
+		t.Fatalf("next root snapshot recv failed: %v", err)
+	}
+	if next.GetSeqno() <= initial.GetSeqno() {
+		t.Fatalf("root snapshot seqno did not advance: before=%d after=%d", initial.GetSeqno(), next.GetSeqno())
+	}
+	if next.GetRootRef().EqualsRef(initial.GetRootRef()) {
+		t.Fatalf("root snapshot ref did not advance: before=%#v after=%#v", initial.GetRootRef(), next.GetRootRef())
+	}
+
+	current, err := engine.GetWorldRootSnapshot(ctx)
+	if err != nil {
+		t.Fatalf("GetWorldRootSnapshot after write failed: %v", err)
+	}
+	if current.GetSeqno() != next.GetSeqno() || !current.GetRootRef().EqualsRef(next.GetRootRef()) {
+		t.Fatalf("get/watch root mismatch: get=%#v watch=%#v", current, next)
+	}
+}
+
 // TestWatchWorldState tests the reactive WorldState watch functionality.
 func TestWatchWorldState(t *testing.T) {
 	ctx := context.Background()

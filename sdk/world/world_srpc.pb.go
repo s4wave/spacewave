@@ -16,6 +16,10 @@ type SRPCEngineResourceServiceClient interface {
 
 	GetEngineInfo(ctx context.Context, in *GetEngineInfoRequest) (*GetEngineInfoResponse, error)
 
+	GetWorldRootSnapshot(ctx context.Context, in *GetWorldRootSnapshotRequest) (*WorldRootSnapshot, error)
+
+	WatchWorldRootSnapshots(ctx context.Context, in *WatchWorldRootSnapshotsRequest) (SRPCEngineResourceService_WatchWorldRootSnapshotsClient, error)
+
 	NewTransaction(ctx context.Context, in *NewTransactionRequest) (*NewTransactionResponse, error)
 
 	GetSeqno(ctx context.Context, in *GetSeqnoRequest) (*GetSeqnoResponse, error)
@@ -52,6 +56,49 @@ func (c *srpcEngineResourceServiceClient) GetEngineInfo(ctx context.Context, in 
 		return nil, err
 	}
 	return out, nil
+}
+
+func (c *srpcEngineResourceServiceClient) GetWorldRootSnapshot(ctx context.Context, in *GetWorldRootSnapshotRequest) (*WorldRootSnapshot, error) {
+	out := new(WorldRootSnapshot)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetWorldRootSnapshot", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcEngineResourceServiceClient) WatchWorldRootSnapshots(ctx context.Context, in *WatchWorldRootSnapshotsRequest) (SRPCEngineResourceService_WatchWorldRootSnapshotsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchWorldRootSnapshots", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcEngineResourceService_WatchWorldRootSnapshotsClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCEngineResourceService_WatchWorldRootSnapshotsClient interface {
+	srpc.Stream
+	Recv() (*WorldRootSnapshot, error)
+	RecvTo(*WorldRootSnapshot) error
+}
+
+type srpcEngineResourceService_WatchWorldRootSnapshotsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcEngineResourceService_WatchWorldRootSnapshotsClient) Recv() (*WorldRootSnapshot, error) {
+	m := new(WorldRootSnapshot)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcEngineResourceService_WatchWorldRootSnapshotsClient) RecvTo(m *WorldRootSnapshot) error {
+	return x.MsgRecv(m)
 }
 
 func (c *srpcEngineResourceServiceClient) NewTransaction(ctx context.Context, in *NewTransactionRequest) (*NewTransactionResponse, error) {
@@ -102,6 +149,10 @@ func (c *srpcEngineResourceServiceClient) AccessWorldState(ctx context.Context, 
 type SRPCEngineResourceServiceServer interface {
 	GetEngineInfo(context.Context, *GetEngineInfoRequest) (*GetEngineInfoResponse, error)
 
+	GetWorldRootSnapshot(context.Context, *GetWorldRootSnapshotRequest) (*WorldRootSnapshot, error)
+
+	WatchWorldRootSnapshots(*WatchWorldRootSnapshotsRequest, SRPCEngineResourceService_WatchWorldRootSnapshotsStream) error
+
 	NewTransaction(context.Context, *NewTransactionRequest) (*NewTransactionResponse, error)
 
 	GetSeqno(context.Context, *GetSeqnoRequest) (*GetSeqnoResponse, error)
@@ -140,6 +191,8 @@ func (d *SRPCEngineResourceServiceHandler) GetServiceID() string { return d.serv
 func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"GetEngineInfo",
+		"GetWorldRootSnapshot",
+		"WatchWorldRootSnapshots",
 		"NewTransaction",
 		"GetSeqno",
 		"WaitSeqno",
@@ -159,6 +212,10 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "GetEngineInfo":
 		return true, d.InvokeMethod_GetEngineInfo(d.impl, strm)
+	case "GetWorldRootSnapshot":
+		return true, d.InvokeMethod_GetWorldRootSnapshot(d.impl, strm)
+	case "WatchWorldRootSnapshots":
+		return true, d.InvokeMethod_WatchWorldRootSnapshots(d.impl, strm)
 	case "NewTransaction":
 		return true, d.InvokeMethod_NewTransaction(d.impl, strm)
 	case "GetSeqno":
@@ -184,6 +241,27 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_GetEngineInfo(impl SRPCEngi
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_GetWorldRootSnapshot(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(GetWorldRootSnapshotRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetWorldRootSnapshot(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_WatchWorldRootSnapshots(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchWorldRootSnapshotsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcEngineResourceService_WatchWorldRootSnapshotsStream{strm}
+	return impl.WatchWorldRootSnapshots(req, serverStrm)
 }
 
 func (SRPCEngineResourceServiceHandler) InvokeMethod_NewTransaction(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
@@ -252,6 +330,37 @@ type SRPCEngineResourceService_GetEngineInfoStream interface {
 
 type srpcEngineResourceService_GetEngineInfoStream struct {
 	srpc.Stream
+}
+
+type SRPCEngineResourceService_GetWorldRootSnapshotStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_GetWorldRootSnapshotStream struct {
+	srpc.Stream
+}
+
+type SRPCEngineResourceService_WatchWorldRootSnapshotsStream interface {
+	srpc.Stream
+	Send(*WorldRootSnapshot) error
+	SendAndClose(*WorldRootSnapshot) error
+}
+
+type srpcEngineResourceService_WatchWorldRootSnapshotsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcEngineResourceService_WatchWorldRootSnapshotsStream) Send(m *WorldRootSnapshot) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcEngineResourceService_WatchWorldRootSnapshotsStream) SendAndClose(m *WorldRootSnapshot) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCEngineResourceService_NewTransactionStream interface {

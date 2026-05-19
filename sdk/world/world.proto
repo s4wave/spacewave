@@ -7,6 +7,10 @@ import "github.com/s4wave/spacewave/db/block/quad/quad.proto";
 service EngineResourceService {
   rpc GetEngineInfo(GetEngineInfoRequest) returns (GetEngineInfoResponse);
 
+  rpc GetWorldRootSnapshot(GetWorldRootSnapshotRequest) returns (WorldRootSnapshot);
+
+  rpc WatchWorldRootSnapshots(WatchWorldRootSnapshotsRequest) returns (stream WorldRootSnapshot);
+
   rpc NewTransaction(NewTransactionRequest) returns (NewTransactionResponse);
 
   rpc GetSeqno(GetSeqnoRequest) returns (GetSeqnoResponse);
@@ -34,6 +38,24 @@ message GetEngineInfoResponse {
   // EngineInfo is the engine information.
   EngineInfo engine_info = 1;
 }
+
+// WorldRootSnapshot identifies one committed Engine root.
+message WorldRootSnapshot {
+  // RootRef is the committed World root reference.
+  .bucket.ObjectRef root_ref = 1;
+  // Seqno is the world sequence number observed with RootRef.
+  uint64 seqno = 2;
+  // EngineInfo is the Engine metadata associated with RootRef.
+  EngineInfo engine_info = 3;
+  // StorageVolumeId is the local storage volume hint, when visible to the Engine.
+  string storage_volume_id = 4;
+}
+
+// GetWorldRootSnapshotRequest is the request type for GetWorldRootSnapshot.
+message GetWorldRootSnapshotRequest {}
+
+// WatchWorldRootSnapshotsRequest is the request type for WatchWorldRootSnapshots.
+message WatchWorldRootSnapshotsRequest {}
 
 // NewTransactionRequest is the request type for NewTransaction.
 message NewTransactionRequest {

@@ -8,11 +8,26 @@ use starpc::StreamExt;
 /// Service ID for EngineResourceService.
 pub const ENGINE_RESOURCE_SERVICE_SERVICE_ID: &str = "s4wave.world.EngineResourceService";
 
+/// Stream trait for EngineResourceService.WatchWorldRootSnapshots.
+#[starpc::async_trait]
+pub trait EngineResourceServiceWatchWorldRootSnapshotsStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WorldRootSnapshot>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for EngineResourceService.
 #[starpc::async_trait]
 pub trait EngineResourceServiceClient: Send + Sync {
     /// GetEngineInfo.
     async fn get_engine_info(&self, request: &GetEngineInfoRequest) -> starpc::Result<GetEngineInfoResponse>;
+    /// GetWorldRootSnapshot.
+    async fn get_world_root_snapshot(&self, request: &GetWorldRootSnapshotRequest) -> starpc::Result<WorldRootSnapshot>;
+    /// WatchWorldRootSnapshots.
+    async fn watch_world_root_snapshots(&self, request: &WatchWorldRootSnapshotsRequest) -> starpc::Result<Box<dyn EngineResourceServiceWatchWorldRootSnapshotsStream>>;
     /// NewTransaction.
     async fn new_transaction(&self, request: &NewTransactionRequest) -> starpc::Result<NewTransactionResponse>;
     /// GetSeqno.
@@ -42,6 +57,16 @@ impl<C: starpc::Client + 'static> EngineResourceServiceClient for EngineResource
     async fn get_engine_info(&self, request: &GetEngineInfoRequest) -> starpc::Result<GetEngineInfoResponse> {
         self.client.exec_call("s4wave.world.EngineResourceService", "GetEngineInfo", request).await
     }
+    async fn get_world_root_snapshot(&self, request: &GetWorldRootSnapshotRequest) -> starpc::Result<WorldRootSnapshot> {
+        self.client.exec_call("s4wave.world.EngineResourceService", "GetWorldRootSnapshot", request).await
+    }
+    async fn watch_world_root_snapshots(&self, request: &WatchWorldRootSnapshotsRequest) -> starpc::Result<Box<dyn EngineResourceServiceWatchWorldRootSnapshotsStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.world.EngineResourceService", "WatchWorldRootSnapshots", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(EngineResourceServiceWatchWorldRootSnapshotsStreamImpl { stream }))
+    }
     async fn new_transaction(&self, request: &NewTransactionRequest) -> starpc::Result<NewTransactionResponse> {
         self.client.exec_call("s4wave.world.EngineResourceService", "NewTransaction", request).await
     }
@@ -59,11 +84,32 @@ impl<C: starpc::Client + 'static> EngineResourceServiceClient for EngineResource
     }
 }
 
+struct EngineResourceServiceWatchWorldRootSnapshotsStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl EngineResourceServiceWatchWorldRootSnapshotsStream for EngineResourceServiceWatchWorldRootSnapshotsStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WorldRootSnapshot> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for EngineResourceService.
 #[starpc::async_trait]
 pub trait EngineResourceServiceServer: Send + Sync {
     /// GetEngineInfo.
     async fn get_engine_info(&self, request: GetEngineInfoRequest) -> starpc::Result<GetEngineInfoResponse>;
+    /// GetWorldRootSnapshot.
+    async fn get_world_root_snapshot(&self, request: GetWorldRootSnapshotRequest) -> starpc::Result<WorldRootSnapshot>;
+    /// WatchWorldRootSnapshots.
+    async fn watch_world_root_snapshots(&self, request: WatchWorldRootSnapshotsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// NewTransaction.
     async fn new_transaction(&self, request: NewTransactionRequest) -> starpc::Result<NewTransactionResponse>;
     /// GetSeqno.
@@ -78,6 +124,8 @@ pub trait EngineResourceServiceServer: Send + Sync {
 
 const ENGINE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "GetEngineInfo",
+    "GetWorldRootSnapshot",
+    "WatchWorldRootSnapshots",
     "NewTransaction",
     "GetSeqno",
     "WaitSeqno",
@@ -125,6 +173,28 @@ impl<S: EngineResourceServiceServer + 'static> starpc::Invoker for EngineResourc
                     }
                     Err(e) => (true, Err(e)),
                 }
+            }
+            "GetWorldRootSnapshot" => {
+                let request: GetWorldRootSnapshotRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_world_root_snapshot(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "WatchWorldRootSnapshots" => {
+                let request: WatchWorldRootSnapshotsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_world_root_snapshots(request, stream).await)
             }
             "NewTransaction" => {
                 let request: NewTransactionRequest = match stream.msg_recv().await {

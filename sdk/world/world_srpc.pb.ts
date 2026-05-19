@@ -47,6 +47,7 @@ import {
   GetRootRefResponse,
   GetSeqnoRequest,
   GetSeqnoResponse,
+  GetWorldRootSnapshotRequest,
   IncrementRevRequest,
   IncrementRevResponse,
   IterateObjectsRequest,
@@ -83,8 +84,10 @@ import {
   WaitRevResponse,
   WaitSeqnoRequest,
   WaitSeqnoResponse,
+  WatchWorldRootSnapshotsRequest,
   WatchWorldStateRequest,
   WatchWorldStateResponse,
+  WorldRootSnapshot,
 } from './world.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
@@ -103,6 +106,24 @@ export const EngineResourceServiceDefinition = {
       I: GetEngineInfoRequest,
       O: GetEngineInfoResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.world.EngineResourceService.GetWorldRootSnapshot
+     */
+    GetWorldRootSnapshot: {
+      name: 'GetWorldRootSnapshot',
+      I: GetWorldRootSnapshotRequest,
+      O: WorldRootSnapshot,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.world.EngineResourceService.WatchWorldRootSnapshots
+     */
+    WatchWorldRootSnapshots: {
+      name: 'WatchWorldRootSnapshots',
+      I: WatchWorldRootSnapshotsRequest,
+      O: WorldRootSnapshot,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * @generated from rpc s4wave.world.EngineResourceService.NewTransaction
@@ -165,6 +186,22 @@ export interface EngineResourceService {
   ): Promise<GetEngineInfoResponse>
 
   /**
+   * @generated from rpc s4wave.world.EngineResourceService.GetWorldRootSnapshot
+   */
+  GetWorldRootSnapshot(
+    request: GetWorldRootSnapshotRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WorldRootSnapshot>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.WatchWorldRootSnapshots
+   */
+  WatchWorldRootSnapshots(
+    request: WatchWorldRootSnapshotsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WorldRootSnapshot>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.NewTransaction
    */
   NewTransaction(
@@ -215,6 +252,8 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.service = opts?.service || EngineResourceServiceServiceName
     this.rpc = rpc
     this.GetEngineInfo = this.GetEngineInfo.bind(this)
+    this.GetWorldRootSnapshot = this.GetWorldRootSnapshot.bind(this)
+    this.WatchWorldRootSnapshots = this.WatchWorldRootSnapshots.bind(this)
     this.NewTransaction = this.NewTransaction.bind(this)
     this.GetSeqno = this.GetSeqno.bind(this)
     this.WaitSeqno = this.WaitSeqno.bind(this)
@@ -236,6 +275,40 @@ export class EngineResourceServiceClient implements EngineResourceService {
       abortSignal || undefined,
     )
     return GetEngineInfoResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.GetWorldRootSnapshot
+   */
+  async GetWorldRootSnapshot(
+    request: GetWorldRootSnapshotRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WorldRootSnapshot> {
+    const requestMsg = GetWorldRootSnapshotRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.GetWorldRootSnapshot.name,
+      GetWorldRootSnapshotRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return WorldRootSnapshot.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.WatchWorldRootSnapshots
+   */
+  WatchWorldRootSnapshots(
+    request: WatchWorldRootSnapshotsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WorldRootSnapshot> {
+    const requestMsg = WatchWorldRootSnapshotsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      EngineResourceServiceDefinition.methods.WatchWorldRootSnapshots.name,
+      WatchWorldRootSnapshotsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WorldRootSnapshot)(result)
   }
 
   /**
@@ -697,7 +770,9 @@ export interface WorldStateResourceService {
 export const WorldStateResourceServiceServiceName =
   WorldStateResourceServiceDefinition.typeName
 
-export class WorldStateResourceServiceClient implements WorldStateResourceService {
+export class WorldStateResourceServiceClient
+  implements WorldStateResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1116,7 +1191,9 @@ export interface WatchWorldStateResourceService {
 export const WatchWorldStateResourceServiceServiceName =
   WatchWorldStateResourceServiceDefinition.typeName
 
-export class WatchWorldStateResourceServiceClient implements WatchWorldStateResourceService {
+export class WatchWorldStateResourceServiceClient
+  implements WatchWorldStateResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1341,7 +1418,9 @@ export interface ObjectIteratorResourceService {
 export const ObjectIteratorResourceServiceServiceName =
   ObjectIteratorResourceServiceDefinition.typeName
 
-export class ObjectIteratorResourceServiceClient implements ObjectIteratorResourceService {
+export class ObjectIteratorResourceServiceClient
+  implements ObjectIteratorResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1507,7 +1586,9 @@ export interface GraphPathQueryResourceService {
 export const GraphPathQueryResourceServiceServiceName =
   GraphPathQueryResourceServiceDefinition.typeName
 
-export class GraphPathQueryResourceServiceClient implements GraphPathQueryResourceService {
+export class GraphPathQueryResourceServiceClient
+  implements GraphPathQueryResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1686,7 +1767,9 @@ export interface ObjectStateResourceService {
 export const ObjectStateResourceServiceServiceName =
   ObjectStateResourceServiceDefinition.typeName
 
-export class ObjectStateResourceServiceClient implements ObjectStateResourceService {
+export class ObjectStateResourceServiceClient
+  implements ObjectStateResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1853,7 +1936,9 @@ export interface TypedObjectResourceService {
 export const TypedObjectResourceServiceServiceName =
   TypedObjectResourceServiceDefinition.typeName
 
-export class TypedObjectResourceServiceClient implements TypedObjectResourceService {
+export class TypedObjectResourceServiceClient
+  implements TypedObjectResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
