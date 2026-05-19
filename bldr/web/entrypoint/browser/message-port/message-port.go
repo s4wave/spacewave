@@ -109,9 +109,9 @@ func (s *MessagePort) WriteMessage(p []byte) error {
 		if postBytes.IsUndefined() || postBytes.IsNull() || postBytes.Type() != js.TypeFunction {
 			return errors.New("tinygo message port byte helper unavailable")
 		}
-		ptr := 0
+		var ptr uint32
 		if len(p) != 0 {
-			ptr = int(uintptr(unsafe.Pointer(&p[0])))
+			ptr = uint32(uintptr(unsafe.Pointer(&p[0])))
 		}
 		postBytes.Invoke(s.chObj, ptr, len(p))
 		return nil

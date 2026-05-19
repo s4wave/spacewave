@@ -68,7 +68,7 @@ function tinyGoMemoryView(ptr: number, len: number): Uint8Array {
   if (!tinyGoWasmMemory) {
     throw new Error('TinyGo runtime memory is not initialized')
   }
-  return new Uint8Array(tinyGoWasmMemory.buffer, ptr, len)
+  return new Uint8Array(tinyGoWasmMemory.buffer, ptr >>> 0, len)
 }
 
 function storeTinyGoBytes(bytes: Uint8Array): number {
@@ -608,7 +608,7 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     if (!(memory instanceof WebAssembly.Memory)) {
       throw new Error('TinyGo runtime memory is not initialized')
     }
-    crypto.getRandomValues(new Uint8Array(memory.buffer, ptr, len))
+    crypto.getRandomValues(new Uint8Array(memory.buffer, ptr >>> 0, len))
   }
 }
 
