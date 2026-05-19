@@ -80,6 +80,11 @@ export default mergeConfig(
       },
       // Include E2E test files
       include: ['**/*.e2e.test.{ts,tsx}'],
+      // Browser E2E files share browser globals such as window hash,
+      // localStorage, viewport, and body-level render roots. Direct Vitest
+      // runs should avoid file parallelism; the Go CI harness also runs one
+      // browser E2E file per Vitest process.
+      fileParallelism: false,
       // Setup files for E2E tests
       setupFiles: ['./web/test/browser-setup.ts'],
       // Default timeout for all tests (60 seconds)

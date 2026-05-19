@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"slices"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -202,48 +204,97 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 
 	t.Logf("browser test server started on port %d", port)
 
-	// Build vitest command arguments
+	// Build vitest command arguments.
 	// Base command: vitest --config=vitest.browser.config.ts
-	vitestArgs := []string{"vitest", "--config=vitest.browser.config.ts"}
+	vitestBaseArgs := []string{"vitest", "--config=vitest.browser.config.ts"}
 
 	if uiMode {
 		// Use browser-based UI for interactive debugging
-		vitestArgs = append(vitestArgs, "--ui")
+		vitestArgs := append(slices.Clone(vitestBaseArgs), "--ui")
+		if testFilter := os.Getenv("BROWSER_TEST_FILTER"); testFilter != "" {
+			vitestArgs = append(vitestArgs, "--testNamePattern", testFilter)
+		}
+		cmd := exec.CommandContext(ctx, "bun", vitestArgs...)
+		cmd.Dir = repoRoot
+		cmd.Env = append(os.Environ(), fmt.Sprintf("VITE_E2E_SERVER_PORT=%d", port))
+		t.Log("running vitest browser tests with full bldr backend...")
+		if err := runWithPTY(ctx, cmd); err != nil {
+			t.Logf("vitest exited: %v (this is normal in interactive mode)", err)
+		}
 	} else if watchMode {
 		// Terminal watch mode - keyboard shortcuts work (h for help, a to rerun all, etc.)
 		// Don't add --run so vitest stays in watch mode
-	} else {
-		// Non-interactive mode exits after tests complete
-		vitestArgs = append(vitestArgs, "--run")
-	}
-
-	// Add test name pattern filter if BROWSER_TEST_FILTER is set
-	// This allows running specific tests: BROWSER_TEST_FILTER="OptimizedLayout" go test ...
-	if testFilter := os.Getenv("BROWSER_TEST_FILTER"); testFilter != "" {
-		vitestArgs = append(vitestArgs, "--testNamePattern", testFilter)
-	}
-
-	// Run vitest browser tests with the server port
-	cmd := exec.CommandContext(ctx, "bun", vitestArgs...)
-	cmd.Dir = repoRoot
-	cmd.Env = append(os.Environ(), fmt.Sprintf("VITE_E2E_SERVER_PORT=%d", port))
-
-	t.Log("running vitest browser tests with full bldr backend...")
-
-	if uiMode || watchMode {
-		// Use PTY for interactive modes so vitest can receive keyboard input
+		vitestArgs := slices.Clone(vitestBaseArgs)
+		if testFilter := os.Getenv("BROWSER_TEST_FILTER"); testFilter != "" {
+			vitestArgs = append(vitestArgs, "--testNamePattern", testFilter)
+		}
+		cmd := exec.CommandContext(ctx, "bun", vitestArgs...)
+		cmd.Dir = repoRoot
+		cmd.Env = append(os.Environ(), fmt.Sprintf("VITE_E2E_SERVER_PORT=%d", port))
+		t.Log("running vitest browser tests with full bldr backend...")
 		if err := runWithPTY(ctx, cmd); err != nil {
 			t.Logf("vitest exited: %v (this is normal in interactive mode)", err)
 		}
 	} else {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			t.Fatalf("vitest browser tests failed: %v", err)
+		testFiles, err := browserE2ETestFiles(repoRoot)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		testFilter := os.Getenv("BROWSER_TEST_FILTER")
+		t.Logf("running %d vitest browser test files with full bldr backend...", len(testFiles))
+		for _, testFile := range testFiles {
+			vitestArgs := append(slices.Clone(vitestBaseArgs), "--run", testFile)
+			if testFilter != "" {
+				vitestArgs = append(vitestArgs, "--testNamePattern", testFilter)
+			}
+			cmd := exec.CommandContext(ctx, "bun", vitestArgs...)
+			cmd.Dir = repoRoot
+			cmd.Env = append(os.Environ(), fmt.Sprintf("VITE_E2E_SERVER_PORT=%d", port))
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			t.Logf("running vitest browser test file: %s", testFile)
+			if err := cmd.Run(); err != nil {
+				t.Fatalf("vitest browser tests failed for %s: %v", testFile, err)
+			}
 		}
 	}
 
 	t.Log("browser E2E tests with bldr backend passed")
+}
+
+func browserE2ETestFiles(repoRoot string) ([]string, error) {
+	roots := []string{"app", "web", "core", "sdk", "plugin", "cmd", "forge"}
+	var out []string
+	for _, root := range roots {
+		rootPath := filepath.Join(repoRoot, root)
+		if _, err := os.Stat(rootPath); os.IsNotExist(err) {
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+		if err := filepath.WalkDir(rootPath, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				return nil
+			}
+			name := d.Name()
+			if !strings.HasSuffix(name, ".e2e.test.ts") && !strings.HasSuffix(name, ".e2e.test.tsx") {
+				return nil
+			}
+			rel, err := filepath.Rel(repoRoot, path)
+			if err != nil {
+				return err
+			}
+			out = append(out, filepath.ToSlash(rel))
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+	}
+	slices.Sort(out)
+	return out, nil
 }
 
 // runWithPTY runs a command with a pseudo-terminal for interactive mode.
