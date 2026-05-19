@@ -133,11 +133,11 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 	return result, jsErr
 }
 
-func bytesPtr(buf []byte) int {
+func bytesPtr(buf []byte) uint32 {
 	if len(buf) == 0 {
 		return 0
 	}
-	return int(uintptr(unsafe.Pointer(&buf[0])))
+	return uint32(uintptr(unsafe.Pointer(&buf[0])))
 }
 
 func yieldMicrotask() error {

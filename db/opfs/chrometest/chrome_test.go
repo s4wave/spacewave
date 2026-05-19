@@ -1383,7 +1383,7 @@ self.__BLDR_TINYGO_MEMORY_VIEW = (ptr, len) => {
   if (!(memory instanceof WebAssembly.Memory)) {
     throw new Error('TinyGo runtime memory is not initialized')
   }
-  return new Uint8Array(memory.buffer, ptr, len)
+  return new Uint8Array(memory.buffer, ptr >>> 0, len)
 }
 self.__BLDR_TINYGO_STORE_BYTES = (bytes) => {
   const id = self.__BLDR_TINYGO_STORED_BYTES_NEXT_ID++
@@ -1572,7 +1572,7 @@ self.onmessage = async (event) => {
       if (!(memory instanceof WebAssembly.Memory)) {
         throw new Error('TinyGo runtime memory is not initialized')
       }
-      crypto.getRandomValues(new Uint8Array(memory.buffer, ptr, len))
+      crypto.getRandomValues(new Uint8Array(memory.buffer, ptr >>> 0, len))
     }
   }
   const res = await WebAssembly.instantiateStreaming(fetch('/testprog.wasm'), go.importObject)

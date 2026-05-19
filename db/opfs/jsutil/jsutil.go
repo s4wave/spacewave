@@ -94,9 +94,9 @@ func CopyStoredBytes(id int, dst []byte) (int, bool) {
 	if !Available(copyBytes) {
 		return 0, false
 	}
-	ptr := 0
+	var ptr uint32
 	if len(dst) != 0 {
-		ptr = int(uintptr(unsafe.Pointer(&dst[0])))
+		ptr = uint32(uintptr(unsafe.Pointer(&dst[0])))
 	}
 	return copyBytes.Invoke(id, ptr, len(dst)).Int(), true
 }
