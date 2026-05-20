@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package provider_local_test
 
 import (

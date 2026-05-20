@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package account_settings_test
 
 import (

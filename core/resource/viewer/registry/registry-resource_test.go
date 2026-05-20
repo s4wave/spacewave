@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package resource_viewer_registry
 
 import (

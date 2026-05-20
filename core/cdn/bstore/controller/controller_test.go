@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package cdn_bstore_controller
 
 import (

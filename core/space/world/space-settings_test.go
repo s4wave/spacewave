@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package space_world
 
 import (

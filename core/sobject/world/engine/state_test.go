@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package sobject_world_engine
 
 import (

@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package provider_spacewave_handoff
 
 import (

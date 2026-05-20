@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package trace_capture_test
 
 import (
