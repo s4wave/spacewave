@@ -153,6 +153,8 @@ github.com/go-git/go-git-fixtures/v6 v6.0.0-20260422085740-0c07409f52ec h1:FpCNU
 github.com/go-git/go-git-fixtures/v6 v6.0.0-20260422085740-0c07409f52ec/go.mod h1:F1SpxOny2UYXu62DzjEH4UqBjk4AoGs27cA8I9buK+o=
 github.com/go-git/go-git/v6 v6.0.0-alpha.3 h1:lJGritJ5AcC0X7buV0lReZ4cEHqcKB3Ab2ZjD3Ku+Ss=
 github.com/go-git/go-git/v6 v6.0.0-alpha.3/go.mod h1:DGnqu+twdAgtDx/4tQTWFrVE1an+2ACph3W9yOfSJZM=
+github.com/go-git/go-git/v6 v6.0.0-alpha.4 h1:aDTc2UGanmaE7FkGLSlBEB9nohMnQ+RKXcfq/D+esDQ=
+github.com/go-git/go-git/v6 v6.0.0-alpha.4/go.mod h1:4ODa/G7hPWrh4Y+7lmt59Ij3zW38IEfvRoAZxLYYBhc=
 github.com/go-jose/go-jose/v3 v3.0.5 h1:BLLJWbC4nMZOfuPVxoZIxeYsn6Nl2r1fITaJ78UQlVQ=
 github.com/go-jose/go-jose/v3 v3.0.5/go.mod h1:5b+7YgP7ZICgJDBdfjZaIt+H/9L9T/YQrVfLAMboGkQ=
 github.com/go-sourcemap/sourcemap v2.1.3+incompatible h1:W1iEw64niKVGogNgBN3ePyLFfuisuzeidWPMPWmECqU=
