@@ -21,8 +21,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// 512KB
-const httpRangeMinSize = 512 * 1024
+// httpRangeMinSize controls the browser assets.kvfile read coalescing window.
+// Browser release packs are tens of MiB, and startup walks enough of the pack
+// index that 512 KiB pages can strand first render behind many CDN range
+// round-trips. Keep the window large enough that cold startup does not depend
+// on hundreds of small partial responses.
+const httpRangeMinSize = 4 * 1024 * 1024
 
 // Main runs the default main entrypoint the web.
 func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
