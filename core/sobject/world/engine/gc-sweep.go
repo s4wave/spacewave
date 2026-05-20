@@ -25,6 +25,12 @@ type gcJournalEntryCounter interface {
 // GC sweep queueing is gated on validator/owner role and re-checked on every
 // attempted enqueue so role changes are picked up without restarting.
 func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.SharedObject, bengine gcJournalEntryCounter) error {
+	if c.conf.GetGcSweepIdleWindowDur() == 0 && c.conf.GetGcSweepBackstopIntervalDur() == 0 {
+		c.le.Debug("gc sweep maintenance disabled")
+		<-ctx.Done()
+		return ctx.Err()
+	}
+
 	// Read configurable durations from the config proto.
 	idleWindow := gcSweepDefaultIdleWindow
 	if d := c.conf.GetGcSweepIdleWindowDur(); d != 0 {
