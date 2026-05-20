@@ -64,6 +64,7 @@
     "codegen": "bun run gen",
     "diagnostic:react": "bun cmd/react-diagnostic-run.ts",
     "diagnostic:react:full-audit": "bun cmd/react-diagnostic-run.ts --full-audit",
+    "design:lint": "design.md lint DESIGN.md",
     "trace:quickstart:baseline": "bun scripts/tracetool-quickstart-baseline.ts",
     "shadcn:add": "bunx shadcn add",
     "gen": "bun run go:aptre -- generate",
@@ -190,6 +191,7 @@
   "devDependencies": {
     "@aptre/common": "^0.33.0",
     "@eslint/js": "^10.0.1",
+    "@google/design.md": "^0.1.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.3",
     "@testing-library/react": "^16.3.2",
