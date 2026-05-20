@@ -31,6 +31,9 @@ func (r *AptRepository) UnmarshalBlock(data []byte) error {
 
 // Validate performs cursory checks on the AptRepository.
 func (r *AptRepository) Validate() error {
+	if err := r.GetState().Validate(); err != nil {
+		return err
+	}
 	if r.GetDistribution() == "" {
 		return errors.New("distribution is required")
 	}
@@ -39,6 +42,12 @@ func (r *AptRepository) Validate() error {
 	}
 	if len(r.GetArchitectures()) == 0 {
 		return errors.New("architectures are required")
+	}
+	if r.GetState() == AptRepositoryState_AptRepositoryState_READY && r.GetIndexRef().GetEmpty() {
+		return errors.New("index_ref is required when repository is ready")
+	}
+	if !r.GetIndexRef().GetEmpty() {
+		return r.GetIndexRef().Validate()
 	}
 	return nil
 }

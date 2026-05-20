@@ -120,6 +120,18 @@ message AddAptPackageOp {
   AptPackage apt_package = 3;
 }
 
+// AptPublishPackageOp publishes a built AptPackage into the repository index.
+message AptPublishPackageOp {
+  // PackageKey is the AptPackage object key.
+  string package_key = 1;
+}
+
+// AptSupersedePackageOp marks a published AptPackage as superseded.
+message AptSupersedePackageOp {
+  // PackageKey is the AptPackage object key.
+  string package_key = 1;
+}
+
 // AddAptBuildSpecOp creates an AptBuildSpec and links it to an AptRepository.
 message AddAptBuildSpecOp {
   // RepositoryKey is the AptRepository object key.

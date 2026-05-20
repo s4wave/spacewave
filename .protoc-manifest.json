@@ -4293,7 +4293,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/apt": {
-      "hash": "0a83851bd41a30df055fe5759406cfb6b19396d3dff97575bf8a68f759a6dd8e",
+      "hash": "586f1dc9f2da9830fc7518d629da9697a9b3a3a8138dd3b8ba4fcbe4ff81ac80",
       "generatedFiles": [
         "sdk/apt/repository.pb.cc",
         "sdk/apt/repository.pb.go",

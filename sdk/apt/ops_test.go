@@ -2,6 +2,7 @@ package s4wave_apt
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -27,20 +28,12 @@ func TestAptWorldOpsCreateTypedEntitiesAndRepositoryEdges(t *testing.T) {
 		t.Fatalf("ApplyWorldOp(create repository): %v", err)
 	}
 
-	debRef, err := block.BuildBlockRef([]byte("deb-payload"), nil)
+	aptPackage, debRef, err := ImportDebPackage(ctx, ws, repositoryKey, packageKey, testBusyboxDeb(t))
 	if err != nil {
-		t.Fatalf("BuildBlockRef(deb): %v", err)
+		t.Fatalf("ImportDebPackage: %v", err)
 	}
-	addPackage := NewAddAptPackageOp(repositoryKey, packageKey, &AptPackage{
-		State:        AptPackageState_AptPackageState_BUILT,
-		Name:         "busybox",
-		Version:      "1:1.36.1-7",
-		Architecture: "i386",
-		Description:  "Tiny utilities for small systems",
-		DebRef:       debRef,
-	})
-	if _, _, err := ws.ApplyWorldOp(ctx, addPackage, ""); err != nil {
-		t.Fatalf("ApplyWorldOp(add package): %v", err)
+	if got := aptPackage.GetState(); got != AptPackageState_AptPackageState_BUILT {
+		t.Fatalf("imported package state = %s, want BUILT", got.String())
 	}
 
 	sourceRef, err := block.BuildBlockRef([]byte("busybox-source"), nil)
@@ -66,11 +59,14 @@ func TestAptWorldOpsCreateTypedEntitiesAndRepositoryEdges(t *testing.T) {
 	if repository.GetDistribution() != "stable" {
 		t.Fatalf("repository distribution = %q, want stable", repository.GetDistribution())
 	}
-	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
+	storedPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
 		return &AptPackage{}
 	})
-	if aptPackage.GetName() != "busybox" {
-		t.Fatalf("package name = %q, want busybox", aptPackage.GetName())
+	if storedPackage.GetName() != "busybox" {
+		t.Fatalf("package name = %q, want busybox", storedPackage.GetName())
+	}
+	if !storedPackage.GetDebRef().EqualsRef(debRef) {
+		t.Fatalf("package deb_ref = %s, want %s", storedPackage.GetDebRef().MarshalString(), debRef.MarshalString())
 	}
 	buildSpec := readAptBlock[*AptBuildSpec](t, ctx, ws, buildSpecKey, func() block.Block {
 		return &AptBuildSpec{}
@@ -83,6 +79,126 @@ func TestAptWorldOpsCreateTypedEntitiesAndRepositoryEdges(t *testing.T) {
 	assertGraphEdge(t, ctx, ws, repositoryKey, PredAptRepoBuildSpec.String(), buildSpecKey)
 }
 
+func TestAptWorldOpsRejectInvalidInitialStates(t *testing.T) {
+	indexRef, err := block.BuildBlockRef([]byte("dists-index"), nil)
+	if err != nil {
+		t.Fatalf("BuildBlockRef(index): %v", err)
+	}
+	createRepo := NewCreateAptRepositoryOp("apt/repos/stable", &AptRepository{
+		State:         AptRepositoryState_AptRepositoryState_READY,
+		Distribution:  "stable",
+		Components:    []string{"main"},
+		Architectures: []string{"i386"},
+		IndexRef:      &bucket.ObjectRef{RootRef: indexRef},
+	})
+	if err := createRepo.Validate(); !errors.Is(err, ErrInvalidAptRepositoryInitialState) {
+		t.Fatalf("CreateAptRepositoryOp.Validate err = %v, want invalid initial state", err)
+	}
+
+	debRef, err := block.BuildBlockRef([]byte("deb-payload"), nil)
+	if err != nil {
+		t.Fatalf("BuildBlockRef(deb): %v", err)
+	}
+	addBuiltPackage := NewAddAptPackageOp("apt/repos/stable", "apt/repos/stable/packages/busybox", &AptPackage{
+		State:        AptPackageState_AptPackageState_BUILT,
+		Name:         "busybox",
+		Version:      "1:1.36.1-7",
+		Architecture: "i386",
+		DebRef:       debRef,
+	})
+	if err := addBuiltPackage.Validate(); !errors.Is(err, ErrInvalidAptPackageInitialState) {
+		t.Fatalf("AddAptPackageOp.Validate built err = %v, want invalid initial state", err)
+	}
+	addPublishedPackage := NewAddAptPackageOp("apt/repos/stable", "apt/repos/stable/packages/busybox-published", &AptPackage{
+		State:        AptPackageState_AptPackageState_PUBLISHED,
+		Name:         "busybox",
+		Version:      "1:1.36.1-7",
+		Architecture: "i386",
+		DebRef:       debRef,
+	})
+	if err := addPublishedPackage.Validate(); !errors.Is(err, ErrInvalidAptPackageInitialState) {
+		t.Fatalf("AddAptPackageOp.Validate err = %v, want invalid initial state", err)
+	}
+	addSuperseded := NewAddAptPackageOp("apt/repos/stable", "apt/repos/stable/packages/busybox-old", &AptPackage{
+		State:        AptPackageState_AptPackageState_SUPERSEDED,
+		Name:         "busybox",
+		Version:      "1:1.36.1-6",
+		Architecture: "i386",
+		DebRef:       debRef,
+	})
+	if err := addSuperseded.Validate(); !errors.Is(err, ErrInvalidAptPackageInitialState) {
+		t.Fatalf("AddAptPackageOp.Validate superseded err = %v, want invalid initial state", err)
+	}
+}
+
+func TestAptPublishPackageOpTransitionsBuiltPackage(t *testing.T) {
+	ctx, ws, packageKey := setupAptWorldWithBuiltPackage(t)
+	publish := NewAptPublishPackageOp(packageKey)
+	if _, _, err := ws.ApplyWorldOp(ctx, publish, ""); err != nil {
+		t.Fatalf("ApplyWorldOp(publish): %v", err)
+	}
+	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
+		return &AptPackage{}
+	})
+	if got := aptPackage.GetState(); got != AptPackageState_AptPackageState_PUBLISHED {
+		t.Fatalf("package state = %s, want PUBLISHED", got.String())
+	}
+}
+
+func TestAptPublishPackageOpRejectsInvalidSourceState(t *testing.T) {
+	ctx, ws := setupAptWorldWithRepository(t)
+	packageKey := "apt/repos/stable/packages/busybox"
+	addImporting := NewAddAptPackageOp("apt/repos/stable", packageKey, &AptPackage{
+		State:        AptPackageState_AptPackageState_IMPORTING,
+		Name:         "busybox",
+		Version:      "1:1.36.1-7",
+		Architecture: "i386",
+		Description:  "Tiny utilities",
+	})
+	if _, _, err := ws.ApplyWorldOp(ctx, addImporting, ""); err != nil {
+		t.Fatalf("ApplyWorldOp(add importing): %v", err)
+	}
+	publish := NewAptPublishPackageOp(packageKey)
+	if _, _, err := ws.ApplyWorldOp(ctx, publish, ""); !errors.Is(err, ErrInvalidAptPackageStateTransition) {
+		t.Fatalf("ApplyWorldOp(publish importing) err = %v, want invalid transition", err)
+	}
+	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
+		return &AptPackage{}
+	})
+	if got := aptPackage.GetState(); got != AptPackageState_AptPackageState_IMPORTING {
+		t.Fatalf("package state = %s, want IMPORTING", got.String())
+	}
+}
+
+func TestAptSupersedePackageOpTransitionsPublishedPackage(t *testing.T) {
+	ctx, ws, packageKey := setupAptWorldWithBuiltPackage(t)
+	if _, _, err := ws.ApplyWorldOp(ctx, NewAptPublishPackageOp(packageKey), ""); err != nil {
+		t.Fatalf("ApplyWorldOp(publish): %v", err)
+	}
+	if _, _, err := ws.ApplyWorldOp(ctx, NewAptSupersedePackageOp(packageKey), ""); err != nil {
+		t.Fatalf("ApplyWorldOp(supersede): %v", err)
+	}
+	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
+		return &AptPackage{}
+	})
+	if got := aptPackage.GetState(); got != AptPackageState_AptPackageState_SUPERSEDED {
+		t.Fatalf("package state = %s, want SUPERSEDED", got.String())
+	}
+}
+
+func TestAptSupersedePackageOpRejectsInvalidSourceState(t *testing.T) {
+	ctx, ws, packageKey := setupAptWorldWithBuiltPackage(t)
+	if _, _, err := ws.ApplyWorldOp(ctx, NewAptSupersedePackageOp(packageKey), ""); !errors.Is(err, ErrInvalidAptPackageStateTransition) {
+		t.Fatalf("ApplyWorldOp(supersede built) err = %v, want invalid transition", err)
+	}
+	aptPackage := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
+		return &AptPackage{}
+	})
+	if got := aptPackage.GetState(); got != AptPackageState_AptPackageState_BUILT {
+		t.Fatalf("package state = %s, want BUILT", got.String())
+	}
+}
+
 func TestLookupAptOp(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -91,6 +207,8 @@ func TestLookupAptOp(t *testing.T) {
 	}{
 		{name: "create repository", id: CreateAptRepositoryOpId},
 		{name: "add package", id: AddAptPackageOpId},
+		{name: "publish package", id: AptPublishPackageOpId},
+		{name: "supersede package", id: AptSupersedePackageOpId},
 		{name: "add build spec", id: AddAptBuildSpecOpId},
 	}
 	for _, test := range tests {
@@ -133,6 +251,17 @@ func setupAptWorld(t *testing.T) (context.Context, world.WorldState) {
 	}
 
 	return ctx, world.NewEngineWorldState(tb.Engine, true)
+}
+
+func setupAptWorldWithBuiltPackage(t *testing.T) (context.Context, world.WorldState, string) {
+	t.Helper()
+
+	ctx, ws := setupAptWorldWithRepository(t)
+	packageKey := "apt/repos/stable/packages/busybox"
+	if _, _, err := ImportDebPackage(ctx, ws, "apt/repos/stable", packageKey, testBusyboxDeb(t)); err != nil {
+		t.Fatalf("ImportDebPackage: %v", err)
+	}
+	return ctx, ws, packageKey
 }
 
 func assertObjectType(t *testing.T, ctx context.Context, ws world.WorldState, objectKey, typeID string) {

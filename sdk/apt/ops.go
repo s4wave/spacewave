@@ -17,6 +17,12 @@ var CreateAptRepositoryOpId = "spacewave-vm/apt/repository/create"
 // AddAptPackageOpId is the operation id for AddAptPackageOp.
 var AddAptPackageOpId = "spacewave-vm/apt/package/add"
 
+// AptPublishPackageOpId is the operation id for AptPublishPackageOp.
+var AptPublishPackageOpId = "spacewave-vm/apt/package/publish"
+
+// AptSupersedePackageOpId is the operation id for AptSupersedePackageOp.
+var AptSupersedePackageOpId = "spacewave-vm/apt/package/supersede"
+
 // AddAptBuildSpecOpId is the operation id for AddAptBuildSpecOp.
 var AddAptBuildSpecOpId = "spacewave-vm/apt/build-spec/add"
 
@@ -46,7 +52,13 @@ func (o *CreateAptRepositoryOp) Validate() error {
 	if o.GetRepository() == nil {
 		return errors.New("repository is required")
 	}
-	return o.GetRepository().Validate()
+	if err := o.GetRepository().Validate(); err != nil {
+		return err
+	}
+	if state := o.GetRepository().GetState(); state != AptRepositoryState_AptRepositoryState_EMPTY {
+		return errors.Wrap(ErrInvalidAptRepositoryInitialState, state.String())
+	}
+	return nil
 }
 
 // ApplyWorldOp applies the operation as a world operation.
@@ -135,7 +147,13 @@ func (o *AddAptPackageOp) Validate() error {
 	if o.GetAptPackage() == nil {
 		return errors.New("apt_package is required")
 	}
-	return o.GetAptPackage().Validate()
+	if err := o.GetAptPackage().Validate(); err != nil {
+		return err
+	}
+	if state := o.GetAptPackage().GetState(); state != AptPackageState_AptPackageState_IMPORTING {
+		return errors.Wrap(ErrInvalidAptPackageInitialState, state.String())
+	}
+	return nil
 }
 
 // ApplyWorldOp applies the operation as a world operation.
@@ -203,6 +221,165 @@ func LookupAddAptPackageOp(ctx context.Context, operationTypeID string) (world.O
 		return &AddAptPackageOp{}, nil
 	}
 	return nil, nil
+}
+
+// NewAptPublishPackageOp constructs a new AptPublishPackageOp.
+func NewAptPublishPackageOp(packageKey string) *AptPublishPackageOp {
+	return &AptPublishPackageOp{PackageKey: packageKey}
+}
+
+// NewAptPublishPackageOpBlock constructs a new AptPublishPackageOp block.
+func NewAptPublishPackageOpBlock() block.Block {
+	return &AptPublishPackageOp{}
+}
+
+// GetOperationTypeId returns the operation type identifier.
+func (o *AptPublishPackageOp) GetOperationTypeId() string {
+	return AptPublishPackageOpId
+}
+
+// Validate performs cursory checks on the op.
+func (o *AptPublishPackageOp) Validate() error {
+	if o.GetPackageKey() == "" {
+		return errors.New("package_key is required")
+	}
+	return nil
+}
+
+// ApplyWorldOp applies the operation as a world operation.
+func (o *AptPublishPackageOp) ApplyWorldOp(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	if err := o.Validate(); err != nil {
+		return false, err
+	}
+	err = applyAptPackageStateTransition(ctx, ws, o.GetPackageKey(), AptPackageState_AptPackageState_PUBLISHED)
+	return false, err
+}
+
+// ApplyWorldObjectOp applies the operation to a world object handle.
+func (o *AptPublishPackageOp) ApplyWorldObjectOp(
+	ctx context.Context,
+	le *logrus.Entry,
+	os world.ObjectState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	return false, world.ErrUnhandledOp
+}
+
+// MarshalBlock marshals the block to binary.
+func (o *AptPublishPackageOp) MarshalBlock() ([]byte, error) {
+	return o.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the block from binary.
+func (o *AptPublishPackageOp) UnmarshalBlock(data []byte) error {
+	return o.UnmarshalVT(data)
+}
+
+// LookupAptPublishPackageOp looks up an AptPublishPackageOp operation type.
+func LookupAptPublishPackageOp(ctx context.Context, operationTypeID string) (world.Operation, error) {
+	if operationTypeID == AptPublishPackageOpId {
+		return &AptPublishPackageOp{}, nil
+	}
+	return nil, nil
+}
+
+// NewAptSupersedePackageOp constructs a new AptSupersedePackageOp.
+func NewAptSupersedePackageOp(packageKey string) *AptSupersedePackageOp {
+	return &AptSupersedePackageOp{PackageKey: packageKey}
+}
+
+// NewAptSupersedePackageOpBlock constructs a new AptSupersedePackageOp block.
+func NewAptSupersedePackageOpBlock() block.Block {
+	return &AptSupersedePackageOp{}
+}
+
+// GetOperationTypeId returns the operation type identifier.
+func (o *AptSupersedePackageOp) GetOperationTypeId() string {
+	return AptSupersedePackageOpId
+}
+
+// Validate performs cursory checks on the op.
+func (o *AptSupersedePackageOp) Validate() error {
+	if o.GetPackageKey() == "" {
+		return errors.New("package_key is required")
+	}
+	return nil
+}
+
+// ApplyWorldOp applies the operation as a world operation.
+func (o *AptSupersedePackageOp) ApplyWorldOp(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	if err := o.Validate(); err != nil {
+		return false, err
+	}
+	err = applyAptPackageStateTransition(ctx, ws, o.GetPackageKey(), AptPackageState_AptPackageState_SUPERSEDED)
+	return false, err
+}
+
+// ApplyWorldObjectOp applies the operation to a world object handle.
+func (o *AptSupersedePackageOp) ApplyWorldObjectOp(
+	ctx context.Context,
+	le *logrus.Entry,
+	os world.ObjectState,
+	sender peer.ID,
+) (sysErr bool, err error) {
+	return false, world.ErrUnhandledOp
+}
+
+// MarshalBlock marshals the block to binary.
+func (o *AptSupersedePackageOp) MarshalBlock() ([]byte, error) {
+	return o.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the block from binary.
+func (o *AptSupersedePackageOp) UnmarshalBlock(data []byte) error {
+	return o.UnmarshalVT(data)
+}
+
+// LookupAptSupersedePackageOp looks up an AptSupersedePackageOp operation type.
+func LookupAptSupersedePackageOp(ctx context.Context, operationTypeID string) (world.Operation, error) {
+	if operationTypeID == AptSupersedePackageOpId {
+		return &AptSupersedePackageOp{}, nil
+	}
+	return nil, nil
+}
+
+func applyAptPackageStateTransition(
+	ctx context.Context,
+	ws world.WorldState,
+	packageKey string,
+	next AptPackageState,
+) error {
+	if err := world_types.CheckObjectType(ctx, ws, packageKey, AptPackageTypeID); err != nil {
+		return err
+	}
+	objectState, err := world.MustGetObject(ctx, ws, packageKey)
+	if err != nil {
+		return err
+	}
+	_, _, err = world.AccessObjectState(ctx, objectState, true, func(bcs *block.Cursor) error {
+		aptPackage, err := block.UnmarshalBlock[*AptPackage](ctx, bcs, func() block.Block {
+			return &AptPackage{}
+		})
+		if err != nil {
+			return err
+		}
+		if err := aptPackage.TransitionState(next); err != nil {
+			return err
+		}
+		bcs.SetBlock(aptPackage, true)
+		return nil
+	})
+	return err
 }
 
 // NewAddAptBuildSpecOp constructs a new AddAptBuildSpecOp.
@@ -310,6 +487,8 @@ func LookupAptOp(ctx context.Context, operationTypeID string) (world.Operation, 
 	return world.LookupOpSlice([]world.LookupOp{
 		LookupCreateAptRepositoryOp,
 		LookupAddAptPackageOp,
+		LookupAptPublishPackageOp,
+		LookupAptSupersedePackageOp,
 		LookupAddAptBuildSpecOp,
 	}).LookupOp(ctx, operationTypeID)
 }
@@ -318,5 +497,7 @@ func LookupAptOp(ctx context.Context, operationTypeID string) (world.Operation, 
 var (
 	_ world.Operation = ((*CreateAptRepositoryOp)(nil))
 	_ world.Operation = ((*AddAptPackageOp)(nil))
+	_ world.Operation = ((*AptPublishPackageOp)(nil))
+	_ world.Operation = ((*AptSupersedePackageOp)(nil))
 	_ world.Operation = ((*AddAptBuildSpecOp)(nil))
 )

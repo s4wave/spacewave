@@ -496,6 +496,54 @@ export const AddAptPackageOp: MessageType<AddAptPackageOp> = createMessageType({
 })
 
 /**
+ * AptPublishPackageOp publishes a built AptPackage into the repository index.
+ *
+ * @generated from message s4wave.apt.AptPublishPackageOp
+ */
+export interface AptPublishPackageOp {
+  /**
+   * PackageKey is the AptPackage object key.
+   *
+   * @generated from field: string package_key = 1;
+   */
+  packageKey?: string
+}
+
+// AptPublishPackageOp contains the message type declaration for AptPublishPackageOp.
+export const AptPublishPackageOp: MessageType<AptPublishPackageOp> =
+  createMessageType({
+    typeName: 's4wave.apt.AptPublishPackageOp',
+    fields: [
+      { no: 1, name: 'package_key', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AptSupersedePackageOp marks a published AptPackage as superseded.
+ *
+ * @generated from message s4wave.apt.AptSupersedePackageOp
+ */
+export interface AptSupersedePackageOp {
+  /**
+   * PackageKey is the AptPackage object key.
+   *
+   * @generated from field: string package_key = 1;
+   */
+  packageKey?: string
+}
+
+// AptSupersedePackageOp contains the message type declaration for AptSupersedePackageOp.
+export const AptSupersedePackageOp: MessageType<AptSupersedePackageOp> =
+  createMessageType({
+    typeName: 's4wave.apt.AptSupersedePackageOp',
+    fields: [
+      { no: 1, name: 'package_key', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AddAptBuildSpecOp creates an AptBuildSpec and links it to an AptRepository.
  *
  * @generated from message s4wave.apt.AddAptBuildSpecOp

@@ -462,6 +462,46 @@ func (x *AddAptPackageOp) GetAptPackage() *AptPackage {
 	return nil
 }
 
+// AptPublishPackageOp publishes a built AptPackage into the repository index.
+type AptPublishPackageOp struct {
+	unknownFields []byte
+	// PackageKey is the AptPackage object key.
+	PackageKey string `protobuf:"bytes,1,opt,name=package_key,json=packageKey,proto3" json:"packageKey,omitempty"`
+}
+
+func (x *AptPublishPackageOp) Reset() {
+	*x = AptPublishPackageOp{}
+}
+
+func (*AptPublishPackageOp) ProtoMessage() {}
+
+func (x *AptPublishPackageOp) GetPackageKey() string {
+	if x != nil {
+		return x.PackageKey
+	}
+	return ""
+}
+
+// AptSupersedePackageOp marks a published AptPackage as superseded.
+type AptSupersedePackageOp struct {
+	unknownFields []byte
+	// PackageKey is the AptPackage object key.
+	PackageKey string `protobuf:"bytes,1,opt,name=package_key,json=packageKey,proto3" json:"packageKey,omitempty"`
+}
+
+func (x *AptSupersedePackageOp) Reset() {
+	*x = AptSupersedePackageOp{}
+}
+
+func (*AptSupersedePackageOp) ProtoMessage() {}
+
+func (x *AptSupersedePackageOp) GetPackageKey() string {
+	if x != nil {
+		return x.PackageKey
+	}
+	return ""
+}
+
 // AddAptBuildSpecOp creates an AptBuildSpec and links it to an AptRepository.
 type AddAptBuildSpecOp struct {
 	unknownFields []byte
@@ -680,6 +720,38 @@ func (m *AddAptPackageOp) CloneVT() *AddAptPackageOp {
 }
 
 func (m *AddAptPackageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AptPublishPackageOp) CloneVT() *AptPublishPackageOp {
+	if m == nil {
+		return (*AptPublishPackageOp)(nil)
+	}
+	r := new(AptPublishPackageOp)
+	r.PackageKey = m.PackageKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AptPublishPackageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AptSupersedePackageOp) CloneVT() *AptSupersedePackageOp {
+	if m == nil {
+		return (*AptSupersedePackageOp)(nil)
+	}
+	r := new(AptSupersedePackageOp)
+	r.PackageKey = m.PackageKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AptSupersedePackageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -972,6 +1044,46 @@ func (this *AddAptPackageOp) EqualVT(that *AddAptPackageOp) bool {
 
 func (this *AddAptPackageOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*AddAptPackageOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AptPublishPackageOp) EqualVT(that *AptPublishPackageOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PackageKey != that.PackageKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AptPublishPackageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AptPublishPackageOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AptSupersedePackageOp) EqualVT(that *AptSupersedePackageOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PackageKey != that.PackageKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AptSupersedePackageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AptSupersedePackageOp)
 	if !ok {
 		return false
 	}
@@ -1711,6 +1823,90 @@ func (x *AddAptPackageOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the AptPublishPackageOp message to JSON.
+func (x *AptPublishPackageOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PackageKey != "" || s.HasField("packageKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packageKey")
+		s.WriteString(x.PackageKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AptPublishPackageOp to JSON.
+func (x *AptPublishPackageOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AptPublishPackageOp message from JSON.
+func (x *AptPublishPackageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "package_key", "packageKey":
+			s.AddField("package_key")
+			x.PackageKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AptPublishPackageOp from JSON.
+func (x *AptPublishPackageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AptSupersedePackageOp message to JSON.
+func (x *AptSupersedePackageOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PackageKey != "" || s.HasField("packageKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packageKey")
+		s.WriteString(x.PackageKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AptSupersedePackageOp to JSON.
+func (x *AptSupersedePackageOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AptSupersedePackageOp message from JSON.
+func (x *AptSupersedePackageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "package_key", "packageKey":
+			s.AddField("package_key")
+			x.PackageKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AptSupersedePackageOp from JSON.
+func (x *AptSupersedePackageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the AddAptBuildSpecOp message to JSON.
 func (x *AddAptBuildSpecOp) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -2267,6 +2463,86 @@ func (m *AddAptPackageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *AptPublishPackageOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AptPublishPackageOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AptPublishPackageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PackageKey) > 0 {
+		i -= len(m.PackageKey)
+		copy(dAtA[i:], m.PackageKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PackageKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AptSupersedePackageOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AptSupersedePackageOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AptSupersedePackageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PackageKey) > 0 {
+		i -= len(m.PackageKey)
+		copy(dAtA[i:], m.PackageKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PackageKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AddAptBuildSpecOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2529,6 +2805,34 @@ func (m *AddAptPackageOp) SizeVT() (n int) {
 	}
 	if m.AptPackage != nil {
 		l = m.AptPackage.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AptPublishPackageOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PackageKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AptSupersedePackageOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PackageKey)
+	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -2940,6 +3244,42 @@ func (x *AddAptPackageOp) MarshalProtoText() string {
 }
 
 func (x *AddAptPackageOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AptPublishPackageOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AptPublishPackageOp {")
+	if x.PackageKey != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("package_key: ")
+		sb.WriteString(strconv.Quote(x.PackageKey))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AptPublishPackageOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AptSupersedePackageOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AptSupersedePackageOp {")
+	if x.PackageKey != "" {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("package_key: ")
+		sb.WriteString(strconv.Quote(x.PackageKey))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AptSupersedePackageOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4012,6 +4352,136 @@ func (m *AddAptPackageOp) UnmarshalVT(dAtA []byte) error {
 			if err := m.AptPackage.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AptPublishPackageOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AptPublishPackageOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AptPublishPackageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackageKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PackageKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AptSupersedePackageOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AptSupersedePackageOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AptSupersedePackageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackageKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PackageKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

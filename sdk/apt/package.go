@@ -30,6 +30,9 @@ func (p *AptPackage) UnmarshalBlock(data []byte) error {
 
 // Validate performs cursory checks on the AptPackage.
 func (p *AptPackage) Validate() error {
+	if err := p.GetState().Validate(); err != nil {
+		return err
+	}
 	if p.GetName() == "" {
 		return errors.New("name is required")
 	}
@@ -39,8 +42,13 @@ func (p *AptPackage) Validate() error {
 	if p.GetArchitecture() == "" {
 		return errors.New("architecture is required")
 	}
-	if p.GetDebRef().GetEmpty() {
+	if p.GetState() != AptPackageState_AptPackageState_IMPORTING && p.GetDebRef().GetEmpty() {
 		return errors.New("deb_ref is required")
+	}
+	if !p.GetDebRef().GetEmpty() {
+		if err := p.GetDebRef().Validate(false); err != nil {
+			return err
+		}
 	}
 	for _, checksum := range p.GetChecksums() {
 		if checksum.GetAlgorithm() == "" {

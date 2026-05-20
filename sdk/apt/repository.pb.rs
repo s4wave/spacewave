@@ -121,6 +121,20 @@ pub struct AddAptPackageOp {
     #[prost(message, optional, tag="3")]
     pub apt_package: ::core::option::Option<AptPackage>,
 }
+/// AptPublishPackageOp publishes a built AptPackage into the repository index.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AptPublishPackageOp {
+    /// PackageKey is the AptPackage object key.
+    #[prost(string, tag="1")]
+    pub package_key: ::prost::alloc::string::String,
+}
+/// AptSupersedePackageOp marks a published AptPackage as superseded.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AptSupersedePackageOp {
+    /// PackageKey is the AptPackage object key.
+    #[prost(string, tag="1")]
+    pub package_key: ::prost::alloc::string::String,
+}
 /// AddAptBuildSpecOp creates an AptBuildSpec and links it to an AptRepository.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AddAptBuildSpecOp {
