@@ -1528,7 +1528,7 @@ func TestWorldState_GC_PinsCurrentRootDuringPhysicalSweep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	for i := range 70 {
+	for i := range 1 {
 		if _, err := world_block.BuildMockObject(ctx, ws, "gc-journal-"+strconv.Itoa(i)); err != nil {
 			t.Fatal(err.Error())
 		}

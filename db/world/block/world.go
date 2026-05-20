@@ -605,14 +605,19 @@ func (t *WorldState) GarbageCollect(ctx context.Context) (*block_gc.Stats, error
 	if t.refGraph == nil {
 		return nil, nil
 	}
+	release, err := t.pinCurrentWorldRootForGC(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if release != nil {
+		defer release()
+	}
 	// Reconcile deferred journal before collecting.
 	if _, err := t.ReconcileGCJournal(ctx); err != nil {
 		return nil, errors.Wrap(err, "reconcile gc journal before collect")
 	}
-	if release, err := t.pinCurrentWorldRootForGC(ctx); err != nil {
-		return nil, err
-	} else if release != nil {
-		defer release()
+	if err := t.removeCurrentWorldRootUnreferenced(ctx); err != nil {
+		return nil, errors.Wrap(err, "mark pinned world root for gc")
 	}
 	c := block_gc.NewCollector(t.refGraph, t.store, t.onSwept)
 	return c.Collect(ctx)
@@ -633,50 +638,24 @@ func (t *WorldState) pinCurrentWorldRootForGC(ctx context.Context) (func(), erro
 	if err := t.refGraph.AddRef(ctx, "world", rootIRI); err != nil {
 		return nil, errors.Wrap(err, "pin world root for gc")
 	}
-	reachable, err := collectReachableBlockIRIs(ctx, t.bcs)
-	if err != nil {
-		_ = t.refGraph.RemoveRef(context.Background(), "world", rootIRI)
-		return nil, errors.Wrap(err, "mark pinned world root for gc")
-	}
-	for node := range reachable {
-		if !block_gc.IsPermanentRoot(node) {
-			_ = t.refGraph.RemoveRef(ctx, block_gc.NodeUnreferenced, node)
-		}
-	}
 	return func() {
 		_ = t.refGraph.RemoveRef(context.Background(), "world", rootIRI)
 	}, nil
 }
 
-func collectReachableBlockIRIs(ctx context.Context, root *block.Cursor) (map[string]struct{}, error) {
-	seen := make(map[string]struct{})
-	stack := []*block.Cursor{root}
-	for len(stack) != 0 {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		cursor := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		if cursor == nil {
-			continue
-		}
-		iri := block_gc.BlockIRI(cursor.GetRef())
-		if iri == "" {
-			continue
-		}
-		if _, ok := seen[iri]; ok {
-			continue
-		}
-		seen[iri] = struct{}{}
-		refs, err := cursor.GetAllRefs(true)
-		if err != nil {
-			return nil, err
-		}
-		for _, child := range refs {
-			stack = append(stack, child)
-		}
+func (t *WorldState) removeCurrentWorldRootUnreferenced(ctx context.Context) error {
+	if t.refGraph == nil || t.bcs == nil {
+		return nil
 	}
-	return seen, nil
+	rootRef := t.bcs.GetRef()
+	if rootRef == nil || rootRef.GetEmpty() {
+		return nil
+	}
+	rootIRI := block_gc.BlockIRI(rootRef)
+	if rootIRI == "" {
+		return nil
+	}
+	return t.refGraph.RemoveRef(ctx, block_gc.NodeUnreferenced, rootIRI)
 }
 
 // ReconcileGCJournal applies pending GC journal entries to the Cayley ref graph
