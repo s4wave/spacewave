@@ -594,7 +594,7 @@ jobs:
     needs:
       - prep
       - manifest_packs
-    runs-on: macos-15
+    runs-on: macos-26
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
       contents: read

@@ -127,7 +127,7 @@ jobs:
   native-macos:
     needs: prep
     if: needs.prep.outputs.include_macos == 'true'
-    runs-on: macos-15
+    runs-on: macos-26
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout

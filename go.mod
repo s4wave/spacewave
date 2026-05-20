@@ -20,7 +20,7 @@ replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/bbolt v0.0.0-20260426060333-d8dbc50ec0cb // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260512092909-91bbf14f1a0a // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.14.1-0.20260514195440-32d3c8730ab2 // latest
 	github.com/aperturerobotics/cli v1.1.0 // latest
@@ -45,7 +45,7 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.49.14 // latest
+	github.com/aperturerobotics/starpc v0.49.15 // latest
 	github.com/aperturerobotics/util v1.34.5 // latest
 )
 
@@ -97,7 +97,7 @@ require (
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
-	github.com/ncruces/go-sqlite3 v0.34.1
+	github.com/ncruces/go-sqlite3 v0.34.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pierrec/lz4/v4 v4.1.26
 	github.com/pion/datachannel v1.6.0
@@ -154,7 +154,7 @@ require (
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
-	github.com/ncruces/go-sqlite3-wasm/v2 v2.2.35301 // indirect
+	github.com/ncruces/go-sqlite3-wasm/v2 v2.4.35301 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect

@@ -20,8 +20,8 @@ github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 h1:3U7
 github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017/go.mod h1:lNSJTKECIUFAnfeSqy01kXYTYe1BHubW7198jNX3nEw=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac h1:tykjLki/ShxJNz56wc5zYpz02oo/zNEYRpOb9g+uFuA=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac/go.mod h1:gDH4T/6RmW0rqh0ja0bFlZ+0vWGFgtgS8zb2/mKuyT0=
-github.com/aperturerobotics/bbolt v0.0.0-20260426060333-d8dbc50ec0cb h1:800F/SY/knXpKhrRXQHeV+P5EOD7JP6pUEHlKcASmLY=
-github.com/aperturerobotics/bbolt v0.0.0-20260426060333-d8dbc50ec0cb/go.mod h1:yNkDjLE7/LRdVzkoGo2dTCXtIHW2mkvE8W0Pzbkj83M=
+github.com/aperturerobotics/bbolt v0.0.0-20260512092909-91bbf14f1a0a h1:43LZ4MXhqd78x43H28AeIxUXjtKm/Xamic1RE8LSM44=
+github.com/aperturerobotics/bbolt v0.0.0-20260512092909-91bbf14f1a0a/go.mod h1:yNkDjLE7/LRdVzkoGo2dTCXtIHW2mkvE8W0Pzbkj83M=
 github.com/aperturerobotics/bldr-saucer v0.4.4 h1:kQvjAAQcdydvX2EYWipQW1vOBUe88F/27WaVU7mKRoE=
 github.com/aperturerobotics/bldr-saucer v0.4.4/go.mod h1:yH40259UVahR/9DU9c+Sg0+HGm5OtTWHV7CeEzneVho=
 github.com/aperturerobotics/cayley v0.14.1-0.20260514195440-32d3c8730ab2 h1:+93bKDrvTSQtklhX4H9DAA9nkCXJgUOp92IaDknYBmU=
@@ -76,8 +76,8 @@ github.com/aperturerobotics/ristretto/v2 v2.0.0-20260517212455-e8ae7254a03d h1:9
 github.com/aperturerobotics/ristretto/v2 v2.0.0-20260517212455-e8ae7254a03d/go.mod h1:0KsrXtXvnv0EqnzyowllbVJB8yBonswa2lTCK2gGo9E=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phqiA+X/w4YAT3sP8DyhfP81mo3k6v/RI/t1qGk=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
-github.com/aperturerobotics/starpc v0.49.14 h1:iZu2m9brGuv7Xzm1wP6V8mYRV+IEfVrZ85ScWefvcfI=
-github.com/aperturerobotics/starpc v0.49.14/go.mod h1:5SIPOGIoUG7dLpb1NzZG2qK9l1T5oZ2454yzyMukviw=
+github.com/aperturerobotics/starpc v0.49.15 h1:NP86hncR6rMs5gnPLrJGewF/kwkSV6z0JQCf8dHeH7s=
+github.com/aperturerobotics/starpc v0.49.15/go.mod h1:5SIPOGIoUG7dLpb1NzZG2qK9l1T5oZ2454yzyMukviw=
 github.com/aperturerobotics/util v1.34.5 h1:007MaOJrrsiGm5o1c8Tt7p8nVwUAxkM6pmGflrBww/U=
 github.com/aperturerobotics/util v1.34.5/go.mod h1:mDe7WnncVuV7yjeeVSsagyfrw4xfncu7d+f0+d70niY=
 github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010 h1:gOEsFiQyF2xvAp+V57qc998Y1F+LNwFuzgXjwMo8+0o=
@@ -245,10 +245,10 @@ github.com/multiformats/go-multihash v0.2.3 h1:7Lyc8XfX/IY2jWb/gI7JP+o7JEq9hOa7B
 github.com/multiformats/go-multihash v0.2.3/go.mod h1:dXgKXCXjBzdscBLk9JkjINiEsCKRVch90MdaGiKsvSM=
 github.com/multiformats/go-varint v0.0.7 h1:sWSGR+f/eu5ABZA2ZpYKBILXTTs9JWpdEM/nEGOHFS8=
 github.com/multiformats/go-varint v0.0.7/go.mod h1:r8PUYw/fD/SjBCiKOoDlGF6QawOELpZAu9eioSos/OU=
-github.com/ncruces/go-sqlite3 v0.34.1 h1:N4NU/MqvZtSseGyTzJXdFI8RoVIR0lWUYeainj4pX2o=
-github.com/ncruces/go-sqlite3 v0.34.1/go.mod h1:QuztC+fMQvmDSPEk3E807xYbAVZGsxnismh23mzZPhM=
-github.com/ncruces/go-sqlite3-wasm/v2 v2.2.35301 h1:PPb3vECU21cZr2CrzYG7idXLBpWETDcdVEnXg3vqRpM=
-github.com/ncruces/go-sqlite3-wasm/v2 v2.2.35301/go.mod h1:q34C+veYmxQ7XRFgCKSeD6hq5vP/C517Hkl4iu+A5ao=
+github.com/ncruces/go-sqlite3 v0.34.2 h1:+B50kRdn2BfMTSoRbkgnNaIolxIq1qS6lhcXyvNe230=
+github.com/ncruces/go-sqlite3 v0.34.2/go.mod h1:ZUqB9w9k4ACD7X5YeISBY05glvkgTur3dwhoDFGASK4=
+github.com/ncruces/go-sqlite3-wasm/v2 v2.4.35301 h1:xGFgiIf1SS4yTqyuW3cSR6hd9KRlUFzVloJ873AyrxU=
+github.com/ncruces/go-sqlite3-wasm/v2 v2.4.35301/go.mod h1:7dV8P4xml/vrgb/zKfJaZ5aas5el3VyBR28XkpBq5NM=
 github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOFAw7w=
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/ncruces/julianday v1.0.0 h1:fH0OKwa7NWvniGQtxdJRxAgkBMolni2BjDHaWTxqt7M=
