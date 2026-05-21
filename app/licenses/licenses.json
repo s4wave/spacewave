@@ -1106,7 +1106,7 @@
     },
     {
       "name": "github.com/go-git/go-git/v6",
-      "version": "v6.0.0-alpha.3",
+      "version": "v6.0.0-alpha.4",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-git",
