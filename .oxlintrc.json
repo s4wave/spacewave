@@ -268,14 +268,13 @@
         "react-doctor/design-no-space-on-flex-children": "warn",
         "react-doctor/design-no-em-dash-in-jsx-text": "warn",
         "react-doctor/design-no-three-period-ellipsis": "warn",
-        "react-doctor/design-no-default-tailwind-palette": "warn",
         "react-doctor/design-no-vague-button-label": "warn",
         "react-doctor/async-parallel": "warn",
         "react-compiler/react-compiler": "off",
         "react/rules-of-hooks": "warn"
       },
       "jsPlugins": [
-        "react-doctor/oxlint-plugin",
+        { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" },
         "eslint-plugin-react-compiler"
       ]
     },
@@ -284,7 +283,9 @@
       "rules": {
         "react-doctor/async-parallel": "off"
       },
-      "jsPlugins": ["react-doctor/oxlint-plugin"]
+      "jsPlugins": [
+        { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" }
+      ]
     }
   ]
 }

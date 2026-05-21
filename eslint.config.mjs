@@ -2,7 +2,7 @@ import eslint from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactCompiler from 'eslint-plugin-react-compiler'
-import reactDoctor from 'react-doctor/eslint-plugin'
+import { ALL_REACT_DOCTOR_RULE_KEYS } from 'oxlint-plugin-react-doctor'
 import eslintConfigPrettier from 'eslint-config-prettier'
 
 const alphaFiles = [
@@ -14,35 +14,19 @@ const alphaFiles = [
   'cmd/**/*.{js,mjs,ts,tsx}',
 ]
 
-export const reactDoctorRulesCoveredByReactLint = {
-  'react-doctor/no-derived-state-effect': 'react-hooks/set-state-in-effect',
-  'react-doctor/no-mirror-prop-effect': 'react-hooks/set-state-in-effect',
-  'react-doctor/no-cascading-set-state': 'react-hooks/set-state-in-effect',
-  'react-doctor/no-effect-chain': 'react-hooks/set-state-in-effect',
-  'react-doctor/no-event-trigger-state': 'react-hooks/set-state-in-effect',
-  'react-doctor/no-mutable-in-deps': 'react-hooks/exhaustive-deps',
-  'react-doctor/no-effect-event-in-deps': 'react-hooks/exhaustive-deps',
-  'react-doctor/no-direct-state-mutation': 'react-hooks/immutability',
-  'react-doctor/no-set-state-in-render': 'react-hooks/set-state-in-render',
-  'react-doctor/rerender-functional-setstate': 'react-hooks/exhaustive-deps',
-  'react-doctor/rerender-dependencies': 'react-hooks/exhaustive-deps',
-  'react-doctor/no-nested-component-definition':
-    'react-hooks/static-components',
-}
-
-export const reactDoctorRoutineDisabledRules = {
-  ...reactDoctorRulesCoveredByReactLint,
-  'react-doctor/prefer-useReducer':
-    'react-doctor 0.1.4 throws while linting AppSession.tsx',
-}
-
 const warnRuleSet = (rules) =>
   Object.fromEntries(Object.entries(rules).map(([k]) => [k, 'warn']))
 
-export const reactDoctorRoutineRules = Object.fromEntries(
-  Object.entries(reactDoctor.configs.recommended.rules)
-    .filter(([rule]) => !(rule in reactDoctorRoutineDisabledRules))
-    .map(([rule]) => [rule, 'warn']),
+const reactDoctorCompatRules = Object.fromEntries(
+  [...ALL_REACT_DOCTOR_RULE_KEYS]
+    .filter((rule) => rule.startsWith('react-doctor/'))
+    .map((rule) => [
+      rule.slice('react-doctor/'.length),
+      {
+        meta: { schema: [] },
+        create: () => ({}),
+      },
+    ]),
 )
 
 export default tseslint.config(
@@ -96,7 +80,7 @@ export default tseslint.config(
     plugins: {
       'react-hooks': reactHooks,
       'react-compiler': reactCompiler,
-      'react-doctor': reactDoctor,
+      'react-doctor': { rules: reactDoctorCompatRules },
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -107,7 +91,6 @@ export default tseslint.config(
     files: alphaFiles,
     rules: {
       ...warnRuleSet(reactHooks.configs.recommended.rules),
-      ...reactDoctorRoutineRules,
       'react-compiler/react-compiler': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -118,12 +101,6 @@ export default tseslint.config(
         },
       ],
       '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
-    },
-  },
-  {
-    files: ['**/*.test.tsx'],
-    rules: {
-      'react-doctor/async-parallel': 'off',
     },
   },
   {
