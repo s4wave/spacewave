@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
+	formatcfg "github.com/go-git/go-git/v6/plumbing/format/config"
 	"github.com/go-git/go-git/v6/plumbing/format/objfile"
 	go_git_storer "github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/pkg/errors"
@@ -583,7 +584,7 @@ func (o *DotGitFSCursorOps) applyMetadataContent(ctx context.Context, path []str
 }
 
 func (o *DotGitFSCursorOps) applyObjectContent(ctx context.Context, path []string, content []byte) error {
-	reader, err := objfile.NewReader(bytes.NewReader(content))
+	reader, err := objfile.NewReader(bytes.NewReader(content), formatcfg.SHA1)
 	if err != nil {
 		return err
 	}
@@ -848,7 +849,7 @@ func dotGitObjectContent(storer go_git_storer.EncodedObjectStorer, hash plumbing
 	}
 	defer reader.Close()
 	var buf bytes.Buffer
-	writer := objfile.NewWriter(&buf)
+	writer := objfile.NewWriter(&buf, formatcfg.SHA1)
 	if err := writer.WriteHeader(obj.Type(), obj.Size()); err != nil {
 		return nil, err
 	}

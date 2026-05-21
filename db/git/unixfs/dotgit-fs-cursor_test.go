@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
+	formatcfg "github.com/go-git/go-git/v6/plumbing/format/config"
 	"github.com/go-git/go-git/v6/plumbing/format/objfile"
 	"github.com/go-git/go-git/v6/storage"
 	"github.com/go-git/go-git/v6/storage/memory"
@@ -307,7 +308,7 @@ func TestDotGitFSCursorLooseObjects(t *testing.T) {
 	}
 	defer objectHandle.Release()
 	content := readHandleContent(t, ctx, objectHandle)
-	reader, err := objfile.NewReader(bytes.NewReader(content))
+	reader, err := objfile.NewReader(bytes.NewReader(content), formatcfg.SHA1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1080,7 +1081,7 @@ func makeLooseObjectContent(t *testing.T, typ plumbing.ObjectType, data []byte) 
 		t.Fatal(err)
 	}
 	var buf bytes.Buffer
-	ow := objfile.NewWriter(&buf)
+	ow := objfile.NewWriter(&buf, formatcfg.SHA1)
 	if err := ow.WriteHeader(typ, int64(len(data))); err != nil {
 		t.Fatal(err)
 	}

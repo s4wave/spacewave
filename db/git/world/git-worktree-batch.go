@@ -169,16 +169,17 @@ func checkoutRepoWorktree(
 	if ro.Mode == git.HardReset {
 		// go-git prunes empty parent dirs after deleting tracked files; keep
 		// the temp worktree root non-empty so it does not try to remove ".".
+		worktreeFS := wt.Filesystem()
 		for i := range 10 {
 			candidate := ".spacewave-checkout-sentinel-" + strconv.Itoa(i)
-			_, err := wt.Filesystem.Stat(candidate)
+			_, err := worktreeFS.Stat(candidate)
 			if err == nil {
 				continue
 			}
 			if !os.IsNotExist(err) {
 				return err
 			}
-			f, err := wt.Filesystem.Create(candidate)
+			f, err := worktreeFS.Create(candidate)
 			if err != nil {
 				return err
 			}
@@ -194,12 +195,12 @@ func checkoutRepoWorktree(
 	}
 	if err := wt.Reset(ro); err != nil {
 		if sentinelPath != "" {
-			_ = wt.Filesystem.Remove(sentinelPath)
+			_ = wt.Filesystem().Remove(sentinelPath)
 		}
 		return err
 	}
 	if sentinelPath != "" {
-		if err := wt.Filesystem.Remove(sentinelPath); err != nil && !os.IsNotExist(err) {
+		if err := wt.Filesystem().Remove(sentinelPath); err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	}

@@ -216,7 +216,7 @@ func (r *Store) buildPackfileReader(cs *block.Cursor) (*go_git_packfile.Packfile
 		return nil, err
 	}
 	idx := idxfile.NewMemoryIndex(packHash.Size())
-	if err := idxfile.NewDecoder(bytes.NewReader(idxData), hash.New(crypto.SHA1)).Decode(idx); err != nil {
+	if err := idxfile.NewDecoder(newPackfileBytesFile("idx-"+packHash.String()+".idx", idxData), hash.New(crypto.SHA1)).Decode(idx); err != nil {
 		return nil, err
 	}
 	packReader := go_git_packfile.NewPackfile(
