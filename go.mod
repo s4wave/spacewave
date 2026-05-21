@@ -86,7 +86,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.1 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.3 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.4 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v1.9.3
 	github.com/google/uuid v1.6.0
