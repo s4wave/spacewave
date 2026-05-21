@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package changelog
 
 import (
