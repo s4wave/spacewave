@@ -105,7 +105,9 @@ export interface DesktopTrayResourceService {
 export const DesktopTrayResourceServiceServiceName =
   DesktopTrayResourceServiceDefinition.typeName
 
-export class DesktopTrayResourceServiceClient implements DesktopTrayResourceService {
+export class DesktopTrayResourceServiceClient
+  implements DesktopTrayResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -257,7 +259,9 @@ export interface DesktopTrayEntryResourceService {
 export const DesktopTrayEntryResourceServiceServiceName =
   DesktopTrayEntryResourceServiceDefinition.typeName
 
-export class DesktopTrayEntryResourceServiceClient implements DesktopTrayEntryResourceService {
+export class DesktopTrayEntryResourceServiceClient
+  implements DesktopTrayEntryResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -369,7 +373,9 @@ export interface DesktopTrayActionHandlerService {
 export const DesktopTrayActionHandlerServiceServiceName =
   DesktopTrayActionHandlerServiceDefinition.typeName
 
-export class DesktopTrayActionHandlerServiceClient implements DesktopTrayActionHandlerService {
+export class DesktopTrayActionHandlerServiceClient
+  implements DesktopTrayActionHandlerService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
