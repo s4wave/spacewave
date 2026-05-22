@@ -770,9 +770,7 @@ export interface WorldStateResourceService {
 export const WorldStateResourceServiceServiceName =
   WorldStateResourceServiceDefinition.typeName
 
-export class WorldStateResourceServiceClient
-  implements WorldStateResourceService
-{
+export class WorldStateResourceServiceClient implements WorldStateResourceService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1191,9 +1189,7 @@ export interface WatchWorldStateResourceService {
 export const WatchWorldStateResourceServiceServiceName =
   WatchWorldStateResourceServiceDefinition.typeName
 
-export class WatchWorldStateResourceServiceClient
-  implements WatchWorldStateResourceService
-{
+export class WatchWorldStateResourceServiceClient implements WatchWorldStateResourceService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1418,9 +1414,7 @@ export interface ObjectIteratorResourceService {
 export const ObjectIteratorResourceServiceServiceName =
   ObjectIteratorResourceServiceDefinition.typeName
 
-export class ObjectIteratorResourceServiceClient
-  implements ObjectIteratorResourceService
-{
+export class ObjectIteratorResourceServiceClient implements ObjectIteratorResourceService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1586,9 +1580,7 @@ export interface GraphPathQueryResourceService {
 export const GraphPathQueryResourceServiceServiceName =
   GraphPathQueryResourceServiceDefinition.typeName
 
-export class GraphPathQueryResourceServiceClient
-  implements GraphPathQueryResourceService
-{
+export class GraphPathQueryResourceServiceClient implements GraphPathQueryResourceService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1767,9 +1759,7 @@ export interface ObjectStateResourceService {
 export const ObjectStateResourceServiceServiceName =
   ObjectStateResourceServiceDefinition.typeName
 
-export class ObjectStateResourceServiceClient
-  implements ObjectStateResourceService
-{
+export class ObjectStateResourceServiceClient implements ObjectStateResourceService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
@@ -1936,9 +1926,7 @@ export interface TypedObjectResourceService {
 export const TypedObjectResourceServiceServiceName =
   TypedObjectResourceServiceDefinition.typeName
 
-export class TypedObjectResourceServiceClient
-  implements TypedObjectResourceService
-{
+export class TypedObjectResourceServiceClient implements TypedObjectResourceService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {

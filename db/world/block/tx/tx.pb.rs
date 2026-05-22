@@ -158,6 +158,9 @@ pub struct TxDeleteGraphQuad {
 /// TxType: TxType_GC_SWEEP
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TxGcSweep {
+    /// Intent indicates why this sweep was created.
+    #[prost(enumeration="TxGcSweepIntent", tag="1")]
+    pub intent: i32,
 }
 /// TxType indicates the kind of transaction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -223,6 +226,39 @@ impl TxType {
             "TxType_DELETE_GRAPH_QUAD" => Some(Self::DeleteGraphQuad),
             "TxType_BATCH" => Some(Self::Batch),
             "TxType_GC_SWEEP" => Some(Self::GcSweep),
+            _ => None,
+        }
+    }
+}
+/// TxGCSweepIntent indicates why a GC sweep transaction was created.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TxGcSweepIntent {
+    /// TxGCSweepIntent_LEGACY_MAINTENANCE is the default for old empty payloads.
+    LegacyMaintenance = 0,
+    /// TxGCSweepIntent_MAINTENANCE is created by background maintenance.
+    Maintenance = 1,
+    /// TxGCSweepIntent_EXPLICIT is reserved for deliberate operator/admin sweeps.
+    Explicit = 2,
+}
+impl TxGcSweepIntent {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::LegacyMaintenance => "TxGCSweepIntent_LEGACY_MAINTENANCE",
+            Self::Maintenance => "TxGCSweepIntent_MAINTENANCE",
+            Self::Explicit => "TxGCSweepIntent_EXPLICIT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TxGCSweepIntent_LEGACY_MAINTENANCE" => Some(Self::LegacyMaintenance),
+            "TxGCSweepIntent_MAINTENANCE" => Some(Self::Maintenance),
+            "TxGCSweepIntent_EXPLICIT" => Some(Self::Explicit),
             _ => None,
         }
     }

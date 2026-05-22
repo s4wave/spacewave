@@ -93,6 +93,46 @@ func (x TxType) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// TxGCSweepIntent indicates why a GC sweep transaction was created.
+type TxGCSweepIntent int32
+
+const (
+	// TxGCSweepIntent_LEGACY_MAINTENANCE is the default for old empty payloads.
+	TxGCSweepIntent_TxGCSweepIntent_LEGACY_MAINTENANCE TxGCSweepIntent = 0
+	// TxGCSweepIntent_MAINTENANCE is created by background maintenance.
+	TxGCSweepIntent_TxGCSweepIntent_MAINTENANCE TxGCSweepIntent = 1
+	// TxGCSweepIntent_EXPLICIT is reserved for deliberate operator/admin sweeps.
+	TxGCSweepIntent_TxGCSweepIntent_EXPLICIT TxGCSweepIntent = 2
+)
+
+// Enum value maps for TxGCSweepIntent.
+var (
+	TxGCSweepIntent_name = map[int32]string{
+		0: "TxGCSweepIntent_LEGACY_MAINTENANCE",
+		1: "TxGCSweepIntent_MAINTENANCE",
+		2: "TxGCSweepIntent_EXPLICIT",
+	}
+	TxGCSweepIntent_value = map[string]int32{
+		"TxGCSweepIntent_LEGACY_MAINTENANCE": 0,
+		"TxGCSweepIntent_MAINTENANCE":        1,
+		"TxGCSweepIntent_EXPLICIT":           2,
+	}
+)
+
+func (x TxGCSweepIntent) Enum() *TxGCSweepIntent {
+	p := new(TxGCSweepIntent)
+	*p = x
+	return p
+}
+
+func (x TxGCSweepIntent) String() string {
+	name, valid := TxGCSweepIntent_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // Tx is the on-the-wire representation of a World transaction.
 type Tx struct {
 	unknownFields []byte
@@ -514,6 +554,8 @@ func (x *TxDeleteGraphQuad) GetQuad() *quad.Quad {
 // TxType: TxType_GC_SWEEP
 type TxGCSweep struct {
 	unknownFields []byte
+	// Intent indicates why this sweep was created.
+	Intent TxGCSweepIntent `protobuf:"varint,1,opt,name=intent,proto3" json:"intent,omitempty"`
 }
 
 func (x *TxGCSweep) Reset() {
@@ -521,6 +563,13 @@ func (x *TxGCSweep) Reset() {
 }
 
 func (*TxGCSweep) ProtoMessage() {}
+
+func (x *TxGCSweep) GetIntent() TxGCSweepIntent {
+	if x != nil {
+		return x.Intent
+	}
+	return TxGCSweepIntent_TxGCSweepIntent_LEGACY_MAINTENANCE
+}
 
 func (m *Tx) CloneVT() *Tx {
 	if m == nil {
@@ -732,6 +781,7 @@ func (m *TxGCSweep) CloneVT() *TxGCSweep {
 		return (*TxGCSweep)(nil)
 	}
 	r := new(TxGCSweep)
+	r.Intent = m.Intent
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1042,6 +1092,9 @@ func (this *TxGCSweep) EqualVT(that *TxGCSweep) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.Intent != that.Intent {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1090,6 +1143,46 @@ func (x *TxType) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the TxType from JSON.
 func (x *TxType) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TxGCSweepIntent to JSON.
+func (x TxGCSweepIntent) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), TxGCSweepIntent_name)
+}
+
+// MarshalText marshals the TxGCSweepIntent to text.
+func (x TxGCSweepIntent) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), TxGCSweepIntent_name)), nil
+}
+
+// MarshalJSON marshals the TxGCSweepIntent to JSON.
+func (x TxGCSweepIntent) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxGCSweepIntent from JSON.
+func (x *TxGCSweepIntent) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(TxGCSweepIntent_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read TxGCSweepIntent enum: %v", err)
+		return
+	}
+	*x = TxGCSweepIntent(v)
+}
+
+// UnmarshalText unmarshals the TxGCSweepIntent from text.
+func (x *TxGCSweepIntent) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), TxGCSweepIntent_value)
+	if err != nil {
+		return err
+	}
+	*x = TxGCSweepIntent(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the TxGCSweepIntent from JSON.
+func (x *TxGCSweepIntent) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1803,6 +1896,12 @@ func (x *TxGCSweep) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Intent != 0 || s.HasField("intent") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("intent")
+		x.Intent.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1817,7 +1916,13 @@ func (x *TxGCSweep) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "intent":
+			s.AddField("intent")
+			x.Intent.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -2487,6 +2592,11 @@ func (m *TxGCSweep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Intent != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Intent))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -2730,11 +2840,18 @@ func (m *TxGCSweep) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	if m.Intent != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Intent))
+	}
 	n += len(m.unknownFields)
 	return n
 }
 
 func (x TxType) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x TxGCSweepIntent) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -3091,6 +3208,15 @@ func (x *TxDeleteGraphQuad) String() string {
 func (x *TxGCSweep) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("TxGCSweep {")
+	if x.Intent != 0 {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("intent: ")
+		sb.WriteString("\"")
+		sb.WriteString(TxGCSweepIntent(x.Intent).String())
+		sb.WriteString("\"")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -4355,6 +4481,17 @@ func (m *TxGCSweep) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: TxGCSweep: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Intent", wireType)
+			}
+			m.Intent = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Intent = TxGCSweepIntent(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

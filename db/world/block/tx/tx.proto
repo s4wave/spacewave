@@ -78,6 +78,16 @@ enum TxType {
   TxType_GC_SWEEP = 10;
 }
 
+// TxGCSweepIntent indicates why a GC sweep transaction was created.
+enum TxGCSweepIntent {
+  // TxGCSweepIntent_LEGACY_MAINTENANCE is the default for old empty payloads.
+  TxGCSweepIntent_LEGACY_MAINTENANCE = 0;
+  // TxGCSweepIntent_MAINTENANCE is created by background maintenance.
+  TxGCSweepIntent_MAINTENANCE = 1;
+  // TxGCSweepIntent_EXPLICIT is reserved for deliberate operator/admin sweeps.
+  TxGCSweepIntent_EXPLICIT = 2;
+}
+
 // TxBatch is a batch of multiple transactions.
 message TxBatch {
   // Txs is the list of transactions.
@@ -168,4 +178,6 @@ message TxDeleteGraphQuad {
 // TxGCSweep triggers a garbage collection sweep of unreferenced nodes.
 // TxType: TxType_GC_SWEEP
 message TxGCSweep {
+  // Intent indicates why this sweep was created.
+  TxGCSweepIntent intent = 1;
 }

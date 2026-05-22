@@ -192,10 +192,8 @@ func (m *LocalSOOperationResult) CloneVT() *LocalSOOperationResult {
 	}
 	r := new(LocalSOOperationResult)
 	r.LocalId = m.LocalId
+	r.Result = m.Result.CloneVT()
 	r.RootSeqno = m.RootSeqno
-	if rhs := m.Result; rhs != nil {
-		r.Result = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

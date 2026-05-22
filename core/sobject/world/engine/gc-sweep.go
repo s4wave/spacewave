@@ -25,7 +25,7 @@ type gcJournalEntryCounter interface {
 // GC sweep queueing is gated on validator/owner role and re-checked on every
 // attempted enqueue so role changes are picked up without restarting.
 func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.SharedObject, bengine gcJournalEntryCounter) error {
-	if c.conf.GetGcSweepIdleWindowDur() == 0 && c.conf.GetGcSweepBackstopIntervalDur() == 0 {
+	if c.gcSweepMaintenanceDisabled() {
 		c.le.Debug("gc sweep maintenance disabled")
 		<-ctx.Done()
 		return ctx.Err()
@@ -128,6 +128,11 @@ func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.S
 	}
 }
 
+func (c *Controller) gcSweepMaintenanceDisabled() bool {
+	return c.conf.GetGcSweepIdleWindowDur() == 0 &&
+		c.conf.GetGcSweepBackstopIntervalDur() == 0
+}
+
 // notifyGCSweepMaintenance wakes the GC sweep maintenance routine after a
 // world-state change that may have produced pending GC journal entries.
 func (c *Controller) notifyGCSweepMaintenance() {
@@ -163,7 +168,7 @@ func (c *Controller) queueGCSweepTx(ctx context.Context, so sobject.SharedObject
 		return false, nil
 	}
 
-	tx, err := world_block_tx.NewTxGCSweep()
+	tx, err := world_block_tx.NewMaintenanceTxGCSweep()
 	if err != nil {
 		return false, err
 	}

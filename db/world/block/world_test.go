@@ -1862,7 +1862,7 @@ func TestWorldState_GC_SweepTx(t *testing.T) {
 
 	// Execute GC sweep tx through the engine tx path.
 	{
-		sweepTx, err := world_block_tx.NewTxGCSweep()
+		sweepTx, err := world_block_tx.NewExplicitTxGCSweep()
 		if err != nil {
 			t.Fatal(err.Error())
 		}

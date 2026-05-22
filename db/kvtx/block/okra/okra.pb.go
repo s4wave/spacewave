@@ -237,13 +237,11 @@ func (m *Root) CloneVT() *Root {
 	r := new(Root)
 	r.Size = m.Size
 	r.Height = m.Height
+	r.RootPageRef = m.RootPageRef.CloneVT()
 	r.HashSize = m.HashSize
 	r.FanoutDegree = m.FanoutDegree
 	if rhs := m.RootHash; rhs != nil {
 		r.RootHash = slices.Clone(rhs)
-	}
-	if rhs := m.RootPageRef; rhs != nil {
-		r.RootPageRef = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -295,18 +293,14 @@ func (m *Entry) CloneVT() *Entry {
 	r := new(Entry)
 	r.Anchor = m.Anchor
 	r.Size = m.Size
+	r.ChildRef = m.ChildRef.CloneVT()
+	r.ValueRef = m.ValueRef.CloneVT()
 	r.ValueIsBlob = m.ValueIsBlob
 	if rhs := m.Key; rhs != nil {
 		r.Key = slices.Clone(rhs)
 	}
 	if rhs := m.Hash; rhs != nil {
 		r.Hash = slices.Clone(rhs)
-	}
-	if rhs := m.ChildRef; rhs != nil {
-		r.ChildRef = rhs.CloneVT()
-	}
-	if rhs := m.ValueRef; rhs != nil {
-		r.ValueRef = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)

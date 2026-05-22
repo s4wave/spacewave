@@ -119,6 +119,44 @@ export const TxType_Enum = createEnumType('world.block.tx.TxType', [
 ])
 
 /**
+ * TxGCSweepIntent indicates why a GC sweep transaction was created.
+ *
+ * @generated from enum world.block.tx.TxGCSweepIntent
+ */
+export enum TxGCSweepIntent {
+  /**
+   * TxGCSweepIntent_LEGACY_MAINTENANCE is the default for old empty payloads.
+   *
+   * @generated from enum value: TxGCSweepIntent_LEGACY_MAINTENANCE = 0;
+   */
+  TxGCSweepIntent_LEGACY_MAINTENANCE = 0,
+
+  /**
+   * TxGCSweepIntent_MAINTENANCE is created by background maintenance.
+   *
+   * @generated from enum value: TxGCSweepIntent_MAINTENANCE = 1;
+   */
+  TxGCSweepIntent_MAINTENANCE = 1,
+
+  /**
+   * TxGCSweepIntent_EXPLICIT is reserved for deliberate operator/admin sweeps.
+   *
+   * @generated from enum value: TxGCSweepIntent_EXPLICIT = 2;
+   */
+  TxGCSweepIntent_EXPLICIT = 2,
+}
+
+// TxGCSweepIntent_Enum is the enum type for TxGCSweepIntent.
+export const TxGCSweepIntent_Enum = createEnumType(
+  'world.block.tx.TxGCSweepIntent',
+  [
+    { no: 0, name: 'TxGCSweepIntent_LEGACY_MAINTENANCE' },
+    { no: 1, name: 'TxGCSweepIntent_MAINTENANCE' },
+    { no: 2, name: 'TxGCSweepIntent_EXPLICIT' },
+  ],
+)
+
+/**
  * TxApplyWorldOp applies a world operation.
  * TxType: TxType_APPLY_WORLD_OP
  *
@@ -427,12 +465,21 @@ export const TxBatch: MessageType<TxBatch> = createMessageType({
  *
  * @generated from message world.block.tx.TxGCSweep
  */
-export interface TxGCSweep {}
+export interface TxGCSweep {
+  /**
+   * Intent indicates why this sweep was created.
+   *
+   * @generated from field: world.block.tx.TxGCSweepIntent intent = 1;
+   */
+  intent?: TxGCSweepIntent
+}
 
 // TxGCSweep contains the message type declaration for TxGCSweep.
 export const TxGCSweep: MessageType<TxGCSweep> = createMessageType({
   typeName: 'world.block.tx.TxGCSweep',
-  fields: [] as readonly PartialFieldInfo[],
+  fields: [
+    { no: 1, name: 'intent', kind: 'enum', T: TxGCSweepIntent_Enum },
+  ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 

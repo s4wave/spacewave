@@ -104,12 +104,8 @@ func (m *KeyValueStore) CloneVT() *KeyValueStore {
 	}
 	r := new(KeyValueStore)
 	r.ImplType = m.ImplType
-	if rhs := m.IavlRoot; rhs != nil {
-		r.IavlRoot = rhs.CloneVT()
-	}
-	if rhs := m.OkraRoot; rhs != nil {
-		r.OkraRoot = rhs.CloneVT()
-	}
+	r.IavlRoot = m.IavlRoot.CloneVT()
+	r.OkraRoot = m.OkraRoot.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

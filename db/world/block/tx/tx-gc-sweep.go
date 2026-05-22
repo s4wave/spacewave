@@ -2,6 +2,7 @@ package world_block_tx
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
@@ -14,12 +15,45 @@ type garbageCollectable interface {
 	GarbageCollect(ctx context.Context) error
 }
 
-// NewTxGCSweep constructs a new GC_SWEEP transaction.
+// NewTxGCSweep constructs a legacy GC_SWEEP transaction.
+//
+// Deprecated: use NewMaintenanceTxGCSweep or NewExplicitTxGCSweep so sweep
+// intent is persisted with the transaction.
 func NewTxGCSweep() (*Tx, error) {
+	return newTxGCSweep(TxGCSweepIntent_TxGCSweepIntent_LEGACY_MAINTENANCE), nil
+}
+
+// NewMaintenanceTxGCSweep constructs a maintenance GC_SWEEP transaction.
+func NewMaintenanceTxGCSweep() (*Tx, error) {
+	return newTxGCSweep(TxGCSweepIntent_TxGCSweepIntent_MAINTENANCE), nil
+}
+
+// NewExplicitTxGCSweep constructs an explicit GC_SWEEP transaction.
+func NewExplicitTxGCSweep() (*Tx, error) {
+	return newTxGCSweep(TxGCSweepIntent_TxGCSweepIntent_EXPLICIT), nil
+}
+
+func newTxGCSweep(intent TxGCSweepIntent) *Tx {
 	return &Tx{
 		TxType:    TxType_TxType_GC_SWEEP,
-		TxGcSweep: &TxGCSweep{},
-	}, nil
+		TxGcSweep: &TxGCSweep{Intent: intent},
+	}
+}
+
+// ContainsGCSweep returns true when tx or any nested batch transaction is a GC sweep.
+func ContainsGCSweep(tx *Tx) bool {
+	if tx == nil {
+		return false
+	}
+	switch tx.GetTxType() {
+	case TxType_TxType_GC_SWEEP:
+		return true
+	case TxType_TxType_BATCH:
+		if slices.ContainsFunc(tx.GetTxBatch().GetTxs(), ContainsGCSweep) {
+			return true
+		}
+	}
+	return false
 }
 
 // IsNil checks if the object is nil.
@@ -42,7 +76,7 @@ func (t *TxGCSweep) Clone() *TxGCSweep {
 	if t == nil {
 		return nil
 	}
-	return &TxGCSweep{}
+	return &TxGCSweep{Intent: t.Intent}
 }
 
 // Validate performs a cursory check of the transaction.

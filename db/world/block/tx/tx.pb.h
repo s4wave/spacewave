@@ -22,7 +22,6 @@
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/arena.h"
 #include "google/protobuf/arenastring.h"
-#include "google/protobuf/generated_message_bases.h"
 #include "google/protobuf/generated_message_tctable_decl.h"
 #include "google/protobuf/generated_message_util.h"
 #include "google/protobuf/metadata_lite.h"
@@ -61,6 +60,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace world {
 namespace block {
 namespace tx {
+enum TxGCSweepIntent : int;
+extern const uint32_t TxGCSweepIntent_internal_data_[];
 enum TxType : int;
 extern const uint32_t TxType_internal_data_[];
 class Tx;
@@ -117,6 +118,9 @@ extern const ::google::protobuf::internal::ClassDataFull TxSetGraphQuad_class_da
 namespace google {
 namespace protobuf {
 template <>
+internal::EnumTraitsT<::world::block::tx::TxGCSweepIntent_internal_data_>
+    internal::EnumTraitsImpl::value<::world::block::tx::TxGCSweepIntent>;
+template <>
 internal::EnumTraitsT<::world::block::tx::TxType_internal_data_>
     internal::EnumTraitsImpl::value<::world::block::tx::TxType>;
 }  // namespace protobuf
@@ -169,6 +173,43 @@ inline const ::std::string& TxType_Name(TxType value) {
 inline bool TxType_Parse(
     ::absl::string_view name, TxType* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<TxType>(TxType_descriptor(), name,
+                                           value);
+}
+enum TxGCSweepIntent : int {
+  TxGCSweepIntent_LEGACY_MAINTENANCE = 0,
+  TxGCSweepIntent_MAINTENANCE = 1,
+  TxGCSweepIntent_EXPLICIT = 2,
+  TxGCSweepIntent_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  TxGCSweepIntent_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t TxGCSweepIntent_internal_data_[];
+inline constexpr TxGCSweepIntent TxGCSweepIntent_MIN =
+    static_cast<TxGCSweepIntent>(0);
+inline constexpr TxGCSweepIntent TxGCSweepIntent_MAX =
+    static_cast<TxGCSweepIntent>(2);
+inline bool TxGCSweepIntent_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int TxGCSweepIntent_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxGCSweepIntent_descriptor();
+template <typename T>
+const ::std::string& TxGCSweepIntent_Name(T value) {
+  static_assert(::std::is_same<T, TxGCSweepIntent>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to TxGCSweepIntent_Name().");
+  return TxGCSweepIntent_Name(static_cast<TxGCSweepIntent>(value));
+}
+template <>
+inline const ::std::string& TxGCSweepIntent_Name(TxGCSweepIntent value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<TxGCSweepIntent_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool TxGCSweepIntent_Parse(
+    ::absl::string_view name, TxGCSweepIntent* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<TxGCSweepIntent>(TxGCSweepIntent_descriptor(), name,
                                            value);
 }
 
@@ -584,10 +625,11 @@ class TxObjectIncRev final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TxObjectIncRev_class_data_;
 // -------------------------------------------------------------------
 
-class TxGCSweep final : public ::google::protobuf::internal::ZeroFieldsBase
+class TxGCSweep final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:world.block.tx.TxGCSweep) */ {
  public:
   inline TxGCSweep() : TxGCSweep(nullptr) {}
+  ~TxGCSweep() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
   void operator delete(TxGCSweep* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
@@ -657,21 +699,48 @@ class TxGCSweep final : public ::google::protobuf::internal::ZeroFieldsBase
   // implements Message ----------------------------------------------
 
   TxGCSweep* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<TxGCSweep>(arena);
+    return ::google::protobuf::Message::DefaultConstruct<TxGCSweep>(arena);
   }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const TxGCSweep& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const TxGCSweep& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TxGCSweep& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TxGCSweep& from) { TxGCSweep::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
 
   public:
   bool IsInitialized() const {
     return true;
   }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TxGCSweep* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
@@ -697,11 +766,24 @@ class TxGCSweep final : public ::google::protobuf::internal::ZeroFieldsBase
   // nested types ----------------------------------------------------
 
   // accessors -------------------------------------------------------
+  enum : int {
+    kIntentFieldNumber = 1,
+  };
+  // .world.block.tx.TxGCSweepIntent intent = 1;
+  void clear_intent() ;
+  ::world::block::tx::TxGCSweepIntent intent() const;
+  void set_intent(::world::block::tx::TxGCSweepIntent value);
+
+  private:
+  ::world::block::tx::TxGCSweepIntent _internal_intent() const;
+  void _internal_set_intent(::world::block::tx::TxGCSweepIntent value);
+
+  public:
   // @@protoc_insertion_point(class_scope:world.block.tx.TxGCSweep)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
                                    0, 0,
                                    2>
       _table_;
@@ -712,6 +794,21 @@ class TxGCSweep final : public ::google::protobuf::internal::ZeroFieldsBase
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TxGCSweep& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    int intent_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto;
 };
 
@@ -5259,6 +5356,31 @@ inline void TxDeleteGraphQuad::set_allocated_quad(::quad::Quad* PROTOBUF_NULLABL
 
 // TxGCSweep
 
+// .world.block.tx.TxGCSweepIntent intent = 1;
+inline void TxGCSweep::clear_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.intent_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::world::block::tx::TxGCSweepIntent TxGCSweep::intent() const {
+  // @@protoc_insertion_point(field_get:world.block.tx.TxGCSweep.intent)
+  return _internal_intent();
+}
+inline void TxGCSweep::set_intent(::world::block::tx::TxGCSweepIntent value) {
+  _internal_set_intent(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:world.block.tx.TxGCSweep.intent)
+}
+inline ::world::block::tx::TxGCSweepIntent TxGCSweep::_internal_intent() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::world::block::tx::TxGCSweepIntent>(_impl_.intent_);
+}
+inline void TxGCSweep::_internal_set_intent(::world::block::tx::TxGCSweepIntent value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.intent_ = value;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -5277,6 +5399,12 @@ struct is_proto_enum<::world::block::tx::TxType> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::world::block::tx::TxType>() {
   return ::world::block::tx::TxType_descriptor();
+}
+template <>
+struct is_proto_enum<::world::block::tx::TxGCSweepIntent> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::world::block::tx::TxGCSweepIntent>() {
+  return ::world::block::tx::TxGCSweepIntent_descriptor();
 }
 
 }  // namespace protobuf

@@ -86,14 +86,21 @@ struct TxObjectIncRevDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TxObjectIncRevDefaultTypeInternal _TxObjectIncRev_default_instance_;
+
+inline constexpr TxGCSweep::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        intent_{static_cast< ::world::block::tx::TxGCSweepIntent >(0)} {}
+
 template <typename>
 PROTOBUF_CONSTEXPR TxGCSweep::TxGCSweep(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(TxGCSweep_class_data_.base()){}
+    : ::google::protobuf::Message(TxGCSweep_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase() {
-}
+    : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
 struct TxGCSweepDefaultTypeInternal {
   PROTOBUF_CONSTEXPR TxGCSweepDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~TxGCSweepDefaultTypeInternal() {}
@@ -372,7 +379,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace block
 }  // namespace world
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto = nullptr;
 const ::uint32_t
@@ -473,7 +480,11 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::world::block::tx::TxDeleteGraphQuad, _impl_.quad_),
         0,
-        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxGCSweep, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::world::block::tx::TxGCSweep, _impl_.intent_),
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -544,15 +555,19 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fwo
     "ld_object_key\030\001 \001(\t\022\026\n\016new_object_key\030\002 "
     "\001(\t\"*\n\016TxSetGraphQuad\022\030\n\004quad\030\001 \001(\0132\n.qu"
     "ad.Quad\"-\n\021TxDeleteGraphQuad\022\030\n\004quad\030\001 \001"
-    "(\0132\n.quad.Quad\"\013\n\tTxGCSweep*\263\002\n\006TxType\022\022"
-    "\n\016TxType_INVALID\020\000\022\031\n\025TxType_APPLY_WORLD"
-    "_OP\020\001\022\032\n\026TxType_APPLY_OBJECT_OP\020\002\022\030\n\024TxT"
-    "ype_CREATE_OBJECT\020\003\022\025\n\021TxType_OBJECT_SET"
-    "\020\004\022\031\n\025TxType_OBJECT_INC_REV\020\005\022\030\n\024TxType_"
-    "DELETE_OBJECT\020\006\022\030\n\024TxType_RENAME_OBJECT\020"
-    "\013\022\031\n\025TxType_SET_GRAPH_QUAD\020\007\022\034\n\030TxType_D"
-    "ELETE_GRAPH_QUAD\020\010\022\020\n\014TxType_BATCH\020\t\022\023\n\017"
-    "TxType_GC_SWEEP\020\nb\006proto3"
+    "(\0132\n.quad.Quad\"<\n\tTxGCSweep\022/\n\006intent\030\001 "
+    "\001(\0162\037.world.block.tx.TxGCSweepIntent*\263\002\n"
+    "\006TxType\022\022\n\016TxType_INVALID\020\000\022\031\n\025TxType_AP"
+    "PLY_WORLD_OP\020\001\022\032\n\026TxType_APPLY_OBJECT_OP"
+    "\020\002\022\030\n\024TxType_CREATE_OBJECT\020\003\022\025\n\021TxType_O"
+    "BJECT_SET\020\004\022\031\n\025TxType_OBJECT_INC_REV\020\005\022\030"
+    "\n\024TxType_DELETE_OBJECT\020\006\022\030\n\024TxType_RENAM"
+    "E_OBJECT\020\013\022\031\n\025TxType_SET_GRAPH_QUAD\020\007\022\034\n"
+    "\030TxType_DELETE_GRAPH_QUAD\020\010\022\020\n\014TxType_BA"
+    "TCH\020\t\022\023\n\017TxType_GC_SWEEP\020\n*x\n\017TxGCSweepI"
+    "ntent\022&\n\"TxGCSweepIntent_LEGACY_MAINTENA"
+    "NCE\020\000\022\037\n\033TxGCSweepIntent_MAINTENANCE\020\001\022\034"
+    "\n\030TxGCSweepIntent_EXPLICIT\020\002b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto_deps[2] = {
@@ -563,7 +578,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto = {
     false,
     false,
-    1825,
+    1996,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto,
     "github.com/s4wave/spacewave/db/world/block/tx/tx.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto_once,
@@ -585,6 +600,12 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor() {
 }
 PROTOBUF_CONSTINIT const uint32_t TxType_internal_data_[] = {
     786432u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxGCSweepIntent_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2ftx_2ftx_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t TxGCSweepIntent_internal_data_[] = {
+    196608u, 0u, };
 // ===================================================================
 
 class Tx::_Internal {
@@ -4412,30 +4433,53 @@ void TxDeleteGraphQuad::InternalSwap(TxDeleteGraphQuad* PROTOBUF_RESTRICT PROTOB
 
 class TxGCSweep::_Internal {
  public:
+  using HasBits =
+      decltype(::std::declval<TxGCSweep>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TxGCSweep, _impl_._has_bits_);
 };
 
 TxGCSweep::TxGCSweep(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, TxGCSweep_class_data_.base()) {
+    : ::google::protobuf::Message(arena, TxGCSweep_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:world.block.tx.TxGCSweep)
 }
 TxGCSweep::TxGCSweep(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const TxGCSweep& from)
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TxGCSweep& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, TxGCSweep_class_data_.base()) {
+    : ::google::protobuf::Message(arena, TxGCSweep_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena),
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  TxGCSweep* const _this = this;
-  (void)_this;
+      _impl_(from._impl_) {
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE TxGCSweep::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
 
-  // @@protoc_insertion_point(copy_constructor:world.block.tx.TxGCSweep)
+inline void TxGCSweep::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.intent_ = {};
+}
+TxGCSweep::~TxGCSweep() {
+  // @@protoc_insertion_point(destructor:world.block.tx.TxGCSweep)
+  SharedDtor(*this);
+}
+inline void TxGCSweep::SharedDtor(MessageLite& self) {
+  TxGCSweep& this_ = static_cast<TxGCSweep&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
 }
 
 inline void* PROTOBUF_NONNULL TxGCSweep::PlacementNew_(
@@ -4455,10 +4499,10 @@ constexpr auto TxGCSweep::InternalGenerateClassData_() {
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
           &TxGCSweep::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<TxGCSweep>(),
+          ::google::protobuf::Message::GetNewImpl<TxGCSweep>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
           &TxGCSweep::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<TxGCSweep>(), &TxGCSweep::ByteSizeLong,
+          ::google::protobuf::Message::GetClearImpl<TxGCSweep>(), &TxGCSweep::ByteSizeLong,
               &TxGCSweep::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
           PROTOBUF_FIELD_OFFSET(TxGCSweep, _impl_._cached_size_),
@@ -4481,16 +4525,16 @@ TxGCSweep::GetClassData() const {
   return TxGCSweep_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
 TxGCSweep::_table_ = {
   {
-    0,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(TxGCSweep, _impl_._has_bits_),
     0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
+    1, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     TxGCSweep_class_data_.base(),
@@ -4500,22 +4544,138 @@ TxGCSweep::_table_ = {
     ::_pbi::TcParser::GetTable<::world::block::tx::TxGCSweep>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // .world.block.tx.TxGCSweepIntent intent = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TxGCSweep, _impl_.intent_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TxGCSweep, _impl_.intent_)}},
   }}, {{
     65535, 65535
-  }}, // no field_entries, or aux_entries
+  }}, {{
+    // .world.block.tx.TxGCSweepIntent intent = 1;
+    {PROTOBUF_FIELD_OFFSET(TxGCSweep, _impl_.intent_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
   {{
   }},
 };
+PROTOBUF_NOINLINE void TxGCSweep::Clear() {
+// @@protoc_insertion_point(message_clear_start:world.block.tx.TxGCSweep)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.intent_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TxGCSweep::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TxGCSweep& this_ = static_cast<const TxGCSweep&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TxGCSweep::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TxGCSweep& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:world.block.tx.TxGCSweep)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .world.block.tx.TxGCSweepIntent intent = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_intent() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_intent(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:world.block.tx.TxGCSweep)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TxGCSweep::ByteSizeLong(const MessageLite& base) {
+  const TxGCSweep& this_ = static_cast<const TxGCSweep&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TxGCSweep::ByteSizeLong() const {
+  const TxGCSweep& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:world.block.tx.TxGCSweep)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .world.block.tx.TxGCSweepIntent intent = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_intent() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_intent());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TxGCSweep::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TxGCSweep*>(&to_msg);
+  auto& from = static_cast<const TxGCSweep&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:world.block.tx.TxGCSweep)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_intent() != 0) {
+      _this->_impl_.intent_ = from._impl_.intent_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TxGCSweep::CopyFrom(const TxGCSweep& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:world.block.tx.TxGCSweep)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
 
 
-
-
-
-
+void TxGCSweep::InternalSwap(TxGCSweep* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.intent_, other->_impl_.intent_);
+}
 
 ::google::protobuf::Metadata TxGCSweep::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace tx

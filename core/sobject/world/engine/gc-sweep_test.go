@@ -72,6 +72,9 @@ func TestQueueGCSweepTxRolePromotion(t *testing.T) {
 	if body.ApplyTxOp.GetTx().GetTxType() != world_block_tx.TxType_TxType_GC_SWEEP {
 		t.Fatalf("expected GC_SWEEP tx, got %s", body.ApplyTxOp.GetTx().GetTxType().String())
 	}
+	if body.ApplyTxOp.GetTx().GetTxGcSweep().GetIntent() != world_block_tx.TxGCSweepIntent_TxGCSweepIntent_MAINTENANCE {
+		t.Fatalf("expected maintenance sweep intent, got %s", body.ApplyTxOp.GetTx().GetTxGcSweep().GetIntent().String())
+	}
 }
 
 // TestExecuteGCSweepMaintenanceWaitsForRoleChanges verifies that the
