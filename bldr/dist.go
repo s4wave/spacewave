@@ -18,6 +18,7 @@ import (
 //
 //go:embed web/bldr-react/*.ts web/bldr-react/*.tsx
 //go:embed web/bldr/*.ts web/bldr/*.tsx
+//go:embed web/devtool-status/*.tsx web/devtool-status/*.css
 //go:embed web/wasi-shim/*.ts
 //go:embed web/document/*.ts web/view/*.ts web/view/handler/*.ts
 //go:embed web/electron web/entrypoint web/entrypoint/index/index.html
@@ -35,6 +36,7 @@ import (
 //go:embed web/plugin/plugin.pb.ts web/plugin/plugin_srpc.pb.ts
 //go:embed plugin/plugin.pb.ts plugin/plugin_srpc.pb.ts
 //go:embed manifest/manifest.pb.ts manifest/manifest_srpc.pb.ts
+//go:embed devtool/status/status.pb.ts devtool/status/status_srpc.pb.ts
 //go:embed devtool/deps.go devtool/web/entrypoint/web.go
 //go:embed dist/deps/deps.go dist/deps/package.json
 //go:embed web/bundler/bundler.pb.ts

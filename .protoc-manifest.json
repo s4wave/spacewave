@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "e995dbce38d6b7314946e26cfb2e26f8899332ca5007d5166cd9facee46c077d",
+  "protocFlagsHash": "cff9c1c27dbf1d2ee5ef4b3aa069c3082ac8c24f1cf6f282db67f1de396d9f7b",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -62,6 +62,22 @@
         "bldr/desktop/tray/tray_srpc.pb.ts"
       ],
       "protoFiles": ["bldr/desktop/tray/tray.proto"]
+    },
+    "github.com/s4wave/spacewave/bldr/devtool/status": {
+      "hash": "ba0e3bf51464cdaa03f8b59f8c9fa50426dc12b704720a651e43be735723c787",
+      "generatedFiles": [
+        "bldr/devtool/status/status.pb.cc",
+        "bldr/devtool/status/status.pb.go",
+        "bldr/devtool/status/status.pb.h",
+        "bldr/devtool/status/status.pb.rs",
+        "bldr/devtool/status/status.pb.ts",
+        "bldr/devtool/status/status_srpc.pb.cpp",
+        "bldr/devtool/status/status_srpc.pb.go",
+        "bldr/devtool/status/status_srpc.pb.hpp",
+        "bldr/devtool/status/status_srpc.pb.rs",
+        "bldr/devtool/status/status_srpc.pb.ts"
+      ],
+      "protoFiles": ["bldr/devtool/status/status.proto"]
     },
     "github.com/s4wave/spacewave/bldr/devtool/web": {
       "hash": "5c769040e039f1ffb10193454ee1ee6d8c732be26cdaaf2236be7dc0fb27208a",

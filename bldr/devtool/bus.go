@@ -742,6 +742,7 @@ func (d *DevtoolBus) StartProjectControllerWithStartup(
 		ctrlRef.Release()
 		return nil, nil, err
 	}
+	devtool_status.AttachProjectStatus(d.statusProducer, projCtrl)
 	devtool_status.AttachManifestBuildStatus(d.statusProducer, projCtrl)
 	return projWatcher, ctrlRef, nil
 }

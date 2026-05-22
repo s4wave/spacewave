@@ -45,6 +45,8 @@ type Controller struct {
 	statusSinkMtx sync.Mutex
 	// manifestBuilderStatusSink receives manifest build status events
 	manifestBuilderStatusSink ManifestBuilderStatusSink
+	// projectConfigStatusSink receives project config status events
+	projectConfigStatusSink ProjectConfigStatusSink
 	// manifestBuilderBuildTargets records finite build targets by manifest builder key
 	manifestBuilderBuildTargets map[string][]string
 	// mtx guards writing below fields
@@ -85,6 +87,15 @@ func (c *Controller) SetManifestBuilderStatusSink(sink ManifestBuilderStatusSink
 	}
 }
 
+// SetProjectConfigStatusSink sets the project config status sink.
+func (c *Controller) SetProjectConfigStatusSink(sink ProjectConfigStatusSink) {
+	c.statusSinkMtx.Lock()
+	c.projectConfigStatusSink = sink
+	c.statusSinkMtx.Unlock()
+
+	c.publishProjectConfigStatus(c.conf.Load().GetProjectConfig())
+}
+
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
@@ -116,6 +127,7 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 	nextCtrlConf := prevCtrlConf.CloneVT()
 	nextCtrlConf.ProjectConfig = nextConf.CloneVT()
 	c.conf.Store(nextCtrlConf)
+	c.publishProjectConfigStatus(nextConf)
 
 	// build list of running manifest builders
 	manifestBuilders := c.getRunningManifestBuilders()
@@ -191,6 +203,15 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 	}
 
 	return nil
+}
+
+func (c *Controller) publishProjectConfigStatus(projectConfig *bldr_project.ProjectConfig) {
+	c.statusSinkMtx.Lock()
+	sink := c.projectConfigStatusSink
+	c.statusSinkMtx.Unlock()
+	if sink != nil {
+		sink.SetProjectConfigStatus(projectConfig.CloneVT())
+	}
 }
 
 // BuildManifestBuilderConfigs compiles a set of manifests linking them to the remote object key.

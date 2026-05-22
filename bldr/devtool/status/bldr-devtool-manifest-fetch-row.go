@@ -1,8 +1,9 @@
 package status
 
-import "slices"
-
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // BldrDevtoolManifestState describes manifest fetch and build progress.
 type BldrDevtoolManifestState int32

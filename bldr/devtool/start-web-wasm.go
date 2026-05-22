@@ -16,6 +16,7 @@ import (
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
+	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -228,6 +229,9 @@ func (d *DevtoolBus) ExecuteWebWasm(
 				// proxy the devtool host volume via RPC
 				proxyVol := volume_rpc_server.NewProxyVolume(ctx, d.GetVolume(), false)
 				return volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyVol, devtool_web.HostVolumeServiceIDPrefix)
+			},
+			func(mux srpc.Mux) error {
+				return devtool_status.RegisterDevtoolStatusService(mux, d.GetStatusProducer())
 			},
 		},
 		[]protocol.ID{devtool_web.HostProtocolID},
