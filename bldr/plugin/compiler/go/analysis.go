@@ -188,12 +188,25 @@ func AnalyzePackages(
 		explicitFactoryPackagePaths[packagePath] = struct{}{}
 	}
 
+	programModulePaths := make(map[string]struct{}, len(packagePaths))
+	for _, pkg := range loadedPackages {
+		if pkg.Module == nil {
+			continue
+		}
+		if _, ok := explicitFactoryPackagePaths[pkg.PkgPath]; ok {
+			programModulePaths[pkg.Module.Path] = struct{}{}
+		}
+	}
+
 	addPkgsStack := make([]*packages.Package, len(loadedPackages))
 	copy(addPkgsStack, loadedPackages)
 	for len(addPkgsStack) != 0 {
 		pkg := addPkgsStack[len(addPkgsStack)-1]
 		addPkgsStack = addPkgsStack[:len(addPkgsStack)-1]
 		if _, ok := res.packages[pkg.PkgPath]; ok || pkg.Module == nil {
+			continue
+		}
+		if _, ok := programModulePaths[pkg.Module.Path]; !ok {
 			continue
 		}
 		res.packages[pkg.PkgPath] = pkg

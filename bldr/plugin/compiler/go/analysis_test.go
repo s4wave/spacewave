@@ -261,6 +261,70 @@ const Value = "dep"
 	}
 }
 
+func TestAnalysisProgramGoCodeFilesExcludesHelperModule(t *testing.T) {
+	ctx := context.Background()
+	testDir := t.TempDir()
+	workDir := filepath.Join(testDir, "plugin")
+	spacewaveDir := filepath.Join(testDir, "spacewave")
+
+	writeFile(t, workDir, "go.mod", `module example.com/plugin
+
+go 1.26.2
+
+require github.com/s4wave/spacewave v0.0.0
+
+replace github.com/s4wave/spacewave => `+spacewaveDir+`
+`)
+	writeFile(t, workDir, "plugin/root/root.go", `package root
+
+const Value = "root"
+`)
+
+	writeFile(t, spacewaveDir, "go.mod", `module github.com/s4wave/spacewave
+
+go 1.26.2
+`)
+	writeFile(t, spacewaveDir, "bldr/web/bundler/output.go", `package bundler
+
+type WebBundlerOutput struct{}
+`)
+
+	le := logrus.NewEntry(logrus.New())
+	an, err := AnalyzePackages(
+		ctx,
+		le,
+		workDir,
+		[]string{"./plugin/root"},
+		[]string{"build_type_release", "purego"},
+		"js",
+		"wasm",
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	programFiles := an.GetProgramGoCodeFiles()
+	var programRelPaths []string
+	for _, pkgFiles := range programFiles {
+		for _, file := range pkgFiles {
+			relPath, err := filepath.Rel(workDir, an.GetFileToken(file).Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			programRelPaths = append(programRelPaths, filepath.ToSlash(relPath))
+		}
+	}
+
+	if !slices.Contains(programRelPaths, "plugin/root/root.go") {
+		t.Fatalf("program files missing root package: %v", programRelPaths)
+	}
+	helperPath := filepath.ToSlash(filepath.Join("..", "spacewave", "bldr", "web", "bundler", "output.go"))
+	if slices.Contains(programRelPaths, helperPath) {
+		t.Fatalf("program files include analysis helper module: %v", programRelPaths)
+	}
+}
+
 func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 	tags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, true)
 	for _, want := range []string{"build_type_release", "purego", "tinygo"} {
