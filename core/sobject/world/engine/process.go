@@ -75,6 +75,20 @@ func (c *Controller) processOp(
 			}
 			return nil, nil, errors.New("world is not initialized")
 		}
+		if c.gcSweepMaintenanceDisabled() && world_block_tx.ContainsGCSweep(body.ApplyTxOp.GetTx()) {
+			if peerID != "" {
+				ole.Warn("rejecting gc sweep tx: maintenance disabled")
+				return nil, sobject.BuildSOOperationResult(
+					peerID.String(),
+					nonce,
+					false,
+					&sobject.SOOperationRejectionErrorDetails{
+						ErrorMsg: "gc sweep maintenance disabled",
+					},
+				), nil
+			}
+			return nil, nil, errors.New("gc sweep maintenance disabled")
+		}
 
 		// Build world state with engine once for all operations
 		var ws *blkEngine
@@ -249,5 +263,5 @@ func (o *SOWorldOp) speculativeLocalQueueSafe() bool {
 	// GC sweeps are derived cleanup and must run only after authoritative
 	// processing chooses the head they sweep. Replaying them speculatively can
 	// collect data while later queued ops still depend on the old block graph.
-	return body.ApplyTxOp.GetTx().GetTxType() != world_block_tx.TxType_TxType_GC_SWEEP
+	return !world_block_tx.ContainsGCSweep(body.ApplyTxOp.GetTx())
 }
