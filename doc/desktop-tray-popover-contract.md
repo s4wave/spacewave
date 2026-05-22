@@ -4,9 +4,11 @@ The desktop tray surface is a watched `DesktopTrayState`. The native tray menu
 and any rich popover render the same ordered `DesktopTrayEntry` tree from
 `bldr/desktop/tray/tray.proto`.
 
-The rich popover is a renderer for this contract. It does not own separate
-runtime state, invent separate actions, or bypass the tray resource. The native
-menu remains a complete fallback renderer for the same tree.
+The rich popover is the current opt-in rich panel implementation. It renders
+this contract, may use Electron-owned `DesktopRuntimeState` only for
+presentation counts, and does not own separate runtime state, invent separate
+actions, or bypass the tray resource. The native menu remains a complete
+fallback renderer for the same tree.
 
 ## State Owner
 
@@ -26,6 +28,11 @@ removes the entry. Callers that need custom action handling attach a
 The desktop runtime status projector is one producer of this tree. It projects
 runtime health, listener state, sessions, Spaces, activity, updates, and app
 commands into tray entries.
+
+Electron main already owns the current `DesktopRuntimeState` snapshot for
+desktop-shell lifecycle. Rich panel descriptors can read that snapshot to enrich
+headers, counts, and cards, but command identity, visibility, ordering,
+enablement, and invocation semantics still come from `DesktopTrayState.entries`.
 
 ## Tree Shape
 
@@ -123,6 +130,22 @@ renders the `DesktopTrayState` contract:
 The native menu remains valid and complete when the popover is disabled, hidden,
 or fails to attach. Electron main always rebuilds the native context menu from
 `WatchDesktopTray`; the popover is optional UI layered on top of that resource.
+
+The current rich panel remains opt-in until screenshot and interaction proof
+accepts macOS enablement:
+
+```bash
+BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1 bun run start:desktop
+```
+
+Dynamic macOS icon rendering, quiet native notifications, and a global tray
+toggle shortcut are also opt-in. `BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON=1`
+enables generated template icon variants,
+`BLDR_ELECTRON_DESKTOP_TRAY_NOTIFICATIONS=1` enables quiet update-ready and
+critical-attention notifications, and
+`BLDR_ELECTRON_DESKTOP_TRAY_TOGGLE_SHORTCUT=<accelerator>` registers a
+process-owned toggle shortcut. All three default off and are cleaned up by
+Electron main on quit.
 
 ## Native Menu Fallback Boundary
 

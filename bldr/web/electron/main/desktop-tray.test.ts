@@ -38,6 +38,11 @@ const platformState = { value: 'linux' }
 const menuTemplates: Electron.MenuItemConstructorOptions[][] = []
 const trayInstances: MockTray[] = []
 const browserWindows: MockBrowserWindow[] = []
+const notifications: MockNotification[] = []
+const mockGlobalShortcut = {
+  register: vi.fn((_shortcut: string, _handler: () => void) => true),
+  unregister: vi.fn(),
+}
 const mockClipboard = {
   writeText: vi.fn(),
 }
@@ -73,7 +78,9 @@ class MockNativeImage {
 class MockTray extends EventEmitter {
   public readonly setToolTip = vi.fn()
   public readonly setContextMenu = vi.fn()
+  public readonly setImage = vi.fn()
   public readonly setTitle = vi.fn()
+  public readonly destroy = vi.fn()
   public readonly getBounds = vi.fn(() => ({
     x: 100,
     y: 24,
@@ -84,6 +91,15 @@ class MockTray extends EventEmitter {
   constructor(public readonly image: MockNativeImage) {
     super()
     trayInstances.push(this)
+  }
+}
+
+class MockNotification {
+  public static readonly isSupported = vi.fn(() => true)
+  public readonly show = vi.fn()
+
+  constructor(public readonly opts: Electron.NotificationConstructorOptions) {
+    notifications.push(this)
   }
 }
 
@@ -120,6 +136,7 @@ vi.mock('os', () => ({
 vi.mock('electron', () => {
   const nativeImage = {
     createEmpty: vi.fn(() => new MockNativeImage()),
+    createFromDataURL: vi.fn(() => new MockNativeImage()),
     createFromPath: vi.fn(() => new MockNativeImage()),
   }
   const Menu = {
@@ -135,7 +152,9 @@ vi.mock('electron', () => {
       Tray: MockTray,
       BrowserWindow: MockBrowserWindow,
       Menu,
+      Notification: MockNotification,
       clipboard: mockClipboard,
+      globalShortcut: mockGlobalShortcut,
       nativeImage,
       screen: mockScreen,
       shell: mockShell,
@@ -143,7 +162,9 @@ vi.mock('electron', () => {
     Tray: MockTray,
     BrowserWindow: MockBrowserWindow,
     Menu,
+    Notification: MockNotification,
     clipboard: mockClipboard,
+    globalShortcut: mockGlobalShortcut,
     nativeImage,
     screen: mockScreen,
     shell: mockShell,
@@ -156,8 +177,12 @@ describe('DesktopTrayController', () => {
     menuTemplates.length = 0
     trayInstances.length = 0
     browserWindows.length = 0
+    notifications.length = 0
     browserWindowState.shouldThrow = false
     delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER
+    delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON
+    delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_NOTIFICATIONS
+    delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_TOGGLE_SHORTCUT
     vi.clearAllMocks()
     const state = defaultRuntimeState()
     setMockRuntimeState(state)
@@ -686,7 +711,7 @@ describe('DesktopTrayController', () => {
     await clickMenuItem('Open Spacewave')
     await clickMenuItem('Quit')
     trayInstances[0]?.emit('click')
-    await Promise.resolve()
+    await flushAsyncEvents()
 
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(2)
     expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
@@ -953,7 +978,7 @@ describe('DesktopTrayController', () => {
     controller.init()
 
     trayInstances[0]?.emit('click')
-    await Promise.resolve()
+    await flushAsyncEvents()
     await Promise.resolve()
 
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
@@ -1022,7 +1047,7 @@ describe('DesktopTrayController', () => {
     controller.init()
 
     trayInstances[0]?.emit('click')
-    await Promise.resolve()
+    await flushPromises()
     await Promise.resolve()
 
     expect(latestPopoverHtml()).toContain('spacewave-tray-action:diagnostics')
@@ -1072,7 +1097,7 @@ describe('DesktopTrayController', () => {
     controller.init()
 
     trayInstances[0]?.emit('click')
-    await Promise.resolve()
+    await flushAsyncEvents()
 
     expect(browserWindows).toHaveLength(0)
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
@@ -1093,7 +1118,7 @@ describe('DesktopTrayController', () => {
       controller.init()
 
       trayInstances[0]?.emit('click')
-      await Promise.resolve()
+      await flushPromises()
 
       expect(browserWindows).toHaveLength(0)
       expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
@@ -1187,6 +1212,159 @@ describe('DesktopTrayController', () => {
 
     expect(browserWindows).toHaveLength(1)
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders the rich panel descriptor without subscribing to runtime state', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const state = {
+      ...defaultRuntimeState(),
+      statusText: 'Syncing',
+      health: DesktopRuntimeHealth.ACTIVE,
+      sessions: [
+        {
+          label: 'coolguy@spacewave.app',
+          detail: 'Cloud',
+          statusText: 'Ready',
+          route: '/u/1/',
+          active: true,
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      spaces: [
+        {
+          label: 'Project Alpha With A Very Long Label',
+          detail: 'Shared',
+          route: '/u/1/so/project-alpha',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      activity: [
+        {
+          label: 'Uploading changes',
+          detail: '2 sync items',
+        },
+      ] satisfies DesktopRuntimeActivityItem[],
+    }
+    setMockRuntimeState(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+    expect(latestPopoverHtml()).toContain('data-tab="overview"')
+    expect(latestPopoverHtml()).toContain('data-tab="sessions"')
+    expect(latestPopoverHtml()).toContain(
+      'Project Alpha With A Very Long Label',
+    )
+    expect(latestPopoverHtml()).toContain('spacewave-tray-action:navigation-')
+    expect(latestPopoverHtml()).toContain('ArrowDown')
+  })
+
+  it('uses opt-in dynamic macOS tray icon variants with title fallback', async () => {
+    platformState.value = 'darwin'
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON = '1'
+    const [electron, { DesktopTrayController }] = await Promise.all([
+      import('electron'),
+      import('./desktop-tray.js'),
+    ])
+    const controller = new DesktopTrayController({
+      init: {
+        appName: 'Spacewave',
+        macosTemplateTrayIconPath: '/icons/tray-template.png',
+      },
+      resource: mockResource,
+    })
+    controller.init()
+
+    emitState({
+      ...defaultRuntimeState(),
+      statusText: 'Syncing',
+      health: DesktopRuntimeHealth.ACTIVE,
+    })
+    await flushPromises()
+    emitState({
+      ...defaultRuntimeState(),
+      statusText: 'Needs attention',
+      health: DesktopRuntimeHealth.NEEDS_ATTENTION,
+    })
+    await flushPromises()
+
+    expect(electron.nativeImage.createFromDataURL).toHaveBeenCalled()
+    expect(trayInstances[0]?.setImage).toHaveBeenCalledTimes(3)
+    expect(trayInstances[0]?.setTitle).toHaveBeenLastCalledWith('!')
+    expect(trayInstances[0]?.setToolTip).toHaveBeenLastCalledWith(
+      'Spacewave: Needs attention',
+    )
+  })
+
+  it('keeps shortcut and notification policies opt-in and Electron-owned', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_TOGGLE_SHORTCUT =
+      'CommandOrControl+Shift+S'
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_NOTIFICATIONS = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+      'CommandOrControl+Shift+S',
+      expect.any(Function),
+    )
+
+    emitTrayState({
+      statusText: 'Update ready',
+      iconState: DesktopTrayIconState.ATTENTION,
+      entries: [
+        {
+          id: 'apply-update',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Install Update',
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+            value: '1.2.3',
+          },
+        },
+      ],
+    })
+    await flushPromises()
+    emitTrayState({
+      statusText: 'Update ready',
+      iconState: DesktopTrayIconState.ATTENTION,
+      entries: [
+        {
+          id: 'apply-update',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Install Update',
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+            value: '1.2.3',
+          },
+        },
+      ],
+    })
+    await flushPromises()
+
+    expect(notifications).toHaveLength(1)
+    expect(notifications[0]?.opts).toMatchObject({
+      title: 'Spacewave update ready',
+      body: 'Version 1.2.3',
+      silent: true,
+    })
+
+    controller.dispose()
+
+    expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(
+      'CommandOrControl+Shift+S',
+    )
+    expect(trayInstances[0]?.destroy).toHaveBeenCalledTimes(1)
   })
 
   it('uses the macOS template icon when configured', async () => {

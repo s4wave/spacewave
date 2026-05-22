@@ -8,171 +8,228 @@ import {
   type DesktopTrayEntry,
   type DesktopTrayState,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
-
+import type { DesktopRuntimeState } from '../desktop-runtime/desktop-runtime.pb.js'
 import {
-  buildTrayPanelDescriptor,
-  canInvokeTrayPanelEntry,
+  buildDesktopTrayPanelDescriptor,
+  canInvokeDesktopTrayEntry,
 } from './desktop-tray-panel-descriptor.js'
 
-describe('buildTrayPanelDescriptor', () => {
-  it('preserves watched row identity, ordering, grouping, and status hints', () => {
-    const state: DesktopTrayState = {
-      statusText: 'Needs attention',
-      iconState: DesktopTrayIconState.ATTENTION,
-      entries: [
-        {
-          id: 'title',
-          kind: DesktopTrayEntryKind.STATUS,
-          group: 'runtime',
-          order: 0,
-          label: 'Spacewave: Needs attention',
-          statusText: 'attention',
-          iconState: DesktopTrayIconState.ATTENTION,
-          severity: DesktopTraySeverity.WARNING,
-        },
-        {
-          id: 'open',
-          kind: DesktopTrayEntryKind.ACTION,
-          group: 'runtime',
-          order: 1,
-          label: 'Open Spacewave',
-          enabled: true,
-          action: {
-            kind: DesktopTrayActionKind.OPEN_ROUTE,
-            route: '/u/1/',
-          },
-        },
-        {
-          id: 'session-1',
-          kind: DesktopTrayEntryKind.ACTION,
-          path: ['Sessions'],
-          group: 'navigation',
-          order: 2,
-          label: 'coolguy@spacewave.app',
-          detail: 'Cloud',
-          statusText: 'Ready',
-          active: true,
-          enabled: true,
-          action: {
-            kind: DesktopTrayActionKind.OPEN_ROUTE,
-            route: '/u/1/',
-          },
-        },
-      ],
-    }
+describe('buildDesktopTrayPanelDescriptor', () => {
+  it('adapts the watched tray tree into stable panel sections and actions', () => {
+    const state = panelTrayState()
 
-    const descriptor = buildTrayPanelDescriptor(state)
+    const descriptor = buildDesktopTrayPanelDescriptor({
+      appName: 'Spacewave',
+      state,
+    })
 
-    expect(descriptor.statusText).toBe('Needs attention')
-    expect(descriptor.iconState).toBe(DesktopTrayIconState.ATTENTION)
-    expect(descriptor.rows.map((row) => row.id)).toEqual([
-      'title',
-      'open',
-      'session-1',
+    expect(descriptor.statusText).toBe('Running')
+    expect(descriptor.icon.variant).toBe('healthy')
+    expect(descriptor.tabs).toEqual([
+      { id: 'overview', label: 'Overview', enabled: true, count: 0 },
+      { id: 'sessions', label: 'Sessions', enabled: true, count: 1 },
+      { id: 'spaces', label: 'Spaces', enabled: true, count: 1 },
     ])
-    expect(descriptor.rows[0]).toMatchObject({
-      position: 0,
-      group: 'runtime',
-      order: 0,
-      statusText: 'attention',
-      iconState: DesktopTrayIconState.ATTENTION,
-      severity: DesktopTraySeverity.WARNING,
-      actionEligible: false,
-    })
-    expect(descriptor.rows[1]).toMatchObject({
-      position: 1,
-      group: 'runtime',
-      actionEligible: true,
-      actionKind: DesktopTrayActionKind.OPEN_ROUTE,
-    })
-    expect(descriptor.rows[2]).toMatchObject({
-      position: 2,
-      path: ['Sessions'],
-      group: 'navigation',
-      active: true,
-      enabled: true,
+    expect(descriptor.primaryActions.map((row) => row.id)).toEqual([
+      'open',
+      'new-window',
+      'apply-update',
+    ])
+    expect(descriptor.sections.map((section) => section.title)).toEqual([
+      'Overview',
+      'Status',
+      'Sessions',
+      'Spaces',
+      'Activity',
+      'Quick Actions',
+    ])
+    expect(descriptor.sessionRows[0]).toMatchObject({
+      id: 'navigation-session',
+      label: 'coolguy@spacewave.app',
       detail: 'Cloud',
       statusText: 'Ready',
+      active: true,
+      enabled: true,
     })
-    expect(
-      descriptor.sections.map((section) => section.rows.map((row) => row.id)),
-    ).toEqual([['title', 'open'], ['session-1']])
-    expect(descriptor.sections[1]).toMatchObject({
-      path: ['Sessions'],
-      group: 'navigation',
-    })
+    expect(descriptor.actionRows.map((row) => row.id)).toContain('apply-update')
   })
 
-  it('uses native tray action semantics for panel action eligibility', () => {
+  it('keeps empty and sparse states renderable without schema extensions', () => {
+    const descriptor = buildDesktopTrayPanelDescriptor({
+      state: {
+        statusText: 'Starting',
+        iconState: DesktopTrayIconState.NORMAL,
+        entries: [
+          status('title', 'Spacewave: Starting'),
+          action('open', 'Open Spacewave', DesktopTrayActionKind.OPEN_ROUTE),
+          section('Sessions'),
+          status('Sessions-empty', 'No sessions'),
+          section('Spaces'),
+          status('Spaces-empty', 'No spaces'),
+        ],
+      },
+    })
+
+    expect(descriptor.tabs[1]).toMatchObject({ enabled: false, count: 0 })
+    expect(descriptor.tabs[2]).toMatchObject({ enabled: false, count: 0 })
+    expect(descriptor.cards.map((card) => card.value)).toContain('None')
+    expect(descriptor.primaryActions.map((row) => row.id)).toEqual(['open'])
+  })
+
+  it.each([
+    [DesktopTrayIconState.ACTIVE, 'Active', 'active'],
+    [DesktopTrayIconState.ATTENTION, 'Needs attention', 'attention'],
+    [DesktopTrayIconState.DISCONNECTED, 'Disconnected', 'disconnected'],
+    [DesktopTrayIconState.QUITTING, 'Quitting', 'quitting'],
+  ] as const)(
+    'derives %s icon and header state from the watched tray snapshot',
+    (iconState, statusText, variant) => {
+      const descriptor = buildDesktopTrayPanelDescriptor({
+        state: {
+          statusText,
+          iconState,
+          entries: [status('title', `Spacewave: ${statusText}`)],
+        },
+      })
+
+      expect(descriptor.statusText).toBe(statusText)
+      expect(descriptor.icon.variant).toBe(variant)
+    },
+  )
+
+  it('uses runtime state only as presentation enrichment', () => {
+    const runtimeState: DesktopRuntimeState = {
+      statusText: 'Running',
+      sessions: [{ id: 'a' }, { id: 'b' }],
+      spaces: [{ id: 'drive' }],
+      activity: [{ id: 'sync' }],
+      attentionItems: [],
+    }
+
+    const descriptor = buildDesktopTrayPanelDescriptor({
+      state: panelTrayState(),
+      runtimeState,
+    })
+
+    expect(descriptor.tabs[1]).toMatchObject({ count: 2 })
+    expect(descriptor.tabs[2]).toMatchObject({ count: 1 })
+    expect(descriptor.actionRows.every((row) => row.action?.id)).toBe(true)
+  })
+
+  it('uses DesktopTrayEntry action eligibility for panel and native parity', () => {
     expect(
-      canInvokeTrayPanelEntry(
-        actionEntry('open', DesktopTrayActionKind.OPEN_ROUTE),
+      canInvokeDesktopTrayEntry(
+        action('copy-empty', 'Copy', DesktopTrayActionKind.COPY_TEXT, {
+          value: '',
+        }),
       ),
-    ).toBe(true)
+    ).toBe(false)
     expect(
-      canInvokeTrayPanelEntry(
-        actionEntry('copy', DesktopTrayActionKind.COPY_TEXT, {
+      canInvokeDesktopTrayEntry(
+        action('copy-value', 'Copy', DesktopTrayActionKind.COPY_TEXT, {
           value: 'diagnostics',
         }),
       ),
     ).toBe(true)
     expect(
-      canInvokeTrayPanelEntry(
-        actionEntry('copy-empty', DesktopTrayActionKind.COPY_TEXT),
+      canInvokeDesktopTrayEntry(
+        action('disabled', 'Disabled', DesktopTrayActionKind.OPEN_ROUTE, {
+          enabled: false,
+        }),
       ),
     ).toBe(false)
-    expect(
-      canInvokeTrayPanelEntry({
-        ...actionEntry('disabled', DesktopTrayActionKind.QUIT),
-        enabled: false,
-      }),
-    ).toBe(false)
-    expect(
-      canInvokeTrayPanelEntry({
-        id: 'status',
-        kind: DesktopTrayEntryKind.STATUS,
-        label: 'Runtime',
-      }),
-    ).toBe(false)
-  })
-
-  it('clones path and action data so descriptor rows are pure snapshots', () => {
-    const entry: DesktopTrayEntry = {
-      id: 'copy-diagnostics',
-      kind: DesktopTrayEntryKind.ACTION,
-      path: ['Quick Actions'],
-      group: 'actions',
-      label: 'Copy Diagnostics',
-      enabled: true,
-      action: {
-        kind: DesktopTrayActionKind.COPY_TEXT,
-        value: 'before',
-      },
-    }
-    const descriptor = buildTrayPanelDescriptor({ entries: [entry] })
-
-    entry.path?.push('Nested')
-    if (entry.action) {
-      entry.action.value = 'after'
-    }
-
-    expect(descriptor.rows[0]?.path).toEqual(['Quick Actions'])
-    expect(descriptor.rows[0]?.action?.value).toBe('before')
   })
 })
 
-function actionEntry(
+function panelTrayState(): DesktopTrayState {
+  const longLabel =
+    'Project Alpha With An Extremely Long Name That Must Be Preserved For Truncation'
+  return {
+    statusText: 'Running',
+    iconState: DesktopTrayIconState.NORMAL,
+    entries: [
+      status('title', 'Spacewave: Running'),
+      action('open', 'Open Spacewave', DesktopTrayActionKind.OPEN_ROUTE),
+      action('new-window', 'New Window', DesktopTrayActionKind.NEW_WINDOW),
+      section('Status'),
+      status('status-runtime', 'CLI reachable', {
+        detail: '1 CLI client connected',
+      }),
+      section('Sessions'),
+      action(
+        'navigation-session',
+        'coolguy@spacewave.app',
+        DesktopTrayActionKind.OPEN_ROUTE,
+        {
+          detail: 'Cloud',
+          statusText: 'Ready',
+          route: '/u/1/',
+          active: true,
+        },
+      ),
+      section('Spaces'),
+      action('navigation-space', longLabel, DesktopTrayActionKind.OPEN_ROUTE, {
+        detail: 'Shared',
+        route: '/u/1/so/project-alpha',
+      }),
+      section('Activity'),
+      status('activity-sync', 'Uploading changes', { detail: '2 sync items' }),
+      section('Quick Actions'),
+      action(
+        'apply-update',
+        'Install Update',
+        DesktopTrayActionKind.ATTACHED_HANDLER,
+        {
+          value: '1.2.3',
+          severity: DesktopTraySeverity.INFO,
+        },
+      ),
+    ],
+  }
+}
+
+function section(label: string): DesktopTrayEntry {
+  return {
+    id: `${label}-section`,
+    kind: DesktopTrayEntryKind.SECTION,
+    label,
+  }
+}
+
+function status(
   id: string,
+  label: string,
+  opts?: Partial<DesktopTrayEntry>,
+): DesktopTrayEntry {
+  return {
+    id,
+    kind: DesktopTrayEntryKind.STATUS,
+    label,
+    ...opts,
+  }
+}
+
+function action(
+  id: string,
+  label: string,
   kind: DesktopTrayActionKind,
-  opts?: Pick<NonNullable<DesktopTrayEntry['action']>, 'value'>,
+  opts?: Partial<DesktopTrayEntry> & {
+    route?: string
+    value?: string
+  },
 ): DesktopTrayEntry {
   return {
     id,
     kind: DesktopTrayEntryKind.ACTION,
-    label: id,
-    enabled: true,
+    label,
+    detail: opts?.detail,
+    statusText: opts?.statusText,
+    active: opts?.active,
+    enabled: opts?.enabled ?? true,
+    severity: opts?.severity,
     action: {
       kind,
+      route: opts?.route,
       value: opts?.value,
     },
   }

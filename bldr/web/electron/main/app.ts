@@ -152,6 +152,7 @@ export class BldrElectronApp {
       void this.desktopRuntimeResource.OpenOrFocusMainWindow({})
     })
     app.on('before-quit', () => {
+      this.desktopTrayController?.dispose()
       this.desktopRuntimeResource.setQuitting(true)
     })
     app.on('window-all-closed', this.onWindowAllClosed.bind(this))

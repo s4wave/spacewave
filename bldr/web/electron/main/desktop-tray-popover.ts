@@ -1,25 +1,28 @@
 import electron from 'electron'
 
+import type { DesktopTrayState } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
+import type { DesktopRuntimeState } from '../desktop-runtime/desktop-runtime.pb.js'
 import {
-  DesktopTrayActionKind,
-  DesktopTrayEntryKind,
-  DesktopTrayIconState,
-  DesktopTraySeverity,
-  type DesktopTrayEntry,
-  type DesktopTrayState,
-} from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
+  buildDesktopTrayPanelDescriptor,
+  type DesktopTrayPanelDescriptor,
+  type DesktopTrayPanelRow,
+  type DesktopTrayPanelSection,
+  type DesktopTrayPanelSeverity,
+} from './desktop-tray-panel-descriptor.js'
 
 interface DesktopTrayPopoverControllerOpts {
   appName?: string
   actionHandler: (entryId: string) => Promise<void>
+  runtimeState?: () => DesktopRuntimeState
 }
 
-const popoverWidth = 360
-const popoverHeight = 520
+const popoverWidth = 390
+const popoverHeight = 560
 const popoverMargin = 8
 const actionScheme = 'spacewave-tray-action:'
+const commandScheme = 'spacewave-tray-command:'
 
-// DesktopTrayPopoverController owns the dev-only custom tray popover prototype.
+// DesktopTrayPopoverController owns the opt-in rich Electron tray panel.
 export class DesktopTrayPopoverController {
   private window?: Electron.BrowserWindow
   private disabled = false
@@ -46,16 +49,7 @@ export class DesktopTrayPopoverController {
       this.close()
       return true
     }
-    try {
-      const win = this.createWindow(tray)
-      this.window = win
-      await this.render(win, state)
-      win.show()
-      return true
-    } catch (err) {
-      this.disable(err)
-      return false
-    }
+    return this.show(tray, state)
   }
 
   public async show(
@@ -90,6 +84,15 @@ export class DesktopTrayPopoverController {
     return image.toPNG()
   }
 
+  public close(): void {
+    if (!this.window || this.window.isDestroyed()) {
+      this.window = undefined
+      return
+    }
+    this.window.close()
+    this.window = undefined
+  }
+
   private createWindow(tray: Electron.Tray): Electron.BrowserWindow {
     const win = new electron.BrowserWindow({
       width: popoverWidth,
@@ -119,6 +122,13 @@ export class DesktopTrayPopoverController {
         }
       })
     })
+    win.webContents.on('before-input-event', (event, input) => {
+      if (input.key !== 'Escape') {
+        return
+      }
+      event.preventDefault()
+      this.close()
+    })
     win.on('blur', () => {
       this.close()
     })
@@ -134,6 +144,13 @@ export class DesktopTrayPopoverController {
     event: Electron.Event,
     url: string,
   ): Promise<void> {
+    if (url.startsWith(commandScheme)) {
+      event.preventDefault()
+      if (url.slice(commandScheme.length) === 'close') {
+        this.close()
+      }
+      return
+    }
     if (!url.startsWith(actionScheme)) {
       return
     }
@@ -154,8 +171,9 @@ export class DesktopTrayPopoverController {
     )
     const opensDown =
       trayBounds.y < workArea.y + Math.floor(workArea.height / 2)
-    const y = opensDown
-      ? trayBounds.y + trayBounds.height + popoverMargin
+    const y =
+      opensDown ?
+        trayBounds.y + trayBounds.height + popoverMargin
       : trayBounds.y - popoverHeight - popoverMargin
     return {
       x,
@@ -169,25 +187,21 @@ export class DesktopTrayPopoverController {
     win: Electron.BrowserWindow,
     state: DesktopTrayState,
   ): Promise<void> {
+    const descriptor = buildDesktopTrayPanelDescriptor({
+      appName: this.opts.appName || 'Spacewave',
+      state,
+      runtimeState: this.opts.runtimeState?.(),
+    })
     await win.loadURL(
       `data:text/html;charset=utf-8,${encodeURIComponent(
-        renderDesktopTrayPopoverHtml(this.opts.appName || 'Spacewave', state),
+        renderDesktopTrayPanelHtml(descriptor),
       )}`,
     )
   }
 
-  private close(): void {
-    if (!this.window || this.window.isDestroyed()) {
-      this.window = undefined
-      return
-    }
-    this.window.close()
-    this.window = undefined
-  }
-
   private disable(err: unknown): void {
     console.error(
-      'desktop tray popover disabled; using native menu fallback',
+      'desktop tray panel disabled; using native menu fallback',
       err,
     )
     this.disabled = true
@@ -195,9 +209,8 @@ export class DesktopTrayPopoverController {
   }
 }
 
-function renderDesktopTrayPopoverHtml(
-  appName: string,
-  state: DesktopTrayState,
+export function renderDesktopTrayPanelHtml(
+  descriptor: DesktopTrayPanelDescriptor,
 ): string {
   return `<!doctype html>
 <html>
@@ -206,294 +219,550 @@ function renderDesktopTrayPopoverHtml(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root {
-  color-scheme: dark;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #181a1f;
-  color: #f2f3f5;
+  color-scheme: light dark;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  background: #f5f6f8;
+  color: #1d232d;
 }
 * {
   box-sizing: border-box;
 }
+html,
 body {
+  min-width: 0;
+  height: 100%;
   margin: 0;
-  background: #181a1f;
+  overflow: hidden;
+  background: transparent;
+}
+body {
+  display: flex;
 }
 .surface {
-  min-height: 100vh;
-  padding: 16px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  background: #f5f6f8;
+  color: #1d232d;
 }
 .header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #343841;
+  padding: 4px 2px 10px;
 }
 .title {
-  font-size: 17px;
-  font-weight: 700;
-}
-.subtle {
-  color: #a9adb7;
-  font-size: 12px;
-}
-.pill {
-  border-radius: 999px;
-  padding: 4px 9px;
-  background: ${iconStateColor(state.iconState)};
-  color: #101216;
-  font-size: 11px;
-  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 720;
+  line-height: 1.2;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.entries {
-  padding-top: 10px;
-}
-.section-title,
-.path-title {
-  padding: 10px 0 4px;
-  color: #d6d8dd;
+.subtitle {
+  min-width: 0;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #617082;
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.path-title {
-  color: #a9adb7;
+.status-pill {
+  min-width: 82px;
+  padding: 5px 8px;
+  border: 1px solid #c8d0da;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #344253;
   font-size: 11px;
+  font-weight: 700;
+  text-align: center;
 }
-.separator {
-  height: 1px;
-  margin: 10px 0;
-  background: #2c3038;
+.severity-info .status-pill,
+.severity-warning .status-pill,
+.severity-critical .status-pill {
+  color: #1d232d;
+}
+.severity-info .status-pill {
+  border-color: #9ccbed;
+  background: #e8f5ff;
+}
+.severity-warning .status-pill {
+  border-color: #d8ad40;
+  background: #fff5d7;
+}
+.severity-critical .status-pill {
+  border-color: #d48686;
+  background: #ffe7e7;
+}
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  height: 31px;
+  padding: 3px;
+  border: 1px solid #d6dce4;
+  border-radius: 7px;
+  background: #ebeef3;
+}
+.tab {
+  min-width: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #5c6a7c;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+}
+.tab[aria-selected="true"] {
+  background: #ffffff;
+  color: #1d232d;
+  box-shadow: 0 1px 2px rgb(20 25 31 / 12%);
+}
+.tab:disabled {
+  color: #9aa4b2;
+}
+.content {
+  min-height: 0;
+  padding-top: 10px;
+  overflow: hidden auto;
+}
+.panel {
+  display: none;
+}
+.panel[data-active="true"] {
+  display: block;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.card,
+.empty,
+.section {
+  border: 1px solid #d8dee7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+.card {
+  min-width: 0;
+  min-height: 76px;
+  padding: 9px;
+}
+.card-label,
+.section-title {
+  color: #617082;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.card-value {
+  margin-top: 5px;
+  color: #1d232d;
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.05;
+}
+.card-detail {
+  min-width: 0;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #526174;
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card.severity-warning {
+  border-color: #d8ad40;
+}
+.card.severity-critical {
+  border-color: #d48686;
+}
+.primary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.primary-actions .row {
+  min-height: 36px;
+}
+.section {
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  height: 27px;
+  padding: 0 10px;
+  border-bottom: 1px solid #edf0f4;
+  background: #fafbfc;
 }
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
   width: 100%;
-  min-height: 34px;
-  padding: 7px 8px;
-  border-radius: 6px;
+  padding: 7px 10px;
+  border: 0;
+  border-bottom: 1px solid #edf0f4;
+  background: transparent;
   color: inherit;
+  font: inherit;
   text-align: left;
   text-decoration: none;
+}
+.row:last-child {
+  border-bottom: 0;
 }
 .row.action {
   cursor: default;
 }
-.row.action:hover {
-  background: #242831;
+.row.action:hover,
+.row.action:focus {
+  background: #edf4ff;
+  outline: none;
 }
-.row.inactive {
-  color: #8d929d;
+.row.action[aria-disabled="true"] {
+  color: #98a2af;
+  pointer-events: none;
 }
-.label {
-  min-width: 0;
-  overflow: hidden;
-  font-size: 13px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.detail {
-  min-width: 0;
-  overflow: hidden;
-  color: #a9adb7;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.status {
-  align-self: start;
-  color: #cfd2d8;
-  font-size: 12px;
-  white-space: nowrap;
-}
-.severity-info .status {
-  color: #9fd7ff;
-}
-.severity-warning .status {
-  color: #f6c453;
-}
-.severity-critical .status {
-  color: #ff9f9f;
-}
-.active .label::before {
+.row.active .label::before {
   content: "";
   display: inline-block;
   width: 6px;
   height: 6px;
   margin-right: 6px;
-  border-radius: 999px;
-  background: #95d47a;
+  border-radius: 99px;
+  background: #2aa876;
   vertical-align: 1px;
 }
-.empty {
-  padding: 16px 0;
-  color: #8d929d;
+.label,
+.detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.label {
   font-size: 12px;
+  font-weight: 680;
+  line-height: 1.25;
+}
+.detail {
+  margin-top: 2px;
+  color: #617082;
+  font-size: 11px;
+  line-height: 1.25;
+}
+.status {
+  color: #647386;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.row.severity-info .status {
+  color: #2573a7;
+}
+.row.severity-warning .status {
+  color: #9b6b00;
+}
+.row.severity-critical .status {
+  color: #b12f35;
+}
+.empty {
+  padding: 18px 10px;
+  color: #717f91;
+  font-size: 12px;
+  text-align: center;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    background: #17191d;
+    color: #f1f3f6;
+  }
+  .surface {
+    background: #17191d;
+    color: #f1f3f6;
+  }
+  .subtitle,
+  .card-label,
+  .section-title,
+  .detail,
+  .status {
+    color: #a5afbd;
+  }
+  .status-pill,
+  .tab[aria-selected="true"],
+  .card,
+  .empty,
+  .section {
+    border-color: #333944;
+    background: #20242b;
+    color: #f1f3f6;
+  }
+  .tabs {
+    border-color: #333944;
+    background: #1d2026;
+  }
+  .tab {
+    color: #a5afbd;
+  }
+  .section-title {
+    border-color: #2a3039;
+    background: #242932;
+  }
+  .row {
+    border-color: #2a3039;
+  }
+  .row.action:hover,
+  .row.action:focus {
+    background: #26354a;
+  }
+  .card-value,
+  .title {
+    color: #f1f3f6;
+  }
+  .card-detail {
+    color: #b2bbc8;
+  }
+  .severity-info .status-pill {
+    border-color: #356b91;
+    background: #1d3447;
+  }
+  .severity-warning .status-pill {
+    border-color: #8b6c20;
+    background: #3d3118;
+  }
+  .severity-critical .status-pill {
+    border-color: #8b4548;
+    background: #402222;
+  }
 }
 </style>
 </head>
-<body>
+<body class="${severityClass(descriptor.severity)}">
   <main class="surface">
     <section class="header">
       <div>
-        <div class="title">${escapeHtml(appName)}</div>
-        <div class="subtle">${escapeHtml(state.statusText || 'Running')}</div>
+        <div class="title">${escapeHtml(descriptor.title)}</div>
+        <div class="subtitle">${escapeHtml(descriptor.subtitle)}</div>
       </div>
-      <div class="pill">${escapeHtml(iconStateLabel(state.iconState))}</div>
+      <div class="status-pill">${escapeHtml(descriptor.icon.variant)}</div>
     </section>
-    <section class="entries">
-      ${renderEntries(state.entries ?? [])}
+    ${renderTabs(descriptor)}
+    <section class="content">
+      <div class="panel" data-panel="overview" data-active="true">
+        ${renderCards(descriptor)}
+        ${renderPrimaryActions(descriptor.primaryActions)}
+        ${renderAttention(descriptor.attentionRows)}
+        ${renderSections(descriptor)}
+      </div>
+      <div class="panel" data-panel="sessions">
+        ${renderRowsPanel('Sessions', descriptor.sessionRows, 'No sessions')}
+      </div>
+      <div class="panel" data-panel="spaces">
+        ${renderRowsPanel('Spaces', descriptor.spaceRows, 'No spaces')}
+      </div>
     </section>
   </main>
+  ${renderPanelScript()}
 </body>
 </html>`
 }
 
-function renderEntries(entries: DesktopTrayEntry[]): string {
-  if (!entries.length) {
-    return '<div class="empty">Runtime starting</div>'
+function renderTabs(descriptor: DesktopTrayPanelDescriptor): string {
+  return `<nav class="tabs" aria-label="Tray panel views">
+    ${descriptor.tabs
+      .map(
+        (tab) =>
+          `<button class="tab" type="button" data-tab="${tab.id}" aria-selected="${
+            tab.id === 'overview' ? 'true' : 'false'
+          }" ${tab.enabled ? '' : 'disabled'}>${escapeHtml(tab.label)}</button>`,
+      )
+      .join('')}
+  </nav>`
+}
+
+function renderCards(descriptor: DesktopTrayPanelDescriptor): string {
+  return `<section class="cards">
+    ${descriptor.cards
+      .map(
+        (card) => `<article class="card ${severityClass(card.severity)}">
+          <div class="card-label">${escapeHtml(card.label)}</div>
+          <div class="card-value">${escapeHtml(card.value)}</div>
+          <div class="card-detail">${escapeHtml(card.detail)}</div>
+        </article>`,
+      )
+      .join('')}
+  </section>`
+}
+
+function renderPrimaryActions(rows: DesktopTrayPanelRow[]): string {
+  if (!rows.length) {
+    return ''
   }
-  let currentPath = ''
-  return entries
-    .map((entry) => {
-      const nextPath = (entry.path ?? [])
-        .filter((part) => part !== '')
-        .join(' / ')
-      const pathHeader =
-        nextPath && nextPath !== currentPath
-          ? `<div class="path-title">${escapeHtml(nextPath)}</div>`
-          : ''
-      currentPath = nextPath
-      return pathHeader + renderEntry(entry)
+  return `<section class="primary-actions">${rows.map(renderRow).join('')}</section>`
+}
+
+function renderAttention(rows: DesktopTrayPanelRow[]): string {
+  if (!rows.length) {
+    return ''
+  }
+  return `<section class="section">
+    <div class="section-title">Attention</div>
+    ${rows.map(renderRow).join('')}
+  </section>`
+}
+
+function renderSections(descriptor: DesktopTrayPanelDescriptor): string {
+  const primaryIDs = new Set(descriptor.primaryActions.map((row) => row.id))
+  return descriptor.sections
+    .filter(
+      (section) => section.title !== 'Sessions' && section.title !== 'Spaces',
+    )
+    .map((section) => {
+      const rows =
+        section.title === 'Overview' ?
+          section.rows.filter((row) => !primaryIDs.has(row.id))
+        : section.rows
+      return rows.length ? renderSection({ ...section, rows }) : ''
     })
     .join('')
 }
 
-function renderEntry(entry: DesktopTrayEntry): string {
-  switch (entry.kind) {
-    case DesktopTrayEntryKind.SEPARATOR:
-      return '<div class="separator"></div>'
-    case DesktopTrayEntryKind.SECTION:
-    case DesktopTrayEntryKind.SUBMENU:
-      return `<div class="section-title">${escapeHtml(entry.label || '')}</div>`
-    case DesktopTrayEntryKind.ACTION:
-      return renderActionEntry(entry)
-    default:
-      return renderStaticEntry(entry)
+function renderSection(section: DesktopTrayPanelSection): string {
+  return `<section class="section" data-section="${escapeHtml(section.id)}">
+    <div class="section-title">${escapeHtml(section.title)}</div>
+    ${section.rows.map(renderRow).join('')}
+  </section>`
+}
+
+function renderRowsPanel(
+  title: string,
+  rows: DesktopTrayPanelRow[],
+  emptyLabel: string,
+): string {
+  const visible = rows.filter((row) => !row.empty)
+  if (!visible.length) {
+    return `<div class="empty">${escapeHtml(emptyLabel)}</div>`
   }
+  return renderSection({ id: title.toLowerCase(), title, rows: visible })
 }
 
-function renderActionEntry(entry: DesktopTrayEntry): string {
-  if (!canInvokeEntry(entry)) {
-    return renderStaticEntry(entry, 'Unavailable')
+function renderRow(row: DesktopTrayPanelRow): string {
+  if (!row.action) {
+    return `<div class="${rowClass(row, '')}">${renderRowContents(row)}</div>`
   }
-  return `<a class="${rowClass(entry, 'action')}" href="${actionHref(entry.id)}">${renderRowContents(
-    entry,
-    actionStatus(entry),
-  )}</a>`
+  return `<a class="${rowClass(row, 'action')}" href="${actionHref(
+    row.action.id,
+  )}" role="button" tabindex="0" data-action-id="${escapeHtml(
+    row.action.id,
+  )}" aria-disabled="${row.enabled ? 'false' : 'true'}">${renderRowContents(row)}</a>`
 }
 
-function canInvokeEntry(entry: DesktopTrayEntry): boolean {
-  if (!(entry.enabled ?? false) || !entry.action) {
-    return false
-  }
-  switch (entry.action.kind) {
-    case DesktopTrayActionKind.OPEN_ROUTE:
-    case DesktopTrayActionKind.NEW_WINDOW:
-    case DesktopTrayActionKind.QUIT:
-    case DesktopTrayActionKind.ATTACHED_HANDLER:
-      return true
-    case DesktopTrayActionKind.COPY_TEXT:
-    case DesktopTrayActionKind.REVEAL_PATH:
-      return !!entry.action.value
-    default:
-      return false
-  }
+function renderRowContents(row: DesktopTrayPanelRow): string {
+  const detail = row.detail || ''
+  const status = row.statusText || ''
+  return `<div>
+    <div class="label">${escapeHtml(row.label)}</div>
+    ${detail ? `<div class="detail">${escapeHtml(detail)}</div>` : ''}
+  </div>${status ? `<div class="status">${escapeHtml(status)}</div>` : ''}`
 }
 
-function renderStaticEntry(entry: DesktopTrayEntry, status?: string): string {
-  return `<div class="${rowClass(entry, 'inactive')}">${renderRowContents(
-    entry,
-    status || entry.statusText,
-  )}</div>`
-}
-
-function renderRowContents(entry: DesktopTrayEntry, status?: string): string {
-  return `<div><div class="label">${escapeHtml(entry.label || '')}</div>${
-    entry.detail ? `<div class="detail">${escapeHtml(entry.detail)}</div>` : ''
-  }</div>${status ? `<div class="status">${escapeHtml(status)}</div>` : ''}`
-}
-
-function rowClass(entry: DesktopTrayEntry, extra: string): string {
+function rowClass(row: DesktopTrayPanelRow, extra: string): string {
   return [
     'row',
     extra,
-    entry.active ? 'active' : '',
-    severityClass(entry.severity),
+    row.active ? 'active' : '',
+    severityClass(row.severity),
+    row.empty ? 'empty-row' : '',
   ]
-    .filter((part) => part !== '')
+    .filter(Boolean)
     .join(' ')
 }
 
-function actionStatus(entry: DesktopTrayEntry): string {
-  if (entry.statusText) {
-    return entry.statusText
-  }
-  if (entry.action?.kind === DesktopTrayActionKind.COPY_TEXT) {
-    return 'Copy'
-  }
-  if (entry.action?.kind === DesktopTrayActionKind.REVEAL_PATH) {
-    return 'Reveal'
-  }
-  return ''
+function actionHref(entryId: string): string {
+  return `${actionScheme}${encodeURIComponent(entryId)}`
 }
 
-function actionHref(entryId: string | undefined): string {
-  return `${actionScheme}${encodeURIComponent(entryId || '')}`
-}
-
-function iconStateLabel(iconState: DesktopTrayIconState | undefined): string {
-  switch (iconState) {
-    case DesktopTrayIconState.ACTIVE:
-      return 'Active'
-    case DesktopTrayIconState.ATTENTION:
-      return 'Attention'
-    case DesktopTrayIconState.DISCONNECTED:
-      return 'Offline'
-    case DesktopTrayIconState.QUITTING:
-      return 'Quitting'
-    default:
-      return 'Running'
+function renderPanelScript(): string {
+  return `<script>
+(() => {
+  const tabs = Array.from(document.querySelectorAll('[data-tab]'));
+  const panels = Array.from(document.querySelectorAll('[data-panel]'));
+  const actions = () => Array.from(document.querySelectorAll('[data-action-id]:not([aria-disabled="true"])'));
+  function selectTab(id) {
+    for (const tab of tabs) tab.setAttribute('aria-selected', String(tab.dataset.tab === id));
+    for (const panel of panels) panel.dataset.active = String(panel.dataset.panel === id);
+    const first = actions()[0];
+    if (first) first.focus();
   }
-}
-
-function iconStateColor(iconState: DesktopTrayIconState | undefined): string {
-  switch (iconState) {
-    case DesktopTrayIconState.ACTIVE:
-      return '#69d2e7'
-    case DesktopTrayIconState.ATTENTION:
-      return '#f6c453'
-    case DesktopTrayIconState.DISCONNECTED:
-      return '#e26868'
-    case DesktopTrayIconState.QUITTING:
-      return '#aeb4c0'
-    default:
-      return '#95d47a'
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => selectTab(tab.dataset.tab));
   }
+  document.addEventListener('keydown', (event) => {
+    const items = actions();
+    const index = items.indexOf(document.activeElement);
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      window.location.href = '${commandScheme}close';
+      return;
+    }
+    if (!items.length) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      items[(index + 1 + items.length) % items.length].focus();
+      return;
+    }
+    if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      items[(index - 1 + items.length) % items.length].focus();
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      items[0].focus();
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      items[items.length - 1].focus();
+      return;
+    }
+    if ((event.key === 'Enter' || event.key === ' ') && document.activeElement?.dataset?.actionId) {
+      event.preventDefault();
+      document.activeElement.click();
+    }
+  });
+  const first = actions()[0];
+  if (first) first.focus();
+})();
+</script>`
 }
 
-function severityClass(severity: DesktopTraySeverity | undefined): string {
+function severityClass(severity: DesktopTrayPanelSeverity): string {
   switch (severity) {
-    case DesktopTraySeverity.INFO:
-      return 'severity-info'
-    case DesktopTraySeverity.WARNING:
-      return 'severity-warning'
-    case DesktopTraySeverity.CRITICAL:
+    case 'critical':
       return 'severity-critical'
+    case 'info':
+      return 'severity-info'
+    case 'warning':
+      return 'severity-warning'
     default:
       return ''
   }
