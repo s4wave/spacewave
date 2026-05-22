@@ -183,7 +183,7 @@ func TestBackendPolicyClassifiesWorkloads(t *testing.T) {
 		{name: "indexed-log", workload: WorkloadClassIndexedLog, want: KVImplType_KV_IMPL_TYPE_IAVL},
 		{name: "cursor-value-read", workload: WorkloadClassCursorValueRead, want: KVImplType_KV_IMPL_TYPE_IAVL},
 		{name: "write-churn", workload: WorkloadClassWriteChurn, want: KVImplType_KV_IMPL_TYPE_IAVL},
-		{name: "gc-refgraph", workload: WorkloadClassGCRefGraph, want: KVImplType_KV_IMPL_TYPE_IAVL},
+		{name: "gc-refgraph", workload: WorkloadClassGCRefGraph, want: KVImplType_KV_IMPL_TYPE_OKRA},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := DefaultKeyValueStoreImplForWorkload(tc.workload); got != tc.want {

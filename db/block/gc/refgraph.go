@@ -67,6 +67,7 @@ func RegisterEntityChain(ctx context.Context, rg RefGraphOps, nodes ...string) e
 
 // AddRef adds a gc/ref edge from subject to object. Idempotent.
 func (rg *RefGraph) AddRef(ctx context.Context, subject, object string) error {
+	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/add-ref")
 	defer task.End()
 
@@ -83,6 +84,7 @@ func (rg *RefGraph) AddRef(ctx context.Context, subject, object string) error {
 // RemoveRef removes a single gc/ref edge from subject to object.
 // Removing a non-existent edge is a no-op.
 func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error {
+	ctx = disableStoreTracking(ctx)
 	q := quad.Make(quad.IRI(subject), quad.IRI(PredGCRef), quad.IRI(object), nil)
 	return rg.handle.RemoveQuad(ctx, q)
 }
@@ -90,6 +92,7 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 // ApplyRefBatch applies a batch of ref graph edge additions and removals
 // in a single Cayley transaction.
 func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
 	defer task.End()
 
@@ -182,7 +185,7 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 	excludedSet, err := rg.resolveIRIRefKeys(taskCtx, excludedIRIs)
 	if err != nil {
 		subtask.End()
-		return false, err
+		return false, errors.Wrap(err, "resolve excluded refs")
 	}
 	subtask.End()
 
@@ -202,7 +205,7 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 		})
 	}
 	subtask.End()
-	return found, err
+	return found, errors.Wrap(err, "iterate incoming candidates")
 }
 
 func (rg *RefGraph) resolveIRIRefKeys(ctx context.Context, iris []string) (map[any]struct{}, error) {
@@ -296,10 +299,47 @@ func (rg *RefGraph) ImportIRIRefKeys(keys map[string]any) {
 
 // GetOutgoingRefs returns all targets of gc/ref edges from the given node.
 func (rg *RefGraph) GetOutgoingRefs(ctx context.Context, node string) ([]string, error) {
-	return collectFilteredNodeIRIs(ctx, rg.handle, quad.Quad{
-		Subject:   quad.IRI(node),
-		Predicate: quad.IRI(PredGCRef),
-	}, quad.Object)
+	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/get-outgoing-refs")
+	defer task.End()
+
+	subjRef, err := rg.handle.ValueOf(ctx, quad.IRI(node))
+	if err != nil || subjRef == nil {
+		return nil, errors.Wrap(err, "lookup outgoing subject")
+	}
+	predRef, err := rg.handle.ValueOf(ctx, quad.IRI(PredGCRef))
+	if err != nil || predRef == nil {
+		return nil, errors.Wrap(err, "lookup gc/ref predicate")
+	}
+	predKey := refs.ToKey(predRef)
+
+	it := rg.handle.QuadIterator(ctx, quad.Subject, subjRef).Iterate(ctx)
+	defer it.Close()
+
+	var nodeRefs []graph.Ref
+	for {
+		if !it.Next(ctx) {
+			if err := it.Err(); err != nil {
+				return nil, errors.Wrap(err, "iterate outgoing subject index")
+			}
+			return resolveNodeIRIs(ctx, rg.handle, nodeRefs)
+		}
+		quadRef, err := it.Result(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "read outgoing quad ref")
+		}
+		gotPred, err := rg.handle.QuadDirection(ctx, quadRef, quad.Predicate)
+		if err != nil {
+			return nil, errors.Wrap(err, "read outgoing predicate")
+		}
+		if refs.ToKey(gotPred) != predKey {
+			continue
+		}
+		objRef, err := rg.handle.QuadDirection(ctx, quadRef, quad.Object)
+		if err != nil {
+			return nil, errors.Wrap(err, "read outgoing object")
+		}
+		nodeRefs = append(nodeRefs, objRef)
+	}
 }
 
 // GetIncomingRefs returns all sources that have gc/ref edges pointing to the given node.
@@ -380,11 +420,11 @@ func (rg *RefGraph) hasIncomingRefsExcludingFast(
 	}
 	predRef, err := rg.handle.ValueOf(ctx, quad.IRI(PredGCRef))
 	if err != nil {
-		return false, true, err
+		return false, true, errors.Wrap(err, "lookup gc/ref predicate")
 	}
 	objRef, err := rg.handle.ValueOf(ctx, quad.IRI(node))
 	if err != nil {
-		return false, true, err
+		return false, true, errors.Wrap(err, "lookup incoming object")
 	}
 	predID, predOK := predRef.(cayley_kv.Int64Value)
 	objID, objOK := objRef.(cayley_kv.Int64Value)
@@ -413,7 +453,7 @@ func (rg *RefGraph) hasIncomingRefsExcludingFast(
 		},
 	)
 	if err != nil {
-		return false, true, err
+		return false, true, errors.Wrap(err, "iterate incoming object index")
 	}
 	return found, true, nil
 }
@@ -478,6 +518,10 @@ func collectFilteredNodeIRIs(
 	if len(nodeRefs) == 0 {
 		return nil, nil
 	}
+	return resolveNodeIRIs(ctx, h, nodeRefs)
+}
+
+func resolveNodeIRIs(ctx context.Context, h *cayley.Handle, nodeRefs []graph.Ref) ([]string, error) {
 	vals, err := graph.ValuesOf(ctx, h, nodeRefs)
 	if err != nil {
 		return nil, err

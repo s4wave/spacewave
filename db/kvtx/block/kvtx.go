@@ -42,7 +42,7 @@ const (
 // new KVTX root.
 func DefaultKeyValueStoreImplForWorkload(workload WorkloadClass) KVImplType {
 	switch workload {
-	case WorkloadClassGraphPrefixRead:
+	case WorkloadClassGraphPrefixRead, WorkloadClassGCRefGraph:
 		return KVImplType_KV_IMPL_TYPE_OKRA
 	default:
 		return DefaultKeyValueStoreImpl

@@ -48,11 +48,22 @@ type GCStoreOps struct {
 	pendingUnunref []string     // block IRIs to remove from unreferenced
 }
 
+type storeTrackingDisabledContextKey struct{}
+
 const (
 	defaultFlushTask = "hydra/block-gc/store/flush-pending"
 	worldFlushTask   = "hydra/block-gc/store/flush-pending/world"
 	bucketFlushTask  = "hydra/block-gc/store/flush-pending/bucket"
 )
+
+func disableStoreTracking(ctx context.Context) context.Context {
+	return context.WithValue(ctx, storeTrackingDisabledContextKey{}, true)
+}
+
+func storeTrackingDisabled(ctx context.Context) bool {
+	disabled, _ := ctx.Value(storeTrackingDisabledContextKey{}).(bool)
+	return disabled
+}
 
 // WorldFlushTask returns the runtime trace task name for world-local GC flushes.
 func WorldFlushTask() string {
@@ -160,6 +171,9 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	if err != nil {
 		return nil, false, err
 	}
+	if storeTrackingDisabled(ctx) {
+		return ref, existed, nil
+	}
 	if !existed && ref != nil && !ref.GetEmpty() {
 		_, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
 		iri := BlockIRI(ref)
@@ -188,6 +202,9 @@ func (g *GCStoreOps) PutBlockBackground(ctx context.Context, data []byte, opts *
 	ref, existed, err := g.store.PutBlockBackground(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
+	}
+	if storeTrackingDisabled(ctx) {
+		return ref, existed, nil
 	}
 	if !existed && ref != nil && !ref.GetEmpty() {
 		iri := BlockIRI(ref)
@@ -232,6 +249,9 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 
 	if len(puts) == 0 {
 		return nil
+	}
+	if storeTrackingDisabled(ctx) {
+		return g.store.PutBlockBatch(ctx, puts)
 	}
 
 	// Check which blocks already exist so we only buffer GC edges

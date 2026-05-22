@@ -233,7 +233,7 @@ func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
 	}
 	assertWorldStoreImpl(t, "object", writtenRoot.GetObjectKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
 	assertWorldStoreImpl(t, "graph", writtenRoot.GetGraphKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA)
-	assertWorldStoreImpl(t, "gc graph", writtenRoot.GetGcGraph(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
+	assertWorldStoreImpl(t, "gc graph", writtenRoot.GetGcGraph(), kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA)
 	assertWorldStoreImpl(t, "gc journal", writtenRoot.GetGcJournal(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
 
 	readWS, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)

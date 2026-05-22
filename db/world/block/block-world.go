@@ -108,7 +108,15 @@ func (w *World) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	case 3:
 		return NewChangeLogLLSubBlockCtor(&w.LastChange)
 	case 5:
-		return block_kvtx.NewKeyValueStoreSubBlockCtor(&w.GcGraph)
+		return func(create bool) block.SubBlock {
+			if w.GcGraph == nil && create {
+				w.GcGraph = block_kvtx.NewKeyValueStoreForWorkload(block_kvtx.WorkloadClassGCRefGraph)
+			}
+			if w.GcGraph == nil {
+				return nil
+			}
+			return w.GcGraph
+		}
 	case gcJournalSubBlock:
 		return block_kvtx.NewKeyValueStoreSubBlockCtor(&w.GcJournal)
 	default:

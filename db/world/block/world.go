@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"slices"
 	"sync/atomic"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -17,6 +18,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
+	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 	kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/tx"
@@ -47,13 +49,14 @@ type WorldState struct {
 	// onSwept is called for each node swept during GC (optional).
 	onSwept func(context.Context, string) error
 
-	objTree       kvtx.BlockTx
-	graphTree     kvtx.BlockTx
-	graphHd       *cayley.Handle
-	gcTree        kvtx.BlockTx
-	refGraph      *block_gc.RefGraph
-	gcJournalTree kvtx.BlockTx
-	gcJournal     *gcJournal
+	objTree        kvtx.BlockTx
+	graphTree      kvtx.BlockTx
+	graphHd        *cayley.Handle
+	gcTree         kvtx.BlockTx
+	gcTreeIsolated bool
+	refGraph       *block_gc.RefGraph
+	gcJournalTree  kvtx.BlockTx
+	gcJournal      *gcJournal
 
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
@@ -353,9 +356,10 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	var gcTree kvtx.BlockTx
 	var refGraph *block_gc.RefGraph
 	var initGCRootEdge bool
+	var gcTreeIsolated bool
 	if t.write && t.store != nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-tree")
-		gcTree, refGraph, initGCRootEdge, err = t.buildGCTree(taskCtx, bcs)
+		gcTree, refGraph, initGCRootEdge, gcTreeIsolated, err = t.buildGCTree(taskCtx, bcs)
 		subtask.End()
 		if err != nil {
 			_ = graphHandle.Close()
@@ -429,7 +433,7 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 		t.gcJournalTree.Discard()
 	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
-	t.gcTree, t.refGraph = gcTree, refGraph
+	t.gcTree, t.gcTreeIsolated, t.refGraph = gcTree, gcTreeIsolated, refGraph
 	t.gcJournalTree, t.gcJournal = journalTree, journal
 	subtask.End()
 
@@ -517,6 +521,17 @@ func (t *WorldState) Commit(ctx context.Context) error {
 
 	journalEntriesBefore := t.GetGCJournalEntries()
 	var bcs *block.Cursor
+	if t.gcTreeIsolated && t.gcTree != nil && t.gcTree.GetCursor().IsDirty() {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/commit-isolated-gc-tree")
+		err = t.gcTree.Commit(taskCtx)
+		subtask.End()
+		if err != nil {
+			if endErr := t.store.EndDeferFlush(ctx); endErr != nil {
+				return errors.Wrap(endErr, err.Error())
+			}
+			return err
+		}
+	}
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/block-write")
 	_, bcs, err = t.btx.Write(taskCtx, false)
 	subtask.End()
@@ -709,8 +724,9 @@ func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kv
 }
 
 // buildGCTree builds the GC reference graph tree and RefGraph handle.
-// Returns whether the caller should initialize the gcroot -> world edge.
-func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *block_gc.RefGraph, bool, error) {
+// Returns whether the caller should initialize the gcroot -> world edge and
+// whether the tree commits through an isolated block transaction.
+func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *block_gc.RefGraph, bool, bool, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree")
 	defer task.End()
 
@@ -719,32 +735,66 @@ func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.B
 	kvs, err := kvtx_block.LoadKeyValueStore(taskCtx, gcTreeBcs)
 	subtask.End()
 	if err != nil {
-		return nil, nil, false, err
+		return nil, nil, false, false, err
 	}
 
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/build-kv-transaction")
-	ktx, err := kvs.BuildKvTransaction(taskCtx, gcTreeBcs, true)
+	ktx, isolated, err := t.buildGCKvTransaction(taskCtx, kvs, gcTreeBcs)
 	subtask.End()
 	if err != nil {
-		return nil, nil, false, err
+		return nil, nil, false, false, err
 	}
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/size")
 	gcTreeSize, err := ktx.Size(taskCtx)
 	subtask.End()
 	if err != nil {
 		ktx.Discard()
-		return nil, nil, false, err
+		return nil, nil, false, false, err
 	}
 	initGCRootEdge := gcTreeSize == 0
+	if initGCRootEdge && t.refGraph != nil {
+		outgoing, err := t.refGraph.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
+		if err != nil {
+			ktx.Discard()
+			return nil, nil, false, false, err
+		}
+		if slices.Contains(outgoing, "world") {
+			initGCRootEdge = false
+		}
+	}
 
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/new-ref-graph")
 	rg, err := block_gc.NewRefGraph(taskCtx, kvtx.NewTxStore(ktx), nil)
 	subtask.End()
 	if err != nil {
 		ktx.Discard()
-		return nil, nil, false, err
+		return nil, nil, false, false, err
 	}
-	return ktx, rg, initGCRootEdge, nil
+	return ktx, rg, initGCRootEdge, isolated, nil
+}
+
+func (t *WorldState) buildGCKvTransaction(
+	ctx context.Context,
+	kvs *kvtx_block.KeyValueStore,
+	gcTreeBcs *block.Cursor,
+) (kvtx.BlockTx, bool, error) {
+	if kvs.GetImplType() != kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA || t.btx == nil || t.store == nil {
+		ktx, err := kvs.BuildKvTransaction(ctx, gcTreeBcs, true)
+		return ktx, false, err
+	}
+
+	isolatedTx, isolatedRoot := block.NewTransaction(t.store, t.btx.GetTransformer(), nil, t.btx.GetPutOpts())
+	isolatedKVS := kvs.CloneVT()
+	isolatedRoot.SetBlock(isolatedKVS, false)
+	treeBcs := isolatedRoot.FollowSubBlock(3)
+	ktx, err := kvtx_block_okra.NewTx(ctx, treeBcs, isolatedTx, true, func(ncs *block.Cursor) {
+		_ = ncs.SetAsSubBlock(3, isolatedRoot)
+		gcTreeBcs.SetBlock(isolatedKVS.CloneVT(), true)
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	return ktx, true, nil
 }
 
 // buildGraphTree builds the graph tree (kv storage) handle.
