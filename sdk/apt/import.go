@@ -70,6 +70,7 @@ func ImportDebPackage(
 	if err != nil {
 		return nil, nil, err
 	}
+	parsed.Checksums = AptPackageChecksums(deb)
 
 	objectState, existing, err := lookupAptPackageImportTarget(ctx, ws, packageKey)
 	if err != nil {

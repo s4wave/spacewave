@@ -19,4 +19,6 @@ var (
 	ErrInvalidAptPackageStateTransition = errors.New("apt package: invalid state transition")
 	// ErrInvalidAptPackageInitialState is returned when creating a package outside its seed states.
 	ErrInvalidAptPackageInitialState = errors.New("apt package: invalid initial state")
+	// ErrInvalidAptPackageIndexMetadata is returned when a package cannot be rendered into an apt index.
+	ErrInvalidAptPackageIndexMetadata = errors.New("apt package: invalid index metadata")
 )

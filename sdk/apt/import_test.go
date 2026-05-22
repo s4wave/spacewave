@@ -31,6 +31,7 @@ func TestImportDebPackageStoresBlockAndCreatesBuiltPackage(t *testing.T) {
 	if aptPackage.GetName() != "busybox" {
 		t.Fatalf("name = %q, want busybox", aptPackage.GetName())
 	}
+	assertChecksumHex(t, aptPackage.GetChecksums(), "sha256", sha256Hex(deb))
 	assertStoredDebBlock(t, ctx, ws, debRef, deb)
 
 	stored := readAptBlock[*AptPackage](t, ctx, ws, packageKey, func() block.Block {
