@@ -103,6 +103,12 @@ export interface ClientToWebDocument {
   capabilityReady?: true
   // ready indicates the worker finished startup and registered its runtime client.
   ready?: true
+  // startupMark reports worker-local startup progress for the document timeline.
+  startupMark?: {
+    label: string
+    startTimeMs?: number
+    detail?: Record<string, unknown>
+  }
 }
 
 export interface OpenSabPairRequest {

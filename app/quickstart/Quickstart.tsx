@@ -26,6 +26,7 @@ import { LoadingScreen } from './LoadingScreen.js'
 import { isQuickstartCreateId, type QuickstartId } from './options.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 import { createQuickstartSessionHandoffCleanup } from './session-handoff.js'
+import { markQuickstartStartupBoundary } from './startup-boundary.js'
 
 interface QuickstartProps {
   quickstartId: QuickstartId
@@ -131,6 +132,13 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
             spaceID,
             getQuickstartInitialObjectRouteHandoff(quickstartId),
           )
+          if (spaceID) {
+            markQuickstartStartupBoundary('quickstart.route-handoff-ready', {
+              quickstartId,
+              sessionIndex: setup.sessionIndex,
+              sharedObjectId: spaceID,
+            })
+          }
         }
         return setup
       } catch (err) {
@@ -141,6 +149,8 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
     [isCreate, isLocal, quickstartId, reportProgress],
     { enabled: isCreate && !isLocal },
   )
+  const setup = setupResource.value
+  const spaceID = setup?.spaceResp.sharedObjectRef?.providerResourceRef?.id
 
   // account option: redirect to /login
   if (quickstartId === 'account') {
@@ -182,9 +192,6 @@ export const Quickstart: React.FC<QuickstartProps> = ({ quickstartId }) => {
       />
     )
   }
-
-  const setup = setupResource.value
-  const spaceID = setup?.spaceResp.sharedObjectRef?.providerResourceRef?.id
 
   if (setupResource.loading || !setup || !spaceID) {
     return <LoadingScreen quickstartId={quickstartId} progress={progress} />

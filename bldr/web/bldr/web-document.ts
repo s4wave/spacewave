@@ -1257,8 +1257,19 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (!request.path) {
       throw new Error('web worker path is required')
     }
+    const plugin = !!request.initData
+    const workerType = request.workerType ?? WebWorkerType.NATIVE
+    markStartupBoundary('worker.create-request-received', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      workerId: request.id,
+      workerType,
+      plugin,
+      path: request.path,
+    })
 
-    if (request.initData) {
+    if (plugin) {
       try {
         console.log('WebDocument: waiting for plugin singleton lock')
         markStartupBoundary('singleton-lock.wait-start', {
@@ -1292,7 +1303,15 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     // All workers use the same sharedWorkerPath, with workerType passed in URL
-    const workerType = request.workerType ?? WebWorkerType.NATIVE
+    markStartupBoundary('worker.create-request-accepted', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      workerId: request.id,
+      workerType,
+      plugin,
+      path: request.path,
+    })
     const detect = await this.workerCommsDetect
     if (!this.firstWorkerCreationMarked) {
       this.firstWorkerCreationMarked = true
@@ -1318,8 +1337,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // WORKER_MODE_DEFAULT: for plugin workers on Config B/C (SAB available),
       // use DedicatedWorker so the SAB bus can be wired for intra-tab IPC.
       // Non-plugin workers and Config A/F keep SharedWorker.
-      const isPlugin = !!request.initData
-      if (isPlugin) {
+      if (plugin) {
         shared = detect.config !== 'B' && detect.config !== 'C'
       } else {
         shared = true
@@ -1335,6 +1353,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       WebWorkerGenerationState.WORKER_REQUESTED,
     )
 
+    markStartupBoundary('worker.create-dispatch-start', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      workerId: request.id,
+      workerType,
+      workerMode,
+      shared,
+      plugin,
+      path: request.path,
+      detectConfig: detect.config,
+    })
     const worker = new WebDocumentWebWorker(
       request.id,
       request.path,
@@ -1804,6 +1834,19 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const worker = this.webWorkers[workerID]
     if (!worker) {
       return
+    }
+    if (data.startupMark) {
+      markStartupBoundary(data.startupMark.label, {
+        source: 'worker',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+        workerId: workerID,
+        shared: worker.isShared,
+        workerType: worker.workerType,
+        plugin: worker.plugin,
+        ...(data.startupMark.detail ?? {}),
+        workerStartTimeMs: data.startupMark.startTimeMs ?? null,
+      })
     }
     if (data.close) {
       // Web worker was closed / removed.

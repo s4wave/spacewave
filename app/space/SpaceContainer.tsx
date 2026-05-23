@@ -80,11 +80,29 @@ import {
   consumeQuickstartSpaceWorldHandoff,
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
+import { markQuickstartStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
+
+const quickstartSpaceStartupLabels: Record<string, string> = {
+  'quickstart route using space handoff': 'quickstart.space-handoff-used',
+  'quickstart space resource created': 'quickstart.space-resource-created',
+  'quickstart route using space world handoff':
+    'quickstart.space-world-handoff-used',
+  'quickstart access world start': 'quickstart.space-world-access-start',
+  'quickstart access world finish': 'quickstart.space-world-access-ready',
+  'quickstart route using space contents handoff':
+    'quickstart.space-contents-handoff-used',
+  'quickstart mount contents start': 'quickstart.space-contents-mount-start',
+  'quickstart mount contents finish': 'quickstart.space-contents-mount-ready',
+}
 
 function logQuickstartSpaceDiagnostic(
   message: string,
   fields: Record<string, unknown>,
 ): void {
+  const startupLabel = quickstartSpaceStartupLabels[message]
+  if (startupLabel) {
+    markQuickstartStartupBoundary(startupLabel, fields)
+  }
   if (
     !(globalThis as { __s4waveLogQuickstartTiming?: boolean })
       .__s4waveLogQuickstartTiming

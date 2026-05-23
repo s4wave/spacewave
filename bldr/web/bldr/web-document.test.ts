@@ -673,7 +673,9 @@ describe('WebDocument plugin generation state', () => {
 
   it('does not create plugin workers when singleton ownership is unavailable', async () => {
     const doc = buildTestWebDocument()
-    doc.pluginSingletonReady = Promise.reject(new Error('Web Locks unavailable'))
+    doc.pluginSingletonReady = Promise.reject(
+      new Error('Web Locks unavailable'),
+    )
     doc.pluginSingletonReady.catch(() => {})
 
     await expect(
@@ -683,6 +685,11 @@ describe('WebDocument plugin generation state', () => {
         initData: new Uint8Array([1]),
       }),
     ).resolves.toEqual({ created: false, shared: false })
+
+    expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toEqual([
+      'worker.create-request-received',
+      'singleton-lock.wait-start',
+    ])
   })
 
   it('publishes normal stop for explicit worker removal', async () => {

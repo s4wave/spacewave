@@ -3,6 +3,7 @@ import {
   type KeyboardEvent,
   useCallback,
   useDeferredValue,
+  useEffect,
   useMemo,
   useReducer,
   type MouseEvent,
@@ -88,6 +89,7 @@ import {
   type SessionSyncStatusView,
   useSessionSyncStatus,
 } from '../session/SessionSyncStatusContext.js'
+import { markAppStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
 import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
 
 const DRIVE_STARTER_GUIDE_NAME = 'getting-started.md'
@@ -1046,6 +1048,11 @@ export function UnixFSBrowser({
     enabled: displayPath !== '/',
     handler: handleUp,
   })
+  const isLoading =
+    rootHandle.loading ||
+    pathHandle.loading ||
+    statResource.loading ||
+    (isDir === true && entriesResource.loading)
 
   // Build entries with new folder/file inline input prepended
   const displayEntries = useMemo(() => {
@@ -1059,6 +1066,49 @@ export function UnixFSBrowser({
     if (prepend.length === 0) return fileEntries
     return [...prepend, ...fileEntries]
   }, [fileEntries, newFolderName, newFileName])
+  const visibleEntryNames = displayEntries.map((entry) => entry.name).join('\n')
+  const unixFSBoundaryMarks = useRef({
+    browserMounted: false,
+    firstFileRow: false,
+    seededFile: false,
+  })
+  useEffect(() => {
+    if (isDir !== true || isLoading || !rootHandle.value) return
+    if (!unixFSBoundaryMarks.current.browserMounted) {
+      unixFSBoundaryMarks.current.browserMounted = true
+      markAppStartupBoundary('unixfs.browser-mounted', {
+        path: displayPath,
+      })
+    }
+    if (
+      !unixFSBoundaryMarks.current.firstFileRow &&
+      displayEntries.length > 0
+    ) {
+      unixFSBoundaryMarks.current.firstFileRow = true
+      markAppStartupBoundary('unixfs.first-file-row', {
+        path: displayPath,
+        entryCount: displayEntries.length,
+        firstEntryName: displayEntries[0]?.name ?? null,
+      })
+    }
+    if (
+      !unixFSBoundaryMarks.current.seededFile &&
+      visibleEntryNames.includes(DRIVE_STARTER_GUIDE_NAME)
+    ) {
+      unixFSBoundaryMarks.current.seededFile = true
+      markAppStartupBoundary('unixfs.seeded-file-visible', {
+        path: displayPath,
+        fileName: DRIVE_STARTER_GUIDE_NAME,
+      })
+    }
+  }, [
+    displayEntries,
+    displayPath,
+    isDir,
+    isLoading,
+    rootHandle.value,
+    visibleEntryNames,
+  ])
 
   // renderEntry overrides the default entry renderer to show an inline input
   // for renaming an existing entry or naming a new folder/file. Returns
@@ -1243,12 +1293,6 @@ export function UnixFSBrowser({
       />
     ) : null
 
-  // Determine loading state - include stat loading
-  const isLoading =
-    rootHandle.loading ||
-    pathHandle.loading ||
-    statResource.loading ||
-    (isDir === true && entriesResource.loading)
   const loadingStageLabel = useMemo(
     () =>
       buildUnixFSLoadingStageLabel({

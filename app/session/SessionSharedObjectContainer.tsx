@@ -90,11 +90,31 @@ import {
   markQuickstartSharedObjectHandoffAwaitingResourcesList,
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
+import { markQuickstartStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
+
+const quickstartRouteStartupLabels: Record<string, string> = {
+  'quickstart route using shared object handoff':
+    'quickstart.shared-object-handoff-used',
+  'quickstart route mount shared object start':
+    'quickstart.shared-object-mount-start',
+  'quickstart route mount shared object finish':
+    'quickstart.shared-object-mount-ready',
+  'quickstart route using shared object body handoff':
+    'quickstart.shared-object-body-handoff-used',
+  'quickstart route mount body start':
+    'quickstart.shared-object-body-mount-start',
+  'quickstart route mount body finish':
+    'quickstart.shared-object-body-mount-ready',
+}
 
 function logQuickstartRouteDiagnostic(
   message: string,
   fields: Record<string, unknown>,
 ): void {
+  const startupLabel = quickstartRouteStartupLabels[message]
+  if (startupLabel) {
+    markQuickstartStartupBoundary(startupLabel, fields)
+  }
   if (
     !(globalThis as { __s4waveLogQuickstartTiming?: boolean })
       .__s4waveLogQuickstartTiming

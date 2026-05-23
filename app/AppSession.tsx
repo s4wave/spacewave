@@ -23,6 +23,7 @@ import {
 } from '@s4wave/core/session/session.pb.js'
 import type { Root } from '@s4wave/sdk/root/root.js'
 import { consumeQuickstartSessionHandoff } from './quickstart/session-handoff.js'
+import { markQuickstartStartupBoundary } from './quickstart/startup-boundary.js'
 
 // AppSession handles the /u/{session-idx}/* path.
 export function AppSession() {
@@ -54,6 +55,10 @@ export function AppSession() {
       if (!sessionIdx) return null
       const handoff = consumeQuickstartSessionHandoff(sessionIdx)
       if (handoff) {
+        markQuickstartStartupBoundary('quickstart.session-handoff-used', {
+          sessionIdx,
+          released: handoff.session.released,
+        })
         if (
           (globalThis as { __s4waveLogQuickstartTiming?: boolean })
             .__s4waveLogQuickstartTiming
@@ -77,6 +82,9 @@ export function AppSession() {
             JSON.stringify({ sessionIdx }),
         )
       }
+      markQuickstartStartupBoundary('quickstart.session-mount-start', {
+        sessionIdx,
+      })
       const result = await root.mountSessionByIdx({ sessionIdx }, signal)
       if (result === null) {
         console.warn(
@@ -86,6 +94,10 @@ export function AppSession() {
         queueMicrotask(() => navigate({ path: '/', replace: true }))
         return null
       }
+      markQuickstartStartupBoundary('quickstart.session-mount-ready', {
+        sessionIdx,
+        released: result.session.released,
+      })
       return cleanup(result.session)
     },
     [sessionIdx],

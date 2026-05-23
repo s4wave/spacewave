@@ -93,6 +93,7 @@ const h = vi.hoisted(() => ({
   mockAddFiles: vi.fn(),
   mockExtractNativeUploadSelection: vi.fn(),
   mockDownloadUnixFSSelection: vi.fn(),
+  mockAppStartupBoundary: vi.fn(),
   mockLookup: vi.fn(),
   mockMkdirAll: vi.fn(),
   mockMknod: vi.fn(),
@@ -284,6 +285,10 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 
 vi.mock('../session/SessionSyncStatusContext.js', () => ({
   useSessionSyncStatus: () => h.mockSyncStatus,
+}))
+
+vi.mock('@s4wave/app/quickstart/startup-boundary.js', () => ({
+  markAppStartupBoundary: h.mockAppStartupBoundary,
 }))
 
 vi.mock('./download.js', async (importOriginal) => {
@@ -538,6 +543,7 @@ describe('UnixFSBrowser drag gating', () => {
     h.mockAddFiles.mockReset()
     h.mockExtractNativeUploadSelection.mockReset()
     h.mockDownloadUnixFSSelection.mockReset()
+    h.mockAppStartupBoundary.mockReset()
     h.mockLookup.mockReset()
     h.mockMkdirAll.mockReset()
     h.mockMknod.mockReset()
@@ -645,6 +651,49 @@ describe('UnixFSBrowser drag gating', () => {
     expect(h.mockNavigate).toHaveBeenCalledWith({
       path: './getting-started.md',
     })
+  })
+
+  it('marks generic UnixFS browser startup boundaries without Quickstart labels', async () => {
+    h.mockFileEntries = [
+      { id: 'guide', name: 'getting-started.md', isDir: false },
+      { id: 'docs', name: 'docs', isDir: true },
+    ]
+
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource(null)}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(h.mockAppStartupBoundary).toHaveBeenCalledWith(
+        'unixfs.browser-mounted',
+        { path: '/' },
+      )
+      expect(h.mockAppStartupBoundary).toHaveBeenCalledWith(
+        'unixfs.first-file-row',
+        {
+          path: '/',
+          entryCount: 2,
+          firstEntryName: 'getting-started.md',
+        },
+      )
+      expect(h.mockAppStartupBoundary).toHaveBeenCalledWith(
+        'unixfs.seeded-file-visible',
+        {
+          path: '/',
+          fileName: 'getting-started.md',
+        },
+      )
+    })
+
+    const markedLabels = h.mockAppStartupBoundary.mock.calls.map((call) =>
+      String(call[0]),
+    )
+    expect(markedLabels).not.toContain('quickstart.unixfs-browser-mounted')
   })
 
   it('renders a custom browser body under the toolbar instead of the file list', () => {

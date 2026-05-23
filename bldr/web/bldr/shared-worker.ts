@@ -99,8 +99,14 @@ if (isPlugin) {
 
     if (workerType === 'quickjs') {
       console.log('shared-worker: starting QuickJS plugin:', scriptPath)
+      pluginWorker.notifyStartupMark('plugin.quickjs-host-import-start', {
+        path: scriptPath,
+      })
       const quickjsRunner =
         await import('../runtime/quickjs/plugin-host-quickjs.js')
+      pluginWorker.notifyStartupMark('plugin.quickjs-host-import-ready', {
+        path: scriptPath,
+      })
       let ready = false
       let resolveReady!: () => void
       let rejectReady!: (err: unknown) => void
@@ -149,7 +155,13 @@ if (isPlugin) {
     } else {
       console.log('shared-worker: starting native plugin:', scriptPath)
 
+      pluginWorker.notifyStartupMark('plugin.script-import-start', {
+        path: scriptPath,
+      })
       const pluginModule = await import(scriptPath)
+      pluginWorker.notifyStartupMark('plugin.script-import-ready', {
+        path: scriptPath,
+      })
       if (typeof pluginModule.default !== 'function') {
         throw new Error(
           `shared-worker: Imported module "${scriptPath}" does not have a default export function.`,
