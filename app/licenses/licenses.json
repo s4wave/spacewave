@@ -909,7 +909,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor",
-      "version": "v0.15.0",
+      "version": "v0.14.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-quickjs-wasi-reactor",
@@ -917,7 +917,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs",
-      "version": "v0.0.0-20260522072136-ee12f2882473",
+      "version": "v0.0.0-20260414073032-6d37aebb81c9",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-quickjs-wasi-reactor",
@@ -1390,7 +1390,7 @@
     },
     {
       "name": "github.com/pion/interceptor",
-      "version": "v0.1.45",
+      "version": "v0.1.44",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/interceptor",
@@ -1430,7 +1430,7 @@
     },
     {
       "name": "github.com/pion/rtp",
-      "version": "v1.10.2",
+      "version": "v1.10.1",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/rtp",
@@ -1438,7 +1438,7 @@
     },
     {
       "name": "github.com/pion/sctp",
-      "version": "v1.10.0",
+      "version": "v1.9.5",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/sctp",
@@ -1478,7 +1478,7 @@
     },
     {
       "name": "github.com/pion/turn/v5",
-      "version": "v5.0.4",
+      "version": "v5.0.3",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/turn",
@@ -1486,7 +1486,7 @@
     },
     {
       "name": "github.com/pion/webrtc/v4",
-      "version": "v4.2.13",
+      "version": "v4.2.12",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/webrtc",
@@ -1693,14 +1693,14 @@
     },
     {
       "name": "go.starlark.net",
-      "version": "v0.0.0-20260521175807-f5d928020cb8",
+      "version": "v0.0.0-20260326113308-fadfc96def35",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "fullText": "Copyright (c) 2017 The Bazel Authors.  All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n1. Redistributions of source code must retain the above copyright\n   notice, this list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright\n   notice, this list of conditions and the following disclaimer in the\n   documentation and/or other materials provided with the\n   distribution.\n\n3. Neither the name of the copyright holder nor the names of its\n   contributors may be used to endorse or promote products derived\n   from this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nHOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
     },
     {
       "name": "golang.org/x/crypto",
-      "version": "v0.52.0",
+      "version": "v0.51.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/crypto",
@@ -1740,7 +1740,7 @@
     },
     {
       "name": "golang.org/x/sys",
-      "version": "v0.45.0",
+      "version": "v0.44.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/sys",

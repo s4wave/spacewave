@@ -2,6 +2,8 @@ module github.com/s4wave/spacewave
 
 go 1.26.2
 
+replace github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260522232916-0936ab26cb7e
+
 // aperture: use ext-engines forks
 replace (
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260430160256-9f14583bdee3 // aperture-5
@@ -37,8 +39,8 @@ require (
 	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
-	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.0
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260522072136-ee12f2882473
+	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.14.0
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260414073032-6d37aebb81c9
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
@@ -66,7 +68,7 @@ require (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/go-sql-driver/mysql v1.10.0
-	go.starlark.net v0.0.0-20260521175807-f5d928020cb8
+	go.starlark.net v0.0.0-20260326113308-fadfc96def35
 	gonum.org/v1/gonum v0.17.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.1
@@ -85,7 +87,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-alpha.1 // main
+	github.com/go-git/go-billy/v6 v6.0.0-alpha.1.0.20260519112248-0095b064a6c6 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.4 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v1.9.3
@@ -102,7 +104,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.26
 	github.com/pion/datachannel v1.6.0
 	github.com/pion/sdp/v3 v3.0.18
-	github.com/pion/webrtc/v4 v4.2.13
+	github.com/pion/webrtc/v4 v4.2.12
 	github.com/pkg/errors v0.9.1
 	github.com/playwright-community/playwright-go v0.5700.1
 	github.com/quic-go/quic-go v0.59.1
@@ -125,7 +127,6 @@ replace github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-
 require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
@@ -160,17 +161,17 @@ require (
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
 	github.com/pion/dtls/v3 v3.1.2 // indirect
 	github.com/pion/ice/v4 v4.2.5 // indirect
-	github.com/pion/interceptor v0.1.45 // indirect
+	github.com/pion/interceptor v0.1.44 // indirect
 	github.com/pion/logging v0.2.4 // indirect
 	github.com/pion/mdns/v2 v2.1.0 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.16 // indirect
-	github.com/pion/rtp v1.10.2 // indirect
-	github.com/pion/sctp v1.10.0 // indirect
+	github.com/pion/rtp v1.10.1 // indirect
+	github.com/pion/sctp v1.9.5 // indirect
 	github.com/pion/srtp/v3 v3.0.10 // indirect
 	github.com/pion/stun/v3 v3.1.2 // indirect
 	github.com/pion/transport/v4 v4.0.1 // indirect
-	github.com/pion/turn/v5 v5.0.4 // indirect
+	github.com/pion/turn/v5 v5.0.3 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
