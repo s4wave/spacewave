@@ -1,10 +1,12 @@
 import * as $ from "@goscript/builtin/index.js";
 import * as protobuf from "@goscript/github.com/aperturerobotics/protobuf-go-lite/index.js";
+import * as packfile from "@goscript/github.com/s4wave/spacewave/core/provider/spacewave/packfile/index.js";
 
 const cdnRootPointerMethods: $.MethodSignature[] = [
   { name: "Reset", args: [], returns: [] },
   { name: "ProtoMessage", args: [], returns: [] },
   { name: "GetSpaceId", args: [], returns: [{ name: "", type: "string" }] },
+  { name: "GetPacks", args: [], returns: [] },
   {
     name: "MarshalVT",
     args: [],
@@ -24,12 +26,18 @@ export class CdnRootPointer {
   public _fields: {
     unknownFields: $.VarRef<$.Bytes>;
     SpaceId: $.VarRef<string>;
+    Packs: $.VarRef<$.Slice<packfile.PackfileEntry | $.VarRef<packfile.PackfileEntry> | null>>;
   };
 
-  constructor(init?: Partial<{ unknownFields: $.Bytes; SpaceId: string }>) {
+  constructor(init?: Partial<{
+    unknownFields: $.Bytes;
+    SpaceId: string;
+    Packs: $.Slice<packfile.PackfileEntry | $.VarRef<packfile.PackfileEntry> | null>;
+  }>) {
     this._fields = {
       unknownFields: $.varRef(init?.unknownFields ?? null),
       SpaceId: $.varRef(init?.SpaceId ?? ""),
+      Packs: $.varRef(init?.Packs ?? null),
     };
   }
 
@@ -37,10 +45,19 @@ export class CdnRootPointer {
   set unknownFields(value: $.Bytes) { this._fields.unknownFields.value = value; }
   get SpaceId(): string { return this._fields.SpaceId.value; }
   set SpaceId(value: string) { this._fields.SpaceId.value = value; }
+  get Packs(): $.Slice<packfile.PackfileEntry | $.VarRef<packfile.PackfileEntry> | null> {
+    return this._fields.Packs.value;
+  }
+  set Packs(value: $.Slice<packfile.PackfileEntry | $.VarRef<packfile.PackfileEntry> | null>) {
+    this._fields.Packs.value = value;
+  }
 
   Reset(): void { $.assignStruct(this, new CdnRootPointer()); }
   ProtoMessage(): void {}
   GetSpaceId(): string { return this.SpaceId; }
+  GetPacks(): $.Slice<packfile.PackfileEntry | $.VarRef<packfile.PackfileEntry> | null> {
+    return this.Packs;
+  }
 
   MarshalVT(): [$.Bytes, $.GoError] {
     let out: $.Slice<number> = [];

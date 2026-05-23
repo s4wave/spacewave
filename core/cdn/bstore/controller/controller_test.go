@@ -9,7 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	block_store "github.com/s4wave/spacewave/db/block/store"
-	"github.com/s4wave/spacewave/db/testbed"
+	core_test "github.com/s4wave/spacewave/db/core/test"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,21 +32,20 @@ func TestConfigValidation(t *testing.T) {
 
 func TestControllerResolvesBlockStore(t *testing.T) {
 	ctx := context.Background()
-	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
+	b, sr, err := core_test.NewTestingBus(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer tb.Release()
-	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
+	sr.AddFactory(NewFactory(b))
 
 	conf := NewConfig("release-cdn", "01release", "https://cdn.example.invalid")
-	_, _, ctrlRef, err := loader.WaitExecControllerRunning(ctx, tb.Bus, resolver.NewLoadControllerWithConfig(conf), nil)
+	_, _, ctrlRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(conf), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ctrlRef.Release()
 
-	store, _, storeRef, err := block_store.ExLookupFirstBlockStore(ctx, tb.Bus, "release-cdn", false, nil)
+	store, _, storeRef, err := block_store.ExLookupFirstBlockStore(ctx, b, "release-cdn", false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
