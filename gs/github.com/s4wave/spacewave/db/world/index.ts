@@ -2,6 +2,10 @@ import * as $ from "@goscript/builtin/index.js";
 import * as context from "@goscript/context/index.js";
 import * as directive from "@goscript/github.com/aperturerobotics/controllerbus/directive/index.js";
 
+const errDynamicLookupUnsupported = $.newError(
+  "db/world: dynamic world op lookup is not supported in goscript",
+);
+
 export const ErrEmptyObjectKey = $.newError("object key cannot be empty");
 export const ErrGraphPathDirection = $.newError("graph path step direction is invalid");
 export const ErrGraphEdgeBucketDirection = $.newError("graph edge bucket direction is invalid");
@@ -241,7 +245,7 @@ export function BuildLookupWorldOpFunc(
   _le: unknown,
   _engineID: string,
 ): LookupOp {
-  return () => [null, null];
+  return () => [null, errDynamicLookupUnsupported];
 }
 
 class LookupWorldOpResolver {
@@ -249,7 +253,7 @@ class LookupWorldOpResolver {
     _ctx: context.Context | null,
     _handler: directive.ResolverHandler | null,
   ): Promise<$.GoError> {
-    return null;
+    return errDynamicLookupUnsupported;
   }
 }
 

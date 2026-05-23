@@ -108,9 +108,14 @@ class resourceRef implements ResourceRef {
 
 export function NewClient(
   ctx: context.Context,
-  _service: unknown,
+  service: resource.SRPCResourceServiceClient | null,
 ): [Client | null, $.GoError] {
-  const server = resource_server.GetLastResourceServer()
+  const srpcClient = service?.SRPCClient() ?? null
+  const invoker = (srpcClient as { invoker?: srpc.Invoker | null } | null)
+    ?.invoker ?? null
+  const server =
+    resource_server.GetResourceServerForInvoker(invoker) ??
+    resource_server.GetFallbackResourceServer()
   if (server == null) {
     return [null, resource.ErrResourceNotFound]
   }

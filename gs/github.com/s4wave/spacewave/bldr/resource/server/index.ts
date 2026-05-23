@@ -4,6 +4,7 @@ import * as srpc from '@goscript/github.com/aperturerobotics/starpc/srpc/index.j
 import * as resource from '@goscript/github.com/s4wave/spacewave/bldr/resource/index.js'
 
 const contextKey = {}
+const registeredServers = new WeakMap<object, ResourceServer>()
 let lastResourceServer: ResourceServer | null = null
 
 export type ResourceClientContext = {
@@ -41,8 +42,10 @@ export class ResourceServer {
     lastResourceServer = this
   }
 
-  public Register(_mux: srpc.Mux | null): $.GoError {
-    lastResourceServer = this
+  public Register(mux: srpc.Mux | null): $.GoError {
+    if (mux != null) {
+      registeredServers.set(mux, this)
+    }
     return null
   }
 
@@ -136,7 +139,13 @@ export async function ConstructChildResource<T>(
   return [result, resourceID, null]
 }
 
-export function GetLastResourceServer(): ResourceServer | null {
+export function GetResourceServerForInvoker(
+  invoker: srpc.Invoker | null,
+): ResourceServer | null {
+  return invoker == null ? null : registeredServers.get(invoker) ?? null
+}
+
+export function GetFallbackResourceServer(): ResourceServer | null {
   return lastResourceServer
 }
 

@@ -28,5 +28,5 @@ type SRPCLayoutHost_WatchLayoutModelStream interface {
 
 // SRPCRegisterLayoutHost registers a layout host with an SRPC mux.
 func SRPCRegisterLayoutHost(mux srpc.Mux, impl SRPCLayoutHostServer) error {
-	return nil
+	return srpc.ErrUnimplemented
 }
