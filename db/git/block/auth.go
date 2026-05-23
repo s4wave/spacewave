@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package git_block
 
 import (

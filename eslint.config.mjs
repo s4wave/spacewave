@@ -50,6 +50,7 @@ export default tseslint.config(
       'vendor/**',
       'vite-check/**',
       'scripts/**',
+      'gs/**',
       'wasm_exec.js',
       'hydra/**',
       '**/.bldr/**',

@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package writer
 
 import (

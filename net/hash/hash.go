@@ -2,16 +2,10 @@ package hash
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"hash"
 	"slices"
-
-	// We include sha1 for git support.
-	"crypto/sha1" //nolint:gosec
 
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
-	"github.com/zeebo/blake3"
 )
 
 // ErrHashMismatch is returned when hashes mismatch.
@@ -19,13 +13,6 @@ var ErrHashMismatch = errors.New("hash mismatch")
 
 // ErrHashTypeUnknown is returned when the hash type is unknown.
 var ErrHashTypeUnknown = errors.New("unknown hash type")
-
-// SupportedHashTypes is the list of built-in hash types.
-var SupportedHashTypes = []HashType{
-	HashType_HashType_SHA256,
-	HashType_HashType_SHA1,
-	HashType_HashType_BLAKE3,
-}
 
 // RecommendedHashType is the hash type recommended to use.
 // RecommendedHashType defaults to SHA256 because, as of May 16, 2026,
@@ -64,35 +51,6 @@ func (h *Hash) Clone() *Hash {
 	}
 }
 
-// Validate validates the hash type.
-func (h HashType) Validate() error {
-	switch h {
-	case HashType_HashType_UNKNOWN:
-		return nil
-	case HashType_HashType_SHA256:
-		return nil
-	case HashType_HashType_SHA1:
-		return nil
-	case HashType_HashType_BLAKE3:
-		return nil
-	default:
-		return errors.Errorf("hash type unknown: %v", h.String())
-	}
-}
-
-// GetHashLen returns the hash length.
-func (h HashType) GetHashLen() int {
-	switch h {
-	case HashType_HashType_SHA256:
-		return sha256.Size
-	case HashType_HashType_SHA1:
-		return sha1.Size //nolint:gosec
-	case HashType_HashType_BLAKE3:
-		return 32
-	}
-	return 0
-}
-
 // Sum takes the sum with the hash type.
 func (h HashType) Sum(data []byte) ([]byte, error) {
 	return sumHashType(h, data)
@@ -116,20 +74,6 @@ func (h *Hash) CompareHash(other *Hash) bool {
 		return false
 	}
 	return true
-}
-
-// BuildHasher builds the hasher for the hash type.
-func (h HashType) BuildHasher() (hash.Hash, error) {
-	switch h {
-	case HashType_HashType_SHA256:
-		return sha256.New(), nil
-	case HashType_HashType_SHA1:
-		return sha1.New(), nil //nolint:gosec
-	case HashType_HashType_BLAKE3:
-		return blake3.New(), nil
-	default:
-		return nil, errors.Errorf("hash type unknown: %v", h.String())
-	}
 }
 
 // VerifyData verifies data against the sum.

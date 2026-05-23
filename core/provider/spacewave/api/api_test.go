@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package provider_spacewave_api
 
 import (

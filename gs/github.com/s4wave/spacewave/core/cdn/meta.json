@@ -1,0 +1,5 @@
+{
+  "dependencies": [
+    "github.com/aperturerobotics/protobuf-go-lite"
+  ]
+}

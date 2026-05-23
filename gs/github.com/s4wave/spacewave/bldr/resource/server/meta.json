@@ -1,0 +1,10 @@
+{
+  "asyncFunctions": {
+    "ConstructChildResource": true
+  },
+  "dependencies": [
+    "context",
+    "github.com/aperturerobotics/starpc/srpc",
+    "github.com/s4wave/spacewave/bldr/resource"
+  ]
+}
