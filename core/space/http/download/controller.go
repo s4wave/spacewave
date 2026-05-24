@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	space_http_downloadurl "github.com/s4wave/spacewave/core/space/http/download/downloadurl"
 	space_http_header "github.com/s4wave/spacewave/core/space/http/header"
 	space_resolve "github.com/s4wave/spacewave/core/space/resolve"
 	space_unixfs "github.com/s4wave/spacewave/core/space/unixfs"
@@ -72,28 +73,6 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	return nil, nil
 }
 
-// downloadRequest holds parsed parameters from a download URL.
-type downloadRequest struct {
-	sessionIdx     uint32
-	sharedObjectID string
-	projectedPath  string
-}
-
-// parseDownloadURL parses /fs/u/{idx}/so/{soId}/...
-func parseDownloadURL(path string) (*downloadRequest, error) {
-	rest := strings.TrimPrefix(path, fsPathPrefix)
-	projected, err := space_unixfs.ParseProjectedPath(rest)
-	if err != nil {
-		return nil, err
-	}
-
-	return &downloadRequest{
-		sessionIdx:     projected.SessionIdx,
-		sharedObjectID: projected.SharedObjectID,
-		projectedPath:  projected.Path,
-	}, nil
-}
-
 // ServeHTTP handles file download requests.
 // /fs/u/{idx}/so/{soId}/...
 func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -101,13 +80,13 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	b := c.GetBus()
 	ctx := r.Context()
 
-	req, err := parseDownloadURL(r.URL.Path)
+	req, err := space_http_downloadurl.Parse(r.URL.Path)
 	if err != nil {
 		http.Error(w, "invalid download URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resolved, cleanup, err := space_resolve.ResolveSpace(ctx, b, req.sessionIdx, req.sharedObjectID)
+	resolved, cleanup, err := space_resolve.ResolveSpace(ctx, b, req.SessionIdx, req.SharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to resolve space for download")
 		http.Error(w, "space resolution failed", http.StatusServiceUnavailable)
@@ -117,7 +96,7 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ws := world.NewEngineWorldState(resolved.Engine, false)
 
-	fsh, err := space_unixfs.BuildFSHandle(le, ws, req.sessionIdx, req.sharedObjectID)
+	fsh, err := space_unixfs.BuildFSHandle(le, ws, req.SessionIdx, req.SharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to create fs handle")
 		http.Error(w, "failed to open filesystem", http.StatusInternalServerError)
@@ -130,13 +109,13 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Rewrite the request URL to serve the specific file.
 	nr := r.Clone(ctx)
-	nr.URL = &url.URL{Path: "/" + req.projectedPath}
+	nr.URL = &url.URL{Path: "/" + req.ProjectedPath}
 
 	// Set Content-Disposition unless inline mode is requested.
 	if r.URL.Query().Get("inline") == "" {
-		fileName := req.projectedPath
-		if idx := strings.LastIndex(req.projectedPath, "/"); idx >= 0 {
-			fileName = req.projectedPath[idx+1:]
+		fileName := req.ProjectedPath
+		if idx := strings.LastIndex(req.ProjectedPath, "/"); idx >= 0 {
+			fileName = req.ProjectedPath[idx+1:]
 		}
 		space_http_header.SetAttachmentHeader(w, fileName)
 	}
