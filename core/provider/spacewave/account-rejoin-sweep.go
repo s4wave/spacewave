@@ -4,6 +4,7 @@ import (
 	"context"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	"github.com/s4wave/spacewave/core/session"
 	"golang.org/x/sync/errgroup"
 )
@@ -39,8 +40,7 @@ func (a *ProviderAccount) buildSelfRejoinSweepStateLocked() *selfRejoinSweepStat
 	if !a.state.accountBootstrapFetched || a.state.selfRejoinSweepGeneration == 0 {
 		return nil
 	}
-	if !providerAccountStatusAllowsCloudMutation(a.state.status) ||
-		!cloudSelfEnrollmentAllowed(a.state.info) {
+	if !accountstatus.CanSelfEnrollCloudObjects(a.state.status, a.state.info) {
 		return nil
 	}
 

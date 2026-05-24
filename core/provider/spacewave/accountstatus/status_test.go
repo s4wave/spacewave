@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package provider_spacewave
+package accountstatus
 
 import (
 	"testing"
@@ -10,8 +8,8 @@ import (
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
-func TestUnauthenticatedAccountStatusUsesDeletedState(t *testing.T) {
-	status := unauthenticatedAccountStatus(&api.AccountStateResponse{
+func TestUnauthenticatedUsesDeletedState(t *testing.T) {
+	status := Unauthenticated(&api.AccountStateResponse{
 		LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_DELETED_PENDING_PURGE,
 	})
 	if status != provider.ProviderAccountStatus_ProviderAccountStatus_DELETED {
@@ -19,8 +17,8 @@ func TestUnauthenticatedAccountStatusUsesDeletedState(t *testing.T) {
 	}
 }
 
-func TestUnauthenticatedAccountStatusUsesReauthState(t *testing.T) {
-	status := unauthenticatedAccountStatus(&api.AccountStateResponse{
+func TestUnauthenticatedUsesReauthState(t *testing.T) {
+	status := Unauthenticated(&api.AccountStateResponse{
 		LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
 	})
 	if status != provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED {
@@ -28,8 +26,8 @@ func TestUnauthenticatedAccountStatusUsesReauthState(t *testing.T) {
 	}
 }
 
-func TestLoadedAccountStatusUsesDeletedState(t *testing.T) {
-	status := loadedAccountStatus(&api.AccountStateResponse{
+func TestLoadedUsesDeletedState(t *testing.T) {
+	status := Loaded(&api.AccountStateResponse{
 		LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_DELETED_PENDING_PURGE,
 	})
 	if status != provider.ProviderAccountStatus_ProviderAccountStatus_DELETED {
@@ -37,8 +35,8 @@ func TestLoadedAccountStatusUsesDeletedState(t *testing.T) {
 	}
 }
 
-func TestLoadedAccountStatusUsesReadyState(t *testing.T) {
-	status := loadedAccountStatus(&api.AccountStateResponse{
+func TestLoadedUsesReadyState(t *testing.T) {
+	status := Loaded(&api.AccountStateResponse{
 		LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
 	})
 	if status != provider.ProviderAccountStatus_ProviderAccountStatus_READY {
@@ -47,7 +45,7 @@ func TestLoadedAccountStatusUsesReadyState(t *testing.T) {
 }
 
 func TestCloudMutationAllowedReadOnlyState(t *testing.T) {
-	allowed := cloudMutationAllowed(&api.AccountStateResponse{
+	allowed := CloudMutationAllowed(&api.AccountStateResponse{
 		SubscriptionStatus: s4wave_provider_spacewave.BillingStatus_BillingStatus_CANCELED,
 		LifecycleState:     api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_CANCELED_GRACE_READONLY,
 	})
@@ -57,7 +55,7 @@ func TestCloudMutationAllowedReadOnlyState(t *testing.T) {
 }
 
 func TestCloudSelfEnrollmentAllowedReadOnlyExportState(t *testing.T) {
-	allowed := cloudSelfEnrollmentAllowed(&api.AccountStateResponse{
+	allowed := CloudSelfEnrollmentAllowed(&api.AccountStateResponse{
 		SubscriptionStatus: s4wave_provider_spacewave.BillingStatus_BillingStatus_CANCELED,
 		LifecycleState:     api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_CANCELED_GRACE_READONLY,
 	})
@@ -67,7 +65,7 @@ func TestCloudSelfEnrollmentAllowedReadOnlyExportState(t *testing.T) {
 }
 
 func TestCloudSelfEnrollmentBlocksPendingDeleteState(t *testing.T) {
-	allowed := cloudSelfEnrollmentAllowed(&api.AccountStateResponse{
+	allowed := CloudSelfEnrollmentAllowed(&api.AccountStateResponse{
 		SubscriptionStatus: s4wave_provider_spacewave.BillingStatus_BillingStatus_CANCELED,
 		LifecycleState:     api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_PENDING_DELETE_READONLY,
 	})
@@ -77,27 +75,25 @@ func TestCloudSelfEnrollmentBlocksPendingDeleteState(t *testing.T) {
 }
 
 func TestCanMutateCloudObjectsDormantStatus(t *testing.T) {
-	acc := &ProviderAccount{}
-	acc.state.info = &api.AccountStateResponse{
+	state := &api.AccountStateResponse{
 		SubscriptionStatus: s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
 		LifecycleState:     api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
 	}
-	acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT
+	status := provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT
 
-	if acc.canMutateCloudObjects() {
+	if CanMutateCloudObjects(status, state) {
 		t.Fatal("expected dormant account status to block cloud mutations")
 	}
 }
 
 func TestCanMutateCloudObjectsReadyWriteAllowedState(t *testing.T) {
-	acc := &ProviderAccount{}
-	acc.state.info = &api.AccountStateResponse{
+	state := &api.AccountStateResponse{
 		SubscriptionStatus: s4wave_provider_spacewave.BillingStatus_BillingStatus_TRIALING,
 		LifecycleState:     api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
 	}
-	acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_READY
+	status := provider.ProviderAccountStatus_ProviderAccountStatus_READY
 
-	if !acc.canMutateCloudObjects() {
+	if !CanMutateCloudObjects(status, state) {
 		t.Fatal("expected ready active account to allow cloud mutations")
 	}
 }

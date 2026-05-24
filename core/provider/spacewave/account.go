@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
+	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
@@ -552,7 +553,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	}
 	acc.wsTracker.onSessionUnauthenticated = func() {
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			acc.state.status = unauthenticatedAccountStatus(acc.state.info)
+			acc.state.status = accountstatus.Unauthenticated(acc.state.info)
 			broadcast()
 		})
 		acc.refreshSelfRejoinSweepState()
@@ -697,7 +698,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		var reconcileState *sessionPresentationReconcileState
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			acc.state.info = state
-			acc.state.status = loadedAccountStatus(state)
+			acc.state.status = accountstatus.Loaded(state)
 			acc.state.lastFetchedEpoch = uint64(cached.GetFetchedEpoch())
 			reconcileState = acc.buildSessionPresentationReconcileStateLocked()
 			broadcast()
@@ -973,7 +974,7 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 			}
 			a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				a.state.info = fetched
-				a.state.status = loadedAccountStatus(fetched)
+				a.state.status = accountstatus.Loaded(fetched)
 				a.state.infoFetching = false
 				broadcast()
 			})

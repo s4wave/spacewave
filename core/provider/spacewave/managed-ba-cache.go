@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
+	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -80,7 +81,7 @@ func (a *ProviderAccount) resolveManagedBAs(
 		if isUnauthCloudError(err) {
 			var status provider.ProviderAccountStatus
 			a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-				status = unauthenticatedAccountStatus(a.state.info)
+				status = accountstatus.Unauthenticated(a.state.info)
 			})
 			a.SetAccountStatus(status)
 		}
