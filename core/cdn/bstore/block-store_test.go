@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package cdn_bstore
 
 import (
@@ -264,6 +262,7 @@ func TestCdnBlockStoreReadsBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer bs.Close()
 
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, block1)
 	if err != nil {
@@ -507,6 +506,7 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer first.Close()
 	first.SetWriteback(ctx, cache, 1<<20)
 	got, found, err := first.GetBlock(ctx, ref)
 	if err != nil {
@@ -527,6 +527,7 @@ func TestCdnBlockStoreReadsThroughWritebackOnSecondColdStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer second.Close()
 	second.SetWriteback(ctx, cache, 1<<20)
 	got, found, err = second.GetBlock(ctx, ref)
 	if err != nil {
@@ -545,6 +546,7 @@ func TestCdnBlockStoreWritesRejected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer bs.Close()
 	if _, _, err := bs.PutBlock(context.Background(), []byte("x"), nil); err == nil {
 		t.Fatal("expected PutBlock to error")
 	}
