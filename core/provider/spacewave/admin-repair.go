@@ -2,9 +2,9 @@ package provider_spacewave
 
 import (
 	"context"
-	"path"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/provider/spacewave/adminrepair"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
 
@@ -17,13 +17,13 @@ func (c *SessionClient) ApplyPackMetadataRepair(
 	if req == nil {
 		return nil, errors.New("pack metadata repair request is nil")
 	}
-	body, err := req.MarshalVT()
+	body, err := adminrepair.MarshalRequest(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal pack metadata repair request")
 	}
 	respBody, err := c.doPostBinary(
 		ctx,
-		path.Join("/api/admin/bstore", resourceID, "pack-metadata-repair"),
+		adminrepair.Path(resourceID),
 		body,
 		nil,
 		SeedReasonMutation,
@@ -31,8 +31,8 @@ func (c *SessionClient) ApplyPackMetadataRepair(
 	if err != nil {
 		return nil, err
 	}
-	resp := &api.PackMetadataRepairResponse{}
-	if err := resp.UnmarshalVT(respBody); err != nil {
+	resp, err := adminrepair.ParseResponse(respBody)
+	if err != nil {
 		return nil, errors.Wrap(err, "unmarshal pack metadata repair response")
 	}
 	return resp, nil
