@@ -16,6 +16,8 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_list "github.com/s4wave/spacewave/core/plugin/list"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
+	"github.com/s4wave/spacewave/core/plugin/space/loadedplugins"
+	"github.com/s4wave/spacewave/core/plugin/space/pluginids"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_objecttypes "github.com/s4wave/spacewave/core/space/world/objecttypes"
 	"github.com/s4wave/spacewave/db/block"
@@ -26,7 +28,6 @@ import (
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
-	"github.com/sirupsen/logrus"
 )
 
 // ControllerID is the controller ID.
@@ -77,9 +78,8 @@ type Controller struct {
 	// pluginIDs is the current set of plugin IDs from SpaceSettings.
 	// Updated each world watch cycle. Protected by bcast.
 	pluginIDs []string
-	// loadedPluginIDs is the set of plugin IDs with active LoadPlugin refs.
-	// Protected by bcast.
-	loadedPluginIDs []string
+	// loadedPlugins tracks plugin IDs with active LoadPlugin refs.
+	loadedPlugins loadedplugins.State
 	// processConfigs tracks the current enabled process configuration by object key.
 	processConfigs map[string]processConfig
 	// processes tracks active process routines by object key.
@@ -99,15 +99,9 @@ func (c *Controller) NotifyChanged() {
 	}
 }
 
-// GetLoadedPluginIDsAndWaitCh returns loaded plugin IDs and a channel closed on controller state change.
+// GetLoadedPluginIDsAndWaitCh returns loaded plugin IDs and a channel closed when they change.
 func (c *Controller) GetLoadedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
-	var ids []string
-	var ch <-chan struct{}
-	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		ids = slices.Clone(c.loadedPluginIDs)
-		ch = getWaitCh()
-	})
-	return ids, ch
+	return c.loadedPlugins.GetAndWaitCh()
 }
 
 // NewFactory constructs the component factory.
@@ -312,7 +306,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 
 	var ids []string
 	if settings != nil {
-		ids = filterValidPluginIDs(le, settings.GetPluginIds())
+		ids = pluginids.FilterValid(le, settings.GetPluginIds())
 	}
 
 	// Update the stored pluginIDs for FetchManifest filtering.
@@ -362,29 +356,8 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	c.setLoadedPluginIDs(loaded)
 }
 
-func filterValidPluginIDs(le *logrus.Entry, ids []string) []string {
-	if len(ids) == 0 {
-		return nil
-	}
-	filtered := make([]string, 0, len(ids))
-	for _, pid := range ids {
-		if err := bldr_plugin.ValidatePluginID(pid, false); err != nil {
-			le.WithError(err).WithField("plugin-id", pid).Warn("ignoring invalid SpaceSettings plugin id")
-			continue
-		}
-		filtered = append(filtered, pid)
-	}
-	return filtered
-}
-
 func (c *Controller) setLoadedPluginIDs(ids []string) {
-	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if slices.Equal(c.loadedPluginIDs, ids) {
-			return
-		}
-		c.loadedPluginIDs = slices.Clone(ids)
-		broadcast()
-	})
+	c.loadedPlugins.Set(ids)
 }
 
 // reconcileProcesses reads process bindings from the platform-account
