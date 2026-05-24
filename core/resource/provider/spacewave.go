@@ -18,6 +18,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/resource/provider/entitykeylogin"
 	"github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -210,17 +211,9 @@ func (s *SpacewaveProviderResource) LoginWithEntityKey(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.LoginWithEntityKeyRequest,
 ) (*s4wave_provider_spacewave.LoginWithEntityKeyResponse, error) {
-	pemData := req.GetPemPrivateKey()
-	if len(pemData) == 0 {
-		return nil, errors.New("pem_private_key is required")
-	}
-
-	privKey, err := keypem.ParsePrivKeyPem(pemData)
+	privKey, err := entitykeylogin.ParsePrivateKey(req.GetPemPrivateKey())
 	if err != nil {
-		return nil, errors.Wrap(err, "parse PEM private key")
-	}
-	if privKey == nil {
-		return nil, errors.New("pem_private_key must contain a PEM private key")
+		return nil, err
 	}
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
