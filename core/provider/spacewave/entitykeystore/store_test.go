@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package provider_spacewave
+package entitykeystore
 
 import (
 	"crypto/ed25519"
@@ -49,7 +47,7 @@ func TestEntityKeyStoreRetainsUntilAllRefsRelease(t *testing.T) {
 }
 
 func TestEntityKeyStoreExplicitLockOverridesRefs(t *testing.T) {
-	store := NewEntityKeyStoreWithGrace(time.Hour)
+	store := NewEntityKeyStoreWithGrace(0)
 	ref := store.Retain()
 	defer ref.Release()
 	priv, pid, std := generateEntityKey(t)
@@ -64,7 +62,7 @@ func TestEntityKeyStoreExplicitLockOverridesRefs(t *testing.T) {
 }
 
 func TestEntityKeyStoreLockAllScrubsKeys(t *testing.T) {
-	store := NewEntityKeyStoreWithGrace(time.Hour)
+	store := NewEntityKeyStoreWithGrace(0)
 	ref := store.Retain()
 	defer ref.Release()
 	priv1, pid1, std1 := generateEntityKey(t)
@@ -85,7 +83,7 @@ func TestEntityKeyStoreLockAllScrubsKeys(t *testing.T) {
 }
 
 func TestEntityKeyStoreUnlockReplacementScrubsOldKey(t *testing.T) {
-	store := NewEntityKeyStoreWithGrace(time.Hour)
+	store := NewEntityKeyStoreWithGrace(0)
 	ref := store.Retain()
 	defer ref.Release()
 	priv1, pid, std1 := generateEntityKey(t)

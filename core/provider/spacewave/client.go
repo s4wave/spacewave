@@ -22,6 +22,7 @@ import (
 	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
+	"github.com/s4wave/spacewave/core/provider/spacewave/entitykeystore"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/syncprogress"
 	"github.com/s4wave/spacewave/core/session"
@@ -620,19 +621,13 @@ func (c *SignedHTTPClient) doGetBinary(ctx context.Context, path string, reason 
 }
 
 // MultiSigContext is the signing context for multi-sig actions.
-const MultiSigContext = "spacewave 2026-03-19 multi-sig action v2."
+const MultiSigContext = entitykeystore.MultiSigContext
 
 // BuildMultiSigPayload constructs the signing payload for a multi-sig action.
 // The signing payload is: MultiSigContext || Timestamp.toBinary(signedAt) ||
 // envelope. Must produce identical bytes as the TS server.
 func BuildMultiSigPayload(signedAt *timestamppb.Timestamp, envelope []byte) []byte {
-	ctx := []byte(MultiSigContext)
-	ts, _ := signedAt.MarshalVT()
-	payload := make([]byte, 0, len(ctx)+len(ts)+len(envelope))
-	payload = append(payload, ctx...)
-	payload = append(payload, ts...)
-	payload = append(payload, envelope...)
-	return payload
+	return entitykeystore.BuildMultiSigPayload(signedAt, envelope)
 }
 
 // EntityClient uses the entity keypair for registration flows.
