@@ -16,6 +16,9 @@ export interface LoadingView {
   detail?: string
   // progress is in 0..1.
   progress?: number
+  // progressIndeterminate shows a sweeping progress bar when byte progress is
+  // unknown.
+  progressIndeterminate?: boolean
   rate?: LoadingRate
   lastActivity?: string
   error?: string

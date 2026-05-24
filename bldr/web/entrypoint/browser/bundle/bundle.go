@@ -111,7 +111,7 @@ const startupPhaseInfo={
   prepare:{label:'Prepare',detail:'Preparing browser files.',progress:.08},
   connect:{label:'Connect',detail:'Connecting the app shell.',progress:.3},
   runtime:{label:'Runtime',detail:'Starting the Spacewave runtime.',progress:.58},
-  frame:{label:'Frame',detail:'Opening the app frame.',progress:.84},
+  frame:{label:'App',detail:'Downloading the app bundle. This can take a while the first time.',progress:.84},
   done:{label:'Done',detail:'Spacewave is ready.',progress:1}
 };
 const startupPhaseOrder=['prepare','connect','runtime','frame','done'];
@@ -119,7 +119,7 @@ const bootPhaseStartupPhase={loading:'prepare',manifest:'prepare','manifest-read
 function startupDisplayForBootPhase(phase,state){
   const id=bootPhaseStartupPhase[phase]||'prepare';
   const info=startupPhaseInfo[id];
-  return {id:id,detail:info.label+': '+info.detail,progress:info.progress,error:state==='error'};
+  return {id:id,detail:info.label+': '+info.detail,progress:info.progress,indeterminate:id==='frame',error:state==='error'};
 }
 function markStartupBoundary(label,detail){
   const name=startupMarkPrefix+label;
@@ -148,11 +148,19 @@ function setBootStatus(phase,detail,state){
     const pct=Math.round(display.progress*100);
     const progressTarget=document.querySelector('[data-sw-boot-progress]');
     if(canMutateBootStatusTarget(progressTarget)){
-      progressTarget.style.width=pct+'%';
-      progressTarget.setAttribute('aria-valuenow',String(pct));
+      progressTarget.style.width=display.indeterminate?'33%':pct+'%';
+      progressTarget.style.transition=display.indeterminate?'none':'width 200ms';
+      progressTarget.classList.toggle('animate-progress-indeterminate',!!display.indeterminate);
+      if(display.indeterminate){
+        progressTarget.removeAttribute('aria-valuenow');
+        progressTarget.setAttribute('aria-valuetext','Loading');
+      }else{
+        progressTarget.removeAttribute('aria-valuetext');
+        progressTarget.setAttribute('aria-valuenow',String(pct));
+      }
     }
     const progressLabel=document.querySelector('[data-sw-boot-progress-label]');
-    if(canMutateBootStatusTarget(progressLabel))progressLabel.textContent=pct+'%';
+    if(canMutateBootStatusTarget(progressLabel))progressLabel.textContent=display.indeterminate?'':pct+'%';
   }
   updateStaticPhaseRail(display.id,status.state);
   markStartupBoundary('boot-status.'+phase,{source:'boot',phase:phase,state:status.state,progress:status.progress});
@@ -293,9 +301,9 @@ func resolveBrowserBuildRoot(workingDir string) string {
 }
 
 // BrowserBuildOpts are general options for building for the browser.
-func BrowserBuildOpts(workingDir string, minify bool) esbuild.BuildOptions {
+func BrowserBuildOpts(workingDir string, minify, sourcemaps bool) esbuild.BuildOptions {
 	sourceMap := esbuild.SourceMapNone
-	if !minify {
+	if sourcemaps {
 		sourceMap = esbuild.SourceMapLinked
 	}
 
@@ -364,8 +372,8 @@ func ApplyTinyGoNodeFallbacks(opts *esbuild.BuildOptions) {
 }
 
 // BrowserEntrypointBuildOpts creates the BuildOpts for the root browser entrypoint
-func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildOptions {
-	buildOpts := BrowserBuildOpts(bldrDistRoot, minify)
+func BrowserEntrypointBuildOpts(bldrDistRoot string, minify, sourcemaps bool) esbuild.BuildOptions {
+	buildOpts := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
 	buildOpts.External = slices.Clone(web_pkg_external.BldrExternal)
 	buildOpts.External = append(buildOpts.External, "tailwindcss")
 	buildOpts.EntryPointsAdvanced = []esbuild.EntryPoint{{
@@ -376,8 +384,8 @@ func BrowserEntrypointBuildOpts(bldrDistRoot string, minify bool) esbuild.BuildO
 }
 
 // ServiceWorkerBuildOpts creates the BuildOpts for the service worker
-func ServiceWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.BuildOptions {
-	baseConfig := BrowserBuildOpts(bldrDistRoot, minify)
+func ServiceWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
+	baseConfig := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
 	baseConfig.Format = esbuild.FormatIIFE
 	if hash {
 		baseConfig.EntryNames = "sw-[hash]"
@@ -390,8 +398,8 @@ func ServiceWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.Buil
 }
 
 // SharedWorkerBuildOpts creates the BuildOpts for the shared worker
-func SharedWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.BuildOptions {
-	baseConfig := BrowserBuildOpts(bldrDistRoot, minify)
+func SharedWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
+	baseConfig := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
 	if hash {
 		baseConfig.EntryNames = "shw-[hash]"
 	} else {
@@ -405,13 +413,13 @@ func SharedWorkerBuildOpts(bldrDistRoot string, minify, hash bool) esbuild.Build
 // BuildServiceWorkerBundle builds specifically the service worker files.
 //
 // Returns the filename of the service worker output file (including the hash).
-func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
+func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps, devMode bool) (string, error) {
 	le.Debug("generating service-worker bundle")
 
-	swOpts := ServiceWorkerBuildOpts(bldrDistRoot, minify, !devMode)
+	swOpts := ServiceWorkerBuildOpts(bldrDistRoot, minify, sourcemaps, !devMode)
 	swOpts.Outdir = buildDir
 	swOpts.Write = true
-	if !minify {
+	if sourcemaps {
 		swOpts.Sourcemap = esbuild.SourceMapInline
 	}
 	swOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
@@ -428,13 +436,13 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 // BuildSharedWorkerBundle builds specifically the shared worker files.
 //
 // Returns the filename of the shared worker output file (including the hash).
-func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
+func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps, devMode bool) (string, error) {
 	le.Debug("generating shared-worker bundle")
 
-	shwOpts := SharedWorkerBuildOpts(bldrDistRoot, minify, !devMode)
+	shwOpts := SharedWorkerBuildOpts(bldrDistRoot, minify, sourcemaps, !devMode)
 	shwOpts.Outdir = buildDir
 	shwOpts.Write = true
-	if !minify {
+	if sourcemaps {
 		shwOpts.Sourcemap = esbuild.SourceMapInline
 	}
 	shwOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
@@ -483,6 +491,7 @@ func BuildRendererBundle(
 	webStartupSrcPath,
 	entrypointHash string,
 	minify,
+	sourcemaps,
 	forceDedicatedWorkers,
 	forceMessagePortWorkerComms,
 	devMode bool,
@@ -500,7 +509,7 @@ func BuildRendererBundle(
 		webEntrypointOut = filepath.Join(webEntrypointOut, entrypointHash)
 	}
 
-	rendererBuildOpts := BrowserEntrypointBuildOpts(bldrDistRoot, minify)
+	rendererBuildOpts := BrowserEntrypointBuildOpts(bldrDistRoot, minify, sourcemaps)
 	rendererBuildOpts.Outdir = webEntrypointOut
 	rendererBuildOpts.Write = true
 
@@ -547,10 +556,6 @@ func BuildRendererBundle(
 		rendererBuildOpts.Define["BLDR_FORCE_MESSAGEPORT_WORKER_COMMS"] = "true"
 	}
 
-	if !minify {
-		rendererBuildOpts.Sourcemap = esbuild.SourceMapLinked
-	}
-
 	res := esbuild.Build(rendererBuildOpts)
 	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
 		return nil, err
@@ -587,6 +592,7 @@ func BuildBrowserBundle(
 	webStartupSrcPath string,
 	entrypointHash string,
 	minify,
+	sourcemaps,
 	devMode,
 	forceDedicatedWorkers,
 	forceMessagePortWorkerComms bool,
@@ -597,13 +603,13 @@ func BuildBrowserBundle(
 	}
 
 	// service worker
-	swFilename, err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	swFilename, err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
 
 	// shared worker
-	shwFilename, err := BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	shwFilename, err := BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
@@ -630,13 +636,13 @@ func BuildBrowserBundle(
 		entrypointDir = filepath.Join(entrypointDir, entrypointHash)
 	}
 
-	webPkgImportMap, err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, devMode)
+	webPkgImportMap, err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
 
 	// renderer bundle
-	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
+	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}
@@ -664,7 +670,7 @@ func BuildBrowserBundle(
 // stateDir is the directory where bun will be downloaded if not found in PATH.
 // pathPrefix is the prefix to prepend to /pkgs/ for pkg paths
 // Returns the import map entries mapping logical specifiers to hashed output paths.
-func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix string, minify, devMode bool) (web_entrypoint_index.ImportMap, error) {
+func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix string, minify, sourcemaps, devMode bool) (web_entrypoint_index.ImportMap, error) {
 	// build to pkgs/
 	outDir := filepath.Join(buildDir, "pkgs")
 
@@ -698,6 +704,8 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 			outDir,
 			pathPrefix+"/pkgs/",
 			minify,
+			minify,
+			sourcemaps,
 			client,
 			filepath.Join(viteWorkingPath, "cache"),
 		)

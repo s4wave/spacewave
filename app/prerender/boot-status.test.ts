@@ -4,6 +4,7 @@ import {
   browserStartupMarkEvent,
   browserStartupMarkPrefix,
   canMutateBrowserBootStatusTarget,
+  markBrowserStartupBoundary,
   readBrowserBootStatus,
   readBrowserStartupMarks,
   resetBrowserStartupMarksForTest,
@@ -82,14 +83,47 @@ describe('writeBrowserBootStatus', () => {
     expect(document.querySelector('[data-sw-boot-status]')?.textContent).toBe(
       'Connect: Connecting the app shell.',
     )
-    const progress = document.querySelector(
-      '[data-sw-boot-progress]',
-    ) as HTMLElement
+    const progress = document.querySelector('[data-sw-boot-progress]')
+    if (!(progress instanceof HTMLElement)) {
+      throw new Error('missing boot progress target')
+    }
     expect(progress.style.width).toBe('30%')
     expect(progress.getAttribute('aria-valuenow')).toBe('30')
     expect(
       document.querySelector('[data-sw-boot-progress-label]')?.textContent,
     ).toBe('30%')
+  })
+
+  it('uses indeterminate static progress while the app bundle is downloading', () => {
+    document.body.innerHTML = `
+      <p data-sw-boot-status>Loading application...</p>
+      <div data-sw-boot-progress aria-valuemin="0" aria-valuemax="100"></div>
+      <span data-sw-boot-progress-label></span>
+    `
+    markBrowserStartupBoundary('shell.boot-requested', { source: 'test' })
+
+    writeBrowserBootStatus({
+      phase: 'runtime',
+      detail: 'Starting runtime...',
+      state: 'loading',
+    })
+
+    expect(document.querySelector('[data-sw-boot-status]')?.textContent).toBe(
+      'App: Downloading the app bundle. This can take a while the first time.',
+    )
+    const progress = document.querySelector('[data-sw-boot-progress]')
+    if (!(progress instanceof HTMLElement)) {
+      throw new Error('missing boot progress target')
+    }
+    expect(progress.classList.contains('animate-progress-indeterminate')).toBe(
+      true,
+    )
+    expect(progress.style.width).toBe('33%')
+    expect(progress.getAttribute('aria-valuenow')).toBeNull()
+    expect(progress.getAttribute('aria-valuetext')).toBe('Loading')
+    expect(
+      document.querySelector('[data-sw-boot-progress-label]')?.textContent,
+    ).toBe('')
   })
 
   it('updates static shell phase state from the projected startup rail', () => {

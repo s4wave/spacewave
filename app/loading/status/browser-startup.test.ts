@@ -39,8 +39,10 @@ describe('projectBrowserStartupView', () => {
     ).toEqual({
       state: 'loading',
       title: 'Spacewave',
-      detail: 'Frame: Opening the app frame.',
+      detail:
+        'App: Downloading the app bundle. This can take a while the first time.',
       progress: 0.84,
+      progressIndeterminate: true,
     })
   })
 

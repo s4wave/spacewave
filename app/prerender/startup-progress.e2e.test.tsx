@@ -86,7 +86,11 @@ describe('browser startup progress surfaces', () => {
     await renderSurface(<AppLoadingScreen />)
 
     await expect
-      .element(page.getByText('Frame: Opening the app frame.'))
+      .element(
+        page.getByText(
+          'App: Downloading the app bundle. This can take a while the first time.',
+        ),
+      )
       .toBeInTheDocument()
     await expect
       .element(page.getByText('Prepare', { exact: true }))
@@ -98,7 +102,7 @@ describe('browser startup progress surfaces', () => {
       .element(page.getByText('Runtime', { exact: true }))
       .toBeInTheDocument()
     await expect
-      .element(page.getByText('Frame', { exact: true }))
+      .element(page.getByText('App', { exact: true }))
       .toBeInTheDocument()
     await expect
       .element(page.getByText('Done', { exact: true }))
@@ -177,7 +181,11 @@ describe('browser startup progress surfaces', () => {
     await renderSurface(<AppLoadingScreen />)
 
     await expect
-      .element(page.getByText('Frame: Opening the app frame.'))
+      .element(
+        page.getByText(
+          'App: Downloading the app bundle. This can take a while the first time.',
+        ),
+      )
       .toBeInTheDocument()
     expect(
       document
@@ -197,7 +205,11 @@ describe('browser startup progress surfaces', () => {
     await renderSurface(<AppLoadingScreen />)
 
     await expect
-      .element(page.getByText('Frame: Opening the app frame.'))
+      .element(
+        page.getByText(
+          'App: Downloading the app bundle. This can take a while the first time.',
+        ),
+      )
       .toBeInTheDocument()
     await expect
       .element(page.getByText('Done', { exact: true }))

@@ -45,10 +45,13 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
               {view.detail}
             </div>
           ) : null}
-          {view.progress !== undefined ? (
+          {view.progress !== undefined || view.progressIndeterminate ? (
             <div className="mt-2.5">
               <ProgressBar
-                value={view.progress * 100}
+                value={
+                  view.progress === undefined ? undefined : view.progress * 100
+                }
+                indeterminate={view.progressIndeterminate}
                 rate={view.rate?.down ?? view.rate?.up}
               />
             </div>

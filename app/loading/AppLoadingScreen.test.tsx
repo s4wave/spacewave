@@ -45,8 +45,9 @@ const mockProjection = vi.hoisted<{
       },
       {
         id: 'frame',
-        label: 'Frame',
-        detail: 'Opening the app frame.',
+        label: 'App',
+        detail:
+          'Downloading the app bundle. This can take a while the first time.',
         progress: 0.84,
         state: 'pending',
       },
@@ -114,7 +115,7 @@ describe('AppLoadingScreen', () => {
     expect(screen.getByText('Prepare')).toBeDefined()
     expect(screen.getByText('Connect')).toBeDefined()
     expect(screen.getByText('Runtime')).toBeDefined()
-    expect(screen.getByText('Frame')).toBeDefined()
+    expect(screen.getByText('App')).toBeDefined()
     expect(screen.getByText('Done')).toBeDefined()
     expect(
       container

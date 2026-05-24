@@ -70,8 +70,8 @@ export const browserStartupPhaseRail: readonly BrowserStartupPhase[] = [
   },
   {
     id: 'frame',
-    label: 'Frame',
-    detail: 'Opening the app frame.',
+    label: 'App',
+    detail: 'Downloading the app bundle. This can take a while the first time.',
     progress: 0.84,
   },
   {
@@ -148,6 +148,7 @@ export function projectBrowserStartup(
         title: 'Spacewave',
         detail: `${phase.label}: ${phase.detail}`,
         progress: phase.progress,
+        ...(phase.id === 'frame' ? { progressIndeterminate: true } : {}),
       }
 
   return {

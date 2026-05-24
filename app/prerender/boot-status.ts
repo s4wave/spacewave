@@ -52,18 +52,41 @@ export function canMutateBrowserBootStatusTarget(
   return !!target.closest('#sw-loading')
 }
 
-function updateProgressTarget(target: Element | null, progress: number) {
+function updateProgressTarget(
+  target: Element | null,
+  progress: number | undefined,
+  indeterminate?: boolean,
+) {
   if (!canMutateBrowserBootStatusTarget(target)) return
-  const pct = Math.round(progress * 100)
   if (target instanceof HTMLElement) {
-    target.style.width = `${pct}%`
+    target.style.width =
+      indeterminate || progress === undefined
+        ? '33%'
+        : `${Math.round(progress * 100)}%`
+    target.classList.toggle('animate-progress-indeterminate', !!indeterminate)
+    target.style.transition = indeterminate ? 'none' : 'width 200ms'
   }
-  target.setAttribute('aria-valuenow', String(pct))
+  if (indeterminate) {
+    target.removeAttribute('aria-valuenow')
+    target.setAttribute('aria-valuetext', 'Loading')
+    return
+  }
+  target.removeAttribute('aria-valuetext')
+  target.setAttribute(
+    'aria-valuenow',
+    String(Math.round((progress ?? 0) * 100)),
+  )
 }
 
-function updateProgressLabel(target: Element | null, progress: number) {
+function updateProgressLabel(
+  target: Element | null,
+  progress: number | undefined,
+  indeterminate?: boolean,
+) {
   if (!canMutateBrowserBootStatusTarget(target)) return
-  target.replaceChildren(`${Math.round(progress * 100)}%`)
+  target.replaceChildren(
+    indeterminate ? '' : `${Math.round((progress ?? 0) * 100)}%`,
+  )
 }
 
 function updateStaticPhaseRail(
@@ -171,14 +194,16 @@ export function writeBrowserBootStatus(status: BrowserBootStatus): void {
     stateTarget.setAttribute('data-sw-boot-state', next.state)
   }
 
-  if (view.progress !== undefined) {
+  if (view.progress !== undefined || view.progressIndeterminate) {
     updateProgressTarget(
       document.querySelector('[data-sw-boot-progress]'),
       view.progress,
+      view.progressIndeterminate,
     )
     updateProgressLabel(
       document.querySelector('[data-sw-boot-progress-label]'),
       view.progress,
+      view.progressIndeterminate,
     )
   }
   updateStaticPhaseRail(startup.phases)
