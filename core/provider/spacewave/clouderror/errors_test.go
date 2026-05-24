@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package provider_spacewave
+package clouderror
 
 import (
 	"net/http"
@@ -10,7 +8,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
 
-func TestProviderRetryDelayPrefersStructuredRetryAfter(t *testing.T) {
+func TestRetryDelayPrefersStructuredRetryAfter(t *testing.T) {
 	body, err := (&api.ErrorResponse{
 		Code:              "temporary_unavailable",
 		Message:           "retry later",
@@ -20,19 +18,19 @@ func TestProviderRetryDelayPrefersStructuredRetryAfter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal error response: %v", err)
 	}
-	err = parseCloudResponseError(&http.Response{
+	err = ParseResponse(&http.Response{
 		StatusCode: http.StatusServiceUnavailable,
 		Header:     make(http.Header),
 	}, body)
 
-	delay := providerRetryDelay(err, 500*time.Millisecond)
+	delay := RetryDelay(err, 500*time.Millisecond)
 	if delay != 3*time.Second {
 		t.Fatalf("retry delay: got %s, want %s", delay, 3*time.Second)
 	}
 }
 
-func TestProviderRetryDelayPrefersHTTPRetryAfter(t *testing.T) {
-	delay := providerRetryDelay(parseCloudResponseError(&http.Response{
+func TestRetryDelayPrefersHTTPRetryAfter(t *testing.T) {
+	delay := RetryDelay(ParseResponse(&http.Response{
 		StatusCode: http.StatusTooManyRequests,
 		Header: http.Header{
 			"Retry-After": []string{"4"},
@@ -43,7 +41,7 @@ func TestProviderRetryDelayPrefersHTTPRetryAfter(t *testing.T) {
 	}
 }
 
-func TestProviderRetryDelayUsesLongerRetryAfterHint(t *testing.T) {
+func TestRetryDelayUsesLongerRetryAfterHint(t *testing.T) {
 	body, err := (&api.ErrorResponse{
 		Code:              "temporary_unavailable",
 		Message:           "retry later",
@@ -54,7 +52,7 @@ func TestProviderRetryDelayUsesLongerRetryAfterHint(t *testing.T) {
 		t.Fatalf("marshal error response: %v", err)
 	}
 
-	delay := providerRetryDelay(parseCloudResponseError(&http.Response{
+	delay := RetryDelay(ParseResponse(&http.Response{
 		StatusCode: http.StatusServiceUnavailable,
 		Header: http.Header{
 			"Retry-After": []string{"6"},
@@ -65,8 +63,8 @@ func TestProviderRetryDelayUsesLongerRetryAfterHint(t *testing.T) {
 	}
 }
 
-func TestProviderRetryDelayKeepsLongerLocalBackoff(t *testing.T) {
-	delay := providerRetryDelay(&cloudError{
+func TestRetryDelayKeepsLongerLocalBackoff(t *testing.T) {
+	delay := RetryDelay(&Error{
 		StatusCode:        503,
 		Code:              "temporary_unavailable",
 		Message:           "retry later",
