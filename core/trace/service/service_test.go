@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package trace_service
 
 import (
@@ -7,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"runtime"
 	runtime_trace "runtime/trace"
 	"strings"
 	"testing"
@@ -160,7 +159,16 @@ func newTestTraceClient(t *testing.T, impl s4wave_trace.SRPCTraceServiceServer) 
 	return s4wave_trace.NewSRPCTraceServiceClient(client)
 }
 
+func skipTraceServiceStreamingOnJS(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "js" {
+		t.Skip("GoScript SRPC streaming trace/profile paths currently hang under the JS runtime")
+	}
+}
+
 func TestTraceServiceSinglePlugin(t *testing.T) {
+	skipTraceServiceStreamingOnJS(t)
+
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
@@ -197,6 +205,8 @@ func TestTraceServiceSinglePlugin(t *testing.T) {
 }
 
 func TestTraceServiceReplaceActive(t *testing.T) {
+	skipTraceServiceStreamingOnJS(t)
+
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
@@ -241,6 +251,8 @@ func TestTraceServiceReplaceActive(t *testing.T) {
 }
 
 func TestTraceServiceStopTraceOwnsStreamedBytes(t *testing.T) {
+	skipTraceServiceStreamingOnJS(t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	service := NewService()
@@ -310,6 +322,8 @@ func TestTraceServiceStopTraceOwnsStreamedBytes(t *testing.T) {
 }
 
 func TestTraceServiceCaptureCPUProfile(t *testing.T) {
+	skipTraceServiceStreamingOnJS(t)
+
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
@@ -384,6 +398,8 @@ func TestTraceServiceCPUProfileCancelClearsBusy(t *testing.T) {
 }
 
 func TestTraceServiceCaptureMemoryProfile(t *testing.T) {
+	skipTraceServiceStreamingOnJS(t)
+
 	ctx := context.Background()
 	client := newTestTraceClient(t, NewService())
 
