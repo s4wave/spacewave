@@ -1,11 +1,10 @@
-//go:build !goscript
-
 package provider_spacewave_handoff
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -91,6 +90,10 @@ func TestValidatePasskeyOpenURLRejectsMissingHost(t *testing.T) {
 }
 
 func TestWaitForDesktopPasskeyRegister(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("GoScript net/http override does not implement in-process httptest websocket servers")
+	}
+
 	oldBrowserOpener := browserOpener
 	browserOpener = func(rawURL string) error {
 		if rawURL != "https://account.spacewave.test/passkey/register?nonce=nonce-123" {
@@ -177,6 +180,10 @@ func TestWaitForDesktopPasskeyRegister(t *testing.T) {
 }
 
 func TestWaitForDesktopPasskeyReauth(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("GoScript net/http override does not implement in-process httptest websocket servers")
+	}
+
 	oldBrowserOpener := browserOpener
 	browserOpener = func(rawURL string) error {
 		if rawURL != "https://account.spacewave.test/passkey/reauth?nonce=nonce-123" {

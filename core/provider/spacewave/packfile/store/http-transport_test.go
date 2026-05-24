@@ -1,4 +1,4 @@
-//go:build !tinygo && !goscript
+//go:build !tinygo
 
 package store
 
@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -210,6 +211,10 @@ func TestPackfileStoreAppliesTuningOverrides(t *testing.T) {
 }
 
 func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("GoScript net/http override does not implement in-process httptest range servers")
+	}
+
 	data := []byte("abcdefghijklmnopqrstuvwxyz")
 	var reqCount atomic.Int32
 	started := make(chan struct{}, 1)
@@ -269,6 +274,10 @@ func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
 }
 
 func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("GoScript net/http override does not implement in-process httptest range servers")
+	}
+
 	data := bytes.Repeat([]byte("0123456789abcdef"), 8192)
 	var reqs int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -312,6 +321,10 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 }
 
 func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("GoScript net/http override does not implement in-process httptest range servers")
+	}
+
 	data := []byte("abcdefghijklmnopqrstuvwxyz")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
@@ -351,6 +364,10 @@ func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
 }
 
 func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("GoScript runtime currently retains the failed async index-load result for this retry path")
+	}
+
 	ctx := t.Context()
 	packBytes, _ := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 

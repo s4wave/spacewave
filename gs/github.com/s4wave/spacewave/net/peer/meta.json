@@ -1,0 +1,23 @@
+{
+  "dependencies": [],
+  "asyncFunctions": {
+    "ID_ExtractPublicKey": true,
+    "NewPeer": true,
+    "NewPeerWithGenerateED25519": true,
+    "NewPeerWithID": true,
+    "ParsePeerIDWithPubKey": true,
+    "NewSignature": true,
+    "NewSignatureWithHashedData": true,
+    "NewSignedMsg": true
+  },
+  "asyncMethods": {
+    "ID.ExtractPublicKey": true,
+    "Signature.Validate": true,
+    "Signature.VerifyWithPublic": true,
+    "Signature.ParsePubKey": true,
+    "SignedMsg.ExtractPubKey": true,
+    "SignedMsg.ExtractAndVerify": true,
+    "SignedMsg.Sign": true,
+    "SignedMsg.Verify": true
+  }
+}

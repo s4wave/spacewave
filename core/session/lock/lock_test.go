@@ -1,14 +1,20 @@
-//go:build !goscript
-
 package session_lock
 
 import (
 	"bytes"
+	"runtime"
 	"testing"
 
 	crypto_rand "crypto/rand"
 	"github.com/s4wave/spacewave/net/crypto"
 )
+
+func skipGoScriptScryptCost(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "js" {
+		t.Skip("full-cost scrypt PIN lock test is too slow under GoScript")
+	}
+}
 
 func TestDeriveStorageKey(t *testing.T) {
 	priv, _, err := crypto.GenerateEd25519Key(crypto_rand.Reader)
@@ -110,6 +116,8 @@ func TestAutoUnlockWrongKey(t *testing.T) {
 }
 
 func TestPINLockRoundTrip(t *testing.T) {
+	skipGoScriptScryptCost(t)
+
 	plaintext := []byte("test session private key PEM data for PIN lock")
 	pin := []byte("123456")
 
@@ -138,6 +146,8 @@ func TestPINLockRoundTrip(t *testing.T) {
 }
 
 func TestPINLockWrongPIN(t *testing.T) {
+	skipGoScriptScryptCost(t)
+
 	plaintext := []byte("test session private key PEM data")
 	pin := []byte("123456")
 	wrongPin := []byte("654321")
