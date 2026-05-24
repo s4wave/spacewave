@@ -4,28 +4,17 @@ import (
 	"context"
 
 	provider "github.com/s4wave/spacewave/core/provider"
+	"github.com/s4wave/spacewave/core/provider/spacewave/onboardingstatus"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
-// ManagedBillingSummary carries managed billing account counts for the
-// Onboarding Status route-status projection.
-type ManagedBillingSummary struct {
-	ManagedBaCount               uint32
-	ManagedActiveBaCount         uint32
-	ManagedNoSubscriptionBaCount uint32
-	BillingSummaryLoaded         bool
-}
+// ManagedBillingSummary carries managed billing account counts for Onboarding Status.
+type ManagedBillingSummary = onboardingstatus.ManagedBillingSummary
 
 // OnboardingStatusProjectionContext carries session-scoped inputs for
 // Onboarding Status, the Spacewave cloud session route-status projection served
 // by WatchOnboardingStatus. These fields are not owned by ProviderAccount.
-type OnboardingStatusProjectionContext struct {
-	HasLinkedLocal          bool
-	LinkedLocalSessionIndex uint32
-	LinkedLocalHasContent   bool
-	HasLinkedCloud          bool
-	LinkedCloudSessionIndex uint32
-}
+type OnboardingStatusProjectionContext = onboardingstatus.ProjectionContext
 
 // BuildOnboardingStatusProjection builds Onboarding Status: the session
 // route-status projection from cached Provider Account state plus explicit
@@ -42,12 +31,18 @@ func (a *ProviderAccount) BuildOnboardingStatusProjection(
 	var deletedAt int64
 	var emailVerified bool
 	var lifecycleState s4wave_provider_spacewave.AccountLifecycleState
-	var selfEnrollmentSummary *SelfEnrollmentSummary
+	var selfEnrollmentSummary onboardingstatus.SelfEnrollmentSummary
 	var selfEnrollmentAutoRejoinRunning bool
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		accountStatus = a.state.status
 		if a.state.selfEnrollmentSummary != nil {
-			selfEnrollmentSummary = a.state.selfEnrollmentSummary.clone()
+			summary := a.state.selfEnrollmentSummary.clone()
+			selfEnrollmentSummary = onboardingstatus.SelfEnrollmentSummary{
+				Present:       true,
+				GenerationKey: summary.GetGenerationKey(),
+				Count:         summary.GetCount(),
+				Loaded:        summary.GetLoaded(),
+			}
 		}
 		selfEnrollmentAutoRejoinRunning = a.state.selfRejoinSweepRunning
 		state := a.state.info
@@ -68,47 +63,26 @@ func (a *ProviderAccount) BuildOnboardingStatusProjection(
 	if err != nil {
 		managedSummary = ManagedBillingSummary{}
 	}
-
-	billingStatus := subStatus
-	hasSubscription := billingStatus == s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE ||
-		billingStatus == s4wave_provider_spacewave.BillingStatus_BillingStatus_TRIALING
-
-	resp := &s4wave_provider_spacewave.WatchOnboardingStatusResponse{
-		HasSubscription:              hasSubscription,
-		SubscriptionStatus:           billingStatus,
-		HasLinkedLocal:               projCtx.HasLinkedLocal,
-		LinkedLocalSessionIndex:      projCtx.LinkedLocalSessionIndex,
-		LinkedLocalHasContent:        projCtx.LinkedLocalHasContent,
-		HasLinkedCloud:               projCtx.HasLinkedCloud,
-		LinkedCloudSessionIndex:      projCtx.LinkedCloudSessionIndex,
-		CheckoutInProgress:           a.checkoutWatcher.HasTicket(),
-		CancelAt:                     cancelAt,
-		DeleteAt:                     deleteAt,
-		LifecycleUpdatedAt:           lifecycleUpdatedAt,
-		DeletedAt:                    deletedAt,
-		EmailVerified:                emailVerified,
-		LifecycleState:               lifecycleState,
-		AccountStatus:                accountStatus,
-		ManagedBaCount:               managedSummary.ManagedBaCount,
-		ManagedActiveBaCount:         managedSummary.ManagedActiveBaCount,
-		ManagedNoSubscriptionBaCount: managedSummary.ManagedNoSubscriptionBaCount,
-		BillingSummaryLoaded:         managedSummary.BillingSummaryLoaded,
-	}
-	if selfEnrollmentSummary != nil {
-		resp.SessionSelfEnrollmentGenerationKey = selfEnrollmentSummary.GetGenerationKey()
-		resp.SessionSelfEnrollmentCount = selfEnrollmentSummary.GetCount()
-	}
-	resp.SelfEnrollmentGateState = selfEnrollmentGateState(
-		selfEnrollmentSummary,
-		selfEnrollmentAutoRejoinRunning,
-	)
-	return resp, err
+	return onboardingstatus.BuildProjection(onboardingstatus.Snapshot{
+		AccountStatus:              accountStatus,
+		SubscriptionStatus:         subStatus,
+		CancelAt:                   cancelAt,
+		DeleteAt:                   deleteAt,
+		LifecycleUpdatedAt:         lifecycleUpdatedAt,
+		DeletedAt:                  deletedAt,
+		EmailVerified:              emailVerified,
+		LifecycleState:             lifecycleState,
+		SelfEnrollmentSummary:      selfEnrollmentSummary,
+		SelfEnrollmentRejoinActive: selfEnrollmentAutoRejoinRunning,
+		CheckoutInProgress:         a.checkoutWatcher.HasTicket(),
+		ManagedBillingSummary:      managedSummary,
+	}, projCtx), err
 }
 
 // ShouldLoadManagedBillingSummary returns whether the Onboarding Status
 // route-status projection should query the managed billing-account summary.
 func ShouldLoadManagedBillingSummary(accountStatus provider.ProviderAccountStatus) bool {
-	return accountStatus == provider.ProviderAccountStatus_ProviderAccountStatus_READY
+	return onboardingstatus.ShouldLoadManagedBillingSummary(accountStatus)
 }
 
 // BuildManagedBillingSummary builds managed billing counts for Onboarding
@@ -124,32 +98,5 @@ func (a *ProviderAccount) BuildManagedBillingSummary(
 	if err != nil {
 		return ManagedBillingSummary{}, err
 	}
-	summary := ManagedBillingSummary{BillingSummaryLoaded: true}
-	for _, ba := range managedBAs {
-		summary.ManagedBaCount++
-		switch ba.GetSubscriptionStatus() {
-		case s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
-			s4wave_provider_spacewave.BillingStatus_BillingStatus_TRIALING:
-			summary.ManagedActiveBaCount++
-		case s4wave_provider_spacewave.BillingStatus_BillingStatus_NONE:
-			summary.ManagedNoSubscriptionBaCount++
-		}
-	}
-	return summary, nil
-}
-
-func selfEnrollmentGateState(
-	summary *SelfEnrollmentSummary,
-	autoRejoinRunning bool,
-) s4wave_provider_spacewave.SelfEnrollmentGateState {
-	if autoRejoinRunning {
-		return s4wave_provider_spacewave.SelfEnrollmentGateState_SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING
-	}
-	if summary == nil || !summary.GetLoaded() {
-		return s4wave_provider_spacewave.SelfEnrollmentGateState_SELF_ENROLLMENT_GATE_STATE_CHECKING
-	}
-	if summary.GetCount() != 0 {
-		return s4wave_provider_spacewave.SelfEnrollmentGateState_SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED
-	}
-	return s4wave_provider_spacewave.SelfEnrollmentGateState_SELF_ENROLLMENT_GATE_STATE_READY
+	return onboardingstatus.BuildManagedBillingSummary(managedBAs), nil
 }
