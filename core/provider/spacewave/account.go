@@ -20,6 +20,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxrequest"
 	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -254,9 +255,8 @@ type accountState struct {
 	sharedObjectMetadata map[string]*sharedObjectMetadataState
 	// pendingMailboxEntries caches owner-visible pending mailbox metadata by SO ID.
 	pendingMailboxEntries map[string]*pendingMailboxState
-	// mailboxRequestStatus tracks invitee-visible mailbox status updates by SO,
-	// invite, and peer for cloud invite joins.
-	mailboxRequestStatus map[mailboxRequestKey]string
+	// mailboxRequests tracks invitee-visible cloud invite mailbox decisions.
+	mailboxRequests mailboxrequest.Tracker
 }
 
 // buildProviderAccountTracker builds a new providerAccountTracker for an account id.
