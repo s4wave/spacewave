@@ -1,6 +1,7 @@
 import * as $ from "@goscript/builtin/index.js";
 import * as crypto from "@goscript/github.com/s4wave/spacewave/net/crypto/index.js";
 import * as hash from "@goscript/github.com/s4wave/spacewave/net/hash/index.js";
+import * as directive from "@goscript/github.com/aperturerobotics/controllerbus/directive/index.js";
 
 type HashType = number;
 
@@ -52,6 +53,94 @@ class memoryPeer implements Peer {
     return [this.privKey, null];
   }
 }
+
+export type GetPeer = (directive.Directive & {
+  GetPeerIDConstraint(): ID;
+  IsEquivalent(other: directive.Directive | null): boolean;
+  Superceeds(other: directive.Directive | null): boolean;
+  GetDebugVals(): directive.DebugValues;
+}) | null;
+
+export type GetPeerValue = Peer;
+
+class getPeer implements NonNullable<GetPeer> {
+  constructor(private readonly peerIDConstraint: ID) {}
+
+  GetPeerIDConstraint(): ID {
+    return this.peerIDConstraint;
+  }
+
+  async Validate(): Promise<$.GoError> {
+    return null;
+  }
+
+  GetValueOptions(): directive.ValueOptions {
+    return $.markAsStructValue(new directive.ValueOptions());
+  }
+
+  IsEquivalent(other: directive.Directive | null): boolean {
+    const assertion = $.typeAssert<GetPeer>(other, "peer.GetPeer");
+    return assertion.ok &&
+      assertion.value != null &&
+      bytesEqual(idBytes(this.peerIDConstraint), idBytes(assertion.value.GetPeerIDConstraint()));
+  }
+
+  Superceeds(_other: directive.Directive | null): boolean {
+    return false;
+  }
+
+  GetName(): string {
+    return "GetPeer";
+  }
+
+  GetDebugVals(): directive.DebugValues {
+    if (idBytes(this.peerIDConstraint).length === 0) {
+      return new Map();
+    }
+    return new Map([["peer-id", $.arrayToSlice([ID_String(this.peerIDConstraint)])]]);
+  }
+}
+
+export function NewGetPeer(peerID: ID): GetPeer {
+  return new getPeer(peerID);
+}
+
+export class GetPeerResolver {
+  constructor(
+    private readonly getPeerDirective: GetPeer,
+    private readonly peer: Peer | null,
+  ) {}
+
+  async Resolve(_ctx: unknown, valHandler: directive.ResolverHandler | null): Promise<$.GoError> {
+    if (valHandler == null || this.peer == null) {
+      return null;
+    }
+    await valHandler.AddValue(this.peer);
+    return null;
+  }
+}
+
+export function NewGetPeerResolver(dir: GetPeer, peerValue: Peer | null): GetPeerResolver | null {
+  if (dir == null || peerValue == null) {
+    return null;
+  }
+  const peerID = dir.GetPeerIDConstraint();
+  if (idBytes(peerID).length !== 0 && !bytesEqual(idBytes(peerValue.GetPeerID()), idBytes(peerID))) {
+    return null;
+  }
+  return new GetPeerResolver(dir, peerValue);
+}
+
+$.registerInterfaceType(
+  "peer.GetPeer",
+  null,
+  [
+    { name: "GetName", args: [], returns: [{ name: "_r0", type: { kind: $.TypeKind.Basic, name: "string" } }] },
+    { name: "GetValueOptions", args: [], returns: [{ name: "_r0", type: "directive.ValueOptions" }] },
+    { name: "Validate", args: [], returns: [{ name: "_r0", type: "error" }] },
+    { name: "GetPeerIDConstraint", args: [], returns: [{ name: "_r0", type: "peer.ID" }] },
+  ],
+);
 
 export async function NewPeer(privKey: PeerPrivKey | null): Promise<[Peer | null, $.GoError]> {
   if (privKey == null) {
