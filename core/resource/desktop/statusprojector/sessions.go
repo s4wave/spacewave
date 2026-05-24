@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/core/cdn"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/activitypolicy"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -54,7 +55,7 @@ func snapshotSessionProjection(
 
 	rows := make([]*sessionProjectionRow, 0, len(entries))
 	spaceRows := []*spaceProjectionRow{}
-	activityRows := []*activityProjectionRow{}
+	activityRows := []*activitypolicy.Row{}
 	releases := make([]func(), 0, len(entries))
 	waitChs := []<-chan struct{}{sessionWaitCh}
 	for _, entry := range entries {
@@ -87,18 +88,55 @@ func snapshotSessionProjection(
 			})
 		}
 		if runtime.sync != nil {
-			activityRows = append(activityRows, &activityProjectionRow{
-				sessionIndex: entry.GetSessionIndex(),
-				sessionLabel: label,
-				status:       runtime.sync,
-			})
+			activityRows = append(activityRows, activityRowFromSyncStatus(entry.GetSessionIndex(), label, runtime.sync))
 		}
 	}
 
 	projection := buildSessionProjection(rows)
 	projection.Spaces = buildSpaceProjection(spaceRows)
-	projection.Activity = buildActivityProjection(activityRows)
+	projection.Activity = activitypolicy.Build(activityRows)
 	return projection, waitChs, releases, nil
+}
+
+func activityRowFromSyncStatus(
+	sessionIndex uint32,
+	sessionLabel string,
+	status *s4wave_session.WatchSyncStatusResponse,
+) *activitypolicy.Row {
+	row := &activitypolicy.Row{
+		SessionIndex:         sessionIndex,
+		SessionLabel:         sessionLabel,
+		PendingUploadCount:   uint64(status.GetPendingUploadCount()),
+		PendingDownloadCount: uint64(status.GetPendingDownloadCount()),
+		InFlightUploadCount:  uint64(status.GetInFlightUploadCount()),
+		LastError:            status.GetLastError(),
+	}
+	switch status.GetState() {
+	case s4wave_session.SyncStatusState_SyncStatusState_ERROR:
+		row.State = activitypolicy.SyncStateError
+	case s4wave_session.SyncStatusState_SyncStatusState_ACTIVE:
+		row.State = activitypolicy.SyncStateActive
+	case s4wave_session.SyncStatusState_SyncStatusState_SYNCED:
+		row.State = activitypolicy.SyncStateSynced
+	default:
+		row.State = activitypolicy.SyncStateIdle
+	}
+	switch status.GetDirection() {
+	case s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD:
+		row.Direction = activitypolicy.SyncDirectionUpload
+	case s4wave_session.SyncActivityDirection_SyncActivityDirection_DOWNLOAD:
+		row.Direction = activitypolicy.SyncDirectionDownload
+	case s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD_DOWNLOAD:
+		row.Direction = activitypolicy.SyncDirectionUploadDownload
+	default:
+		row.Direction = activitypolicy.SyncDirectionUnknown
+	}
+	ts := status.GetLastActivityAt()
+	if ts != nil && !ts.GetEmpty() {
+		row.LastActivityAtUnixMs = ts.AsTime().UnixMilli()
+		row.HasLastActivityAtTime = true
+	}
+	return row
 }
 
 func snapshotSessionRuntimeProjection(
