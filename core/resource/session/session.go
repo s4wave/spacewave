@@ -22,6 +22,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/resource/session/mountedresource"
 	resource_sobject "github.com/s4wave/spacewave/core/resource/sobject"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	"github.com/s4wave/spacewave/core/session"
@@ -341,7 +342,12 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 		r.session.GetPeerId().String(),
 		r.hostPluginID,
 	)
-	spaceBodyID, err := addMountedSpaceResource(resourceCtx, spaceResource, spaceBodyRef.Release)
+	spaceBodyID, err := mountedresource.Add(
+		resourceCtx,
+		spaceResource.GetMux(),
+		spaceResource,
+		spaceBodyRef.Release,
+	)
 	if err != nil {
 		spaceBodyRef.Release()
 		return nil, err
@@ -368,16 +374,6 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 		SharedObjectBodyResourceId: spaceBodyID,
 		SpaceWorldResourceId:       spaceWorldID,
 	}, nil
-}
-
-func addMountedSpaceResource(
-	resourceCtx resource_server.ResourceClientContext,
-	spaceResource *resource_space.SpaceResource,
-	releaseFn func(),
-) (uint32, error) {
-	// Quickstarts resolve this resource id back to the mounted SpaceResource
-	// value; registering only its mux breaks typed owner handoff.
-	return resourceCtx.AddResourceValue(spaceResource.GetMux(), spaceResource, releaseFn)
 }
 
 // WatchResourcesList returns the list of resources the session has access to.
