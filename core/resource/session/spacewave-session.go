@@ -19,6 +19,7 @@ import (
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	resource_account "github.com/s4wave/spacewave/core/resource/account"
+	"github.com/s4wave/spacewave/core/resource/session/rootstate"
 	"github.com/s4wave/spacewave/core/session"
 	session_handoff "github.com/s4wave/spacewave/core/session/handoff"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -986,7 +987,7 @@ func (r *SpacewaveSessionResource) loadOrganizationState(
 		if err != nil {
 			return nil, err
 		}
-		rootState = buildOrganizationRootStateInfo(rootStateSOID, health, roleID)
+		rootState = rootstate.BuildInfo(rootStateSOID, health, roleID)
 	}
 
 	return &s4wave_provider_spacewave.WatchOrganizationStateResponse{
@@ -1001,33 +1002,6 @@ func (r *SpacewaveSessionResource) loadOrganizationState(
 		Invites:   invites,
 		RootState: rootState,
 	}, nil
-}
-
-func organizationRootMutationDisabledReason(roleID string) string {
-	if roleID == "org:owner" || roleID == "owner" {
-		return ""
-	}
-	return "Only organization owners can repair or reinitialize this shared object."
-}
-
-func buildOrganizationRootStateInfo(
-	sharedObjectID string,
-	health *sobject.SharedObjectHealth,
-	roleID string,
-) *s4wave_provider_spacewave.OrganizationRootStateInfo {
-	if sharedObjectID == "" {
-		return nil
-	}
-	canMutate := roleID == "org:owner" || roleID == "owner"
-	return &s4wave_provider_spacewave.OrganizationRootStateInfo{
-		SharedObjectId: sharedObjectID,
-		Health:         health,
-		MutationPermission: &s4wave_provider_spacewave.SharedObjectMutationPermission{
-			CanRepair:       canMutate,
-			CanReinitialize: canMutate,
-			DisabledReason:  organizationRootMutationDisabledReason(roleID),
-		},
-	}
 }
 
 // DeleteOrganization deletes an organization.

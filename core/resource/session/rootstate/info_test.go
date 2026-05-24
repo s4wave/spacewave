@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package resource_session
+package rootstate
 
 import (
 	"testing"
@@ -8,7 +6,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-func TestBuildOrganizationRootStateInfoPropagatesHealthAndOwnerPermissions(t *testing.T) {
+func TestBuildInfoPropagatesHealthAndOwnerPermissions(t *testing.T) {
 	t.Parallel()
 
 	health := sobject.NewSharedObjectClosedHealth(
@@ -18,7 +16,7 @@ func TestBuildOrganizationRootStateInfoPropagatesHealthAndOwnerPermissions(t *te
 		"root signature validation failed",
 	)
 
-	rootState := buildOrganizationRootStateInfo("org-1", health, "org:owner")
+	rootState := BuildInfo("org-1", health, "org:owner")
 	if rootState == nil {
 		t.Fatal("expected root state info")
 	}
@@ -45,10 +43,10 @@ func TestBuildOrganizationRootStateInfoPropagatesHealthAndOwnerPermissions(t *te
 	}
 }
 
-func TestBuildOrganizationRootStateInfoDisablesMutationsForMembers(t *testing.T) {
+func TestBuildInfoDisablesMutationsForMembers(t *testing.T) {
 	t.Parallel()
 
-	rootState := buildOrganizationRootStateInfo(
+	rootState := BuildInfo(
 		"org-1",
 		sobject.NewSharedObjectReadyHealth(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
