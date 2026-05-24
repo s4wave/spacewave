@@ -82,9 +82,16 @@ export function buildGoAliases(projectRoot: string): Alias[] {
  */
 export function goTsResolver(projectRoot: string): Plugin {
   const localModule = readLocalModuleSync(projectRoot)
+  const tsPathCache = new Map<string, Promise<string | null>>()
   return {
     name: 'go-ts-resolver',
     enforce: 'pre',
+    buildStart() {
+      tsPathCache.clear()
+    },
+    watchChange() {
+      tsPathCache.clear()
+    },
     async resolveId(source, importer) {
       // Handle only .js imports that may map to source .ts files.
       if (!source.endsWith('.js')) {
@@ -100,12 +107,15 @@ export function goTsResolver(projectRoot: string): Plugin {
 
       const tsPath = resolve(projectRoot, sourcePath).replace(/\.js$/, '.ts')
 
-      try {
-        await access(tsPath)
-        return tsPath
-      } catch {
-        return null
+      let cached = tsPathCache.get(tsPath)
+      if (!cached) {
+        cached = access(tsPath).then(
+          () => tsPath,
+          () => null,
+        )
+        tsPathCache.set(tsPath, cached)
       }
+      return cached
     },
   }
 }
