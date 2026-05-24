@@ -1,27 +1,20 @@
-//go:build !goscript
-
-package provider_spacewave
+package seedflight
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/pkg/errors"
 )
 
-// runConcurrentSeed launches one owner goroutine, waits until it has
-// entered fetchFn (i.e. providerSeed.inflight=true), then launches
-// (callers-1) waiter goroutines and lets them park on the broadcast
-// before unblocking the owner. Returns once every caller has returned
-// from Run. Errors per caller are returned in launch order.
 func runConcurrentSeed(t *testing.T, callers int, fetchErr error) ([]error, int32) {
 	t.Helper()
 	var (
-		seed   providerSeed
+		seed   Seed
 		bcast  broadcast.Broadcast
 		fetchN atomic.Int32
 	)
@@ -55,8 +48,6 @@ func runConcurrentSeed(t *testing.T, callers int, fetchErr error) ([]error, int3
 		}(i)
 	}
 
-	// Give the waiters a tick to park on the broadcast wait channel
-	// before letting the owner finish.
 	time.Sleep(20 * time.Millisecond)
 	close(gate)
 	wg.Wait()
@@ -64,9 +55,7 @@ func runConcurrentSeed(t *testing.T, callers int, fetchErr error) ([]error, int3
 	return errs, fetchN.Load()
 }
 
-// TestProviderSeedSingleflight asserts that N concurrent Run callers
-// share one fetchFn invocation and observe the same nil result.
-func TestProviderSeedSingleflight(t *testing.T) {
+func TestSeedSingleflight(t *testing.T) {
 	errs, fetchN := runConcurrentSeed(t, 16, nil)
 	if fetchN != 1 {
 		t.Fatalf("fetchFn called %d times, want 1", fetchN)
@@ -78,9 +67,7 @@ func TestProviderSeedSingleflight(t *testing.T) {
 	}
 }
 
-// TestProviderSeedSharesError asserts that all waiters observe the
-// owner's error result.
-func TestProviderSeedSharesError(t *testing.T) {
+func TestSeedSharesError(t *testing.T) {
 	wantErr := errors.New("seed failure")
 	errs, fetchN := runConcurrentSeed(t, 8, wantErr)
 	if fetchN != 1 {
@@ -93,11 +80,9 @@ func TestProviderSeedSharesError(t *testing.T) {
 	}
 }
 
-// TestProviderSeedSecondPassRefetches asserts that after a completed Run
-// the next call fires fetchFn again (singleflight, not memoization).
-func TestProviderSeedSecondPassRefetches(t *testing.T) {
+func TestSeedSecondPassRefetches(t *testing.T) {
 	var (
-		seed   providerSeed
+		seed   Seed
 		bcast  broadcast.Broadcast
 		fetchN atomic.Int32
 	)
@@ -116,12 +101,9 @@ func TestProviderSeedSecondPassRefetches(t *testing.T) {
 	}
 }
 
-// TestProviderSeedWaiterContextCanceled asserts that a waiter parked on
-// the broadcast returns ctx.Err() when its context is canceled, without
-// affecting the owner.
-func TestProviderSeedWaiterContextCanceled(t *testing.T) {
+func TestSeedWaiterContextCanceled(t *testing.T) {
 	var (
-		seed   providerSeed
+		seed   Seed
 		bcast  broadcast.Broadcast
 		fetchN atomic.Int32
 	)
@@ -148,7 +130,6 @@ func TestProviderSeedWaiterContextCanceled(t *testing.T) {
 	waiterDone := make(chan error, 1)
 	go func() { waiterDone <- seed.Run(waiterCtx, &bcast, fetchFn) }()
 
-	// Let the waiter park inside Run's select on waitCh.
 	time.Sleep(20 * time.Millisecond)
 	waiterCancel()
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/seedflight"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -25,7 +26,7 @@ type pendingMailboxState struct {
 	entryVersion map[int64]int64
 	// seed coordinates concurrent callers around a single seed HTTP fetch.
 	// Guarded by accountBcast like the rest of the state.
-	seed providerSeed
+	seed seedflight.Seed
 }
 
 // GetPendingMailboxEntriesSnapshot returns the cached pending mailbox entries for an SO.
@@ -50,7 +51,7 @@ func (a *ProviderAccount) GetPendingMailboxEntriesSnapshot(
 
 // GetPendingMailboxEntriesCached returns the cached pending mailbox entries,
 // seeding once via HTTP if the cache is not yet valid. Concurrent callers
-// share a single in-flight seed request via providerSeed; subsequent calls
+// share a single in-flight seed request via seedflight.Seed; subsequent calls
 // return the cached snapshot and updates arrive via ApplyMailboxEntryEvent.
 func (a *ProviderAccount) GetPendingMailboxEntriesCached(
 	ctx context.Context,
@@ -64,7 +65,7 @@ func (a *ProviderAccount) GetPendingMailboxEntriesCached(
 		return entries, nil
 	}
 
-	var seed *providerSeed
+	var seed *seedflight.Seed
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		seed = &a.getOrCreatePendingMailboxStateLocked(soID).seed
 	})
@@ -114,7 +115,7 @@ func (a *ProviderAccount) getPendingMailboxResponseCached(
 		return resp, nil
 	}
 
-	var seed *providerSeed
+	var seed *seedflight.Seed
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		seed = &a.getOrCreatePendingMailboxStateLocked(soID).seed
 	})
