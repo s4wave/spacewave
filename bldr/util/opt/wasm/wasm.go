@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"time"
 
 	uexec "github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
@@ -72,12 +73,14 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 	)
 	ecmd.Env = os.Environ()
 	ecmd.Dir = workingPath
+	timeStart := time.Now()
 	if err := uexec.ExecCmd(le, ecmd); err != nil {
 		return err
 	}
 	if err := fsutil.MoveFile(outBinPath, optPath, 0o644); err != nil {
 		return err
 	}
+	dur := time.Since(timeStart)
 
 	postOptStat, err := os.Stat(outBinPath)
 	if err != nil {
@@ -85,6 +88,8 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 	}
 	postOptSize := postOptStat.Size()
 
-	le.Infof("optimized %s from %d -> %d bytes delta %d", outBinFilename, preOptSize, postOptSize, postOptSize-preOptSize)
+	le.
+		WithField("dur", dur.String()).
+		Infof("optimized %s from %d -> %d bytes delta %d", outBinFilename, preOptSize, postOptSize, postOptSize-preOptSize)
 	return nil
 }

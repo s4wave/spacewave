@@ -27,7 +27,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V3"
+// startupCacheFormatEnvKey is bumped when compiler-owned output policy changes
+// without changing a plugin source file. V4 invalidates pre no-DWARF TinyGo
+// release artifacts.
+const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V4"
 
 // startupValidationResult contains the startup cache validation result.
 type startupValidationResult struct {

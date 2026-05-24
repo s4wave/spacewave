@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -28,7 +29,7 @@ func ExecBuildEntrypoint(
 ) error {
 	isRelease := buildType.IsRelease()
 	isNativeBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_DESKTOP
-	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".wasm"
+	isWasmOutput := strings.HasSuffix(outBinPath, ".wasm")
 
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
@@ -36,7 +37,7 @@ func ExecBuildEntrypoint(
 	}
 
 	// always disable cgo if not native platform or not go compiler or webassembly
-	if !isNativeBuildPlatform || isWebBuildPlatform {
+	if !isNativeBuildPlatform || isWasmOutput {
 		enableCgo = false
 	}
 
@@ -73,27 +74,10 @@ func ExecBuildEntrypoint(
 		args = append(args, "-tags="+strings.Join(buildTags, ","))
 	} else {
 		cmd = "tinygo"
-		tinygoPlat, err := bldr_platform_go.PlatformToTinyGoTarget(buildPlatform)
+		args, err = newTinyGoBuildArgs(buildPlatform, buildType, outBinPathRel, buildTags)
 		if err != nil {
 			return err
 		}
-		tinygoArgs, err := GetDefaultTinygoArgs()
-		if err != nil {
-			return err
-		}
-		args = append([]string{
-			"build",
-			"-o",
-			outBinPathRel,
-			"-target", tinygoPlat,
-		}, tinygoArgs...)
-
-		// if release or not native platform drop debugging symbols
-		if isRelease || !isNativeBuildPlatform {
-			args = append(args, "-no-debug")
-		}
-
-		args = append(args, "-tags="+strings.Join(buildTags, " "))
 	}
 
 	// ldflags
@@ -116,31 +100,83 @@ func ExecBuildEntrypoint(
 		ecmd.Env = append(ecmd.Env, platformEnv...)
 	}
 
+	timeStart := time.Now()
 	err = ExecGoCompiler(le, ecmd)
 	if err != nil {
 		return err
 	}
+	le.
+		WithField("compiler", cmd).
+		WithField("dur", time.Since(timeStart).String()).
+		Info("compiled plugin binary")
 
 	// codesign the produced binary on darwin when BLDR_MACOS_SIGN_IDENTITY is set
-	if !useTinygo && !isWebBuildPlatform && slices.Contains(platformEnv, "GOOS=darwin") {
+	if !useTinygo && !isWasmOutput && slices.Contains(platformEnv, "GOOS=darwin") {
 		if err := CodesignMacOS(ctx, le, outBinPath); err != nil {
 			return err
 		}
 	}
 
 	// az sign the produced binary on windows when BLDR_WINDOWS_SIGN_PROFILE is set
-	if !useTinygo && !isWebBuildPlatform && slices.Contains(platformEnv, "GOOS=windows") {
+	if !useTinygo && !isWasmOutput && slices.Contains(platformEnv, "GOOS=windows") {
 		if err := SignWindows(ctx, le, outBinPath); err != nil {
 			return err
 		}
 	}
 
 	// post-processing in release mode
-	if isWebBuildPlatform && isRelease {
+	if isWasmOutput && isRelease {
 		if err := opt_wasm.OptimizeWasmBinary(ctx, le, workingPath, outBinPath); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+const tinyGoInternalNoDWARFArg = "-internal-nodwarf"
+
+func newTinyGoBuildArgs(
+	buildPlatform bldr_platform.Platform,
+	buildType bldr_manifest.BuildType,
+	outBinPathRel string,
+	buildTags []string,
+) ([]string, error) {
+	tinygoPlat, err := bldr_platform_go.PlatformToTinyGoTarget(buildPlatform)
+	if err != nil {
+		return nil, err
+	}
+	tinygoArgs, err := GetDefaultTinygoArgs()
+	if err != nil {
+		return nil, err
+	}
+
+	args := append([]string{
+		"build",
+		"-o",
+		outBinPathRel,
+		"-target", tinygoPlat,
+	}, tinygoArgs...)
+
+	// if release or not native platform drop debugging symbols
+	if buildType.IsRelease() || buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_DESKTOP {
+		args = append(args, "-no-debug")
+	}
+	if shouldSkipTinyGoInternalDWARF(buildPlatform, buildType) {
+		args = append(args, tinyGoInternalNoDWARFArg)
+	}
+
+	args = append(args, "-tags="+strings.Join(buildTags, " "))
+	return args, nil
+}
+
+func shouldSkipTinyGoInternalDWARF(buildPlatform bldr_platform.Platform, buildType bldr_manifest.BuildType) bool {
+	if !buildType.IsRelease() {
+		return false
+	}
+	np := bldr_platform.ToNativePlatform(buildPlatform)
+	if np == nil {
+		return false
+	}
+	return np.GetGOOS() == "js" && np.GetGOARCH() == "wasm"
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 )
 
 func TestNewBuildTagsDoNotDependOnReleaseEnv(t *testing.T) {
@@ -86,6 +87,70 @@ func TestTinyGoSchedulerIsExplicit(t *testing.T) {
 	}
 }
 
+func TestTinyGoBrowserReleaseArgsIncludeNoDebugAndNoDWARF(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoProfileEnv, TinyGoProfileFast)
+
+	platform := parseTestPlatform(t, "web/js/wasm")
+	args, err := newTinyGoBuildArgs(platform, bldr_manifest.BuildType_RELEASE, "spacewave-core.wasm", []string{"build_type_release", "purego"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"-target",
+		"wasm",
+		"-opt=1",
+		"-gc=leaking",
+		"-interp-timeout=10m",
+		"-no-debug",
+		tinyGoInternalNoDWARFArg,
+		"-tags=build_type_release purego",
+	} {
+		if !slices.Contains(args, want) {
+			t.Fatalf("tinygo release args = %v, want %s", args, want)
+		}
+	}
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-scheduler=") {
+			t.Fatalf("tinygo release args should keep scheduler explicit-only: %v", args)
+		}
+	}
+}
+
+func TestTinyGoBrowserDevArgsDoNotUseInternalNoDWARF(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoProfileEnv, TinyGoProfileFast)
+
+	platform := parseTestPlatform(t, "web/js/wasm")
+	args, err := newTinyGoBuildArgs(platform, bldr_manifest.BuildType_DEV, "spacewave-core.wasm", []string{"build_type_dev", "purego"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(args, "-no-debug") {
+		t.Fatalf("tinygo web dev args = %v, want existing non-native -no-debug behavior", args)
+	}
+	if slices.Contains(args, tinyGoInternalNoDWARFArg) {
+		t.Fatalf("tinygo web dev args should not use release-only %s: %v", tinyGoInternalNoDWARFArg, args)
+	}
+}
+
+func TestTinyGoNonBrowserReleaseArgsDoNotUseInternalNoDWARF(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoProfileEnv, TinyGoProfileFast)
+
+	platform := parseTestPlatform(t, "web/wasi/wasm")
+	args, err := newTinyGoBuildArgs(platform, bldr_manifest.BuildType_RELEASE, "spacewave-core.wasm", []string{"build_type_release", "purego"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(args, "-no-debug") {
+		t.Fatalf("tinygo wasi release args = %v, want release -no-debug behavior", args)
+	}
+	if slices.Contains(args, tinyGoInternalNoDWARFArg) {
+		t.Fatalf("tinygo wasi release args should not use browser-only %s: %v", tinyGoInternalNoDWARFArg, args)
+	}
+}
+
 func TestDefaultTinyGoArgsPrintsPanicWhenConfigured(t *testing.T) {
 	clearTinyGoOptionEnv(t)
 	t.Setenv(TinyGoPanicStrategyEnv, "print")
@@ -140,4 +205,13 @@ func clearTinyGoOptionEnv(t *testing.T) {
 	for _, key := range TinyGoStartupCacheEnvKeys() {
 		t.Setenv(key, "")
 	}
+}
+
+func parseTestPlatform(t *testing.T, id string) bldr_platform.Platform {
+	t.Helper()
+	platform, err := bldr_platform.ParsePlatform(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return platform
 }

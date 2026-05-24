@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -327,6 +328,7 @@ func (c *Controller) BuildManifest(
 
 	le.Debug("bundling plugin files")
 	// bundle dist and assets fs
+	timeStart := time.Now()
 	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
 		le,
@@ -352,6 +354,9 @@ func (c *Controller) BuildManifest(
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+	le.
+		WithField("dur", time.Since(timeStart).String()).
+		Info("committed plugin manifest")
 
 	return result, nil
 }
@@ -878,6 +883,7 @@ func (c *Controller) BuildPlugin(
 			outDistPath,
 			pluginID+".mjs",
 		)
+		timeStart := time.Now()
 		webRuntimeSrcFiles, err = web_runtime_wasm_build.BuildWebWasmPluginScript(
 			ctx,
 			le,
@@ -890,6 +896,9 @@ func (c *Controller) BuildPlugin(
 		if err != nil {
 			return nil, nil, err
 		}
+		le.
+			WithField("dur", time.Since(timeStart).String()).
+			Info("compiled web plugin entrypoint")
 	}
 
 	copyFile := func(filename string) error {
