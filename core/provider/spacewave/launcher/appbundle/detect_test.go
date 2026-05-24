@@ -1,12 +1,8 @@
-//go:build !goscript
+package appbundle
 
-package spacewave_launcher_controller
+import "testing"
 
-import (
-	"testing"
-)
-
-func TestLauncherDetectsMacOSMismatch(t *testing.T) {
+func TestDetectMacOSMismatch(t *testing.T) {
 	tests := []struct {
 		name       string
 		execPath   string
@@ -71,12 +67,12 @@ func TestLauncherDetectsMacOSMismatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			isBundle, bundleRoot := detectAppBundle(tt.execPath)
+			isBundle, bundleRoot := Detect(tt.execPath)
 			if isBundle != tt.wantBundle {
-				t.Errorf("detectAppBundle(%q) isBundle = %v, want %v", tt.execPath, isBundle, tt.wantBundle)
+				t.Errorf("Detect(%q) isBundle = %v, want %v", tt.execPath, isBundle, tt.wantBundle)
 			}
 			if bundleRoot != tt.wantRoot {
-				t.Errorf("detectAppBundle(%q) bundleRoot = %q, want %q", tt.execPath, bundleRoot, tt.wantRoot)
+				t.Errorf("Detect(%q) bundleRoot = %q, want %q", tt.execPath, bundleRoot, tt.wantRoot)
 			}
 		})
 	}

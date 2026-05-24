@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/appbundle"
 )
 
 // applyUpdate applies the staged update.
@@ -55,7 +56,7 @@ func (c *Controller) applyUpdate() error {
 	})
 
 	// check if this is a macOS .app bundle update
-	isBundle, bundleRoot := detectAppBundle(execPath)
+	isBundle, bundleRoot := appbundle.Detect(execPath)
 	if isBundle && stagedInfo.IsDir() {
 		return c.applyAppBundleUpdate(bundleRoot, stagedPath)
 	}
