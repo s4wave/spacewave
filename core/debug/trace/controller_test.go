@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package debug_trace
 
 import (
