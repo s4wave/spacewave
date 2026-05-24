@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package statusprojector
+package updatepolicy
 
 import (
 	"testing"
@@ -9,8 +7,8 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 )
 
-func TestBuildUpdateProjectionAddsReadyAttention(t *testing.T) {
-	status, attention := buildUpdateProjection(&spacewave_launcher.LauncherInfo{
+func TestBuildAddsReadyAttention(t *testing.T) {
+	status, attention := Build(&spacewave_launcher.LauncherInfo{
 		UpdateState: &spacewave_launcher.UpdateState{
 			Phase:   spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
 			Version: "1.2.3",
@@ -33,8 +31,8 @@ func TestBuildUpdateProjectionAddsReadyAttention(t *testing.T) {
 	}
 }
 
-func TestBuildUpdateProjectionKeepsDownloadNonReady(t *testing.T) {
-	status, attention := buildUpdateProjection(&spacewave_launcher.LauncherInfo{
+func TestBuildKeepsDownloadNonReady(t *testing.T) {
+	status, attention := Build(&spacewave_launcher.LauncherInfo{
 		UpdateState: &spacewave_launcher.UpdateState{
 			Phase:   spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING,
 			Version: "1.2.3",
@@ -51,8 +49,8 @@ func TestBuildUpdateProjectionKeepsDownloadNonReady(t *testing.T) {
 	}
 }
 
-func TestBuildUpdateProjectionMapsNativeErrors(t *testing.T) {
-	status, attention := buildUpdateProjection(&spacewave_launcher.LauncherInfo{
+func TestBuildMapsNativeErrors(t *testing.T) {
+	status, attention := Build(&spacewave_launcher.LauncherInfo{
 		UpdateState: &spacewave_launcher.UpdateState{
 			Phase:        spacewave_launcher.UpdatePhase_UpdatePhase_ERROR,
 			ErrorMessage: "release metadata missing",

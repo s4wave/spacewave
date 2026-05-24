@@ -1,11 +1,12 @@
-package statusprojector
+package updatepolicy
 
 import (
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 )
 
-func buildUpdateProjection(
+// Build maps launcher update state into desktop tray update projection fields.
+func Build(
 	info *spacewave_launcher.LauncherInfo,
 ) (*desktop_runtime.DesktopRuntimeUpdateStatus, *desktop_runtime.DesktopRuntimeAttentionItem) {
 	state := info.GetUpdateState()
@@ -14,8 +15,8 @@ func buildUpdateProjection(
 	}
 	status := &desktop_runtime.DesktopRuntimeUpdateStatus{
 		Version: state.GetVersion(),
-		Label:   updateLabel(state),
-		Detail:  updateDetail(state),
+		Label:   label(state),
+		Detail:  detail(state),
 	}
 	if state.GetPhase() == spacewave_launcher.UpdatePhase_UpdatePhase_STAGED {
 		status.Ready = true
@@ -23,13 +24,13 @@ func buildUpdateProjection(
 			Kind:     desktop_runtime.DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY,
 			Severity: desktop_runtime.DesktopRuntimeSeverity_DESKTOP_RUNTIME_SEVERITY_INFO,
 			Label:    "Update ready",
-			Detail:   updateDetail(state),
+			Detail:   detail(state),
 		}
 	}
 	return status, nil
 }
 
-func updateLabel(state *spacewave_launcher.UpdateState) string {
+func label(state *spacewave_launcher.UpdateState) string {
 	switch state.GetPhase() {
 	case spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING:
 		return "Downloading update"
@@ -44,7 +45,7 @@ func updateLabel(state *spacewave_launcher.UpdateState) string {
 	}
 }
 
-func updateDetail(state *spacewave_launcher.UpdateState) string {
+func detail(state *spacewave_launcher.UpdateState) string {
 	if state.GetErrorMessage() != "" {
 		return state.GetErrorMessage()
 	}
