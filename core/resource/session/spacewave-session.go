@@ -20,6 +20,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	resource_account "github.com/s4wave/spacewave/core/resource/account"
 	"github.com/s4wave/spacewave/core/resource/session/rootstate"
+	"github.com/s4wave/spacewave/core/resource/session/sessioninfo"
 	"github.com/s4wave/spacewave/core/session"
 	session_handoff "github.com/s4wave/spacewave/core/session/handoff"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -100,7 +101,7 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 		// has been populated from the cloud, unless the account is in a
 		// terminal non-ready state. Prevents a "not subscribed" flash for
 		// subscribed users while the account fetcher is still loading.
-		if prev == nil && !shouldEmitOnboardingStatus(stateLoaded, accountStatus) {
+		if prev == nil && !sessioninfo.ShouldEmitOnboardingStatus(stateLoaded, accountStatus) {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -154,25 +155,6 @@ func (r *SpacewaveSessionResource) buildOnboardingStatusProjectionContext(
 		}
 	}
 	return projCtx
-}
-
-// shouldEmitOnboardingStatus returns whether the Onboarding Status
-// route-status projection should be sent given the current account state. The
-// first emission holds until the cloud account snapshot has been populated by
-// the fetcher. Terminal non-ready statuses are meaningful to clients even with
-// a nil snapshot.
-func shouldEmitOnboardingStatus(stateLoaded bool, accountStatus provider.ProviderAccountStatus) bool {
-	if stateLoaded {
-		return true
-	}
-	switch accountStatus {
-	case provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED,
-		provider.ProviderAccountStatus_ProviderAccountStatus_DELETED,
-		provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT,
-		provider.ProviderAccountStatus_ProviderAccountStatus_FAILED:
-		return true
-	}
-	return false
 }
 
 // checkLocalHasContent returns true if the local session at the given index has SharedObjects.
@@ -678,7 +660,7 @@ func (r *SpacewaveSessionResource) loadBillingWatchState(
 			BillingAccount: &s4wave_provider_spacewave.BillingAccountInfo{
 				Status: s4wave_provider_spacewave.BillingStatus_BillingStatus_NONE,
 			},
-			Usage: buildEmptyBillingUsageInfo(),
+			Usage: sessioninfo.BuildEmptyBillingUsageInfo(),
 		}, ch, nil
 	}
 
@@ -688,7 +670,7 @@ func (r *SpacewaveSessionResource) loadBillingWatchState(
 	}
 	return &s4wave_provider_spacewave.WatchBillingStateResponse{
 		BillingAccount: buildBillingAccountInfo(baID, state),
-		Usage:          buildBillingUsageInfo(usage),
+		Usage:          sessioninfo.BuildBillingUsageInfo(usage),
 	}, ch, nil
 }
 
@@ -732,39 +714,6 @@ func buildBillingAccountInfo(
 		LifecycleUpdatedAt: state.GetLifecycleUpdatedAt(),
 		DeletedAt:          state.GetDeletedAt(),
 		DisplayName:        state.GetDisplayName(),
-	}
-}
-
-// buildEmptyBillingUsageInfo returns a BillingUsageInfo with only baseline values.
-func buildEmptyBillingUsageInfo() *s4wave_provider_spacewave.BillingUsageInfo {
-	return &s4wave_provider_spacewave.BillingUsageInfo{
-		StorageBaselineBytes: storageBaselineBytes,
-		WriteOpsBaseline:     writeOpsBaseline,
-		ReadOpsBaseline:      readOpsBaseline,
-	}
-}
-
-// buildBillingUsageInfo converts a cloud billing usage response to a proto BillingUsageInfo.
-func buildBillingUsageInfo(
-	usage *api.BillingUsageResponse,
-) *s4wave_provider_spacewave.BillingUsageInfo {
-	if usage == nil {
-		return buildEmptyBillingUsageInfo()
-	}
-	return &s4wave_provider_spacewave.BillingUsageInfo{
-		StorageBytes:                             usage.GetStorageBytes(),
-		StorageBaselineBytes:                     storageBaselineBytes,
-		WriteOps:                                 usage.GetWriteOps(),
-		WriteOpsBaseline:                         writeOpsBaseline,
-		ReadOps:                                  usage.GetReadOps(),
-		ReadOpsBaseline:                          readOpsBaseline,
-		StorageOverageBytes:                      usage.GetStorageOverageBytes(),
-		StorageOverageMonthlyCostEstimateUsd:     usage.GetStorageOverageMonthlyCostEstimateUsd(),
-		StorageOverageMonthToDateGbMonths:        usage.GetStorageOverageMonthToDateGbMonths(),
-		StorageOverageMonthToDateCostEstimateUsd: usage.GetStorageOverageMonthToDateCostEstimateUsd(),
-		StorageOverageDeletedGbMonths:            usage.GetStorageOverageDeletedGbMonths(),
-		StorageOverageDeletedCostEstimateUsd:     usage.GetStorageOverageDeletedCostEstimateUsd(),
-		UsageMeteredThroughAt:                    usage.GetUsageMeteredThroughAt(),
 	}
 }
 
@@ -2505,15 +2454,6 @@ func mapCheckoutStatus(s string) s4wave_provider_spacewave.CheckoutStatus {
 		return s4wave_provider_spacewave.CheckoutStatus_CheckoutStatus_UNKNOWN
 	}
 }
-
-// storageBaselineBytes is the included storage baseline (100 GB).
-const storageBaselineBytes = 100 * 1024 * 1024 * 1024
-
-// writeOpsBaseline is the included write ops baseline per period (1M).
-const writeOpsBaseline = 1000000
-
-// readOpsBaseline is the included read ops baseline per period (10M).
-const readOpsBaseline = 10000000
 
 // WatchEmails streams the account's email list, emitting on changes.
 func (r *SpacewaveSessionResource) WatchEmails(

@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package resource_session
+package sessioninfo
 
 import (
 	"testing"
@@ -60,7 +58,7 @@ func TestShouldEmitOnboardingStatusFirstEmissionGate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := shouldEmitOnboardingStatus(tt.stateLoaded, tt.accountStatus)
+			got := ShouldEmitOnboardingStatus(tt.stateLoaded, tt.accountStatus)
 			if got != tt.expected {
 				t.Fatalf("expected %v, got %v", tt.expected, got)
 			}
@@ -69,7 +67,7 @@ func TestShouldEmitOnboardingStatusFirstEmissionGate(t *testing.T) {
 }
 
 func TestBuildBillingUsageInfoIncludesStorageOverageFields(t *testing.T) {
-	usage := buildBillingUsageInfo(&api.BillingUsageResponse{
+	usage := BuildBillingUsageInfo(&api.BillingUsageResponse{
 		StorageBytes:                             123,
 		WriteOps:                                 4,
 		ReadOps:                                  5,
