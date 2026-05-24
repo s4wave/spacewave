@@ -126,8 +126,14 @@ func ExecBuildEntrypoint(
 
 	// post-processing in release mode
 	if isWasmOutput && isRelease {
-		if err := opt_wasm.OptimizeWasmBinary(ctx, le, workingPath, outBinPath); err != nil {
-			return err
+		if useTinygo {
+			if err := opt_wasm.StripWasmDebugSections(ctx, le, workingPath, outBinPath); err != nil {
+				return err
+			}
+		} else {
+			if err := opt_wasm.OptimizeWasmBinary(ctx, le, workingPath, outBinPath); err != nil {
+				return err
+			}
 		}
 	}
 

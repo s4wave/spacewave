@@ -20,8 +20,6 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 	}
 	preOptSize := preOptStat.Size()
 
-	// wasm-opt
-	// wasm-opt -Oz -o ./out.wasm.opt ./out.wasm
 	outBinDir, outBinFilename := filepath.Dir(outBinPath), filepath.Base(outBinPath)
 	optFilename := outBinFilename + ".wasm-opt"
 
@@ -37,8 +35,6 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 
 	optPathRel := filepath.Join(outBinDirRel, optFilename)
 	optPath := filepath.Join(workingPath, optPathRel)
-
-	// TODO: tinygo already runs wasm-opt for the asyncify pass. don't run it twice?
 
 	// -Os: optimized .wasm binary from 34580687 -> 32068818 bytes delta -2511869
 	// -Oz: optimized .wasm binary from 34580687 -> 29498128 bytes delta -5082559
@@ -91,5 +87,71 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 	le.
 		WithField("dur", dur.String()).
 		Infof("optimized %s from %d -> %d bytes delta %d", outBinFilename, preOptSize, postOptSize, postOptSize-preOptSize)
+	return nil
+}
+
+// StripWasmDebugSections removes debug custom sections without optimization.
+func StripWasmDebugSections(ctx context.Context, le *logrus.Entry, workingPath, outBinPath string) error {
+	preOptStat, err := os.Stat(outBinPath)
+	if err != nil {
+		return err
+	}
+	preOptSize := preOptStat.Size()
+
+	outBinDir, outBinFilename := filepath.Dir(outBinPath), filepath.Base(outBinPath)
+	optFilename := outBinFilename + ".wasm-strip"
+
+	outBinDirRel, err := filepath.Rel(workingPath, outBinDir)
+	if err != nil {
+		return err
+	}
+
+	outBinPathRel, err := filepath.Rel(workingPath, outBinPath)
+	if err != nil {
+		return err
+	}
+
+	optPathRel := filepath.Join(outBinDirRel, optFilename)
+	optPath := filepath.Join(workingPath, optPathRel)
+
+	ecmd := uexec.NewCmd(
+		ctx,
+		"wasm-opt",
+
+		"--enable-simd",
+		"--enable-sign-ext",
+		"--enable-threads",
+		"--enable-bulk-memory",
+		"--enable-multivalue",
+		"--enable-mutable-globals",
+		"--enable-reference-types",
+		"--enable-nontrapping-float-to-int",
+
+		"--strip-debug",
+		"--strip-dwarf",
+
+		"-o", optPathRel,
+		outBinPathRel,
+	)
+	ecmd.Env = os.Environ()
+	ecmd.Dir = workingPath
+	timeStart := time.Now()
+	if err := uexec.ExecCmd(le, ecmd); err != nil {
+		return err
+	}
+	if err := fsutil.MoveFile(outBinPath, optPath, 0o644); err != nil {
+		return err
+	}
+	dur := time.Since(timeStart)
+
+	postOptStat, err := os.Stat(outBinPath)
+	if err != nil {
+		return err
+	}
+	postOptSize := postOptStat.Size()
+
+	le.
+		WithField("dur", dur.String()).
+		Infof("stripped debug sections from %s from %d -> %d bytes delta %d", outBinFilename, preOptSize, postOptSize, postOptSize-preOptSize)
 	return nil
 }
