@@ -1,42 +1,48 @@
-package statusprojector
+package logpolicy
 
 import desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 
-type desktopTrayProjectionLogLevel uint8
+// Level names the severity used for a desktop tray projection log decision.
+type Level uint8
 
 const (
-	desktopTrayProjectionLogDebug desktopTrayProjectionLogLevel = iota
-	desktopTrayProjectionLogInfo
+	// LevelDebug logs routine projection churn at debug level.
+	LevelDebug Level = iota
+	// LevelInfo logs meaningful user-visible projection transitions at info level.
+	LevelInfo
 )
 
-type desktopTrayProjectionLogDecision struct {
-	level   desktopTrayProjectionLogLevel
-	message string
+// Decision describes how to log a desktop tray projection publish result.
+type Decision struct {
+	Level   Level
+	Message string
 }
 
-func classifyDesktopTrayProjectionLog(
+// Classify decides whether a desktop tray projection publish should be logged
+// as routine churn or as a meaningful state transition.
+func Classify(
 	prev *desktop_runtime.DesktopRuntimeState,
 	current *desktop_runtime.DesktopRuntimeState,
 	changed bool,
-) desktopTrayProjectionLogDecision {
+) Decision {
 	if current == nil || !changed {
-		return desktopTrayProjectionLogDecision{
-			level:   desktopTrayProjectionLogDebug,
-			message: "desktop tray projection unchanged",
+		return Decision{
+			Level:   LevelDebug,
+			Message: "desktop tray projection unchanged",
 		}
 	}
 	if prev == nil ||
 		desktopRuntimeStatusClassChanged(prev, current) ||
 		desktopRuntimeAttentionChanged(prev, current) ||
 		desktopRuntimeUpdateChanged(prev, current) {
-		return desktopTrayProjectionLogDecision{
-			level:   desktopTrayProjectionLogInfo,
-			message: "published desktop tray projection",
+		return Decision{
+			Level:   LevelInfo,
+			Message: "published desktop tray projection",
 		}
 	}
-	return desktopTrayProjectionLogDecision{
-		level:   desktopTrayProjectionLogDebug,
-		message: "desktop tray projection changed",
+	return Decision{
+		Level:   LevelDebug,
+		Message: "desktop tray projection changed",
 	}
 }
 

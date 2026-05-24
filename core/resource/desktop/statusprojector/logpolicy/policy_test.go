@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package statusprojector
+package logpolicy
 
 import (
 	"testing"
@@ -8,26 +6,26 @@ import (
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 )
 
-func TestClassifyDesktopTrayProjectionLog(t *testing.T) {
+func TestClassify(t *testing.T) {
 	tests := []struct {
 		name      string
 		prev      *desktop_runtime.DesktopRuntimeState
 		current   *desktop_runtime.DesktopRuntimeState
 		changed   bool
-		wantLevel desktopTrayProjectionLogLevel
+		wantLevel Level
 	}{
 		{
 			name:      "first publish",
 			current:   testRuntimeState("Running"),
 			changed:   true,
-			wantLevel: desktopTrayProjectionLogInfo,
+			wantLevel: LevelInfo,
 		},
 		{
 			name:      "unchanged",
 			prev:      testRuntimeState("Running"),
 			current:   testRuntimeState("Running"),
 			changed:   false,
-			wantLevel: desktopTrayProjectionLogDebug,
+			wantLevel: LevelDebug,
 		},
 		{
 			name: "routine row churn",
@@ -42,7 +40,7 @@ func TestClassifyDesktopTrayProjectionLog(t *testing.T) {
 				return state
 			}(),
 			changed:   true,
-			wantLevel: desktopTrayProjectionLogDebug,
+			wantLevel: LevelDebug,
 		},
 		{
 			name: "lifecycle transition",
@@ -53,7 +51,7 @@ func TestClassifyDesktopTrayProjectionLog(t *testing.T) {
 			},
 			current:   testRuntimeState("Running"),
 			changed:   true,
-			wantLevel: desktopTrayProjectionLogInfo,
+			wantLevel: LevelInfo,
 		},
 		{
 			name: "attention transition",
@@ -64,7 +62,7 @@ func TestClassifyDesktopTrayProjectionLog(t *testing.T) {
 				return state
 			}(),
 			changed:   true,
-			wantLevel: desktopTrayProjectionLogInfo,
+			wantLevel: LevelInfo,
 		},
 		{
 			name: "update transition",
@@ -79,14 +77,14 @@ func TestClassifyDesktopTrayProjectionLog(t *testing.T) {
 				return state
 			}(),
 			changed:   true,
-			wantLevel: desktopTrayProjectionLogInfo,
+			wantLevel: LevelInfo,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			decision := classifyDesktopTrayProjectionLog(tt.prev, tt.current, tt.changed)
-			if decision.level != tt.wantLevel {
-				t.Fatalf("level = %v, want %v", decision.level, tt.wantLevel)
+			decision := Classify(tt.prev, tt.current, tt.changed)
+			if decision.Level != tt.wantLevel {
+				t.Fatalf("level = %v, want %v", decision.Level, tt.wantLevel)
 			}
 		})
 	}
