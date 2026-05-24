@@ -22,6 +22,7 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxrequest"
 	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
+	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -135,10 +136,8 @@ type ProviderAccount struct {
 	accountBcast broadcast.Broadcast
 	// transportBcast guards sessionTransport.
 	transportBcast broadcast.Broadcast
-	// syncTelemetryBcast guards syncTelemetry.
-	syncTelemetryBcast broadcast.Broadcast
 	// syncTelemetry stores sync activity snapshots keyed by block store id.
-	syncTelemetry map[string]*syncTelemetryState
+	syncTelemetry synctelemetry.Store
 	// gcCleanupCollect overrides cleanup collection in tests.
 	gcCleanupCollect provider_gccleanup.CollectFunc
 

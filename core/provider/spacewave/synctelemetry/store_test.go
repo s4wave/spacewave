@@ -1,29 +1,46 @@
-//go:build !goscript
-
-package provider_spacewave
+package synctelemetry
 
 import (
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 )
 
-type testSyncTelemetryFetchStats struct {
+type testFetchStats struct {
 	stats packfile_store.PackfileStoreStats
 }
 
-func (s *testSyncTelemetryFetchStats) SnapshotStats() packfile_store.PackfileStoreStats {
+func (s *testFetchStats) SnapshotStats() packfile_store.PackfileStoreStats {
 	return s.stats
 }
 
-func TestSyncTelemetrySnapshotTransitions(t *testing.T) {
-	t.Parallel()
+type testStatsChanged struct {
+	stats packfile_store.PackfileStoreStats
+	cb    func()
+}
 
+func (s *testStatsChanged) SnapshotStats() packfile_store.PackfileStoreStats {
+	return s.stats
+}
+
+func (s *testStatsChanged) SetStatsChangedCallback(cb func()) {
+	s.cb = cb
+}
+
+func (s *testStatsChanged) updateManifestStats(entries int, blockCount uint64, sizeBytes uint64) {
+	s.stats.ManifestEntries = entries
+	s.stats.PackBlockCountTotal = blockCount
+	s.stats.PackSizeBytesTotal = sizeBytes
+	if s.cb != nil {
+		s.cb()
+	}
+}
+
+func TestSnapshotTransitions(t *testing.T) {
 	fetchAt := time.Unix(10, 0)
-	fetchStats := &testSyncTelemetryFetchStats{
+	fetchStats := &testFetchStats{
 		stats: packfile_store.PackfileStoreStats{
 			InFlightFetches:           1,
 			FetchCount:                2,
@@ -64,11 +81,11 @@ func TestSyncTelemetrySnapshotTransitions(t *testing.T) {
 			LastRemoteIndexBytes:      512,
 		},
 	}
-	acc := &ProviderAccount{}
-	release := acc.registerSyncTelemetryStore("bstore-1", fetchStats)
+	store := &Store{}
+	release := store.RegisterStore("bstore-1", fetchStats)
 	defer release()
 
-	snap := acc.GetSyncTelemetrySnapshot()
+	snap := store.Snapshot()
 	if snap.StoreCount != 1 {
 		t.Fatalf("store count = %d, want 1", snap.StoreCount)
 	}
@@ -105,31 +122,31 @@ func TestSyncTelemetrySnapshotTransitions(t *testing.T) {
 		t.Fatalf("unexpected index counters: %+v", snap)
 	}
 
-	acc.addSyncTelemetryDirty("bstore-1", 512)
-	snap = acc.GetSyncTelemetrySnapshot()
-	if snap.UploadPhase != SyncTelemetryUploadPhaseDirtyPending {
+	store.AddDirty("bstore-1", 512)
+	snap = store.Snapshot()
+	if snap.UploadPhase != UploadPhaseDirtyPending {
 		t.Fatalf("upload phase = %v, want dirty pending", snap.UploadPhase)
 	}
 	if snap.PendingUploadBytes != 512 || snap.PendingUploadCount != 1 {
 		t.Fatalf("unexpected dirty backlog: %+v", snap)
 	}
 
-	acc.startSyncTelemetryPush("bstore-1", 128)
-	snap = acc.GetSyncTelemetrySnapshot()
-	if snap.UploadPhase != SyncTelemetryUploadPhasePushing {
+	store.StartPush("bstore-1", 128)
+	snap = store.Snapshot()
+	if snap.UploadPhase != UploadPhasePushing {
 		t.Fatalf("upload phase = %v, want pushing", snap.UploadPhase)
 	}
 	if snap.InFlightPushes != 1 || snap.ActiveUploadBytes != 128 {
 		t.Fatalf("unexpected active push state: %+v", snap)
 	}
-	acc.setSyncTelemetryPushProgress("bstore-1", 64)
-	snap = acc.GetSyncTelemetrySnapshot()
+	store.SetPushProgress("bstore-1", 64)
+	snap = store.Snapshot()
 	if snap.ActiveUploadTransferredBytes != 64 {
 		t.Fatalf("active upload sent = %d, want 64", snap.ActiveUploadTransferredBytes)
 	}
 
-	acc.finishSyncTelemetryPush("bstore-1", 128, nil)
-	snap = acc.GetSyncTelemetrySnapshot()
+	store.FinishPush("bstore-1", 128, nil)
+	snap = store.Snapshot()
 	if snap.InFlightPushes != 0 ||
 		snap.ActiveUploadBytes != 0 ||
 		snap.ActiveUploadTransferredBytes != 0 {
@@ -142,8 +159,8 @@ func TestSyncTelemetrySnapshotTransitions(t *testing.T) {
 		t.Fatalf("unexpected push error after success: %+v", snap)
 	}
 
-	acc.addSyncTelemetryDeduped("bstore-1", 256, 2)
-	snap = acc.GetSyncTelemetrySnapshot()
+	store.AddDeduped("bstore-1", 256, 2)
+	snap = store.Snapshot()
 	if snap.DedupedUploadCount != 2 || snap.DedupedUploadBytes != 256 {
 		t.Fatalf("unexpected deduped upload counters: %+v", snap)
 	}
@@ -151,14 +168,14 @@ func TestSyncTelemetrySnapshotTransitions(t *testing.T) {
 		t.Fatalf("deduped upload changed push counters: %+v", snap)
 	}
 
-	acc.startSyncTelemetryPull("bstore-1")
-	snap = acc.GetSyncTelemetrySnapshot()
+	store.StartPull("bstore-1")
+	snap = store.Snapshot()
 	if snap.PullActiveCount != 1 {
 		t.Fatalf("pull active count = %d, want 1", snap.PullActiveCount)
 	}
 	pullErr := errors.New("pull failed")
-	acc.finishSyncTelemetryPull("bstore-1", pullErr)
-	snap = acc.GetSyncTelemetrySnapshot()
+	store.FinishPull("bstore-1", pullErr)
+	snap = store.Snapshot()
 	if snap.PullActiveCount != 0 || snap.LastPullError != pullErr.Error() {
 		t.Fatalf("unexpected pull error state: %+v", snap)
 	}
@@ -167,10 +184,10 @@ func TestSyncTelemetrySnapshotTransitions(t *testing.T) {
 	}
 
 	pushErr := errors.New("push failed")
-	acc.startSyncTelemetryPush("bstore-1", 64)
-	acc.finishSyncTelemetryPush("bstore-1", 64, pushErr)
-	snap = acc.GetSyncTelemetrySnapshot()
-	if snap.UploadPhase != SyncTelemetryUploadPhaseError {
+	store.StartPush("bstore-1", 64)
+	store.FinishPush("bstore-1", 64, pushErr)
+	snap = store.Snapshot()
+	if snap.UploadPhase != UploadPhaseError {
 		t.Fatalf("upload phase = %v, want error", snap.UploadPhase)
 	}
 	if snap.LastPushError != pushErr.Error() || snap.LastError != pushErr.Error() {
@@ -178,31 +195,25 @@ func TestSyncTelemetrySnapshotTransitions(t *testing.T) {
 	}
 }
 
-func TestSyncTelemetryStoreStatsChangeBroadcast(t *testing.T) {
-	t.Parallel()
-
-	acc := &ProviderAccount{}
-	store := packfile_store.NewPackfileStore(nil, nil)
-	_, ch := acc.GetSyncTelemetrySnapshotWithWait()
-	release := acc.registerSyncTelemetryStore("bstore-1", store)
+func TestStoreStatsChangeBroadcast(t *testing.T) {
+	store := &Store{}
+	stats := &testStatsChanged{}
+	_, ch := store.SnapshotWithWait()
+	release := store.RegisterStore("bstore-1", stats)
 	defer release()
-	waitForSyncTelemetryBroadcast(t, ch)
+	waitForBroadcast(t, ch)
 
-	_, ch = acc.GetSyncTelemetrySnapshotWithWait()
-	store.UpdateManifest([]*packfile.PackfileEntry{{
-		Id:         "pack-1",
-		BlockCount: 1,
-		SizeBytes:  2,
-	}})
-	waitForSyncTelemetryBroadcast(t, ch)
+	_, ch = store.SnapshotWithWait()
+	stats.updateManifestStats(1, 1, 2)
+	waitForBroadcast(t, ch)
 
-	snap := acc.GetSyncTelemetrySnapshot()
+	snap := store.Snapshot()
 	if snap.ManifestEntries != 1 || snap.PackBlockCountTotal != 1 || snap.PackSizeBytesTotal != 2 {
 		t.Fatalf("unexpected manifest stats after callback: %+v", snap)
 	}
 }
 
-func waitForSyncTelemetryBroadcast(t *testing.T, ch <-chan struct{}) {
+func waitForBroadcast(t *testing.T, ch <-chan struct{}) {
 	t.Helper()
 	select {
 	case <-ch:
@@ -212,4 +223,4 @@ func waitForSyncTelemetryBroadcast(t *testing.T, ch <-chan struct{}) {
 }
 
 // _ is a type assertion
-var _ syncTelemetryFetchStatsProvider = ((*testSyncTelemetryFetchStats)(nil))
+var _ FetchStatsProvider = ((*testFetchStats)(nil))
