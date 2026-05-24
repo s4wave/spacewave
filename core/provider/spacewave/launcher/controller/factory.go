@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/configresolve"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
@@ -78,81 +79,38 @@ func ResolveEndpoints(conf *Config) ([]*HttpEndpoint, error) {
 	if err != nil {
 		return nil, err
 	}
-	configEndps := dedupEndpoints(endps)
-	if conf.GetDisableEndpointFetch() {
-		if len(configEndps) != 0 {
-			return nil, errors.New("disable_endpoint_fetch: cannot be set with endpoints")
-		}
-		return nil, nil
-	}
-	if len(configEndps) != 0 {
-		return configEndps, nil
-	}
-
-	fallback := make([]*HttpEndpoint, 0, len(BuildTimeDistConfigEndpoints))
-	seen := make(map[string]struct{}, len(BuildTimeDistConfigEndpoints))
-	for _, u := range BuildTimeDistConfigEndpoints {
-		if u == "" {
-			continue
-		}
-		if _, ok := seen[u]; ok {
-			continue
-		}
-		if _, err := confparse.ParseURL(u); err != nil {
-			return nil, errors.Wrapf(err, "build-time endpoint %q", u)
-		}
-		seen[u] = struct{}{}
-		fallback = append(fallback, &HttpEndpoint{Url: u})
-	}
-	return fallback, nil
-}
-
-func dedupEndpoints(endps []*HttpEndpoint) []*HttpEndpoint {
-	deduped := make([]*HttpEndpoint, 0, len(endps))
-	seen := make(map[string]struct{}, len(endps))
+	configURLs := make([]string, 0, len(endps))
 	for _, endp := range endps {
-		u := endp.GetUrl()
-		if u == "" {
-			continue
-		}
-		if _, ok := seen[u]; ok {
-			continue
-		}
-		seen[u] = struct{}{}
-		deduped = append(deduped, endp)
+		configURLs = append(configURLs, endp.GetUrl())
 	}
-	return deduped
+	resolved, err := configresolve.ResolveEndpoints(
+		conf.GetDisableEndpointFetch(),
+		configURLs,
+		BuildTimeDistConfigEndpoints,
+	)
+	if err != nil {
+		return nil, err
+	}
+	endpoints := make([]*HttpEndpoint, 0, len(resolved))
+	for _, u := range resolved {
+		endpoints = append(endpoints, &HttpEndpoint{Url: u})
+	}
+	return endpoints, nil
 }
 
 // ResolveDistPeerIDs returns Config.DistPeerIds when provided, otherwise the
 // production build-time defaults. Config values replace defaults so
 // release-owned overlays do not inherit production signer trust.
 func ResolveDistPeerIDs(conf *Config) ([]peer.ID, error) {
-	configIDs, err := conf.ParseDistPeerIds()
+	ids := configresolve.ResolveDistPeerIDs(conf.GetDistPeerIds(), BuildTimeDistPeerIDs)
+	parsed, err := confparse.ParsePeerIDs(ids, false)
 	if err != nil {
+		if len(conf.GetDistPeerIds()) == 0 {
+			return nil, errors.Wrap(err, "build-time peer ids")
+		}
 		return nil, err
 	}
-	if len(configIDs) != 0 {
-		return dedupPeerIDs(configIDs), nil
-	}
-	buildTimeIDs, err := confparse.ParsePeerIDs(BuildTimeDistPeerIDs, false)
-	if err != nil {
-		return nil, errors.Wrap(err, "build-time peer ids")
-	}
-	return dedupPeerIDs(buildTimeIDs), nil
-}
-
-func dedupPeerIDs(ids []peer.ID) []peer.ID {
-	deduped := make([]peer.ID, 0, len(ids))
-	seen := make(map[peer.ID]struct{}, len(ids))
-	for _, id := range ids {
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
-		deduped = append(deduped, id)
-	}
-	return deduped
+	return parsed, nil
 }
 
 // GetVersion returns the version of this controller.
