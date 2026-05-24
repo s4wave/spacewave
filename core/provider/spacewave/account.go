@@ -17,6 +17,7 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -874,25 +875,8 @@ func (a *ProviderAccount) SetCachedPrimaryEmail(email string) {
 			return
 		}
 
-		next := make([]*api.AccountEmailInfo, len(a.state.cachedEmails))
-		var changed bool
-		var found bool
-		for i, row := range a.state.cachedEmails {
-			if row == nil {
-				continue
-			}
-			clone := row.CloneVT()
-			primary := clone.GetEmail() == email
-			if primary {
-				found = true
-			}
-			if clone.GetPrimary() != primary {
-				clone.Primary = primary
-				changed = true
-			}
-			next[i] = clone
-		}
-		if !found || !changed {
+		next, changed := emailcache.SetPrimaryEmail(a.state.cachedEmails, email)
+		if !changed {
 			return
 		}
 		a.state.cachedEmails = next
