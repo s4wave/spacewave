@@ -702,7 +702,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // one tab creates plugin workers at a time (single-instance invariant).
   // Without Web Locks, dedicated plugin workers stay unavailable.
   private pluginSingletonReady: Promise<void> = Promise.resolve()
-  // singletonAbort aborts the singleton lock request on close.
+  // pluginSingletonLockEnabled records whether this document participates in
+  // foreground ownership of the dedicated plugin worker singleton.
+  private pluginSingletonLockEnabled = false
+  // singletonAbort aborts the singleton lock request on close or hide.
   private singletonAbort?: AbortController
   // firstWorkerCreationMarked records the first worker boundary once per document.
   private firstWorkerCreationMarked = false
@@ -1031,51 +1034,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     // In DedicatedWorker runtime mode, acquire a Web Lock to ensure only one
-    // tab creates plugin workers at a time. SharedWorker mode doesn't need this
-    // because the Go runtime's singletonWorkerDoc handles it within the shared
-    // process. The lock is held until this document closes.
+    // foreground tab creates plugin workers at a time. SharedWorker mode
+    // doesn't need this because the shared Go runtime owns the singleton in
+    // one process.
     const usePluginSingletonLock = useDedicatedRuntime && !this.isElectron
-    if (usePluginSingletonLock && !shouldUseWebDocumentLivenessLock()) {
-      // There is no timer fallback here: backgrounded tabs throttle timers, and
-      // plugin startup needs a real cross-tab singleton owner.
-      this.pluginSingletonReady = Promise.reject(
-        new Error('Web Locks unavailable for dedicated plugin workers'),
-      )
-      this.pluginSingletonReady.catch(() => {})
-      markStartupBoundary('singleton-lock.unavailable', {
-        source: 'browser',
-        documentId: this.webDocumentUuid,
-        runtimeId: this.webRuntimeId,
-      })
-    } else if (usePluginSingletonLock) {
-      this.singletonAbort = new AbortController()
-      markStartupBoundary('singleton-lock.request-start', {
-        source: 'browser',
-        documentId: this.webDocumentUuid,
-        runtimeId: this.webRuntimeId,
-      })
-      this.pluginSingletonReady = new Promise<void>((resolve, reject) => {
-        navigator.locks
-          .request(
-            `bldr-plugin-singleton-${this.webRuntimeId}`,
-            { signal: this.singletonAbort!.signal },
-            () => {
-              console.log('WebDocument: acquired plugin singleton lock')
-              markStartupBoundary('singleton-lock.acquired', {
-                source: 'browser',
-                documentId: this.webDocumentUuid,
-                runtimeId: this.webRuntimeId,
-              })
-              resolve()
-              return new Promise<void>(() => {})
-            },
-          )
-          .catch((err: unknown) => {
-            reject(err)
-          })
-      })
-      // Suppress unhandled rejection when abort fires without an active awaiter.
-      this.pluginSingletonReady.catch(() => {})
+    if (usePluginSingletonLock) {
+      this.enablePluginSingletonLock()
     }
 
     // we don't expect any messages directly from the main worker port.
@@ -1494,10 +1458,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.emit('closed', err)
 
     // Release Web Locks last, after all cleanup is done.
-    if (this.singletonAbort) {
-      this.singletonAbort.abort()
-      this.singletonAbort = undefined
-    }
+    this.releasePluginSingletonLock()
     if (this.abortController) {
       this.abortController.abort()
       this.abortController = undefined
@@ -1746,8 +1707,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (hidden) {
       console.log('WebDocument: document is hidden')
       this.clearResumeReadyState('hidden')
+      this.releasePluginSingletonLock()
+      this.closeHiddenDedicatedPluginWorkers()
     } else {
       console.log('WebDocument: document is visible')
+      this.refreshPluginSingletonLock()
     }
     if (this.closed) {
       return
@@ -1769,6 +1733,101 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
       this.scheduleResumeReadySeed()
     }
+  }
+
+  private closeHiddenDedicatedPluginWorkers(): void {
+    for (const [workerID, worker] of Object.entries(this.webWorkers)) {
+      if (!worker.plugin || worker.isShared) {
+        continue
+      }
+
+      this.closeWorkerBridgeEndpoint(workerID)
+      this.closeSabPairsForWorker(workerID, 'document hidden')
+      worker.setGenerationState(WebWorkerGenerationState.LIFECYCLE_HIDDEN)
+      delete this.webWorkers[workerID]
+      this.notifyWebWorkerUpdated(
+        workerID,
+        true,
+        worker.isShared,
+        worker.ready,
+        'hidden',
+        worker.generationState,
+      )
+      void worker.close().catch((err: unknown) => {
+        console.warn('WebDocument: unable to close hidden plugin worker', err)
+      })
+    }
+  }
+
+  private enablePluginSingletonLock() {
+    this.pluginSingletonLockEnabled = true
+    if (!shouldUseWebDocumentLivenessLock()) {
+      // There is no timer fallback here: backgrounded tabs throttle timers, and
+      // plugin startup needs a real cross-tab singleton owner.
+      this.pluginSingletonReady = Promise.reject(
+        new Error('Web Locks unavailable for dedicated plugin workers'),
+      )
+      this.pluginSingletonReady.catch(() => {})
+      markStartupBoundary('singleton-lock.unavailable', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+      })
+      return
+    }
+    this.refreshPluginSingletonLock()
+  }
+
+  private releasePluginSingletonLock() {
+    if (this.singletonAbort) {
+      this.singletonAbort.abort()
+      this.singletonAbort = undefined
+    }
+    if (this.pluginSingletonLockEnabled) {
+      this.pluginSingletonReady = new Promise<void>(() => {})
+    }
+  }
+
+  private refreshPluginSingletonLock() {
+    if (!this.pluginSingletonLockEnabled || this.closed) {
+      return
+    }
+    if (this.hidden) {
+      this.releasePluginSingletonLock()
+      return
+    }
+    if (this.singletonAbort) {
+      return
+    }
+
+    this.singletonAbort = new AbortController()
+    markStartupBoundary('singleton-lock.request-start', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+    })
+    this.pluginSingletonReady = new Promise<void>((resolve, reject) => {
+      navigator.locks
+        .request(
+          `bldr-plugin-singleton-${this.webRuntimeId}`,
+          { signal: this.singletonAbort!.signal },
+          () => {
+            console.log('WebDocument: acquired plugin singleton lock')
+            markStartupBoundary('singleton-lock.acquired', {
+              source: 'browser',
+              documentId: this.webDocumentUuid,
+              runtimeId: this.webRuntimeId,
+            })
+            resolve()
+            return new Promise<void>(() => {})
+          },
+        )
+        .catch((err: unknown) => {
+          reject(err)
+        })
+    })
+    // Suppress unhandled rejection when abort fires without an active awaiter.
+    this.pluginSingletonReady.catch(() => {})
   }
 
   private markPluginStartupBoundary(

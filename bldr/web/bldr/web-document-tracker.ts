@@ -73,6 +73,7 @@ export class WebDocumentTracker {
   // WebRuntimeClient channel.
   private activeRuntimeWebDocumentId?: string
   private activeRuntimeDocumentAbort?: AbortController
+  private preferredRuntimeWebDocumentId?: string
   private nextSabPairRequestNumber = 1
   private sabPairOpenWaiters = new Map<string, SabPairOpenWaiter>()
   private sabPairEndpoints = new Map<string, SabPairEndpointDescriptor>()
@@ -146,6 +147,11 @@ export class WebDocumentTracker {
       if (data.resumeReady === true) {
         this.webDocumentResumeReadyIds.add(webDocumentId)
         this.resolveResumeReadyWaiters(webDocumentId)
+        this.preferReadyServiceWorkerDocument(webDocumentId)
+        const waiters = this.webDocumentWaiters.splice(0)
+        for (const waiter of waiters) {
+          waiter.resume()
+        }
       }
       if (data.resumeReady === false) {
         this.webDocumentResumeReadyIds.delete(webDocumentId)
@@ -330,9 +336,17 @@ export class WebDocumentTracker {
       )
     }
     const init = WebRuntimeClientInit.toBinary(initMsg)
-    const webDocumentIds = Object.keys(this.webDocuments)
+    const usePreferredOrder = !!(
+      this.preferredRuntimeWebDocumentId &&
+      this.webDocuments[this.preferredRuntimeWebDocumentId]
+    )
+    const webDocumentIds = this.orderRuntimeOpenWebDocuments(
+      Object.keys(this.webDocuments),
+    )
     for (const i of webDocumentIds.keys()) {
-      const x = (i + this.lastWebDocumentIdx + 1) % webDocumentIds.length
+      const x = usePreferredOrder
+        ? i
+        : (i + this.lastWebDocumentIdx + 1) % webDocumentIds.length
       const webDocumentId = webDocumentIds[x]
       const webDocumentPort = this.webDocuments[webDocumentId]
       if (!webDocumentPort) {
@@ -357,6 +371,7 @@ export class WebDocumentTracker {
         webDocumentId,
         lockAbortController.signal,
       )
+      let removeWebDocumentOnFailure = false
 
       try {
         console.log(
@@ -372,15 +387,22 @@ export class WebDocumentTracker {
             port: ackChannel.port2,
           },
         }
-        webDocumentPort.postMessage(connectMsg, [ackChannel.port2])
+        try {
+          webDocumentPort.postMessage(connectMsg, [ackChannel.port2])
+        } catch (err) {
+          removeWebDocumentOnFailure = true
+          throw err
+        }
 
         const result = await Promise.race([ackPromise, disconnectedPromise])
         if (!result) {
+          removeWebDocumentOnFailure = true
           throw new Error(
             `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed before ack`,
           )
         }
         if (result instanceof Error) {
+          removeWebDocumentOnFailure = true
           throw result
         }
         if (result.error) {
@@ -396,6 +418,9 @@ export class WebDocumentTracker {
         )
         this.lastWebDocumentIdx = x
         this.lastWebDocumentId = webDocumentId
+        if (this.preferredRuntimeWebDocumentId === webDocumentId) {
+          delete this.preferredRuntimeWebDocumentId
+        }
         this.trackActiveRuntimeWebDocument(webDocumentId)
         return result.webRuntimePort
       } catch (err) {
@@ -413,12 +438,34 @@ export class WebDocumentTracker {
             err,
           )
         }
-        delete this.webDocuments[webDocumentId]
+        // A connect ack error can mean the document is alive but its runtime
+        // port is not ready yet. Only forget the document when liveness or
+        // postMessage proves the relay is actually gone.
+        if (expectedClose || removeWebDocumentOnFailure) {
+          await this.removeWebDocument(
+            webDocumentId,
+            err instanceof Error ? err : new Error(String(err)),
+          )
+        }
         continue
       } finally {
         ackChannel.port1.close()
         lockAbortController.abort()
       }
+    }
+
+    if (Object.keys(this.webDocuments).length) {
+      console.log(
+        'ServiceWorker: waiting for existing WebDocument to become ready',
+      )
+      return new Promise<MessagePort>((resolve, reject) => {
+        this.webDocumentWaiters.push({
+          resume: () => {
+            resolve(this.openWebRuntimeClient(initMsg))
+          },
+          reject,
+        })
+      })
     }
 
     // construct a promise to catch any new incoming WebDocument client
@@ -500,6 +547,36 @@ export class WebDocumentTracker {
       })
   }
 
+  private preferReadyServiceWorkerDocument(webDocumentId: string): void {
+    if (
+      this.clientType !==
+        WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER ||
+      this.activeRuntimeWebDocumentId === webDocumentId ||
+      !this.webDocuments[webDocumentId]
+    ) {
+      return
+    }
+
+    this.preferredRuntimeWebDocumentId = webDocumentId
+    if (this.activeRuntimeWebDocumentId) {
+      delete this.activeRuntimeWebDocumentId
+      this.activeRuntimeDocumentAbort?.abort()
+      this.activeRuntimeDocumentAbort = undefined
+      this.webRuntimeClient.close()
+    }
+  }
+
+  private orderRuntimeOpenWebDocuments(webDocumentIds: string[]): string[] {
+    const preferred = this.preferredRuntimeWebDocumentId
+    if (!preferred || !this.webDocuments[preferred]) {
+      return webDocumentIds
+    }
+    return [
+      preferred,
+      ...webDocumentIds.filter((webDocumentId) => webDocumentId !== preferred),
+    ]
+  }
+
   private async removeWebDocument(
     webDocumentId: string,
     closeErr: Error,
@@ -541,9 +618,8 @@ export class WebDocumentTracker {
       const nextWebDocumentId =
         remainingWebDocumentIds[remainingWebDocumentIds.length - 1]
       this.lastWebDocumentId = nextWebDocumentId
-      this.lastWebDocumentIdx =
-        nextWebDocumentId ?
-          remainingWebDocumentIds.indexOf(nextWebDocumentId)
+      this.lastWebDocumentIdx = nextWebDocumentId
+        ? remainingWebDocumentIds.indexOf(nextWebDocumentId)
         : 0
     }
 
@@ -563,7 +639,11 @@ export class WebDocumentTracker {
   }
 
   private async waitForActiveWebDocumentResumeReady(): Promise<RuntimeClientStreamOpenGateResult> {
-    const webDocumentId = this.lastWebDocumentId
+    // Incoming runtime streams must wait on the WebDocument relaying the
+    // runtime channel. A newer tab may be connected but hidden or still
+    // resuming, and it must not gate streams for an older active relay.
+    const webDocumentId =
+      this.activeRuntimeWebDocumentId ?? this.lastWebDocumentId
     if (!webDocumentId || !this.webDocuments[webDocumentId]) {
       return {
         state: 'unavailable',

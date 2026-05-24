@@ -24,6 +24,8 @@ type TestWebDocument = {
   webViews: Record<string, unknown>
   webWorkers: Record<string, Record<string, unknown> & { port: MessagePort }>
   pluginSingletonReady: Promise<void>
+  pluginSingletonLockEnabled: boolean
+  singletonAbort?: AbortController
   sabPairBroker: SabPairBroker
   webrtcBridgeEndpoints: Map<string, unknown>
   firstWorkerReadyMarked: boolean
@@ -36,6 +38,8 @@ type TestWebDocument = {
   onVisibilityChange(hidden: boolean): void
   onWebWorkerMessage(workerID: string, event: MessageEvent): void
   onWebDocumentClientMessage(event: MessageEvent): void
+  refreshPluginSingletonLock(): void
+  releasePluginSingletonLock(): void
   buildWebDocumentStatusSnapshot(): Promise<unknown>
   openWebDocumentHostStream(): Promise<unknown>
   removeWebWorker(request: { id: string }): Promise<unknown>
@@ -61,6 +65,8 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     webViews: {},
     webWorkers: {},
     pluginSingletonReady: Promise.resolve(),
+    pluginSingletonLockEnabled: false,
+    singletonAbort: undefined,
     sabPairBroker: new SabPairBroker(),
     webrtcBridgeEndpoints: new Map(),
     firstWorkerReadyMarked: false,
@@ -673,7 +679,9 @@ describe('WebDocument plugin generation state', () => {
 
   it('does not create plugin workers when singleton ownership is unavailable', async () => {
     const doc = buildTestWebDocument()
-    doc.pluginSingletonReady = Promise.reject(new Error('Web Locks unavailable'))
+    doc.pluginSingletonReady = Promise.reject(
+      new Error('Web Locks unavailable'),
+    )
     doc.pluginSingletonReady.catch(() => {})
 
     await expect(
@@ -683,6 +691,79 @@ describe('WebDocument plugin generation state', () => {
         initData: new Uint8Array([1]),
       }),
     ).resolves.toEqual({ created: false, shared: false })
+  })
+
+  it('holds the plugin singleton lock only while foreground-owned', async () => {
+    const lockRequest = vi.fn(
+      (
+        _name: string,
+        _opts: { signal: AbortSignal },
+        callback: () => Promise<void>,
+      ) => {
+        void callback()
+        return new Promise<void>(() => {})
+      },
+    )
+    vi.stubGlobal('navigator', {
+      locks: {
+        request: lockRequest,
+      },
+    })
+
+    const doc = buildTestWebDocument(true)
+    doc.pluginSingletonLockEnabled = true
+
+    doc.refreshPluginSingletonLock()
+    expect(lockRequest).not.toHaveBeenCalled()
+
+    doc.hidden = false
+    doc.refreshPluginSingletonLock()
+    expect(lockRequest).toHaveBeenCalledOnce()
+    expect(lockRequest.mock.calls[0][0]).toBe('bldr-plugin-singleton-runtime-1')
+    await expect(doc.pluginSingletonReady).resolves.toBeUndefined()
+
+    const singletonAbort = doc.singletonAbort
+    expect(singletonAbort).toBeDefined()
+    doc.hidden = true
+    doc.refreshPluginSingletonLock()
+    expect(singletonAbort?.signal.aborted).toBe(true)
+    expect(doc.singletonAbort).toBeUndefined()
+    expect(lockRequest).toHaveBeenCalledOnce()
+  })
+
+  it('stops dedicated plugin workers when the document becomes hidden', () => {
+    const doc = buildTestWebDocument()
+    const dedicatedPlugin = buildTestWorker()
+    dedicatedPlugin.ready = true
+    const sharedPlugin = buildTestWorker()
+    sharedPlugin.isShared = true
+    const dedicatedNonPlugin = buildTestWorker()
+    dedicatedNonPlugin.plugin = false
+    doc.webWorkers = {
+      'plugin-dedicated': dedicatedPlugin,
+      'plugin-shared': sharedPlugin,
+      'non-plugin-dedicated': dedicatedNonPlugin,
+    }
+
+    doc.onVisibilityChange(true)
+
+    expect(doc.webWorkers['plugin-dedicated']).toBeUndefined()
+    expect(doc.webWorkers['plugin-shared']).toBe(sharedPlugin)
+    expect(doc.webWorkers['non-plugin-dedicated']).toBe(dedicatedNonPlugin)
+    expect(dedicatedPlugin.close).toHaveBeenCalledOnce()
+    expect(sharedPlugin.close).not.toHaveBeenCalled()
+    expect(dedicatedNonPlugin.close).not.toHaveBeenCalled()
+    expect(dedicatedPlugin.generationState).toBe(
+      WebWorkerGenerationState.LIFECYCLE_HIDDEN,
+    )
+    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
+      'plugin-dedicated',
+      true,
+      false,
+      true,
+      'hidden',
+      WebWorkerGenerationState.LIFECYCLE_HIDDEN,
+    )
   })
 
   it('publishes normal stop for explicit worker removal', async () => {

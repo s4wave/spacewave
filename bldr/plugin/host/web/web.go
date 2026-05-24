@@ -5,7 +5,6 @@ import (
 	"maps"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
 
@@ -249,7 +248,7 @@ func (h *WebHost) ExecutePlugin(
 	//    - When that 1 instance exits, mark not running, then restart all web doc trackers.
 	// If any web documents cannot create shared workers, assume all cannot.
 
-	var singletonWorkerDoc string
+	var workerOwner dedicatedWorkerOwner
 	var rpcReadyPublished bool
 	var cmtx csync.Mutex
 
@@ -274,14 +273,11 @@ func (h *WebHost) ExecutePlugin(
 		}()
 
 		webDocumentID := doc.GetWebDocumentUuid()
-		if singletonWorkerDoc == webDocumentID {
-			// If the previous singleton worker instance was ours, remove it.
-			singletonWorkerDoc = ""
-
-			// Wake the other WebDocument trackers in case we fail to start a worker.
+		create, wake := workerOwner.beginCreate(webDocumentID)
+		if wake {
 			wakeOtherWebDocs(webDocumentID)
-		} else if singletonWorkerDoc != "" {
-			// An instance is already running, exit now.
+		}
+		if !create {
 			return nil
 		}
 
@@ -320,10 +316,7 @@ func (h *WebHost) ExecutePlugin(
 			WithField("web-worker-shared", createdShared).
 			Debug("successfully created web worker")
 
-		// If we cannot create shared workers, create only one Worker to avoid duplicates.
-		if !createdShared {
-			singletonWorkerDoc = webDocumentID
-		}
+		workerOwner.observeCreatedWorker(webDocumentID, createdShared)
 
 		unlock()
 		locked = false
@@ -436,13 +429,20 @@ func (h *WebHost) ExecutePlugin(
 				if err != nil {
 					return err
 				}
-				if singletonWorkerDoc == webDocumentID {
-					singletonWorkerDoc = ""
+				if workerOwner.observeDocumentRemoved(webDocumentID) {
 					wakeOtherWebDocs(webDocumentID)
 				}
 				unlock()
 				return nil
 			}
+			unlock, err := cmtx.Lock(ctx)
+			if err != nil {
+				return err
+			}
+			if workerOwner.observeDocumentStatus(webDocumentID, docStatus.GetHidden()) {
+				wakeOtherWebDocs(webDocumentID)
+			}
+			unlock()
 
 			// Find our worker instance in the status, or nil if not found or hidden.
 			workerInstance = nil
@@ -557,11 +557,10 @@ func (h *WebHost) ExecutePlugin(
 				return err
 			}
 
-			if singletonWorkerDoc != "" && slices.Contains(removed, singletonWorkerDoc) {
-				// This document was holding the singleton WebWorker.
-				// Restart the other trackers.
-				wakeOtherWebDocs(singletonWorkerDoc)
-				singletonWorkerDoc = ""
+			for _, removedDocID := range removed {
+				if workerOwner.observeDocumentRemoved(removedDocID) {
+					wakeOtherWebDocs(removedDocID)
+				}
 			}
 
 			unlock()

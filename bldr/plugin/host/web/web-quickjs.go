@@ -5,7 +5,6 @@ import (
 	"maps"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
 
@@ -205,7 +204,7 @@ func (h *WebQuickJSHost) ExecutePlugin(
 	pluginRpcClient := srpc.NewClient(webRuntime.GetWebWorkerOpenStream(pluginWebWorkerID))
 
 	// Track web documents and create workers (similar to WebHost)
-	var singletonWorkerDoc string
+	var workerOwner dedicatedWorkerOwner
 	var rpcReadyPublished bool
 	var cmtx csync.Mutex
 
@@ -229,10 +228,11 @@ func (h *WebQuickJSHost) ExecutePlugin(
 		}()
 
 		webDocumentID := doc.GetWebDocumentUuid()
-		if singletonWorkerDoc == webDocumentID {
-			singletonWorkerDoc = ""
+		create, wake := workerOwner.beginCreate(webDocumentID)
+		if wake {
 			wakeOtherWebDocs(webDocumentID)
-		} else if singletonWorkerDoc != "" {
+		}
+		if !create {
 			return nil
 		}
 
@@ -271,9 +271,7 @@ func (h *WebQuickJSHost) ExecutePlugin(
 		createdShared := createdWorker.GetShared()
 		le.WithField("web-worker-shared", createdShared).Debug("successfully created QuickJS web worker")
 
-		if !createdShared {
-			singletonWorkerDoc = webDocumentID
-		}
+		workerOwner.observeCreatedWorker(webDocumentID, createdShared)
 
 		unlock()
 		locked = false
@@ -379,13 +377,20 @@ func (h *WebQuickJSHost) ExecutePlugin(
 				if err != nil {
 					return err
 				}
-				if singletonWorkerDoc == webDocumentID {
-					singletonWorkerDoc = ""
+				if workerOwner.observeDocumentRemoved(webDocumentID) {
 					wakeOtherWebDocs(webDocumentID)
 				}
 				unlock()
 				return nil
 			}
+			unlock, err := cmtx.Lock(ctx)
+			if err != nil {
+				return err
+			}
+			if workerOwner.observeDocumentStatus(webDocumentID, docStatus.GetHidden()) {
+				wakeOtherWebDocs(webDocumentID)
+			}
+			unlock()
 
 			// Find our worker instance in the status, or nil if not found or hidden.
 			workerInstance = nil
@@ -495,9 +500,10 @@ func (h *WebQuickJSHost) ExecutePlugin(
 				return err
 			}
 
-			if singletonWorkerDoc != "" && slices.Contains(removed, singletonWorkerDoc) {
-				wakeOtherWebDocs(singletonWorkerDoc)
-				singletonWorkerDoc = ""
+			for _, removedDocID := range removed {
+				if workerOwner.observeDocumentRemoved(removedDocID) {
+					wakeOtherWebDocs(removedDocID)
+				}
 			}
 
 			unlock()
