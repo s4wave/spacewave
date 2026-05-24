@@ -35,6 +35,14 @@ func ValidateSOParticipantRole(role SOParticipantRole, allowUnknown bool) error 
 	}
 }
 
+// MaxSOParticipantRole returns the higher-privilege participant role.
+func MaxSOParticipantRole(a, b SOParticipantRole) SOParticipantRole {
+	if b > a {
+		return b
+	}
+	return a
+}
+
 // Validate performs cursory checks on the SOParticipant.
 func (p *SOParticipantConfig) Validate() error {
 	if _, err := p.ParsePeerID(); err != nil {
