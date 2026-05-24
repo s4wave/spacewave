@@ -114,31 +114,39 @@ describe('plugin-wasm generation lifecycle', () => {
     const { default: main } = await import('./plugin-wasm.js')
     await main(api)
 
-    const acceptedPort = buildMessagePort()
+    const acceptedChannel = buildMessageChannel()
+    vi.stubGlobal(
+      'MessageChannel',
+      vi.fn(function () {
+        return acceptedChannel
+      }),
+    )
     const setAcceptStream = (
       globalThis as {
         BLDR_PLUGIN_SET_ACCEPT_STREAM?: (
-          acceptStream: () => MessagePort,
+          acceptStream: (localPort: MessagePort) => void,
         ) => void
       }
     ).BLDR_PLUGIN_SET_ACCEPT_STREAM
     expect(setAcceptStream).toBeTypeOf('function')
-    setAcceptStream!(() => acceptedPort)
+    const acceptStream = vi.fn()
+    setAcceptStream!(acceptStream)
 
     void api.handleStreamCtr.handleStreamFunc(buildPacketStream())
     await Promise.resolve()
 
+    expect(acceptStream).toHaveBeenCalledWith(acceptedChannel.port1)
     expect(pipeState.pipe).toHaveBeenCalledTimes(1)
-    expect(acceptedPort.postMessage).not.toHaveBeenCalled()
-    expect(acceptedPort.close).not.toHaveBeenCalled()
+    expect(acceptedChannel.port2.postMessage).not.toHaveBeenCalled()
+    expect(acceptedChannel.port2.close).not.toHaveBeenCalled()
 
     const err = new Error('fatal heap pointer')
     rejectProcess(err)
     await Promise.resolve()
     await Promise.resolve()
 
-    expect(acceptedPort.postMessage).toHaveBeenCalledWith(null)
-    expect(acceptedPort.close).toHaveBeenCalledTimes(1)
+    expect(acceptedChannel.port2.postMessage).toHaveBeenCalledWith(null)
+    expect(acceptedChannel.port2.close).toHaveBeenCalledTimes(1)
     await expect(
       api.handleStreamCtr.handleStreamFunc(buildPacketStream()),
     ).rejects.toThrow('fatal heap pointer')
@@ -171,12 +179,18 @@ describe('plugin-wasm generation lifecycle', () => {
     const secondApi = buildBackendAPI()
     await main(secondApi)
 
-    const freshPort = buildMessagePort()
-    const freshAccept = vi.fn(() => freshPort)
+    const freshChannel = buildMessageChannel()
+    vi.stubGlobal(
+      'MessageChannel',
+      vi.fn(function () {
+        return freshChannel
+      }),
+    )
+    const freshAccept = vi.fn()
     const setAcceptStream = (
       globalThis as {
         BLDR_PLUGIN_SET_ACCEPT_STREAM?: (
-          acceptStream: () => MessagePort,
+          acceptStream: (localPort: MessagePort) => void,
         ) => void
       }
     ).BLDR_PLUGIN_SET_ACCEPT_STREAM
@@ -187,7 +201,8 @@ describe('plugin-wasm generation lifecycle', () => {
     await Promise.resolve()
 
     expect(freshAccept).toHaveBeenCalledTimes(1)
-    expect(freshPort.postMessage).not.toHaveBeenCalled()
+    expect(freshAccept).toHaveBeenCalledWith(freshChannel.port1)
+    expect(freshChannel.port2.postMessage).not.toHaveBeenCalled()
     expect(
       (
         globalThis as {
@@ -367,4 +382,11 @@ function buildMessagePort(): MessagePort {
     postMessage: vi.fn(),
     close: vi.fn(),
   } as unknown as MessagePort
+}
+
+function buildMessageChannel(): MessageChannel {
+  return {
+    port1: buildMessagePort(),
+    port2: buildMessagePort(),
+  }
 }

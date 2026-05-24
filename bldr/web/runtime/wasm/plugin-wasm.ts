@@ -15,7 +15,9 @@ interface Global {
     onResolve: (sink: GoPushableSink) => void,
     onReject: (errMsg: string) => void,
   ) => void
-  BLDR_PLUGIN_SET_ACCEPT_STREAM?: (acceptStream: () => MessagePort) => void
+  BLDR_PLUGIN_SET_ACCEPT_STREAM?: (
+    acceptStream: (localPort: MessagePort) => void,
+  ) => void
 }
 
 type GoPushableSink = {
@@ -80,7 +82,7 @@ class WasmPluginGeneration {
     )
   }
 
-  public setAcceptStream(acceptStrm?: () => MessagePort) {
+  public setAcceptStream(acceptStrm?: (localPort: MessagePort) => void) {
     if (this.terminalError) {
       this.installTerminalAcceptHandler(this.terminalError)
       return
@@ -95,7 +97,19 @@ class WasmPluginGeneration {
         throw this.terminalError
       }
 
-      const duplex = new MessagePortDuplex<Uint8Array>(acceptStrm())
+      const messageChannel = new MessageChannel()
+      let accepted = false
+      try {
+        acceptStrm(messageChannel.port1)
+        accepted = true
+      } finally {
+        if (!accepted) {
+          messageChannel.port1.close()
+          messageChannel.port2.close()
+        }
+      }
+
+      const duplex = new MessagePortDuplex<Uint8Array>(messageChannel.port2)
       this.activeAcceptedStreams.add(duplex)
       try {
         await pipe(channel, duplex, channel)
@@ -230,7 +244,7 @@ export default async function main(
 
   // The Go runtime will call this function to set a callback for incoming streams.
   globalScope.BLDR_PLUGIN_SET_ACCEPT_STREAM = (
-    acceptStrm?: () => MessagePort,
+    acceptStrm?: (localPort: MessagePort) => void,
   ) => {
     generation.setAcceptStream(acceptStrm)
   }

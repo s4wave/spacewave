@@ -97,6 +97,36 @@ func TestNewPushableOpenStreamRejectFailsPendingWriter(t *testing.T) {
 	}
 }
 
+func TestSetAcceptStreamsWrapsProvidedMessagePort(t *testing.T) {
+	harness := newAcceptStreamHarness(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	p := &WasmPluginIo{setAcceptStreamName: "testSetAcceptStream"}
+	js.Global().Set(p.setAcceptStreamName, harness.Get("setAcceptStream"))
+	defer js.Global().Set(p.setAcceptStreamName, js.Undefined())
+
+	p.SetAcceptStreams(ctx, srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		return false, nil
+	}))
+
+	waitForJSFunc(t, harness.Get("callback"), "accept stream callback")
+	harness.Call("accept")
+	waitForJSInt(t, harness.Get("port"), "startCalls", 1)
+	if got := harness.Get("port").Get("postCalls").Length(); got != 0 {
+		t.Fatalf("post calls before close = %d want 0", got)
+	}
+
+	cancel()
+	waitForJSInt(t, harness.Get("port"), "closeCalls", 1)
+	if got := harness.Get("port").Get("postCalls").Length(); got != 1 {
+		t.Fatalf("post calls after close = %d want 1", got)
+	}
+	if got := harness.Get("port").Get("postCalls").Index(0); !got.IsNull() {
+		t.Fatalf("close post = %v want null", got)
+	}
+}
+
 func copyJSBytes(value js.Value) []byte {
 	data := make([]byte, value.Length())
 	for i := range data {
@@ -114,6 +144,28 @@ func waitOpenStreamHarnessReady(t *testing.T, harness js.Value) {
 		runtime.Gosched()
 	}
 	t.Fatal("open stream harness was not initialized")
+}
+
+func waitForJSFunc(t *testing.T, value js.Value, name string) {
+	t.Helper()
+	for range 100 {
+		if value.Type() == js.TypeFunction {
+			return
+		}
+		runtime.Gosched()
+	}
+	t.Fatalf("%s was not initialized", name)
+}
+
+func waitForJSInt(t *testing.T, obj js.Value, property string, want int) {
+	t.Helper()
+	for range 100 {
+		if got := obj.Get(property).Int(); got == want {
+			return
+		}
+		runtime.Gosched()
+	}
+	t.Fatalf("%s = %d want %d", property, obj.Get(property).Int(), want)
 }
 
 func newOpenStreamHarness(t *testing.T) js.Value {
@@ -154,5 +206,41 @@ const harness = {
 		harness.reject(message);
 	};
 	return harness;
+`).Invoke()
+}
+
+func newAcceptStreamHarness(t *testing.T) js.Value {
+	t.Helper()
+
+	functionCtor := js.Global().Get("Function")
+	if functionCtor.IsUndefined() || functionCtor.IsNull() {
+		t.Skip("JavaScript Function constructor unavailable")
+	}
+
+	return functionCtor.New(`
+const harness = {
+	callback: undefined,
+	port: {
+		postCalls: [],
+		closeCalls: 0,
+		startCalls: 0,
+		postMessage(message) {
+			this.postCalls.push(message);
+		},
+		close() {
+			this.closeCalls++;
+		},
+		start() {
+			this.startCalls++;
+		},
+	},
+};
+harness.setAcceptStream = (callback) => {
+	harness.callback = callback;
+};
+harness.accept = () => {
+	harness.callback(harness.port);
+};
+return harness;
 `).Invoke()
 }

@@ -22,7 +22,7 @@ const (
 	//   onReject: (errMsg: string) => void,
 	// ) => void
 	globalOpenStreamToWebRuntime = "BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME"
-	// BLDR_PLUGIN_SET_ACCEPT_STREAM?: (acceptStream: () => MessagePort) => void
+	// BLDR_PLUGIN_SET_ACCEPT_STREAM?: (acceptStream: (localPort: MessagePort) => void) => void
 	globalSetAcceptStream = "BLDR_PLUGIN_SET_ACCEPT_STREAM"
 )
 
@@ -436,13 +436,16 @@ func (p *WasmPluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.Invoke
 		}
 	}
 
-	// acceptStreamFn is () => MessagePort
+	// acceptStreamFn is (localPort: MessagePort) => void
 	acceptStreamFn := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if ctx.Err() != nil {
-			return js.Null()
+			return nil
 		}
-		localPort, remotePort := message_port.NewMessageChannel()
-		duplex := message_port.NewMessagePort(localPort)
+		if len(args) == 0 || args[0].IsUndefined() || args[0].IsNull() {
+			panic("accept stream missing MessagePort")
+		}
+
+		duplex := message_port.NewMessagePort(args[0])
 		addActiveStream(duplex)
 		stream := message_port.NewMessagePortPacketStream(duplex)
 
@@ -452,7 +455,7 @@ func (p *WasmPluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.Invoke
 			defer duplex.Close()
 			stream.ReadPump(ctx, serverRPC.HandlePacketData, serverRPC.HandleStreamClose)
 		}()
-		return remotePort
+		return nil
 	})
 	setAcceptStream, err := getGlobalFunc(p.setAcceptStreamName)
 	if err != nil {
