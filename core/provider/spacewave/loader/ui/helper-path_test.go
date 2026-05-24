@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package spacewave_loader_controller
+package spacewave_loader_ui
 
 import (
 	"os"
@@ -8,10 +6,9 @@ import (
 	"testing"
 )
 
-// TestResolveHelperPath is the IS-1 regression: verifies the helper binary
-// name resolution logic appends =.exe= only on Windows when no override is
-// supplied, and uses the override verbatim otherwise. Ensures the loader
-// finds the right binary adjacent to spacewave.app on each OS.
+// TestResolveHelperPath verifies the helper binary name resolution logic
+// appends .exe only on Windows when no override is supplied, and uses the
+// override verbatim otherwise.
 func TestResolveHelperPath(t *testing.T) {
 	cases := []struct {
 		name       string
@@ -79,10 +76,9 @@ func TestResolveHelperPath(t *testing.T) {
 			wantOK:     true,
 		},
 		{
-			name:       "missing binary returns false",
-			goos:       "linux",
-			stageFiles: nil,
-			wantOK:     false,
+			name:   "missing binary returns false",
+			goos:   "linux",
+			wantOK: false,
 		},
 	}
 
@@ -96,7 +92,7 @@ func TestResolveHelperPath(t *testing.T) {
 				}
 			}
 
-			got, ok := resolveHelperPathIn(dir, tc.override, tc.goos)
+			got, ok := ResolveHelperPathIn(dir, tc.override, tc.goos)
 			if ok != tc.wantOK {
 				t.Fatalf("ok = %v, want %v (got path %q)", ok, tc.wantOK, got)
 			}
@@ -122,7 +118,7 @@ func TestResolveHelperPathFromDirsFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, ok := resolveHelperPathFromDirs([]string{pluginDir, hostDir}, "", "darwin")
+	got, ok := ResolveHelperPathFromDirs([]string{pluginDir, hostDir}, "", "darwin")
 	if !ok {
 		t.Fatal("expected helper fallback to host executable dir")
 	}
@@ -142,14 +138,18 @@ func TestResolveIconPathFromDirsFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := resolveIconPathFromDirs([]string{pluginDir, hostDir})
+	got := ResolveIconPathFromDirs([]string{pluginDir, hostDir})
 	if got != iconPath {
 		t.Fatalf("path = %q, want %q", got, iconPath)
 	}
 }
 
 func TestResolveIconPathFromDirsMissing(t *testing.T) {
-	got := resolveIconPathFromDirs([]string{t.TempDir()})
+	baseDir := filepath.Join(t.TempDir(), "app", "bin")
+	if err := os.MkdirAll(baseDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got := ResolveIconPathFromDirs([]string{baseDir})
 	if got != "" {
 		t.Fatalf("path = %q, want empty on miss", got)
 	}

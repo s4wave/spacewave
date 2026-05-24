@@ -5,9 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
-	"sync"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -17,6 +14,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	launcher_helper "github.com/s4wave/spacewave/core/launcher/helper"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	spacewave_loader_ui "github.com/s4wave/spacewave/core/provider/spacewave/loader/ui"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,12 +24,7 @@ const ControllerID = "spacewave/loader/controller"
 // Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
-// defaultHelperBinaryName is the default helper binary name on non-Windows.
-const defaultHelperBinaryName = "spacewave-helper"
-
 const hostExecutableDirEnv = "BLDR_PLUGIN_HOST_EXECUTABLE_DIR"
-
-const defaultAppIconPath = "../Resources/app.icns"
 
 // Controller spawns the spacewave-helper in --loading mode and drives its
 // progress bar by observing LoadPlugin directive state for each configured
@@ -94,8 +87,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer client.Close()
 
 	pluginIDs := c.conf.ResolvedWatchPluginIDs()
-	progress := newProgressTracker(client, c.le, pluginIDs)
-	progress.render()
+	progress := spacewave_loader_ui.NewTracker(client, c.le, pluginIDs)
+	progress.Render()
 
 	// Drain helper events: user-clicked Retry redirects into a fresh
 	// DistConfig fetch; Cancel logs and tears down the loader so the helper
@@ -115,13 +108,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// each other's loaders.
 	fetchHandler := directive.NewTypedCallbackHandler[*spacewave_launcher.FetchStatus](
 		func(v directive.TypedAttachedValue[*spacewave_launcher.FetchStatus]) {
-			progress.setFetchStatus(v.GetValue())
+			progress.SetFetchStatus(loaderFetchStatus(v.GetValue()))
 		},
 		func(v directive.TypedAttachedValue[*spacewave_launcher.FetchStatus]) {
 			// A removed fetch-status value just means the launcher is
 			// repushing; the next value add will restore it. Clear local
 			// state so stale labels don't persist between transitions.
-			progress.setFetchStatus(nil)
+			progress.SetFetchStatus(nil)
 		},
 		nil, nil,
 	)
@@ -148,10 +141,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 		id := pluginID
 		handler := directive.NewTypedCallbackHandler[bldr_plugin.RunningPlugin](
 			func(v directive.TypedAttachedValue[bldr_plugin.RunningPlugin]) {
-				progress.markRunning(id, true)
+				progress.MarkRunning(id, true)
 			},
 			func(v directive.TypedAttachedValue[bldr_plugin.RunningPlugin]) {
-				progress.markRunning(id, false)
+				progress.MarkRunning(id, false)
 			},
 			nil, nil,
 		)
@@ -210,173 +203,17 @@ func (c *Controller) drainEvents(ctx context.Context, client *launcher_helper.Cl
 	}
 }
 
-// progressSender is the minimal subset of launcher_helper.Client consumed by
-// progressTracker. A narrow interface lets unit tests swap in a fake
-// recorder without spawning a real helper process.
-type progressSender interface {
-	SendProgress(fraction float32, text string) error
-	SendDismiss() error
-}
-
-// progressTracker maintains running state for the watched plugin ids plus
-// the latest launcher fetch status, and pushes progress or retry-state
-// messages to the helper whenever either input changes. Once every watched
-// plugin has become Running the tracker calls SendDismiss exactly once and
-// stops pushing further updates.
-type progressTracker struct {
-	client    progressSender
-	le        *logrus.Entry
-	pluginIDs []string
-
-	mu          sync.Mutex
-	running     map[string]bool
-	fetchStatus *spacewave_launcher.FetchStatus
-	dismissed   bool
-	doneCh      chan struct{}
-}
-
-// newProgressTracker constructs a tracker for the given plugin id order. The
-// order is preserved when computing the "next pending" phase label so the UI
-// reports plugins in manifest-declared order rather than arbitrary map order.
-func newProgressTracker(
-	client progressSender,
-	le *logrus.Entry,
-	pluginIDs []string,
-) *progressTracker {
-	return &progressTracker{
-		client:    client,
-		le:        le,
-		pluginIDs: pluginIDs,
-		running:   make(map[string]bool, len(pluginIDs)),
-		doneCh:    make(chan struct{}),
+func loaderFetchStatus(status *spacewave_launcher.FetchStatus) *spacewave_loader_ui.FetchStatus {
+	if status == nil {
+		return nil
 	}
-}
-
-// Done returns a channel that closes after the tracker has sent the dismiss
-// signal to the helper. Callers can select on it to tear down the loader
-// controller once the main app UI has taken over.
-func (t *progressTracker) Done() <-chan struct{} {
-	return t.doneCh
-}
-
-// markRunning flips the per-plugin running state and re-renders progress.
-func (t *progressTracker) markRunning(pluginID string, running bool) {
-	t.mu.Lock()
-	if t.running[pluginID] == running {
-		t.mu.Unlock()
-		return
+	return &spacewave_loader_ui.FetchStatus{
+		Fetching:    status.Fetching,
+		HasConfig:   status.HasConfig,
+		LastErr:     status.LastErr,
+		Attempts:    status.Attempts,
+		NextRetryAt: status.NextRetryAt,
 	}
-	t.running[pluginID] = running
-	t.mu.Unlock()
-	t.render()
-}
-
-// setFetchStatus updates the cached launcher fetch status and re-renders.
-func (t *progressTracker) setFetchStatus(status *spacewave_launcher.FetchStatus) {
-	t.mu.Lock()
-	if t.fetchStatus == status {
-		t.mu.Unlock()
-		return
-	}
-	t.fetchStatus = status
-	t.mu.Unlock()
-	t.render()
-}
-
-// render pushes the current progress snapshot to the helper. Priority:
-//  1. If the launcher has no DistConfig and the last fetch failed: show a
-//     retry message with countdown to the next scheduled attempt.
-//  2. If the launcher is currently fetching its first DistConfig: show a
-//     "Connecting..." indeterminate spinner.
-//  3. Otherwise fall through to the plugin-level progress: indeterminate
-//     "Preparing..." until anything resolves, then determinate with phase
-//     labels for the next pending plugin.
-func (t *progressTracker) render() {
-	t.mu.Lock()
-	if t.dismissed {
-		t.mu.Unlock()
-		return
-	}
-	total := len(t.pluginIDs)
-	running := 0
-	var nextPending string
-	for _, id := range t.pluginIDs {
-		if t.running[id] {
-			running++
-			continue
-		}
-		if nextPending == "" {
-			nextPending = id
-		}
-	}
-	status := t.fetchStatus
-	// When every watched plugin has resolved, send the final 100% progress
-	// snapshot so the helper bar snaps full, then dismiss exactly once.
-	if total > 0 && running == total {
-		t.dismissed = true
-		t.mu.Unlock()
-		if err := t.client.SendProgress(1.0, "Ready"); err != nil {
-			t.le.WithError(err).Debug("send final progress")
-		}
-		if err := t.client.SendDismiss(); err != nil {
-			t.le.WithError(err).Debug("send dismiss")
-		}
-		close(t.doneCh)
-		return
-	}
-	t.mu.Unlock()
-
-	if status != nil && !status.HasConfig {
-		if status.LastErr != "" {
-			text := formatRetryMessage(status.NextRetryAt)
-			if err := t.client.SendProgress(-1, text); err != nil {
-				t.le.WithError(err).Debug("send retry status")
-			}
-			return
-		}
-		if status.Fetching {
-			if err := t.client.SendProgress(-1, "Connecting to Spacewave..."); err != nil {
-				t.le.WithError(err).Debug("send connecting status")
-			}
-			return
-		}
-	}
-
-	if total == 0 {
-		if err := t.client.SendProgress(-1, "Preparing Spacewave..."); err != nil {
-			t.le.WithError(err).Debug("send preparing status")
-		}
-		return
-	}
-	if running == 0 {
-		if err := t.client.SendProgress(-1, "Preparing Spacewave..."); err != nil {
-			t.le.WithError(err).Debug("send initial progress")
-		}
-		return
-	}
-	text := "Loading Spacewave..."
-	if nextPending != "" {
-		text = "Loading " + nextPending + "..."
-	}
-	fraction := float32(running) / float32(total)
-	if err := t.client.SendProgress(fraction, text); err != nil {
-		t.le.WithError(err).Debug("send progress")
-	}
-}
-
-// formatRetryMessage returns the helper message for a failed DistConfig
-// fetch with an optional countdown to the next scheduled retry.
-func formatRetryMessage(nextRetryAt time.Time) string {
-	const prefix = "Waiting for network"
-	if nextRetryAt.IsZero() {
-		return prefix + "..."
-	}
-	remaining := time.Until(nextRetryAt)
-	if remaining < time.Second {
-		return prefix + " (retrying...)"
-	}
-	secs := int(remaining.Round(time.Second).Seconds())
-	return prefix + " (retry in " + strconv.Itoa(secs) + "s)"
 }
 
 // resolveHelperPath looks for the helper binary adjacent to the running
@@ -387,24 +224,11 @@ func resolveHelperPath(overrideName string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	return resolveHelperPathFromDirs(
+	return spacewave_loader_ui.ResolveHelperPathFromDirs(
 		[]string{filepath.Dir(exe), os.Getenv(hostExecutableDirEnv)},
 		overrideName,
 		runtime.GOOS,
 	)
-}
-
-func resolveHelperPathFromDirs(baseDirs []string, overrideName, goos string) (string, bool) {
-	for _, baseDir := range baseDirs {
-		if baseDir == "" {
-			continue
-		}
-		path, ok := resolveHelperPathIn(baseDir, overrideName, goos)
-		if ok {
-			return path, true
-		}
-	}
-	return "", false
 }
 
 func resolveIconPath(overridePath string) string {
@@ -415,42 +239,10 @@ func resolveIconPath(overridePath string) string {
 	if err != nil {
 		return ""
 	}
-	return resolveIconPathFromDirs([]string{
+	return spacewave_loader_ui.ResolveIconPathFromDirs([]string{
 		filepath.Dir(exe),
 		os.Getenv(hostExecutableDirEnv),
 	})
-}
-
-func resolveIconPathFromDirs(baseDirs []string) string {
-	for _, baseDir := range baseDirs {
-		if baseDir == "" {
-			continue
-		}
-		path := filepath.Clean(filepath.Join(baseDir, defaultAppIconPath))
-		if _, err := os.Stat(path); err == nil {
-			return path
-		}
-	}
-	return ""
-}
-
-// resolveHelperPathIn resolves the helper binary path within baseDir using the
-// given goos to decide whether to append =.exe= when overrideName is empty.
-// Split out of resolveHelperPath so the name-resolution logic is testable
-// without touching the test binary's adjacent directory.
-func resolveHelperPathIn(baseDir, overrideName, goos string) (string, bool) {
-	name := overrideName
-	if name == "" {
-		name = defaultHelperBinaryName
-		if goos == "windows" {
-			name += ".exe"
-		}
-	}
-	path := filepath.Join(baseDir, name)
-	if _, err := os.Stat(path); err != nil {
-		return "", false
-	}
-	return path, true
 }
 
 // _ is a type assertion

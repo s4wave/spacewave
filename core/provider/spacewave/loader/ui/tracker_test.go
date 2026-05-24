@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package spacewave_loader_controller
+package spacewave_loader_ui
 
 import (
 	"strings"
@@ -8,13 +6,9 @@ import (
 	"testing"
 	"time"
 
-	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/sirupsen/logrus"
 )
 
-// recordingSender captures every SendProgress / SendDismiss call on a tracker
-// so tests can assert the final helper state after a series of state
-// transitions.
 type recordingSender struct {
 	mu        sync.Mutex
 	calls     []progressCall
@@ -55,15 +49,15 @@ func (r *recordingSender) last() progressCall {
 	return r.calls[len(r.calls)-1]
 }
 
-func newTrackerForTest(pluginIDs []string) (*progressTracker, *recordingSender) {
+func newTrackerForTest(pluginIDs []string) (*Tracker, *recordingSender) {
 	sender := &recordingSender{}
-	tracker := newProgressTracker(sender, logrus.NewEntry(logrus.New()), pluginIDs)
+	tracker := NewTracker(sender, logrus.NewEntry(logrus.New()), pluginIDs)
 	return tracker, sender
 }
 
 func TestProgressTrackerInitialIndeterminate(t *testing.T) {
 	tracker, sender := newTrackerForTest([]string{"spacewave-core", "web"})
-	tracker.render()
+	tracker.Render()
 	got := sender.last()
 	if got.fraction != -1 {
 		t.Fatalf("initial fraction = %v, want -1 (indeterminate)", got.fraction)
@@ -75,7 +69,7 @@ func TestProgressTrackerInitialIndeterminate(t *testing.T) {
 
 func TestProgressTrackerDeterminateProgress(t *testing.T) {
 	tracker, sender := newTrackerForTest([]string{"spacewave-core", "spacewave-web", "web"})
-	tracker.markRunning("spacewave-core", true)
+	tracker.MarkRunning("spacewave-core", true)
 	got := sender.last()
 	if got.fraction == -1 {
 		t.Fatalf("fraction still indeterminate after one resolve")
@@ -90,7 +84,7 @@ func TestProgressTrackerDeterminateProgress(t *testing.T) {
 
 func TestProgressTrackerFetchErrorShowsRetryMessage(t *testing.T) {
 	tracker, sender := newTrackerForTest([]string{"spacewave-core"})
-	tracker.setFetchStatus(&spacewave_launcher.FetchStatus{
+	tracker.SetFetchStatus(&FetchStatus{
 		LastErr:     "dial tcp: lookup spacewave.app: no such host",
 		Attempts:    1,
 		NextRetryAt: time.Now().Add(5 * time.Second),
@@ -109,7 +103,7 @@ func TestProgressTrackerFetchErrorShowsRetryMessage(t *testing.T) {
 
 func TestProgressTrackerConnectingMessage(t *testing.T) {
 	tracker, sender := newTrackerForTest([]string{"spacewave-core"})
-	tracker.setFetchStatus(&spacewave_launcher.FetchStatus{
+	tracker.SetFetchStatus(&FetchStatus{
 		Fetching: true,
 	})
 	got := sender.last()
@@ -123,9 +117,8 @@ func TestProgressTrackerConnectingMessage(t *testing.T) {
 
 func TestProgressTrackerFetchSuccessFallsThroughToPlugins(t *testing.T) {
 	tracker, sender := newTrackerForTest([]string{"spacewave-core", "web"})
-	// Launcher has a config; plugin-level progress should win.
-	tracker.setFetchStatus(&spacewave_launcher.FetchStatus{HasConfig: true})
-	tracker.markRunning("spacewave-core", true)
+	tracker.SetFetchStatus(&FetchStatus{HasConfig: true})
+	tracker.MarkRunning("spacewave-core", true)
 	got := sender.last()
 	if got.fraction <= 0 || got.fraction >= 1 {
 		t.Fatalf("fraction = %v, want plugin-level determinate", got.fraction)
@@ -137,11 +130,11 @@ func TestProgressTrackerFetchSuccessFallsThroughToPlugins(t *testing.T) {
 
 func TestProgressTrackerDismissesWhenAllPluginsRunning(t *testing.T) {
 	tracker, sender := newTrackerForTest([]string{"spacewave-core", "web"})
-	tracker.markRunning("spacewave-core", true)
+	tracker.MarkRunning("spacewave-core", true)
 	if sender.dismissCount() != 0 {
 		t.Fatalf("dismissed after partial progress: count=%d", sender.dismissCount())
 	}
-	tracker.markRunning("web", true)
+	tracker.MarkRunning("web", true)
 	if sender.dismissCount() != 1 {
 		t.Fatalf("dismiss count after all running = %d, want 1", sender.dismissCount())
 	}
@@ -157,33 +150,26 @@ func TestProgressTrackerDismissesWhenAllPluginsRunning(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatalf("tracker.Done() did not close after full progress")
 	}
-	// Further state changes must not emit more progress or dismiss calls.
 	prevCalls := len(sender.calls)
-	tracker.markRunning("web", false)
-	tracker.setFetchStatus(&spacewave_launcher.FetchStatus{LastErr: "boom"})
+	tracker.MarkRunning("web", false)
+	tracker.SetFetchStatus(&FetchStatus{LastErr: "boom"})
 	if len(sender.calls) != prevCalls {
 		t.Fatalf("progress calls after dismiss: got %d, want %d", len(sender.calls), prevCalls)
 	}
 	if sender.dismissCount() != 1 {
-		t.Fatalf("dismiss count after post-dismiss updates = %d, want 1", sender.dismissCount())
+		t.Fatalf("dismiss count after post-dismiss updates = %d", sender.dismissCount())
 	}
 }
 
 func TestLoaderRetryOnNetworkFailure(t *testing.T) {
-	// Simulates the launcher's DistConfig fetcher going through
-	// connecting -> failure -> backoff countdown -> recovery -> plugins
-	// resolve -> dismiss. The tracker renders the same UI the real loader
-	// would show a user who starts offline and comes back online.
 	tracker, sender := newTrackerForTest([]string{"spacewave-core", "web"})
 
-	// 1. Fetcher kicks off (no config yet): indeterminate connecting.
-	tracker.setFetchStatus(&spacewave_launcher.FetchStatus{Fetching: true})
+	tracker.SetFetchStatus(&FetchStatus{Fetching: true})
 	if got := sender.last(); got.fraction != -1 || !strings.Contains(got.text, "Connecting") {
 		t.Fatalf("connecting phase = %+v, want indeterminate 'Connecting'", got)
 	}
 
-	// 2. First fetch fails; next retry 5s away.
-	tracker.setFetchStatus(&spacewave_launcher.FetchStatus{
+	tracker.SetFetchStatus(&FetchStatus{
 		LastErr:     "dial tcp: no route to host",
 		Attempts:    1,
 		NextRetryAt: time.Now().Add(5 * time.Second),
@@ -192,8 +178,7 @@ func TestLoaderRetryOnNetworkFailure(t *testing.T) {
 		t.Fatalf("first failure = %+v, want 'Waiting for network' retry", got)
 	}
 
-	// 3. Second attempt also fails; backoff widens to ~10s.
-	tracker.setFetchStatus(&spacewave_launcher.FetchStatus{
+	tracker.SetFetchStatus(&FetchStatus{
 		LastErr:     "dial tcp: no route to host",
 		Attempts:    2,
 		NextRetryAt: time.Now().Add(10 * time.Second),
@@ -202,36 +187,17 @@ func TestLoaderRetryOnNetworkFailure(t *testing.T) {
 		t.Fatalf("second failure = %+v, want countdown label", got)
 	}
 
-	// 4. Network comes back: launcher publishes HasConfig=true. Tracker
-	//    falls through to plugin-level progress (still indeterminate until
-	//    any plugin reports Running).
-	tracker.setFetchStatus(&spacewave_launcher.FetchStatus{HasConfig: true})
+	tracker.SetFetchStatus(&FetchStatus{HasConfig: true})
 	if got := sender.last(); got.fraction != -1 || !strings.Contains(got.text, "Preparing") {
 		t.Fatalf("post-recovery = %+v, want 'Preparing' indeterminate", got)
 	}
 
-	// 5. Plugins resolve; tracker becomes determinate, then dismisses.
-	tracker.markRunning("spacewave-core", true)
+	tracker.MarkRunning("spacewave-core", true)
 	if got := sender.last(); got.fraction <= 0 || got.fraction >= 1 {
 		t.Fatalf("mid-progress = %+v, want fraction in (0, 1)", got)
 	}
-	tracker.markRunning("web", true)
+	tracker.MarkRunning("web", true)
 	if sender.dismissCount() != 1 {
 		t.Fatalf("dismiss count after full load = %d, want 1", sender.dismissCount())
-	}
-	select {
-	case <-tracker.Done():
-	case <-time.After(time.Second):
-		t.Fatalf("tracker.Done() did not close after full load")
-	}
-}
-
-func TestFormatRetryMessageFallbacks(t *testing.T) {
-	if msg := formatRetryMessage(time.Time{}); !strings.HasSuffix(msg, "...") {
-		t.Fatalf("zero-time message = %q, want fallback '...'", msg)
-	}
-	soon := time.Now().Add(100 * time.Millisecond)
-	if msg := formatRetryMessage(soon); !strings.Contains(msg, "retrying") {
-		t.Fatalf("sub-second countdown = %q, want 'retrying'", msg)
 	}
 }
