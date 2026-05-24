@@ -1,28 +1,25 @@
-//go:build !goscript
-
-package statusprojector
+package spacepolicy
 
 import (
 	"context"
 	"testing"
 
-	"github.com/s4wave/spacewave/core/cdn"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
 )
 
-func TestBuildSpaceProjectionBoundsAndRoutesToApp(t *testing.T) {
-	rows := make([]*spaceProjectionRow, 0, maxProjectedSpaces+1)
+func TestBuildBoundsAndRoutesToApp(t *testing.T) {
+	rows := make([]*Row, 0, maxProjectedSpaces+1)
 	for i := 1; i <= maxProjectedSpaces+1; i++ {
-		rows = append(rows, &spaceProjectionRow{
-			sessionIndex: 3,
-			sessionLabel: "Cloud",
-			space:        testSpaceEntry("space-"+string(rune('a'+i-1)), "Space "+string(rune('A'+i-1)), "shared"),
+		rows = append(rows, &Row{
+			SessionIndex: 3,
+			SessionLabel: "Cloud",
+			Space:        testSpaceEntry("space-"+string(rune('a'+i-1)), "Space "+string(rune('A'+i-1)), "shared"),
 		})
 	}
 
-	projection := buildSpaceProjection(rows)
+	projection := Build(rows)
 	if len(projection) != maxProjectedSpaces {
 		t.Fatalf("space rows = %d, want %d", len(projection), maxProjectedSpaces)
 	}
@@ -39,31 +36,31 @@ func TestBuildSpaceProjectionBoundsAndRoutesToApp(t *testing.T) {
 }
 
 func TestBuildSessionSpacesFiltersCdnSpace(t *testing.T) {
-	spaces, err := buildSessionSpaces(&sobject.SharedObjectList{
+	spaces, err := BuildSessionSpaces(&sobject.SharedObjectList{
 		SharedObjects: []*sobject.SharedObjectListEntry{
 			testSpaceEntry("regular", "Regular", "created").GetEntry(),
-			testSpaceEntry(cdn.SpaceID(), "CDN", "created").GetEntry(),
+			testSpaceEntry("excluded-cdn", "CDN", "created").GetEntry(),
 		},
-	})
+	}, "excluded-cdn")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(spaces) != 1 {
 		t.Fatalf("spaces = %d, want only regular space", len(spaces))
 	}
-	if spaceID(spaces[0]) != "regular" {
-		t.Fatalf("space id = %q, want regular", spaceID(spaces[0]))
+	if SpaceID(spaces[0]) != "regular" {
+		t.Fatalf("space id = %q, want regular", SpaceID(spaces[0]))
 	}
 }
 
-func TestReadSessionSpacesSnapshotAllowsMissingInitialList(t *testing.T) {
+func TestReadSnapshotAllowsMissingInitialList(t *testing.T) {
 	watchable := &initialNilSharedObjectListWatchable{next: &sobject.SharedObjectList{
 		SharedObjects: []*sobject.SharedObjectListEntry{
 			testSpaceEntry("regular", "Regular", "created").GetEntry(),
 		},
 	}}
 
-	soList, spaces, err := readSessionSpacesSnapshot(watchable)
+	soList, spaces, err := ReadSnapshot(watchable)
 	if err != nil {
 		t.Fatal(err)
 	}
