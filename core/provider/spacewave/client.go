@@ -22,6 +22,7 @@ import (
 	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	"github.com/s4wave/spacewave/core/provider/spacewave/syncprogress"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -1722,7 +1723,7 @@ func (c *SessionClient) syncPushDataWithProgress(
 			var postErr error
 			var body io.Reader = bytes.NewReader(packData)
 			if progress != nil {
-				body = newSyncPushProgressReader(body, progress)
+				body = syncprogress.NewReader(body, progress)
 			}
 			respData, postErr = c.postSyncPushWithTicket(
 				ctx,

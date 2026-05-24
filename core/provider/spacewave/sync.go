@@ -38,8 +38,6 @@ const syncOrderDirtyBlocksLimit = 1024
 
 const syncPushConcurrency = 1
 
-const syncPushProgressInterval = 250 * time.Millisecond
-
 // syncController manages packfile push/pull synchronization.
 type syncController struct {
 	le         *logrus.Entry
@@ -392,42 +390,6 @@ type preparedSyncChunk struct {
 	entry    *packfile.PackfileEntry
 	packData []byte
 	bodyHash []byte
-}
-
-// syncPushProgressReader wraps an io.Reader and fires a progress callback at
-// most once per syncPushProgressInterval, plus a final callback at EOF.
-// io.Reader is not safe for concurrent goroutine use, and this type inherits
-// that contract: Read must be invoked from a single goroutine, which is why
-// sent and next are plain int64 rather than atomic.Int64.
-type syncPushProgressReader struct {
-	reader io.Reader
-	sent   int64
-	next   int64
-	cb     func(int64)
-}
-
-func newSyncPushProgressReader(reader io.Reader, cb func(int64)) *syncPushProgressReader {
-	return &syncPushProgressReader{
-		reader: reader,
-		cb:     cb,
-		next:   time.Now().Add(syncPushProgressInterval).UnixNano(),
-	}
-}
-
-func (p *syncPushProgressReader) Read(buf []byte) (int, error) {
-	n, err := p.reader.Read(buf)
-	if n > 0 {
-		p.sent += int64(n)
-		now := time.Now().UnixNano()
-		if now >= p.next {
-			p.next = now + int64(syncPushProgressInterval)
-			p.cb(p.sent)
-		}
-	}
-	if err == io.EOF {
-		p.cb(p.sent)
-	}
-	return n, err
 }
 
 // packBlocks writes the dirty blocks to w and returns the pack result and body hash.
@@ -897,4 +859,3 @@ func (s *syncController) cleanStaleTempFiles() {
 }
 
 // _ is a type assertion
-var _ io.Reader = ((*syncPushProgressReader)(nil))

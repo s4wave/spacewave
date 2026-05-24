@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package provider_spacewave
+package syncprogress
 
 import (
 	"bytes"
@@ -9,14 +7,14 @@ import (
 	"time"
 )
 
-// TestSyncPushProgressReaderRoundtripPassThrough verifies the reader passes
-// underlying bytes through unchanged and reports the final byte total at EOF.
-func TestSyncPushProgressReaderRoundtripPassThrough(t *testing.T) {
+// TestReaderRoundtripPassThrough verifies the reader passes underlying bytes
+// through unchanged and reports the final byte total at EOF.
+func TestReaderRoundtripPassThrough(t *testing.T) {
 	body := bytes.Repeat([]byte("a"), 1024)
 	src := bytes.NewReader(body)
 
 	var calls []int64
-	r := newSyncPushProgressReader(src, func(sent int64) {
+	r := NewReader(src, func(sent int64) {
 		calls = append(calls, sent)
 	})
 
@@ -35,16 +33,16 @@ func TestSyncPushProgressReaderRoundtripPassThrough(t *testing.T) {
 	}
 }
 
-// TestSyncPushProgressReaderThrottle verifies two reads in tight succession
-// produce at most one mid-stream callback before the throttle window elapses.
-func TestSyncPushProgressReaderThrottle(t *testing.T) {
+// TestReaderThrottle verifies two reads in tight succession produce at most
+// one mid-stream callback before the throttle window elapses.
+func TestReaderThrottle(t *testing.T) {
 	src := &chunkedReader{chunks: [][]byte{
 		bytes.Repeat([]byte("a"), 32),
 		bytes.Repeat([]byte("b"), 32),
 	}}
 
 	var midCount int
-	r := newSyncPushProgressReader(src, func(sent int64) {
+	r := NewReader(src, func(sent int64) {
 		midCount++
 	})
 
@@ -61,9 +59,9 @@ func TestSyncPushProgressReaderThrottle(t *testing.T) {
 	}
 }
 
-// TestSyncPushProgressReaderFiresAfterInterval verifies the callback fires
-// once a Read happens after syncPushProgressInterval elapses.
-func TestSyncPushProgressReaderFiresAfterInterval(t *testing.T) {
+// TestReaderFiresAfterInterval verifies the callback fires once a Read happens
+// after the interval elapses.
+func TestReaderFiresAfterInterval(t *testing.T) {
 	src := &chunkedReader{chunks: [][]byte{
 		bytes.Repeat([]byte("a"), 32),
 		bytes.Repeat([]byte("b"), 32),
@@ -71,7 +69,7 @@ func TestSyncPushProgressReaderFiresAfterInterval(t *testing.T) {
 
 	var callCount int
 	var lastSent int64
-	r := newSyncPushProgressReader(src, func(sent int64) {
+	r := NewReader(src, func(sent int64) {
 		callCount++
 		lastSent = sent
 	})
