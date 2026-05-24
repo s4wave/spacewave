@@ -20,6 +20,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -93,7 +94,7 @@ type ProviderAccount struct {
 	// a new session registers or reconnect invalidates sweep-side caches.
 	selfRejoinSweep *routine.StateRoutineContainer[*selfRejoinSweepState]
 	// selfEnrollmentRunRoutine owns explicit visible Session Self-Enrollment runs.
-	selfEnrollmentRunRoutine *routine.StateRoutineContainer[*selfEnrollmentRunRequest]
+	selfEnrollmentRunRoutine *routine.StateRoutineContainer[*selfenrollmentrun.Request]
 	// sessionPresentationReconcile prunes orphaned mirrored session metadata.
 	sessionPresentationReconcile *routine.StateRoutineContainer[*sessionPresentationReconcileState]
 	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
@@ -382,7 +383,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	)
 	acc.selfRejoinSweep.SetStateRoutine(acc.runSelfRejoinSweep)
 	acc.primeSelfRejoinSweepFromUnlockedEntityKeys()
-	acc.selfEnrollmentRunRoutine = routine.NewStateRoutineContainerWithLogger[*selfEnrollmentRunRequest](
+	acc.selfEnrollmentRunRoutine = routine.NewStateRoutineContainerWithLogger[*selfenrollmentrun.Request](
 		nil,
 		le.WithField("component", "self-enrollment-run"),
 	)
