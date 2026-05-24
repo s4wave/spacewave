@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package provider_spacewave
+package cacheseedbuffer
 
 import (
 	"context"
@@ -10,17 +8,19 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/core/provider/spacewave/seedreason"
 )
 
-// TestCacheSeedBufferOrderingAndEviction covers the ring-buffer invariants:
+// TestBufferOrderingAndEviction covers the ring-buffer invariants:
 // oldest-first ordering, capacity-bounded storage, and eviction of the oldest
 // entry when a new one arrives at capacity.
-func TestCacheSeedBufferOrderingAndEviction(t *testing.T) {
+func TestBufferOrderingAndEviction(t *testing.T) {
 	t.Run("snapshot_orders_oldest_first", func(t *testing.T) {
-		buf := NewCacheSeedBuffer(4)
-		buf.Record(SeedReasonColdSeed, "/a")
-		buf.Record(SeedReasonGapRecovery, "/b")
-		buf.Record(SeedReasonMutation, "/c")
+		buf := New(4)
+		buf.Record(seedreason.ColdSeed, "/a")
+		buf.Record(seedreason.GapRecovery, "/b")
+		buf.Record(seedreason.Mutation, "/c")
 
 		snap := buf.Snapshot()
 		if len(snap) != 3 {
@@ -32,15 +32,15 @@ func TestCacheSeedBufferOrderingAndEviction(t *testing.T) {
 				t.Errorf("snapshot[%d].Path = %q, want %q", i, snap[i].Path, want)
 			}
 		}
-		if snap[0].Reason != SeedReasonColdSeed {
-			t.Errorf("snapshot[0].Reason = %q, want %q", snap[0].Reason, SeedReasonColdSeed)
+		if snap[0].Reason != seedreason.ColdSeed {
+			t.Errorf("snapshot[0].Reason = %q, want %q", snap[0].Reason, seedreason.ColdSeed)
 		}
 	})
 
 	t.Run("eviction_evicts_oldest_at_capacity", func(t *testing.T) {
-		buf := NewCacheSeedBuffer(3)
+		buf := New(3)
 		for i := range 5 {
-			buf.Record(SeedReasonColdSeed, "/"+strconv.Itoa(i))
+			buf.Record(seedreason.ColdSeed, "/"+strconv.Itoa(i))
 		}
 
 		snap := buf.Snapshot()
@@ -56,16 +56,16 @@ func TestCacheSeedBufferOrderingAndEviction(t *testing.T) {
 	})
 
 	t.Run("default_capacity_applied", func(t *testing.T) {
-		buf := NewCacheSeedBuffer(0)
-		if got := buf.Capacity(); got != DefaultCacheSeedBufferCapacity {
-			t.Errorf("Capacity() = %d, want %d", got, DefaultCacheSeedBufferCapacity)
+		buf := New(0)
+		if got := buf.Capacity(); got != DefaultCapacity {
+			t.Errorf("Capacity() = %d, want %d", got, DefaultCapacity)
 		}
 	})
 
 	t.Run("timestamps_are_monotonic_nondecreasing", func(t *testing.T) {
-		buf := NewCacheSeedBuffer(8)
+		buf := New(8)
 		for range 4 {
-			buf.Record(SeedReasonColdSeed, "/p")
+			buf.Record(seedreason.ColdSeed, "/p")
 		}
 		snap := buf.Snapshot()
 		for i := 1; i < len(snap); i++ {
@@ -76,12 +76,12 @@ func TestCacheSeedBufferOrderingAndEviction(t *testing.T) {
 	})
 }
 
-// TestCacheSeedBufferSubscribe asserts that Subscribe returns a snapshot of
-// existing entries plus a channel that receives future appends.
-func TestCacheSeedBufferSubscribe(t *testing.T) {
-	buf := NewCacheSeedBuffer(8)
-	buf.Record(SeedReasonColdSeed, "/seed-0")
-	buf.Record(SeedReasonColdSeed, "/seed-1")
+// TestBufferSubscribe asserts that Subscribe returns a snapshot of existing
+// entries plus a channel that receives future appends.
+func TestBufferSubscribe(t *testing.T) {
+	buf := New(8)
+	buf.Record(seedreason.ColdSeed, "/seed-0")
+	buf.Record(seedreason.ColdSeed, "/seed-1")
 
 	snap, updates, release := buf.Subscribe()
 	defer release()
@@ -93,11 +93,11 @@ func TestCacheSeedBufferSubscribe(t *testing.T) {
 		t.Fatalf("initial snapshot paths = [%q, %q]", snap[0].Path, snap[1].Path)
 	}
 
-	buf.Record(SeedReasonGapRecovery, "/live-0")
-	buf.Record(SeedReasonMutation, "/live-1")
+	buf.Record(seedreason.GapRecovery, "/live-0")
+	buf.Record(seedreason.Mutation, "/live-1")
 
 	deadline := time.After(2 * time.Second)
-	got := make([]CacheSeedEntry, 0, 2)
+	got := make([]Entry, 0, 2)
 	for len(got) < 2 {
 		select {
 		case entry := <-updates:
@@ -106,25 +106,25 @@ func TestCacheSeedBufferSubscribe(t *testing.T) {
 			t.Fatalf("timed out waiting for live updates; got %d", len(got))
 		}
 	}
-	if got[0].Path != "/live-0" || got[0].Reason != SeedReasonGapRecovery {
+	if got[0].Path != "/live-0" || got[0].Reason != seedreason.GapRecovery {
 		t.Errorf("live[0] = %+v", got[0])
 	}
-	if got[1].Path != "/live-1" || got[1].Reason != SeedReasonMutation {
+	if got[1].Path != "/live-1" || got[1].Reason != seedreason.Mutation {
 		t.Errorf("live[1] = %+v", got[1])
 	}
 }
 
-// TestCacheSeedBufferConcurrent records from multiple goroutines to exercise
-// the mutex under -race and asserts the buffer never exceeds its capacity.
-func TestCacheSeedBufferConcurrent(t *testing.T) {
-	buf := NewCacheSeedBuffer(32)
+// TestBufferConcurrent records from multiple goroutines to exercise the mutex
+// under -race and asserts the buffer never exceeds its capacity.
+func TestBufferConcurrent(t *testing.T) {
+	buf := New(32)
 	var wg sync.WaitGroup
 	for i := range 8 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 			for j := range 64 {
-				buf.Record(SeedReasonColdSeed, "/g"+strconv.Itoa(i)+"/"+strconv.Itoa(j))
+				buf.Record(seedreason.ColdSeed, "/g"+strconv.Itoa(i)+"/"+strconv.Itoa(j))
 			}
 		}(i)
 	}
@@ -139,22 +139,23 @@ func TestCacheSeedBufferConcurrent(t *testing.T) {
 	}
 }
 
-// TestCacheSeedRecordingTransport asserts the recording transport writes an
-// entry for each request and still forwards the request to the wrapped base.
-func TestCacheSeedRecordingTransport(t *testing.T) {
+// TestRecordingTransport asserts the recording transport writes an entry for
+// each request and still forwards the request to the wrapped base.
+func TestRecordingTransport(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("ok"))
 	}))
 	defer srv.Close()
 
-	buf := NewCacheSeedBuffer(8)
-	cli := &http.Client{Transport: NewCacheSeedRecordingTransport(nil, buf)}
+	buf := New(8)
+	cli := srv.Client()
+	cli.Transport = NewRecordingTransport(cli.Transport, buf)
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/some/path", nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
-	req.Header.Set(SeedReasonHeader, string(SeedReasonColdSeed))
+	req.Header.Set(seedreason.Header, string(seedreason.ColdSeed))
 
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -166,8 +167,8 @@ func TestCacheSeedRecordingTransport(t *testing.T) {
 	if len(snap) != 1 {
 		t.Fatalf("snapshot len = %d, want 1", len(snap))
 	}
-	if snap[0].Reason != SeedReasonColdSeed {
-		t.Errorf("reason = %q, want %q", snap[0].Reason, SeedReasonColdSeed)
+	if snap[0].Reason != seedreason.ColdSeed {
+		t.Errorf("reason = %q, want %q", snap[0].Reason, seedreason.ColdSeed)
 	}
 	if snap[0].Path != "/some/path" {
 		t.Errorf("path = %q, want %q", snap[0].Path, "/some/path")

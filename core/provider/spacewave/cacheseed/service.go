@@ -6,17 +6,17 @@
 package provider_spacewave_cacheseed
 
 import (
-	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	"github.com/s4wave/spacewave/core/provider/spacewave/cacheseedbuffer"
 )
 
 // Service implements SRPCCacheSeedInspectorServer against a
-// provider_spacewave.CacheSeedBuffer.
+// cacheseedbuffer.Buffer.
 type Service struct {
-	buf *provider_spacewave.CacheSeedBuffer
+	buf *cacheseedbuffer.Buffer
 }
 
 // NewService constructs a new Service streaming from buf.
-func NewService(buf *provider_spacewave.CacheSeedBuffer) *Service {
+func NewService(buf *cacheseedbuffer.Buffer) *Service {
 	return &Service{buf: buf}
 }
 
@@ -51,7 +51,7 @@ func (s *Service) GetCacheSeedReasons(
 	}
 }
 
-func toProtoEntry(entry provider_spacewave.CacheSeedEntry) *CacheSeedEntry {
+func toProtoEntry(entry cacheseedbuffer.Entry) *CacheSeedEntry {
 	return &CacheSeedEntry{
 		TimestampMs: entry.TimestampMs,
 		Reason:      string(entry.Reason),
