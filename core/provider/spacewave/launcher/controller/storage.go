@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/localdist"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -21,9 +22,6 @@ var defObjectStoreID = "spacewave/launcher"
 
 // defObjectStoreKey is the default key used to store the distribution config packedmsg.
 var defObjectStoreKey = "dist-conf"
-
-// localDistConfigFilename is the package-shipped fallback dist config filename.
-const localDistConfigFilename = "dist-config.packedmsg"
 
 // GetVolumeId returns volume the controller uses for storage.
 func (c *Controller) GetVolumeId() string {
@@ -107,34 +105,7 @@ func (c *Controller) loadLocalDistConf() ([]byte, string, error) {
 	if err == nil && resolvedExePath != "" {
 		exePath = resolvedExePath
 	}
-	return readLocalDistConf(localDistConfPaths(exePath))
-}
-
-// localDistConfPaths returns candidate package dist-config paths for exePath.
-func localDistConfPaths(exePath string) []string {
-	exeDir := filepath.Dir(exePath)
-	return []string{
-		filepath.Join(exeDir, localDistConfigFilename),
-		filepath.Join(exeDir, "..", "Resources", localDistConfigFilename),
-	}
-}
-
-// readLocalDistConf reads the first available local dist config path.
-func readLocalDistConf(paths []string) ([]byte, string, error) {
-	for _, p := range paths {
-		data, err := os.ReadFile(p)
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return nil, "", err
-		}
-		if len(data) == 0 {
-			return nil, "", errors.Errorf("local dist config is empty: %s", p)
-		}
-		return data, p, nil
-	}
-	return nil, "", nil
+	return localdist.Read(localdist.Paths(exePath))
 }
 
 // storeDistConf stores an updated dist conf to the store.

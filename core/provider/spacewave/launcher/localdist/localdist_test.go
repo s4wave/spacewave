@@ -1,6 +1,4 @@
-//go:build !goscript
-
-package spacewave_launcher_controller
+package localdist
 
 import (
 	"os"
@@ -8,9 +6,9 @@ import (
 	"testing"
 )
 
-func TestLocalDistConfPaths(t *testing.T) {
+func TestPaths(t *testing.T) {
 	exePath := "/Applications/Spacewave.app/Contents/MacOS/Spacewave"
-	paths := localDistConfPaths(exePath)
+	paths := Paths(exePath)
 	if len(paths) != 2 {
 		t.Fatalf("expected 2 candidate paths, got %d", len(paths))
 	}
@@ -22,15 +20,15 @@ func TestLocalDistConfPaths(t *testing.T) {
 	}
 }
 
-func TestReadLocalDistConf(t *testing.T) {
+func TestRead(t *testing.T) {
 	td := t.TempDir()
 	want := []byte("signed-config")
-	p := filepath.Join(td, localDistConfigFilename)
+	p := filepath.Join(td, Filename)
 	if err := os.WriteFile(p, want, 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	got, gotPath, err := readLocalDistConf([]string{
+	got, gotPath, err := Read([]string{
 		filepath.Join(td, "missing"),
 		p,
 	})
@@ -45,14 +43,14 @@ func TestReadLocalDistConf(t *testing.T) {
 	}
 }
 
-func TestReadLocalDistConfEmpty(t *testing.T) {
+func TestReadEmpty(t *testing.T) {
 	td := t.TempDir()
-	p := filepath.Join(td, localDistConfigFilename)
+	p := filepath.Join(td, Filename)
 	if err := os.WriteFile(p, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, _, err := readLocalDistConf([]string{p}); err == nil {
+	if _, _, err := Read([]string{p}); err == nil {
 		t.Fatal("expected empty local dist config error")
 	}
 }
