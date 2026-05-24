@@ -148,6 +148,18 @@ export interface BuildRequest {
    * @generated from field: repeated bldr.web.bundler.WebPkgRefConfig web_pkgs = 10;
    */
   webPkgs?: WebPkgRefConfig[]
+  /**
+   * JsMinification controls JavaScript minification for this build.
+   *
+   * @generated from field: bool js_minification = 11;
+   */
+  jsMinification?: boolean
+  /**
+   * JsSourcemaps controls JavaScript sourcemap output for this build.
+   *
+   * @generated from field: bool js_sourcemaps = 12;
+   */
+  jsSourcemaps?: boolean
 }
 
 // BuildRequest contains the message type declaration for BuildRequest.
@@ -188,6 +200,8 @@ export const BuildRequest: MessageType<BuildRequest> = createMessageType({
       T: () => WebPkgRefConfig,
       repeated: true,
     },
+    { no: 11, name: 'js_minification', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 12, name: 'js_sourcemaps', kind: 'scalar', T: ScalarType.BOOL },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -424,6 +438,18 @@ export interface BuildWebPkgRequest {
    * @generated from field: string cache_dir = 9;
    */
   cacheDir?: string
+  /**
+   * JsMinification controls JavaScript minification for this build.
+   *
+   * @generated from field: bool js_minification = 10;
+   */
+  jsMinification?: boolean
+  /**
+   * JsSourcemaps controls JavaScript sourcemap output for this build.
+   *
+   * @generated from field: bool js_sourcemaps = 11;
+   */
+  jsSourcemaps?: boolean
 }
 
 // BuildWebPkgRequest contains the message type declaration for BuildWebPkgRequest.
@@ -463,6 +489,8 @@ export const BuildWebPkgRequest: MessageType<BuildWebPkgRequest> =
       },
       { no: 8, name: 'is_release', kind: 'scalar', T: ScalarType.BOOL },
       { no: 9, name: 'cache_dir', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'js_minification', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 11, name: 'js_sourcemaps', kind: 'scalar', T: ScalarType.BOOL },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

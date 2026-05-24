@@ -140,6 +140,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		webStartupSrcPath,
 		"",
 		minifyEntrypoint,
+		!minifyEntrypoint,
 		devMode,
 		forceDedicatedWorkers,
 		false,
@@ -272,7 +273,8 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		le,
 		distSrcDir,
 		wasmRuntimeDir,
-		entryBuildType,
+		minifyEntrypoint,
+		!minifyEntrypoint,
 		useTinygo,
 		"./runtime.wasm",
 	); err != nil {

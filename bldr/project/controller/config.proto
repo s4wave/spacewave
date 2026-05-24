@@ -3,6 +3,7 @@ package bldr.project.controller;
 
 import "github.com/aperturerobotics/util/backoff/backoff.proto";
 import "github.com/s4wave/spacewave/bldr/project/project.proto";
+import "github.com/s4wave/spacewave/bldr/manifest/build/policy.proto";
 import "github.com/s4wave/spacewave/bldr/manifest/builder/builder.proto";
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 
@@ -53,6 +54,9 @@ message ManifestBuilderConfig {
   // semantics: the static manifest builder config is not merged with the
   // override. Sourced from BuildConfig.manifest_overrides.
   .configset.proto.ControllerConfig builder_config_override = 6;
+  // BuildPolicy is the effective build-scoped policy for this manifest builder
+  // slot after build-target config and CLI overrides are merged.
+  .bldr.manifest.build.BuildPolicy build_policy = 7;
 }
 
 // ManifestBuilderResult is the result of a ManifestBuilder build.

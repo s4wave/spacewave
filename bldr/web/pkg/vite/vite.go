@@ -38,6 +38,8 @@ func BuildWebPkgsVite(
 	outputPath string,
 	webPkgBasePath string,
 	isRelease bool,
+	jsMinification bool,
+	jsSourcemaps bool,
 	viteBundler bldr_vite.SRPCViteBundlerClient,
 	cacheDir string,
 ) (webPkgIDs, sourcePaths []string, importMapEntries []ImportMapEntry, err error) {
@@ -84,6 +86,8 @@ func BuildWebPkgsVite(
 			WebPkgBasePath: webPkgBasePath,
 			IsRelease:      isRelease,
 			CacheDir:       cacheDir,
+			JsMinification: jsMinification,
+			JsSourcemaps:   jsSourcemaps,
 		})
 		if ctx.Err() != nil {
 			return nil, nil, nil, context.Canceled

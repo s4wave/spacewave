@@ -9,9 +9,17 @@ import (
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	manifest_build "github.com/s4wave/spacewave/bldr/manifest/build"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
+
+// ResolvedBuildTarget is the effective build-target configuration after CLI
+// overrides are applied.
+type ResolvedBuildTarget struct {
+	PlatformIDs []string
+	BuildPolicy *manifest_build.BuildPolicy
+}
 
 // BuildManifests compiles the given manifest IDs for the native platform.
 //
@@ -60,7 +68,7 @@ func (c *Controller) BuildManifests(
 //
 // If the targets list is empty, builds all targets.
 // If targetsOverride is specified, it overrides the targets field in all build configs.
-func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []string, buildType bldr_manifest.BuildType, targetsOverride []string) error {
+func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []string, buildType bldr_manifest.BuildType, targetsOverride []string, buildPolicyOverride *manifest_build.BuildPolicy) error {
 	conf := c.conf.Load()
 	projConfig := conf.GetProjectConfig()
 	buildTargets := projConfig.GetBuild()
@@ -73,26 +81,25 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 		}
 
 		buildTarget := buildTargets[target]
-		platformIDs, err := ResolveBuildConfigPlatformIDs(buildTarget, targetsOverride)
+		resolved, err := ResolveBuildTarget(buildTarget, targetsOverride, buildPolicyOverride)
 		if err != nil {
 			return err
 		}
+		platformIDs := resolved.PlatformIDs
 
-		manifestOverrides := buildTarget.GetManifestOverrides()
 		err = ForManifestSelector(
 			buildTarget.GetManifests(),
 			platformIDs,
 			func(manifestID, platformID string) (bool, error) {
-				mbc := NewManifestBuilderConfigWithTargetPlatforms(
+				mbc := newBuildTargetManifestBuilderConfig(
 					manifestID,
-					string(buildType),
 					platformID,
 					remote,
+					buildType,
 					platformIDs,
+					resolved.BuildPolicy,
+					buildTarget.GetManifestOverrides(),
 				)
-				if override := manifestOverrides[manifestID]; override != nil {
-					mbc.BuilderConfigOverride = override.CloneVT()
-				}
 				c.addManifestBuilderBuildTarget(mbc, target)
 				manifestBuilderConfs = append(manifestBuilderConfs, mbc)
 				return true, nil
@@ -105,6 +112,45 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 
 	_, _, err := c.BuildManifestBuilderConfigs(ctx, manifestBuilderConfs)
 	return err
+}
+
+// ResolveBuildTarget resolves a build target with command-line overrides.
+func ResolveBuildTarget(buildConfig *bldr_project.BuildConfig, targetsOverride []string, buildPolicyOverride *manifest_build.BuildPolicy) (*ResolvedBuildTarget, error) {
+	platformIDs, err := ResolveBuildConfigPlatformIDs(buildConfig, targetsOverride)
+	if err != nil {
+		return nil, err
+	}
+	buildPolicy := buildConfig.GetBuildPolicy().Merge(buildPolicyOverride)
+	if err := buildPolicy.Validate(); err != nil {
+		return nil, err
+	}
+	return &ResolvedBuildTarget{
+		PlatformIDs: platformIDs,
+		BuildPolicy: buildPolicy,
+	}, nil
+}
+
+func newBuildTargetManifestBuilderConfig(
+	manifestID string,
+	platformID string,
+	remote string,
+	buildType bldr_manifest.BuildType,
+	targetPlatformIDs []string,
+	buildPolicy *manifest_build.BuildPolicy,
+	manifestOverrides map[string]*configset_proto.ControllerConfig,
+) *ManifestBuilderConfig {
+	mbc := NewManifestBuilderConfigWithTargetPlatforms(
+		manifestID,
+		string(buildType),
+		platformID,
+		remote,
+		targetPlatformIDs,
+	)
+	mbc.BuildPolicy = buildPolicy.CloneVT()
+	if override := manifestOverrides[manifestID]; override != nil {
+		mbc.BuilderConfigOverride = override.CloneVT()
+	}
+	return mbc
 }
 
 // ResolveBuildConfigPlatformIDs resolves the platform IDs for a BuildConfig.

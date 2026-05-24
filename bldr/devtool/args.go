@@ -58,6 +58,10 @@ type DevtoolArgs struct {
 	BuildType string
 	// MinifyEntrypoint configures if we will minify the entrypoint files.
 	MinifyEntrypoint bool
+	// JSMinification controls build-scoped JavaScript minification.
+	JSMinification string
+	// JSSourcemaps controls build-scoped JavaScript sourcemap emission.
+	JSSourcemaps string
 	// WebListenAddr is the address to listen for start:web
 	WebListenAddr string
 	// WebUseWasm runs the entire runtime in the browser with wasm.
@@ -129,6 +133,8 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.UseGitRoot = true
 	a.WebListenAddr = "127.0.0.1:8080"
 	a.MinifyEntrypoint = true
+	a.JSMinification = "default"
+	a.JSSourcemaps = "default"
 	a.Watch = true
 	if a.TUIRunner == nil {
 		a.TUIRunner = NewDevtoolTUIRunner()
@@ -221,6 +227,20 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			EnvVars:     []string{"BLDR_BUILD_TYPE"},
 			Value:       a.BuildType,
 			Destination: &a.BuildType,
+		},
+		&cli.StringFlag{
+			Name:        "js-minification",
+			Usage:       "JavaScript minification policy: default, enable, or disable",
+			EnvVars:     []string{"BLDR_JS_MINIFICATION"},
+			Value:       a.JSMinification,
+			Destination: &a.JSMinification,
+		},
+		&cli.StringFlag{
+			Name:        "js-sourcemaps",
+			Usage:       "JavaScript sourcemap policy: default, enable, or disable",
+			EnvVars:     []string{"BLDR_JS_SOURCEMAPS"},
+			Value:       a.JSSourcemaps,
+			Destination: &a.JSSourcemaps,
 		},
 
 		&cli.StringFlag{
@@ -460,6 +480,9 @@ func (a *DevtoolArgs) Validate() error {
 		if !strings.HasPrefix(a.BldrSrcPath, ".") {
 			return errors.New("bldr-src-path must be a relative path")
 		}
+	}
+	if _, err := a.BuildPolicyOverride(); err != nil {
+		return err
 	}
 	// more?
 	return nil

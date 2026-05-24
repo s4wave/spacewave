@@ -91,6 +91,9 @@ func (m *ManifestBuilderConfig) Validate() error {
 	if err := bldr_manifest.ValidateManifestID(m.GetManifestId(), false); err != nil {
 		return err
 	}
+	if err := m.GetBuildPolicy().Validate(); err != nil {
+		return err
+	}
 	if m.GetPlatformId() == "" {
 		return bldr_manifest.ErrEmptyPlatformID
 	}
@@ -305,6 +308,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		WorkingPath:       buildWorkingPath,
 		SourcePath:        ctrlConf.GetSourcePath(),
 		TargetPlatformIds: t.conf.GetTargetPlatformIds(),
+		BuildPolicy:       t.conf.GetBuildPolicy().CloneVT(),
 	}
 	builderConf := manifest_builder_controller.NewConfig(
 		manifestBuilderConf,

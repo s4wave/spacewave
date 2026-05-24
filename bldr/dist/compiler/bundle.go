@@ -24,6 +24,7 @@ import (
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	dist_compiler_bundle "github.com/s4wave/spacewave/bldr/dist/compiler/bundle"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_build "github.com/s4wave/spacewave/bldr/manifest/build"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	bldr_compress "github.com/s4wave/spacewave/bldr/util/compress"
@@ -60,6 +61,7 @@ func BuildDistBundle(
 	outBinName string,
 	meta *bldr_dist.DistMeta,
 	buildType bldr_manifest.BuildType,
+	buildPolicy *bldr_manifest_build.BuildPolicy,
 	buildPlatform bldr_platform.Platform,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	initEmbeddedWorld func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error,
@@ -70,13 +72,18 @@ func BuildDistBundle(
 ) error {
 	isRelease := buildType.IsRelease()
 	isWebPlatform := bldr_platform.IsWebPlatform(buildPlatform)
+	jsMinify := buildPolicy.ResolveJsMinification(buildType)
+	jsSourcemaps := buildPolicy.ResolveJsSourcemaps(buildType)
 
 	// disable cgo on default
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	tinygoDefault := false
-	enableTinygo, err := gocompiler.ResolveTinyGoEnabled(buildPlatform, enableTinygoOpt, isWebPlatform && isRelease && tinygoDefault)
+	enableTinygo, err := gocompiler.ResolveTinyGoEnabled(
+		buildPlatform,
+		enableTinygoOpt,
+		false,
+	)
 	if err != nil {
 		return err
 	}
@@ -383,7 +390,8 @@ func BuildDistBundle(
 			entrypointToRootPrefix+"shw.mjs",
 			webStartupSrcPath, // startupPath
 			entrypointHash,
-			isRelease,                   // minify
+			jsMinify,                    // minify
+			jsSourcemaps,                // sourcemaps
 			false,                       // devMode
 			false,                       // forceDedicatedWorkers
 			forceMessagePortWorkerComms, // forceMessagePortWorkerComms
@@ -403,7 +411,8 @@ func BuildDistBundle(
 			le,
 			distSrcPath,
 			outEntryDir,
-			buildType,
+			jsMinify,
+			jsSourcemaps,
 			enableTinygo,
 			outWasmRelPath,
 		)

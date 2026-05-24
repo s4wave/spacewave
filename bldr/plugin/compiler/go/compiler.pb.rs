@@ -76,9 +76,9 @@ pub struct Config {
     #[prost(enumeration="super::super::super::super::enabled::Enabled", tag="9")]
     pub enable_cgo: i32,
     /// EnableTinygo enables using TinyGo instead of the Go compiler.
-    /// Explicit enable is experimental and only supported for TinyGo-compatible
-    /// WebAssembly targets such as web/js/wasm. The default remains the standard
-    /// Go compiler until the browser plugin product proof passes.
+    /// The default is ENABLE for release browser WebAssembly builds and DISABLE
+    /// otherwise. Explicit ENABLE is only supported for TinyGo-compatible
+    /// WebAssembly targets such as web/js/wasm.
     #[prost(enumeration="super::super::super::super::enabled::Enabled", tag="10")]
     pub enable_tinygo: i32,
     /// EnableCompression can optionally force-enable or force-disable binary compression.

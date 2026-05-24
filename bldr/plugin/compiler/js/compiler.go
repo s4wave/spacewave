@@ -142,6 +142,8 @@ func (c *Controller) BuildManifest(
 	// sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	isRelease := buildType.IsRelease()
+	jsMinification := builderConf.GetBuildPolicy().ResolveJsMinification(buildType)
+	jsSourcemaps := builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType)
 
 	le := c.GetLogger().
 		WithField("manifest-id", manifestID).
@@ -446,7 +448,7 @@ func (c *Controller) BuildManifest(
 	entrypointOutputBase := "plugin" // plugin-HASH.mjs
 
 	// Configure esbuild options for the plugin entrypoint
-	buildOptions := entrypoint_browser_bundle.BrowserBuildOpts(distSourcePath, isRelease)
+	buildOptions := entrypoint_browser_bundle.BrowserBuildOpts(distSourcePath, jsMinification, jsSourcemaps)
 
 	// Override/set specific fields for this entrypoint build.
 	buildOptions.Outdir = outDistPath         // Write assets to the output directory.
@@ -458,10 +460,12 @@ func (c *Controller) BuildManifest(
 			OutputPath: entrypointOutputBase, // Define the output structure (name part, hash added by EntryNames).
 		},
 	}
-	buildOptions.Define = defines                        // Inject backend/frontend entrypoint paths.
-	buildOptions.Metafile = true                         // Enable metafile to find the hashed output path.
-	buildOptions.Splitting = false                       // Do not split code for this simple entrypoint.
-	buildOptions.Sourcemap = esbuild_api.SourceMapInline // Inline sourcemap for easier debugging.
+	buildOptions.Define = defines  // Inject backend/frontend entrypoint paths.
+	buildOptions.Metafile = true   // Enable metafile to find the hashed output path.
+	buildOptions.Splitting = false // Do not split code for this simple entrypoint.
+	if jsSourcemaps {
+		buildOptions.Sourcemap = esbuild_api.SourceMapInline // Inline sourcemap for easier debugging.
+	}
 	buildOptions.Write = true
 	buildOptions.NodePaths = []string{distDepsNodeModules}
 

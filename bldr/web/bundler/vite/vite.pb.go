@@ -77,6 +77,10 @@ type BuildRequest struct {
 	ExternalPkgs []string `protobuf:"bytes,9,rep,name=external_pkgs,json=externalPkgs,proto3" json:"externalPkgs,omitempty"`
 	// WebPkgs is the list of packages to be externalized as shared web pkgs.
 	WebPkgs []*bundler.WebPkgRefConfig `protobuf:"bytes,10,rep,name=web_pkgs,json=webPkgs,proto3" json:"webPkgs,omitempty"`
+	// JsMinification controls JavaScript minification for this build.
+	JsMinification bool `protobuf:"varint,11,opt,name=js_minification,json=jsMinification,proto3" json:"jsMinification,omitempty"`
+	// JsSourcemaps controls JavaScript sourcemap output for this build.
+	JsSourcemaps bool `protobuf:"varint,12,opt,name=js_sourcemaps,json=jsSourcemaps,proto3" json:"jsSourcemaps,omitempty"`
 }
 
 func (x *BuildRequest) Reset() {
@@ -153,6 +157,20 @@ func (x *BuildRequest) GetWebPkgs() []*bundler.WebPkgRefConfig {
 		return x.WebPkgs
 	}
 	return nil
+}
+
+func (x *BuildRequest) GetJsMinification() bool {
+	if x != nil {
+		return x.JsMinification
+	}
+	return false
+}
+
+func (x *BuildRequest) GetJsSourcemaps() bool {
+	if x != nil {
+		return x.JsSourcemaps
+	}
+	return false
 }
 
 // ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
@@ -349,6 +367,10 @@ type BuildWebPkgRequest struct {
 	IsRelease bool `protobuf:"varint,8,opt,name=is_release,json=isRelease,proto3" json:"isRelease,omitempty"`
 	// CacheDir is the cache directory for the build.
 	CacheDir string `protobuf:"bytes,9,opt,name=cache_dir,json=cacheDir,proto3" json:"cacheDir,omitempty"`
+	// JsMinification controls JavaScript minification for this build.
+	JsMinification bool `protobuf:"varint,10,opt,name=js_minification,json=jsMinification,proto3" json:"jsMinification,omitempty"`
+	// JsSourcemaps controls JavaScript sourcemap output for this build.
+	JsSourcemaps bool `protobuf:"varint,11,opt,name=js_sourcemaps,json=jsSourcemaps,proto3" json:"jsSourcemaps,omitempty"`
 }
 
 func (x *BuildWebPkgRequest) Reset() {
@@ -418,6 +440,20 @@ func (x *BuildWebPkgRequest) GetCacheDir() string {
 		return x.CacheDir
 	}
 	return ""
+}
+
+func (x *BuildWebPkgRequest) GetJsMinification() bool {
+	if x != nil {
+		return x.JsMinification
+	}
+	return false
+}
+
+func (x *BuildWebPkgRequest) GetJsSourcemaps() bool {
+	if x != nil {
+		return x.JsSourcemaps
+	}
+	return false
 }
 
 // BuildWebPkgResponse is the response from building a single web package.
@@ -529,6 +565,8 @@ func (m *BuildRequest) CloneVT() *BuildRequest {
 	r.CacheDir = m.CacheDir
 	r.DistDir = m.DistDir
 	r.PublicPath = m.PublicPath
+	r.JsMinification = m.JsMinification
+	r.JsSourcemaps = m.JsSourcemaps
 	if rhs := m.ConfigPaths; rhs != nil {
 		r.ConfigPaths = slices.Clone(rhs)
 	}
@@ -660,6 +698,8 @@ func (m *BuildWebPkgRequest) CloneVT() *BuildWebPkgRequest {
 	r.WebPkgBasePath = m.WebPkgBasePath
 	r.IsRelease = m.IsRelease
 	r.CacheDir = m.CacheDir
+	r.JsMinification = m.JsMinification
+	r.JsSourcemaps = m.JsSourcemaps
 	if rhs := m.Imports; rhs != nil {
 		r.Imports = slices.Clone(rhs)
 	}
@@ -829,6 +869,12 @@ func (this *BuildRequest) EqualVT(that *BuildRequest) bool {
 				return false
 			}
 		}
+	}
+	if this.JsMinification != that.JsMinification {
+		return false
+	}
+	if this.JsSourcemaps != that.JsSourcemaps {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1054,6 +1100,12 @@ func (this *BuildWebPkgRequest) EqualVT(that *BuildWebPkgRequest) bool {
 	if this.CacheDir != that.CacheDir {
 		return false
 	}
+	if this.JsMinification != that.JsMinification {
+		return false
+	}
+	if this.JsSourcemaps != that.JsSourcemaps {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1269,6 +1321,16 @@ func (x *BuildRequest) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.JsMinification || s.HasField("jsMinification") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("jsMinification")
+		s.WriteBool(x.JsMinification)
+	}
+	if x.JsSourcemaps || s.HasField("jsSourcemaps") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("jsSourcemaps")
+		s.WriteBool(x.JsSourcemaps)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1354,6 +1416,12 @@ func (x *BuildRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.WebPkgs = append(x.WebPkgs, v)
 			})
+		case "js_minification", "jsMinification":
+			s.AddField("js_minification")
+			x.JsMinification = s.ReadBool()
+		case "js_sourcemaps", "jsSourcemaps":
+			s.AddField("js_sourcemaps")
+			x.JsSourcemaps = s.ReadBool()
 		}
 	})
 }
@@ -1722,6 +1790,16 @@ func (x *BuildWebPkgRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cacheDir")
 		s.WriteString(x.CacheDir)
 	}
+	if x.JsMinification || s.HasField("jsMinification") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("jsMinification")
+		s.WriteBool(x.JsMinification)
+	}
+	if x.JsSourcemaps || s.HasField("jsSourcemaps") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("jsSourcemaps")
+		s.WriteBool(x.JsSourcemaps)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1778,6 +1856,12 @@ func (x *BuildWebPkgRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "cache_dir", "cacheDir":
 			s.AddField("cache_dir")
 			x.CacheDir = s.ReadString()
+		case "js_minification", "jsMinification":
+			s.AddField("js_minification")
+			x.JsMinification = s.ReadBool()
+		case "js_sourcemaps", "jsSourcemaps":
+			s.AddField("js_sourcemaps")
+			x.JsSourcemaps = s.ReadBool()
 		}
 	})
 }
@@ -2013,6 +2097,26 @@ func (m *BuildRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.JsSourcemaps {
+		i--
+		if m.JsSourcemaps {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.JsMinification {
+		i--
+		if m.JsMinification {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
 	}
 	if len(m.WebPkgs) > 0 {
 		for iNdEx := len(m.WebPkgs) - 1; iNdEx >= 0; iNdEx-- {
@@ -2382,6 +2486,26 @@ func (m *BuildWebPkgRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.JsSourcemaps {
+		i--
+		if m.JsSourcemaps {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.JsMinification {
+		i--
+		if m.JsMinification {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
 	if len(m.CacheDir) > 0 {
 		i -= len(m.CacheDir)
 		copy(dAtA[i:], m.CacheDir)
@@ -2653,6 +2777,12 @@ func (m *BuildRequest) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.JsMinification {
+		n += 2
+	}
+	if m.JsSourcemaps {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2810,6 +2940,12 @@ func (m *BuildWebPkgRequest) SizeVT() (n int) {
 	l = len(m.CacheDir)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.JsMinification {
+		n += 2
+	}
+	if m.JsSourcemaps {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2996,6 +3132,20 @@ func (x *BuildRequest) MarshalProtoText() string {
 			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString("]")
+	}
+	if x.JsMinification != false {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("js_minification: ")
+		sb.WriteString(strconv.FormatBool(x.JsMinification))
+	}
+	if x.JsSourcemaps != false {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("js_sourcemaps: ")
+		sb.WriteString(strconv.FormatBool(x.JsSourcemaps))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3266,6 +3416,20 @@ func (x *BuildWebPkgRequest) MarshalProtoText() string {
 		}
 		sb.WriteString("cache_dir: ")
 		sb.WriteString(strconv.Quote(x.CacheDir))
+	}
+	if x.JsMinification != false {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("js_minification: ")
+		sb.WriteString(strconv.FormatBool(x.JsMinification))
+	}
+	if x.JsSourcemaps != false {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("js_sourcemaps: ")
+		sb.WriteString(strconv.FormatBool(x.JsSourcemaps))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3708,6 +3872,30 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JsMinification", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.JsMinification = bool(v != 0)
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JsSourcemaps", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.JsSourcemaps = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -4417,6 +4605,30 @@ func (m *BuildWebPkgRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.CacheDir = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JsMinification", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.JsMinification = bool(v != 0)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JsSourcemaps", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.JsSourcemaps = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

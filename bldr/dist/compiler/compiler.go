@@ -413,6 +413,7 @@ func (c *Controller) BuildManifest(
 		entrypointFilename,
 		distMeta,
 		buildType,
+		builderConf.GetBuildPolicy(),
 		buildPlatform,
 		hostConfigSet,
 		initEmbeddedWorld,

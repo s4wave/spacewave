@@ -28,6 +28,9 @@ func (c *BuilderConfig) Validate() error {
 	if err := c.GetManifestMeta().Validate(false); err != nil {
 		return err
 	}
+	if err := c.GetBuildPolicy().Validate(); err != nil {
+		return err
+	}
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}

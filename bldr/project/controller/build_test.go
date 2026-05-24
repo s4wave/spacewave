@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/util/enabled"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	manifest_build "github.com/s4wave/spacewave/bldr/manifest/build"
 	manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
@@ -116,27 +119,29 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 	manifestOverrides := map[string]*configset_proto.ControllerConfig{
 		"spacewave-dist": override,
 	}
+	buildPolicy := manifest_build.NewBuildPolicy(enabled.Enabled_DISABLE, enabled.Enabled_ENABLE)
 
 	var gotOverride *configset_proto.ControllerConfig
+	var gotPolicy *manifest_build.BuildPolicy
 	err := ForManifestSelector(
 		[]string{"spacewave-dist", "spacewave-launcher"},
 		platformIDs,
 		func(manifestID, platformID string) (bool, error) {
-			mbc := NewManifestBuilderConfigWithTargetPlatforms(
+			mbc := newBuildTargetManifestBuilderConfig(
 				manifestID,
-				"release",
 				platformID,
 				"devtool",
+				bldr_manifest.BuildType_RELEASE,
 				platformIDs,
+				buildPolicy,
+				manifestOverrides,
 			)
-			if o := manifestOverrides[manifestID]; o != nil {
-				mbc.BuilderConfigOverride = o.CloneVT()
-			}
 			if manifestID == "spacewave-dist" {
 				gotOverride = mbc.GetBuilderConfigOverride()
 			} else if mbc.GetBuilderConfigOverride() != nil {
 				t.Fatalf("unexpected override for manifest %s", manifestID)
 			}
+			gotPolicy = mbc.GetBuildPolicy()
 			return true, nil
 		},
 	)
@@ -152,6 +157,51 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 	// CloneVT must decouple the override from the source map.
 	if gotOverride == override {
 		t.Fatal("override should be cloned, not aliased")
+	}
+	if gotPolicy.GetJsMinification() != enabled.Enabled_DISABLE {
+		t.Fatalf("js_minification: got %s, want DISABLE", gotPolicy.GetJsMinification())
+	}
+	if gotPolicy == buildPolicy {
+		t.Fatal("build policy should be cloned, not aliased")
+	}
+}
+
+func TestResolveBuildTargetMergesBuildPolicy(t *testing.T) {
+	buildTarget := &bldr_project.BuildConfig{
+		Targets: []string{"browser"},
+		BuildPolicy: manifest_build.NewBuildPolicy(
+			enabled.Enabled_ENABLE,
+			enabled.Enabled_DISABLE,
+		),
+	}
+	override := manifest_build.NewBuildPolicy(
+		enabled.Enabled_DISABLE,
+		enabled.Enabled_DEFAULT,
+	)
+
+	resolved, err := ResolveBuildTarget(buildTarget, nil, override)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.BuildPolicy.GetJsMinification() != enabled.Enabled_DISABLE {
+		t.Fatalf("js_minification: got %s, want DISABLE", resolved.BuildPolicy.GetJsMinification())
+	}
+	if resolved.BuildPolicy.GetJsSourcemaps() != enabled.Enabled_DISABLE {
+		t.Fatalf("js_sourcemaps: got %s, want DISABLE", resolved.BuildPolicy.GetJsSourcemaps())
+	}
+	if len(resolved.PlatformIDs) == 0 {
+		t.Fatal("expected platform ids from browser target")
+	}
+}
+
+func TestResolveBuildTargetRejectsInvalidBuildPolicy(t *testing.T) {
+	buildTarget := &bldr_project.BuildConfig{
+		Targets:     []string{"browser"},
+		BuildPolicy: manifest_build.NewBuildPolicy(enabled.Enabled(99), enabled.Enabled_DEFAULT),
+	}
+
+	if _, err := ResolveBuildTarget(buildTarget, nil, nil); err == nil {
+		t.Fatal("expected invalid build policy error")
 	}
 }
 

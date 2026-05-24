@@ -35,7 +35,7 @@ var EsbuildLogLevel = esbuild.LogLevelWarning
 
 // SaucerBuildOpts are general options for building for Saucer.
 func SaucerBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildOptions {
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify)
+	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify, !minify)
 	opts.Define = SaucerDefine(devMode)
 	opts.LogLevel = EsbuildLogLevel
 	return opts
@@ -60,6 +60,7 @@ func BuildSaucerJSBundle(
 	bldrDistRoot,
 	buildDir string,
 	minify bool,
+	sourcemaps bool,
 	importMap web_entrypoint_index.ImportMap,
 ) (*SaucerJSBundle, error) {
 	le.Debug("generating saucer JS runtime bundle")
@@ -88,7 +89,7 @@ func BuildSaucerJSBundle(
 	// Use external packages - they will be loaded via import map from /b/pkg/
 	entrypointOpts.External = slices.Clone(web_pkg_external.BldrExternal)
 
-	if !minify {
+	if sourcemaps {
 		entrypointOpts.Sourcemap = esbuild.SourceMapInline
 	} else {
 		entrypointOpts.Sourcemap = esbuild.SourceMapNone

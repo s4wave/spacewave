@@ -50,7 +50,7 @@ func TestBrowserBuildOptsResolvesGoVendorImportsFromNestedDir(t *testing.T) {
 	}
 
 	outFile := filepath.Join(projectRoot, "out.js")
-	opts := BrowserBuildOpts(workingDir, false)
+	opts := BrowserBuildOpts(workingDir, false, true)
 	opts.EntryPoints = []string{"entry.ts"}
 	opts.Outfile = outFile
 	opts.Write = true
@@ -73,14 +73,38 @@ func TestBrowserBuildOptsResolvesGoVendorImportsFromNestedDir(t *testing.T) {
 }
 
 func TestServiceWorkerBuildOptsBuildsClassicScript(t *testing.T) {
-	opts := ServiceWorkerBuildOpts(t.TempDir(), false, true)
+	opts := ServiceWorkerBuildOpts(t.TempDir(), false, true, true)
 	if opts.Format != esbuild.FormatIIFE {
 		t.Fatalf("service worker format=%v want %v", opts.Format, esbuild.FormatIIFE)
 	}
 }
 
+func TestBrowserBuildOptsAppliesReadableJavaScriptPolicy(t *testing.T) {
+	readable := BrowserBuildOpts(t.TempDir(), false, false)
+	if readable.MinifyWhitespace || readable.MinifyIdentifiers || readable.MinifySyntax {
+		t.Fatalf("readable opts minified: whitespace=%v identifiers=%v syntax=%v", readable.MinifyWhitespace, readable.MinifyIdentifiers, readable.MinifySyntax)
+	}
+	if readable.Sourcemap != esbuild.SourceMapNone {
+		t.Fatalf("readable opts sourcemap=%v want none", readable.Sourcemap)
+	}
+	if readable.TreeShaking != esbuild.TreeShakingTrue {
+		t.Fatalf("readable opts tree shaking=%v want true", readable.TreeShaking)
+	}
+
+	minifiedWithMaps := BrowserBuildOpts(t.TempDir(), true, true)
+	if !minifiedWithMaps.MinifyWhitespace || !minifiedWithMaps.MinifyIdentifiers || !minifiedWithMaps.MinifySyntax {
+		t.Fatalf("minified opts not fully minified: whitespace=%v identifiers=%v syntax=%v", minifiedWithMaps.MinifyWhitespace, minifiedWithMaps.MinifyIdentifiers, minifiedWithMaps.MinifySyntax)
+	}
+	if minifiedWithMaps.Sourcemap != esbuild.SourceMapLinked {
+		t.Fatalf("minified opts sourcemap=%v want linked", minifiedWithMaps.Sourcemap)
+	}
+	if minifiedWithMaps.TreeShaking != esbuild.TreeShakingTrue {
+		t.Fatalf("minified opts tree shaking=%v want true", minifiedWithMaps.TreeShaking)
+	}
+}
+
 func TestApplyTinyGoNodeFallbacks(t *testing.T) {
-	opts := BrowserBuildOpts(t.TempDir(), false)
+	opts := BrowserBuildOpts(t.TempDir(), false, true)
 	ApplyTinyGoNodeFallbacks(&opts)
 
 	for _, module := range []string{

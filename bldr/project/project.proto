@@ -2,6 +2,7 @@ syntax = "proto3";
 package bldr.project;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/bldr/manifest/build/policy.proto";
 import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "google/protobuf/timestamp.proto";
@@ -92,6 +93,10 @@ message BuildConfig {
   // so a single dist manifest declaration can be reused across release
   // targets that ship different platform-specific payloads.
   map<string, .configset.proto.ControllerConfig> manifest_overrides = 4;
+  // BuildPolicy configures build-scoped behavior shared by every Manifest
+  // builder slot produced for this build target. CLI policy overrides are
+  // merged on top using enabled.Enabled DEFAULT as "not set".
+  .bldr.manifest.build.BuildPolicy build_policy = 5;
 }
 
 // RemoteConfig configures a location where manifests and source can be stored.

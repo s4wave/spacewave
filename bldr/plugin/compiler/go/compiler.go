@@ -294,6 +294,8 @@ func (c *Controller) BuildManifest(
 			buildWorld,
 			buildHost,
 			buildType,
+			builderConf.GetBuildPolicy().ResolveJsMinification(buildType),
+			builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType),
 			buildPlatform,
 			outBinName,
 			workingPath,
@@ -374,6 +376,8 @@ func (c *Controller) BuildPlugin(
 	buildWorld world.Engine,
 	buildHost bldr_manifest_builder.BuildManifestHost,
 	buildType bldr_manifest.BuildType,
+	jsMinification bool,
+	jsSourcemaps bool,
 	buildPlatform bldr_platform.Platform,
 	outBinName,
 	workingPath,
@@ -411,8 +415,11 @@ func (c *Controller) BuildPlugin(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default (isRelease means default value depends on release mode)
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	tinygoDefault := false
-	enableTinygo, err := gocompiler.ResolveTinyGoEnabled(buildPlatform, enableTinygoOpt, isWebBuildPlatform && isRelease && tinygoDefault)
+	enableTinygo, err := gocompiler.ResolveTinyGoEnabled(
+		buildPlatform,
+		enableTinygoOpt,
+		isWebBuildPlatform && gocompiler.DefaultTinyGoEnabled(buildPlatform, isRelease),
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -733,7 +740,7 @@ func (c *Controller) BuildPlugin(
 	if len(webPkgRefs) == 0 && len(webPkgs) != 0 {
 		le.Debug("building web packages directly (no esbuild/vite sub-manifests)")
 		directRefs, directSrcFiles, _, err := bldr_plugin_compiler.BuildDirectWebPkgs(
-			ctx, le, distSourcePath, sourcePath, workingPath, outAssetsPath, isRelease,
+			ctx, le, distSourcePath, sourcePath, workingPath, outAssetsPath, isRelease, jsMinification, jsSourcemaps,
 		)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "build direct web packages")
@@ -891,7 +898,8 @@ func (c *Controller) BuildPlugin(
 			outScriptPath,
 			outBinName,
 			enableTinygo,
-			isRelease,
+			jsMinification,
+			jsSourcemaps,
 		)
 		if err != nil {
 			return nil, nil, err

@@ -1397,6 +1397,8 @@ class BuildWebPkgRequest final : public ::google::protobuf::Message
     kWebPkgBasePathFieldNumber = 7,
     kCacheDirFieldNumber = 9,
     kIsReleaseFieldNumber = 8,
+    kJsMinificationFieldNumber = 10,
+    kJsSourcemapsFieldNumber = 11,
   };
   // repeated string imports = 3;
   int imports_size() const;
@@ -1549,11 +1551,31 @@ class BuildWebPkgRequest final : public ::google::protobuf::Message
   void _internal_set_is_release(bool value);
 
   public:
+  // bool js_minification = 10;
+  void clear_js_minification() ;
+  bool js_minification() const;
+  void set_js_minification(bool value);
+
+  private:
+  bool _internal_js_minification() const;
+  void _internal_set_js_minification(bool value);
+
+  public:
+  // bool js_sourcemaps = 11;
+  void clear_js_sourcemaps() ;
+  bool js_sourcemaps() const;
+  void set_js_sourcemaps(bool value);
+
+  private:
+  bool _internal_js_sourcemaps() const;
+  void _internal_set_js_sourcemaps(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.web.bundler.vite.BuildWebPkgRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
                                    0, 139,
                                    2>
       _table_;
@@ -1584,6 +1606,8 @@ class BuildWebPkgRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr web_pkg_base_path_;
     ::google::protobuf::internal::ArenaStringPtr cache_dir_;
     bool is_release_;
+    bool js_minification_;
+    bool js_sourcemaps_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2288,6 +2312,8 @@ class BuildRequest final : public ::google::protobuf::Message
     kCacheDirFieldNumber = 5,
     kDistDirFieldNumber = 6,
     kPublicPathFieldNumber = 7,
+    kJsMinificationFieldNumber = 11,
+    kJsSourcemapsFieldNumber = 12,
   };
   // repeated string config_paths = 1;
   int config_paths_size() const;
@@ -2457,11 +2483,31 @@ class BuildRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_public_path();
 
   public:
+  // bool js_minification = 11;
+  void clear_js_minification() ;
+  bool js_minification() const;
+  void set_js_minification(bool value);
+
+  private:
+  bool _internal_js_minification() const;
+  void _internal_set_js_minification(bool value);
+
+  public:
+  // bool js_sourcemaps = 12;
+  void clear_js_sourcemaps() ;
+  bool js_sourcemaps() const;
+  void set_js_sourcemaps(bool value);
+
+  private:
+  bool _internal_js_sourcemaps() const;
+  void _internal_set_js_sourcemaps(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.web.bundler.vite.BuildRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 10,
+  static const ::google::protobuf::internal::TcParseTable<4, 12,
                                    2, 123,
                                    2>
       _table_;
@@ -2493,6 +2539,8 @@ class BuildRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr cache_dir_;
     ::google::protobuf::internal::ArenaStringPtr dist_dir_;
     ::google::protobuf::internal::ArenaStringPtr public_path_;
+    bool js_minification_;
+    bool js_sourcemaps_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3361,6 +3409,56 @@ inline ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::WebPkgRefConfi
 BuildRequest::_internal_mutable_web_pkgs() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.web_pkgs_;
+}
+
+// bool js_minification = 11;
+inline void BuildRequest::clear_js_minification() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.js_minification_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline bool BuildRequest::js_minification() const {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildRequest.js_minification)
+  return _internal_js_minification();
+}
+inline void BuildRequest::set_js_minification(bool value) {
+  _internal_set_js_minification(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildRequest.js_minification)
+}
+inline bool BuildRequest::_internal_js_minification() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.js_minification_;
+}
+inline void BuildRequest::_internal_set_js_minification(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.js_minification_ = value;
+}
+
+// bool js_sourcemaps = 12;
+inline void BuildRequest::clear_js_sourcemaps() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.js_sourcemaps_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline bool BuildRequest::js_sourcemaps() const {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildRequest.js_sourcemaps)
+  return _internal_js_sourcemaps();
+}
+inline void BuildRequest::set_js_sourcemaps(bool value) {
+  _internal_set_js_sourcemaps(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildRequest.js_sourcemaps)
+}
+inline bool BuildRequest::_internal_js_sourcemaps() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.js_sourcemaps_;
+}
+inline void BuildRequest::_internal_set_js_sourcemaps(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.js_sourcemaps_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -4827,6 +4925,56 @@ inline void BuildWebPkgRequest::set_allocated_cache_dir(::std::string* PROTOBUF_
     _impl_.cache_dir_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:bldr.web.bundler.vite.BuildWebPkgRequest.cache_dir)
+}
+
+// bool js_minification = 10;
+inline void BuildWebPkgRequest::clear_js_minification() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.js_minification_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline bool BuildWebPkgRequest::js_minification() const {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.js_minification)
+  return _internal_js_minification();
+}
+inline void BuildWebPkgRequest::set_js_minification(bool value) {
+  _internal_set_js_minification(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.js_minification)
+}
+inline bool BuildWebPkgRequest::_internal_js_minification() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.js_minification_;
+}
+inline void BuildWebPkgRequest::_internal_set_js_minification(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.js_minification_ = value;
+}
+
+// bool js_sourcemaps = 11;
+inline void BuildWebPkgRequest::clear_js_sourcemaps() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.js_sourcemaps_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline bool BuildWebPkgRequest::js_sourcemaps() const {
+  // @@protoc_insertion_point(field_get:bldr.web.bundler.vite.BuildWebPkgRequest.js_sourcemaps)
+  return _internal_js_sourcemaps();
+}
+inline void BuildWebPkgRequest::set_js_sourcemaps(bool value) {
+  _internal_set_js_sourcemaps(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:bldr.web.bundler.vite.BuildWebPkgRequest.js_sourcemaps)
+}
+inline bool BuildWebPkgRequest::_internal_js_sourcemaps() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.js_sourcemaps_;
+}
+inline void BuildWebPkgRequest::_internal_set_js_sourcemaps(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.js_sourcemaps_ = value;
 }
 
 // -------------------------------------------------------------------

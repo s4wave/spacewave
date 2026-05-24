@@ -127,8 +127,16 @@ func ExecBuildEntrypoint(
 	// post-processing in release mode
 	if isWasmOutput && isRelease {
 		if useTinygo {
-			if err := opt_wasm.StripWasmDebugSections(ctx, le, workingPath, outBinPath); err != nil {
+			tinygoDebugInfo, err := TinyGoDebugInfoEnabled()
+			if err != nil {
 				return err
+			}
+			if tinygoDebugInfo {
+				le.Info("kept TinyGo wasm debug sections")
+			} else {
+				if err := opt_wasm.StripWasmDebugSections(ctx, le, workingPath, outBinPath); err != nil {
+					return err
+				}
 			}
 		} else {
 			if err := opt_wasm.OptimizeWasmBinary(ctx, le, workingPath, outBinPath); err != nil {
@@ -156,6 +164,10 @@ func newTinyGoBuildArgs(
 	if err != nil {
 		return nil, err
 	}
+	tinygoDebugInfo, err := TinyGoDebugInfoEnabled()
+	if err != nil {
+		return nil, err
+	}
 
 	args := append([]string{
 		"build",
@@ -164,11 +176,12 @@ func newTinyGoBuildArgs(
 		"-target", tinygoPlat,
 	}, tinygoArgs...)
 
-	// if release or not native platform drop debugging symbols
-	if buildType.IsRelease() || buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_DESKTOP {
+	// Browser staging investigations sometimes need TinyGo DWARF symbols;
+	// otherwise release and non-native builds drop debug info to keep wasm small.
+	if !tinygoDebugInfo && (buildType.IsRelease() || buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_DESKTOP) {
 		args = append(args, "-no-debug")
 	}
-	if shouldSkipTinyGoInternalDWARF(buildPlatform, buildType) {
+	if !tinygoDebugInfo && shouldSkipTinyGoInternalDWARF(buildPlatform, buildType) {
 		args = append(args, tinyGoInternalNoDWARFArg)
 	}
 

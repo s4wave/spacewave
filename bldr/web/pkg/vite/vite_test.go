@@ -58,6 +58,8 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 		outDir,
 		"/b/pkg/",
 		false,
+		false,
+		true,
 		client,
 		filepath.Join(t.TempDir(), "cache"),
 	)
@@ -106,6 +108,8 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 		outDir,
 		"/b/pkg/",
 		false,
+		false,
+		true,
 		client,
 		filepath.Join(t.TempDir(), "cache"),
 	)
@@ -134,5 +138,51 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 	}
 	if strings.Contains(filepath.ToSlash(wrapperPath), "/cjs-pkg/index.mjs") {
 		t.Fatalf("wrapper path %s includes package id in entrypoint name", wrapperPath)
+	}
+}
+
+func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
+	codeRootPath := t.TempDir()
+	pkgRoot := filepath.Join(codeRootPath, "node_modules", "policy-pkg")
+	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	client := &fakeViteBundlerClient{
+		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
+	}
+
+	_, _, _, err := BuildWebPkgsVite(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		codeRootPath,
+		[]*web_pkg.WebPkgRef{{
+			WebPkgId:   "policy-pkg",
+			WebPkgRoot: pkgRoot,
+			Imports:    []string{"index.js"},
+		}},
+		filepath.Join(t.TempDir(), "out"),
+		"/b/pkg/",
+		true,
+		false,
+		true,
+		client,
+		filepath.Join(t.TempDir(), "cache"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(client.requests) != 1 {
+		t.Fatalf("unexpected request count: got %d want 1", len(client.requests))
+	}
+	req := client.requests[0]
+	if !req.GetIsRelease() {
+		t.Fatal("request did not preserve release mode")
+	}
+	if req.GetJsMinification() {
+		t.Fatal("request enabled JavaScript minification")
+	}
+	if !req.GetJsSourcemaps() {
+		t.Fatal("request did not enable JavaScript sourcemaps")
 	}
 }

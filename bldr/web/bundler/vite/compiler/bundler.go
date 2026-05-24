@@ -234,6 +234,8 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 // - outAssetsPath: output path for assets
 // - pluginID: identifier for the plugin
 // - isRelease: whether this is a release build
+// - jsMinification: whether to minify JavaScript
+// - jsSourcemaps: whether to emit JavaScript sourcemaps
 // Returns:
 // - Web package references used by the bundle
 // - Metadata about the Vite outputs
@@ -252,6 +254,8 @@ func BuildViteBundle(
 	outAssetsPath string,
 	pluginID string,
 	isRelease bool,
+	jsMinification bool,
+	jsSourcemaps bool,
 ) ([]*web_pkg.WebPkgRef, []*bldr_vite.ViteOutputMeta, []string, error) {
 	// outputs
 	var sourceFilesList []string
@@ -369,16 +373,18 @@ func BuildViteBundle(
 
 	// Run the build rpc
 	buildResp, err := viteBundler.Build(ctx, &bldr_vite.BuildRequest{
-		ConfigPaths:  viteConfigPaths,
-		Mode:         mode,
-		RootDir:      codeRootPath,
-		DistDir:      distSourcePath,
-		OutDir:       viteOutDir,
-		CacheDir:     cacheDir,
-		PublicPath:   publicPath,
-		Entrypoints:  entrypoints,
-		ExternalPkgs: viteBundleMeta.GetExternalPkgs(),
-		WebPkgs:      extWebPkgs,
+		ConfigPaths:    viteConfigPaths,
+		Mode:           mode,
+		RootDir:        codeRootPath,
+		DistDir:        distSourcePath,
+		OutDir:         viteOutDir,
+		CacheDir:       cacheDir,
+		PublicPath:     publicPath,
+		Entrypoints:    entrypoints,
+		ExternalPkgs:   viteBundleMeta.GetExternalPkgs(),
+		WebPkgs:        extWebPkgs,
+		JsMinification: jsMinification,
+		JsSourcemaps:   jsSourcemaps,
 	})
 	if ctx.Err() != nil {
 		return nil, nil, nil, context.Canceled

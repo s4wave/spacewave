@@ -37,7 +37,7 @@ var EsbuildLogLevel = esbuild.LogLevelWarning
 
 // ElectronBuildOpts are general options for building for Electron.
 func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildOptions {
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify)
+	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify, !minify)
 	opts.Define = ElectronDefine(devMode)
 	opts.External = []string{"electron"}
 	opts.LogLevel = EsbuildLogLevel
@@ -48,7 +48,7 @@ func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildO
 //
 // Returns the path to the service worker .mjs file
 func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
-	return entrypoint_browser_bundle.BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	return entrypoint_browser_bundle.BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, !minify, devMode)
 }
 
 // BuildPreloadBundle builds the web renderer bundle files.
@@ -197,7 +197,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 	}
 
 	// shared worker
-	shwFilename, err := entrypoint_browser_bundle.BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	shwFilename, err := entrypoint_browser_bundle.BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, !minify, devMode)
 	if err != nil {
 		return err
 	}
@@ -230,6 +230,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		entrypointDir,
 		"/entrypoint/", // set the pathPrefix to /entrypoint/ so web pkg paths are correct
 		minify,
+		!minify,
 		devMode,
 	)
 	if err != nil {

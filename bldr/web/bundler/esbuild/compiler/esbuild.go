@@ -29,7 +29,8 @@ import (
 // - outAssetsPath: output path for assets
 // - publicPath: public URL path prefix for assets
 // - inlineSourcemaps: whether to inline sourcemaps
-// - isRelease: whether this is a release build
+// - minify: whether to minify JavaScript
+// - sourcemaps: whether to emit sourcemaps
 // Returns:
 // - Web package references used by the bundle
 // - Metadata about the esbuild outputs
@@ -45,7 +46,8 @@ func BuildEsbuildBundle(
 	outAssetsPath string,
 	publicPath string,
 	inlineSourcemaps bool,
-	isRelease bool,
+	minify bool,
+	sourcemaps bool,
 ) ([]*web_pkg.WebPkgRef, []*bldr_web_bundler_esbuild.EsbuildOutputMeta, []string, error) {
 	var sourceFilesList []string
 	var webPkgRefs []*web_pkg.WebPkgRef
@@ -61,10 +63,11 @@ func BuildEsbuildBundle(
 		codeRootPath,
 		outAssetsPath,
 		publicPath,
-		isRelease,
+		minify,
+		sourcemaps,
 		true,
 	)
-	if inlineSourcemaps && !isRelease {
+	if inlineSourcemaps && sourcemaps {
 		buildOpts.Sourcemap = esbuild_api.SourceMapInlineAndExternal
 	}
 

@@ -30,6 +30,8 @@ func BuildDirectWebPkgs(
 	workingPath string,
 	outAssetsPath string,
 	isRelease bool,
+	jsMinification bool,
+	jsSourcemaps bool,
 ) (web_pkg.WebPkgRefSlice, []string, []web_pkg_vite.ImportMapEntry, error) {
 	// Install dist deps (cached: skips if package.json unchanged).
 	buildPkgsDir := filepath.Join(workingPath, "build", "web-pkgs")
@@ -56,6 +58,8 @@ func BuildDirectWebPkgs(
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,
+			jsMinification,
+			jsSourcemaps,
 			client,
 			filepath.Join(viteWorkingPath, "cache"),
 		)

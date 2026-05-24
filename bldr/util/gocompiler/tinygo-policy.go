@@ -7,6 +7,15 @@ import (
 	bldr_platform_go "github.com/s4wave/spacewave/bldr/platform/go"
 )
 
+// DefaultTinyGoEnabled returns true for release browser WebAssembly builds.
+func DefaultTinyGoEnabled(buildPlatform bldr_platform.Platform, isRelease bool) bool {
+	if !isRelease || !bldr_platform.IsWebPlatform(buildPlatform) {
+		return false
+	}
+	target, err := bldr_platform_go.PlatformToTinyGoTarget(buildPlatform)
+	return err == nil && target == "wasm"
+}
+
 // ResolveTinyGoEnabled resolves TinyGo policy and validates supported platforms.
 func ResolveTinyGoEnabled(
 	buildPlatform bldr_platform.Platform,

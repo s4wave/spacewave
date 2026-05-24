@@ -151,7 +151,8 @@ inline constexpr BuilderConfig::Impl_::Impl_(
         project_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        manifest_meta_{nullptr} {}
+        manifest_meta_{nullptr},
+        build_policy_{nullptr} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR BuilderConfig::BuilderConfig(::_pbi::ConstantInitialized)
@@ -296,7 +297,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_._has_bits_),
-        13, // hasbit index offset
+        14, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_.manifest_meta_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_.source_path_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_.dist_source_path_),
@@ -307,6 +308,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_.peer_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_.project_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_.target_platform_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderConfig, _impl_.build_policy_),
         9,
         2,
         3,
@@ -317,6 +319,7 @@ const ::uint32_t
         7,
         8,
         1,
+        10,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult, _impl_._has_bits_),
         6, // hasbit index offset
@@ -389,13 +392,13 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::manifest::builder::BuilderConfig)},
-        {23, sizeof(::bldr::manifest::builder::BuilderResult)},
-        {32, sizeof(::bldr::manifest::builder::InputManifest_FileIdentity)},
-        {41, sizeof(::bldr::manifest::builder::InputManifest_File)},
-        {52, sizeof(::bldr::manifest::builder::InputManifest_ManifestDep)},
-        {59, sizeof(::bldr::manifest::builder::InputManifest_StartupInput)},
-        {70, sizeof(::bldr::manifest::builder::InputManifest)},
-        {81, sizeof(::bldr::manifest::builder::BuildManifestArgs)},
+        {25, sizeof(::bldr::manifest::builder::BuilderResult)},
+        {34, sizeof(::bldr::manifest::builder::InputManifest_FileIdentity)},
+        {43, sizeof(::bldr::manifest::builder::InputManifest_File)},
+        {54, sizeof(::bldr::manifest::builder::InputManifest_ManifestDep)},
+        {61, sizeof(::bldr::manifest::builder::InputManifest_StartupInput)},
+        {72, sizeof(::bldr::manifest::builder::InputManifest)},
+        {83, sizeof(::bldr::manifest::builder::BuildManifestArgs)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::manifest::builder::_BuilderConfig_default_instance_._instance,
@@ -412,48 +415,52 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "\n\?github.com/s4wave/spacewave/bldr/manif"
     "est/builder/builder.proto\022\025bldr.manifest"
     ".builder\0328github.com/s4wave/spacewave/bl"
-    "dr/manifest/manifest.proto\0322github.com/s"
-    "4wave/spacewave/db/bucket/bucket.proto\"\213"
-    "\002\n\rBuilderConfig\0222\n\rmanifest_meta\030\001 \001(\0132"
-    "\033.bldr.manifest.ManifestMeta\022\023\n\013source_p"
-    "ath\030\002 \001(\t\022\030\n\020dist_source_path\030\003 \001(\t\022\024\n\014w"
-    "orking_path\030\004 \001(\t\022\021\n\tengine_id\030\005 \001(\t\022\022\n\n"
-    "object_key\030\006 \001(\t\022\030\n\020link_object_keys\030\007 \003"
-    "(\t\022\017\n\007peer_id\030\010 \001(\t\022\022\n\nproject_id\030\t \001(\t\022"
-    "\033\n\023target_platform_ids\030\n \003(\t\"\252\001\n\rBuilder"
-    "Result\022)\n\010manifest\030\001 \001(\0132\027.bldr.manifest"
-    ".Manifest\0220\n\014manifest_ref\030\002 \001(\0132\032.bldr.m"
-    "anifest.ManifestRef\022<\n\016input_manifest\030\003 "
-    "\001(\0132$.bldr.manifest.builder.InputManifes"
-    "t\"\235\006\n\rInputManifest\0228\n\005files\030\001 \003(\0132).bld"
-    "r.manifest.builder.InputManifest.File\022\020\n"
-    "\010metadata\030\002 \001(\014\022G\n\rmanifest_deps\030\003 \003(\01320"
-    ".bldr.manifest.builder.InputManifest.Man"
-    "ifestDep\022I\n\016startup_inputs\030\004 \003(\01321.bldr."
-    "manifest.builder.InputManifest.StartupIn"
-    "put\032N\n\014FileIdentity\022\022\n\nsize_bytes\030\001 \001(\004\022"
-    "\032\n\022mod_time_unix_nano\030\002 \001(\003\022\016\n\006sha256\030\003 "
-    "\001(\014\032\201\001\n\004File\022\014\n\004path\030\001 \001(\t\022\020\n\010metadata\030\002"
-    " \001(\014\022C\n\010identity\030\003 \001(\01321.bldr.manifest.b"
-    "uilder.InputManifest.FileIdentity\022\024\n\014sta"
-    "rtup_only\030\004 \001(\010\032K\n\013ManifestDep\022\023\n\013manife"
-    "st_id\030\001 \001(\t\022\'\n\014manifest_ref\030\002 \001(\0132\021.buck"
-    "et.ObjectRef\032\213\001\n\014StartupInput\022C\n\004kind\030\001 "
-    "\001(\01625.bldr.manifest.builder.InputManifes"
-    "t.StartupInputKind\022\013\n\003key\030\002 \001(\t\022\024\n\014strin"
-    "g_value\030\003 \001(\t\022\023\n\013bytes_value\030\004 \001(\014\"}\n\020St"
-    "artupInputKind\022\034\n\030StartupInputKind_UNKNO"
-    "WN\020\000\022\034\n\030StartupInputKind_ENV_VAR\020\001\022-\n)St"
-    "artupInputKind_CONTROLLER_CONFIG_DIGEST\020"
-    "\002\"\326\001\n\021BuildManifestArgs\022<\n\016builder_confi"
-    "g\030\001 \001(\0132$.bldr.manifest.builder.BuilderC"
-    "onfig\022A\n\023prev_builder_result\030\002 \001(\0132$.bld"
-    "r.manifest.builder.BuilderResult\022@\n\rchan"
-    "ged_files\030\003 \003(\0132).bldr.manifest.builder."
-    "InputManifest.Fileb\006proto3"
+    "dr/manifest/manifest.proto\032<github.com/s"
+    "4wave/spacewave/bldr/manifest/build/poli"
+    "cy.proto\0322github.com/s4wave/spacewave/db"
+    "/bucket/bucket.proto\"\303\002\n\rBuilderConfig\0222"
+    "\n\rmanifest_meta\030\001 \001(\0132\033.bldr.manifest.Ma"
+    "nifestMeta\022\023\n\013source_path\030\002 \001(\t\022\030\n\020dist_"
+    "source_path\030\003 \001(\t\022\024\n\014working_path\030\004 \001(\t\022"
+    "\021\n\tengine_id\030\005 \001(\t\022\022\n\nobject_key\030\006 \001(\t\022\030"
+    "\n\020link_object_keys\030\007 \003(\t\022\017\n\007peer_id\030\010 \001("
+    "\t\022\022\n\nproject_id\030\t \001(\t\022\033\n\023target_platform"
+    "_ids\030\n \003(\t\0226\n\014build_policy\030\013 \001(\0132 .bldr."
+    "manifest.build.BuildPolicy\"\252\001\n\rBuilderRe"
+    "sult\022)\n\010manifest\030\001 \001(\0132\027.bldr.manifest.M"
+    "anifest\0220\n\014manifest_ref\030\002 \001(\0132\032.bldr.man"
+    "ifest.ManifestRef\022<\n\016input_manifest\030\003 \001("
+    "\0132$.bldr.manifest.builder.InputManifest\""
+    "\235\006\n\rInputManifest\0228\n\005files\030\001 \003(\0132).bldr."
+    "manifest.builder.InputManifest.File\022\020\n\010m"
+    "etadata\030\002 \001(\014\022G\n\rmanifest_deps\030\003 \003(\01320.b"
+    "ldr.manifest.builder.InputManifest.Manif"
+    "estDep\022I\n\016startup_inputs\030\004 \003(\01321.bldr.ma"
+    "nifest.builder.InputManifest.StartupInpu"
+    "t\032N\n\014FileIdentity\022\022\n\nsize_bytes\030\001 \001(\004\022\032\n"
+    "\022mod_time_unix_nano\030\002 \001(\003\022\016\n\006sha256\030\003 \001("
+    "\014\032\201\001\n\004File\022\014\n\004path\030\001 \001(\t\022\020\n\010metadata\030\002 \001"
+    "(\014\022C\n\010identity\030\003 \001(\01321.bldr.manifest.bui"
+    "lder.InputManifest.FileIdentity\022\024\n\014start"
+    "up_only\030\004 \001(\010\032K\n\013ManifestDep\022\023\n\013manifest"
+    "_id\030\001 \001(\t\022\'\n\014manifest_ref\030\002 \001(\0132\021.bucket"
+    ".ObjectRef\032\213\001\n\014StartupInput\022C\n\004kind\030\001 \001("
+    "\01625.bldr.manifest.builder.InputManifest."
+    "StartupInputKind\022\013\n\003key\030\002 \001(\t\022\024\n\014string_"
+    "value\030\003 \001(\t\022\023\n\013bytes_value\030\004 \001(\014\"}\n\020Star"
+    "tupInputKind\022\034\n\030StartupInputKind_UNKNOWN"
+    "\020\000\022\034\n\030StartupInputKind_ENV_VAR\020\001\022-\n)Star"
+    "tupInputKind_CONTROLLER_CONFIG_DIGEST\020\002\""
+    "\326\001\n\021BuildManifestArgs\022<\n\016builder_config\030"
+    "\001 \001(\0132$.bldr.manifest.builder.BuilderCon"
+    "fig\022A\n\023prev_builder_result\030\002 \001(\0132$.bldr."
+    "manifest.builder.BuilderResult\022@\n\rchange"
+    "d_files\030\003 \003(\0132).bldr.manifest.builder.In"
+    "putManifest.Fileb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps[2] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps[3] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuild_2fpolicy_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fmanifest_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
 };
@@ -461,12 +468,12 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto = {
     false,
     false,
-    1666,
+    1784,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
     "github.com/s4wave/spacewave/bldr/manifest/builder/builder.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps,
-    2,
+    3,
     8,
     schemas,
     file_default_instances,
@@ -498,6 +505,12 @@ void BuilderConfig::clear_manifest_meta() {
   if (_impl_.manifest_meta_ != nullptr) _impl_.manifest_meta_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000200U);
+}
+void BuilderConfig::clear_build_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.build_policy_ != nullptr) _impl_.build_policy_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
 }
 BuilderConfig::BuilderConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -541,6 +554,9 @@ BuilderConfig::BuilderConfig(
   _impl_.manifest_meta_ = (CheckHasBit(cached_has_bits, 0x00000200U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.manifest_meta_)
                 : nullptr;
+  _impl_.build_policy_ = (CheckHasBit(cached_has_bits, 0x00000400U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.build_policy_)
+                : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:bldr.manifest.builder.BuilderConfig)
 }
@@ -560,7 +576,12 @@ PROTOBUF_NDEBUG_INLINE BuilderConfig::Impl_::Impl_(
 
 inline void BuilderConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.manifest_meta_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, manifest_meta_),
+           0,
+           offsetof(Impl_, build_policy_) -
+               offsetof(Impl_, manifest_meta_) +
+               sizeof(Impl_::build_policy_));
 }
 BuilderConfig::~BuilderConfig() {
   // @@protoc_insertion_point(destructor:bldr.manifest.builder.BuilderConfig)
@@ -581,6 +602,7 @@ inline void BuilderConfig::SharedDtor(MessageLite& self) {
   this_._impl_.peer_id_.Destroy();
   this_._impl_.project_id_.Destroy();
   delete this_._impl_.manifest_meta_;
+  delete this_._impl_.build_policy_;
   this_._impl_.~Impl_();
 }
 
@@ -643,17 +665,17 @@ BuilderConfig::GetClassData() const {
   return BuilderConfig_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 1, 162, 2>
+const ::_pbi::TcParseTable<4, 11, 2, 162, 2>
 BuilderConfig::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BuilderConfig, _impl_._has_bits_),
     0, // no _extensions_
-    10, 120,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
-    1,  // num_aux_entries
+    11,  // num_field_entries
+    2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     BuilderConfig_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -703,7 +725,10 @@ BuilderConfig::_table_ = {
     {::_pbi::TcParser::FastUR1,
      {82, 1, 0,
       PROTOBUF_FIELD_OFFSET(BuilderConfig, _impl_.target_platform_ids_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .bldr.manifest.build.BuildPolicy build_policy = 11;
+    {::_pbi::TcParser::FastMtS1,
+     {90, 10, 1,
+      PROTOBUF_FIELD_OFFSET(BuilderConfig, _impl_.build_policy_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -731,9 +756,12 @@ BuilderConfig::_table_ = {
     {PROTOBUF_FIELD_OFFSET(BuilderConfig, _impl_.project_id_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated string target_platform_ids = 10;
     {PROTOBUF_FIELD_OFFSET(BuilderConfig, _impl_.target_platform_ids_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // .bldr.manifest.build.BuildPolicy build_policy = 11;
+    {PROTOBUF_FIELD_OFFSET(BuilderConfig, _impl_.build_policy_), _Internal::kHasBitsOffset + 10, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bldr::manifest::ManifestMeta>()},
+      {::_pbi::TcParser::GetTable<::bldr::manifest::build::BuildPolicy>()},
   }},
   {{
     "\43\0\13\20\14\11\12\20\7\12\23\0\0\0\0\0"
@@ -783,13 +811,17 @@ PROTOBUF_NOINLINE void BuilderConfig::Clear() {
       _impl_.peer_id_.ClearNonDefaultToEmpty();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       _impl_.project_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       ABSL_DCHECK(_impl_.manifest_meta_ != nullptr);
       _impl_.manifest_meta_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      ABSL_DCHECK(_impl_.build_policy_ != nullptr);
+      _impl_.build_policy_->Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -912,6 +944,13 @@ PROTOBUF_NOINLINE void BuilderConfig::Clear() {
     }
   }
 
+  // .bldr.manifest.build.BuildPolicy build_policy = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        11, *this_._impl_.build_policy_, this_._impl_.build_policy_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -999,7 +1038,7 @@ PROTOBUF_NOINLINE void BuilderConfig::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     // string project_id = 9;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (!this_._internal_project_id().empty()) {
@@ -1011,6 +1050,11 @@ PROTOBUF_NOINLINE void BuilderConfig::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.manifest_meta_);
+    }
+    // .bldr.manifest.build.BuildPolicy build_policy = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.build_policy_);
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1098,7 +1142,7 @@ void BuilderConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (!from._internal_project_id().empty()) {
         _this->_internal_set_project_id(from._internal_project_id());
@@ -1114,6 +1158,14 @@ void BuilderConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.manifest_meta_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.manifest_meta_);
       } else {
         _this->_impl_.manifest_meta_->MergeFrom(*from._impl_.manifest_meta_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      ABSL_DCHECK(from._impl_.build_policy_ != nullptr);
+      if (_this->_impl_.build_policy_ == nullptr) {
+        _this->_impl_.build_policy_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.build_policy_);
+      } else {
+        _this->_impl_.build_policy_->MergeFrom(*from._impl_.build_policy_);
       }
     }
   }
@@ -1145,7 +1197,12 @@ void BuilderConfig::InternalSwap(BuilderConfig* PROTOBUF_RESTRICT PROTOBUF_NONNU
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_id_, &other->_impl_.peer_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.project_id_, &other->_impl_.project_id_, arena);
-  swap(_impl_.manifest_meta_, other->_impl_.manifest_meta_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(BuilderConfig, _impl_.build_policy_)
+      + sizeof(BuilderConfig::_impl_.build_policy_)
+      - PROTOBUF_FIELD_OFFSET(BuilderConfig, _impl_.manifest_meta_)>(
+          reinterpret_cast<char*>(&_impl_.manifest_meta_),
+          reinterpret_cast<char*>(&other->_impl_.manifest_meta_));
 }
 
 ::google::protobuf::Metadata BuilderConfig::GetMetadata() const {

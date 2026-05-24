@@ -108,6 +108,8 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     const outDir = request.outDir || resolve(rootDir, 'dist')
     const distDir = request.distDir || resolve(rootDir, '.bldr/src')
     const publicPath = request.publicPath || null
+    const jsMinification = request.jsMinification || false
+    const jsSourcemaps = request.jsSourcemaps || false
 
     // Store web package references
     const webPkgRefs: Map<string, { root: string; subPaths: Set<string> }> =
@@ -142,6 +144,8 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     }
     mergedConfig.customLogger = createSilentViteLogger()
     mergedConfig.build.outDir = outDir
+    mergedConfig.build.minify = jsMinification ? 'oxc' : false
+    mergedConfig.build.sourcemap = jsSourcemaps ? 'inline' : false
 
     // Set the root dir
     mergedConfig.root = rootDir
@@ -379,6 +383,8 @@ async function buildWebPkg(
   const externalPkgs = request.externalPkgs || []
   const outDir = request.outDir || ''
   const isRelease = request.isRelease || false
+  const jsMinification = request.jsMinification || false
+  const jsSourcemaps = request.jsSourcemaps || false
   const cacheDir = request.cacheDir || ''
 
   if (!pkgId || !pkgRoot || imports.length === 0 || !outDir) {
@@ -522,8 +528,8 @@ async function buildWebPkg(
         emptyOutDir: true,
         manifest: true,
         cssCodeSplit: true,
-        minify: isRelease ? 'oxc' : false,
-        sourcemap: isRelease ? false : 'inline',
+        minify: jsMinification ? 'oxc' : false,
+        sourcemap: jsSourcemaps ? 'inline' : false,
         write: true,
 
         rolldownOptions: {

@@ -5,6 +5,7 @@
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import { BuildPolicy } from '../manifest/build/policy.pb.js'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import { Config } from '@go/github.com/s4wave/spacewave/db/block/transform/transform.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -147,6 +148,14 @@ export interface BuildConfig {
    * @generated from field: map<string, configset.proto.ControllerConfig> manifest_overrides = 4;
    */
   manifestOverrides?: { [key: string]: ControllerConfig }
+  /**
+   * BuildPolicy configures build-scoped behavior shared by every Manifest
+   * builder slot produced for this build target. CLI policy overrides are
+   * merged on top using enabled.Enabled DEFAULT as "not set".
+   *
+   * @generated from field: bldr.manifest.build.BuildPolicy build_policy = 5;
+   */
+  buildPolicy?: BuildPolicy
 }
 
 // BuildConfig contains the message type declaration for BuildConfig.
@@ -181,6 +190,7 @@ export const BuildConfig: MessageType<BuildConfig> = createMessageType({
       K: ScalarType.STRING,
       V: { kind: 'message', T: () => ControllerConfig },
     },
+    { no: 5, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

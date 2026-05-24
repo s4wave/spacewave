@@ -104,6 +104,11 @@ pub struct BuildConfig {
     /// targets that ship different platform-specific payloads.
     #[prost(map="string, message", tag="4")]
     pub manifest_overrides: ::std::collections::HashMap<::prost::alloc::string::String, super::super::configset::proto::ControllerConfig>,
+    /// BuildPolicy configures build-scoped behavior shared by every Manifest
+    /// builder slot produced for this build target. CLI policy overrides are
+    /// merged on top using enabled.Enabled DEFAULT as "not set".
+    #[prost(message, optional, tag="5")]
+    pub build_policy: ::core::option::Option<super::manifest::build::BuildPolicy>,
 }
 /// RemoteConfig configures a location where manifests and source can be stored.
 #[derive(Clone, PartialEq, ::prost::Message)]

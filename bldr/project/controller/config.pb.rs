@@ -60,6 +60,10 @@ pub struct ManifestBuilderConfig {
     /// override. Sourced from BuildConfig.manifest_overrides.
     #[prost(message, optional, tag="6")]
     pub builder_config_override: ::core::option::Option<super::super::super::configset::proto::ControllerConfig>,
+    /// BuildPolicy is the effective build-scoped policy for this manifest builder
+    /// slot after build-target config and CLI overrides are merged.
+    #[prost(message, optional, tag="7")]
+    pub build_policy: ::core::option::Option<super::super::manifest::build::BuildPolicy>,
 }
 /// ManifestBuilderResult is the result of a ManifestBuilder build.
 #[derive(Clone, PartialEq, ::prost::Message)]

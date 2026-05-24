@@ -49,7 +49,7 @@ func HasValidWasmExtension(filePath string) bool {
 //
 // outPath should have a .mjs suffix
 // entrypointPath should be foo.wasm (relative to script location)
-func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoot, outPath, entrypointPath string, useTinygo, minify bool) ([]string, error) {
+func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoot, outPath, entrypointPath string, useTinygo, minify, sourcemaps bool) ([]string, error) {
 	if !HasValidWasmExtension(entrypointPath) {
 		if entrypointPath == "" {
 			entrypointPath = "<empty>"
@@ -65,7 +65,7 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 	le.Infof("building plugin-wasm.ts to %v", filepath.Base(outPath))
 
 	pluginJsDir := filepath.Join(bldrDistRoot, webRuntimeWasmDir)
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(pluginJsDir, minify)
+	opts := entrypoint_browser_bundle.BrowserBuildOpts(pluginJsDir, minify, sourcemaps)
 	opts.EntryPoints = []string{"plugin-wasm.ts"}
 	opts.Outfile = outPath
 	opts.Define["BLDR_IS_PLUGIN"] = "true"
@@ -85,7 +85,7 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 
 	opts.Inject = append(opts.Inject, wasmExecFile)
 
-	if !minify {
+	if sourcemaps {
 		opts.Sourcemap = esbuild_api.SourceMapInlineAndExternal
 	}
 

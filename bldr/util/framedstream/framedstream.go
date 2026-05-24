@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
-	"math"
 	"sync"
 
 	"github.com/aperturerobotics/starpc/rpcstream"
@@ -98,7 +97,7 @@ func (s *Stream) writeFramedData(data []byte) error {
 	s.writeMtx.Lock()
 	defer s.writeMtx.Unlock()
 
-	if len(data) > math.MaxUint32 {
+	if uint64(len(data)) > uint64(^uint32(0)) {
 		return errors.New("data size exceeds maximum uint32 value")
 	}
 

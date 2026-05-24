@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
-	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
@@ -32,7 +31,8 @@ func BuildWasmRuntimeEntrypoint(
 	le *logrus.Entry,
 	bldrDistRoot string,
 	buildDir string,
-	buildType bldr_manifest.BuildType,
+	minify bool,
+	sourcemaps bool,
 	useTinygo bool,
 	runtimeWasmPath string,
 ) error {
@@ -47,8 +47,7 @@ func BuildWasmRuntimeEntrypoint(
 	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
 	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.mjs")
 
-	minify := buildType.IsRelease()
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify)
+	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify, sourcemaps)
 	opts.EntryPoints = []string{"runtime-wasm.ts"}
 	opts.Outfile = runtimeJsOut
 	opts.Write = true
@@ -80,12 +79,12 @@ func BuildWasmRuntimeEntrypoint(
 // BuildWsRuntime builds the WebSocket dev runtime entrypoint.
 //
 // builds to buildDir/runtime-ws.mjs
-func BuildWsRuntime(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify bool) error {
+func BuildWsRuntime(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps bool) error {
 	le.Info("building runtime-ws.mjs")
 	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
 	runtimeJsOut := filepath.Join(buildDir, "runtime-ws.mjs")
 
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify)
+	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify, sourcemaps)
 	opts.EntryPoints = []string{"runtime-ws.ts"}
 	opts.Outfile = runtimeJsOut
 	opts.Write = true

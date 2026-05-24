@@ -7,6 +7,7 @@ import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
 import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import { BuildPolicy } from '../../manifest/build/policy.pb.js'
 import {
   BuilderConfig,
   BuilderResult,
@@ -140,6 +141,13 @@ export interface ManifestBuilderConfig {
    * @generated from field: configset.proto.ControllerConfig builder_config_override = 6;
    */
   builderConfigOverride?: ControllerConfig
+  /**
+   * BuildPolicy is the effective build-scoped policy for this manifest builder
+   * slot after build-target config and CLI overrides are merged.
+   *
+   * @generated from field: bldr.manifest.build.BuildPolicy build_policy = 7;
+   */
+  buildPolicy?: BuildPolicy
 }
 
 // ManifestBuilderConfig contains the message type declaration for ManifestBuilderConfig.
@@ -164,6 +172,7 @@ export const ManifestBuilderConfig: MessageType<ManifestBuilderConfig> =
         kind: 'message',
         T: () => ControllerConfig,
       },
+      { no: 7, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

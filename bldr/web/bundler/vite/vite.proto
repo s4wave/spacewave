@@ -43,6 +43,10 @@ message BuildRequest {
   repeated string external_pkgs = 9;
   // WebPkgs is the list of packages to be externalized as shared web pkgs.
   repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 10;
+  // JsMinification controls JavaScript minification for this build.
+  bool js_minification = 11;
+  // JsSourcemaps controls JavaScript sourcemap output for this build.
+  bool js_sourcemaps = 12;
 }
 
 // ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
@@ -112,6 +116,10 @@ message BuildWebPkgRequest {
   bool is_release = 8;
   // CacheDir is the cache directory for the build.
   string cache_dir = 9;
+  // JsMinification controls JavaScript minification for this build.
+  bool js_minification = 10;
+  // JsSourcemaps controls JavaScript sourcemap output for this build.
+  bool js_sourcemaps = 11;
 }
 
 // BuildWebPkgResponse is the response from building a single web package.

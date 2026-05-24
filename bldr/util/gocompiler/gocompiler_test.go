@@ -117,6 +117,38 @@ func TestTinyGoBrowserReleaseArgsIncludeNoDebugAndNoDWARF(t *testing.T) {
 	}
 }
 
+func TestTinyGoBrowserReleaseDebugInfoKeepsDWARF(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoProfileEnv, TinyGoProfileFast)
+	t.Setenv(TinyGoDebugInfoEnv, "true")
+
+	platform := parseTestPlatform(t, "web/js/wasm")
+	args, err := newTinyGoBuildArgs(platform, bldr_manifest.BuildType_RELEASE, "spacewave-core.wasm", []string{"build_type_release", "purego"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(args, "-no-debug") {
+		t.Fatalf("tinygo debug args should keep debug info: %v", args)
+	}
+	if slices.Contains(args, tinyGoInternalNoDWARFArg) {
+		t.Fatalf("tinygo debug args should keep DWARF: %v", args)
+	}
+}
+
+func TestTinyGoDebugInfoRejectsUnknownValue(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoDebugInfoEnv, "sometimes")
+
+	platform := parseTestPlatform(t, "web/js/wasm")
+	_, err := newTinyGoBuildArgs(platform, bldr_manifest.BuildType_RELEASE, "spacewave-core.wasm", []string{"build_type_release", "purego"})
+	if err == nil {
+		t.Fatal("expected invalid TinyGo debug info env to fail")
+	}
+	if !strings.Contains(err.Error(), TinyGoDebugInfoEnv) {
+		t.Fatalf("error = %q, want %s", err.Error(), TinyGoDebugInfoEnv)
+	}
+}
+
 func TestTinyGoBrowserDevArgsDoNotUseInternalNoDWARF(t *testing.T) {
 	clearTinyGoOptionEnv(t)
 	t.Setenv(TinyGoProfileEnv, TinyGoProfileFast)

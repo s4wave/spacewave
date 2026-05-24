@@ -65,6 +65,8 @@ func run(ctx context.Context, le *logrus.Entry) error {
 			outDir,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			false,
+			false,
+			true,
 			client,
 			filepath.Join(workingDir, "cache"),
 		)

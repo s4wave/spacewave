@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/util/enabled"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 )
 
@@ -81,5 +82,31 @@ func TestBuildCommandSummaryIncludesFiniteBuildInputs(t *testing.T) {
 	summary := buildCommandSummary("desktop", "release", "devtool", "desktop/darwin/arm64")
 	if summary != "building targets desktop build-type=release remote=devtool targets=desktop/darwin/arm64" {
 		t.Fatalf("unexpected build summary: %q", summary)
+	}
+}
+
+func TestDevtoolArgsBuildPolicyOverride(t *testing.T) {
+	args := NewDevtoolArgs()
+	args.JSMinification = "disable"
+	args.JSSourcemaps = "enable"
+
+	policy, err := args.BuildPolicyOverride()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if policy.GetJsMinification() != enabled.Enabled_DISABLE {
+		t.Fatalf("js minification: got %s, want DISABLE", policy.GetJsMinification())
+	}
+	if policy.GetJsSourcemaps() != enabled.Enabled_ENABLE {
+		t.Fatalf("js sourcemaps: got %s, want ENABLE", policy.GetJsSourcemaps())
+	}
+}
+
+func TestDevtoolArgsBuildPolicyOverrideRejectsInvalidValue(t *testing.T) {
+	args := NewDevtoolArgs()
+	args.JSMinification = "readable"
+
+	if _, err := args.BuildPolicyOverride(); err == nil {
+		t.Fatal("expected invalid policy value error")
 	}
 }

@@ -147,6 +147,8 @@ func (c *Controller) BuildManifest(
 	sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	isRelease := buildType.IsRelease()
+	jsMinification := builderConf.GetBuildPolicy().ResolveJsMinification(buildType)
+	jsSourcemaps := builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType)
 
 	// output paths
 	workingPath := builderConf.GetWorkingPath()
@@ -181,6 +183,8 @@ func (c *Controller) BuildManifest(
 			outAssetsPath,
 			prevResult,
 			args.GetChangedFiles(),
+			jsMinification,
+			jsSourcemaps,
 		)
 		if err != nil {
 			le.WithError(err).Warn("fast rebuild failed: continuing with normal build")
@@ -207,6 +211,8 @@ func (c *Controller) BuildManifest(
 			outAssetsPath,
 			buildType,
 			isRelease,
+			jsMinification,
+			jsSourcemaps,
 		)
 		if err != nil {
 			return nil, err
@@ -279,6 +285,8 @@ func (c *Controller) buildViteBundles(
 	outAssetsPath,
 	manifestID string,
 	isRelease bool,
+	jsMinification bool,
+	jsSourcemaps bool,
 ) (*viteBuildResult, error) {
 	if len(bundleList) == 0 {
 		return &viteBuildResult{}, nil
@@ -326,6 +334,8 @@ func (c *Controller) buildViteBundles(
 					outAssetsPath,
 					manifestID,
 					isRelease,
+					jsMinification,
+					jsSourcemaps,
 				)
 				ref.Release()
 
@@ -498,6 +508,8 @@ func (c *Controller) tryFastRebuild(
 	outAssetsPath string,
 	prevResult *bldr_manifest_builder.BuilderResult,
 	changedFiles []*bldr_manifest_builder.InputManifest_File,
+	jsMinification bool,
+	jsSourcemaps bool,
 ) (*bldr_manifest_builder.InputManifest, error) {
 	// Check out the previous result to disk
 	prevManifestRef := prevResult.GetManifestRef()
@@ -566,6 +578,8 @@ func (c *Controller) tryFastRebuild(
 		outAssetsPath,
 		manifestID,
 		false, // Not release mode for fast rebuild
+		jsMinification,
+		jsSourcemaps,
 	)
 	if err != nil {
 		return nil, err
@@ -669,6 +683,8 @@ func (c *Controller) performFullRebuild(
 	outAssetsPath string,
 	buildType bldr_manifest.BuildType,
 	isRelease bool,
+	jsMinification bool,
+	jsSourcemaps bool,
 ) (*bldr_manifest_builder.InputManifest, error) {
 	// Clean/create build directories
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
@@ -720,6 +736,8 @@ func (c *Controller) performFullRebuild(
 		outAssetsPath,
 		manifestID,
 		isRelease,
+		jsMinification,
+		jsSourcemaps,
 	)
 	if err != nil {
 		return nil, err
@@ -768,6 +786,8 @@ func (c *Controller) performFullRebuild(
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,
+			jsMinification,
+			jsSourcemaps,
 			bundlerClient,
 			filepath.Join(workingPath, "cache"),
 		)

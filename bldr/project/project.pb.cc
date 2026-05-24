@@ -182,6 +182,7 @@ inline constexpr BuildConfig::Impl_::Impl_(
         manifests_{},
         platform_ids_{},
         targets_{},
+        build_policy_{nullptr},
         manifest_overrides_{} {}
 
 template <typename>
@@ -450,14 +451,16 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_._has_bits_),
-        7, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.manifests_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.platform_ids_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.targets_),
         PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.manifest_overrides_),
+        PROTOBUF_FIELD_OFFSET(::bldr::project::BuildConfig, _impl_.build_policy_),
         0,
         1,
         2,
+        4,
         3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::project::RemoteConfig_HostConfigSetEntry_DoNotUse, _impl_._has_bits_),
@@ -527,11 +530,11 @@ static const ::_pbi::MigrationSchema
         {54, sizeof(::bldr::project::StartConfig)},
         {63, sizeof(::bldr::project::BuildConfig_ManifestOverridesEntry_DoNotUse)},
         {70, sizeof(::bldr::project::BuildConfig)},
-        {81, sizeof(::bldr::project::RemoteConfig_HostConfigSetEntry_DoNotUse)},
-        {88, sizeof(::bldr::project::RemoteConfig)},
-        {101, sizeof(::bldr::project::PublishConfig_ManifestStorageEntry_DoNotUse)},
-        {108, sizeof(::bldr::project::PublishConfig)},
-        {127, sizeof(::bldr::project::PublishStorageConfig)},
+        {83, sizeof(::bldr::project::RemoteConfig_HostConfigSetEntry_DoNotUse)},
+        {90, sizeof(::bldr::project::RemoteConfig)},
+        {103, sizeof(::bldr::project::PublishConfig_ManifestStorageEntry_DoNotUse)},
+        {110, sizeof(::bldr::project::PublishConfig)},
+        {129, sizeof(::bldr::project::PublishStorageConfig)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::project::_ProjectConfig_ManifestsEntry_DoNotUse_default_instance_._instance,
@@ -554,62 +557,66 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "\n6github.com/s4wave/spacewave/bldr/proje"
     "ct/project.proto\022\014bldr.project\032Tgithub.c"
     "om/aperturerobotics/controllerbus/contro"
-    "ller/configset/proto/configset.proto\032>gi"
-    "thub.com/s4wave/spacewave/db/block/trans"
-    "form/transform.proto\0322github.com/s4wave/"
-    "spacewave/db/bucket/bucket.proto\032\037google"
-    "/protobuf/timestamp.proto\"\364\004\n\rProjectCon"
-    "fig\022\n\n\002id\030\001 \001(\t\022(\n\005start\030\002 \001(\0132\031.bldr.pr"
-    "oject.StartConfig\022=\n\tmanifests\030\003 \003(\0132*.b"
-    "ldr.project.ProjectConfig.ManifestsEntry"
-    "\0225\n\005build\030\004 \003(\0132&.bldr.project.ProjectCo"
-    "nfig.BuildEntry\0229\n\007remotes\030\005 \003(\0132(.bldr."
-    "project.ProjectConfig.RemotesEntry\0229\n\007pu"
-    "blish\030\006 \003(\0132(.bldr.project.ProjectConfig"
-    ".PublishEntry\022\017\n\007extends\030\007 \003(\t\032N\n\016Manife"
-    "stsEntry\022\013\n\003key\030\001 \001(\t\022+\n\005value\030\002 \001(\0132\034.b"
-    "ldr.project.ManifestConfig:\0028\001\032G\n\nBuildE"
-    "ntry\022\013\n\003key\030\001 \001(\t\022(\n\005value\030\002 \001(\0132\031.bldr."
-    "project.BuildConfig:\0028\001\032J\n\014RemotesEntry\022"
-    "\013\n\003key\030\001 \001(\t\022)\n\005value\030\002 \001(\0132\032.bldr.proje"
-    "ct.RemoteConfig:\0028\001\032K\n\014PublishEntry\022\013\n\003k"
-    "ey\030\001 \001(\t\022*\n\005value\030\002 \001(\0132\033.bldr.project.P"
-    "ublishConfig:\0028\001\"f\n\016ManifestConfig\0222\n\007bu"
-    "ilder\030\001 \001(\0132!.configset.proto.Controller"
-    "Config\022\013\n\003rev\030\002 \001(\004\022\023\n\013description\030\003 \001(\t"
-    "\"O\n\013StartConfig\022\017\n\007plugins\030\001 \003(\t\022\025\n\rdisa"
-    "ble_build\030\002 \001(\010\022\030\n\020load_web_startup\030\003 \001("
-    "\t\"\362\001\n\013BuildConfig\022\021\n\tmanifests\030\001 \003(\t\022\024\n\014"
-    "platform_ids\030\002 \003(\t\022\017\n\007targets\030\003 \003(\t\022L\n\022m"
-    "anifest_overrides\030\004 \003(\01320.bldr.project.B"
-    "uildConfig.ManifestOverridesEntry\032[\n\026Man"
-    "ifestOverridesEntry\022\013\n\003key\030\001 \001(\t\0220\n\005valu"
-    "e\030\002 \001(\0132!.configset.proto.ControllerConf"
-    "ig:\0028\001\"\201\002\n\014RemoteConfig\022F\n\017host_config_s"
-    "et\030\001 \003(\0132-.bldr.project.RemoteConfig.Hos"
-    "tConfigSetEntry\022\021\n\tengine_id\030\002 \001(\t\022\017\n\007pe"
-    "er_id\030\003 \001(\t\022\022\n\nobject_key\030\004 \001(\t\022\030\n\020link_"
-    "object_keys\030\005 \003(\t\032W\n\022HostConfigSetEntry\022"
-    "\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configset."
-    "proto.ControllerConfig:\0028\001\"\366\002\n\rPublishCo"
-    "nfig\022\032\n\022source_object_keys\030\001 \003(\t\022\021\n\tmani"
-    "fests\030\002 \003(\t\022\031\n\021all_manifest_revs\030\003 \001(\010\022\024"
-    "\n\014platform_ids\030\004 \003(\t\022\017\n\007remotes\030\005 \003(\t\022\027\n"
-    "\017dest_object_key\030\006 \001(\t\0223\n\007storage\030\007 \001(\0132"
-    "\".bldr.project.PublishStorageConfig\022J\n\020m"
-    "anifest_storage\030\010 \003(\01320.bldr.project.Pub"
-    "lishConfig.ManifestStorageEntry\032Z\n\024Manif"
-    "estStorageEntry\022\013\n\003key\030\001 \001(\t\0221\n\005value\030\002 "
-    "\001(\0132\".bldr.project.PublishStorageConfig:"
-    "\0028\001\"\252\001\n\024PublishStorageConfig\0222\n\027transfor"
-    "m_conf_from_ref\030\001 \001(\0132\021.bucket.ObjectRef"
-    "\022/\n\016transform_conf\030\002 \001(\0132\027.block.transfo"
-    "rm.Config\022-\n\ttimestamp\030\003 \001(\0132\032.google.pr"
-    "otobuf.Timestampb\006proto3"
+    "ller/configset/proto/configset.proto\032<gi"
+    "thub.com/s4wave/spacewave/bldr/manifest/"
+    "build/policy.proto\032>github.com/s4wave/sp"
+    "acewave/db/block/transform/transform.pro"
+    "to\0322github.com/s4wave/spacewave/db/bucke"
+    "t/bucket.proto\032\037google/protobuf/timestam"
+    "p.proto\"\364\004\n\rProjectConfig\022\n\n\002id\030\001 \001(\t\022(\n"
+    "\005start\030\002 \001(\0132\031.bldr.project.StartConfig\022"
+    "=\n\tmanifests\030\003 \003(\0132*.bldr.project.Projec"
+    "tConfig.ManifestsEntry\0225\n\005build\030\004 \003(\0132&."
+    "bldr.project.ProjectConfig.BuildEntry\0229\n"
+    "\007remotes\030\005 \003(\0132(.bldr.project.ProjectCon"
+    "fig.RemotesEntry\0229\n\007publish\030\006 \003(\0132(.bldr"
+    ".project.ProjectConfig.PublishEntry\022\017\n\007e"
+    "xtends\030\007 \003(\t\032N\n\016ManifestsEntry\022\013\n\003key\030\001 "
+    "\001(\t\022+\n\005value\030\002 \001(\0132\034.bldr.project.Manife"
+    "stConfig:\0028\001\032G\n\nBuildEntry\022\013\n\003key\030\001 \001(\t\022"
+    "(\n\005value\030\002 \001(\0132\031.bldr.project.BuildConfi"
+    "g:\0028\001\032J\n\014RemotesEntry\022\013\n\003key\030\001 \001(\t\022)\n\005va"
+    "lue\030\002 \001(\0132\032.bldr.project.RemoteConfig:\0028"
+    "\001\032K\n\014PublishEntry\022\013\n\003key\030\001 \001(\t\022*\n\005value\030"
+    "\002 \001(\0132\033.bldr.project.PublishConfig:\0028\001\"f"
+    "\n\016ManifestConfig\0222\n\007builder\030\001 \001(\0132!.conf"
+    "igset.proto.ControllerConfig\022\013\n\003rev\030\002 \001("
+    "\004\022\023\n\013description\030\003 \001(\t\"O\n\013StartConfig\022\017\n"
+    "\007plugins\030\001 \003(\t\022\025\n\rdisable_build\030\002 \001(\010\022\030\n"
+    "\020load_web_startup\030\003 \001(\t\"\252\002\n\013BuildConfig\022"
+    "\021\n\tmanifests\030\001 \003(\t\022\024\n\014platform_ids\030\002 \003(\t"
+    "\022\017\n\007targets\030\003 \003(\t\022L\n\022manifest_overrides\030"
+    "\004 \003(\01320.bldr.project.BuildConfig.Manifes"
+    "tOverridesEntry\0226\n\014build_policy\030\005 \001(\0132 ."
+    "bldr.manifest.build.BuildPolicy\032[\n\026Manif"
+    "estOverridesEntry\022\013\n\003key\030\001 \001(\t\0220\n\005value\030"
+    "\002 \001(\0132!.configset.proto.ControllerConfig"
+    ":\0028\001\"\201\002\n\014RemoteConfig\022F\n\017host_config_set"
+    "\030\001 \003(\0132-.bldr.project.RemoteConfig.HostC"
+    "onfigSetEntry\022\021\n\tengine_id\030\002 \001(\t\022\017\n\007peer"
+    "_id\030\003 \001(\t\022\022\n\nobject_key\030\004 \001(\t\022\030\n\020link_ob"
+    "ject_keys\030\005 \003(\t\032W\n\022HostConfigSetEntry\022\013\n"
+    "\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configset.pr"
+    "oto.ControllerConfig:\0028\001\"\366\002\n\rPublishConf"
+    "ig\022\032\n\022source_object_keys\030\001 \003(\t\022\021\n\tmanife"
+    "sts\030\002 \003(\t\022\031\n\021all_manifest_revs\030\003 \001(\010\022\024\n\014"
+    "platform_ids\030\004 \003(\t\022\017\n\007remotes\030\005 \003(\t\022\027\n\017d"
+    "est_object_key\030\006 \001(\t\0223\n\007storage\030\007 \001(\0132\"."
+    "bldr.project.PublishStorageConfig\022J\n\020man"
+    "ifest_storage\030\010 \003(\01320.bldr.project.Publi"
+    "shConfig.ManifestStorageEntry\032Z\n\024Manifes"
+    "tStorageEntry\022\013\n\003key\030\001 \001(\t\0221\n\005value\030\002 \001("
+    "\0132\".bldr.project.PublishStorageConfig:\0028"
+    "\001\"\252\001\n\024PublishStorageConfig\0222\n\027transform_"
+    "conf_from_ref\030\001 \001(\0132\021.bucket.ObjectRef\022/"
+    "\n\016transform_conf\030\002 \001(\0132\027.block.transform"
+    ".Config\022-\n\ttimestamp\030\003 \001(\0132\032.google.prot"
+    "obuf.Timestampb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto_deps[4] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto_deps[5] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fcontrollerbus_2fcontroller_2fconfigset_2fproto_2fconfigset_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuild_2fpolicy_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2ftransform_2ftransform_2eproto,
         &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbucket_2fbucket_2eproto,
         &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
@@ -618,12 +625,12 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto = {
     false,
     false,
-    2184,
+    2302,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto,
     "github.com/s4wave/spacewave/bldr/project/project.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fproject_2fproject_2eproto_deps,
-    4,
+    5,
     14,
     schemas,
     file_default_instances,
@@ -2471,6 +2478,12 @@ void BuildConfig::clear_manifest_overrides() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.manifest_overrides_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+void BuildConfig::clear_build_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.build_policy_ != nullptr) _impl_.build_policy_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
 BuildConfig::BuildConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
@@ -2506,6 +2519,10 @@ BuildConfig::BuildConfig(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.build_policy_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.build_policy_)
+                : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:bldr.project.BuildConfig)
 }
@@ -2520,6 +2537,7 @@ PROTOBUF_NDEBUG_INLINE BuildConfig::Impl_::Impl_(
 
 inline void BuildConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.build_policy_ = {};
 }
 BuildConfig::~BuildConfig() {
   // @@protoc_insertion_point(destructor:bldr.project.BuildConfig)
@@ -2532,6 +2550,7 @@ inline void BuildConfig::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.build_policy_;
   this_._impl_.~Impl_();
 }
 
@@ -2602,17 +2621,17 @@ BuildConfig::GetClassData() const {
   return BuildConfig_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 2, 79, 2>
+const ::_pbi::TcParseTable<3, 5, 3, 79, 2>
 BuildConfig::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
-    2,  // num_aux_entries
+    5,  // num_field_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     BuildConfig_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -2634,6 +2653,13 @@ BuildConfig::_table_ = {
     {::_pbi::TcParser::FastUR1,
      {26, 2, 0,
       PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.targets_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    // .bldr.manifest.build.BuildPolicy build_policy = 5;
+    {::_pbi::TcParser::FastMtS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.build_policy_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -2644,9 +2670,12 @@ BuildConfig::_table_ = {
     // repeated string targets = 3;
     {PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.targets_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // map<string, .configset.proto.ControllerConfig> manifest_overrides = 4;
-    {PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.manifest_overrides_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.manifest_overrides_), _Internal::kHasBitsOffset + 4, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    // .bldr.manifest.build.BuildPolicy build_policy = 5;
+    {PROTOBUF_FIELD_OFFSET(BuildConfig, _impl_.build_policy_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
+      {::_pbi::TcParser::GetTable<::bldr::manifest::build::BuildPolicy>()},
       {::_pbi::TcParser::GetMapAuxInfo(
           1, 0, 9, 11, 0)},
       {::_pbi::TcParser::GetTable<::configset::proto::ControllerConfig>()},
@@ -2668,7 +2697,7 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.manifests_.Clear();
     }
@@ -2678,7 +2707,11 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
       _impl_.targets_.Clear();
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.build_policy_ != nullptr);
+      _impl_.build_policy_->Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
       _impl_.manifest_overrides_.Clear();
     }
   }
@@ -2736,7 +2769,7 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
   }
 
   // map<string, .configset.proto.ControllerConfig> manifest_overrides = 4;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
     if (!this_._internal_manifest_overrides().empty()) {
       using MapType = ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>;
       using WireHelper = _pbi::MapEntryFuncs<::std::string, ::configset::proto::ControllerConfig,
@@ -2764,6 +2797,13 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
     }
   }
 
+  // .bldr.manifest.build.BuildPolicy build_policy = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        5, *this_._impl_.build_policy_, this_._impl_.build_policy_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -2789,7 +2829,7 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // repeated string manifests = 1;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -2817,8 +2857,13 @@ PROTOBUF_NOINLINE void BuildConfig::Clear() {
             this_._internal_targets().Get(i));
       }
     }
+    // .bldr.manifest.build.BuildPolicy build_policy = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.build_policy_);
+    }
     // map<string, .configset.proto.ControllerConfig> manifest_overrides = 4;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
       total_size +=
           1 * ::google::protobuf::internal::FromIntSize(this_._internal_manifest_overrides_size());
       for (const auto& entry : this_._internal_manifest_overrides()) {
@@ -2847,7 +2892,7 @@ void BuildConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_manifests()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -2863,7 +2908,15 @@ void BuildConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
           ::google::protobuf::MessageLite::internal_visibility(), arena,
           from._internal_targets());
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.build_policy_ != nullptr);
+      if (_this->_impl_.build_policy_ == nullptr) {
+        _this->_impl_.build_policy_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.build_policy_);
+      } else {
+        _this->_impl_.build_policy_->MergeFrom(*from._impl_.build_policy_);
+      }
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
       _this->_impl_.manifest_overrides_.MergeFrom(from._impl_.manifest_overrides_);
     }
   }
@@ -2887,6 +2940,7 @@ void BuildConfig::InternalSwap(BuildConfig* PROTOBUF_RESTRICT PROTOBUF_NONNULL o
   _impl_.manifests_.InternalSwap(&other->_impl_.manifests_);
   _impl_.platform_ids_.InternalSwap(&other->_impl_.platform_ids_);
   _impl_.targets_.InternalSwap(&other->_impl_.targets_);
+  swap(_impl_.build_policy_, other->_impl_.build_policy_);
   _impl_.manifest_overrides_.InternalSwap(&other->_impl_.manifest_overrides_);
 }
 

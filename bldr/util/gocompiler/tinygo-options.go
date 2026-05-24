@@ -24,6 +24,8 @@ const (
 	TinyGoLLVMFeaturesEnv = "BLDR_TINYGO_LLVM_FEATURES"
 	// TinyGoInterpTimeoutEnv overrides TinyGo interp optimization timeout.
 	TinyGoInterpTimeoutEnv = "BLDR_TINYGO_INTERP_TIMEOUT"
+	// TinyGoDebugInfoEnv retains TinyGo debug information in browser wasm.
+	TinyGoDebugInfoEnv = "BLDR_TINYGO_DEBUG"
 
 	// TinyGoProfileDefault uses the optimized TinyGo defaults.
 	TinyGoProfileDefault = "default"
@@ -41,6 +43,7 @@ var tinyGoStartupCacheEnvKeys = []string{
 	TinyGoSchedulerEnv,
 	TinyGoLLVMFeaturesEnv,
 	TinyGoInterpTimeoutEnv,
+	TinyGoDebugInfoEnv,
 }
 
 // TinyGoOptions configures TinyGo compiler arguments.
@@ -138,6 +141,18 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 // ResolveTinyGoPanicStrategy resolves the configured TinyGo panic strategy.
 func ResolveTinyGoPanicStrategy() (string, error) {
 	return resolveTinyGoPanicStrategy(os.Getenv(TinyGoPanicStrategyEnv))
+}
+
+// TinyGoDebugInfoEnabled reports whether TinyGo should retain debug info.
+func TinyGoDebugInfoEnabled() (bool, error) {
+	switch strings.TrimSpace(os.Getenv(TinyGoDebugInfoEnv)) {
+	case "", "0", "false", "no", "off":
+		return false, nil
+	case "1", "true", "yes", "on":
+		return true, nil
+	default:
+		return false, errors.Errorf("unsupported %s value %q, expected true or false", TinyGoDebugInfoEnv, os.Getenv(TinyGoDebugInfoEnv))
+	}
 }
 
 func resolveTinyGoProfile(profile string) (string, error) {

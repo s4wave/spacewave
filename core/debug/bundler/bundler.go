@@ -116,6 +116,8 @@ func (b *Bundler) Bundle(ctx context.Context, scriptPath string) (string, error)
 		outDir,
 		"eval",
 		false,
+		false,
+		true,
 	)
 	if err != nil {
 		return "", errors.Wrap(err, "vite bundle")

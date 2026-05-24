@@ -135,6 +135,8 @@ func (c *Controller) BuildManifest(
 	sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	isRelease := buildType.IsRelease()
+	jsMinification := builderConf.GetBuildPolicy().ResolveJsMinification(buildType)
+	jsSourcemaps := builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType)
 
 	// output paths
 	workingPath := builderConf.GetWorkingPath()
@@ -182,6 +184,8 @@ func (c *Controller) BuildManifest(
 				outAssetsPath,
 				prevResult.GetInputManifest(),
 				args.GetChangedFiles(),
+				jsMinification,
+				jsSourcemaps,
 			)
 		}
 
@@ -259,7 +263,8 @@ func (c *Controller) BuildManifest(
 				outAssetsPath,
 				publicPath,
 				inlineSourcemaps,
-				isRelease,
+				jsMinification,
+				jsSourcemaps,
 			)
 			if err != nil {
 				return nil, err
@@ -312,6 +317,8 @@ func (c *Controller) BuildManifest(
 					outWebPkgsPath,
 					bldr_plugin.PluginWebPkgHttpPrefix,
 					isRelease,
+					jsMinification,
+					jsSourcemaps,
 					client,
 					filepath.Join(viteWorkingPath, "cache"),
 				)
@@ -400,6 +407,8 @@ func (c *Controller) FastRebuildBundle(
 	outAssetsPath string,
 	prevInputManifest *bldr_manifest_builder.InputManifest,
 	changedFiles []*bldr_manifest_builder.InputManifest_File,
+	jsMinification bool,
+	jsSourcemaps bool,
 ) (*bldr_manifest_builder.InputManifest, error) {
 	// Skip if there is no previous result.
 	if len(changedFiles) == 0 || len(prevInputManifest.GetFiles()) == 0 {
@@ -467,7 +476,8 @@ func (c *Controller) FastRebuildBundle(
 			outAssetsPath,
 			publicPath,
 			inlineSourcemaps,
-			false, // Not release mode for fast rebuild
+			jsMinification,
+			jsSourcemaps,
 		)
 		if err != nil {
 			return nil, err

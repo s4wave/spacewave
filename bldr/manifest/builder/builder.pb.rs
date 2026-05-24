@@ -39,6 +39,9 @@ pub struct BuilderConfig {
     /// If empty, falls back to using only the platform_id from ManifestMeta.
     #[prost(string, repeated, tag="10")]
     pub target_platform_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// BuildPolicy is the effective build-scoped policy for this Manifest build.
+    #[prost(message, optional, tag="11")]
+    pub build_policy: ::core::option::Option<super::build::BuildPolicy>,
 }
 /// BuilderResult is the result of a builder run.
 #[derive(Clone, PartialEq, ::prost::Message)]

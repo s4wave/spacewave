@@ -102,7 +102,7 @@
       "protoFiles": ["bldr/dist/dist.proto"]
     },
     "github.com/s4wave/spacewave/bldr/dist/compiler": {
-      "hash": "d918d1a4845dcb67d051ef5eeccb73e1b56a5b99d86a24b067117564cac2efa5",
+      "hash": "064b7f4ab950a699a8f14e6bd45572aa1b78d19d295096024fbf6b9b1b3784b1",
       "generatedFiles": [
         "bldr/dist/compiler/config.pb.cc",
         "bldr/dist/compiler/config.pb.go",
@@ -139,8 +139,19 @@
       ],
       "protoFiles": ["bldr/manifest/manifest.proto"]
     },
+    "github.com/s4wave/spacewave/bldr/manifest/build": {
+      "hash": "3d00731bb389cd7283569d27494feeb1cb5aa1735dec1f92f7657bbec2df27e6",
+      "generatedFiles": [
+        "bldr/manifest/build/policy.pb.cc",
+        "bldr/manifest/build/policy.pb.go",
+        "bldr/manifest/build/policy.pb.h",
+        "bldr/manifest/build/policy.pb.rs",
+        "bldr/manifest/build/policy.pb.ts"
+      ],
+      "protoFiles": ["bldr/manifest/build/policy.proto"]
+    },
     "github.com/s4wave/spacewave/bldr/manifest/builder": {
-      "hash": "aff1ec461527a1b6fc4a1dcc00c45f51275a9a562c89dce1c7d6451c2feecc3a",
+      "hash": "e2519f0d1c3b376c22be03ec212fa55533b37406e7cb5b3dac018c407378f181",
       "generatedFiles": [
         "bldr/manifest/builder/builder.pb.cc",
         "bldr/manifest/builder/builder.pb.go",
@@ -244,7 +255,7 @@
       "protoFiles": ["bldr/plugin/assets/http/config.proto"]
     },
     "github.com/s4wave/spacewave/bldr/plugin/compiler/go": {
-      "hash": "acd5eab820abd853774d22125e247491e8064e4838f24a3718bca15bc8881ee6",
+      "hash": "d34d44c9310db06f4044709eba353924512dc17f5401c061a6610fa3cb95872b",
       "generatedFiles": [
         "bldr/plugin/compiler/go/compiler.pb.cc",
         "bldr/plugin/compiler/go/compiler.pb.go",
@@ -409,7 +420,7 @@
       "protoFiles": ["bldr/plugin/vardef/vardef.proto"]
     },
     "github.com/s4wave/spacewave/bldr/project": {
-      "hash": "aa195d642b536c57730616f993d3542b1d55e9d34e11d5d741a9644f9371e249",
+      "hash": "20b11a2abe357fdb0aa12a5798c24090916e9b8fc40e44bcc0f78e2647d9eb3c",
       "generatedFiles": [
         "bldr/project/project.pb.cc",
         "bldr/project/project.pb.go",
@@ -420,7 +431,7 @@
       "protoFiles": ["bldr/project/project.proto"]
     },
     "github.com/s4wave/spacewave/bldr/project/controller": {
-      "hash": "b3768d08368c879391f07395594ae43006224dbfb8d3fd08c22230ebd30154ad",
+      "hash": "2c30f73e47cf49779c7f1c21537b2c527d321272eb33b92ad6e5640e7aa867ea",
       "generatedFiles": [
         "bldr/project/controller/config.pb.cc",
         "bldr/project/controller/config.pb.go",
@@ -605,7 +616,7 @@
       "protoFiles": ["bldr/web/bundler/esbuild/compiler/compiler.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/vite": {
-      "hash": "19828aceb7669aa2dab863237adca35c09906338fbe7fa35fa172d32dab574f3",
+      "hash": "edc873f8e12b0f18b9b9a6f55c1d872a1f12453b04add1c83183c97df6a2f1b4",
       "generatedFiles": [
         "bldr/web/bundler/vite/vite.pb.cc",
         "bldr/web/bundler/vite/vite.pb.go",

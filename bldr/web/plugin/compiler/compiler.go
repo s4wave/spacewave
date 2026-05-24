@@ -375,6 +375,8 @@ func (c *Controller) BundleSaucerHook(
 	platformID := meta.GetPlatformId()
 	pluginID := meta.GetManifestId()
 	minify := buildType.IsRelease()
+	jsMinification := builderConf.GetBuildPolicy().ResolveJsMinification(buildType)
+	jsSourcemaps := builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType)
 
 	le := c.GetLogger().
 		WithField("plugin-id", pluginID).
@@ -436,7 +438,7 @@ func (c *Controller) BundleSaucerHook(
 	webPkgWorkDir := filepath.Join(buildDir, "web-pkgs")
 	webPkgOutDir := filepath.Join(buildDir, "web-pkgs-out")
 	_, _, importMapEntries, err := bldr_plugin_compiler.BuildDirectWebPkgs(
-		ctx, le, distSrcDir, sourcePath, webPkgWorkDir, webPkgOutDir, minify,
+		ctx, le, distSrcDir, sourcePath, webPkgWorkDir, webPkgOutDir, minify, jsMinification, jsSourcemaps,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "build web packages for import map")
@@ -445,7 +447,7 @@ func (c *Controller) BundleSaucerHook(
 
 	// Build JS bundle
 	le.Debug("building saucer JS bundle...")
-	jsBundle, err := entrypoint_saucer_bundle.BuildSaucerJSBundle(le, distSrcDir, buildDir, minify, importMap)
+	jsBundle, err := entrypoint_saucer_bundle.BuildSaucerJSBundle(le, distSrcDir, buildDir, jsMinification, jsSourcemaps, importMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "build saucer JS bundle")
 	}
@@ -510,7 +512,8 @@ func (c *Controller) buildBrowserShimManifest(
 	}
 
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
-	isRelease := buildType.IsRelease()
+	jsMinification := builderConf.GetBuildPolicy().ResolveJsMinification(buildType)
+	jsSourcemaps := builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType)
 
 	outFilename := "web.mjs"
 	outFile := filepath.Join(outDistPath, outFilename)
@@ -519,7 +522,8 @@ func (c *Controller) buildBrowserShimManifest(
 		le,
 		builderConf.GetDistSourcePath(),
 		outFile,
-		isRelease,
+		jsMinification,
+		jsSourcemaps,
 	)
 	if err != nil {
 		return nil, err

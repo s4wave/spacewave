@@ -16,7 +16,8 @@ func BuildEsbuildBuildOpts(
 	codeRootPath,
 	outPath,
 	publicPath string,
-	isRelease,
+	minify,
+	sourcemaps,
 	useHashes bool,
 ) *esbuild_api.BuildOptions {
 	entryNames := "[dir]/[name]"
@@ -58,11 +59,11 @@ func BuildEsbuildBuildOpts(
 		Banner:       make(map[string]string),
 		Footer:       make(map[string]string),
 
-		MinifyWhitespace:  isRelease,
-		MinifyIdentifiers: isRelease,
-		MinifySyntax:      isRelease,
+		MinifyWhitespace:  minify,
+		MinifyIdentifiers: minify,
+		MinifySyntax:      minify,
 	}
-	if !isRelease {
+	if sourcemaps {
 		//	buildOpts.Sourcemap = esbuild_api.SourceMapInline
 		buildOpts.Sourcemap = esbuild_api.SourceMapLinked
 	}

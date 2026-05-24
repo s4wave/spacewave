@@ -137,7 +137,7 @@ func TestBuildSaucerJSBundle(t *testing.T) {
 			"react/jsx-runtime": "/b/pkg/react/jsx-runtime.mjs",
 		},
 	}
-	bundle, err := BuildSaucerJSBundle(le, bldrRoot, buildDir, true, importMap)
+	bundle, err := BuildSaucerJSBundle(le, bldrRoot, buildDir, true, false, importMap)
 	if err != nil {
 		t.Fatalf("BuildSaucerJSBundle failed: %v", err)
 	}

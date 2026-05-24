@@ -16,6 +16,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	build "github.com/s4wave/spacewave/bldr/manifest/build"
 	transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 )
@@ -217,6 +218,10 @@ type BuildConfig struct {
 	// so a single dist manifest declaration can be reused across release
 	// targets that ship different platform-specific payloads.
 	ManifestOverrides map[string]*proto.ControllerConfig `protobuf:"bytes,4,rep,name=manifest_overrides,json=manifestOverrides,proto3" json:"manifestOverrides,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// BuildPolicy configures build-scoped behavior shared by every Manifest
+	// builder slot produced for this build target. CLI policy overrides are
+	// merged on top using enabled.Enabled DEFAULT as "not set".
+	BuildPolicy *build.BuildPolicy `protobuf:"bytes,5,opt,name=build_policy,json=buildPolicy,proto3" json:"buildPolicy,omitempty"`
 }
 
 func (x *BuildConfig) Reset() {
@@ -249,6 +254,13 @@ func (x *BuildConfig) GetTargets() []string {
 func (x *BuildConfig) GetManifestOverrides() map[string]*proto.ControllerConfig {
 	if x != nil {
 		return x.ManifestOverrides
+	}
+	return nil
+}
+
+func (x *BuildConfig) GetBuildPolicy() *build.BuildPolicy {
+	if x != nil {
+		return x.BuildPolicy
 	}
 	return nil
 }
@@ -729,6 +741,7 @@ func (m *BuildConfig) CloneVT() *BuildConfig {
 		return (*BuildConfig)(nil)
 	}
 	r := new(BuildConfig)
+	r.BuildPolicy = m.BuildPolicy.CloneVT()
 	if rhs := m.Manifests; rhs != nil {
 		r.Manifests = slices.Clone(rhs)
 	}
@@ -1059,6 +1072,9 @@ func (this *BuildConfig) EqualVT(that *BuildConfig) bool {
 				return false
 			}
 		}
+	}
+	if !this.BuildPolicy.EqualVT(that.BuildPolicy) {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1825,6 +1841,11 @@ func (x *BuildConfig) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteObjectEnd()
 	}
+	if x.BuildPolicy != nil || s.HasField("buildPolicy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buildPolicy")
+		x.BuildPolicy.MarshalProtoJSON(s.WithField("buildPolicy"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1875,6 +1896,13 @@ func (x *BuildConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				v.UnmarshalProtoJSON(s)
 				x.ManifestOverrides[key] = &v
 			})
+		case "build_policy", "buildPolicy":
+			if s.ReadNil() {
+				x.BuildPolicy = nil
+				return
+			}
+			x.BuildPolicy = &build.BuildPolicy{}
+			x.BuildPolicy.UnmarshalProtoJSON(s.WithField("build_policy", true))
 		}
 	})
 }
@@ -2581,6 +2609,16 @@ func (m *BuildConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.BuildPolicy != nil {
+		size, err := m.BuildPolicy.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if len(m.ManifestOverrides) > 0 {
 		for k := range m.ManifestOverrides {
 			v := m.ManifestOverrides[k]
@@ -3056,6 +3094,10 @@ func (m *BuildConfig) SizeVT() (n int) {
 			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
 		}
 	}
+	if m.BuildPolicy != nil {
+		l = m.BuildPolicy.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3525,6 +3567,13 @@ func (x *BuildConfig) MarshalProtoText() string {
 			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString(" }")
+	}
+	if x.BuildPolicy != nil {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("build_policy: ")
+		sb.WriteString(x.BuildPolicy.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -4639,6 +4688,34 @@ func (m *BuildConfig) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.ManifestOverrides[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildPolicy", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BuildPolicy == nil {
+				m.BuildPolicy = &build.BuildPolicy{}
+			}
+			if err := m.BuildPolicy.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

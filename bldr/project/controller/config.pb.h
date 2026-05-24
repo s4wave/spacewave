@@ -33,6 +33,7 @@
 #include "google/protobuf/unknown_field_set.h"
 #include "github.com/aperturerobotics/util/backoff/backoff.pb.h"
 #include "../project.pb.h"
+#include "../../manifest/build/policy.pb.h"
 #include "../../manifest/builder/builder.pb.h"
 #include "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.h"
 // @@protoc_insertion_point(includes)
@@ -238,6 +239,7 @@ class ManifestBuilderConfig final : public ::google::protobuf::Message
     kPlatformIdFieldNumber = 3,
     kRemoteIdFieldNumber = 4,
     kBuilderConfigOverrideFieldNumber = 6,
+    kBuildPolicyFieldNumber = 7,
   };
   // repeated string target_platform_ids = 5;
   int target_platform_ids_size() const;
@@ -336,12 +338,27 @@ class ManifestBuilderConfig final : public ::google::protobuf::Message
   ::configset::proto::ControllerConfig* PROTOBUF_NONNULL _internal_mutable_builder_config_override();
 
   public:
+  // .bldr.manifest.build.BuildPolicy build_policy = 7;
+  bool has_build_policy() const;
+  void clear_build_policy() ;
+  const ::bldr::manifest::build::BuildPolicy& build_policy() const;
+  [[nodiscard]] ::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE release_build_policy();
+  ::bldr::manifest::build::BuildPolicy* PROTOBUF_NONNULL mutable_build_policy();
+  void set_allocated_build_policy(::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_build_policy(::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE value);
+  ::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE unsafe_arena_release_build_policy();
+
+  private:
+  const ::bldr::manifest::build::BuildPolicy& _internal_build_policy() const;
+  ::bldr::manifest::build::BuildPolicy* PROTOBUF_NONNULL _internal_mutable_build_policy();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.project.controller.ManifestBuilderConfig)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   1, 114,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   2, 114,
                                    2>
       _table_;
 
@@ -368,6 +385,7 @@ class ManifestBuilderConfig final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr platform_id_;
     ::google::protobuf::internal::ArenaStringPtr remote_id_;
     ::configset::proto::ControllerConfig* PROTOBUF_NULLABLE builder_config_override_;
+    ::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE build_policy_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1749,6 +1767,99 @@ inline void ManifestBuilderConfig::set_allocated_builder_config_override(::confi
 
   _impl_.builder_config_override_ = reinterpret_cast<::configset::proto::ControllerConfig*>(value);
   // @@protoc_insertion_point(field_set_allocated:bldr.project.controller.ManifestBuilderConfig.builder_config_override)
+}
+
+// .bldr.manifest.build.BuildPolicy build_policy = 7;
+inline bool ManifestBuilderConfig::has_build_policy() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  PROTOBUF_ASSUME(!value || _impl_.build_policy_ != nullptr);
+  return value;
+}
+inline const ::bldr::manifest::build::BuildPolicy& ManifestBuilderConfig::_internal_build_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bldr::manifest::build::BuildPolicy* p = _impl_.build_policy_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bldr::manifest::build::BuildPolicy&>(::bldr::manifest::build::_BuildPolicy_default_instance_);
+}
+inline const ::bldr::manifest::build::BuildPolicy& ManifestBuilderConfig::build_policy() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.project.controller.ManifestBuilderConfig.build_policy)
+  return _internal_build_policy();
+}
+inline void ManifestBuilderConfig::unsafe_arena_set_allocated_build_policy(
+    ::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.build_policy_);
+  }
+  _impl_.build_policy_ = reinterpret_cast<::bldr::manifest::build::BuildPolicy*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.project.controller.ManifestBuilderConfig.build_policy)
+}
+inline ::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE ManifestBuilderConfig::release_build_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::bldr::manifest::build::BuildPolicy* released = _impl_.build_policy_;
+  _impl_.build_policy_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE ManifestBuilderConfig::unsafe_arena_release_build_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.project.controller.ManifestBuilderConfig.build_policy)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::bldr::manifest::build::BuildPolicy* temp = _impl_.build_policy_;
+  _impl_.build_policy_ = nullptr;
+  return temp;
+}
+inline ::bldr::manifest::build::BuildPolicy* PROTOBUF_NONNULL ManifestBuilderConfig::_internal_mutable_build_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.build_policy_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::manifest::build::BuildPolicy>(GetArena());
+    _impl_.build_policy_ = reinterpret_cast<::bldr::manifest::build::BuildPolicy*>(p);
+  }
+  return _impl_.build_policy_;
+}
+inline ::bldr::manifest::build::BuildPolicy* PROTOBUF_NONNULL ManifestBuilderConfig::mutable_build_policy()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::bldr::manifest::build::BuildPolicy* _msg = _internal_mutable_build_policy();
+  // @@protoc_insertion_point(field_mutable:bldr.project.controller.ManifestBuilderConfig.build_policy)
+  return _msg;
+}
+inline void ManifestBuilderConfig::set_allocated_build_policy(::bldr::manifest::build::BuildPolicy* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.build_policy_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+
+  _impl_.build_policy_ = reinterpret_cast<::bldr::manifest::build::BuildPolicy*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.project.controller.ManifestBuilderConfig.build_policy)
 }
 
 // -------------------------------------------------------------------

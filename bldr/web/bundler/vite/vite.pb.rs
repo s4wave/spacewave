@@ -46,6 +46,12 @@ pub struct BuildRequest {
     /// WebPkgs is the list of packages to be externalized as shared web pkgs.
     #[prost(message, repeated, tag="10")]
     pub web_pkgs: ::prost::alloc::vec::Vec<super::WebPkgRefConfig>,
+    /// JsMinification controls JavaScript minification for this build.
+    #[prost(bool, tag="11")]
+    pub js_minification: bool,
+    /// JsSourcemaps controls JavaScript sourcemap output for this build.
+    #[prost(bool, tag="12")]
+    pub js_sourcemaps: bool,
 }
 /// ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -138,6 +144,12 @@ pub struct BuildWebPkgRequest {
     /// CacheDir is the cache directory for the build.
     #[prost(string, tag="9")]
     pub cache_dir: ::prost::alloc::string::String,
+    /// JsMinification controls JavaScript minification for this build.
+    #[prost(bool, tag="10")]
+    pub js_minification: bool,
+    /// JsSourcemaps controls JavaScript sourcemap output for this build.
+    #[prost(bool, tag="11")]
+    pub js_sourcemaps: bool,
 }
 /// BuildWebPkgResponse is the response from building a single web package.
 #[derive(Clone, PartialEq, ::prost::Message)]

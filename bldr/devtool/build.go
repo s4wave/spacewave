@@ -73,6 +73,10 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	if a.TargetsCsv != "" {
 		targetsOverride = strings.Split(a.TargetsCsv, ",")
 	}
+	buildPolicyOverride, err := a.BuildPolicyOverride()
+	if err != nil {
+		return err
+	}
 	b.setCommandRunningWithLogFile(
 		"build",
 		buildCommandSummary(a.BuildCsv, a.BuildType, a.Remote, a.TargetsCsv),
@@ -84,6 +88,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 		strings.Split(a.BuildCsv, ","),
 		bldr_manifest.BuildType(a.BuildType),
 		targetsOverride,
+		buildPolicyOverride,
 	)
 }
 

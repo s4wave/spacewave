@@ -84,3 +84,50 @@ func TestResolveTinyGoEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestDefaultTinyGoEnabled(t *testing.T) {
+	testCases := []struct {
+		name       string
+		platformID string
+		isRelease  bool
+		expected   bool
+	}{
+		{
+			name:       "release browser wasm",
+			platformID: "web/js/wasm",
+			isRelease:  true,
+			expected:   true,
+		},
+		{
+			name:       "dev browser wasm",
+			platformID: "web/js/wasm",
+		},
+		{
+			name:       "release js fallback",
+			platformID: "js",
+			isRelease:  true,
+		},
+		{
+			name:       "release native",
+			platformID: "desktop/linux/amd64",
+			isRelease:  true,
+		},
+		{
+			name:       "release wasi",
+			platformID: "web/wasi/wasm",
+			isRelease:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			plat, err := bldr_platform.ParsePlatform(tc.platformID)
+			if err != nil {
+				t.Fatalf("%s: unexpected error: %s", tc.platformID, err.Error())
+			}
+			if got := DefaultTinyGoEnabled(plat, tc.isRelease); got != tc.expected {
+				t.Fatalf("%s: default TinyGo = %v, want %v", tc.platformID, got, tc.expected)
+			}
+		})
+	}
+}

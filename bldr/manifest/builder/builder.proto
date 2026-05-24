@@ -2,6 +2,7 @@ syntax = "proto3";
 package bldr.manifest.builder;
 
 import "github.com/s4wave/spacewave/bldr/manifest/manifest.proto";
+import "github.com/s4wave/spacewave/bldr/manifest/build/policy.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 
 // BuilderConfig is common configuration for a manifest builder routine.
@@ -36,6 +37,9 @@ message BuilderConfig {
   // For example, a browser target may include ["web/js/wasm", "js"].
   // If empty, falls back to using only the platform_id from ManifestMeta.
   repeated string target_platform_ids = 10;
+
+  // BuildPolicy is the effective build-scoped policy for this Manifest build.
+  .bldr.manifest.build.BuildPolicy build_policy = 11;
 }
 
 // BuilderResult is the result of a builder run.

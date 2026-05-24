@@ -1,0 +1,19 @@
+syntax = "proto3";
+package bldr.manifest.build;
+
+import "github.com/aperturerobotics/util/enabled/enabled.proto";
+
+// BuildPolicy configures build-scoped behavior shared by Manifest builders.
+message BuildPolicy {
+  // JsMinification controls JavaScript minification.
+  //
+  // DEFAULT preserves build-type defaults: release builds minify JavaScript,
+  // while dev builds leave JavaScript readable.
+  .enabled.Enabled js_minification = 1;
+
+  // JsSourcemaps controls JavaScript sourcemap emission.
+  //
+  // DEFAULT preserves build-type defaults: dev builds emit sourcemaps where
+  // builders previously did, while release builds do not emit sourcemaps.
+  .enabled.Enabled js_sourcemaps = 2;
+}

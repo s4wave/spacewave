@@ -231,9 +231,9 @@ export interface Config {
   enableCgo?: Enabled
   /**
    * EnableTinygo enables using TinyGo instead of the Go compiler.
-   * Explicit enable is experimental and only supported for TinyGo-compatible
-   * WebAssembly targets such as web/js/wasm. The default remains the standard
-   * Go compiler until the browser plugin product proof passes.
+   * The default is ENABLE for release browser WebAssembly builds and DISABLE
+   * otherwise. Explicit ENABLE is only supported for TinyGo-compatible
+   * WebAssembly targets such as web/js/wasm.
    *
    * @generated from field: enabled.Enabled enable_tinygo = 10;
    */

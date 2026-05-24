@@ -205,7 +205,9 @@ inline constexpr BuildWebPkgRequest::Impl_::Impl_(
         cache_dir_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        is_release_{false} {}
+        is_release_{false},
+        js_minification_{false},
+        js_sourcemaps_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR BuildWebPkgRequest::BuildWebPkgRequest(::_pbi::ConstantInitialized)
@@ -313,7 +315,9 @@ inline constexpr BuildRequest::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         public_path_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
+            ::_pbi::ConstantInitialized()),
+        js_minification_{false},
+        js_sourcemaps_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR BuildRequest::BuildRequest(::_pbi::ConstantInitialized)
@@ -356,7 +360,7 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_._has_bits_),
-        13, // hasbit index offset
+        15, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_.config_paths_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_.mode_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_.root_dir_),
@@ -367,6 +371,8 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_.entrypoints_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_.external_pkgs_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_.web_pkgs_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_.js_minification_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildRequest, _impl_.js_sourcemaps_),
         0,
         4,
         5,
@@ -377,6 +383,8 @@ const ::uint32_t
         1,
         2,
         3,
+        10,
+        11,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::ViteBuildRequestEntrypoint, _impl_._has_bits_),
         5, // hasbit index offset
@@ -419,7 +427,7 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_._has_bits_),
-        12, // hasbit index offset
+        14, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.pkg_id_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.pkg_root_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.imports_),
@@ -429,6 +437,8 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.web_pkg_base_path_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.is_release_),
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.cache_dir_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.js_minification_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgRequest, _impl_.js_sourcemaps_),
         3,
         4,
         0,
@@ -438,6 +448,8 @@ const ::uint32_t
         6,
         8,
         7,
+        9,
+        10,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::bundler::vite::BuildWebPkgResponse, _impl_._has_bits_),
         7, // hasbit index offset
@@ -462,13 +474,13 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::web::bundler::vite::WebPkgRef)},
         {9, sizeof(::bldr::web::bundler::vite::BuildRequest)},
-        {32, sizeof(::bldr::web::bundler::vite::ViteBuildRequestEntrypoint)},
-        {39, sizeof(::bldr::web::bundler::vite::BuildResponse)},
-        {54, sizeof(::bldr::web::bundler::vite::EntrypointOutput)},
-        {65, sizeof(::bldr::web::bundler::vite::ViteOutputMeta)},
-        {72, sizeof(::bldr::web::bundler::vite::BuildWebPkgRequest)},
-        {93, sizeof(::bldr::web::bundler::vite::BuildWebPkgResponse)},
-        {104, sizeof(::bldr::web::bundler::vite::ImportMapEntry)},
+        {36, sizeof(::bldr::web::bundler::vite::ViteBuildRequestEntrypoint)},
+        {43, sizeof(::bldr::web::bundler::vite::BuildResponse)},
+        {58, sizeof(::bldr::web::bundler::vite::EntrypointOutput)},
+        {69, sizeof(::bldr::web::bundler::vite::ViteOutputMeta)},
+        {76, sizeof(::bldr::web::bundler::vite::BuildWebPkgRequest)},
+        {101, sizeof(::bldr::web::bundler::vite::BuildWebPkgResponse)},
+        {112, sizeof(::bldr::web::bundler::vite::ImportMapEntry)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::web::bundler::vite::_WebPkgRef_default_instance_._instance,
@@ -488,41 +500,43 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     ".vite\032:github.com/s4wave/spacewave/bldr/"
     "web/bundler/bundler.proto\"@\n\tWebPkgRef\022\016"
     "\n\006pkg_id\030\001 \001(\t\022\020\n\010pkg_root\030\002 \001(\t\022\021\n\tsub_"
-    "paths\030\003 \003(\t\"\243\002\n\014BuildRequest\022\024\n\014config_p"
+    "paths\030\003 \003(\t\"\323\002\n\014BuildRequest\022\024\n\014config_p"
     "aths\030\001 \003(\t\022\014\n\004mode\030\002 \001(\t\022\020\n\010root_dir\030\003 \001"
     "(\t\022\017\n\007out_dir\030\004 \001(\t\022\021\n\tcache_dir\030\005 \001(\t\022\020"
     "\n\010dist_dir\030\006 \001(\t\022\023\n\013public_path\030\007 \001(\t\022F\n"
     "\013entrypoints\030\010 \003(\01321.bldr.web.bundler.vi"
     "te.ViteBuildRequestEntrypoint\022\025\n\rexterna"
     "l_pkgs\030\t \003(\t\0223\n\010web_pkgs\030\n \003(\0132!.bldr.we"
-    "b.bundler.WebPkgRefConfig\">\n\032ViteBuildRe"
-    "questEntrypoint\022\022\n\ninput_path\030\001 \001(\t\022\014\n\004n"
-    "ame\030\002 \001(\t\"\333\001\n\rBuildResponse\022\017\n\007success\030\001"
-    " \001(\010\022\r\n\005error\030\002 \001(\t\022C\n\022entrypoint_output"
-    "s\030\003 \003(\0132\'.bldr.web.bundler.vite.Entrypoi"
-    "ntOutput\022\023\n\013input_files\030\004 \003(\t\022\030\n\020global_"
-    "css_files\030\005 \003(\t\0226\n\014web_pkg_refs\030\006 \003(\0132 ."
-    "bldr.web.bundler.vite.WebPkgRef\"c\n\020Entry"
-    "pointOutput\022\022\n\nentrypoint\030\001 \001(\t\022\021\n\tjs_ou"
-    "tput\030\002 \001(\t\022\023\n\013css_outputs\030\003 \003(\t\022\023\n\013input"
-    "_files\030\004 \003(\t\"7\n\016ViteOutputMeta\022\014\n\004path\030\001"
-    " \001(\t\022\027\n\017entrypoint_path\030\002 \001(\t\"\312\001\n\022BuildW"
-    "ebPkgRequest\022\016\n\006pkg_id\030\001 \001(\t\022\020\n\010pkg_root"
-    "\030\002 \001(\t\022\017\n\007imports\030\003 \003(\t\022\027\n\017sibling_pkg_i"
-    "ds\030\004 \003(\t\022\025\n\rexternal_pkgs\030\005 \003(\t\022\017\n\007out_d"
-    "ir\030\006 \001(\t\022\031\n\021web_pkg_base_path\030\007 \001(\t\022\022\n\ni"
-    "s_release\030\010 \001(\010\022\021\n\tcache_dir\030\t \001(\t\"\216\001\n\023B"
-    "uildWebPkgResponse\022\017\n\007success\030\001 \001(\010\022\r\n\005e"
-    "rror\030\002 \001(\t\022\024\n\014source_files\030\003 \003(\t\022A\n\022impo"
-    "rt_map_entries\030\004 \003(\0132%.bldr.web.bundler."
-    "vite.ImportMapEntry\"8\n\016ImportMapEntry\022\021\n"
-    "\tspecifier\030\001 \001(\t\022\023\n\013output_path\030\002 \001(\t2\313\001"
-    "\n\013ViteBundler\022T\n\005Build\022#.bldr.web.bundle"
-    "r.vite.BuildRequest\032$.bldr.web.bundler.v"
-    "ite.BuildResponse\"\000\022f\n\013BuildWebPkg\022).bld"
-    "r.web.bundler.vite.BuildWebPkgRequest\032*."
-    "bldr.web.bundler.vite.BuildWebPkgRespons"
-    "e\"\000b\006proto3"
+    "b.bundler.WebPkgRefConfig\022\027\n\017js_minifica"
+    "tion\030\013 \001(\010\022\025\n\rjs_sourcemaps\030\014 \001(\010\">\n\032Vit"
+    "eBuildRequestEntrypoint\022\022\n\ninput_path\030\001 "
+    "\001(\t\022\014\n\004name\030\002 \001(\t\"\333\001\n\rBuildResponse\022\017\n\007s"
+    "uccess\030\001 \001(\010\022\r\n\005error\030\002 \001(\t\022C\n\022entrypoin"
+    "t_outputs\030\003 \003(\0132\'.bldr.web.bundler.vite."
+    "EntrypointOutput\022\023\n\013input_files\030\004 \003(\t\022\030\n"
+    "\020global_css_files\030\005 \003(\t\0226\n\014web_pkg_refs\030"
+    "\006 \003(\0132 .bldr.web.bundler.vite.WebPkgRef\""
+    "c\n\020EntrypointOutput\022\022\n\nentrypoint\030\001 \001(\t\022"
+    "\021\n\tjs_output\030\002 \001(\t\022\023\n\013css_outputs\030\003 \003(\t\022"
+    "\023\n\013input_files\030\004 \003(\t\"7\n\016ViteOutputMeta\022\014"
+    "\n\004path\030\001 \001(\t\022\027\n\017entrypoint_path\030\002 \001(\t\"\372\001"
+    "\n\022BuildWebPkgRequest\022\016\n\006pkg_id\030\001 \001(\t\022\020\n\010"
+    "pkg_root\030\002 \001(\t\022\017\n\007imports\030\003 \003(\t\022\027\n\017sibli"
+    "ng_pkg_ids\030\004 \003(\t\022\025\n\rexternal_pkgs\030\005 \003(\t\022"
+    "\017\n\007out_dir\030\006 \001(\t\022\031\n\021web_pkg_base_path\030\007 "
+    "\001(\t\022\022\n\nis_release\030\010 \001(\010\022\021\n\tcache_dir\030\t \001"
+    "(\t\022\027\n\017js_minification\030\n \001(\010\022\025\n\rjs_source"
+    "maps\030\013 \001(\010\"\216\001\n\023BuildWebPkgResponse\022\017\n\007su"
+    "ccess\030\001 \001(\010\022\r\n\005error\030\002 \001(\t\022\024\n\014source_fil"
+    "es\030\003 \003(\t\022A\n\022import_map_entries\030\004 \003(\0132%.b"
+    "ldr.web.bundler.vite.ImportMapEntry\"8\n\016I"
+    "mportMapEntry\022\021\n\tspecifier\030\001 \001(\t\022\023\n\013outp"
+    "ut_path\030\002 \001(\t2\313\001\n\013ViteBundler\022T\n\005Build\022#"
+    ".bldr.web.bundler.vite.BuildRequest\032$.bl"
+    "dr.web.bundler.vite.BuildResponse\"\000\022f\n\013B"
+    "uildWebPkg\022).bldr.web.bundler.vite.Build"
+    "WebPkgRequest\032*.bldr.web.bundler.vite.Bu"
+    "ildWebPkgResponse\"\000b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_deps[1] = {
@@ -532,7 +546,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto = {
     false,
     false,
-    1571,
+    1667,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto,
     "github.com/s4wave/spacewave/bldr/web/bundler/vite/vite.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fbundler_2fvite_2fvite_2eproto_once,
@@ -975,6 +989,13 @@ BuildRequest::BuildRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, js_minification_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, js_minification_),
+           offsetof(Impl_, js_sourcemaps_) -
+               offsetof(Impl_, js_minification_) +
+               sizeof(Impl_::js_sourcemaps_));
 
   // @@protoc_insertion_point(copy_constructor:bldr.web.bundler.vite.BuildRequest)
 }
@@ -995,6 +1016,12 @@ PROTOBUF_NDEBUG_INLINE BuildRequest::Impl_::Impl_(
 
 inline void BuildRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, js_minification_),
+           0,
+           offsetof(Impl_, js_sourcemaps_) -
+               offsetof(Impl_, js_minification_) +
+               sizeof(Impl_::js_sourcemaps_));
 }
 BuildRequest::~BuildRequest() {
   // @@protoc_insertion_point(destructor:bldr.web.bundler.vite.BuildRequest)
@@ -1083,16 +1110,16 @@ BuildRequest::GetClassData() const {
   return BuildRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 2, 123, 2>
+const ::_pbi::TcParseTable<4, 12, 2, 123, 2>
 BuildRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_._has_bits_),
     0, // no _extensions_
-    10, 120,  // max_field_number, fast_idx_mask
+    12, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294963200,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
+    12,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     BuildRequest_class_data_.base(),
@@ -1143,8 +1170,14 @@ BuildRequest::_table_ = {
     {::_pbi::TcParser::FastMtR1,
      {82, 3, 1,
       PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.web_pkgs_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // bool js_minification = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(BuildRequest, _impl_.js_minification_), 10>(),
+     {88, 10, 0,
+      PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.js_minification_)}},
+    // bool js_sourcemaps = 12;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(BuildRequest, _impl_.js_sourcemaps_), 11>(),
+     {96, 11, 0,
+      PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.js_sourcemaps_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -1171,6 +1204,10 @@ BuildRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.external_pkgs_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 10;
     {PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.web_pkgs_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bool js_minification = 11;
+    {PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.js_minification_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool js_sourcemaps = 12;
+    {PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.js_sourcemaps_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::ViteBuildRequestEntrypoint>()},
@@ -1231,6 +1268,9 @@ PROTOBUF_NOINLINE void BuildRequest::Clear() {
       _impl_.public_path_.ClearNonDefaultToEmpty();
     }
   }
+  ::memset(&_impl_.js_minification_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.js_sourcemaps_) -
+      reinterpret_cast<char*>(&_impl_.js_minification_)) + sizeof(_impl_.js_sourcemaps_));
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1360,6 +1400,24 @@ PROTOBUF_NOINLINE void BuildRequest::Clear() {
     }
   }
 
+  // bool js_minification = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_js_minification() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          11, this_._internal_js_minification(), target);
+    }
+  }
+
+  // bool js_sourcemaps = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_js_sourcemaps() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          12, this_._internal_js_sourcemaps(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1447,7 +1505,7 @@ PROTOBUF_NOINLINE void BuildRequest::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
     // string dist_dir = 6;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (!this_._internal_dist_dir().empty()) {
@@ -1460,6 +1518,18 @@ PROTOBUF_NOINLINE void BuildRequest::Clear() {
       if (!this_._internal_public_path().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_public_path());
+      }
+    }
+    // bool js_minification = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_js_minification() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool js_sourcemaps = 12;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_js_sourcemaps() != 0) {
+        total_size += 2;
       }
     }
   }
@@ -1540,7 +1610,7 @@ void BuildRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (!from._internal_dist_dir().empty()) {
         _this->_internal_set_dist_dir(from._internal_dist_dir());
@@ -1557,6 +1627,16 @@ void BuildRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
         if (_this->_impl_.public_path_.IsDefault()) {
           _this->_internal_set_public_path("");
         }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_js_minification() != 0) {
+        _this->_impl_.js_minification_ = from._impl_.js_minification_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_js_sourcemaps() != 0) {
+        _this->_impl_.js_sourcemaps_ = from._impl_.js_sourcemaps_;
       }
     }
   }
@@ -1589,6 +1669,12 @@ void BuildRequest::InternalSwap(BuildRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.cache_dir_, &other->_impl_.cache_dir_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.dist_dir_, &other->_impl_.dist_dir_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.public_path_, &other->_impl_.public_path_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.js_sourcemaps_)
+      + sizeof(BuildRequest::_impl_.js_sourcemaps_)
+      - PROTOBUF_FIELD_OFFSET(BuildRequest, _impl_.js_minification_)>(
+          reinterpret_cast<char*>(&_impl_.js_minification_),
+          reinterpret_cast<char*>(&other->_impl_.js_minification_));
 }
 
 ::google::protobuf::Metadata BuildRequest::GetMetadata() const {
@@ -3180,7 +3266,13 @@ BuildWebPkgRequest::BuildWebPkgRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.is_release_ = from._impl_.is_release_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, is_release_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, is_release_),
+           offsetof(Impl_, js_sourcemaps_) -
+               offsetof(Impl_, is_release_) +
+               sizeof(Impl_::js_sourcemaps_));
 
   // @@protoc_insertion_point(copy_constructor:bldr.web.bundler.vite.BuildWebPkgRequest)
 }
@@ -3199,7 +3291,12 @@ PROTOBUF_NDEBUG_INLINE BuildWebPkgRequest::Impl_::Impl_(
 
 inline void BuildWebPkgRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.is_release_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, is_release_),
+           0,
+           offsetof(Impl_, js_sourcemaps_) -
+               offsetof(Impl_, is_release_) +
+               sizeof(Impl_::js_sourcemaps_));
 }
 BuildWebPkgRequest::~BuildWebPkgRequest() {
   // @@protoc_insertion_point(destructor:bldr.web.bundler.vite.BuildWebPkgRequest)
@@ -3283,16 +3380,16 @@ BuildWebPkgRequest::GetClassData() const {
   return BuildWebPkgRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 0, 139, 2>
+const ::_pbi::TcParseTable<4, 11, 0, 139, 2>
 BuildWebPkgRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
+    11,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     BuildWebPkgRequest_class_data_.base(),
@@ -3339,8 +3436,14 @@ BuildWebPkgRequest::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {74, 7, 0,
       PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.cache_dir_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // bool js_minification = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(BuildWebPkgRequest, _impl_.js_minification_), 9>(),
+     {80, 9, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.js_minification_)}},
+    // bool js_sourcemaps = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(BuildWebPkgRequest, _impl_.js_sourcemaps_), 10>(),
+     {88, 10, 0,
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.js_sourcemaps_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -3366,6 +3469,10 @@ BuildWebPkgRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.is_release_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string cache_dir = 9;
     {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.cache_dir_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool js_minification = 10;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.js_minification_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool js_sourcemaps = 11;
+    {PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.js_sourcemaps_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   // no aux_entries
   {{
@@ -3415,7 +3522,9 @@ PROTOBUF_NOINLINE void BuildWebPkgRequest::Clear() {
       _impl_.cache_dir_.ClearNonDefaultToEmpty();
     }
   }
-  _impl_.is_release_ = false;
+  ::memset(&_impl_.is_release_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.js_sourcemaps_) -
+      reinterpret_cast<char*>(&_impl_.is_release_)) + sizeof(_impl_.js_sourcemaps_));
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -3528,6 +3637,24 @@ PROTOBUF_NOINLINE void BuildWebPkgRequest::Clear() {
     }
   }
 
+  // bool js_minification = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_js_minification() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          10, this_._internal_js_minification(), target);
+    }
+  }
+
+  // bool js_sourcemaps = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_js_sourcemaps() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          11, this_._internal_js_sourcemaps(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -3617,10 +3744,22 @@ PROTOBUF_NOINLINE void BuildWebPkgRequest::Clear() {
       }
     }
   }
-   {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     // bool is_release = 8;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_is_release() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool js_minification = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_js_minification() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool js_sourcemaps = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_js_sourcemaps() != 0) {
         total_size += 2;
       }
     }
@@ -3706,9 +3845,21 @@ void BuildWebPkgRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (from._internal_is_release() != 0) {
-      _this->_impl_.is_release_ = from._impl_.is_release_;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_is_release() != 0) {
+        _this->_impl_.is_release_ = from._impl_.is_release_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_js_minification() != 0) {
+        _this->_impl_.js_minification_ = from._impl_.js_minification_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_js_sourcemaps() != 0) {
+        _this->_impl_.js_sourcemaps_ = from._impl_.js_sourcemaps_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -3738,7 +3889,12 @@ void BuildWebPkgRequest::InternalSwap(BuildWebPkgRequest* PROTOBUF_RESTRICT PROT
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.out_dir_, &other->_impl_.out_dir_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_pkg_base_path_, &other->_impl_.web_pkg_base_path_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.cache_dir_, &other->_impl_.cache_dir_, arena);
-  swap(_impl_.is_release_, other->_impl_.is_release_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.js_sourcemaps_)
+      + sizeof(BuildWebPkgRequest::_impl_.js_sourcemaps_)
+      - PROTOBUF_FIELD_OFFSET(BuildWebPkgRequest, _impl_.is_release_)>(
+          reinterpret_cast<char*>(&_impl_.is_release_),
+          reinterpret_cast<char*>(&other->_impl_.is_release_));
 }
 
 ::google::protobuf::Metadata BuildWebPkgRequest::GetMetadata() const {

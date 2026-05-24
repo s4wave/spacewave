@@ -9,6 +9,7 @@ import {
   ScalarType,
 } from '@aptre/protobuf-es-lite'
 import { Manifest, ManifestMeta, ManifestRef } from '../manifest.pb.js'
+import { BuildPolicy } from '../build/policy.pb.js'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 
 export const protobufPackage = 'bldr.manifest.builder'
@@ -124,6 +125,12 @@ export interface BuilderConfig {
    * @generated from field: repeated string target_platform_ids = 10;
    */
   targetPlatformIds?: string[]
+  /**
+   * BuildPolicy is the effective build-scoped policy for this Manifest build.
+   *
+   * @generated from field: bldr.manifest.build.BuildPolicy build_policy = 11;
+   */
+  buildPolicy?: BuildPolicy
 }
 
 // BuilderConfig contains the message type declaration for BuilderConfig.
@@ -152,6 +159,7 @@ export const BuilderConfig: MessageType<BuilderConfig> = createMessageType({
       T: ScalarType.STRING,
       repeated: true,
     },
+    { no: 11, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

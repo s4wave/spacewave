@@ -192,6 +192,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 		webStartupSrcPath,
 		"",
 		minifyEntrypoint,
+		!minifyEntrypoint,
 		devMode,
 		false,
 		false,
@@ -205,7 +206,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 	if err := os.MkdirAll(wsRuntimeDir, 0o755); err != nil {
 		return err
 	}
-	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir, minifyEntrypoint); err != nil {
+	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir, minifyEntrypoint, !minifyEntrypoint); err != nil {
 		return err
 	}
 
