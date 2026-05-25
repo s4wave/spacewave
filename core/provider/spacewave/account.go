@@ -22,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxrequest"
+	"github.com/s4wave/spacewave/core/provider/spacewave/managedbacache"
 	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/core/session"
@@ -116,8 +117,8 @@ type ProviderAccount struct {
 	// entityKeypairStepUpRc retains unlocked entity keypairs until the last
 	// screen-scoped step-up reference is released.
 	entityKeypairStepUpRc *refcount.RefCount[struct{}]
-	// managedBAsRc caches the billing accounts created by this caller.
-	managedBAsRc *refcount.RefCount[*managedBAsSnapshot]
+	// managedBAsCache caches the billing accounts created by this caller.
+	managedBAsCache *managedbacache.Store
 	// p2pSync contains the direct invite / sync controllers bound to the
 	// current session transport.
 	p2pSync *p2pSyncState
@@ -367,14 +368,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		nil,
 		nil,
 		acc.resolveEntityKeypairStepUp,
-	)
-	acc.managedBAsRc = refcount.NewRefCountWithOptions(
-		context.Background(),
-		true,
-		nil,
-		nil,
-		acc.resolveManagedBAs,
-		snapshotRefCountOptions,
 	)
 	acc.selfRejoinSweep = routine.NewStateRoutineContainerWithLogger(
 		equalSelfRejoinSweepState,
@@ -844,7 +837,7 @@ func (a *ProviderAccount) setEpoch(n uint64) {
 		if n > a.state.epoch {
 			a.state.epoch = n
 			a.getBillingCacheLocked().Invalidate("")
-			a.getManagedBAsRcLocked().Invalidate()
+			a.getManagedBAsCacheLocked().Invalidate()
 			broadcast()
 		}
 	})
@@ -856,7 +849,7 @@ func (a *ProviderAccount) BumpLocalEpoch() {
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.state.epoch++
 		a.getBillingCacheLocked().Invalidate("")
-		a.getManagedBAsRcLocked().Invalidate()
+		a.getManagedBAsCacheLocked().Invalidate()
 		broadcast()
 	})
 }
