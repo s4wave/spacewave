@@ -1,4 +1,5 @@
 import * as $ from "@goscript/builtin/index.js";
+import * as bus from "@goscript/github.com/aperturerobotics/controllerbus/bus/index.js";
 import * as crypto from "@goscript/github.com/s4wave/spacewave/net/crypto/index.js";
 import * as hash from "@goscript/github.com/s4wave/spacewave/net/hash/index.js";
 import * as directive from "@goscript/github.com/aperturerobotics/controllerbus/directive/index.js";
@@ -54,6 +55,22 @@ class memoryPeer implements Peer {
   }
 }
 
+export class NetAddr {
+  constructor(private readonly peerID: ID) {}
+
+  Network(): string {
+    return "bifrost";
+  }
+
+  String(): string {
+    return ID_String(this.peerID);
+  }
+}
+
+export function NewNetAddr(pid: ID): NetAddr {
+  return new NetAddr(pid);
+}
+
 export type GetPeer = (directive.Directive & {
   GetPeerIDConstraint(): ID;
   IsEquivalent(other: directive.Directive | null): boolean;
@@ -103,6 +120,26 @@ class getPeer implements NonNullable<GetPeer> {
 
 export function NewGetPeer(peerID: ID): GetPeer {
   return new getPeer(peerID);
+}
+
+export async function GetPeerWithID(
+  ctx: unknown,
+  b: bus.Bus | null,
+  peerIDConstraint: ID,
+  returnIfIdle: boolean,
+  valDisposeCallback: (() => void) | null,
+): Promise<[Peer | null, directive.Instance | null, directive.Reference | null, $.GoError]> {
+  const idleCb = returnIfIdle ? bus.ReturnWhenIdle() : null;
+  const [peer, instance, ref, err] = await bus.ExecWaitValue(
+    undefined,
+    ctx as any,
+    b,
+    NewGetPeer(peerIDConstraint),
+    idleCb,
+    valDisposeCallback,
+    null,
+  );
+  return [peer as Peer | null, instance, ref, err];
 }
 
 export class GetPeerResolver {

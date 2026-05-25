@@ -2,6 +2,7 @@
   "dependencies": [],
   "asyncFunctions": {
     "ID_ExtractPublicKey": true,
+    "GetPeerWithID": true,
     "NewPeer": true,
     "NewPeerWithGenerateED25519": true,
     "NewPeerWithID": true,
