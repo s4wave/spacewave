@@ -27,6 +27,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/orgstatecache"
 	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
+	"github.com/s4wave/spacewave/core/provider/spacewave/writeticketowner"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -93,7 +94,7 @@ type ProviderAccount struct {
 	// writeTicketOwnersMtx guards writeTicketOwners and writeTicketOwnersCtx.
 	writeTicketOwnersMtx sync.Mutex
 	// writeTicketOwners caches per-resource bundled write-ticket owners.
-	writeTicketOwners map[string]*writeTicketOwner
+	writeTicketOwners map[string]*writeticketowner.Owner
 	// writeTicketOwnersCtx is the lifecycle context shared by ticket owners.
 	writeTicketOwnersCtx context.Context
 	// selfRejoinSweep opportunistically heals missing same-entity SO peers after
