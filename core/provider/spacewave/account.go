@@ -22,9 +22,11 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
 	"github.com/s4wave/spacewave/core/provider/spacewave/entitykeystore"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxcache"
 	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxrequest"
 	"github.com/s4wave/spacewave/core/provider/spacewave/managedbacache"
 	"github.com/s4wave/spacewave/core/provider/spacewave/orgstatecache"
+	"github.com/s4wave/spacewave/core/provider/spacewave/seedflight"
 	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/core/provider/spacewave/writeticketowner"
@@ -257,8 +259,10 @@ type accountState struct {
 	billingCache *billingcache.Store
 	// sharedObjectMetadata caches full shared-object metadata by SO ID.
 	sharedObjectMetadata map[string]*sharedObjectMetadataState
-	// pendingMailboxEntries caches owner-visible pending mailbox metadata by SO ID.
-	pendingMailboxEntries map[string]*pendingMailboxState
+	// pendingMailboxCache caches owner-visible pending mailbox metadata by SO ID.
+	pendingMailboxCache *mailboxcache.Store
+	// pendingMailboxSeeds coordinates one mailbox seed fetch per SO ID.
+	pendingMailboxSeeds map[string]*seedflight.Seed
 	// mailboxRequests tracks invitee-visible cloud invite mailbox decisions.
 	mailboxRequests mailboxrequest.Tracker
 }
