@@ -24,6 +24,7 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxrequest"
 	"github.com/s4wave/spacewave/core/provider/spacewave/managedbacache"
+	"github.com/s4wave/spacewave/core/provider/spacewave/orgstatecache"
 	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/s4wave/spacewave/core/session"
@@ -145,14 +146,14 @@ type ProviderAccount struct {
 	gcCleanupCollect provider_gccleanup.CollectFunc
 
 	// orgBcast fires when org list changes.
-	// Guards orgList, orgListValid, and orgSnapshotRcs.
+	// Guards orgList, orgListValid, and orgStateCache.
 	orgBcast broadcast.Broadcast
 	// orgList is the cached org list from the cloud.
 	orgList []*api.OrgResponse
 	// orgListValid indicates orgList has been fetched at least once.
 	orgListValid bool
-	// orgSnapshotRcs caches full organization detail snapshots keyed by org id.
-	orgSnapshotRcs map[string]*refcount.RefCount[*organizationSnapshot]
+	// orgStateCache caches full organization detail snapshots keyed by org id.
+	orgStateCache *orgstatecache.Store
 	// orgSyncs serializes org refresh and reconciliation work keyed by org id.
 	orgSyncs *keyed.Keyed[string, struct{}]
 	// pendingParticipantSyncs serializes pending participant reconciliation work.
