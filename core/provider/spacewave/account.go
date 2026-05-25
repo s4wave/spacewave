@@ -18,6 +18,7 @@ import (
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
 	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/billingcache"
 	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxrequest"
@@ -248,8 +249,8 @@ type accountState struct {
 	cachedEmails []*api.AccountEmailInfo
 	// cachedEmailsValid indicates cachedEmails has been populated at least once.
 	cachedEmailsValid bool
-	// billingSnapshotRcs caches billing account state and usage by billing account id.
-	billingSnapshotRcs map[string]*refcount.RefCount[*billingSnapshot]
+	// billingCache caches billing account state and usage by billing account id.
+	billingCache *billingcache.Store
 	// sharedObjectMetadata caches full shared-object metadata by SO ID.
 	sharedObjectMetadata map[string]*sharedObjectMetadataState
 	// pendingMailboxEntries caches owner-visible pending mailbox metadata by SO ID.
@@ -842,9 +843,7 @@ func (a *ProviderAccount) setEpoch(n uint64) {
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if n > a.state.epoch {
 			a.state.epoch = n
-			for _, rc := range a.state.billingSnapshotRcs {
-				rc.Invalidate()
-			}
+			a.getBillingCacheLocked().Invalidate("")
 			a.getManagedBAsRcLocked().Invalidate()
 			broadcast()
 		}
@@ -856,9 +855,7 @@ func (a *ProviderAccount) setEpoch(n uint64) {
 func (a *ProviderAccount) BumpLocalEpoch() {
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.state.epoch++
-		for _, rc := range a.state.billingSnapshotRcs {
-			rc.Invalidate()
-		}
+		a.getBillingCacheLocked().Invalidate("")
 		a.getManagedBAsRcLocked().Invalidate()
 		broadcast()
 	})
