@@ -9,20 +9,6 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 )
 
-// SelfEnrollmentRunSnapshot is a snapshot of the visible self-enrollment run.
-type SelfEnrollmentRunSnapshot struct {
-	Running               bool
-	CurrentSharedObjectID string
-	CompletedIDs          []string
-	Failures              []*SelfEnrollmentRunFailure
-}
-
-// SelfEnrollmentRunFailure describes a failed per-object enrollment.
-type SelfEnrollmentRunFailure struct {
-	SharedObjectID string
-	Err            error
-}
-
 type selfEnrollmentRunState struct {
 	acc *ProviderAccount
 

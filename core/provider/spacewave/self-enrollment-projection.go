@@ -1,22 +1,15 @@
 package provider_spacewave
 
-import "slices"
+import "github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentprojection"
 
-// SelfEnrollmentProjection is the backend state projection for Session
-// Self-Enrollment. It is built only from Provider Account-owned state.
-type SelfEnrollmentProjection struct {
-	SharedObjectIDs          []string
-	GenerationKey            string
-	Count                    uint32
-	PendingLoaded            bool
-	CredentialRequired       bool
-	Running                  bool
-	CurrentSharedObjectID    string
-	CompletedSharedObjectIDs []string
-	Skipped                  bool
-	SkippedGenerationKey     string
-	Failures                 []*SelfEnrollmentRunFailure
-}
+// SelfEnrollmentProjection is the backend state projection for Session Self-Enrollment.
+type SelfEnrollmentProjection = selfenrollmentprojection.Projection
+
+// SelfEnrollmentRunSnapshot is a snapshot of the visible self-enrollment run.
+type SelfEnrollmentRunSnapshot = selfenrollmentprojection.RunSnapshot
+
+// SelfEnrollmentRunFailure describes a failed per-object enrollment.
+type SelfEnrollmentRunFailure = selfenrollmentprojection.RunFailure
 
 // BuildSelfEnrollmentProjection builds a Session Self-Enrollment projection
 // from cached backend state without fetching from the cloud.
@@ -74,24 +67,26 @@ func buildSelfEnrollmentProjection(
 	hasEntityKeyStore bool,
 	unlockedCount int,
 ) *SelfEnrollmentProjection {
-	proj := &SelfEnrollmentProjection{
-		SkippedGenerationKey: skippedKey,
-	}
-	if run != nil {
-		proj.Running = run.Running
-		proj.CurrentSharedObjectID = run.CurrentSharedObjectID
-		proj.CompletedSharedObjectIDs = slices.Clone(run.CompletedIDs)
-		proj.Failures = cloneSelfEnrollmentFailures(run.Failures)
-	}
+	return selfenrollmentprojection.Build(selfenrollmentprojection.Snapshot{
+		Summary:                 selfEnrollmentProjectionSummary(summary),
+		Run:                     run,
+		SkippedGenerationKey:    skippedKey,
+		HasCredentialStore:      hasEntityKeyStore,
+		UnlockedCredentialCount: unlockedCount,
+	})
+}
+
+func selfEnrollmentProjectionSummary(
+	summary *SelfEnrollmentSummary,
+) selfenrollmentprojection.Summary {
 	if summary == nil {
-		return proj
+		return selfenrollmentprojection.Summary{}
 	}
-	proj.SharedObjectIDs = summary.GetIDs()
-	proj.GenerationKey = summary.GetGenerationKey()
-	proj.Count = summary.GetCount()
-	proj.PendingLoaded = summary.GetLoaded()
-	proj.CredentialRequired = summary.GetCount() != 0 &&
-		(!hasEntityKeyStore || unlockedCount == 0)
-	proj.Skipped = skippedKey != "" && skippedKey == summary.GetGenerationKey()
-	return proj
+	return selfenrollmentprojection.Summary{
+		Present:       true,
+		SharedObjects: summary.GetIDs(),
+		GenerationKey: summary.GetGenerationKey(),
+		Count:         summary.GetCount(),
+		Loaded:        summary.GetLoaded(),
+	}
 }
