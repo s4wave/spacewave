@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/activitypolicy"
+	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/projection"
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/spacepolicy"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
@@ -54,7 +55,7 @@ func snapshotSessionProjection(
 		return nil, nil, nil, err
 	}
 
-	rows := make([]*sessionProjectionRow, 0, len(entries))
+	rows := make([]*projection.SessionProjectionRow, 0, len(entries))
 	spaceRows := []*spacepolicy.Row{}
 	activityRows := []*activitypolicy.Row{}
 	releases := make([]func(), 0, len(entries))
@@ -73,14 +74,14 @@ func snapshotSessionProjection(
 		}
 		releases = append(releases, runtimeReleases...)
 		waitChs = append(waitChs, runtimeWaitChs...)
-		row := &sessionProjectionRow{
-			entry:          entry,
-			metadata:       meta,
-			accountStatus:  runtime.account.status,
-			selfEnrollment: runtime.account.selfEnrollment,
+		row := &projection.SessionProjectionRow{
+			Entry:          entry,
+			Metadata:       meta,
+			AccountStatus:  runtime.account.status,
+			SelfEnrollment: runtime.account.selfEnrollment,
 		}
 		rows = append(rows, row)
-		label := sessionLabel(row)
+		label := projection.SessionLabel(row)
 		for _, sp := range runtime.spaces {
 			spaceRows = append(spaceRows, &spacepolicy.Row{
 				SessionIndex: entry.GetSessionIndex(),
@@ -93,10 +94,10 @@ func snapshotSessionProjection(
 		}
 	}
 
-	projection := buildSessionProjection(rows)
-	projection.Spaces = spacepolicy.Build(spaceRows)
-	projection.Activity = activitypolicy.Build(activityRows)
-	return projection, waitChs, releases, nil
+	proj := projection.BuildSessionProjection(rows)
+	proj.Spaces = spacepolicy.Build(spaceRows)
+	proj.Activity = activitypolicy.Build(activityRows)
+	return proj, waitChs, releases, nil
 }
 
 func activityRowFromSyncStatus(

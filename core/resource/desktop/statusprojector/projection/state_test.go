@@ -1,14 +1,12 @@
-//go:build !goscript
-
-package statusprojector
+package projection
 
 import (
 	"testing"
 
-	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 	"github.com/s4wave/spacewave/core/provider"
-	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentprojection"
+	desktop_tray "github.com/s4wave/spacewave/core/resource/desktop/statusprojector/projection/traymodel"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/s4wave/spacewave/core/session"
 )
@@ -210,24 +208,24 @@ func TestBuildDesktopTrayEntriesFromRuntimeStateOrdersMenuSections(t *testing.T)
 }
 
 func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
-	projection := buildSessionProjection([]*sessionProjectionRow{
+	projection := BuildSessionProjection([]*SessionProjectionRow{
 		{
-			entry: testSessionEntry(1, "spacewave", "acct-1"),
-			metadata: &session.SessionMetadata{
+			Entry: testSessionEntry(1, "spacewave", "acct-1"),
+			Metadata: &session.SessionMetadata{
 				DisplayName:         "old@example.com",
 				ProviderDisplayName: "Cloud",
 				CreatedAt:           1,
 			},
-			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+			AccountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
 		},
 		{
-			entry: testSessionEntry(2, "spacewave", "acct-2"),
-			metadata: &session.SessionMetadata{
+			Entry: testSessionEntry(2, "spacewave", "acct-2"),
+			Metadata: &session.SessionMetadata{
 				DisplayName:         "new@example.com",
 				ProviderDisplayName: "Cloud",
 				CreatedAt:           2,
 			},
-			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED,
+			AccountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED,
 		},
 	})
 	if len(projection.Sessions) != 2 {
@@ -263,16 +261,16 @@ func TestBuildSessionProjectionSortsAndFlagsAuth(t *testing.T) {
 }
 
 func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
-	projection := buildSessionProjection([]*sessionProjectionRow{
+	projection := BuildSessionProjection([]*SessionProjectionRow{
 		{
-			entry: testSessionEntry(7, "spacewave", "acct-7"),
-			metadata: &session.SessionMetadata{
+			Entry: testSessionEntry(7, "spacewave", "acct-7"),
+			Metadata: &session.SessionMetadata{
 				DisplayName:         "cloud@example.com",
 				ProviderDisplayName: "Cloud",
 				CreatedAt:           7,
 			},
-			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-			selfEnrollment: &provider_spacewave.SelfEnrollmentProjection{
+			AccountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+			SelfEnrollment: &selfenrollmentprojection.Projection{
 				Count:              2,
 				CredentialRequired: true,
 			},
@@ -302,25 +300,25 @@ func TestBuildSessionProjectionFlagsStepUp(t *testing.T) {
 func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) {
 	tests := []struct {
 		name              string
-		projection        *provider_spacewave.SelfEnrollmentProjection
+		projection        *selfenrollmentprojection.Projection
 		wantStatus        string
 		wantAttentionKind desktop_runtime.DesktopRuntimeAttentionKind
 	}{
 		{
 			name: "failure",
-			projection: &provider_spacewave.SelfEnrollmentProjection{
-				Failures: []*provider_spacewave.SelfEnrollmentRunFailure{{SharedObjectID: "so-1"}},
+			projection: &selfenrollmentprojection.Projection{
+				Failures: []*selfenrollmentprojection.RunFailure{{SharedObjectID: "so-1"}},
 			},
 			wantStatus: "Space connection failed",
 		},
 		{
 			name:       "running",
-			projection: &provider_spacewave.SelfEnrollmentProjection{Running: true},
+			projection: &selfenrollmentprojection.Projection{Running: true},
 			wantStatus: "Connecting spaces",
 		},
 		{
 			name: "skipped",
-			projection: &provider_spacewave.SelfEnrollmentProjection{
+			projection: &selfenrollmentprojection.Projection{
 				Count:   1,
 				Skipped: true,
 			},
@@ -328,12 +326,12 @@ func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) 
 		},
 		{
 			name:       "pending",
-			projection: &provider_spacewave.SelfEnrollmentProjection{Count: 1},
+			projection: &selfenrollmentprojection.Projection{Count: 1},
 			wantStatus: "Spaces pending",
 		},
 		{
 			name: "waiting-for-step-up",
-			projection: &provider_spacewave.SelfEnrollmentProjection{
+			projection: &selfenrollmentprojection.Projection{
 				Count:              1,
 				CredentialRequired: true,
 			},
@@ -342,19 +340,19 @@ func TestBuildSessionProjectionUsesSharedSelfEnrollmentProjection(t *testing.T) 
 		},
 		{
 			name:       "ready",
-			projection: &provider_spacewave.SelfEnrollmentProjection{},
+			projection: &selfenrollmentprojection.Projection{},
 			wantStatus: "Ready",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			row := &sessionProjectionRow{
-				entry:          testSessionEntry(1, "spacewave", "acct-1"),
-				metadata:       &session.SessionMetadata{},
-				accountStatus:  provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-				selfEnrollment: tt.projection,
+			row := &SessionProjectionRow{
+				Entry:          testSessionEntry(1, "spacewave", "acct-1"),
+				Metadata:       &session.SessionMetadata{},
+				AccountStatus:  provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+				SelfEnrollment: tt.projection,
 			}
-			projection := buildSessionProjection([]*sessionProjectionRow{row})
+			projection := BuildSessionProjection([]*SessionProjectionRow{row})
 			if len(projection.Sessions) != 1 {
 				t.Fatalf("session rows = %d, want 1", len(projection.Sessions))
 			}
@@ -398,15 +396,15 @@ func TestBuildDesktopRuntimeStateMarksRunningActivity(t *testing.T) {
 }
 
 func TestBuildSessionProjectionBoundsSessionRows(t *testing.T) {
-	rows := make([]*sessionProjectionRow, 0, maxProjectedSessions+1)
+	rows := make([]*SessionProjectionRow, 0, maxProjectedSessions+1)
 	for i := uint32(1); i <= maxProjectedSessions+1; i++ {
-		rows = append(rows, &sessionProjectionRow{
-			entry:         testSessionEntry(i, "local", "local"),
-			metadata:      &session.SessionMetadata{CreatedAt: int64(i)},
-			accountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+		rows = append(rows, &SessionProjectionRow{
+			Entry:         testSessionEntry(i, "local", "local"),
+			Metadata:      &session.SessionMetadata{CreatedAt: int64(i)},
+			AccountStatus: provider.ProviderAccountStatus_ProviderAccountStatus_READY,
 		})
 	}
-	projection := buildSessionProjection(rows)
+	projection := BuildSessionProjection(rows)
 	if len(projection.Sessions) != maxProjectedSessions {
 		t.Fatalf("session rows = %d, want %d", len(projection.Sessions), maxProjectedSessions)
 	}
