@@ -114,6 +114,8 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, er
 	// Admit every fully-contained block and gather verify jobs.
 	var firstMiss *blockRecord
 	var jobs []func()
+	var data []byte
+	var readErr error
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		for _, entry := range contained {
 			off := int64(entry.GetOffset())
@@ -128,6 +130,14 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, er
 			}
 			if isTarget {
 				firstMiss = e.blocks[string(entry.GetKey())]
+			}
+		}
+		if firstMiss != nil {
+			data, readErr = firstMiss.readBytes()
+			if readErr != nil {
+				e.removeBlockLocked(firstMiss)
+				broadcast()
+				return
 			}
 		}
 		if len(jobs) != 0 {
@@ -147,16 +157,7 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, er
 	// First caller on the miss path serves directly from resident spans
 	// without blocking on verification. Later callers go through the fast
 	// path above and wait on readyCh.
-	var data []byte
-	var readErr error
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		data, readErr = firstMiss.readBytes()
-	})
 	if readErr != nil {
-		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			e.removeBlockLocked(firstMiss)
-			broadcast()
-		})
 		return nil, false, readErr
 	}
 	return data, true, nil
