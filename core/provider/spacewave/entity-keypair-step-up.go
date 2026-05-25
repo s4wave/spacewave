@@ -1,10 +1,6 @@
 package provider_spacewave
 
-import (
-	"context"
-
-	"github.com/aperturerobotics/util/refcount"
-)
+import "github.com/aperturerobotics/util/refcount"
 
 // GetEntityKeyStore returns the shared entity key store.
 func (a *ProviderAccount) GetEntityKeyStore() *EntityKeyStore {
@@ -14,21 +10,7 @@ func (a *ProviderAccount) GetEntityKeyStore() *EntityKeyStore {
 // RetainEntityKeypairStepUp retains unlocked entity keypairs until the returned
 // reference is released.
 func (a *ProviderAccount) RetainEntityKeypairStepUp() *refcount.Ref[struct{}] {
-	return a.entityKeypairStepUpRc.AddRef(nil)
-}
-
-// resolveEntityKeypairStepUp holds a store retention ref while step-up
-// consumers are mounted.
-func (a *ProviderAccount) resolveEntityKeypairStepUp(
-	_ context.Context,
-	_ func(),
-) (struct{}, func(), error) {
-	store := a.getEntityKeyStore()
-	if store == nil {
-		return struct{}{}, nil, nil
-	}
-	ref := store.Retain()
-	return struct{}{}, ref.Release, nil
+	return a.entityKeypairStepUp.Retain()
 }
 
 func (a *ProviderAccount) getEntityKeyStore() *EntityKeyStore {

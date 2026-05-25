@@ -20,6 +20,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/billingcache"
 	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
+	"github.com/s4wave/spacewave/core/provider/spacewave/entitykeystore"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxrequest"
 	"github.com/s4wave/spacewave/core/provider/spacewave/managedbacache"
@@ -114,9 +115,9 @@ type ProviderAccount struct {
 	entityKeyStore *EntityKeyStore
 	// selfEnrollmentRun owns visible Session Self-Enrollment progress.
 	selfEnrollmentRun *selfEnrollmentRunState
-	// entityKeypairStepUpRc retains unlocked entity keypairs until the last
+	// entityKeypairStepUp retains unlocked entity keypairs until the last
 	// screen-scoped step-up reference is released.
-	entityKeypairStepUpRc *refcount.RefCount[struct{}]
+	entityKeypairStepUp *entitykeystore.EntityKeypairStepUp
 	// managedBAsCache caches the billing accounts created by this caller.
 	managedBAsCache *managedbacache.Store
 	// p2pSync contains the direct invite / sync controllers bound to the
@@ -362,13 +363,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	acc.selfEnrollmentRun = newSelfEnrollmentRunState(acc)
 	acc.soListCtr.SetValue(nil)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
-	acc.entityKeypairStepUpRc = refcount.NewRefCount(
-		ctx,
-		false,
-		nil,
-		nil,
-		acc.resolveEntityKeypairStepUp,
-	)
+	acc.entityKeypairStepUp = entitykeystore.NewEntityKeypairStepUp(ctx, acc.getEntityKeyStore)
 	acc.selfRejoinSweep = routine.NewStateRoutineContainerWithLogger(
 		equalSelfRejoinSweepState,
 		le.WithField("component", "self-rejoin-sweep"),
