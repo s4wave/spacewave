@@ -70,7 +70,7 @@ class getPeer implements NonNullable<GetPeer> {
     return this.peerIDConstraint;
   }
 
-  async Validate(): Promise<$.GoError> {
+  Validate(): $.GoError {
     return null;
   }
 

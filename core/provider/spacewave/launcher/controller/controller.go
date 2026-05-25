@@ -284,19 +284,17 @@ func (c *Controller) PushDistConf(ctx context.Context, body []byte) (*spacewave_
 	currDistConf := currLauncherInfo.GetDistConfig()
 	currRev := currDistConf.GetRev()
 
-	updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, err := spacewave_launcher.ParseDistConfigPackedMsg(
+	updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, updated, err := spacewave_launcher.ResolvePushedDistConfig(
 		c.le.WithField("endpoint", "PushDistConf"),
 		body,
 		c.distPeerIDs,
 		c.conf.GetProjectId(),
+		currRev,
 	)
-	rev := updatedAppDistConf.GetRev()
-	if err != nil || rev == 0 {
+	if err != nil || updatedAppDistConf.GetRev() == 0 {
 		return nil, "", "", false, currRev, err
 	}
-
-	// config is valid: check if newer
-	if rev <= currRev {
+	if !updated {
 		return updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, false, currRev, nil
 	}
 
