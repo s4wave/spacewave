@@ -7,10 +7,10 @@ import (
 	"runtime"
 	"sync/atomic"
 	"syscall/js"
-	"unsafe"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/util/jsbuf"
 )
 
 const tinyGoPushBytes = "BLDR_TINYGO_PUSH_BYTES"
@@ -57,11 +57,9 @@ func (w *PushablePacketWriter) WritePacketData(data []byte) error {
 		if w.tinyGoPushRaw.IsUndefined() || w.tinyGoPushRaw.IsNull() || w.tinyGoPushRaw.Type() != js.TypeFunction {
 			return errors.New("tinygo push bytes helper unavailable")
 		}
-		var ptr uint32
-		if len(data) != 0 {
-			ptr = uint32(uintptr(unsafe.Pointer(&data[0])))
-		}
-		w.tinyGoPushRaw.Invoke(w.pushable, ptr, len(data))
+		jsbuf.WithTinyGoBytes(data, func(id uint32) {
+			w.tinyGoPushRaw.Invoke(w.pushable, id)
+		})
 		return nil
 	}
 

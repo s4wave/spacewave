@@ -6,7 +6,8 @@ package jsutil
 import (
 	"runtime"
 	"syscall/js"
-	"unsafe"
+
+	"github.com/s4wave/spacewave/db/util/jsbuf"
 )
 
 const (
@@ -94,9 +95,9 @@ func CopyStoredBytes(id int, dst []byte) (int, bool) {
 	if !Available(copyBytes) {
 		return 0, false
 	}
-	var ptr uint32
-	if len(dst) != 0 {
-		ptr = uint32(uintptr(unsafe.Pointer(&dst[0])))
-	}
-	return copyBytes.Invoke(id, ptr, len(dst)).Int(), true
+	var n int
+	jsbuf.WithTinyGoBytes(dst, func(bytesID uint32) {
+		n = copyBytes.Invoke(id, bytesID).Int()
+	})
+	return n, true
 }

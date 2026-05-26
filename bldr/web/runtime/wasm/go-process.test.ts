@@ -23,11 +23,7 @@ type TinyGoHelperGlobal = typeof globalThis & {
     resolve: (value: TValue) => void,
     reject: (reason: number) => void,
   ) => void
-  BLDR_TINYGO_COPY_STORED_BYTES?: (
-    id: number,
-    ptr: number,
-    len: number,
-  ) => number
+  BLDR_TINYGO_COPY_STORED_BYTES?: (id: number, bytesID: number) => number
   BLDR_OPFS_ACQUIRE_WEB_LOCK?: (
     name: string,
     mode: LockMode,
@@ -37,13 +33,11 @@ type TinyGoHelperGlobal = typeof globalThis & {
   ) => void
   BLDR_TINYGO_PUSH_BYTES?: (
     sink: { push: (message: Uint8Array) => void },
-    ptr: number,
-    len: number,
+    bytesID: number,
   ) => void
   BLDR_TINYGO_POST_BYTES?: (
     port: { postMessage: (message: Uint8Array) => void },
-    ptr: number,
-    len: number,
+    bytesID: number,
   ) => void
   BLDR_OPFS_READ_FILE?: (
     dir: FileSystemDirectoryHandle,
@@ -54,8 +48,7 @@ type TinyGoHelperGlobal = typeof globalThis & {
   ) => void
   BLDR_OPFS_READ_AT?: (
     handle: FileSystemFileHandle,
-    ptr: number,
-    len: number,
+    bytesID: number,
     off: number,
     opID: number,
     resolve: (opID: number, read: number) => void,
@@ -69,8 +62,7 @@ type TinyGoHelperGlobal = typeof globalThis & {
   ) => void
   BLDR_OPFS_WRITE_AT?: (
     handle: FileSystemFileHandle,
-    ptr: number,
-    len: number,
+    bytesID: number,
     off: number,
     keepExisting: boolean,
     opID: number,
@@ -80,8 +72,7 @@ type TinyGoHelperGlobal = typeof globalThis & {
   BLDR_OPFS_WRITE_FILE?: (
     dir: FileSystemDirectoryHandle,
     name: string,
-    ptr: number,
-    len: number,
+    bytesID: number,
     opID: number,
     resolve: (opID: number, written: number) => void,
     reject: (opID: number, code: number) => void,
@@ -412,21 +403,22 @@ describe('installOPFSBroadcastHelpers', () => {
 describe('GoWasmProcess', () => {
   it('scopes Go released-callback console errors and exposes TinyGo memory helpers', async () => {
     const memory = new WebAssembly.Memory({ initial: 1 })
+    const byteRanges = new Map<number, { ptr: number; len: number }>()
     const pushed: Uint8Array[] = []
     const run = vi.fn(async () => {
       const g = globalThis as TinyGoHelperGlobal
 
       new Uint8Array(memory.buffer, 8, 3).set([1, 2, 3])
+      byteRanges.set(1, { ptr: 8, len: 3 })
       g.BLDR_TINYGO_PUSH_BYTES?.(
         { push: (message: Uint8Array) => pushed.push(message) },
-        8,
-        3,
+        1,
       )
       const posted: Uint8Array[] = []
+      byteRanges.set(2, { ptr: 8, len: 3 })
       g.BLDR_TINYGO_POST_BYTES?.(
         { postMessage: (message: Uint8Array) => posted.push(message) },
-        8,
-        3,
+        2,
       )
 
       const read = await new Promise<{ id: number; len: number }>((resolve) => {
@@ -444,7 +436,8 @@ describe('GoWasmProcess', () => {
           () => resolve({ id: 0, len: 0 }),
         )
       })
-      const copied = g.BLDR_TINYGO_COPY_STORED_BYTES?.(read.id, 16, read.len)
+      byteRanges.set(3, { ptr: 16, len: read.len })
+      const copied = g.BLDR_TINYGO_COPY_STORED_BYTES?.(read.id, 3)
 
       expect(Array.from(pushed[0])).toEqual([1, 2, 3])
       expect(Array.from(posted[0])).toEqual([1, 2, 3])
@@ -468,11 +461,8 @@ describe('GoWasmProcess', () => {
           )
         },
       )
-      const copiedList = g.BLDR_TINYGO_COPY_STORED_BYTES?.(
-        listed.id,
-        48,
-        listed.len,
-      )
+      byteRanges.set(4, { ptr: 48, len: listed.len })
+      const copiedList = g.BLDR_TINYGO_COPY_STORED_BYTES?.(listed.id, 4)
 
       expect(copiedList).toBe(listed.len)
       const listBytes = new Uint8Array(memory.buffer, 48, listed.len)
@@ -498,6 +488,7 @@ describe('GoWasmProcess', () => {
       expect(decodeNameList(listBytes)).toEqual(['manifest-a', 'wal-a'])
 
       const readAtSlices: number[][] = []
+      byteRanges.set(5, { ptr: 32, len: 4 })
       const readAt = await new Promise<number>((resolve) => {
         g.BLDR_OPFS_READ_AT?.(
           {
@@ -512,8 +503,7 @@ describe('GoWasmProcess', () => {
               },
             }),
           } as unknown as FileSystemFileHandle,
-          32,
-          4,
+          5,
           3,
           103,
           (_opID, read) => resolve(read),
@@ -530,6 +520,7 @@ describe('GoWasmProcess', () => {
       const writtenChunks: Uint8Array[] = []
       const seeks: number[] = []
       new Uint8Array(memory.buffer, 24, 4).set([7, 8, 9, 10])
+      byteRanges.set(6, { ptr: 24, len: 4 })
       const written = await new Promise<number>((resolve) => {
         g.BLDR_OPFS_WRITE_AT?.(
           {
@@ -546,8 +537,7 @@ describe('GoWasmProcess', () => {
               },
             }),
           } as unknown as FileSystemFileHandle,
-          24,
-          4,
+          6,
           12,
           true,
           104,
@@ -567,6 +557,7 @@ describe('GoWasmProcess', () => {
         globalThis as typeof globalThis & { BLDR_OPFS_WRITE_AT?: unknown }
       ).BLDR_OPFS_WRITE_AT
       new Uint8Array(memory.buffer, 40, 3).set([21, 22, 23])
+      byteRanges.set(7, { ptr: 40, len: 3 })
       const wholeFileWritten = await new Promise<number>((resolve) => {
         g.BLDR_OPFS_WRITE_FILE?.(
           {
@@ -591,8 +582,7 @@ describe('GoWasmProcess', () => {
             },
           } as unknown as FileSystemDirectoryHandle,
           'wal-a',
-          40,
-          3,
+          7,
           105,
           (_opID, written) => resolve(written),
           () => resolve(-1),
@@ -625,7 +615,11 @@ describe('GoWasmProcess', () => {
 
     vi.stubGlobal('Go', FakeGo)
     vi.spyOn(WebAssembly, 'instantiate').mockResolvedValue({
-      exports: { memory },
+      exports: {
+        BLDR_TINYGO_BYTES_LEN: (id: number) => byteRanges.get(id)?.len ?? 0,
+        BLDR_TINYGO_BYTES_PTR: (id: number) => byteRanges.get(id)?.ptr ?? 0,
+        memory,
+      },
     })
     const consoleError = vi.spyOn(console, 'error')
 

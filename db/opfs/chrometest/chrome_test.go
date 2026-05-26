@@ -1385,6 +1385,29 @@ self.__BLDR_TINYGO_MEMORY_VIEW = (ptr, len) => {
   }
   return new Uint8Array(memory.buffer, ptr >>> 0, len)
 }
+self.__BLDR_TINYGO_BYTES_VIEW = (id) => {
+  const exports = self.__BLDR_TINYGO_EXPORTS
+  if (!exports || typeof exports.BLDR_TINYGO_BYTES_PTR !== 'function') {
+    throw new Error('TinyGo byte exports are not initialized')
+  }
+  return self.__BLDR_TINYGO_MEMORY_VIEW(
+    exports.BLDR_TINYGO_BYTES_PTR(id),
+    self.__BLDR_TINYGO_BYTES_LEN(id),
+  )
+}
+self.__BLDR_TINYGO_BYTES_LEN = (id) => {
+  const exports = self.__BLDR_TINYGO_EXPORTS
+  if (!exports || typeof exports.BLDR_TINYGO_BYTES_LEN !== 'function') {
+    throw new Error('TinyGo byte exports are not initialized')
+  }
+  return exports.BLDR_TINYGO_BYTES_LEN(id)
+}
+self.__BLDR_TINYGO_COPY_BYTES = (id) => {
+  const view = self.__BLDR_TINYGO_BYTES_VIEW(id)
+  const bytes = new Uint8Array(view.byteLength)
+  bytes.set(view)
+  return bytes
+}
 self.__BLDR_TINYGO_STORE_BYTES = (bytes) => {
   const id = self.__BLDR_TINYGO_STORED_BYTES_NEXT_ID++
   self.__BLDR_TINYGO_STORED_BYTES.set(id, bytes)
@@ -1422,25 +1445,22 @@ self.BLDR_TINYGO_PROMISE_ERROR_CODE ??= (reason) => {
 self.BLDR_TINYGO_PROMISE_AWAIT ??= (promise, resolve, reject) => {
   promise.then(resolve).catch((reason) => reject(self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
 }
-self.BLDR_TINYGO_COPY_STORED_BYTES ??= (id, ptr, len) => {
+self.BLDR_TINYGO_COPY_STORED_BYTES ??= (id, bytesID) => {
   const bytes = self.__BLDR_TINYGO_STORED_BYTES.get(id)
   self.__BLDR_TINYGO_STORED_BYTES.delete(id)
   if (!bytes) {
     return 0
   }
-  const n = Math.min(len, bytes.byteLength)
-  self.__BLDR_TINYGO_MEMORY_VIEW(ptr, n).set(bytes.subarray(0, n))
+  const dst = self.__BLDR_TINYGO_BYTES_VIEW(bytesID)
+  const n = Math.min(dst.byteLength, bytes.byteLength)
+  dst.subarray(0, n).set(bytes.subarray(0, n))
   return n
 }
-self.BLDR_TINYGO_PUSH_BYTES ??= (sink, ptr, len) => {
-  const msg = new Uint8Array(len)
-  msg.set(self.__BLDR_TINYGO_MEMORY_VIEW(ptr, len))
-  sink.push(msg)
+self.BLDR_TINYGO_PUSH_BYTES ??= (sink, bytesID) => {
+  sink.push(self.__BLDR_TINYGO_COPY_BYTES(bytesID))
 }
-self.BLDR_TINYGO_POST_BYTES ??= (port, ptr, len) => {
-  const msg = new Uint8Array(len)
-  msg.set(self.__BLDR_TINYGO_MEMORY_VIEW(ptr, len))
-  port.postMessage(msg)
+self.BLDR_TINYGO_POST_BYTES ??= (port, bytesID) => {
+  port.postMessage(self.__BLDR_TINYGO_COPY_BYTES(bytesID))
 }
 self.__BLDR_TINYGO_ENCODE_NAMES ??= (names) => {
   const encoder = new TextEncoder()
@@ -1475,18 +1495,20 @@ self.BLDR_OPFS_READ_FILE ??= (dir, name, opID, resolve, reject) => {
     })
     .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
 }
-self.BLDR_OPFS_READ_AT ??= (handle, ptr, len, off, opID, resolve, reject) => {
+self.BLDR_OPFS_READ_AT ??= (handle, bytesID, off, opID, resolve, reject) => {
+  const dstLen = self.__BLDR_TINYGO_BYTES_LEN(bytesID)
   handle.getFile()
     .then(async (file) => {
-      if (off >= file.size || len === 0) {
+      if (off >= file.size || dstLen === 0) {
         resolve(opID, 0)
         return
       }
-      const end = Math.min(off + len, file.size)
+      const end = Math.min(off + dstLen, file.size)
       const buf = await file.slice(off, end).arrayBuffer()
       const bytes = new Uint8Array(buf)
       if (bytes.byteLength !== 0) {
-        self.__BLDR_TINYGO_MEMORY_VIEW(ptr, bytes.byteLength).set(bytes)
+        const dst = self.__BLDR_TINYGO_BYTES_VIEW(bytesID)
+        dst.subarray(0, bytes.byteLength).set(bytes)
       }
       resolve(opID, bytes.byteLength)
     })
@@ -1502,11 +1524,8 @@ self.BLDR_OPFS_LIST_DIRECTORY ??= (dir, opID, resolve, reject) => {
     resolve(opID, self.__BLDR_TINYGO_STORE_BYTES(bytes), bytes.byteLength)
   })().catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
 }
-self.BLDR_OPFS_WRITE_AT ??= (handle, ptr, len, off, keepExisting, opID, resolve, reject) => {
-  const data = new Uint8Array(len)
-  if (len !== 0) {
-    data.set(self.__BLDR_TINYGO_MEMORY_VIEW(ptr, len))
-  }
+self.BLDR_OPFS_WRITE_AT ??= (handle, bytesID, off, keepExisting, opID, resolve, reject) => {
+  const data = self.__BLDR_TINYGO_COPY_BYTES(bytesID)
   let writable
   const opts = keepExisting ? { keepExistingData: true } : undefined
   const writablePromise = opts ? handle.createWritable(opts) : handle.createWritable()
@@ -1516,11 +1535,11 @@ self.BLDR_OPFS_WRITE_AT ??= (handle, ptr, len, off, keepExisting, opID, resolve,
       if (off !== 0) {
         await writable.seek(off)
       }
-      if (len !== 0) {
+      if (data.byteLength !== 0) {
         await writable.write(data)
       }
       await writable.close()
-      resolve(opID, len)
+      resolve(opID, data.byteLength)
     })
     .catch((reason) => {
       if (writable) {
@@ -1529,20 +1548,17 @@ self.BLDR_OPFS_WRITE_AT ??= (handle, ptr, len, off, keepExisting, opID, resolve,
       reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
     })
 }
-self.BLDR_OPFS_WRITE_FILE ??= (dir, name, ptr, len, opID, resolve, reject) => {
-  const data = new Uint8Array(len)
-  if (len !== 0) {
-    data.set(self.__BLDR_TINYGO_MEMORY_VIEW(ptr, len))
-  }
+self.BLDR_OPFS_WRITE_FILE ??= (dir, name, bytesID, opID, resolve, reject) => {
+  const data = self.__BLDR_TINYGO_COPY_BYTES(bytesID)
   let writable
   dir.getFileHandle(name, { create: true })
     .then(async (handle) => {
       writable = await handle.createWritable()
-      if (len !== 0) {
+      if (data.byteLength !== 0) {
         await writable.write(data)
       }
       await writable.close()
-      resolve(opID, len)
+      resolve(opID, data.byteLength)
     })
     .catch((reason) => {
       if (writable) {
@@ -1577,6 +1593,7 @@ self.onmessage = async (event) => {
   }
   const res = await WebAssembly.instantiateStreaming(fetch('/testprog.wasm'), go.importObject)
   self.__BLDR_TINYGO_MEMORY = res.instance.exports.memory
+  self.__BLDR_TINYGO_EXPORTS = res.instance.exports
   await go.run(res.instance)
 }
 `

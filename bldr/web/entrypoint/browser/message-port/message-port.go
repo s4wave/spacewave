@@ -7,9 +7,9 @@ import (
 	"io"
 	"runtime"
 	"syscall/js"
-	"unsafe"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/util/jsbuf"
 )
 
 const tinyGoPostBytes = "BLDR_TINYGO_POST_BYTES"
@@ -109,11 +109,9 @@ func (s *MessagePort) WriteMessage(p []byte) error {
 		if postBytes.IsUndefined() || postBytes.IsNull() || postBytes.Type() != js.TypeFunction {
 			return errors.New("tinygo message port byte helper unavailable")
 		}
-		var ptr uint32
-		if len(p) != 0 {
-			ptr = uint32(uintptr(unsafe.Pointer(&p[0])))
-		}
-		postBytes.Invoke(s.chObj, ptr, len(p))
+		jsbuf.WithTinyGoBytes(p, func(id uint32) {
+			postBytes.Invoke(s.chObj, id)
+		})
 		return nil
 	}
 

@@ -10,11 +10,11 @@ import (
 	"sync"
 	"syscall/js"
 	"time"
-	"unsafe"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs/jsutil"
 	trace "github.com/s4wave/spacewave/db/traceutil"
+	"github.com/s4wave/spacewave/db/util/jsbuf"
 )
 
 const (
@@ -131,13 +131,6 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 	<-ch
 
 	return result, jsErr
-}
-
-func bytesPtr(buf []byte) uint32 {
-	if len(buf) == 0 {
-		return 0
-	}
-	return uint32(uintptr(unsafe.Pointer(&buf[0])))
 }
 
 func yieldMicrotask() error {
@@ -275,8 +268,11 @@ func (f *AsyncFile) ReadAt(p []byte, off int64) (int, error) {
 }
 
 func (f *AsyncFile) readAtWithHelper(readAt js.Value, p []byte, off int64) (int, error) {
+	bytesID, releaseBytes := jsbuf.HoldTinyGoBytes(p)
+	defer releaseBytes()
+
 	n, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		readAt.Invoke(f.handle, bytesPtr(p), len(p), off, opID, resolve, reject)
+		readAt.Invoke(f.handle, bytesID, off, opID, resolve, reject)
 	})
 	if err != nil {
 		return 0, err
@@ -356,7 +352,9 @@ func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (in
 
 func (f *AsyncFile) writeAtWithHelper(writeAt js.Value, p []byte, off int64, keepExisting bool) (int, error) {
 	written, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		writeAt.Invoke(f.handle, bytesPtr(p), len(p), off, keepExisting, opID, resolve, reject)
+		jsbuf.WithTinyGoBytes(p, func(bytesID uint32) {
+			writeAt.Invoke(f.handle, bytesID, off, keepExisting, opID, resolve, reject)
+		})
 	})
 	if err != nil {
 		return 0, err
@@ -547,7 +545,9 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 
 func writeFileWithHelper(writeFile js.Value, dir js.Value, name string, data []byte) error {
 	written, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		writeFile.Invoke(dir, name, bytesPtr(data), len(data), opID, resolve, reject)
+		jsbuf.WithTinyGoBytes(data, func(bytesID uint32) {
+			writeFile.Invoke(dir, name, bytesID, opID, resolve, reject)
+		})
 	})
 	if err != nil {
 		return err
