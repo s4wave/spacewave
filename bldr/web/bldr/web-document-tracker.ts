@@ -558,12 +558,6 @@ export class WebDocumentTracker {
     }
 
     this.preferredRuntimeWebDocumentId = webDocumentId
-    if (this.activeRuntimeWebDocumentId) {
-      delete this.activeRuntimeWebDocumentId
-      this.activeRuntimeDocumentAbort?.abort()
-      this.activeRuntimeDocumentAbort = undefined
-      this.webRuntimeClient.close()
-    }
   }
 
   private orderRuntimeOpenWebDocuments(webDocumentIds: string[]): string[] {

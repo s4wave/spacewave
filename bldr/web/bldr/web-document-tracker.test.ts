@@ -294,7 +294,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     secondPort.close()
   })
 
-  it('reconnects the service worker runtime through a newly ready document', async () => {
+  it('prefers a newly ready service worker document without interrupting the active runtime', async () => {
     const tracker = new WebDocumentTracker(
       'service-worker',
       WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
@@ -314,8 +314,10 @@ describe('WebDocumentTracker resume-ready gate', () => {
     })
     await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(closeRuntime).toHaveBeenCalledTimes(1)
-    expect(Reflect.get(tracker, 'activeRuntimeWebDocumentId')).toBeUndefined()
+    expect(closeRuntime).not.toHaveBeenCalled()
+    expect(Reflect.get(tracker, 'activeRuntimeWebDocumentId')).toBe(
+      'document-1',
+    )
     expect(Reflect.get(tracker, 'preferredRuntimeWebDocumentId')).toBe(
       'document-2',
     )
