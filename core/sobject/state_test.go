@@ -89,7 +89,7 @@ func createMockSORoot(t *testing.T, seqno uint64, signers ...peer.Peer) *SORoot 
 			t.Fatalf("Failed to get private key: %v", err)
 		}
 
-		if err := root.SignInnerData(priv, mockSharedObjectID, seqno, hash.HashType_HashType_BLAKE3); err != nil {
+		if err := root.SignInnerData(priv, mockSharedObjectID, seqno, hash.RecommendedHashType); err != nil {
 			t.Fatalf("Failed to sign root: %v", err)
 		}
 	}
@@ -118,7 +118,7 @@ func createMockSOOperation(t *testing.T, privKey crypto.PrivKey, nonce uint64) (
 	}
 
 	encContext := BuildSOOperationSignatureContext(mockSharedObjectID, peerIDStr, nonce, localID)
-	sig, err := peer.NewSignature(encContext, privKey, hash.HashType_HashType_BLAKE3, innerData, true)
+	sig, err := peer.NewSignature(encContext, privKey, hash.RecommendedHashType, innerData, true)
 	if err != nil {
 		t.Fatalf("Failed to create operation signature: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestUpdateRootState(t *testing.T) {
 			t.Helper()
 			nextRoot.ValidatorSignatures = nil
 			peer1PrivKey, _ := peer1.GetPrivKey(context.Background())
-			if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.HashType_HashType_BLAKE3); err != nil {
+			if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.RecommendedHashType); err != nil {
 				t.Fatalf("Failed to sign root: %v", err)
 			}
 		}
@@ -380,7 +380,7 @@ func TestUpdateRootState(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to get private key: %v", err)
 			}
-			err = nextRoot.SignInnerData(privKey, mockSharedObjectID, 2, hash.HashType_HashType_BLAKE3)
+			err = nextRoot.SignInnerData(privKey, mockSharedObjectID, 2, hash.RecommendedHashType)
 			if err != nil {
 				t.Fatalf("Failed to sign next root: %v", err)
 			}
@@ -868,7 +868,7 @@ func TestNonceTracking(t *testing.T) {
 		}}
 		// Re-sign after updating account nonces
 		nextRoot.ValidatorSignatures = nil
-		if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.HashType_HashType_BLAKE3); err != nil {
+		if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.RecommendedHashType); err != nil {
 			t.Fatalf("Failed to sign root: %v", err)
 		}
 
@@ -933,7 +933,7 @@ func TestNonceTracking(t *testing.T) {
 		}}
 		// Re-sign after updating account nonces
 		nextRoot.ValidatorSignatures = nil
-		if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.HashType_HashType_BLAKE3); err != nil {
+		if err := nextRoot.SignInnerData(peer1PrivKey, mockSharedObjectID, 2, hash.RecommendedHashType); err != nil {
 			t.Fatalf("Failed to sign root: %v", err)
 		}
 

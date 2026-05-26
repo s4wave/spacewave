@@ -204,7 +204,7 @@ func BuildSOOperation(
 
 	// Sign the operation
 	encContext := BuildSOOperationSignatureContext(sharedObjectID, peerIDStr, opNonce, opLocalID)
-	sig, err := peer.NewSignature(encContext, privKey, hash.HashType_HashType_BLAKE3, innerData, true)
+	sig, err := peer.NewSignature(encContext, privKey, hash.RecommendedHashType, innerData, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to sign operation")
 	}
