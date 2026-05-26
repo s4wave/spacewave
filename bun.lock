@@ -72,7 +72,7 @@
       "devDependencies": {
         "@aptre/common": "^0.33.0",
         "@eslint/js": "^10.0.1",
-        "@google/design.md": "^0.1.1",
+        "@google/design.md": "^0.2.0",
         "@playwright/test": "^1.59.1",
         "@tailwindcss/vite": "^4.2.3",
         "@testing-library/react": "^16.3.2",
@@ -226,7 +226,7 @@
 
     "@fontsource/commit-mono": ["@fontsource/commit-mono@5.2.5", "", {}, "sha512-htX8yQWtiPt5L1Hzh4sirvfUJT2+KYiquDB/Q2sY2tWQYplpBUOD5zHnIM3k36Hnm4V+JIIqA/wmwupSQ68WjA=="],
 
-    "@google/design.md": ["@google/design.md@0.1.1", "", { "dependencies": { "@json-render/core": "^0.16.0", "@json-render/ink": "^0.16.0", "citty": "^0.1.6", "ink": "^7.0.0", "mdast": "^3.0.0", "react": "^19.2.5", "remark-frontmatter": "^5.0.0", "remark-mdx": "^3.1.1", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "unified": "^11.0.5", "unist-util-visit": "^5.1.0", "yaml": "^2.7.1", "zod": "^3.24.0" }, "bin": { "design.md": "dist/index.js" } }, "sha512-S5xdF4DrELQwY2186vishZ9ZHxzMo7eikM8FHFNDS87oULElLDF5eko33DPCXtWyzEPyzkZWuUTpm/M0pPtbNQ=="],
+    "@google/design.md": ["@google/design.md@0.2.0", "", { "dependencies": { "@json-render/core": "^0.16.0", "@json-render/ink": "^0.16.0", "citty": "^0.1.6", "ink": "^7.0.0", "mdast": "^3.0.0", "react": "^19.2.5", "remark-frontmatter": "^5.0.0", "remark-mdx": "^3.1.1", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "unified": "^11.0.5", "unist-util-visit": "^5.1.0", "yaml": "^2.7.1", "zod": "^3.24.0" }, "bin": { "design.md": "dist/index.js", "designmd": "dist/index.js" } }, "sha512-0z+a8ZGMBnk9M9/OGv7Cw05fvednlSg4QijuBJ5vFe3I5sFZTbLSu/dk/Lmju9osUoxd+sPMAZoBC/8qLL18tw=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.2", "", { "dependencies": { "@humanfs/types": "^0.15.0" } }, "sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA=="],
 
