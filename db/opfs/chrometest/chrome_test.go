@@ -1404,6 +1404,8 @@ self.__BLDR_TINYGO_STORED_BYTES = new Map()
 self.__BLDR_TINYGO_STORED_BYTES_NEXT_ID = 1
 self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS = new Map()
 self.__BLDR_TINYGO_OPFS_WRITE_SESSION_NEXT_ID = 1
+self.__BLDR_TINYGO_WEB_LOCK_RELEASES = new Map()
+self.__BLDR_TINYGO_WEB_LOCK_RELEASE_NEXT_ID = 1
 self.__BLDR_TINYGO_COPY_BYTES = (bytes) => {
   if (!(bytes instanceof Uint8Array)) {
     throw new TypeError('expected Uint8Array')
@@ -1426,6 +1428,41 @@ self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION = (id) => {
   const session = self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.get(id)
   self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.delete(id)
   return session
+}
+self.__BLDR_TINYGO_EXPORT = (go, name) => {
+  const fn = go._inst?.exports?.[name]
+  if (typeof fn !== 'function') {
+    throw new Error('missing TinyGo export ' + name)
+  }
+  return fn
+}
+self.__BLDR_TINYGO_READ_STRING = (go, ptr, len) => {
+  const memory = go._inst?.exports?.memory
+  if (!(memory instanceof WebAssembly.Memory)) {
+    throw new Error('TinyGo runtime memory is not initialized')
+  }
+  return new TextDecoder().decode(new Uint8Array(memory.buffer, ptr >>> 0, len))
+}
+self.__BLDR_TINYGO_DEFER = (cb) => queueMicrotask(cb)
+self.__BLDR_TINYGO_CALL_EXPORT = (go, fn, ...args) => {
+  fn(...args)
+  if (typeof go._resume === 'function') {
+    go._resume()
+  }
+}
+self.__BLDR_TINYGO_STORE_WEB_LOCK_RELEASE = (release) => {
+  const id = self.__BLDR_TINYGO_WEB_LOCK_RELEASE_NEXT_ID++
+  self.__BLDR_TINYGO_WEB_LOCK_RELEASES.set(id, release)
+  return id
+}
+self.__BLDR_TINYGO_RELEASE_WEB_LOCK = (releaseID) => {
+  const release = self.__BLDR_TINYGO_WEB_LOCK_RELEASES.get(releaseID)
+  self.__BLDR_TINYGO_WEB_LOCK_RELEASES.delete(releaseID)
+  if (!release) {
+    return 0
+  }
+  release()
+  return 1
 }
 self.BLDR_TINYGO_NEW_BYTES ??= (len) => new Uint8Array(len)
 self.BLDR_TINYGO_TAKE_STORED_BYTES ??= (id) => {
@@ -1657,6 +1694,37 @@ self.onmessage = async (event) => {
         throw new Error('TinyGo runtime memory is not initialized')
       }
       crypto.getRandomValues(new Uint8Array(memory.buffer, ptr >>> 0, len))
+    }
+  }
+  if (go.importObject.gojs) {
+    go.importObject.gojs['bldr.opfs.acquireWebLock'] ??= (opID, namePtr, nameLen, exclusive, ifAvailable) => {
+      const resolve = self.__BLDR_TINYGO_EXPORT(go, 'BLDR_OPFS_WEB_LOCK_RESOLVE')
+      const reject = self.__BLDR_TINYGO_EXPORT(go, 'BLDR_OPFS_WEB_LOCK_REJECT')
+      const locks = self.navigator?.locks
+      if (!locks) {
+        self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, reject, opID, 0))
+        return
+      }
+      const opts = { mode: exclusive ? 'exclusive' : 'shared' }
+      if (ifAvailable) {
+        opts.ifAvailable = true
+      }
+      const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      locks.request(name, opts, (lock) => {
+        if (ifAvailable && !lock) {
+          self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, resolve, opID, 0, 0))
+          return undefined
+        }
+        return new Promise((releaseLock) => {
+          const releaseID = self.__BLDR_TINYGO_STORE_WEB_LOCK_RELEASE(releaseLock)
+          self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, resolve, opID, releaseID, 1))
+        })
+      }).catch((reason) => {
+        self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, reject, opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+      })
+    }
+    go.importObject.gojs['bldr.opfs.releaseWebLock'] ??= (releaseID) => {
+      return self.__BLDR_TINYGO_RELEASE_WEB_LOCK(releaseID)
     }
   }
   const res = await WebAssembly.instantiateStreaming(fetch('/testprog.wasm'), go.importObject)

@@ -181,6 +181,85 @@ describe('patchTinyGoRuntimeImports', () => {
     expect(go.importObject['gojs']?.['runtime.getRandomData']).toBe(
       getRandomData,
     )
+    expect(go.importObject['gojs']?.['bldr.opfs.acquireWebLock']).toBeTypeOf(
+      'function',
+    )
+  })
+
+  it('adds TinyGo WebLock imports backed by wasm-export callbacks', async () => {
+    const memory = new WebAssembly.Memory({ initial: 1 })
+    const name = new TextEncoder().encode('spacewave-lock')
+    new Uint8Array(memory.buffer, 32, name.byteLength).set(name)
+    const resolved: Array<{
+      opID: number
+      releaseID: number
+      acquired: number
+    }> = []
+    const rejected: Array<{ opID: number; code: number }> = []
+    const request = vi.fn(
+      (
+        lockName: string,
+        _options: LockOptions,
+        callback: (lock: Lock | null) => unknown,
+      ) => {
+        callback({ name: lockName, mode: 'exclusive' })
+        return Promise.resolve()
+      },
+    )
+    vi.stubGlobal('navigator', { locks: { request } })
+
+    const go: TinyGoRuntime = {
+      importObject: {
+        gojs: {},
+      },
+      _inst: {
+        exports: {
+          memory,
+          BLDR_OPFS_WEB_LOCK_RESOLVE: (
+            opID: number,
+            releaseID: number,
+            acquired: number,
+          ) => {
+            resolved.push({ opID, releaseID, acquired })
+          },
+          BLDR_OPFS_WEB_LOCK_REJECT: (opID: number, code: number) => {
+            rejected.push({ opID, code })
+          },
+        },
+      },
+    }
+
+    patchTinyGoRuntimeImports(go)
+    const acquire = go.importObject['gojs']?.[
+      'bldr.opfs.acquireWebLock'
+    ] as
+      | ((
+          opID: number,
+          namePtr: number,
+          nameLen: number,
+          exclusive: number,
+          ifAvailable: number,
+        ) => void)
+      | undefined
+    const release = go.importObject['gojs']?.[
+      'bldr.opfs.releaseWebLock'
+    ] as ((releaseID: number) => number) | undefined
+    if (!acquire || !release) {
+      throw new Error('WebLock imports were not installed')
+    }
+
+    acquire(17, 32, name.byteLength, 1, 0)
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(request).toHaveBeenCalledWith(
+      'spacewave-lock',
+      { mode: 'exclusive' },
+      expect.any(Function),
+    )
+    expect(rejected).toEqual([])
+    expect(resolved).toEqual([{ opID: 17, releaseID: 1, acquired: 1 }])
+    expect(release(1)).toBe(1)
+    expect(release(1)).toBe(0)
   })
 })
 

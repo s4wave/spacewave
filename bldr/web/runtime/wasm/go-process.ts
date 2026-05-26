@@ -37,6 +37,8 @@ const tinyGoOPFSWriteSessions = new Map<
   number,
   { writable: FileSystemWritableFileStream; written: number }
 >()
+let tinyGoWebLockReleaseID = 1
+const tinyGoWebLockReleases = new Map<number, () => void>()
 const tinyGoCallbackQueue: (() => void)[] = []
 let tinyGoCallbackScheduled = false
 let tinyGoCallbackChannel: MessageChannel | undefined
@@ -101,6 +103,58 @@ function takeOPFSWriteSession(
   const session = tinyGoOPFSWriteSessions.get(id)
   tinyGoOPFSWriteSessions.delete(id)
   return session
+}
+
+function storeTinyGoWebLockRelease(release: () => void): number {
+  const id = tinyGoWebLockReleaseID++
+  tinyGoWebLockReleases.set(id, release)
+  return id
+}
+
+function takeTinyGoWebLockRelease(id: number): (() => void) | undefined {
+  const release = tinyGoWebLockReleases.get(id)
+  tinyGoWebLockReleases.delete(id)
+  return release
+}
+
+function tinyGoMemory(go: TinyGoRuntime): WebAssembly.Memory {
+  const memory = go._inst?.exports.memory
+  if (!(memory instanceof WebAssembly.Memory)) {
+    throw new Error('TinyGo runtime memory is not initialized')
+  }
+  return memory
+}
+
+function readTinyGoString(
+  go: TinyGoRuntime,
+  ptr: number,
+  len: number,
+): string {
+  return new TextDecoder().decode(
+    new Uint8Array(tinyGoMemory(go).buffer, ptr >>> 0, len),
+  )
+}
+
+function tinyGoExport(
+  go: TinyGoRuntime,
+  name: string,
+): ((...args: number[]) => void) | undefined {
+  const fn = go._inst?.exports[name]
+  return typeof fn === 'function'
+    ? (fn as (...args: number[]) => void)
+    : undefined
+}
+
+function callTinyGoExport(
+  go: TinyGoRuntime,
+  fn: (...args: number[]) => void,
+  ...args: number[]
+): void {
+  fn(...args)
+  const resume = (go as TinyGoRuntime & { _resume?: () => void })._resume
+  if (typeof resume === 'function') {
+    resume.call(go)
+  }
 }
 
 function encodeTinyGoNameList(names: string[]): Uint8Array {
@@ -703,15 +757,67 @@ declare class Go {
 // TinyGo's bundled wasm_exec.js has grown matching browser shims.
 export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
   const gojs = go.importObject['gojs']
-  if (!gojs || typeof gojs['runtime.getRandomData'] === 'function') {
+  if (!gojs) {
     return
   }
-  gojs['runtime.getRandomData'] = (ptr: number, len: number) => {
-    const memory = go._inst?.exports.memory
-    if (!(memory instanceof WebAssembly.Memory)) {
-      throw new Error('TinyGo runtime memory is not initialized')
+  gojs['runtime.getRandomData'] ??= (ptr: number, len: number) => {
+    crypto.getRandomValues(
+      new Uint8Array(tinyGoMemory(go).buffer, ptr >>> 0, len),
+    )
+  }
+  gojs['bldr.opfs.acquireWebLock'] ??= (
+    opID: number,
+    namePtr: number,
+    nameLen: number,
+    exclusive: number,
+    ifAvailable: number,
+  ) => {
+    const resolve = tinyGoExport(go, 'BLDR_OPFS_WEB_LOCK_RESOLVE')
+    const reject = tinyGoExport(go, 'BLDR_OPFS_WEB_LOCK_REJECT')
+    if (!resolve || !reject) {
+      throw new Error('TinyGo WebLock callback exports are not initialized')
     }
-    crypto.getRandomValues(new Uint8Array(memory.buffer, ptr >>> 0, len))
+    const locks = (globalThis.navigator as NavigatorWithLocks | undefined)
+      ?.locks
+    if (!locks) {
+      deferTinyGoCallback(() =>
+        callTinyGoExport(go, reject, opID, tinyGoPromiseErrorUnknown),
+      )
+      return
+    }
+    const lockOptions: LockOptions = {
+      mode: exclusive ? 'exclusive' : 'shared',
+    }
+    if (ifAvailable) {
+      lockOptions.ifAvailable = true
+    }
+    const name = readTinyGoString(go, namePtr, nameLen)
+    locks
+      .request(name, lockOptions, (lock) => {
+        if (ifAvailable && !lock) {
+          deferTinyGoCallback(() => callTinyGoExport(go, resolve, opID, 0, 0))
+          return undefined
+        }
+        return new Promise<void>((releaseLock) => {
+          const releaseID = storeTinyGoWebLockRelease(releaseLock)
+          deferTinyGoCallback(() =>
+            callTinyGoExport(go, resolve, opID, releaseID, 1),
+          )
+        })
+      })
+      .catch((reason) => {
+        deferTinyGoCallback(() =>
+          callTinyGoExport(go, reject, opID, tinyGoPromiseErrorCode(reason)),
+        )
+      })
+  }
+  gojs['bldr.opfs.releaseWebLock'] ??= (releaseID: number) => {
+    const release = takeTinyGoWebLockRelease(releaseID)
+    if (!release) {
+      return 0
+    }
+    release()
+    return 1
   }
 }
 
