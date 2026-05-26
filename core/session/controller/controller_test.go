@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package session_controller_test
 
 import (
