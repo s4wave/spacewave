@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package space_world_ops
 
 import (

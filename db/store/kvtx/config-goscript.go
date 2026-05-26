@@ -1,4 +1,4 @@
-//go:build !goscript
+//go:build goscript
 
 package store_kvtx
 
@@ -14,5 +14,5 @@ func (c *Config) ResolveHashType() hash.HashType {
 			return hashType
 		}
 	}
-	return block.LegacyDefaultHashType
+	return block.DefaultHashType
 }
