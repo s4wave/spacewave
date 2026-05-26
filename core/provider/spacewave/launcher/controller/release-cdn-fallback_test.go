@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package spacewave_launcher_controller
 
 import (
