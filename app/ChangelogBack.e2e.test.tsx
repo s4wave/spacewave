@@ -22,7 +22,9 @@ describe('Changelog Back In Shell', () => {
     )
 
     await expect
-      .element(page.getByText('[SPACEWAVE]'), { timeout: 5000 })
+      .element(page.getByRole('heading', { name: '[SPACEWAVE]' }).first(), {
+        timeout: 5000,
+      })
       .toBeInTheDocument()
 
     window.location.hash = '#/changelog'
@@ -39,7 +41,9 @@ describe('Changelog Back In Shell', () => {
     backButton?.click()
 
     await expect
-      .element(page.getByText('[SPACEWAVE]'), { timeout: 5000 })
+      .element(page.getByRole('heading', { name: '[SPACEWAVE]' }).first(), {
+        timeout: 5000,
+      })
       .toBeInTheDocument()
 
     await expect
