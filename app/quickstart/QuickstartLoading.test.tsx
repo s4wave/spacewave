@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 import { StaticProvider } from '@s4wave/app/prerender/StaticContext.js'
+import { browserStartupPhaseRail } from '@s4wave/app/loading/status/browser-startup-model.js'
 import { RouterProvider } from '@s4wave/web/router/router.js'
 
 import { QuickstartLoading } from './QuickstartLoading.js'
@@ -34,10 +35,9 @@ describe('QuickstartLoading', () => {
     expect(screen.getByText('30%')).toBeTruthy()
     expect(screen.getByText('Create a Drive')).toBeTruthy()
     expect(screen.getByLabelText('Startup phases')).toBeTruthy()
-    expect(screen.getByText('Prepare')).toBeTruthy()
-    expect(screen.getByText('Runtime')).toBeTruthy()
-    expect(screen.getByText('Frame')).toBeTruthy()
-    expect(screen.getByText('Done')).toBeTruthy()
+    for (const phase of browserStartupPhaseRail) {
+      expect(screen.getByText(phase.label)).toBeTruthy()
+    }
   })
 
   it('renders the default startup projection before boot progress arrives', () => {
