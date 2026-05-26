@@ -27,6 +27,13 @@ const (
 	tinyGoOPFSListDir   = "BLDR_OPFS_LIST_DIRECTORY"
 	tinyGoOPFSWriteAt   = "BLDR_OPFS_WRITE_AT"
 	tinyGoOPFSWriteFile = "BLDR_OPFS_WRITE_FILE"
+
+	tinyGoOPFSWriteFileBegin = "BLDR_OPFS_WRITE_FILE_BEGIN"
+	tinyGoOPFSWriteFileChunk = "BLDR_OPFS_WRITE_FILE_CHUNK"
+	tinyGoOPFSWriteFileClose = "BLDR_OPFS_WRITE_FILE_CLOSE"
+	tinyGoOPFSWriteFileAbort = "BLDR_OPFS_WRITE_FILE_ABORT"
+
+	tinyGoOPFSWriteFileChunkSize = 1 << 20
 )
 
 type opfsHelperResult struct {
@@ -523,6 +530,13 @@ func (f *AsyncFile) Close() error {
 // stage instead of two (vs separate Truncate then Write calls).
 func WriteFile(dir js.Value, name string, data []byte) error {
 	if jsutil.UseTinyGoHelpers() {
+		begin := js.Global().Get(tinyGoOPFSWriteFileBegin)
+		chunk := js.Global().Get(tinyGoOPFSWriteFileChunk)
+		closeFile := js.Global().Get(tinyGoOPFSWriteFileClose)
+		if jsutil.Available(begin) && jsutil.Available(chunk) && jsutil.Available(closeFile) {
+			return writeFileWithChunkedHelper(begin, chunk, closeFile, js.Global().Get(tinyGoOPFSWriteFileAbort), dir, name, data)
+		}
+
 		writeFile := js.Global().Get(tinyGoOPFSWriteFile)
 		if jsutil.Available(writeFile) {
 			return writeFileWithHelper(writeFile, dir, name, data)
@@ -549,6 +563,55 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 	}
 	if _, err := AwaitPromise(jsutil.Call(writable, "close")); err != nil {
 		return errors.Wrap(err, "close writable")
+	}
+	return nil
+}
+
+func writeFileWithChunkedHelper(begin, chunk, closeFile, abort js.Value, dir js.Value, name string, data []byte) error {
+	sessionID, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
+		begin.Invoke(dir, name, opID, resolve, reject)
+	})
+	if err != nil {
+		return err
+	}
+	closed := false
+	defer func() {
+		if !closed && jsutil.Available(abort) {
+			abort.Invoke(sessionID)
+		}
+	}()
+
+	written := 0
+	for off := 0; off < len(data); off += tinyGoOPFSWriteFileChunkSize {
+		end := off + tinyGoOPFSWriteFileChunkSize
+		if end > len(data) {
+			end = len(data)
+		}
+		bytes, err := jsbuf.CopyBytesToJS(data[off:end])
+		if err != nil {
+			return err
+		}
+		n, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
+			chunk.Invoke(sessionID, bytes, opID, resolve, reject)
+		})
+		if err != nil {
+			return err
+		}
+		if n != end-off {
+			return errors.Errorf("short write file %s: wrote chunk %d of %d", name, n, end-off)
+		}
+		written += n
+	}
+
+	closedWritten, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
+		closeFile.Invoke(sessionID, opID, resolve, reject)
+	})
+	if err != nil {
+		return err
+	}
+	closed = true
+	if closedWritten != written || written != len(data) {
+		return errors.Errorf("short write file %s: wrote %d of %d", name, closedWritten, len(data))
 	}
 	return nil
 }

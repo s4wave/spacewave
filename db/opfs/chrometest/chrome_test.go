@@ -265,7 +265,7 @@ func TestOpfsChromeTinyGoLargeWriteReadList(t *testing.T) {
 		scenario:   "large-write-read-list",
 		root:       root,
 		iterations: 68056093,
-		batch:      64,
+		batch:      1,
 	})
 }
 
@@ -1378,6 +1378,8 @@ const workerJS = `importScripts('/wasm_exec.js')
 
 self.__BLDR_TINYGO_STORED_BYTES = new Map()
 self.__BLDR_TINYGO_STORED_BYTES_NEXT_ID = 1
+self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS = new Map()
+self.__BLDR_TINYGO_OPFS_WRITE_SESSION_NEXT_ID = 1
 self.__BLDR_TINYGO_COPY_BYTES = (bytes) => {
   if (!(bytes instanceof Uint8Array)) {
     throw new TypeError('expected Uint8Array')
@@ -1390,6 +1392,16 @@ self.__BLDR_TINYGO_STORE_BYTES = (bytes) => {
   const id = self.__BLDR_TINYGO_STORED_BYTES_NEXT_ID++
   self.__BLDR_TINYGO_STORED_BYTES.set(id, bytes)
   return id
+}
+self.__BLDR_TINYGO_STORE_OPFS_WRITE_SESSION = (writable) => {
+  const id = self.__BLDR_TINYGO_OPFS_WRITE_SESSION_NEXT_ID++
+  self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.set(id, { writable, written: 0 })
+  return id
+}
+self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION = (id) => {
+  const session = self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.get(id)
+  self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.delete(id)
+  return session
 }
 self.BLDR_TINYGO_NEW_BYTES ??= (len) => new Uint8Array(len)
 self.BLDR_TINYGO_TAKE_STORED_BYTES ??= (id) => {
@@ -1548,6 +1560,56 @@ self.BLDR_OPFS_WRITE_FILE ??= (dir, name, data, opID, resolve, reject) => {
       }
       reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
     })
+}
+self.BLDR_OPFS_WRITE_FILE_BEGIN ??= (dir, name, opID, resolve, reject) => {
+  dir.getFileHandle(name, { create: true })
+    .then((handle) => handle.createWritable())
+    .then((writable) => {
+      resolve(opID, self.__BLDR_TINYGO_STORE_OPFS_WRITE_SESSION(writable))
+    })
+    .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+}
+self.BLDR_OPFS_WRITE_FILE_CHUNK ??= (sessionID, data, opID, resolve, reject) => {
+  const session = self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.get(sessionID)
+  if (!session) {
+    reject(opID, 1)
+    return
+  }
+  let writeData
+  try {
+    writeData = self.__BLDR_TINYGO_COPY_BYTES(data)
+  } catch {
+    reject(opID, 0)
+    return
+  }
+  session.writable.write(writeData)
+    .then(() => {
+      session.written += writeData.byteLength
+      resolve(opID, writeData.byteLength)
+    })
+    .catch((reason) => {
+      self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.delete(sessionID)
+      void session.writable.close().catch(() => {})
+      reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
+    })
+}
+self.BLDR_OPFS_WRITE_FILE_CLOSE ??= (sessionID, opID, resolve, reject) => {
+  const session = self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION(sessionID)
+  if (!session) {
+    reject(opID, 1)
+    return
+  }
+  session.writable.close()
+    .then(() => resolve(opID, session.written))
+    .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+}
+self.BLDR_OPFS_WRITE_FILE_ABORT ??= (sessionID) => {
+  const session = self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION(sessionID)
+  if (!session) {
+    return false
+  }
+  void session.writable.close().catch(() => {})
+  return true
 }
 
 self.onmessage = async (event) => {

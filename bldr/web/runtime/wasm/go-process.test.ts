@@ -78,6 +78,27 @@ type TinyGoHelperGlobal = typeof globalThis & {
     resolve: (opID: number, written: number) => void,
     reject: (opID: number, code: number) => void,
   ) => void
+  BLDR_OPFS_WRITE_FILE_BEGIN?: (
+    dir: FileSystemDirectoryHandle,
+    name: string,
+    opID: number,
+    resolve: (opID: number, sessionID: number) => void,
+    reject: (opID: number, code: number) => void,
+  ) => void
+  BLDR_OPFS_WRITE_FILE_CHUNK?: (
+    sessionID: number,
+    data: Uint8Array,
+    opID: number,
+    resolve: (opID: number, written: number) => void,
+    reject: (opID: number, code: number) => void,
+  ) => void
+  BLDR_OPFS_WRITE_FILE_CLOSE?: (
+    sessionID: number,
+    opID: number,
+    resolve: (opID: number, written: number) => void,
+    reject: (opID: number, code: number) => void,
+  ) => void
+  BLDR_OPFS_WRITE_FILE_ABORT?: (sessionID: number) => boolean
 }
 
 afterEach(() => {
@@ -103,6 +124,10 @@ afterEach(() => {
   delete g.BLDR_OPFS_LIST_DIRECTORY
   delete g.BLDR_OPFS_WRITE_AT
   delete g.BLDR_OPFS_WRITE_FILE
+  delete g.BLDR_OPFS_WRITE_FILE_BEGIN
+  delete g.BLDR_OPFS_WRITE_FILE_CHUNK
+  delete g.BLDR_OPFS_WRITE_FILE_CLOSE
+  delete g.BLDR_OPFS_WRITE_FILE_ABORT
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -236,6 +261,10 @@ describe('installTinyGoJSHelpers', () => {
     expect(g.BLDR_OPFS_LIST_DIRECTORY).toBeTypeOf('function')
     expect(g.BLDR_OPFS_WRITE_AT).toBeTypeOf('function')
     expect(g.BLDR_OPFS_WRITE_FILE).toBeTypeOf('function')
+    expect(g.BLDR_OPFS_WRITE_FILE_BEGIN).toBeTypeOf('function')
+    expect(g.BLDR_OPFS_WRITE_FILE_CHUNK).toBeTypeOf('function')
+    expect(g.BLDR_OPFS_WRITE_FILE_CLOSE).toBeTypeOf('function')
+    expect(g.BLDR_OPFS_WRITE_FILE_ABORT).toBeTypeOf('function')
   })
 
   it('rejects OPFS Web Locks requests when the runtime lacks Web Locks', async () => {
@@ -555,6 +584,76 @@ describe('GoWasmProcess', () => {
       expect(wholeFileWrites.map((chunk) => Array.from(chunk))).toEqual([
         [21, 22, 23],
       ])
+
+      const sessionWrites: Uint8Array[] = []
+      const sessionID = await new Promise<number>((resolve) => {
+        g.BLDR_OPFS_WRITE_FILE_BEGIN?.(
+          {
+            getFileHandle: async (
+              name: string,
+              opts?: { create?: boolean },
+            ) => {
+              if (name !== 'seg-a' || opts?.create !== true) {
+                throw new Error('unexpected session file handle request')
+              }
+              return {
+                createWritable: async () => ({
+                  close: async () => undefined,
+                  write: async (data: BufferSource | Blob | string) => {
+                    if (!(data instanceof Uint8Array)) {
+                      throw new Error('expected Uint8Array write')
+                    }
+                    sessionWrites.push(new Uint8Array(data))
+                  },
+                }),
+              }
+            },
+          } as unknown as FileSystemDirectoryHandle,
+          'seg-a',
+          106,
+          (_opID, id) => resolve(id),
+          () => resolve(0),
+        )
+      })
+      expect(sessionID).toBeGreaterThan(0)
+
+      const firstChunk = new Uint8Array([31, 32])
+      const firstChunkWritten = await new Promise<number>((resolve) => {
+        g.BLDR_OPFS_WRITE_FILE_CHUNK?.(
+          sessionID,
+          firstChunk,
+          107,
+          (_opID, written) => resolve(written),
+          () => resolve(-1),
+        )
+      })
+      firstChunk[0] = 99
+      const secondChunkWritten = await new Promise<number>((resolve) => {
+        g.BLDR_OPFS_WRITE_FILE_CHUNK?.(
+          sessionID,
+          new Uint8Array([33, 34, 35]),
+          108,
+          (_opID, written) => resolve(written),
+          () => resolve(-1),
+        )
+      })
+      const sessionTotal = await new Promise<number>((resolve) => {
+        g.BLDR_OPFS_WRITE_FILE_CLOSE?.(
+          sessionID,
+          109,
+          (_opID, written) => resolve(written),
+          () => resolve(-1),
+        )
+      })
+
+      expect(firstChunkWritten).toBe(2)
+      expect(secondChunkWritten).toBe(3)
+      expect(sessionTotal).toBe(5)
+      expect(sessionWrites.map((chunk) => Array.from(chunk))).toEqual([
+        [31, 32],
+        [33, 34, 35],
+      ])
+      expect(g.BLDR_OPFS_WRITE_FILE_ABORT?.(sessionID)).toBe(false)
 
       await new Promise<void>((resolve) => {
         g.BLDR_TINYGO_PROMISE_AWAIT?.(
