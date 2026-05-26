@@ -250,7 +250,8 @@ func (c *Controller) HandleWebPkgsViaPluginAssets(
 	return c.addControllerSendReadyAndWait(strm.Context(), ctrl, sendReady)
 }
 
-// addControllerSendReadyAndWait adds a controller, sends ready, and waits for context cancellation or controller exit.
+// addControllerSendReadyAndWait adds a controller, sends ready, and waits for context cancellation or controller failure.
+// Returning nil from Execute means the controller did no active work; the handler remains attached until the stream closes.
 // Returns the exit error or context.Canceled if the context was cancelled.
 func (c *Controller) addControllerSendReadyAndWait(ctx context.Context, ctrl controller.Controller, sendReady func() error) error {
 	exitErrCh := make(chan error, 1)
@@ -266,11 +267,16 @@ func (c *Controller) addControllerSendReadyAndWait(ctx context.Context, ctrl con
 		return err
 	}
 
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case err := <-exitErrCh:
-		return err
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case err := <-exitErrCh:
+			if err == nil {
+				continue
+			}
+			return err
+		}
 	}
 }
 

@@ -698,14 +698,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
   // pluginSingletonReady resolves when this tab can create plugin workers.
-  // In DedicatedWorker runtime mode (no SharedWorker), a Web Lock ensures only
-  // one tab creates plugin workers at a time (single-instance invariant).
-  // Without Web Locks, dedicated plugin workers stay unavailable.
+  // A Web Lock ensures only one tab creates runtime-scoped dedicated plugin
+  // workers at a time. The holder keeps the lock until close so other tabs use
+  // the same worker instance through the WebRuntime instead of forcing handoff.
   private pluginSingletonReady: Promise<void> = Promise.resolve()
   // pluginSingletonLockEnabled records whether this document participates in
-  // foreground ownership of the dedicated plugin worker singleton.
+  // ownership of the dedicated plugin worker singleton.
   private pluginSingletonLockEnabled = false
-  // singletonAbort aborts the singleton lock request on close or hide.
+  // singletonAbort aborts the singleton lock request on close.
   private singletonAbort?: AbortController
   // firstWorkerCreationMarked records the first worker boundary once per document.
   private firstWorkerCreationMarked = false
@@ -1707,8 +1707,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (hidden) {
       console.log('WebDocument: document is hidden')
       this.clearResumeReadyState('hidden')
-      this.releasePluginSingletonLock()
-      this.closeHiddenDedicatedPluginWorkers()
     } else {
       console.log('WebDocument: document is visible')
       this.refreshPluginSingletonLock()
@@ -1732,30 +1730,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         this.taskEnsureWebRuntimeConn()
       }
       this.scheduleResumeReadySeed()
-    }
-  }
-
-  private closeHiddenDedicatedPluginWorkers(): void {
-    for (const [workerID, worker] of Object.entries(this.webWorkers)) {
-      if (!worker.plugin || worker.isShared) {
-        continue
-      }
-
-      this.closeWorkerBridgeEndpoint(workerID)
-      this.closeSabPairsForWorker(workerID, 'document hidden')
-      worker.setGenerationState(WebWorkerGenerationState.LIFECYCLE_HIDDEN)
-      delete this.webWorkers[workerID]
-      this.notifyWebWorkerUpdated(
-        workerID,
-        true,
-        worker.isShared,
-        worker.ready,
-        'hidden',
-        worker.generationState,
-      )
-      void worker.close().catch((err: unknown) => {
-        console.warn('WebDocument: unable to close hidden plugin worker', err)
-      })
     }
   }
 
@@ -1790,10 +1764,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   private refreshPluginSingletonLock() {
     if (!this.pluginSingletonLockEnabled || this.closed) {
-      return
-    }
-    if (this.hidden) {
-      this.releasePluginSingletonLock()
       return
     }
     if (this.singletonAbort) {

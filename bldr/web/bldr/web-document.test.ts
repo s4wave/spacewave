@@ -693,7 +693,7 @@ describe('WebDocument plugin generation state', () => {
     ).resolves.toEqual({ created: false, shared: false })
   })
 
-  it('holds the plugin singleton lock only while foreground-owned', async () => {
+  it('holds the plugin singleton lock until the document closes', async () => {
     const lockRequest = vi.fn(
       (
         _name: string,
@@ -714,10 +714,6 @@ describe('WebDocument plugin generation state', () => {
     doc.pluginSingletonLockEnabled = true
 
     doc.refreshPluginSingletonLock()
-    expect(lockRequest).not.toHaveBeenCalled()
-
-    doc.hidden = false
-    doc.refreshPluginSingletonLock()
     expect(lockRequest).toHaveBeenCalledOnce()
     expect(lockRequest.mock.calls[0][0]).toBe('bldr-plugin-singleton-runtime-1')
     await expect(doc.pluginSingletonReady).resolves.toBeUndefined()
@@ -726,12 +722,12 @@ describe('WebDocument plugin generation state', () => {
     expect(singletonAbort).toBeDefined()
     doc.hidden = true
     doc.refreshPluginSingletonLock()
-    expect(singletonAbort?.signal.aborted).toBe(true)
-    expect(doc.singletonAbort).toBeUndefined()
+    expect(singletonAbort?.signal.aborted).toBe(false)
+    expect(doc.singletonAbort).toBe(singletonAbort)
     expect(lockRequest).toHaveBeenCalledOnce()
   })
 
-  it('stops dedicated plugin workers when the document becomes hidden', () => {
+  it('keeps dedicated plugin workers running when the document becomes hidden', () => {
     const doc = buildTestWebDocument()
     const dedicatedPlugin = buildTestWorker()
     dedicatedPlugin.ready = true
@@ -747,21 +743,13 @@ describe('WebDocument plugin generation state', () => {
 
     doc.onVisibilityChange(true)
 
-    expect(doc.webWorkers['plugin-dedicated']).toBeUndefined()
+    expect(doc.webWorkers['plugin-dedicated']).toBe(dedicatedPlugin)
     expect(doc.webWorkers['plugin-shared']).toBe(sharedPlugin)
     expect(doc.webWorkers['non-plugin-dedicated']).toBe(dedicatedNonPlugin)
-    expect(dedicatedPlugin.close).toHaveBeenCalledOnce()
+    expect(dedicatedPlugin.close).not.toHaveBeenCalled()
     expect(sharedPlugin.close).not.toHaveBeenCalled()
     expect(dedicatedNonPlugin.close).not.toHaveBeenCalled()
-    expect(dedicatedPlugin.generationState).toBe(
-      WebWorkerGenerationState.LIFECYCLE_HIDDEN,
-    )
-    expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
-      'plugin-dedicated',
-      true,
-      false,
-      true,
-      'hidden',
+    expect(dedicatedPlugin.generationState).not.toBe(
       WebWorkerGenerationState.LIFECYCLE_HIDDEN,
     )
   })

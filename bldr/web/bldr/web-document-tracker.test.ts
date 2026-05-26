@@ -306,6 +306,8 @@ describe('WebDocumentTracker resume-ready gate', () => {
     const secondPort = attachWebDocument(tracker, 'document-2')
     Reflect.set(tracker, 'activeRuntimeWebDocumentId', 'document-1')
 
+    firstPort.start()
+    secondPort.start()
     secondPort.postMessage({
       from: 'document-2',
       resumeReady: true,
