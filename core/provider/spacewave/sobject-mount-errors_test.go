@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package provider_spacewave
 
 import (
@@ -13,6 +11,8 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +27,7 @@ func TestEnsureInitialStateReturnsTerminalErrorAfterRejectedPull(t *testing.T) {
 				Role:   sobject.SOParticipantRole_SOParticipantRole_VALIDATOR,
 			}},
 		},
-		Root: buildTestSORoot(t, validatorPriv, 1, nil),
+		Root: buildMountErrorTestSORoot(t, validatorPriv, 1),
 	}
 	stateData := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +57,22 @@ func TestEnsureInitialStateReturnsTerminalErrorAfterRejectedPull(t *testing.T) {
 	if !errors.Is(err, errSharedObjectInitialStateRejected) {
 		t.Fatalf("ensureInitialState() = %v, want terminal shared object mount error", err)
 	}
+}
+
+func buildMountErrorTestSORoot(t *testing.T, validatorPriv crypto.PrivKey, seqno uint64) *sobject.SORoot {
+	t.Helper()
+	innerData, err := (&sobject.SORootInner{
+		Seqno:     seqno,
+		StateData: []byte("state"),
+	}).MarshalVT()
+	if err != nil {
+		t.Fatalf("marshal root inner: %v", err)
+	}
+	root := &sobject.SORoot{InnerSeqno: seqno, Inner: innerData}
+	if err := root.SignInnerData(validatorPriv, "so-invalid", seqno, hash.RecommendedHashType); err != nil {
+		t.Fatalf("sign root: %v", err)
+	}
+	return root
 }
 
 func TestSobjectTrackerHoldTerminalMountError(t *testing.T) {
