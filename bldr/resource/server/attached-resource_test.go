@@ -3,6 +3,7 @@ package resource_server
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
@@ -155,6 +156,54 @@ func TestReleaseResourceRemovesAttachedResource(t *testing.T) {
 	_, err = client.GetAttachedResource(10)
 	if err != resource.ErrResourceNotFound {
 		t.Fatalf("got error %v, want %v", err, resource.ErrResourceNotFound)
+	}
+}
+
+func TestResourceRefReleaseWaitsForReleaseFn(t *testing.T) {
+	client, cancel := newTestClient(t)
+	defer cancel()
+
+	releaseStarted := make(chan struct{})
+	releaseUnblock := make(chan struct{})
+	id, err := client.AddResource(srpc.NewMux(), func() {
+		close(releaseStarted)
+		<-releaseUnblock
+	})
+	if err != nil {
+		t.Fatalf("AddResource: %v", err)
+	}
+
+	releaseDone := make(chan error, 1)
+	go func() {
+		_, err := client.server.ResourceRefRelease(context.Background(), &resource.ResourceRefReleaseRequest{
+			ClientHandleId: client.clientID,
+			ResourceId:     id,
+		})
+		releaseDone <- err
+	}()
+
+	select {
+	case err := <-releaseDone:
+		t.Fatalf("ResourceRefRelease returned before releaseFn started: %v", err)
+	case <-releaseStarted:
+	case <-time.After(time.Second):
+		t.Fatal("releaseFn was not called")
+	}
+
+	select {
+	case err := <-releaseDone:
+		t.Fatalf("ResourceRefRelease returned while releaseFn was still blocked: %v", err)
+	default:
+	}
+
+	close(releaseUnblock)
+	select {
+	case err := <-releaseDone:
+		if err != nil {
+			t.Fatalf("ResourceRefRelease: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ResourceRefRelease did not return after releaseFn completed")
 	}
 }
 

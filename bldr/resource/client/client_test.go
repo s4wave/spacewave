@@ -18,6 +18,7 @@ type mockResourceService struct {
 	attachCalls    int
 	nextResourceID uint32
 	onAttachSend   func(*mockResourceAttachClient, *resource.ResourceAttachRequest)
+	onRelease      func(context.Context, *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error)
 }
 
 func (m *mockResourceService) SRPCClient() srpc.Client { return nil }
@@ -31,6 +32,9 @@ func (m *mockResourceService) ResourceRpc(ctx context.Context) (resource.SRPCRes
 }
 
 func (m *mockResourceService) ResourceRefRelease(ctx context.Context, in *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error) {
+	if m.onRelease != nil {
+		return m.onRelease(ctx, in)
+	}
 	return &resource.ResourceRefReleaseResponse{}, nil
 }
 
@@ -512,6 +516,60 @@ func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
 	case <-childReleased:
 	case <-time.After(time.Second):
 		t.Fatal("attached child release callback was not called")
+	}
+}
+
+func TestResourceRefReleaseWaitsForServerAck(t *testing.T) {
+	releaseStarted := make(chan *resource.ResourceRefReleaseRequest, 1)
+	releaseUnblock := make(chan struct{})
+	svc := &mockResourceService{
+		onRelease: func(ctx context.Context, req *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error) {
+			releaseStarted <- req
+			select {
+			case <-releaseUnblock:
+				return &resource.ResourceRefReleaseResponse{}, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		},
+	}
+
+	c, err := NewClient(context.Background(), svc)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer c.Release()
+
+	ref := c.CreateResourceReference(42)
+	releaseDone := make(chan struct{})
+	go func() {
+		ref.Release()
+		close(releaseDone)
+	}()
+
+	var req *resource.ResourceRefReleaseRequest
+	select {
+	case <-releaseDone:
+		t.Fatal("Release returned before server release ack")
+	case req = <-releaseStarted:
+	case <-time.After(time.Second):
+		t.Fatal("server release was not called")
+	}
+	if req.GetClientHandleId() != 1 || req.GetResourceId() != 42 {
+		t.Fatalf("unexpected release request: %#v", req)
+	}
+
+	select {
+	case <-releaseDone:
+		t.Fatal("Release returned while server release was still blocked")
+	default:
+	}
+
+	close(releaseUnblock)
+	select {
+	case <-releaseDone:
+	case <-time.After(time.Second):
+		t.Fatal("Release did not return after server release ack")
 	}
 }
 

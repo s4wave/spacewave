@@ -2,6 +2,7 @@ package resource_world
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -17,6 +18,8 @@ type TxResource struct {
 	tx     world.Tx
 	mux    srpc.Mux
 	engine world.Engine
+
+	releaseOnce sync.Once
 }
 
 // NewTxResource creates a new TxResource.
@@ -59,8 +62,15 @@ func (r *TxResource) Commit(ctx context.Context, req *s4wave_world.CommitRequest
 
 // Discard discards the transaction without committing changes.
 func (r *TxResource) Discard(ctx context.Context, req *s4wave_world.DiscardRequest) (*s4wave_world.DiscardResponse, error) {
-	r.tx.Discard()
+	r.Release()
 	return &s4wave_world.DiscardResponse{}, nil
+}
+
+// Release discards the underlying transaction exactly once.
+func (r *TxResource) Release() {
+	r.releaseOnce.Do(func() {
+		r.tx.Discard()
+	})
 }
 
 // _ is a type assertion

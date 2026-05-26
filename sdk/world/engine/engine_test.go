@@ -6,7 +6,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -20,7 +22,17 @@ import (
 // setupSDKEngine creates a testbed, resource client, and SDKEngine for testing.
 func setupSDKEngine(ctx context.Context, t *testing.T) (*sdk_world_engine.SDKEngine, func()) {
 	t.Helper()
+	return setupSDKEngineWithResourceClient(ctx, t, func(client *resource_client.Client) sdk_world_engine.ResourceClient {
+		return client
+	})
+}
 
+func setupSDKEngineWithResourceClient(
+	ctx context.Context,
+	t *testing.T,
+	wrapClient func(*resource_client.Client) sdk_world_engine.ResourceClient,
+) (*sdk_world_engine.SDKEngine, func()) {
+	t.Helper()
 	_, resClient, tbCleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
 
 	rootRef := resClient.AccessRootResource()
@@ -40,7 +52,7 @@ func setupSDKEngine(ctx context.Context, t *testing.T) (*sdk_world_engine.SDKEng
 	}
 
 	engineRef := resClient.CreateResourceReference(createResp.ResourceId)
-	engine, err := sdk_world_engine.NewSDKEngine(resClient, engineRef)
+	engine, err := sdk_world_engine.NewSDKEngine(wrapClient(resClient), engineRef)
 	if err != nil {
 		engineRef.Release()
 		rootRef.Release()
@@ -73,6 +85,54 @@ func TestSDKEngine_NewTransaction(t *testing.T) {
 		t.Fatal("expected write transaction")
 	}
 }
+
+func TestSDKEngine_DiscardReleasesWriteTransaction(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngineWithResourceClient(ctx, t, func(client *resource_client.Client) sdk_world_engine.ResourceClient {
+		return releaseDroppingClient{client: client}
+	})
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx.Discard()
+
+	secondDone := make(chan error, 1)
+	go func() {
+		secondCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		second, err := engine.NewTransaction(secondCtx, true)
+		if err == nil {
+			second.Discard()
+		}
+		secondDone <- err
+	}()
+
+	select {
+	case err := <-secondDone:
+		if err != nil {
+			t.Fatalf("second write transaction failed: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("discarded write transaction still blocked the next writer")
+	}
+}
+
+type releaseDroppingClient struct {
+	client sdk_world_engine.ResourceClient
+}
+
+func (c releaseDroppingClient) CreateResourceReference(resourceID uint32) resource_client.ResourceRef {
+	return releaseDroppingRef{ResourceRef: c.client.CreateResourceReference(resourceID)}
+}
+
+type releaseDroppingRef struct {
+	resource_client.ResourceRef
+}
+
+func (r releaseDroppingRef) Release() {}
 
 // TestSDKEngine_GetSeqno tests reading the sequence number.
 func TestSDKEngine_GetSeqno(t *testing.T) {

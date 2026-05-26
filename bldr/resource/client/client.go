@@ -681,14 +681,15 @@ func (s *attachSession) executeSendLoop() {
 }
 
 // releaseResourceRefLocked is called when a client-side reference is released.
-// Only notifies the server when the last reference to a resource ID is released.
+// It returns the resource ID to release on the server when this was the last
+// local reference.
 // Must be called with mtx held.
-func (c *Client) releaseResourceRefLocked(ref *resourceRef) {
+func (c *Client) releaseResourceRefLocked(ref *resourceRef) (uint32, bool) {
 	resourceID := ref.resourceID
 
 	refSet, ok := c.resources[resourceID]
 	if !ok {
-		return
+		return 0, false
 	}
 
 	// Remove this specific ref
@@ -705,15 +706,9 @@ func (c *Client) releaseResourceRefLocked(ref *resourceRef) {
 		delete(c.resources, resourceID)
 		delete(c.srpcClients, resourceID)
 
-		// Notify server (best-effort, ignore errors)
-		// Use client context - when it's canceled, the ResourceClient stream ends anyway
-		go func() {
-			_, _ = c.service.ResourceRefRelease(c.ctx, &resource.ResourceRefReleaseRequest{
-				ClientHandleId: c.clientHandleID,
-				ResourceId:     resourceID,
-			})
-		}()
+		return resourceID, true
 	}
+	return 0, false
 }
 
 // getOrCreateSRPCClientLocked gets or creates an SRPC client for a resource.
@@ -782,12 +777,23 @@ func (r *resourceRef) GetClient() (srpc.Client, error) {
 // Release releases the resource ref.
 func (r *resourceRef) Release() {
 	r.client.mtx.Lock()
-	defer r.client.mtx.Unlock()
 
 	if r.released {
+		r.client.mtx.Unlock()
 		return
 	}
 	r.released = true
 
-	r.client.releaseResourceRefLocked(r)
+	resourceID, notifyServer := r.client.releaseResourceRefLocked(r)
+	clientHandleID := r.client.clientHandleID
+	service := r.client.service
+	ctx := r.client.ctx
+	r.client.mtx.Unlock()
+
+	if notifyServer {
+		_, _ = service.ResourceRefRelease(ctx, &resource.ResourceRefReleaseRequest{
+			ClientHandleId: clientHandleID,
+			ResourceId:     resourceID,
+		})
+	}
 }

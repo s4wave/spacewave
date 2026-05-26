@@ -42,9 +42,8 @@ func (tx *SDKTx) Commit(ctx context.Context) error {
 
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
-// Releasing the resource reference triggers server-side cleanup which
-// includes discarding the underlying transaction.
 func (tx *SDKTx) Discard() {
+	_, _ = tx.txService.Discard(context.Background(), &s4wave_world.DiscardRequest{})
 	tx.ref.Release()
 }
 

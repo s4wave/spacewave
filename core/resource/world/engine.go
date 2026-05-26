@@ -135,10 +135,10 @@ func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.N
 
 	txResource := NewTxResource(r.le, r.b, wtx, r.lookupOp, r.engine, r.worldStateOptions...)
 	id, err := resourceCtx.AddResource(txResource.GetMux(), func() {
-		wtx.Discard()
+		txResource.Release()
 	})
 	if err != nil {
-		wtx.Discard()
+		txResource.Release()
 		return nil, err
 	}
 

@@ -86,6 +86,7 @@ func (s *ResourceServer) ResourceClient(
 	defer func() {
 		clientCancel()
 		clientObj.releaseAllAttachedResources()
+		var releaseFns []func()
 		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			clientObj.released = true
 			delete(s.clients, clientHandleID)
@@ -93,10 +94,13 @@ func (s *ResourceServer) ResourceClient(
 			// Release all resources owned by this client
 			for _, resource := range clientObj.resources {
 				if resource.releaseFn != nil {
-					go resource.releaseFn()
+					releaseFns = append(releaseFns, resource.releaseFn)
 				}
 			}
 		})
+		for _, releaseFn := range releaseFns {
+			releaseFn()
+		}
 	}()
 
 	// Add root resource to client's resources
@@ -229,6 +233,7 @@ func (s *ResourceServer) ResourceRefRelease(
 	var found bool
 	var isRootResource bool
 	var attachedClient *RemoteResourceClient
+	var releaseFn func()
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		client := s.clients[clientID]
 		if client == nil || client.released {
@@ -243,12 +248,8 @@ func (s *ResourceServer) ResourceRefRelease(
 			// Don't actually delete root resources, just mark as found
 			if !isRootResource {
 				delete(client.resources, resourceID)
+				releaseFn = res.releaseFn
 				broadcast()
-
-				// Call release callback if provided
-				if res.releaseFn != nil {
-					go res.releaseFn()
-				}
 			}
 			found = true
 			return
@@ -261,6 +262,9 @@ func (s *ResourceServer) ResourceRefRelease(
 
 	if attachedClient != nil {
 		attachedClient.ReleaseResource(resourceID)
+	}
+	if releaseFn != nil {
+		releaseFn()
 	}
 
 	if !found {
