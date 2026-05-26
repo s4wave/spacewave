@@ -19,7 +19,7 @@ const DefaultRetireGracePeriod = 250 * time.Millisecond
 // PlanCompaction identifies a level whose segments exceed the trigger threshold.
 // Reads manifest outside the publish lock (snapshot-based).
 func PlanCompaction(shard *Shard, trigger int) *CompactionPlan {
-	return buildCompactionPlan(shard.ID(), shard.Manifest(), trigger)
+	return buildCompactionPlanWithLimit(shard.ID(), shard.Manifest(), trigger, shard.maxSegmentDataBytes)
 }
 
 // ExecuteCompaction runs compaction for a plan. Caller must hold the publish lock.
@@ -60,49 +60,22 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 	}
 	merged = pruneCompactedTombstones(merged, m, inputNames)
 
-	// Build output SSTable.
-	var outMeta *SegmentMeta
+	// Build output SSTables.
+	var outputs []writtenSegment
 	if len(merged) != 0 {
-		w := segment.NewWriter()
-		w.SetBloomFPR(shard.bloomFPR)
-		for i := range merged {
-			if merged[i].Tombstone {
-				w.AddTombstone(merged[i].Key)
-			} else {
-				w.Add(merged[i].Key, merged[i].Value)
+		groups := splitSegmentEntries(merged, shard.maxSegmentDataBytes)
+		outputs = make([]writtenSegment, 0, len(groups))
+		for i := range groups {
+			output, err := shard.writeSegment(context.Background(), groups[i], plan.OutputLevel)
+			if err != nil {
+				return errors.Wrap(err, "write compacted segment")
 			}
+			outputs = append(outputs, output)
 		}
-
-		var outBuf bytes.Buffer
-		written, err := w.Build(&outBuf)
-		if err != nil {
-			return errors.Wrap(err, "build compacted segment")
-		}
-
-		outData := outBuf.Bytes()
-
-		// Derive metadata directly from the merged entries (no re-parse needed).
-		outMeta = &SegmentMeta{
-			EntryCount: uint32(len(merged)),
-			Size:       uint32(written),
-			Level:      plan.OutputLevel,
-			MinKey:     merged[0].Key,
-			MaxKey:     merged[len(merged)-1].Key,
-		}
-
-		// Allocate sequence number and filename.
-		shard.mu.Lock()
-		shard.seqNum++
-		seq := shard.seqNum
-		shard.mu.Unlock()
-
-		filename := "seg-" + zeroPad(seq, 6) + ".sst"
-		outMeta.Filename = filename
-
-		// Write output segment.
-		if err := shard.writeFileData(context.Background(), filename, outData); err != nil {
-			return errors.Wrap(err, "write compacted segment")
-		}
+	}
+	outMetas := make([]SegmentMeta, len(outputs))
+	for i := range outputs {
+		outMetas[i] = outputs[i].Meta
 	}
 
 	// Build new manifest: remove inputs and add a compacted output when any
@@ -112,7 +85,7 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 	newManifest, err := buildCompactedManifest(
 		shard.manifest,
 		inputNames,
-		outMeta,
+		outMetas,
 		gen,
 		uint64(shard.nowFn().UnixMilli()),
 		uint64(DefaultRetireGracePeriod/time.Millisecond),
@@ -124,6 +97,9 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 
 	if err := shard.writeManifest(newManifest); err != nil {
 		return errors.Wrap(err, "write compaction manifest")
+	}
+	for i := range outputs {
+		shard.cacheLookup(outputs[i].Meta.Filename, outputs[i].Lookup)
 	}
 	return nil
 }

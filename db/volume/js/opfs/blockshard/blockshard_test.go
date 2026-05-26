@@ -397,6 +397,102 @@ func TestShardCachesSegmentFiles(t *testing.T) {
 	}
 }
 
+func TestPublishSplitsLargeBatchBySegmentDataLimit(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	settings.CompactionTrigger = 64
+	settings.MaxSegmentDataBytes = 128
+	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-publish-split", "test-blockshard-publish-split", settings)
+	defer cleanup()
+
+	entries := []segment.Entry{
+		{Key: []byte("key-a"), Value: bytes.Repeat([]byte("a"), 96)},
+		{Key: []byte("key-b"), Value: bytes.Repeat([]byte("b"), 96)},
+		{Key: []byte("key-c"), Value: bytes.Repeat([]byte("c"), 96)},
+	}
+	if err := e.Put(context.Background(), entries); err != nil {
+		t.Fatal(err)
+	}
+
+	m := e.shards[0].Manifest()
+	if len(m.Segments) < 2 {
+		t.Fatalf("segments: got %d want split publish", len(m.Segments))
+	}
+	for _, entry := range entries {
+		got, found, err := e.GetContext(context.Background(), entry.Key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found || !bytes.Equal(got, entry.Value) {
+			t.Fatalf("entry %q found=%v len=%d want len=%d", entry.Key, found, len(got), len(entry.Value))
+		}
+	}
+}
+
+func TestCompactionSplitsLargeOutputBySegmentDataLimit(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	settings.CompactionTrigger = 3
+	settings.MaxSegmentDataBytes = 128
+	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-compaction-split", "test-blockshard-compaction-split", settings)
+	defer cleanup()
+
+	entries := []segment.Entry{
+		{Key: []byte("key-a"), Value: bytes.Repeat([]byte("a"), 96)},
+		{Key: []byte("key-b"), Value: bytes.Repeat([]byte("b"), 96)},
+		{Key: []byte("key-c"), Value: bytes.Repeat([]byte("c"), 96)},
+	}
+	for _, entry := range entries {
+		publishEntries(t, e.shards[0], []segment.Entry{entry})
+	}
+
+	plan := PlanCompaction(e.shards[0], settings.CompactionTrigger)
+	if plan == nil {
+		t.Fatal("expected compaction plan")
+	}
+	release, err := e.shards[0].AcquirePublishLock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ExecuteCompaction(e.shards[0], plan); err != nil {
+		release()
+		t.Fatal(err)
+	}
+	if _, err := e.shards[0].ReclaimPendingDelete(); err != nil {
+		release()
+		t.Fatal(err)
+	}
+	release()
+
+	m := e.shards[0].Manifest()
+	var level0, level1 int
+	for _, seg := range m.Segments {
+		switch seg.Level {
+		case 0:
+			level0++
+		case 1:
+			level1++
+		}
+	}
+	if level0 != 0 {
+		t.Fatalf("level0 segments: got %d want 0", level0)
+	}
+	if level1 < 2 {
+		t.Fatalf("level1 segments: got %d want split compaction output", level1)
+	}
+	for _, entry := range entries {
+		got, found, err := e.GetContext(context.Background(), entry.Key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found || !bytes.Equal(got, entry.Value) {
+			t.Fatalf("entry %q found=%v len=%d want len=%d", entry.Key, found, len(got), len(entry.Value))
+		}
+	}
+}
+
 func TestBlockStoreGetBlockExists(t *testing.T) {
 	e, cleanup := newTestEngine(t, "test-blockshard-store-exists", "test-blockshard-store-exists")
 	defer cleanup()

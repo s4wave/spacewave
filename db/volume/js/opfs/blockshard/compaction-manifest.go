@@ -24,6 +24,10 @@ type CompactionPlan struct {
 }
 
 func buildCompactionPlan(shardID int, m *Manifest, trigger int) *CompactionPlan {
+	return buildCompactionPlanWithLimit(shardID, m, trigger, 0)
+}
+
+func buildCompactionPlanWithLimit(shardID int, m *Manifest, trigger int, maxSegmentDataBytes int) *CompactionPlan {
 	if m == nil {
 		return nil
 	}
@@ -33,15 +37,27 @@ func buildCompactionPlan(shardID int, m *Manifest, trigger int) *CompactionPlan 
 
 	for level := uint8(0); level <= maxCompactionLevel; level++ {
 		levelSegs := segmentsAtLevel(m, level)
-		if len(levelSegs) < compactionLevelTrigger(trigger, level) {
+		levelTrigger := compactionLevelTrigger(trigger, level)
+		if len(levelSegs) < levelTrigger {
+			continue
+		}
+		selectedSegs := selectCompactionLevelSegments(
+			levelSegs,
+			levelTrigger,
+			maxCompactionInputBytes(maxSegmentDataBytes, levelTrigger),
+		)
+		if len(selectedSegs) < levelTrigger {
+			continue
+		}
+		if level == maxCompactionLevel && !compactionCanReduceMaxLevel(selectedSegs, maxSegmentDataBytes) {
 			continue
 		}
 
 		outputLevel := min(level+1, maxCompactionLevel)
 
-		inputNames := make(map[string]bool, len(levelSegs))
-		minKey, maxKey := segmentRange(levelSegs)
-		for _, seg := range levelSegs {
+		inputNames := make(map[string]bool, len(selectedSegs))
+		minKey, maxKey := segmentRange(selectedSegs)
+		for _, seg := range selectedSegs {
 			inputNames[seg.Filename] = true
 		}
 		if outputLevel != level {
@@ -67,6 +83,54 @@ func buildCompactionPlan(shardID int, m *Manifest, trigger int) *CompactionPlan 
 	}
 
 	return nil
+}
+
+func selectCompactionLevelSegments(segs []SegmentMeta, minCount int, maxInputBytes int) []SegmentMeta {
+	if maxInputBytes < 1 {
+		return segs
+	}
+	out := make([]SegmentMeta, 0, min(len(segs), minCount))
+	total := 0
+	for _, seg := range segs {
+		size := int(seg.Size)
+		if size < 1 {
+			size = 1
+		}
+		if total+size > maxInputBytes {
+			break
+		}
+		out = append(out, seg)
+		total += size
+	}
+	if len(out) < minCount {
+		return nil
+	}
+	return out
+}
+
+func maxCompactionInputBytes(maxSegmentDataBytes int, levelTrigger int) int {
+	if maxSegmentDataBytes < 1 || levelTrigger < 1 {
+		return 0
+	}
+	return maxSegmentDataBytes * (levelTrigger + 1)
+}
+
+func compactionCanReduceMaxLevel(segs []SegmentMeta, maxSegmentDataBytes int) bool {
+	if maxSegmentDataBytes < 1 {
+		return true
+	}
+	total := 0
+	for _, seg := range segs {
+		total += int(seg.Size)
+	}
+	return ceilDiv(total, maxSegmentDataBytes) < len(segs)
+}
+
+func ceilDiv(n, d int) int {
+	if d < 1 || n < 1 {
+		return 0
+	}
+	return (n + d - 1) / d
 }
 
 func segmentsAtLevel(m *Manifest, level uint8) []SegmentMeta {
@@ -133,7 +197,7 @@ func verifyCompactionInputs(m *Manifest, inputNames map[string]bool) error {
 func buildCompactedManifest(
 	current *Manifest,
 	inputNames map[string]bool,
-	output *SegmentMeta,
+	outputs []SegmentMeta,
 	nextGen uint64,
 	nowUnixMilli uint64,
 	graceMilli uint64,
@@ -152,7 +216,7 @@ func buildCompactedManifest(
 		}
 	}
 
-	insertedOutput := output == nil
+	insertedOutput := len(outputs) == 0
 	for i, seg := range current.Segments {
 		if inputNames[seg.Filename] {
 			next.PendingDelete = append(next.PendingDelete, RetiredSegmentMeta{
@@ -163,15 +227,22 @@ func buildCompactedManifest(
 			continue
 		}
 		if !insertedOutput && i > lastInputIdx {
-			next.Segments = append(next.Segments, cloneSegmentMeta(*output))
+			next.Segments = appendClonedSegmentMetas(next.Segments, outputs)
 			insertedOutput = true
 		}
 		next.Segments = append(next.Segments, cloneSegmentMeta(seg))
 	}
 	if !insertedOutput {
-		next.Segments = append(next.Segments, cloneSegmentMeta(*output))
+		next.Segments = appendClonedSegmentMetas(next.Segments, outputs)
 	}
 	return next, nil
+}
+
+func appendClonedSegmentMetas(dst []SegmentMeta, src []SegmentMeta) []SegmentMeta {
+	for i := range src {
+		dst = append(dst, cloneSegmentMeta(src[i]))
+	}
+	return dst
 }
 
 func pruneCompactedTombstones(

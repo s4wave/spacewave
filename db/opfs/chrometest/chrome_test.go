@@ -269,6 +269,30 @@ func TestOpfsChromeTinyGoLargeWriteReadList(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeTinyGoLargeBlockShardBatch(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo blockshard large-upload path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-large-block-batch-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "large-block-batch",
+		root:       root,
+		iterations: 68056093,
+		batch:      96,
+		shards:     1,
+	})
+}
+
 func TestOpfsChromeReadAtHelperLoop(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)

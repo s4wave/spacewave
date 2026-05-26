@@ -155,6 +155,8 @@ func run(ctx context.Context, c *config) error {
 		return runReadFileHelperLoop(c)
 	case "large-write-read-list":
 		return runLargeWriteReadList(c)
+	case "large-block-batch":
+		return runLargeBlockBatch(ctx, c)
 	case "read-at-helper-loop":
 		return runReadAtHelperLoop(c)
 	case "gc-wal-write-loop":
@@ -326,6 +328,84 @@ func runLargeWriteReadList(c *config) error {
 		name := "chunk-" + zeroPad(i, 3) + ".bin"
 		if !seen[name] {
 			return errors.Errorf("%s missing from list directory result", name)
+		}
+	}
+	return nil
+}
+
+func runLargeBlockBatch(ctx context.Context, c *config) error {
+	e, release, err := openBlockEngine(ctx, c)
+	if err != nil {
+		return err
+	}
+
+	totalSize := c.iterations
+	if totalSize <= 0 {
+		totalSize = 64 * 1024 * 1024
+	}
+	entriesCount := c.batch
+	if entriesCount <= 0 {
+		entriesCount = 96
+	}
+	baseSize := totalSize / entriesCount
+	remainder := totalSize % entriesCount
+	entries := make([]segment.Entry, entriesCount)
+	for i := range entries {
+		size := baseSize
+		if i < remainder {
+			size++
+		}
+		key := largeBlockKey(i)
+		entries[i] = segment.Entry{
+			Key:   key,
+			Value: deterministicLargeBytes(size, i),
+		}
+	}
+	if err := e.Put(ctx, entries); err != nil {
+		release()
+		return errors.Wrap(err, "put large block batch")
+	}
+	if err := verifyLargeBlockSamples(ctx, e, totalSize, entriesCount); err != nil {
+		release()
+		return err
+	}
+	release()
+
+	e, release, err = openBlockEngine(ctx, c)
+	if err != nil {
+		return errors.Wrap(err, "reopen large block engine")
+	}
+	defer release()
+	return verifyLargeBlockSamples(ctx, e, totalSize, entriesCount)
+}
+
+func verifyLargeBlockSamples(ctx context.Context, e *blockshard.Engine, totalSize, entriesCount int) error {
+	baseSize := totalSize / entriesCount
+	remainder := totalSize % entriesCount
+	for _, i := range []int{0, entriesCount / 2, entriesCount - 1} {
+		size := baseSize
+		if i < remainder {
+			size++
+		}
+		key := largeBlockKey(i)
+		got, found, err := e.GetContext(ctx, key)
+		if err != nil {
+			return errors.Wrapf(err, "get large block %d", i)
+		}
+		if !found {
+			return errors.Errorf("large block %d not found", i)
+		}
+		want := deterministicLargeBytes(size, i)
+		if len(got) != len(want) {
+			return errors.Errorf("large block %d length=%d want=%d", i, len(got), len(want))
+		}
+		for _, idx := range []int{0, 1, 4095, 4096, size / 2, size - 2, size - 1} {
+			if idx < 0 || idx >= len(want) {
+				continue
+			}
+			if got[idx] != want[idx] {
+				return errors.Errorf("large block %d byte[%d]=%d want=%d", i, idx, got[idx], want[idx])
+			}
 		}
 	}
 	return nil
@@ -1232,6 +1312,10 @@ func openTestDirectory(rootName string, parts []string) (js.Value, error) {
 
 func blockKey(worker, iteration, entry int) []byte {
 	return []byte("b/" + strconv.Itoa(worker) + "/" + zeroPad(iteration, 5) + "/" + zeroPad(entry, 3))
+}
+
+func largeBlockKey(entry int) []byte {
+	return []byte("large/" + zeroPad(entry, 5))
 }
 
 func blockValue(key []byte) []byte {

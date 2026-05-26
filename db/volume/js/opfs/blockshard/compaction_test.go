@@ -158,6 +158,44 @@ func TestBuildCompactionPlanUsesDeeperLevelThresholds(t *testing.T) {
 	}
 }
 
+func TestBuildCompactionPlanWithLimitBoundsInputBatch(t *testing.T) {
+	m := &Manifest{Generation: 1}
+	for i := 0; i < 5; i++ {
+		m.Segments = append(m.Segments, SegmentMeta{
+			Filename: "seg-" + string(rune('a'+i)) + ".sst",
+			Level:    0,
+			Size:     120,
+			MinKey:   []byte{byte('a' + i)},
+			MaxKey:   []byte{byte('a' + i)},
+		})
+	}
+
+	plan := buildCompactionPlanWithLimit(0, m, 3, 100)
+	if plan == nil {
+		t.Fatal("expected bounded compaction plan")
+	}
+	if len(plan.InputSegs) != 3 {
+		t.Fatalf("input segments: got %d want 3", len(plan.InputSegs))
+	}
+}
+
+func TestBuildCompactionPlanWithLimitSkipsFutileMaxLevel(t *testing.T) {
+	m := &Manifest{Generation: 1}
+	for i := 0; i < 8; i++ {
+		m.Segments = append(m.Segments, SegmentMeta{
+			Filename: "seg-" + string(rune('a'+i)) + ".sst",
+			Level:    maxCompactionLevel,
+			Size:     100,
+			MinKey:   []byte{byte('a' + i)},
+			MaxKey:   []byte{byte('a' + i)},
+		})
+	}
+
+	if plan := buildCompactionPlanWithLimit(0, m, 2, 100); plan != nil {
+		t.Fatalf("expected futile max-level compaction to be skipped: %+v", plan)
+	}
+}
+
 func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 	current := &Manifest{
 		Generation: 4,
@@ -185,7 +223,7 @@ func TestBuildCompactedManifestRetiresInputs(t *testing.T) {
 		MaxKey:   []byte("d"),
 	}
 
-	next, err := buildCompactedManifest(current, inputs, &output, 5, 2000, 250)
+	next, err := buildCompactedManifest(current, inputs, []SegmentMeta{output}, 5, 2000, 250)
 	if err != nil {
 		t.Fatalf("buildCompactedManifest: %v", err)
 	}
@@ -239,7 +277,7 @@ func TestBuildCompactedManifestInsertsOutputAtNewestInput(t *testing.T) {
 	next, err := buildCompactedManifest(
 		current,
 		map[string]bool{"input-a.sst": true, "input-b.sst": true},
-		&output,
+		[]SegmentMeta{output},
 		8,
 		1000,
 		250,
@@ -304,6 +342,38 @@ func TestBuildCompactedManifestCanRetireWithoutOutput(t *testing.T) {
 	}
 	if len(next.PendingDelete) != 1 || next.PendingDelete[0].Filename != "input.sst" {
 		t.Fatalf("pending delete: %+v", next.PendingDelete)
+	}
+}
+
+func TestBuildCompactedManifestInsertsMultipleOutputsAtNewestInput(t *testing.T) {
+	current := &Manifest{
+		Generation: 9,
+		Segments: []SegmentMeta{
+			{Filename: "older.sst", Level: 1},
+			{Filename: "input-a.sst", Level: 1},
+			{Filename: "input-b.sst", Level: 1},
+			{Filename: "newer.sst", Level: 0},
+		},
+	}
+	outputs := []SegmentMeta{
+		{Filename: "output-a.sst", Level: 2},
+		{Filename: "output-b.sst", Level: 2},
+	}
+	next, err := buildCompactedManifest(
+		current,
+		map[string]bool{"input-a.sst": true, "input-b.sst": true},
+		outputs,
+		10,
+		1000,
+		250,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := segmentNames(next.Segments)
+	want := []string{"older.sst", "output-a.sst", "output-b.sst", "newer.sst"}
+	if !sameStrings(got, want) {
+		t.Fatalf("segments: got %v want %v", got, want)
 	}
 }
 

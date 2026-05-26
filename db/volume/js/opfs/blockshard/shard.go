@@ -33,12 +33,13 @@ type Shard struct {
 	// asyncIO forces async OPFS writes for all shard files.
 	asyncIO bool
 
-	mu        sync.Mutex
-	manifest  *Manifest
-	latestGen uint64
-	seqNum    uint64 // monotonic segment filename counter
-	nowFn     func() time.Time
-	bloomFPR  float64
+	mu                  sync.Mutex
+	manifest            *Manifest
+	latestGen           uint64
+	seqNum              uint64 // monotonic segment filename counter
+	nowFn               func() time.Time
+	bloomFPR            float64
+	maxSegmentDataBytes int
 
 	lookupCache      map[string]*segment.LookupMeta
 	segmentFileCache map[string]*cachedSegmentFile
@@ -49,14 +50,15 @@ type Shard struct {
 func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Shard, error) {
 	settings = normalizeSettings(settings)
 	s := &Shard{
-		id:               id,
-		dir:              dir,
-		lockPrefix:       lockPrefix,
-		asyncIO:          settings.AsyncIO,
-		nowFn:            time.Now,
-		bloomFPR:         settings.BloomFPR,
-		lookupCache:      make(map[string]*segment.LookupMeta),
-		segmentFileCache: make(map[string]*cachedSegmentFile),
+		id:                  id,
+		dir:                 dir,
+		lockPrefix:          lockPrefix,
+		asyncIO:             settings.AsyncIO,
+		nowFn:               time.Now,
+		bloomFPR:            settings.BloomFPR,
+		maxSegmentDataBytes: settings.MaxSegmentDataBytes,
+		lookupCache:         make(map[string]*segment.LookupMeta),
+		segmentFileCache:    make(map[string]*cachedSegmentFile),
 	}
 
 	if err := s.reloadManifestFromDisk(context.Background()); err != nil {
@@ -104,6 +106,40 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 		return errors.Wrap(err, "reload manifest")
 	}
 
+	groups := splitSegmentEntries(entries, s.maxSegmentDataBytes)
+	outputs := make([]writtenSegment, 0, len(groups))
+	for i := range groups {
+		output, err := s.writeSegment(ctx, groups[i], 0)
+		if err != nil {
+			return err
+		}
+		outputs = append(outputs, output)
+	}
+
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-manifest")
+	s.mu.Lock()
+	newManifest := s.manifest.Clone()
+	newManifest.Generation = s.manifest.Generation + 1
+	for i := range outputs {
+		newManifest.Segments = append(newManifest.Segments, outputs[i].Meta)
+	}
+	s.mu.Unlock()
+
+	if err := s.writeManifest(newManifest); err != nil {
+		subtask.End()
+		return err
+	}
+	for i := range outputs {
+		s.cacheLookup(outputs[i].Meta.Filename, outputs[i].Lookup)
+	}
+	subtask.End()
+	return nil
+}
+
+func (s *Shard) writeSegment(ctx context.Context, entries []segment.Entry, level uint8) (writtenSegment, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-segment")
+	defer task.End()
+
 	// Build the SSTable in memory.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/build-segment")
 	w := segment.NewWriter()
@@ -120,14 +156,13 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 	written, err := w.Build(&buf)
 	subtask.End()
 	if err != nil {
-		return errors.Wrap(err, "build segment")
+		return writtenSegment{}, errors.Wrap(err, "build segment")
 	}
 
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/allocate-seqno")
 	s.mu.Lock()
 	s.seqNum++
 	seq := s.seqNum
-	gen := s.manifest.Generation + 1
 	s.mu.Unlock()
 	subtask.End()
 
@@ -146,7 +181,7 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 		sizeTask.End()
 		shardTask.End()
 		subtask.End()
-		return errors.Wrap(err, "write segment")
+		return writtenSegment{}, errors.Wrap(err, "write segment")
 	}
 	entryTask.End()
 	sizeTask.End()
@@ -159,35 +194,21 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 	rd, err := segment.NewReader(bytes.NewReader(segData), written)
 	if err != nil {
 		subtask.End()
-		return errors.Wrap(err, "read built segment for metadata")
+		return writtenSegment{}, errors.Wrap(err, "read built segment for metadata")
 	}
 
 	meta := SegmentMeta{
 		Filename:   filename,
 		EntryCount: rd.EntryCount(),
 		Size:       uint32(written),
-		Level:      0,
+		Level:      level,
 		MinKey:     rd.MinKey(),
 		MaxKey:     rd.MaxKey(),
 	}
 	lookup := lookupFromReader(rd)
 	subtask.End()
 
-	// Update manifest.
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-manifest")
-	s.mu.Lock()
-	newManifest := s.manifest.Clone()
-	newManifest.Generation = gen
-	newManifest.Segments = append(newManifest.Segments, meta)
-	s.mu.Unlock()
-
-	if err := s.writeManifest(newManifest); err != nil {
-		subtask.End()
-		return err
-	}
-	s.cacheLookup(filename, lookup)
-	subtask.End()
-	return nil
+	return writtenSegment{Meta: meta, Lookup: lookup}, nil
 }
 
 // writeManifest writes a manifest to the alternate slot and commits in-memory.
