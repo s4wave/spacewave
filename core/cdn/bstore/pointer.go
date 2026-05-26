@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
-
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/cdn"
 )
@@ -32,24 +30,20 @@ func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spa
 	}
 
 	url := strings.TrimRight(cdnBaseURL, "/") + rootPointerPath(spaceID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "building root pointer request")
-	}
-	resp, err := httpCli.Do(req)
+	resp, err := fetchRootPointerResponse(ctx, httpCli, url)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetching root pointer")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(resp)
+	defer resp.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
+	if resp.StatusCode() == http.StatusNotFound {
 		return nil, nil
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("cdn root pointer status %d", resp.StatusCode)
+	if resp.StatusCode() != http.StatusOK {
+		return nil, errors.Errorf("cdn root pointer status %d", resp.StatusCode())
 	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, MaxRootPackedmsgBytes+1))
+	body, err := io.ReadAll(io.LimitReader(resp.Body(), MaxRootPackedmsgBytes+1))
 	if err != nil {
 		return nil, errors.Wrap(err, "reading root pointer body")
 	}
@@ -70,4 +64,10 @@ func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spa
 		return nil, errors.Errorf("cdn root pointer space id mismatch: want %q got %q", spaceID, pointer.GetSpaceId())
 	}
 	return pointer, nil
+}
+
+type rootPointerResponse interface {
+	StatusCode() int
+	Body() io.Reader
+	Close()
 }
