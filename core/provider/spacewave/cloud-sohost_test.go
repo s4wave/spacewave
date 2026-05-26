@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package provider_spacewave
 
 import (
@@ -309,7 +307,7 @@ func buildTestSORoot(
 		validatorPrivKey,
 		testSharedObjectID,
 		seqno,
-		hash.HashType_HashType_BLAKE3,
+		hash.RecommendedHashType,
 	); err != nil {
 		t.Fatalf("sign root: %v", err)
 	}
