@@ -65,6 +65,63 @@ func TestBucketHandleBeginReadOperationUsesScopedStore(t *testing.T) {
 	}
 }
 
+func TestBucketHandleBeginReadOperationWithGCUsesOneInnerReadScope(t *testing.T) {
+	ctx := context.Background()
+	vol, err := common_kvtx.NewVolume(
+		ctx,
+		"test-volume",
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		nil,
+		false,
+		false,
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Close()
+
+	scopedStore := &bucketHandleScopedReadStore{
+		data: []byte("scoped"),
+	}
+	readVolume := &bucketHandleScopedReadVolume{
+		Volume: vol,
+		scoped: scopedStore,
+	}
+	handle := &bucketHandle{
+		v:          readVolume,
+		bucketConf: &bucket.Config{Id: "test"},
+		gcOps: block_gc.NewGCStoreOpsWithParentAndTraceTask(
+			readVolume,
+			stubCollectorGraph{},
+			block_gc.BucketIRI("test"),
+			block_gc.BucketFlushTask(),
+		),
+	}
+
+	scoped, release, err := handle.BeginReadOperation(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	if readVolume.beginReadCalls != 1 {
+		t.Fatalf("BeginReadOperation calls = %d, want 1", readVolume.beginReadCalls)
+	}
+	data, found, err := scoped.GetBlock(ctx, &block.BlockRef{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("expected scoped store block to be found")
+	}
+	if !bytes.Equal(data, scopedStore.data) {
+		t.Fatalf("GetBlock data = %q, want %q", data, scopedStore.data)
+	}
+}
+
 func TestBucketHandleSkipsGCTrackingWhenGCDisabled(t *testing.T) {
 	handle := buildBucketHandleForGCConfig(t, &Config{GcIntervalDur: "0"})
 	if handle.gcOps != nil {
@@ -137,10 +194,12 @@ func buildBucketHandleForGCConfig(t *testing.T, conf *Config) *bucketHandle {
 
 type bucketHandleScopedReadVolume struct {
 	*common_kvtx.Volume
-	scoped block.StoreOps
+	scoped         block.StoreOps
+	beginReadCalls int
 }
 
 func (v *bucketHandleScopedReadVolume) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	v.beginReadCalls++
 	return v.scoped, func() {}, nil
 }
 
