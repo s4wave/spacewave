@@ -268,14 +268,22 @@ func (f *AsyncFile) ReadAt(p []byte, off int64) (int, error) {
 }
 
 func (f *AsyncFile) readAtWithHelper(readAt js.Value, p []byte, off int64) (int, error) {
-	bytesID, releaseBytes := jsbuf.HoldTinyGoBytes(p)
-	defer releaseBytes()
+	dst, err := jsbuf.NewBytes(len(p))
+	if err != nil {
+		return 0, err
+	}
 
 	n, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		readAt.Invoke(f.handle, bytesID, off, opID, resolve, reject)
+		readAt.Invoke(f.handle, dst, off, opID, resolve, reject)
 	})
 	if err != nil {
 		return 0, err
+	}
+	if n > len(p) {
+		return 0, errors.Errorf("read exceeded buffer for file %s: read %d into %d", f.name, n, len(p))
+	}
+	if n > 0 {
+		js.CopyBytesToGo(p[:n], dst)
 	}
 	if n == 0 && len(p) > 0 {
 		return 0, io.EOF
@@ -351,10 +359,12 @@ func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (in
 }
 
 func (f *AsyncFile) writeAtWithHelper(writeAt js.Value, p []byte, off int64, keepExisting bool) (int, error) {
+	data, err := jsbuf.CopyBytesToJS(p)
+	if err != nil {
+		return 0, err
+	}
 	written, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		jsbuf.WithTinyGoBytes(p, func(bytesID uint32) {
-			writeAt.Invoke(f.handle, bytesID, off, keepExisting, opID, resolve, reject)
-		})
+		writeAt.Invoke(f.handle, data, off, keepExisting, opID, resolve, reject)
 	})
 	if err != nil {
 		return 0, err
@@ -544,10 +554,12 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 }
 
 func writeFileWithHelper(writeFile js.Value, dir js.Value, name string, data []byte) error {
+	bytes, err := jsbuf.CopyBytesToJS(data)
+	if err != nil {
+		return err
+	}
 	written, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		jsbuf.WithTinyGoBytes(data, func(bytesID uint32) {
-			writeFile.Invoke(dir, name, bytesID, opID, resolve, reject)
-		})
+		writeFile.Invoke(dir, name, bytes, opID, resolve, reject)
 	})
 	if err != nil {
 		return err

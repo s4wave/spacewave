@@ -57,9 +57,13 @@ func (w *PushablePacketWriter) WritePacketData(data []byte) error {
 		if w.tinyGoPushRaw.IsUndefined() || w.tinyGoPushRaw.IsNull() || w.tinyGoPushRaw.Type() != js.TypeFunction {
 			return errors.New("tinygo push bytes helper unavailable")
 		}
-		jsbuf.WithTinyGoBytes(data, func(id uint32) {
-			w.tinyGoPushRaw.Invoke(w.pushable, id)
-		})
+		arr, err := jsbuf.CopyBytesToJS(data)
+		if err != nil {
+			return err
+		}
+		if !w.tinyGoPushRaw.Invoke(w.pushable, arr).Bool() {
+			return errors.New("tinygo push bytes failed")
+		}
 		return nil
 	}
 

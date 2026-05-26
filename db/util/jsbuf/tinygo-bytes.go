@@ -2,46 +2,50 @@
 
 package jsbuf
 
-import "unsafe"
-
-var (
-	tinyGoBytesNextID uint32 = 1
-	tinyGoBytes              = make(map[uint32][]byte)
+import (
+	"errors"
+	"syscall/js"
 )
 
-// WithTinyGoBytes exposes bytes to JavaScript by a small ID for the duration
-// of call. JavaScript must copy the bytes before returning from the helper.
-func WithTinyGoBytes(bytes []byte, call func(id uint32)) {
-	id, release := HoldTinyGoBytes(bytes)
-	defer release()
-	call(id)
+const (
+	tinyGoNewBytes        = "BLDR_TINYGO_NEW_BYTES"
+	tinyGoTakeStoredBytes = "BLDR_TINYGO_TAKE_STORED_BYTES"
+)
+
+// NewBytes constructs a JavaScript-owned Uint8Array.
+func NewBytes(size int) (js.Value, error) {
+	newBytes := js.Global().Get(tinyGoNewBytes)
+	if !available(newBytes) {
+		return js.Value{}, errors.New("tinygo new bytes helper unavailable")
+	}
+	return newBytes.Invoke(size), nil
 }
 
-// HoldTinyGoBytes exposes bytes to JavaScript until the returned release
-// function is called.
-func HoldTinyGoBytes(bytes []byte) (uint32, func()) {
-	id := tinyGoBytesNextID
-	tinyGoBytesNextID++
-	if tinyGoBytesNextID == 0 {
-		tinyGoBytesNextID = 1
+// CopyBytesToJS copies Go bytes into a JavaScript-owned Uint8Array.
+func CopyBytesToJS(bytes []byte) (js.Value, error) {
+	arr, err := NewBytes(len(bytes))
+	if err != nil {
+		return js.Value{}, err
 	}
-
-	tinyGoBytes[id] = bytes
-	return id, func() {
-		delete(tinyGoBytes, id)
+	if len(bytes) != 0 {
+		js.CopyBytesToJS(arr, bytes)
 	}
+	return arr, nil
 }
 
-//go:wasmexport BLDR_TINYGO_BYTES_PTR
-func tinyGoBytesPtr(id uint32) uint32 {
-	bytes := tinyGoBytes[id]
-	if len(bytes) == 0 {
-		return 0
+// CopyStoredBytes copies and consumes a JavaScript-owned stored byte slice.
+func CopyStoredBytes(id int, dst []byte) (int, bool) {
+	takeBytes := js.Global().Get(tinyGoTakeStoredBytes)
+	if !available(takeBytes) {
+		return 0, false
 	}
-	return uint32(uintptr(unsafe.Pointer(&bytes[0])))
+	arr := takeBytes.Invoke(id)
+	if arr.IsUndefined() || arr.IsNull() {
+		return 0, true
+	}
+	return js.CopyBytesToGo(dst, arr), true
 }
 
-//go:wasmexport BLDR_TINYGO_BYTES_LEN
-func tinyGoBytesLen(id uint32) uint32 {
-	return uint32(len(tinyGoBytes[id]))
+func available(fn js.Value) bool {
+	return !fn.IsUndefined() && !fn.IsNull() && fn.Type() == js.TypeFunction
 }

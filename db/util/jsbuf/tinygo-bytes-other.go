@@ -2,12 +2,26 @@
 
 package jsbuf
 
-// WithTinyGoBytes runs call without installing a TinyGo byte handle.
-func WithTinyGoBytes(_ []byte, call func(id uint32)) {
-	call(0)
+import "syscall/js"
+
+// NewBytes constructs a JavaScript-owned Uint8Array.
+func NewBytes(size int) (js.Value, error) {
+	return js.Global().Get("Uint8Array").New(size), nil
 }
 
-// HoldTinyGoBytes returns a zero TinyGo byte handle and a no-op release.
-func HoldTinyGoBytes(_ []byte) (uint32, func()) {
-	return 0, func() {}
+// CopyBytesToJS copies Go bytes into a JavaScript-owned Uint8Array.
+func CopyBytesToJS(bytes []byte) (js.Value, error) {
+	arr, err := NewBytes(len(bytes))
+	if err != nil {
+		return js.Value{}, err
+	}
+	if len(bytes) != 0 {
+		js.CopyBytesToJS(arr, bytes)
+	}
+	return arr, nil
+}
+
+// CopyStoredBytes is unavailable outside TinyGo helper mode.
+func CopyStoredBytes(_ int, _ []byte) (int, bool) {
+	return 0, false
 }

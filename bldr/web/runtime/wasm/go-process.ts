@@ -29,13 +29,7 @@ const tinyGoPromiseErrorNotFound = 1
 const tinyGoPromiseErrorNoModificationAllowed = 2
 
 type NavigatorWithLocks = Navigator & { locks?: LockManager }
-type TinyGoByteExports = WebAssembly.Exports & {
-  BLDR_TINYGO_BYTES_PTR?: (id: number) => number
-  BLDR_TINYGO_BYTES_LEN?: (id: number) => number
-}
 
-let tinyGoWasmMemory: WebAssembly.Memory | undefined
-let tinyGoWasmExports: TinyGoByteExports | undefined
 let tinyGoStoredValueID = 1
 const tinyGoStoredBytes = new Map<number, Uint8Array>()
 const tinyGoCallbackQueue: (() => void)[] = []
@@ -69,40 +63,25 @@ function tinyGoPromiseErrorCode(reason: unknown): number {
   return tinyGoPromiseErrorUnknown
 }
 
-function tinyGoMemoryView(ptr: number, len: number): Uint8Array {
-  if (!tinyGoWasmMemory) {
-    throw new Error('TinyGo runtime memory is not initialized')
+function copyUint8Array(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new TypeError('expected Uint8Array')
   }
-  return new Uint8Array(tinyGoWasmMemory.buffer, ptr >>> 0, len)
-}
-
-function tinyGoBytesView(id: number): Uint8Array {
-  const ptr = tinyGoWasmExports?.BLDR_TINYGO_BYTES_PTR
-  if (typeof ptr !== 'function') {
-    throw new Error('TinyGo byte exports are not initialized')
-  }
-  return tinyGoMemoryView(ptr(id), tinyGoBytesLen(id))
-}
-
-function tinyGoBytesLen(id: number): number {
-  const len = tinyGoWasmExports?.BLDR_TINYGO_BYTES_LEN
-  if (typeof len !== 'function') {
-    throw new Error('TinyGo byte exports are not initialized')
-  }
-  return len(id)
-}
-
-function copyTinyGoBytes(id: number): Uint8Array<ArrayBuffer> {
-  const view = tinyGoBytesView(id)
-  const bytes = new Uint8Array(view.byteLength)
-  bytes.set(view)
-  return bytes
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return copy
 }
 
 function storeTinyGoBytes(bytes: Uint8Array): number {
   const id = tinyGoStoredValueID++
   tinyGoStoredBytes.set(id, bytes)
   return id
+}
+
+function takeTinyGoBytes(id: number): Uint8Array | undefined {
+  const bytes = tinyGoStoredBytes.get(id)
+  tinyGoStoredBytes.delete(id)
+  return bytes
 }
 
 function encodeTinyGoNameList(names: string[]): Uint8Array {
@@ -228,7 +207,8 @@ export function installTinyGoJSHelpers(): void {
       resolve: (value: TValue) => void,
       reject: (reason: number) => void,
     ) => void
-    BLDR_TINYGO_COPY_STORED_BYTES?: (id: number, bytesID: number) => number
+    BLDR_TINYGO_NEW_BYTES?: (len: number) => Uint8Array
+    BLDR_TINYGO_TAKE_STORED_BYTES?: (id: number) => Uint8Array | undefined
     BLDR_OPFS_ACQUIRE_WEB_LOCK?: (
       name: string,
       mode: LockMode,
@@ -238,12 +218,12 @@ export function installTinyGoJSHelpers(): void {
     ) => void
     BLDR_TINYGO_PUSH_BYTES?: (
       sink: { push: (message: Uint8Array) => void },
-      bytesID: number,
-    ) => void
+      bytes: Uint8Array,
+    ) => boolean
     BLDR_TINYGO_POST_BYTES?: (
       port: { postMessage: (message: Uint8Array) => void },
-      bytesID: number,
-    ) => void
+      bytes: Uint8Array,
+    ) => boolean
     BLDR_OPFS_READ_FILE?: (
       dir: FileSystemDirectoryHandle,
       name: string,
@@ -253,7 +233,7 @@ export function installTinyGoJSHelpers(): void {
     ) => void
     BLDR_OPFS_READ_AT?: (
       handle: FileSystemFileHandle,
-      bytesID: number,
+      dst: Uint8Array,
       off: number,
       opID: number,
       resolve: (opID: number, read: number) => void,
@@ -267,7 +247,7 @@ export function installTinyGoJSHelpers(): void {
     ) => void
     BLDR_OPFS_WRITE_AT?: (
       handle: FileSystemFileHandle,
-      bytesID: number,
+      data: Uint8Array,
       off: number,
       keepExisting: boolean,
       opID: number,
@@ -277,7 +257,7 @@ export function installTinyGoJSHelpers(): void {
     BLDR_OPFS_WRITE_FILE?: (
       dir: FileSystemDirectoryHandle,
       name: string,
-      bytesID: number,
+      data: Uint8Array,
       opID: number,
       resolve: (opID: number, written: number) => void,
       reject: (opID: number, code: number) => void,
@@ -313,17 +293,8 @@ export function installTinyGoJSHelpers(): void {
         deferTinyGoCallback(() => reject(code))
       })
   }
-  g.BLDR_TINYGO_COPY_STORED_BYTES ??= (id: number, bytesID: number) => {
-    const bytes = tinyGoStoredBytes.get(id)
-    tinyGoStoredBytes.delete(id)
-    if (!bytes) {
-      return 0
-    }
-    const dst = tinyGoBytesView(bytesID)
-    const n = Math.min(dst.byteLength, bytes.byteLength)
-    dst.subarray(0, n).set(bytes.subarray(0, n))
-    return n
-  }
+  g.BLDR_TINYGO_NEW_BYTES ??= (len: number) => new Uint8Array(len)
+  g.BLDR_TINYGO_TAKE_STORED_BYTES ??= (id: number) => takeTinyGoBytes(id)
   g.BLDR_OPFS_ACQUIRE_WEB_LOCK ??= (
     name: string,
     mode: LockMode,
@@ -360,15 +331,25 @@ export function installTinyGoJSHelpers(): void {
   }
   g.BLDR_TINYGO_PUSH_BYTES ??= (
     sink: { push: (message: Uint8Array) => void },
-    bytesID: number,
+    bytes: Uint8Array,
   ) => {
-    sink.push(copyTinyGoBytes(bytesID))
+    try {
+      sink.push(copyUint8Array(bytes))
+      return true
+    } catch {
+      return false
+    }
   }
   g.BLDR_TINYGO_POST_BYTES ??= (
     port: { postMessage: (message: Uint8Array) => void },
-    bytesID: number,
+    bytes: Uint8Array,
   ) => {
-    port.postMessage(copyTinyGoBytes(bytesID))
+    try {
+      port.postMessage(copyUint8Array(bytes))
+      return true
+    } catch {
+      return false
+    }
   }
   g.BLDR_OPFS_READ_FILE ??= (
     dir: FileSystemDirectoryHandle,
@@ -394,13 +375,13 @@ export function installTinyGoJSHelpers(): void {
   }
   g.BLDR_OPFS_READ_AT ??= (
     handle: FileSystemFileHandle,
-    bytesID: number,
+    dst: Uint8Array,
     off: number,
     opID: number,
     resolve: (opID: number, read: number) => void,
     reject: (opID: number, code: number) => void,
   ) => {
-    const dstLen = tinyGoBytesLen(bytesID)
+    const dstLen = dst.byteLength
     handle
       .getFile()
       .then(async (file) => {
@@ -412,7 +393,6 @@ export function installTinyGoJSHelpers(): void {
         const buf = await file.slice(off, end).arrayBuffer()
         const bytes = new Uint8Array(buf)
         if (bytes.byteLength !== 0) {
-          const dst = tinyGoBytesView(bytesID)
           dst.subarray(0, bytes.byteLength).set(bytes)
         }
         const read = bytes.byteLength
@@ -445,14 +425,14 @@ export function installTinyGoJSHelpers(): void {
   }
   g.BLDR_OPFS_WRITE_AT ??= (
     handle: FileSystemFileHandle,
-    bytesID: number,
+    data: Uint8Array,
     off: number,
     keepExisting: boolean,
     opID: number,
     resolve: (opID: number, written: number) => void,
     reject: (opID: number, code: number) => void,
   ) => {
-    const data = copyTinyGoBytes(bytesID)
+    const writeData = copyUint8Array(data)
     let writable: FileSystemWritableFileStream | undefined
     const opts = keepExisting ? { keepExistingData: true } : undefined
     const writablePromise = opts
@@ -464,11 +444,11 @@ export function installTinyGoJSHelpers(): void {
         if (off !== 0) {
           await writable.seek(off)
         }
-        if (data.byteLength !== 0) {
-          await writable.write(data)
+        if (writeData.byteLength !== 0) {
+          await writable.write(writeData)
         }
         await writable.close()
-        deferTinyGoCallback(() => resolve(opID, data.byteLength))
+        deferTinyGoCallback(() => resolve(opID, writeData.byteLength))
       })
       .catch((reason) => {
         if (writable) {
@@ -481,22 +461,22 @@ export function installTinyGoJSHelpers(): void {
   g.BLDR_OPFS_WRITE_FILE ??= (
     dir: FileSystemDirectoryHandle,
     name: string,
-    bytesID: number,
+    data: Uint8Array,
     opID: number,
     resolve: (opID: number, written: number) => void,
     reject: (opID: number, code: number) => void,
   ) => {
-    const data = copyTinyGoBytes(bytesID)
+    const writeData = copyUint8Array(data)
     let writable: FileSystemWritableFileStream | undefined
     dir
       .getFileHandle(name, { create: true })
       .then(async (handle) => {
         writable = await handle.createWritable()
-        if (data.byteLength !== 0) {
-          await writable.write(data)
+        if (writeData.byteLength !== 0) {
+          await writable.write(writeData)
         }
         await writable.close()
-        deferTinyGoCallback(() => resolve(opID, data.byteLength))
+        deferTinyGoCallback(() => resolve(opID, writeData.byteLength))
       })
       .catch((reason) => {
         if (writable) {
@@ -615,14 +595,6 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
   }
 }
 
-function installTinyGoRuntimeMemory(instance: WebAssembly.Instance) {
-  const memory = instance.exports.memory
-  if (memory instanceof WebAssembly.Memory) {
-    tinyGoWasmMemory = memory
-    tinyGoWasmExports = instance.exports
-  }
-}
-
 // GoWasmProcess contains an instance of the bldr plugin host (entrypoint) running
 // within a WASI environment. It uses a File to communicate with the WebEntrypoint
 // and the GoWasmProcessHost via starpc RPC calls.
@@ -710,7 +682,6 @@ export class GoWasmProcess {
     }
 
     const instance = await WebAssembly.instantiate(wasmModule, go.importObject)
-    installTinyGoRuntimeMemory(instance)
     abortSignal.throwIfAborted()
 
     await go.run(instance)

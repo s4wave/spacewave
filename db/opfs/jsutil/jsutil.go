@@ -11,10 +11,9 @@ import (
 )
 
 const (
-	tinyGoJSCall          = "BLDR_TINYGO_JS_CALL"
-	tinyGoJSNew           = "BLDR_TINYGO_JS_NEW"
-	tinyGoPromiseAwait    = "BLDR_TINYGO_PROMISE_AWAIT"
-	tinyGoCopyStoredBytes = "BLDR_TINYGO_COPY_STORED_BYTES"
+	tinyGoJSCall       = "BLDR_TINYGO_JS_CALL"
+	tinyGoJSNew        = "BLDR_TINYGO_JS_NEW"
+	tinyGoPromiseAwait = "BLDR_TINYGO_PROMISE_AWAIT"
 )
 
 // Call calls target[method](...args), using a JS-owned helper when available.
@@ -91,13 +90,5 @@ func CopyStoredBytes(id int, dst []byte) (int, bool) {
 	if !UseTinyGoHelpers() {
 		return 0, false
 	}
-	copyBytes := js.Global().Get(tinyGoCopyStoredBytes)
-	if !Available(copyBytes) {
-		return 0, false
-	}
-	var n int
-	jsbuf.WithTinyGoBytes(dst, func(bytesID uint32) {
-		n = copyBytes.Invoke(id, bytesID).Int()
-	})
-	return n, true
+	return jsbuf.CopyStoredBytes(id, dst)
 }
