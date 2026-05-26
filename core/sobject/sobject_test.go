@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package sobject_test
 
 import (
