@@ -1,20 +1,18 @@
 package space_world_ops
 
 import (
-	"bytes"
 	"context"
 	"time"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
-// InitUnixFS initializes a UnixFS filesystem with starter content in a world.
+// InitUnixFS initializes an empty UnixFS filesystem in a world.
 // Returns any error.
 func InitUnixFS(
 	ctx context.Context,
@@ -89,37 +87,6 @@ func (o *InitUnixFSOp) ApplyWorldOp(
 	sysErr, err = fsInit.ApplyWorldOp(ctx, le, worldHandle, sender)
 	if err != nil {
 		return sysErr, err
-	}
-
-	ts := o.GetTimestamp().AsTime()
-	b := unixfs_world.NewBatchFSWriter(worldHandle, objKey, fsNodeType, sender)
-	defer b.Release()
-
-	gettingStartedContent := `# Getting Started
-
-Welcome to your new drive! This filesystem starts with a single guide so you
-can begin using it immediately.
-
-## Next steps
-
-Try uploading a few files and opening them here. Video files are the best ones
-to try first.
-`
-	if err := b.AddFile(
-		ctx,
-		nil,
-		"getting-started.md",
-		unixfs.NewFSCursorNodeType_File(),
-		int64(len(gettingStartedContent)),
-		bytes.NewReader([]byte(gettingStartedContent)),
-		0o644,
-		ts,
-	); err != nil {
-		return false, err
-	}
-
-	if err := b.Commit(ctx); err != nil {
-		return false, err
 	}
 
 	return false, nil

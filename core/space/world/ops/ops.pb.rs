@@ -26,10 +26,7 @@ pub struct SetSpaceSettingsOp {
     #[prost(message, optional, tag="4")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// InitUnixFSOp is an operation to initialize a UnixFS filesystem with starter content.
-/// This creates a filesystem with:
-///    - A file at /getting-started.md
-///    - Content written to /getting-started.md
+/// InitUnixFSOp is an operation to initialize an empty UnixFS filesystem.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InitUnixFsOp {
     /// ObjectKey is the object key for the UnixFS filesystem.

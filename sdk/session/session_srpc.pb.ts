@@ -73,6 +73,8 @@ import {
   WatchSessionStateAtomsResponse,
   WatchSharedObjectHealthRequest,
   WatchSharedObjectHealthResponse,
+  WatchStorageStatsRequest,
+  WatchStorageStatsResponse,
   WatchSyncStatusRequest,
   WatchSyncStatusResponse,
   WatchTransferProgressRequest,
@@ -139,6 +141,15 @@ export const SessionResourceServiceDefinition = {
       name: 'WatchSyncStatus',
       I: WatchSyncStatusRequest,
       O: WatchSyncStatusResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc s4wave.session.SessionResourceService.WatchStorageStats
+     */
+    WatchStorageStats: {
+      name: 'WatchStorageStats',
+      I: WatchStorageStatsRequest,
+      O: WatchStorageStatsResponse,
       kind: MethodKind.ServerStreaming,
     },
     /**
@@ -476,6 +487,14 @@ export interface SessionResourceService {
   ): MessageStream<WatchSyncStatusResponse>
 
   /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchStorageStats
+   */
+  WatchStorageStats(
+    request: WatchStorageStatsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchStorageStatsResponse>
+
+  /**
    * @generated from rpc s4wave.session.SessionResourceService.DeleteSpace
    */
   DeleteSpace(
@@ -739,6 +758,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.MountSharedObject = this.MountSharedObject.bind(this)
     this.WatchSharedObjectHealth = this.WatchSharedObjectHealth.bind(this)
     this.WatchSyncStatus = this.WatchSyncStatus.bind(this)
+    this.WatchStorageStats = this.WatchStorageStats.bind(this)
     this.DeleteSpace = this.DeleteSpace.bind(this)
     this.RenameSpace = this.RenameSpace.bind(this)
     this.WatchLockState = this.WatchLockState.bind(this)
@@ -871,6 +891,23 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchSyncStatusResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchStorageStats
+   */
+  WatchStorageStats(
+    request: WatchStorageStatsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchStorageStatsResponse> {
+    const requestMsg = WatchStorageStatsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SessionResourceServiceDefinition.methods.WatchStorageStats.name,
+      WatchStorageStatsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchStorageStatsResponse)(result)
   }
 
   /**

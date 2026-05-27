@@ -82,10 +82,7 @@ export const SetSpaceSettingsOp: MessageType<SetSpaceSettingsOp> =
   })
 
 /**
- * InitUnixFSOp is an operation to initialize a UnixFS filesystem with starter content.
- * This creates a filesystem with:
- *   - A file at /getting-started.md
- *   - Content written to /getting-started.md
+ * InitUnixFSOp is an operation to initialize an empty UnixFS filesystem.
  *
  * @generated from message space.world.ops.InitUnixFSOp
  */

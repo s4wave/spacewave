@@ -72,6 +72,8 @@ import {
   GitRepoWizardViewer,
   GitRepoWizardTypeID,
 } from '@s4wave/app/wizard/GitRepoWizardViewer.js'
+import { DriveIntroWizardViewer } from '@s4wave/app/wizard/DriveIntroWizardViewer.js'
+import { DriveIntroWizardTypeID } from '@s4wave/app/wizard/drive-intro.js'
 import {
   VmV86WizardViewer,
   VmV86WizardTypeID,
@@ -221,6 +223,13 @@ const staticViewers: ObjectViewerComponent[] = [
     name: 'Git Repo Wizard',
     category: 'Code',
     component: GitRepoWizardViewer,
+  },
+  {
+    componentID: 'spacewave.wizard.drive-intro',
+    typeID: DriveIntroWizardTypeID,
+    name: 'Drive Intro',
+    category: 'Files',
+    component: DriveIntroWizardViewer,
   },
   {
     componentID: 'spacewave.wizard.v86',

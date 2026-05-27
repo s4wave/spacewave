@@ -1012,8 +1012,22 @@ func (a *ProviderAccount) GetStorageStats(ctx context.Context) (*volume.StorageS
 	return a.vol.GetStorageStats(ctx)
 }
 
+// GetStorageStatsSnapshotWithWait returns current storage statistics and a
+// change channel for storage stats updates.
+func (a *ProviderAccount) GetStorageStatsSnapshotWithWait(
+	ctx context.Context,
+) (*volume.StorageStats, <-chan struct{}, error) {
+	statsProvider, ok := a.vol.(provider.StorageStatsWatchProvider)
+	if !ok {
+		stats, err := a.GetStorageStats(ctx)
+		return stats, nil, err
+	}
+	return statsProvider.GetStorageStatsSnapshotWithWait(ctx)
+}
+
 // _ is a type assertion
 var (
-	_ provider.ProviderAccount      = ((*ProviderAccount)(nil))
-	_ provider.StorageStatsProvider = ((*ProviderAccount)(nil))
+	_ provider.ProviderAccount           = ((*ProviderAccount)(nil))
+	_ provider.StorageStatsProvider      = ((*ProviderAccount)(nil))
+	_ provider.StorageStatsWatchProvider = ((*ProviderAccount)(nil))
 )

@@ -29,7 +29,17 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
 	NavigateHash(t, h, page, "#/quickstart/drive")
-	WaitForDriveShell(t, page)
+	CompleteDriveIntroWizard(t, page)
+	WaitForDriveReady(t, h, page)
+	AssertSetupBannerHidden(t, page)
+	UploadViaPicker(t, page, []playwright.InputFile{
+		{
+			Name:     "setup-banner-threshold.bin",
+			MimeType: "application/octet-stream",
+			Buffer:   setupBannerThresholdBuffer(),
+		},
+	})
+	WaitForDriveEntry(t, page, "setup-banner-threshold.bin")
 
 	sessionIndex, spaceID, err := parseQuickstartRoute(page.URL())
 	if err != nil {
@@ -57,6 +67,58 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 		sessionIndex: sessionIndex,
 		spaceID:      spaceID,
 	}
+}
+
+// CompleteDriveIntroWizard waits for the Drive intro wizard and opens the raw
+// files browser.
+func CompleteDriveIntroWizard(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	err := page.Locator("text=Your Drive is ready").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
+	)
+	if err != nil {
+		failWithPageBody(t, page, "wait for drive intro wizard", err)
+	}
+	if err := page.Locator("button:visible:has-text('Open files')").First().Click(); err != nil {
+		failWithPageBody(t, page, "complete drive intro wizard", err)
+	}
+}
+
+// AssertSetupBannerHidden verifies the setup banner does not render before the
+// session has enough local storage to justify the onboarding nudge.
+func AssertSetupBannerHidden(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	visible, err := page.Locator("text=Finish setting up your account").First().IsVisible()
+	if err != nil {
+		failWithPageBody(t, page, "check setup banner hidden", err)
+	}
+	if visible {
+		failWithPageBody(t, page, "setup banner hidden before storage threshold", nil)
+	}
+}
+
+// WaitForDriveEntry waits for a named Drive row to render.
+func WaitForDriveEntry(t testing.TB, page playwright.Page, name string) {
+	t.Helper()
+
+	err := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + name + "')").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
+	)
+	if err != nil {
+		failWithPageBody(t, page, "wait for drive entry "+name, err)
+	}
+}
+
+func setupBannerThresholdBuffer() []byte {
+	buf := make([]byte, 11*1024*1024)
+	var x uint32 = 1
+	for i := range buf {
+		x = x*1664525 + 1013904223
+		buf[i] = byte(x >> 24)
+	}
+	return buf
 }
 
 // GetSession returns the owning test session.

@@ -84,6 +84,11 @@ func (s *Session) WatchSyncStatus(ctx context.Context) (SRPCSessionResourceServi
 	return s.service.WatchSyncStatus(ctx, &WatchSyncStatusRequest{})
 }
 
+// WatchStorageStats returns a stream of session storage usage snapshots.
+func (s *Session) WatchStorageStats(ctx context.Context) (SRPCSessionResourceService_WatchStorageStatsClient, error) {
+	return s.service.WatchStorageStats(ctx, &WatchStorageStatsRequest{})
+}
+
 // MountSharedObject mounts a shared object within the session by ID.
 // Returns the response containing the resource ID and shared object metadata.
 func (s *Session) MountSharedObject(ctx context.Context, sharedObjectID string) (*MountSharedObjectResponse, error) {

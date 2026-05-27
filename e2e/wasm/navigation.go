@@ -155,6 +155,7 @@ func NavigateHash(t testing.TB, h *Harness, page playwright.Page, hash string) {
 func WaitForDriveShell(t testing.TB, page playwright.Page) {
 	t.Helper()
 
+	CompleteDriveIntroWizardIfPresent(t, page)
 	err := page.Locator("[data-testid='unixfs-browser']").WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
 	)
@@ -246,6 +247,41 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 			trimPageText(body),
 			debug,
 		)
+	}
+}
+
+// CompleteDriveIntroWizardIfPresent completes the first-run Drive intro when
+// the current route opens it before the raw files browser.
+func CompleteDriveIntroWizardIfPresent(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	_, err := page.Evaluate(`async () => {
+		const deadline = Date.now() + 120000
+		for (;;) {
+			const browser = document.querySelector('[data-testid="unixfs-browser"]')
+			if (browser) return null
+			const text = document.body.textContent ?? ''
+			if (text.includes('Your Drive is ready')) {
+				const buttons = Array.from(document.querySelectorAll('button'))
+				const open = buttons.find((button) => button.textContent?.includes('Open files'))
+				if (!(open instanceof HTMLButtonElement)) {
+					throw new Error('Drive intro open button not found')
+				}
+				open.click()
+				return null
+			}
+			if (Date.now() > deadline) {
+				throw new Error('Drive intro or file browser did not appear')
+			}
+			await new Promise((resolve) => requestAnimationFrame(resolve))
+		}
+	}`)
+	if err != nil {
+		body, bodyErr := page.Locator("body").TextContent()
+		if bodyErr != nil {
+			body = "failed to read body text: " + bodyErr.Error()
+		}
+		t.Fatalf("complete drive intro if present: %v\nurl: %s\nbody: %s", err, page.URL(), trimPageText(body))
 	}
 }
 

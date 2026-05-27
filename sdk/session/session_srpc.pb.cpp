@@ -56,6 +56,18 @@ std::pair<std::unique_ptr<SRPCSessionResourceService_WatchSyncStatusClient>, sta
   return {std::make_unique<SRPCSessionResourceService_WatchSyncStatusClient>(std::move(strm)), starpc::Error::OK};
 }
 
+std::pair<std::unique_ptr<SRPCSessionResourceService_WatchStorageStatsClient>, starpc::Error> SRPCSessionResourceServiceClientImpl::WatchStorageStats(const s4wave::session::WatchStorageStatsRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchStorageStats", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCSessionResourceService_WatchStorageStatsClient>(std::move(strm)), starpc::Error::OK};
+}
+
 starpc::Error SRPCSessionResourceServiceClientImpl::DeleteSpace(const s4wave::session::DeleteSpaceRequest& in, s4wave::session::DeleteSpaceResponse* out) {
   return cc_->ExecCall(service_id_, "DeleteSpace", in, out);
 }
@@ -228,6 +240,7 @@ std::vector<std::string> SRPCSessionResourceServiceHandler::GetMethodIDs() const
     "MountSharedObject",
     "WatchSharedObjectHealth",
     "WatchSyncStatus",
+    "WatchStorageStats",
     "DeleteSpace",
     "RenameSpace",
     "WatchLockState",
@@ -312,6 +325,12 @@ std::pair<bool, starpc::Error> SRPCSessionResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCSessionResourceService_WatchSyncStatusStream serverStrm(strm);
     return {true, impl_->WatchSyncStatus(req, &serverStrm)};
+  } else if (method_id == "WatchStorageStats") {
+    s4wave::session::WatchStorageStatsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCSessionResourceService_WatchStorageStatsStream serverStrm(strm);
+    return {true, impl_->WatchStorageStats(req, &serverStrm)};
   } else if (method_id == "DeleteSpace") {
     s4wave::session::DeleteSpaceRequest req;
     starpc::Error err = strm->MsgRecv(&req);

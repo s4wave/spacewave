@@ -88,10 +88,7 @@ func (x *SetSpaceSettingsOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
-// InitUnixFSOp is an operation to initialize a UnixFS filesystem with starter content.
-// This creates a filesystem with:
-//   - A file at /getting-started.md
-//   - Content written to /getting-started.md
+// InitUnixFSOp is an operation to initialize an empty UnixFS filesystem.
 type InitUnixFSOp struct {
 	unknownFields []byte
 	// ObjectKey is the object key for the UnixFS filesystem.
@@ -380,8 +377,10 @@ func (m *SetSpaceSettingsOp) CloneVT() *SetSpaceSettingsOp {
 	}
 	r := new(SetSpaceSettingsOp)
 	r.ObjectKey = m.ObjectKey
-	r.Settings = m.Settings.CloneVT()
 	r.Overwrite = m.Overwrite
+	if rhs := m.Settings; rhs != nil {
+		r.Settings = rhs.CloneVT()
+	}
 	if rhs := m.Timestamp; rhs != nil {
 		r.Timestamp = rhs.CloneVT()
 	}
@@ -477,7 +476,9 @@ func (m *CanvasAddNodeOp) CloneVT() *CanvasAddNodeOp {
 	}
 	r := new(CanvasAddNodeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Node = m.Node.CloneVT()
+	if rhs := m.Node; rhs != nil {
+		r.Node = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -513,7 +514,9 @@ func (m *CanvasSetNodeOp) CloneVT() *CanvasSetNodeOp {
 	}
 	r := new(CanvasSetNodeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Node = m.Node.CloneVT()
+	if rhs := m.Node; rhs != nil {
+		r.Node = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -530,7 +533,9 @@ func (m *CanvasAddEdgeOp) CloneVT() *CanvasAddEdgeOp {
 	}
 	r := new(CanvasAddEdgeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Edge = m.Edge.CloneVT()
+	if rhs := m.Edge; rhs != nil {
+		r.Edge = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

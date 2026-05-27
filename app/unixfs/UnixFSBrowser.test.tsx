@@ -612,8 +612,7 @@ describe('UnixFSBrowser drag gating', () => {
     })
   })
 
-  it('renders Drive welcome guidance on the quickstart root without replacing the file list', async () => {
-    const user = userEvent.setup()
+  it('treats the starter guide as an ordinary root file entry', () => {
     h.mockFileEntries = [
       { id: 'guide', name: 'getting-started.md', isDir: false },
       { id: 'docs', name: 'docs', isDir: true },
@@ -628,23 +627,10 @@ describe('UnixFSBrowser drag gating', () => {
       />,
     )
 
-    expect(screen.getByTestId('drive-welcome-surface')).toBeTruthy()
-    expect(
-      screen.getByText(
-        'Add files, organize folders, or open the starter guide.',
-      ),
-    ).toBeTruthy()
     expect(screen.getByTestId('file-entry-guide')).toBeTruthy()
     expect(screen.getByTestId('file-entry-docs')).toBeTruthy()
-    expect(screen.getByTestId('drive-welcome-upload-files')).toBeTruthy()
-
-    await user.click(screen.getByTestId('drive-welcome-new-folder'))
-    expect(screen.getByPlaceholderText('Folder name')).toBeTruthy()
-
-    await user.click(screen.getByTestId('drive-welcome-open-guide'))
-    expect(h.mockNavigate).toHaveBeenCalledWith({
-      path: './getting-started.md',
-    })
+    expect(screen.queryByTestId('drive-welcome-surface')).toBeNull()
+    expect(screen.queryByText('My Drive')).toBeNull()
   })
 
   it('renders a custom browser body under the toolbar instead of the file list', () => {

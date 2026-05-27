@@ -924,6 +924,21 @@ export const WatchSyncStatusRequest: MessageType<WatchSyncStatusRequest> =
   })
 
 /**
+ * WatchStorageStatsRequest is the request type for WatchStorageStats.
+ *
+ * @generated from message s4wave.session.WatchStorageStatsRequest
+ */
+export interface WatchStorageStatsRequest {}
+
+// WatchStorageStatsRequest contains the message type declaration for WatchStorageStatsRequest.
+export const WatchStorageStatsRequest: MessageType<WatchStorageStatsRequest> =
+  createMessageType({
+    typeName: 's4wave.session.WatchStorageStatsRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WatchSyncStatusResponse is the response type for WatchSyncStatus.
  *
  * @generated from message s4wave.session.WatchSyncStatusResponse
@@ -1559,6 +1574,44 @@ export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
         kind: 'scalar',
         T: ScalarType.UINT64,
       },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchStorageStatsResponse is the response type for WatchStorageStats.
+ *
+ * @generated from message s4wave.session.WatchStorageStatsResponse
+ */
+export interface WatchStorageStatsResponse {
+  /**
+   * Supported indicates whether the provider can report storage stats.
+   *
+   * @generated from field: bool supported = 1;
+   */
+  supported?: boolean
+  /**
+   * TotalBytes is the total bytes stored by the session provider.
+   *
+   * @generated from field: uint64 total_bytes = 2;
+   */
+  totalBytes?: bigint
+  /**
+   * BlockCount is the number of stored blocks reported by the session provider.
+   *
+   * @generated from field: uint64 block_count = 3;
+   */
+  blockCount?: bigint
+}
+
+// WatchStorageStatsResponse contains the message type declaration for WatchStorageStatsResponse.
+export const WatchStorageStatsResponse: MessageType<WatchStorageStatsResponse> =
+  createMessageType({
+    typeName: 's4wave.session.WatchStorageStatsResponse',
+    fields: [
+      { no: 1, name: 'supported', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

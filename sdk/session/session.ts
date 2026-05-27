@@ -31,6 +31,8 @@ import {
   WatchResourcesListResponse,
   WatchSharedObjectHealthRequest,
   WatchSharedObjectHealthResponse,
+  WatchStorageStatsRequest,
+  WatchStorageStatsResponse,
   WatchSyncStatusRequest,
   WatchSyncStatusResponse,
   WatchSessionStateAtomsRequest,
@@ -122,6 +124,14 @@ export class Session extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchSyncStatusResponse> {
     return this.service.WatchSyncStatus(req ?? {}, abortSignal)
+  }
+
+  // watchStorageStats streams session storage usage snapshots.
+  public watchStorageStats(
+    req?: WatchStorageStatsRequest,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchStorageStatsResponse> {
+    return this.service.WatchStorageStats(req ?? {}, abortSignal)
   }
 
   // mountSharedObject mounts a shared object and returns the SharedObject resource.

@@ -171,6 +171,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	waitForBootFunction(t, page)
 	waitForLiveApp(t, page)
 	waitForCanonicalQuickstartURL(t, page)
+	completeQuickstartDriveIntroIfPresent(t, page)
 	err = page.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
 	)
@@ -208,6 +209,7 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 	waitForBootFunction(t, pageA)
 	waitForLiveApp(t, pageA)
 	waitForCanonicalQuickstartURL(t, pageA)
+	completeQuickstartDriveIntroIfPresent(t, pageA)
 	if err := pageA.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
 	); err != nil {
@@ -249,6 +251,7 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 	waitForBootFunction(t, pageB)
 	waitForLiveApp(t, pageB)
 	waitForCanonicalQuickstartURL(t, pageB)
+	completeQuickstartDriveIntroIfPresent(t, pageB)
 	if err := pageB.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
 	); err != nil {
@@ -554,6 +557,35 @@ func waitForQuickstartDriveContentReady(t *testing.T, page playwright.Page) (*in
 	}
 	driveContentReadyMs := browserNowMs(t, page)
 	return &driveContentReadyMs, ""
+}
+
+func completeQuickstartDriveIntroIfPresent(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	_, err := page.Evaluate(`async () => {
+		const deadline = Date.now() + 120000
+		for (;;) {
+			if (document.querySelector('[data-testid="unixfs-browser"]')) return null
+			const text = document.body.textContent ?? ''
+			if (text.includes('Your Drive is ready')) {
+				const buttons = Array.from(document.querySelectorAll('button'))
+				const open = buttons.find((button) => button.textContent?.includes('Open files'))
+				if (!(open instanceof HTMLButtonElement)) {
+					throw new Error('Drive intro open button not found')
+				}
+				open.click()
+				return null
+			}
+			if (Date.now() > deadline) {
+				throw new Error('Drive intro or file browser did not appear')
+			}
+			await new Promise((resolve) => requestAnimationFrame(resolve))
+		}
+	}`)
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("complete quickstart drive intro if present: %v", err)
+	}
 }
 
 func runQuickstartPostLoadSOWorkload(t *testing.T, page playwright.Page, contentReady bool) map[string]any {

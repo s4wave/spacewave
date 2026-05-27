@@ -47,6 +47,14 @@ describe('getObjectViewersForType', () => {
     ).toEqual(['Debug Viewer'])
   })
 
+  it('keeps the Drive intro wizard ahead of the generic wizard viewer', () => {
+    expect(
+      getObjectViewersForType('wizard/drive/intro').map(
+        (viewer) => viewer.name,
+      ),
+    ).toEqual(['Drive Intro', 'Wizard', 'Debug Viewer'])
+  })
+
   it('renders notes objects through dynamic plugin viewer registrations', () => {
     function DynamicViewer() {
       return null

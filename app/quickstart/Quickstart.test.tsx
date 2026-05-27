@@ -102,7 +102,7 @@ describe('Quickstart', () => {
     expect(mockNavigate).toHaveBeenCalledWith({ path: '../../' })
   })
 
-  it('redirects Drive quickstart directly to the seeded object route', () => {
+  it('redirects Drive quickstart to the Space root for its default route', () => {
     mockUseResource.mockImplementation(
       (
         _root: unknown,
@@ -132,6 +132,6 @@ describe('Quickstart', () => {
 
     render(<Quickstart quickstartId="drive" />)
 
-    expect(screen.getByText('redirect:/u/2/so/space-1/files')).toBeDefined()
+    expect(screen.getByText('redirect:/u/2/so/space-1')).toBeDefined()
   })
 })
