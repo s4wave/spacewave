@@ -272,10 +272,19 @@ func (ms *MetaShard) reloadCommittedStateLocked() error {
 	readSuper(ms.dir, "super-a", aBuf[:])
 	readSuper(ms.dir, "super-b", bBuf[:])
 
-	sb, err := pickValidSuperblock(ms.pager, aBuf[:], bBuf[:])
+	validatePager := NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
+	sb, err := pickValidSuperblock(validatePager, aBuf[:], bBuf[:])
+	if closeErr := validatePager.Close(); closeErr != nil && err == nil {
+		err = errors.Wrap(closeErr, "close validation pager")
+	}
 	if err != nil {
 		return err
 	}
+
+	if err := ms.pager.Close(); err != nil {
+		return errors.Wrap(err, "close committed pager")
+	}
+	ms.pager = NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
 
 	rootPage := pagestore.InvalidPage
 	var gen uint64
@@ -379,10 +388,8 @@ func (ms *MetaShard) resetCommittedStateLocked() error {
 		return err
 	}
 
-	ms.mu.Lock()
 	ms.rootPage = pagestore.InvalidPage
 	ms.generation = 0
-	ms.mu.Unlock()
 	return nil
 }
 
