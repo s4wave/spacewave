@@ -160,7 +160,7 @@ func TestBuildCompactionPlanUsesDeeperLevelThresholds(t *testing.T) {
 
 func TestBuildCompactionPlanWithLimitBoundsInputBatch(t *testing.T) {
 	m := &Manifest{Generation: 1}
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		m.Segments = append(m.Segments, SegmentMeta{
 			Filename: "seg-" + string(rune('a'+i)) + ".sst",
 			Level:    0,
@@ -181,7 +181,7 @@ func TestBuildCompactionPlanWithLimitBoundsInputBatch(t *testing.T) {
 
 func TestBuildCompactionPlanWithLimitSkipsFutileMaxLevel(t *testing.T) {
 	m := &Manifest{Generation: 1}
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		m.Segments = append(m.Segments, SegmentMeta{
 			Filename: "seg-" + string(rune('a'+i)) + ".sst",
 			Level:    maxCompactionLevel,
