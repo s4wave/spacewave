@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/seedflight"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -75,12 +76,12 @@ type cloudSOHost struct {
 	// Execute, lockFn cold fallback, gap recovery in pullRoutine, write
 	// retries, op-queue cold fallback) so they share one in-flight HTTP
 	// fetch and observe the same error. Guarded by bcast.
-	pullSeed providerSeed
+	pullSeed seedflight.Seed
 	// chainSeed coordinates concurrent syncConfigChain callers
 	// (pullState inline recovery and configChangedRoutine handler)
 	// so a single /config-chain fetch covers both verifier triggers.
 	// Guarded by bcast.
-	chainSeed providerSeed
+	chainSeed seedflight.Seed
 	// snapDeriver derives SharedObjectStateSnapshot values from stateCtr.
 	snapDeriver *routine.RoutineContainer
 	// configChangedRoutine runs coalesced config-chain verification.
@@ -258,7 +259,7 @@ func (h *cloudSOHost) pullOnTrigger(ctx context.Context) {
 	}
 }
 
-// pullStateSingleflight runs pullState behind providerSeed so concurrent
+// pullStateSingleflight runs pullState behind seedflight.Seed so concurrent
 // callers (cold-seed in Execute, lockFn no-state fallback, gap recovery in
 // pullRoutine, write conflict retry, op queue cold fallback) share one
 // in-flight HTTP fetch and observe the same outcome. reason tags the fan-out

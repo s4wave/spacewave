@@ -22,6 +22,35 @@ vi.mock('@s4wave/app/landing/Landing.js', () => ({
   },
 }))
 
+vi.mock('./static-pages.js', () => ({
+  getStaticPageComponent(pathname: string) {
+    if (pathname === '/quickstart/drive') {
+      return function QuickstartLoading() {
+        return null
+      }
+    }
+    return null
+  },
+}))
+
+vi.mock('@s4wave/app/blog/BlogPost.js', () => ({
+  BlogPostPage: function BlogPostPage() {
+    return null
+  },
+}))
+
+vi.mock('@s4wave/app/blog/BlogIndex.js', () => ({
+  BlogIndex: function BlogIndex() {
+    return null
+  },
+}))
+
+vi.mock('@s4wave/app/blog/BlogTagPage.js', () => ({
+  BlogTagPage: function BlogTagPage() {
+    return null
+  },
+}))
+
 declare global {
   var __swReady: Promise<void> | undefined
   var __swBoot: ((hash: string) => void) | undefined

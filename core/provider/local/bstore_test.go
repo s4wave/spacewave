@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package provider_local
 
 import (
@@ -139,6 +137,9 @@ func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
 	if err := store.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err.Error())
 	}
+	if data, found, err := store.GetBlock(ctx, ref); err != nil || found {
+		t.Fatalf("GetBlock after RmBlock = len(%d), %v, %v; want missing block", len(data), found, err)
+	}
 	tx, cursor = block.NewTransaction(store, nil, ref, nil)
 	tx.SetDecodedBlockCache(decodedBlocks)
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
@@ -171,6 +172,9 @@ func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
 
 	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
 		t.Fatal(err.Error())
+	}
+	if data, found, err := store.GetBlock(ctx, ref); err != nil || found {
+		t.Fatalf("GetBlock after tombstone batch = len(%d), %v, %v; want missing block", len(data), found, err)
 	}
 	tx, cursor = block.NewTransaction(store, nil, ref, nil)
 	tx.SetDecodedBlockCache(decodedBlocks)

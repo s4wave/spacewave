@@ -7,6 +7,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
+	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/sirupsen/logrus"
@@ -150,7 +151,7 @@ func (a *ProviderAccount) waitAccountFetcherReauth(ctx context.Context, err erro
 	var rejoinState *selfRejoinSweepState
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if a.state.status != provider.ProviderAccountStatus_ProviderAccountStatus_UNAUTHENTICATED {
-			a.state.status = unauthenticatedAccountStatus(a.state.info)
+			a.state.status = accountstatus.Unauthenticated(a.state.info)
 			rejoinState = a.buildSelfRejoinSweepStateLocked()
 			broadcast()
 		}
@@ -193,7 +194,7 @@ func (a *ProviderAccount) applyFetchedAccountState(
 	var rejoinState *selfRejoinSweepState
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.state.info = state
-		a.state.status = loadedAccountStatus(state)
+		a.state.status = accountstatus.Loaded(state)
 		a.state.accountBootstrapFetched = true
 		fetchedEpoch := uint64(state.GetEpoch())
 		if a.state.epoch == startEpoch {

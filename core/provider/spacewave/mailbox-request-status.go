@@ -6,13 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// mailboxRequestKey identifies one cloud invite mailbox request.
-type mailboxRequestKey struct {
-	soID     string
-	inviteID string
-	peerID   string
-}
-
 // TrackMailboxRequest stores the current status for a cloud invite mailbox request.
 func (a *ProviderAccount) TrackMailboxRequest(
 	soID string,
@@ -20,22 +13,10 @@ func (a *ProviderAccount) TrackMailboxRequest(
 	peerID string,
 	status string,
 ) {
-	if soID == "" || inviteID == "" || peerID == "" || status == "" {
-		return
-	}
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if a.state.mailboxRequestStatus == nil {
-			a.state.mailboxRequestStatus = make(map[mailboxRequestKey]string)
-		}
-		key := mailboxRequestKey{
-			soID:     soID,
-			inviteID: inviteID,
-			peerID:   peerID,
-		}
-		if a.state.mailboxRequestStatus[key] == status {
+		if !a.state.mailboxRequests.Track(soID, inviteID, peerID, status) {
 			return
 		}
-		a.state.mailboxRequestStatus[key] = status
 		broadcast()
 	})
 }
@@ -61,24 +42,20 @@ func (a *ProviderAccount) WaitMailboxRequestDecision(
 	if soID == "" || inviteID == "" || peerID == "" {
 		return "", errors.New("shared object id, invite id, and peer id are required")
 	}
-
-	key := mailboxRequestKey{
-		soID:     soID,
-		inviteID: inviteID,
-		peerID:   peerID,
-	}
 	for {
 		var (
 			ch     <-chan struct{}
 			status string
+			ready  bool
 		)
 		a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ch = getWaitCh()
-			if a.state.mailboxRequestStatus != nil {
-				status = a.state.mailboxRequestStatus[key]
+			status, ready = a.state.mailboxRequests.Decision(soID, inviteID, peerID)
+			if ready {
+				return
 			}
+			ch = getWaitCh()
 		})
-		if status != "" && status != "pending" {
+		if ready {
 			return status, nil
 		}
 		select {

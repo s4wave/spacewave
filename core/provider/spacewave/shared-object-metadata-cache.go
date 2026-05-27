@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/seedflight"
 )
 
 // sharedObjectMetadataStatus describes the cache state for one shared object.
@@ -27,7 +28,7 @@ type sharedObjectMetadataState struct {
 	status sharedObjectMetadataStatus
 	// seed coordinates concurrent callers around a single seed HTTP fetch.
 	// Guarded by accountBcast like the rest of the state.
-	seed providerSeed
+	seed seedflight.Seed
 }
 
 // GetSharedObjectMetadata returns full shared-object metadata from the account cache.
@@ -44,7 +45,7 @@ func (a *ProviderAccount) GetSharedObjectMetadata(
 		return nil, ErrSharedObjectMetadataDeleted
 	}
 
-	var seed *providerSeed
+	var seed *seedflight.Seed
 	a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		seed = &a.getOrCreateSharedObjectMetadataStateLocked(soID).seed
 	})

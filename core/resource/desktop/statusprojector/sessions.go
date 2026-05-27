@@ -12,6 +12,9 @@ import (
 	"github.com/s4wave/spacewave/core/cdn"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/activitypolicy"
+	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/projection"
+	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/spacepolicy"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -52,9 +55,9 @@ func snapshotSessionProjection(
 		return nil, nil, nil, err
 	}
 
-	rows := make([]*sessionProjectionRow, 0, len(entries))
-	spaceRows := []*spaceProjectionRow{}
-	activityRows := []*activityProjectionRow{}
+	rows := make([]*projection.SessionProjectionRow, 0, len(entries))
+	spaceRows := []*spacepolicy.Row{}
+	activityRows := []*activitypolicy.Row{}
 	releases := make([]func(), 0, len(entries))
 	waitChs := []<-chan struct{}{sessionWaitCh}
 	for _, entry := range entries {
@@ -71,34 +74,71 @@ func snapshotSessionProjection(
 		}
 		releases = append(releases, runtimeReleases...)
 		waitChs = append(waitChs, runtimeWaitChs...)
-		row := &sessionProjectionRow{
-			entry:          entry,
-			metadata:       meta,
-			accountStatus:  runtime.account.status,
-			selfEnrollment: runtime.account.selfEnrollment,
+		row := &projection.SessionProjectionRow{
+			Entry:          entry,
+			Metadata:       meta,
+			AccountStatus:  runtime.account.status,
+			SelfEnrollment: runtime.account.selfEnrollment,
 		}
 		rows = append(rows, row)
-		label := sessionLabel(row)
+		label := projection.SessionLabel(row)
 		for _, sp := range runtime.spaces {
-			spaceRows = append(spaceRows, &spaceProjectionRow{
-				sessionIndex: entry.GetSessionIndex(),
-				sessionLabel: label,
-				space:        sp,
+			spaceRows = append(spaceRows, &spacepolicy.Row{
+				SessionIndex: entry.GetSessionIndex(),
+				SessionLabel: label,
+				Space:        sp,
 			})
 		}
 		if runtime.sync != nil {
-			activityRows = append(activityRows, &activityProjectionRow{
-				sessionIndex: entry.GetSessionIndex(),
-				sessionLabel: label,
-				status:       runtime.sync,
-			})
+			activityRows = append(activityRows, activityRowFromSyncStatus(entry.GetSessionIndex(), label, runtime.sync))
 		}
 	}
 
-	projection := buildSessionProjection(rows)
-	projection.Spaces = buildSpaceProjection(spaceRows)
-	projection.Activity = buildActivityProjection(activityRows)
-	return projection, waitChs, releases, nil
+	proj := projection.BuildSessionProjection(rows)
+	proj.Spaces = spacepolicy.Build(spaceRows)
+	proj.Activity = activitypolicy.Build(activityRows)
+	return proj, waitChs, releases, nil
+}
+
+func activityRowFromSyncStatus(
+	sessionIndex uint32,
+	sessionLabel string,
+	status *s4wave_session.WatchSyncStatusResponse,
+) *activitypolicy.Row {
+	row := &activitypolicy.Row{
+		SessionIndex:         sessionIndex,
+		SessionLabel:         sessionLabel,
+		PendingUploadCount:   uint64(status.GetPendingUploadCount()),
+		PendingDownloadCount: uint64(status.GetPendingDownloadCount()),
+		InFlightUploadCount:  uint64(status.GetInFlightUploadCount()),
+		LastError:            status.GetLastError(),
+	}
+	switch status.GetState() {
+	case s4wave_session.SyncStatusState_SyncStatusState_ERROR:
+		row.State = activitypolicy.SyncStateError
+	case s4wave_session.SyncStatusState_SyncStatusState_ACTIVE:
+		row.State = activitypolicy.SyncStateActive
+	case s4wave_session.SyncStatusState_SyncStatusState_SYNCED:
+		row.State = activitypolicy.SyncStateSynced
+	default:
+		row.State = activitypolicy.SyncStateIdle
+	}
+	switch status.GetDirection() {
+	case s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD:
+		row.Direction = activitypolicy.SyncDirectionUpload
+	case s4wave_session.SyncActivityDirection_SyncActivityDirection_DOWNLOAD:
+		row.Direction = activitypolicy.SyncDirectionDownload
+	case s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD_DOWNLOAD:
+		row.Direction = activitypolicy.SyncDirectionUploadDownload
+	default:
+		row.Direction = activitypolicy.SyncDirectionUnknown
+	}
+	ts := status.GetLastActivityAt()
+	if ts != nil && !ts.GetEmpty() {
+		row.LastActivityAtUnixMs = ts.AsTime().UnixMilli()
+		row.HasLastActivityAtTime = true
+	}
+	return row
 }
 
 func snapshotSessionRuntimeProjection(
@@ -193,7 +233,7 @@ func snapshotSessionSpaces(
 		return nil, nil, nil, err
 	}
 
-	soList, spaces, err := readSessionSpacesSnapshot(soListWatchable)
+	soList, spaces, err := spacepolicy.ReadSnapshot(soListWatchable, cdn.SpaceID())
 	if err != nil {
 		if releaseList != nil {
 			releaseList()
@@ -204,41 +244,6 @@ func snapshotSessionSpaces(
 	watchCtx, cancel := context.WithCancel(ctx)
 	waitCh := watchWatchableChange(watchCtx, soListWatchable, soList)
 	return spaces, []<-chan struct{}{waitCh}, []func(){cancel, releaseList}, nil
-}
-
-func readSessionSpacesSnapshot(
-	soListWatchable ccontainer.Watchable[*sobject.SharedObjectList],
-) (*sobject.SharedObjectList, []*space.SpaceSoListEntry, error) {
-	soList := soListWatchable.GetValue()
-	spaces, err := buildSessionSpaces(soList)
-	if err != nil {
-		return nil, nil, err
-	}
-	return soList, spaces, nil
-}
-
-func buildSessionSpaces(soList *sobject.SharedObjectList) ([]*space.SpaceSoListEntry, error) {
-	if soList == nil {
-		return nil, nil
-	}
-	spaces, err := space.FilterSharedObjectList(
-		soList.GetSharedObjects(),
-		func(_ *sobject.SharedObjectListEntry, _ error) error {
-			return nil
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-	out := spaces[:0]
-	cdnID := cdn.SpaceID()
-	for _, sp := range spaces {
-		if sp.GetEntry().GetRef().GetBlockStoreId() == cdnID {
-			continue
-		}
-		out = append(out, sp)
-	}
-	return out, nil
 }
 
 func watchWatchableChange[T comparable](

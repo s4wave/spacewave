@@ -112,7 +112,7 @@ func buildSOInviteMessage(
 	sig, err := peer.NewSignature(
 		"sobject invite",
 		ownerPrivKey,
-		hash.HashType_HashType_BLAKE3,
+		hash.RecommendedHashType,
 		data,
 		true,
 	)

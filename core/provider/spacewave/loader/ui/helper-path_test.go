@@ -1,0 +1,156 @@
+package spacewave_loader_ui
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+// TestResolveHelperPath verifies the helper binary name resolution logic
+// appends .exe only on Windows when no override is supplied, and uses the
+// override verbatim otherwise.
+func TestResolveHelperPath(t *testing.T) {
+	cases := []struct {
+		name       string
+		override   string
+		goos       string
+		stageFiles []string
+		wantFile   string
+		wantOK     bool
+	}{
+		{
+			name:       "darwin default finds spacewave-helper",
+			goos:       "darwin",
+			stageFiles: []string{"spacewave-helper"},
+			wantFile:   "spacewave-helper",
+			wantOK:     true,
+		},
+		{
+			name:       "linux default finds spacewave-helper",
+			goos:       "linux",
+			stageFiles: []string{"spacewave-helper"},
+			wantFile:   "spacewave-helper",
+			wantOK:     true,
+		},
+		{
+			name:       "windows default finds spacewave-helper.exe",
+			goos:       "windows",
+			stageFiles: []string{"spacewave-helper.exe"},
+			wantFile:   "spacewave-helper.exe",
+			wantOK:     true,
+		},
+		{
+			name:       "windows default rejects missing .exe suffix",
+			goos:       "windows",
+			stageFiles: []string{"spacewave-helper"},
+			wantOK:     false,
+		},
+		{
+			name:       "darwin default rejects .exe suffix",
+			goos:       "darwin",
+			stageFiles: []string{"spacewave-helper.exe"},
+			wantOK:     false,
+		},
+		{
+			name:       "override used verbatim on darwin",
+			override:   "custom-helper",
+			goos:       "darwin",
+			stageFiles: []string{"custom-helper"},
+			wantFile:   "custom-helper",
+			wantOK:     true,
+		},
+		{
+			name:       "override used verbatim on windows without auto .exe",
+			override:   "custom-helper",
+			goos:       "windows",
+			stageFiles: []string{"custom-helper"},
+			wantFile:   "custom-helper",
+			wantOK:     true,
+		},
+		{
+			name:       "override .exe used verbatim on windows",
+			override:   "custom-helper.exe",
+			goos:       "windows",
+			stageFiles: []string{"custom-helper.exe"},
+			wantFile:   "custom-helper.exe",
+			wantOK:     true,
+		},
+		{
+			name:   "missing binary returns false",
+			goos:   "linux",
+			wantOK: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			for _, f := range tc.stageFiles {
+				path := filepath.Join(dir, f)
+				if err := os.WriteFile(path, []byte("stub"), 0o755); err != nil {
+					t.Fatalf("stage %s: %v", f, err)
+				}
+			}
+
+			got, ok := ResolveHelperPathIn(dir, tc.override, tc.goos)
+			if ok != tc.wantOK {
+				t.Fatalf("ok = %v, want %v (got path %q)", ok, tc.wantOK, got)
+			}
+			if !tc.wantOK {
+				if got != "" {
+					t.Fatalf("path = %q, want empty on miss", got)
+				}
+				return
+			}
+			want := filepath.Join(dir, tc.wantFile)
+			if got != want {
+				t.Fatalf("path = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestResolveHelperPathFromDirsFallback(t *testing.T) {
+	pluginDir := t.TempDir()
+	hostDir := t.TempDir()
+	helperPath := filepath.Join(hostDir, "spacewave-helper")
+	if err := os.WriteFile(helperPath, []byte("stub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	got, ok := ResolveHelperPathFromDirs([]string{pluginDir, hostDir}, "", "darwin")
+	if !ok {
+		t.Fatal("expected helper fallback to host executable dir")
+	}
+	if got != helperPath {
+		t.Fatalf("path = %q, want %q", got, helperPath)
+	}
+}
+
+func TestResolveIconPathFromDirsFallback(t *testing.T) {
+	pluginDir := t.TempDir()
+	hostDir := t.TempDir()
+	iconPath := filepath.Clean(filepath.Join(hostDir, "../Resources/app.icns"))
+	if err := os.MkdirAll(filepath.Dir(iconPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(iconPath, []byte("stub"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := ResolveIconPathFromDirs([]string{pluginDir, hostDir})
+	if got != iconPath {
+		t.Fatalf("path = %q, want %q", got, iconPath)
+	}
+}
+
+func TestResolveIconPathFromDirsMissing(t *testing.T) {
+	baseDir := filepath.Join(t.TempDir(), "app", "bin")
+	if err := os.MkdirAll(baseDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got := ResolveIconPathFromDirs([]string{baseDir})
+	if got != "" {
+		t.Fatalf("path = %q, want empty on miss", got)
+	}
+}

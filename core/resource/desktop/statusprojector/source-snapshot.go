@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
+	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/updatepolicy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/s4wave/spacewave/core/session"
 )
@@ -34,7 +35,7 @@ func snapshotDesktopTraySources(
 		return nil, err
 	}
 	launcherInfo, launcherWaitCh := launcher.Snapshot()
-	update, updateAttention := buildUpdateProjection(launcherInfo)
+	update, updateAttention := updatepolicy.Build(launcherInfo)
 	projection.Update = update
 	if updateAttention != nil {
 		projection.AttentionItems = append(projection.AttentionItems, updateAttention)

@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"github.com/pkg/errors"
-	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/passkeyconfirm"
 )
 
 // ConfirmPasskeySignupRequest is the browser-owned passkey signup payload.
@@ -37,51 +37,31 @@ type ConfirmDesktopPasskeyRequest struct {
 	AuthParams       string
 }
 
-// buildPasskeyConfirmRequest builds a PasskeyConfirmRequest proto from the
-// per-flow Go request struct fields.
-func buildPasskeyConfirmRequest(
-	credentialJSON, username, wrappedEntityKey, entityPeerID, sessionPeerID string,
-	pinWrapped, prfCapable bool,
-	prfSalt, authParams string,
-) *api.PasskeyConfirmRequest {
-	return &api.PasskeyConfirmRequest{
-		CredentialJson:   credentialJSON,
-		Username:         username,
-		WrappedEntityKey: wrappedEntityKey,
-		EntityPeerId:     entityPeerID,
-		SessionPeerId:    sessionPeerID,
-		PinWrapped:       pinWrapped,
-		PrfCapable:       prfCapable,
-		PrfSalt:          prfSalt,
-		AuthParams:       authParams,
-	}
-}
-
 // postPasskeyConfirm posts a PasskeyConfirmRequest and returns the response body.
 func postPasskeyConfirm(
 	ctx context.Context,
 	httpCli *http.Client,
 	endpoint string,
-	req *api.PasskeyConfirmRequest,
+	req *passkeyconfirm.Request,
 ) ([]byte, error) {
-	body, err := req.MarshalVT()
+	body, err := passkeyconfirm.MarshalRequest(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal passkey confirm request")
 	}
-	reqURL, err := url.JoinPath(endpoint, "/api/auth/passkey/confirm")
+	reqURL, err := url.JoinPath(endpoint, passkeyconfirm.Path)
 	if err != nil {
 		return nil, errors.Wrap(err, "build URL")
 	}
 	httpReq, err := http.NewRequestWithContext(
 		ctx,
-		http.MethodPost,
+		passkeyconfirm.Method,
 		reqURL,
 		bytes.NewReader(body),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "create request")
 	}
-	httpReq.Header.Set("Content-Type", "application/octet-stream")
+	httpReq.Header.Set("Content-Type", passkeyconfirm.ContentType)
 	resp, err := httpCli.Do(httpReq)
 	if err != nil {
 		return nil, errors.Wrap(err, "passkey confirm request")
@@ -104,18 +84,18 @@ func ConfirmPasskeySignup(
 	endpoint string,
 	req *ConfirmPasskeySignupRequest,
 ) error {
-	protoReq := buildPasskeyConfirmRequest(
-		req.CredentialJSON,
-		req.Username,
-		req.WrappedEntityKey,
-		req.EntityPeerID,
-		req.SessionPeerID,
-		req.PinWrapped,
-		req.PrfCapable,
-		req.PrfSalt,
-		req.AuthParams,
-	)
-	if _, err := postPasskeyConfirm(ctx, httpCli, endpoint, protoReq); err != nil {
+	confirmReq := &passkeyconfirm.Request{
+		CredentialJSON:   req.CredentialJSON,
+		Username:         req.Username,
+		WrappedEntityKey: req.WrappedEntityKey,
+		EntityPeerID:     req.EntityPeerID,
+		SessionPeerID:    req.SessionPeerID,
+		PinWrapped:       req.PinWrapped,
+		PrfCapable:       req.PrfCapable,
+		PrfSalt:          req.PrfSalt,
+		AuthParams:       req.AuthParams,
+	}
+	if _, err := postPasskeyConfirm(ctx, httpCli, endpoint, confirmReq); err != nil {
 		return err
 	}
 	return nil
@@ -128,27 +108,27 @@ func ConfirmDesktopPasskey(
 	endpoint string,
 	req *ConfirmDesktopPasskeyRequest,
 ) (*ConfirmDesktopPasskeyResponse, error) {
-	protoReq := buildPasskeyConfirmRequest(
-		req.CredentialJSON,
-		req.Username,
-		req.WrappedEntityKey,
-		req.EntityPeerID,
-		req.SessionPeerID,
-		req.PinWrapped,
-		req.PrfCapable,
-		req.PrfSalt,
-		req.AuthParams,
-	)
-	respBody, err := postPasskeyConfirm(ctx, httpCli, endpoint, protoReq)
+	confirmReq := &passkeyconfirm.Request{
+		CredentialJSON:   req.CredentialJSON,
+		Username:         req.Username,
+		WrappedEntityKey: req.WrappedEntityKey,
+		EntityPeerID:     req.EntityPeerID,
+		SessionPeerID:    req.SessionPeerID,
+		PinWrapped:       req.PinWrapped,
+		PrfCapable:       req.PrfCapable,
+		PrfSalt:          req.PrfSalt,
+		AuthParams:       req.AuthParams,
+	}
+	respBody, err := postPasskeyConfirm(ctx, httpCli, endpoint, confirmReq)
 	if err != nil {
 		return nil, err
 	}
-	respProto := &api.PasskeyConfirmResponse{}
-	if err := respProto.UnmarshalVT(respBody); err != nil {
+	parsed, err := passkeyconfirm.ParseDesktopResponse(respBody)
+	if err != nil {
 		return nil, errors.Wrap(err, "unmarshal desktop passkey confirm response")
 	}
 	return &ConfirmDesktopPasskeyResponse{
-		AccountID:     respProto.GetAccountId(),
-		SessionPeerID: respProto.GetSessionPeerId(),
+		AccountID:     parsed.AccountID,
+		SessionPeerID: parsed.SessionPeerID,
 	}, nil
 }

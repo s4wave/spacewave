@@ -6,6 +6,8 @@ import (
 
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/orgprocessor"
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 )
@@ -131,31 +133,11 @@ func (a *ProviderAccount) orgProcessorKeys(
 		return nil
 	}
 
-	ownerOrgs := make(map[string]struct{})
+	var orgs []*api.OrgResponse
+	var valid bool
 	a.orgBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if !a.orgListValid {
-			return
-		}
-		for _, org := range a.orgList {
-			if isOrganizationOwnerRole(org.GetRole()) {
-				ownerOrgs[org.GetId()] = struct{}{}
-			}
-		}
+		valid = a.orgListValid
+		orgs = append(orgs, a.orgList...)
 	})
-	if len(ownerOrgs) == 0 {
-		return nil
-	}
-
-	var orgIDs []string
-	for _, entry := range soList.GetSharedObjects() {
-		if entry.GetMeta().GetBodyType() != s4wave_org.OrgBodyType {
-			continue
-		}
-		orgID := entry.GetRef().GetProviderResourceRef().GetId()
-		if _, ok := ownerOrgs[orgID]; !ok {
-			continue
-		}
-		orgIDs = append(orgIDs, orgID)
-	}
-	return orgIDs
+	return orgprocessor.Keys(soList, orgs, valid)
 }

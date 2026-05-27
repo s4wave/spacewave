@@ -3,8 +3,8 @@ package resource_session
 import (
 	"context"
 
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/resource/session/sharedobjecthealth"
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
@@ -19,17 +19,11 @@ func (r *SessionResource) WatchSharedObjectHealth(
 	if sharedObjectID == "" {
 		return errors.New("shared_object_id is required")
 	}
-	if err := strm.Send(&s4wave_session.WatchSharedObjectHealthResponse{
-		Health: sobject.NewSharedObjectLoadingHealth(
-			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-		),
-	}); err != nil {
-		return err
-	}
+	sender := sharedObjectHealthStreamSender{strm: strm}
 
 	if r.cdnLookup != nil {
 		if cdnSO, _ := r.cdnLookup(sharedObjectID); cdnSO != nil {
-			return r.watchMountedSharedObjectHealth(ctx, cdnSO, strm)
+			return r.watchMountedSharedObjectHealth(ctx, cdnSO, sender)
 		}
 	}
 
@@ -54,13 +48,10 @@ func (r *SessionResource) WatchSharedObjectHealth(
 		return err
 	}
 	if soListEntry == nil {
-		return waitSharedObjectHealth(
+		return sharedobjecthealth.Wait(
 			ctx,
-			strm,
-			sobject.BuildSharedObjectHealthFromError(
-				sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-				sobject.ErrSharedObjectNotFound,
-			),
+			sender,
+			sharedobjecthealth.Error(sobject.ErrSharedObjectNotFound),
 		)
 	}
 
@@ -86,7 +77,7 @@ func (r *SessionResource) WatchSharedObjectHealth(
 			return err
 		}
 		defer relHealthCtr()
-		return watchSharedObjectHealthWatchable(ctx, strm, healthCtr)
+		return sharedobjecthealth.StreamWatchable(ctx, sender, healthCtr)
 	}
 
 	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(
@@ -97,114 +88,57 @@ func (r *SessionResource) WatchSharedObjectHealth(
 		nil,
 	)
 	if err != nil {
-		return waitSharedObjectHealth(
+		return sharedobjecthealth.Wait(
 			ctx,
-			strm,
-			sobject.BuildSharedObjectHealthFromError(
-				sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-				err,
-			),
+			sender,
+			sharedobjecthealth.Error(err),
 		)
 	}
 	defer mountedSoRef.Release()
 
-	return r.watchMountedSharedObjectHealth(ctx, mountedSo, strm)
+	return r.watchMountedSharedObjectHealth(ctx, mountedSo, sender)
 }
 
-// watchSharedObjectHealthWatchable streams SharedObject health from a watchable.
-func watchSharedObjectHealthWatchable(
-	ctx context.Context,
-	strm s4wave_session.SRPCSessionResourceService_WatchSharedObjectHealthStream,
-	healthCtr ccontainer.Watchable[*sobject.SharedObjectHealth],
-) error {
-	return ccontainer.WatchChanges(
-		ctx,
-		nil,
-		healthCtr,
-		func(health *sobject.SharedObjectHealth) error {
-			if health == nil {
-				health = sobject.NewSharedObjectLoadingHealth(
-					sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-				)
-			}
-			return strm.Send(&s4wave_session.WatchSharedObjectHealthResponse{
-				Health: health,
-			})
-		},
-		nil,
-	)
+type sharedObjectHealthStreamSender struct {
+	strm s4wave_session.SRPCSessionResourceService_WatchSharedObjectHealthStream
+}
+
+func (s sharedObjectHealthStreamSender) SendHealth(health *sobject.SharedObjectHealth) error {
+	return s.strm.Send(&s4wave_session.WatchSharedObjectHealthResponse{
+		Health: health,
+	})
 }
 
 // watchMountedSharedObjectHealth streams health for an already mounted SharedObject.
 func (r *SessionResource) watchMountedSharedObjectHealth(
 	ctx context.Context,
 	so sobject.SharedObject,
-	strm s4wave_session.SRPCSessionResourceService_WatchSharedObjectHealthStream,
+	sender sharedobjecthealth.Sender,
 ) error {
 	if healthAccessor, ok := so.(sobject.SharedObjectHealthAccessor); ok {
 		healthCtr, relHealthCtr, err := healthAccessor.AccessSharedObjectHealth(ctx, nil)
 		if err != nil {
-			return waitSharedObjectHealth(
+			return sharedobjecthealth.Wait(
 				ctx,
-				strm,
-				sobject.BuildSharedObjectHealthFromError(
-					sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-					err,
-				),
+				sender,
+				sharedobjecthealth.Error(err),
 			)
 		}
 		defer relHealthCtr()
-		return watchSharedObjectHealthWatchable(ctx, strm, healthCtr)
+		return sharedobjecthealth.StreamWatchable(ctx, sender, healthCtr)
 	}
 
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
-		return waitSharedObjectHealth(
+		return sharedobjecthealth.Wait(
 			ctx,
-			strm,
-			sobject.BuildSharedObjectHealthFromError(
-				sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-				err,
-			),
+			sender,
+			sharedobjecthealth.Error(err),
 		)
 	}
 	defer relStateCtr()
 
-	return ccontainer.WatchChanges(
-		ctx,
-		nil,
-		stateCtr,
-		func(snap sobject.SharedObjectStateSnapshot) error {
-			if snap == nil {
-				return strm.Send(&s4wave_session.WatchSharedObjectHealthResponse{
-					Health: sobject.NewSharedObjectLoadingHealth(
-						sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-					),
-				})
-			}
-			return strm.Send(&s4wave_session.WatchSharedObjectHealthResponse{
-				Health: sobject.NewSharedObjectReadyHealth(
-					sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-				),
-			})
-		},
-		nil,
-	)
-}
-
-// waitSharedObjectHealth sends one health snapshot and waits for cancellation.
-func waitSharedObjectHealth(
-	ctx context.Context,
-	strm s4wave_session.SRPCSessionResourceService_WatchSharedObjectHealthStream,
-	health *sobject.SharedObjectHealth,
-) error {
-	if err := strm.Send(&s4wave_session.WatchSharedObjectHealthResponse{
-		Health: health,
-	}); err != nil {
-		return err
-	}
-	<-ctx.Done()
-	return nil
+	return sharedobjecthealth.StreamState(ctx, sender, stateCtr)
 }
 
 // loadSharedObjectHealthSnapshot returns one SharedObject health snapshot.
@@ -243,10 +177,7 @@ func (r *SessionResource) loadSharedObjectHealthSnapshot(
 		return nil, err
 	}
 	if soListEntry == nil {
-		return sobject.BuildSharedObjectHealthFromError(
-			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-			sobject.ErrSharedObjectNotFound,
-		), nil
+		return sharedobjecthealth.Error(sobject.ErrSharedObjectNotFound), nil
 	}
 
 	sessionProviderResourceRef := r.session.GetSessionRef().GetProviderResourceRef().CloneVT()
@@ -268,13 +199,10 @@ func (r *SessionResource) loadSharedObjectHealthSnapshot(
 			nil,
 		)
 		if err != nil {
-			return sobject.BuildSharedObjectHealthFromError(
-				sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-				err,
-			), nil
+			return sharedobjecthealth.Error(err), nil
 		}
 		defer relHealthCtr()
-		return cloneOrLoadingHealth(healthCtr.GetValue()), nil
+		return sharedobjecthealth.SnapshotWatchable(healthCtr), nil
 	}
 
 	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(
@@ -285,10 +213,7 @@ func (r *SessionResource) loadSharedObjectHealthSnapshot(
 		nil,
 	)
 	if err != nil {
-		return sobject.BuildSharedObjectHealthFromError(
-			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-			err,
-		), nil
+		return sharedobjecthealth.Error(err), nil
 	}
 	defer mountedSoRef.Release()
 
@@ -303,40 +228,16 @@ func (r *SessionResource) loadMountedSharedObjectHealthSnapshot(
 	if healthAccessor, ok := so.(sobject.SharedObjectHealthAccessor); ok {
 		healthCtr, relHealthCtr, err := healthAccessor.AccessSharedObjectHealth(ctx, nil)
 		if err != nil {
-			return sobject.BuildSharedObjectHealthFromError(
-				sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-				err,
-			), nil
+			return sharedobjecthealth.Error(err), nil
 		}
 		defer relHealthCtr()
-		return cloneOrLoadingHealth(healthCtr.GetValue()), nil
+		return sharedobjecthealth.SnapshotWatchable(healthCtr), nil
 	}
 
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
-		return sobject.BuildSharedObjectHealthFromError(
-			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-			err,
-		), nil
+		return sharedobjecthealth.Error(err), nil
 	}
 	defer relStateCtr()
-	if stateCtr.GetValue() == nil {
-		return sobject.NewSharedObjectLoadingHealth(
-			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-		), nil
-	}
-	return sobject.NewSharedObjectReadyHealth(
-		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-	), nil
-}
-
-func cloneOrLoadingHealth(
-	health *sobject.SharedObjectHealth,
-) *sobject.SharedObjectHealth {
-	if health == nil {
-		return sobject.NewSharedObjectLoadingHealth(
-			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
-		)
-	}
-	return health.CloneVT()
+	return sharedobjecthealth.SnapshotState(stateCtr), nil
 }

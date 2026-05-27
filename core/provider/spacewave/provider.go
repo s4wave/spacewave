@@ -2,7 +2,6 @@ package provider_spacewave
 
 import (
 	"context"
-	"crypto/ed25519"
 	"net/http"
 	"sync"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/refcount"
-	"github.com/aperturerobotics/util/scrub"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	auth_method_password "github.com/s4wave/spacewave/auth/method/password"
@@ -521,21 +519,6 @@ func (p *Provider) Execute(ctx context.Context) error {
 	p.accountRc.SetContext(ctx, true)
 	_ = p.cloudCfgRc.SetContext(ctx)
 	return nil
-}
-
-func scrubPrivKey(priv crypto.PrivKey) {
-	if priv == nil {
-		return
-	}
-
-	type ed25519StdKey interface {
-		GetStdKey() ed25519.PrivateKey
-	}
-	if k, ok := priv.(ed25519StdKey); ok {
-		scrub.Scrub(k.GetStdKey())
-	}
-
-	// NOTE: other key types are not yet supported
 }
 
 // _ is a type assertion

@@ -16,8 +16,20 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_gccleanup "github.com/s4wave/spacewave/core/provider/gccleanup"
+	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/billingcache"
+	"github.com/s4wave/spacewave/core/provider/spacewave/emailcache"
+	"github.com/s4wave/spacewave/core/provider/spacewave/entitykeystore"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
+	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxcache"
+	"github.com/s4wave/spacewave/core/provider/spacewave/mailboxrequest"
+	"github.com/s4wave/spacewave/core/provider/spacewave/managedbacache"
+	"github.com/s4wave/spacewave/core/provider/spacewave/orgstatecache"
+	"github.com/s4wave/spacewave/core/provider/spacewave/seedflight"
+	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
+	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
+	"github.com/s4wave/spacewave/core/provider/spacewave/writeticketowner"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -84,14 +96,14 @@ type ProviderAccount struct {
 	// writeTicketOwnersMtx guards writeTicketOwners and writeTicketOwnersCtx.
 	writeTicketOwnersMtx sync.Mutex
 	// writeTicketOwners caches per-resource bundled write-ticket owners.
-	writeTicketOwners map[string]*writeTicketOwner
+	writeTicketOwners map[string]*writeticketowner.Owner
 	// writeTicketOwnersCtx is the lifecycle context shared by ticket owners.
 	writeTicketOwnersCtx context.Context
 	// selfRejoinSweep opportunistically heals missing same-entity SO peers after
 	// a new session registers or reconnect invalidates sweep-side caches.
 	selfRejoinSweep *routine.StateRoutineContainer[*selfRejoinSweepState]
 	// selfEnrollmentRunRoutine owns explicit visible Session Self-Enrollment runs.
-	selfEnrollmentRunRoutine *routine.StateRoutineContainer[*selfEnrollmentRunRequest]
+	selfEnrollmentRunRoutine *routine.StateRoutineContainer[*selfenrollmentrun.Request]
 	// sessionPresentationReconcile prunes orphaned mirrored session metadata.
 	sessionPresentationReconcile *routine.StateRoutineContainer[*sessionPresentationReconcileState]
 	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
@@ -107,11 +119,11 @@ type ProviderAccount struct {
 	entityKeyStore *EntityKeyStore
 	// selfEnrollmentRun owns visible Session Self-Enrollment progress.
 	selfEnrollmentRun *selfEnrollmentRunState
-	// entityKeypairStepUpRc retains unlocked entity keypairs until the last
+	// entityKeypairStepUp retains unlocked entity keypairs until the last
 	// screen-scoped step-up reference is released.
-	entityKeypairStepUpRc *refcount.RefCount[struct{}]
-	// managedBAsRc caches the billing accounts created by this caller.
-	managedBAsRc *refcount.RefCount[*managedBAsSnapshot]
+	entityKeypairStepUp *entitykeystore.EntityKeypairStepUp
+	// managedBAsCache caches the billing accounts created by this caller.
+	managedBAsCache *managedbacache.Store
 	// p2pSync contains the direct invite / sync controllers bound to the
 	// current session transport.
 	p2pSync *p2pSyncState
@@ -131,22 +143,20 @@ type ProviderAccount struct {
 	accountBcast broadcast.Broadcast
 	// transportBcast guards sessionTransport.
 	transportBcast broadcast.Broadcast
-	// syncTelemetryBcast guards syncTelemetry.
-	syncTelemetryBcast broadcast.Broadcast
 	// syncTelemetry stores sync activity snapshots keyed by block store id.
-	syncTelemetry map[string]*syncTelemetryState
+	syncTelemetry synctelemetry.Store
 	// gcCleanupCollect overrides cleanup collection in tests.
 	gcCleanupCollect provider_gccleanup.CollectFunc
 
 	// orgBcast fires when org list changes.
-	// Guards orgList, orgListValid, and orgSnapshotRcs.
+	// Guards orgList, orgListValid, and orgStateCache.
 	orgBcast broadcast.Broadcast
 	// orgList is the cached org list from the cloud.
 	orgList []*api.OrgResponse
 	// orgListValid indicates orgList has been fetched at least once.
 	orgListValid bool
-	// orgSnapshotRcs caches full organization detail snapshots keyed by org id.
-	orgSnapshotRcs map[string]*refcount.RefCount[*organizationSnapshot]
+	// orgStateCache caches full organization detail snapshots keyed by org id.
+	orgStateCache *orgstatecache.Store
 	// orgSyncs serializes org refresh and reconciliation work keyed by org id.
 	orgSyncs *keyed.Keyed[string, struct{}]
 	// pendingParticipantSyncs serializes pending participant reconciliation work.
@@ -245,15 +255,16 @@ type accountState struct {
 	cachedEmails []*api.AccountEmailInfo
 	// cachedEmailsValid indicates cachedEmails has been populated at least once.
 	cachedEmailsValid bool
-	// billingSnapshotRcs caches billing account state and usage by billing account id.
-	billingSnapshotRcs map[string]*refcount.RefCount[*billingSnapshot]
+	// billingCache caches billing account state and usage by billing account id.
+	billingCache *billingcache.Store
 	// sharedObjectMetadata caches full shared-object metadata by SO ID.
 	sharedObjectMetadata map[string]*sharedObjectMetadataState
-	// pendingMailboxEntries caches owner-visible pending mailbox metadata by SO ID.
-	pendingMailboxEntries map[string]*pendingMailboxState
-	// mailboxRequestStatus tracks invitee-visible mailbox status updates by SO,
-	// invite, and peer for cloud invite joins.
-	mailboxRequestStatus map[mailboxRequestKey]string
+	// pendingMailboxCache caches owner-visible pending mailbox metadata by SO ID.
+	pendingMailboxCache *mailboxcache.Store
+	// pendingMailboxSeeds coordinates one mailbox seed fetch per SO ID.
+	pendingMailboxSeeds map[string]*seedflight.Seed
+	// mailboxRequests tracks invitee-visible cloud invite mailbox decisions.
+	mailboxRequests mailboxrequest.Tracker
 }
 
 // buildProviderAccountTracker builds a new providerAccountTracker for an account id.
@@ -358,21 +369,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	acc.selfEnrollmentRun = newSelfEnrollmentRunState(acc)
 	acc.soListCtr.SetValue(nil)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
-	acc.entityKeypairStepUpRc = refcount.NewRefCount(
-		ctx,
-		false,
-		nil,
-		nil,
-		acc.resolveEntityKeypairStepUp,
-	)
-	acc.managedBAsRc = refcount.NewRefCountWithOptions(
-		context.Background(),
-		true,
-		nil,
-		nil,
-		acc.resolveManagedBAs,
-		snapshotRefCountOptions,
-	)
+	acc.entityKeypairStepUp = entitykeystore.NewEntityKeypairStepUp(ctx, acc.getEntityKeyStore)
 	acc.selfRejoinSweep = routine.NewStateRoutineContainerWithLogger(
 		equalSelfRejoinSweepState,
 		le.WithField("component", "self-rejoin-sweep"),
@@ -380,7 +377,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	)
 	acc.selfRejoinSweep.SetStateRoutine(acc.runSelfRejoinSweep)
 	acc.primeSelfRejoinSweepFromUnlockedEntityKeys()
-	acc.selfEnrollmentRunRoutine = routine.NewStateRoutineContainerWithLogger[*selfEnrollmentRunRequest](
+	acc.selfEnrollmentRunRoutine = routine.NewStateRoutineContainerWithLogger[*selfenrollmentrun.Request](
 		nil,
 		le.WithField("component", "self-enrollment-run"),
 	)
@@ -551,7 +548,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	}
 	acc.wsTracker.onSessionUnauthenticated = func() {
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			acc.state.status = unauthenticatedAccountStatus(acc.state.info)
+			acc.state.status = accountstatus.Unauthenticated(acc.state.info)
 			broadcast()
 		})
 		acc.refreshSelfRejoinSweepState()
@@ -696,7 +693,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		var reconcileState *sessionPresentationReconcileState
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			acc.state.info = state
-			acc.state.status = loadedAccountStatus(state)
+			acc.state.status = accountstatus.Loaded(state)
 			acc.state.lastFetchedEpoch = uint64(cached.GetFetchedEpoch())
 			reconcileState = acc.buildSessionPresentationReconcileStateLocked()
 			broadcast()
@@ -840,10 +837,8 @@ func (a *ProviderAccount) setEpoch(n uint64) {
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if n > a.state.epoch {
 			a.state.epoch = n
-			for _, rc := range a.state.billingSnapshotRcs {
-				rc.Invalidate()
-			}
-			a.getManagedBAsRcLocked().Invalidate()
+			a.getBillingCacheLocked().Invalidate("")
+			a.getManagedBAsCacheLocked().Invalidate()
 			broadcast()
 		}
 	})
@@ -854,10 +849,8 @@ func (a *ProviderAccount) setEpoch(n uint64) {
 func (a *ProviderAccount) BumpLocalEpoch() {
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.state.epoch++
-		for _, rc := range a.state.billingSnapshotRcs {
-			rc.Invalidate()
-		}
-		a.getManagedBAsRcLocked().Invalidate()
+		a.getBillingCacheLocked().Invalidate("")
+		a.getManagedBAsCacheLocked().Invalidate()
 		broadcast()
 	})
 }
@@ -874,25 +867,8 @@ func (a *ProviderAccount) SetCachedPrimaryEmail(email string) {
 			return
 		}
 
-		next := make([]*api.AccountEmailInfo, len(a.state.cachedEmails))
-		var changed bool
-		var found bool
-		for i, row := range a.state.cachedEmails {
-			if row == nil {
-				continue
-			}
-			clone := row.CloneVT()
-			primary := clone.GetEmail() == email
-			if primary {
-				found = true
-			}
-			if clone.GetPrimary() != primary {
-				clone.Primary = primary
-				changed = true
-			}
-			next[i] = clone
-		}
-		if !found || !changed {
+		next, changed := emailcache.SetPrimaryEmail(a.state.cachedEmails, email)
+		if !changed {
 			return
 		}
 		a.state.cachedEmails = next
@@ -989,7 +965,7 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 			}
 			a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				a.state.info = fetched
-				a.state.status = loadedAccountStatus(fetched)
+				a.state.status = accountstatus.Loaded(fetched)
 				a.state.infoFetching = false
 				broadcast()
 			})

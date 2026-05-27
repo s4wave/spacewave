@@ -8,6 +8,42 @@ export interface Method {
   Decrypt(alloc: AllocFn, src: $.Slice<number>): [$.Slice<number>, $.GoError];
 }
 
+const byteSliceType: $.TypeInfo = {
+  kind: $.TypeKind.Slice,
+  elemType: { kind: $.TypeKind.Basic, name: "byte" },
+};
+
+const allocFnType: $.TypeInfo = {
+  kind: $.TypeKind.Function,
+  params: [{ kind: $.TypeKind.Basic, name: "int" }],
+  results: [byteSliceType],
+};
+
+$.registerInterfaceType("blockenc.Method", null, [
+  {
+    name: "Encrypt",
+    args: [
+      { name: "alloc", type: allocFnType },
+      { name: "src", type: byteSliceType },
+    ],
+    returns: [
+      { name: "_r0", type: byteSliceType },
+      { name: "_r1", type: "error" },
+    ],
+  },
+  {
+    name: "Decrypt",
+    args: [
+      { name: "alloc", type: allocFnType },
+      { name: "src", type: byteSliceType },
+    ],
+    returns: [
+      { name: "_r0", type: byteSliceType },
+      { name: "_r1", type: "error" },
+    ],
+  },
+]);
+
 export const BlockEnc_BlockEnc_UNKNOWN: BlockEnc = 0;
 export const BlockEnc_BlockEnc_NONE: BlockEnc = 1;
 export const BlockEnc_BlockEnc_XCHACHA20_POLY1305: BlockEnc = 2;

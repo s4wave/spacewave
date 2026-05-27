@@ -19,7 +19,7 @@ func signConfigChange(t *testing.T, entry *SOConfigChange, privKey crypto.PrivKe
 	if err != nil {
 		t.Fatalf("marshal config change: %v", err)
 	}
-	sig, err := peer.NewSignature("sobject config change", privKey, hash.HashType_HashType_BLAKE3, data, true)
+	sig, err := peer.NewSignature("sobject config change", privKey, hash.RecommendedHashType, data, true)
 	if err != nil {
 		t.Fatalf("sign config change: %v", err)
 	}

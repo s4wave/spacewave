@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package provider_spacewave
 
 import (
@@ -45,14 +43,6 @@ func NewTestProviderAccount(t *testing.T, endpoint string) *ProviderAccount {
 		acc.collectGCRootlessBlocks,
 	)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
-	acc.managedBAsRc = refcount.NewRefCountWithOptions(
-		context.Background(),
-		true,
-		nil,
-		nil,
-		acc.resolveManagedBAs,
-		snapshotRefCountOptions,
-	)
 	_ = acc.soListRc.SetContext(context.Background())
 	acc.setWriteTicketOwnersContext(context.Background())
 	return acc

@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package store_kvtx
 
 import (

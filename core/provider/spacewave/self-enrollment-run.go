@@ -5,27 +5,9 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/sobject"
 )
-
-// SelfEnrollmentRunSnapshot is a snapshot of the visible self-enrollment run.
-type SelfEnrollmentRunSnapshot struct {
-	Running               bool
-	CurrentSharedObjectID string
-	CompletedIDs          []string
-	Failures              []*SelfEnrollmentRunFailure
-}
-
-// SelfEnrollmentRunFailure describes a failed per-object enrollment.
-type SelfEnrollmentRunFailure struct {
-	SharedObjectID string
-	Err            error
-}
-
-type selfEnrollmentRunRequest struct {
-	generationKey string
-	ids           []string
-}
 
 type selfEnrollmentRunState struct {
 	acc *ProviderAccount
@@ -110,28 +92,29 @@ func (r *selfEnrollmentRunState) start(ctx context.Context) error {
 }
 
 func (a *ProviderAccount) shouldAutoStartSelfEnrollmentRunLocked(summary *SelfEnrollmentSummary) bool {
-	if a.selfEnrollmentRunRoutine == nil || summary == nil || summary.GetCount() == 0 {
-		return false
+	var unlockedKeys int
+	if store := a.GetEntityKeyStore(); store != nil {
+		unlockedKeys = store.GetUnlockedCount()
 	}
-	if a.state.selfEnrollmentSkippedGenerationKey != "" &&
-		a.state.selfEnrollmentSkippedGenerationKey == summary.GetGenerationKey() {
-		return false
-	}
-	store := a.GetEntityKeyStore()
-	return store != nil && store.GetUnlockedCount() != 0
+	return selfenrollmentrun.ShouldAutoStart(
+		summary,
+		a.state.selfEnrollmentSkippedGenerationKey,
+		a.selfEnrollmentRunRoutine != nil,
+		unlockedKeys,
+	)
 }
 
 func (a *ProviderAccount) startSelfEnrollmentRunFromSummary(summary *SelfEnrollmentSummary) {
-	if summary == nil || summary.GetCount() == 0 || a.selfEnrollmentRunRoutine == nil {
+	if a.selfEnrollmentRunRoutine == nil {
 		return
 	}
-	a.selfEnrollmentRunRoutine.SetState(&selfEnrollmentRunRequest{
-		generationKey: summary.GetGenerationKey(),
-		ids:           summary.GetIDs(),
-	})
+	req := selfenrollmentrun.NewRequest(summary)
+	if req != nil {
+		a.selfEnrollmentRunRoutine.SetState(req)
+	}
 }
 
-func (r *selfEnrollmentRunState) buildRequest(ctx context.Context) (*selfEnrollmentRunRequest, error) {
+func (r *selfEnrollmentRunState) buildRequest(ctx context.Context) (*selfenrollmentrun.Request, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -147,13 +130,10 @@ func (r *selfEnrollmentRunState) buildRequest(ctx context.Context) (*selfEnrollm
 	if summary == nil || summary.GetCount() == 0 {
 		return nil, nil
 	}
-	return &selfEnrollmentRunRequest{
-		generationKey: summary.GetGenerationKey(),
-		ids:           summary.GetIDs(),
-	}, nil
+	return selfenrollmentrun.NewRequest(summary), nil
 }
 
-func (r *selfEnrollmentRunState) run(ctx context.Context, req *selfEnrollmentRunRequest) error {
+func (r *selfEnrollmentRunState) run(ctx context.Context, req *selfenrollmentrun.Request) error {
 	if req == nil {
 		return nil
 	}
@@ -177,7 +157,7 @@ func (r *selfEnrollmentRunState) run(ctx context.Context, req *selfEnrollmentRun
 		broadcast()
 	})
 
-	for _, soID := range req.ids {
+	for _, soID := range req.IDs {
 		if err := ctx.Err(); err != nil {
 			return err
 		}

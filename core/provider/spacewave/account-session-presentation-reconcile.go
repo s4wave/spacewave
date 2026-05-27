@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
+	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 )
@@ -39,8 +40,7 @@ func (a *ProviderAccount) buildSessionPresentationReconcileStateLocked() *sessio
 	if info == nil {
 		return nil
 	}
-	if !providerAccountStatusAllowsCloudMutation(a.state.status) ||
-		!cloudMutationAllowed(info) {
+	if !accountstatus.CanMutateCloudObjects(a.state.status, info) {
 		return nil
 	}
 

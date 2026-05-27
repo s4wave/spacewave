@@ -7,13 +7,11 @@ import (
 	"hash"
 
 	"github.com/pkg/errors"
-	"github.com/zeebo/blake3"
 )
 
 // SupportedHashTypes is the list of built-in hash types.
 var SupportedHashTypes = []HashType{
 	HashType_HashType_SHA256,
-	HashType_HashType_BLAKE3,
 }
 
 // Validate validates the hash type.
@@ -22,8 +20,6 @@ func (h HashType) Validate() error {
 	case HashType_HashType_UNKNOWN:
 		return nil
 	case HashType_HashType_SHA256:
-		return nil
-	case HashType_HashType_BLAKE3:
 		return nil
 	default:
 		return errors.Errorf("hash type unsupported in goscript: %v", h.String())
@@ -35,8 +31,6 @@ func (h HashType) GetHashLen() int {
 	switch h {
 	case HashType_HashType_SHA256:
 		return sha256.Size
-	case HashType_HashType_BLAKE3:
-		return 32
 	}
 	return 0
 }
@@ -46,8 +40,6 @@ func (h HashType) BuildHasher() (hash.Hash, error) {
 	switch h {
 	case HashType_HashType_SHA256:
 		return sha256.New(), nil
-	case HashType_HashType_BLAKE3:
-		return blake3.New(), nil
 	default:
 		return nil, errors.Errorf("hash type unsupported in goscript: %v", h.String())
 	}

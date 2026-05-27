@@ -21,7 +21,10 @@ import (
 	"github.com/pkg/errors"
 	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
+	"github.com/s4wave/spacewave/core/provider/spacewave/entitykeystore"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	"github.com/s4wave/spacewave/core/provider/spacewave/syncprogress"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -52,148 +55,22 @@ func readResponseBody(resp *http.Response) ([]byte, error) {
 	return body, nil
 }
 
-// cloudError is a structured error from the Spacewave cloud API.
-type cloudError struct {
-	// StatusCode is the HTTP status code.
-	StatusCode int
-	// Code is the error code from the cloud.
-	Code string
-	// Message is the human-readable error message.
-	Message string
-	// Retryable indicates whether the client should retry.
-	Retryable bool
-	// RetryAfterSeconds is the suggested retry delay.
-	RetryAfterSeconds uint32
-}
-
-// Error returns a string representation of the cloud error.
-func (e *cloudError) Error() string {
-	msg := strconv.Itoa(e.StatusCode) + " " + e.Code + ": " + e.Message
-	if e.RetryAfterSeconds > 0 {
-		msg += " [retry_after=" + strconv.FormatUint(uint64(e.RetryAfterSeconds), 10) + "]"
-	}
-	return msg
-}
-
-// unauthCodes are error codes indicating the session key is stale but the
-// account still exists. These are recoverable via reauthentication.
-var unauthCodes = map[string]bool{
-	"unknown_session":   true,
-	"invalid_signature": true,
-	"unknown_keypair":   true,
-}
-
-// refreshableWriteTicketCodes are error codes indicating a write ticket is
-// stale, expired, or otherwise refreshable without full session
-// reauthentication. These are handled by write-ticket refresh-and-retry paths,
-// not by the account deletion or session reauthentication flows.
-var refreshableWriteTicketCodes = map[string]bool{
-	"invalid_write_ticket":               true,
-	"expired_write_ticket":               true,
-	"stale_write_ticket":                 true,
-	"stale_session_account_write_ticket": true,
-	"stale_resource_write_ticket":        true,
-}
-
-// deletedCodes are error codes indicating the account itself is gone.
-// These are permanent and trigger the account deletion cascade.
-var deletedCodes = map[string]bool{
-	"account_not_found": true,
-	"invalid_peer_id":   true,
-	"unknown_entity":    true,
-}
-
-// blockedCodes are error codes indicating a resource is blocked (e.g. DMCA
-// takedown). These are permanent until manually retried by the user.
-var blockedCodes = map[string]bool{
-	"dmca_blocked": true,
-}
-
-// permanentCodes is the union of unauthCodes, deletedCodes, and blockedCodes.
-var permanentCodes = func() map[string]bool {
-	m := make(map[string]bool, len(unauthCodes)+len(deletedCodes)+len(blockedCodes))
-	for k := range unauthCodes {
-		m[k] = true
-	}
-	for k := range deletedCodes {
-		m[k] = true
-	}
-	for k := range blockedCodes {
-		m[k] = true
-	}
-	return m
-}()
-
-// parseCloudError parses a cloud API error response body into a cloudError.
-func parseCloudError(statusCode int, body []byte) *cloudError {
-	ce := &cloudError{StatusCode: statusCode}
-	var resp api.ErrorResponse
-	if err := resp.UnmarshalJSON(body); err == nil {
-		ce.Code = resp.GetCode()
-		ce.Message = resp.GetMessage()
-		ce.Retryable = resp.GetRetryable()
-		ce.RetryAfterSeconds = resp.GetRetryAfterSeconds()
-	}
-	if permanentCodes[ce.Code] {
-		ce.Retryable = false
-	}
-	return ce
-}
+type cloudError = clouderror.Error
 
 // parseCloudResponseError parses a cloud API error response and retry hints.
 func parseCloudResponseError(resp *http.Response, body []byte) *cloudError {
-	ce := parseCloudError(resp.StatusCode, body)
-	headerDelay := parseRetryAfterHeader(resp.Header.Get("Retry-After"), time.Now())
-	if headerDelay <= 0 {
-		return ce
-	}
-	headerSeconds := uint32(headerDelay / time.Second)
-	if headerDelay%time.Second != 0 {
-		headerSeconds++
-	}
-	if headerSeconds > ce.RetryAfterSeconds {
-		ce.RetryAfterSeconds = headerSeconds
-	}
-	return ce
-}
-
-// parseRetryAfterHeader parses a Retry-After header as delay seconds or date.
-func parseRetryAfterHeader(header string, now time.Time) time.Duration {
-	header = strings.TrimSpace(header)
-	if header == "" {
-		return 0
-	}
-	seconds, err := strconv.ParseUint(header, 10, 32)
-	if err == nil {
-		return time.Duration(seconds) * time.Second
-	}
-	at, err := http.ParseTime(header)
-	if err != nil {
-		return 0
-	}
-	if !at.After(now) {
-		return 0
-	}
-	return at.Sub(now)
+	return clouderror.ParseResponse(resp, body)
 }
 
 // isNonRetryableCloudError checks if an error is a non-retryable cloud error.
 func isNonRetryableCloudError(err error) bool {
-	var ce *cloudError
-	if errors.As(err, &ce) {
-		return !ce.Retryable
-	}
-	return false
+	return clouderror.IsNonRetryable(err)
 }
 
 // isUnauthCloudError checks if an error indicates a stale session key
 // (recoverable via reauthentication) as opposed to a deleted account.
 func isUnauthCloudError(err error) bool {
-	var ce *cloudError
-	if errors.As(err, &ce) {
-		return unauthCodes[ce.Code]
-	}
-	return false
+	return clouderror.IsUnauth(err)
 }
 
 // isAccountDeletedCloudError checks if an error indicates the account is gone
@@ -201,54 +78,27 @@ func isUnauthCloudError(err error) bool {
 // run. This is strictly narrower than isNonRetryableCloudError: only codes
 // in deletedCodes qualify, not arbitrary non-retryable responses.
 func isAccountDeletedCloudError(err error) bool {
-	var ce *cloudError
-	if errors.As(err, &ce) {
-		return deletedCodes[ce.Code]
-	}
-	return false
+	return clouderror.IsAccountDeleted(err)
 }
 
 // isRefreshableWriteTicketCloudError checks if an error indicates a
 // write-ticket-specific refresh path should run instead of full
 // reauthentication.
 func isRefreshableWriteTicketCloudError(err error) bool {
-	var ce *cloudError
-	if errors.As(err, &ce) {
-		return refreshableWriteTicketCodes[ce.Code]
-	}
-	return false
+	return clouderror.IsRefreshableWriteTicket(err)
 }
 
 // isBlockedCloudError checks if an error indicates a resource is blocked
 // (e.g. DMCA takedown). These errors are permanent until the user manually
 // retries after the block is lifted.
 func isBlockedCloudError(err error) bool {
-	var ce *cloudError
-	if errors.As(err, &ce) {
-		return blockedCodes[ce.Code]
-	}
-	return false
+	return clouderror.IsBlocked(err)
 }
 
 // isCloudAccessGatedError checks if a cloud error depends on account/resource
 // access state and should wait for an invalidation instead of retrying.
 func isCloudAccessGatedError(err error) bool {
-	var ce *cloudError
-	if !errors.As(err, &ce) {
-		return false
-	}
-	switch ce.Code {
-	case "account_not_found",
-		"account_read_only",
-		"dmca_blocked",
-		"insufficient_role",
-		"rbac_denied",
-		"resource_not_found",
-		"subscription_readonly",
-		"subscription_required":
-		return true
-	}
-	return false
+	return clouderror.IsAccessGated(err)
 }
 
 // isDirtySyncGatedCloudError checks if dirty sync should idle for access state.
@@ -258,8 +108,7 @@ func isDirtySyncGatedCloudError(err error) bool {
 
 // IsCloudErrorStatus returns true when err is a cloud error with the given HTTP status.
 func IsCloudErrorStatus(err error, statusCode int) bool {
-	var ce *cloudError
-	return errors.As(err, &ce) && ce.StatusCode == statusCode
+	return clouderror.IsStatus(err, statusCode)
 }
 
 // WriteTicketProofPayloadFields contains the canonical fields signed for a
@@ -772,19 +621,13 @@ func (c *SignedHTTPClient) doGetBinary(ctx context.Context, path string, reason 
 }
 
 // MultiSigContext is the signing context for multi-sig actions.
-const MultiSigContext = "spacewave 2026-03-19 multi-sig action v2."
+const MultiSigContext = entitykeystore.MultiSigContext
 
 // BuildMultiSigPayload constructs the signing payload for a multi-sig action.
 // The signing payload is: MultiSigContext || Timestamp.toBinary(signedAt) ||
 // envelope. Must produce identical bytes as the TS server.
 func BuildMultiSigPayload(signedAt *timestamppb.Timestamp, envelope []byte) []byte {
-	ctx := []byte(MultiSigContext)
-	ts, _ := signedAt.MarshalVT()
-	payload := make([]byte, 0, len(ctx)+len(ts)+len(envelope))
-	payload = append(payload, ctx...)
-	payload = append(payload, ts...)
-	payload = append(payload, envelope...)
-	return payload
+	return entitykeystore.BuildMultiSigPayload(signedAt, envelope)
 }
 
 // EntityClient uses the entity keypair for registration flows.
@@ -1722,7 +1565,7 @@ func (c *SessionClient) syncPushDataWithProgress(
 			var postErr error
 			var body io.Reader = bytes.NewReader(packData)
 			if progress != nil {
-				body = newSyncPushProgressReader(body, progress)
+				body = syncprogress.NewReader(body, progress)
 			}
 			respData, postErr = c.postSyncPushWithTicket(
 				ctx,

@@ -3,22 +3,12 @@ package bldr_plugin
 import (
 	"strings"
 
-	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/net/util/labels"
+	"github.com/s4wave/spacewave/bldr/plugin/pluginid"
 )
 
 // ValidatePluginID validates a plugin ID.
 func ValidatePluginID(id string, allowEmpty bool) error {
-	if id == "" {
-		if allowEmpty {
-			return nil
-		}
-		return ErrEmptyPluginID
-	}
-	if err := labels.ValidateDNSLabel(id); err != nil {
-		return errors.Wrap(err, "invalid plugin id")
-	}
-	return nil
+	return pluginid.Validate(id, allowEmpty)
 }
 
 // BuildPluginRpcComponentID builds the PluginRpc component id.

@@ -2,18 +2,15 @@ package resource_space
 
 import (
 	"context"
-	"slices"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/ccontainer"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
+	"github.com/s4wave/spacewave/core/resource/space/hostplugin"
+	"github.com/s4wave/spacewave/core/resource/space/sharingstate"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
@@ -80,13 +77,7 @@ func NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 }
 
 func (r *SpaceResource) resolveHostPluginID(ctx context.Context) string {
-	if r.hostPluginID != "" {
-		return r.hostPluginID
-	}
-	if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
-		return info.GetPluginMeta().GetPluginId()
-	}
-	return ""
+	return hostplugin.Resolve(ctx, r.hostPluginID)
 }
 
 // GetMux returns the rpc mux.
@@ -207,21 +198,24 @@ func (r *SpaceResource) WatchSpaceSharingState(
 	}
 	presentationState := loadSharingParticipantPresentationState(ctx, r.le, swAcc, soID)
 
-	state := &sharingWatchState{soState: soState}
+	var mailboxEntries []*sharingstate.MailboxEntry
 	if swAcc != nil {
-		state.mailboxEntries, _ = swAcc.GetPendingMailboxEntriesSnapshot(soID)
+		snapshot, _ := swAcc.GetPendingMailboxEntriesSnapshot(soID)
+		mailboxEntries = sharingMailboxEntriesFromProto(snapshot)
 	}
-	state.participantPresentation = presentationState
+	state := sharingstate.NewState(soState, mailboxEntries, presentationState)
 
 	bridgeCtx, cancelBridges := context.WithCancel(ctx)
 	defer cancelBridges()
-	go state.bridgeSOState(bridgeCtx, soStateCtr)
+	go state.BridgeSOState(bridgeCtx, soStateCtr)
 	if swAcc != nil {
-		go state.bridgeMailbox(bridgeCtx, swAcc, soID)
+		go bridgeSharingMailbox(bridgeCtx, state, swAcc, soID)
 	}
 
 	peerID := r.space.GetSharedObject().GetPeerID().String()
-	return state.runWatchLoop(ctx, peerID, strm.Send)
+	return state.RunWatchLoop(ctx, peerID, func(state *sharingstate.SharingState) error {
+		return strm.Send(sharingStateToProto(state))
+	})
 }
 
 // buildTransformInfo extracts redacted transform info from the shared object state.
@@ -353,52 +347,9 @@ func (r *SpaceResource) MountSpaceContents(
 // _ is a type assertion
 var _ s4wave_space.SRPCSpaceResourceServiceServer = ((*SpaceResource)(nil))
 
-// sharingWatchState carries every input snapshot the sharing watch reads
-// per emission, guarded by a single broadcast so the watch loop reads all
-// of them under the same HoldLock that obtains the wait channel. Both
-// bridge goroutines update fields under HoldLock and broadcast on change;
-// the watch never observes a stale wait channel paired with a fresh source
-// update.
-type sharingWatchState struct {
-	soState                 *sobject.SOState
-	mailboxEntries          []*s4wave_provider_spacewave.MailboxEntryInfo
-	participantPresentation *sharingParticipantPresentationState
-	err                     error
-	bcast                   broadcast.Broadcast
-}
-
-// bridgeSOState forwards SO state container updates into the local broadcast.
-func (s *sharingWatchState) bridgeSOState(
+func bridgeSharingMailbox(
 	ctx context.Context,
-	soStateCtr ccontainer.Watchable[*sobject.SOState],
-) {
-	current := s.soState
-	for {
-		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
-		if err != nil {
-			if ctx.Err() == nil {
-				s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-					if s.err == nil {
-						s.err = err
-					}
-					broadcast()
-				})
-			}
-			return
-		}
-		current = next
-		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			s.soState = next
-			broadcast()
-		})
-	}
-}
-
-// bridgeMailbox forwards account-broadcast wakeups into the local broadcast,
-// snapshotting the per-SO mailbox entries on each update so the watch loop
-// reads them under HoldLock.
-func (s *sharingWatchState) bridgeMailbox(
-	ctx context.Context,
+	state *sharingstate.State,
 	swAcc *provider_spacewave.ProviderAccount,
 	soID string,
 ) {
@@ -414,86 +365,95 @@ func (s *sharingWatchState) bridgeMailbox(
 		case <-waitCh:
 		}
 		entries, _ := swAcc.GetPendingMailboxEntriesSnapshot(soID)
-		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			s.mailboxEntries = entries
-			broadcast()
-		})
+		state.SetMailboxEntries(sharingMailboxEntriesFromProto(entries))
 	}
 }
 
-// runWatchLoop emits a fresh SpaceSharingState whenever any folded source
-// changes. The state and wait channel are read in the same HoldLock so a
-// source update that lands between reading state and selecting on the wait
-// channel cannot be missed: the broadcast in the source bridge replaces
-// the wait channel before the watch loop blocks on it.
-func (s *sharingWatchState) runWatchLoop(
-	ctx context.Context,
-	peerID string,
-	send func(*s4wave_space.SpaceSharingState) error,
-) error {
-	var prevResp *s4wave_space.SpaceSharingState
-	for {
-		var (
-			resp      *s4wave_space.SpaceSharingState
-			bridgeErr error
-			waitCh    <-chan struct{}
-		)
-		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			bridgeErr = s.err
-			viewerRole := getViewerRole(s.soState, peerID)
-			resp = &s4wave_space.SpaceSharingState{
-				Participants:   s.soState.GetConfig().GetParticipants(),
-				Invites:        s.soState.GetInvites(),
-				MailboxEntries: s.mailboxEntries,
-				ViewerRole:     viewerRole,
-				CanManage:      sobject.IsOwner(viewerRole),
-				ParticipantInfo: buildSpaceParticipantInfo(
-					s.soState,
-					peerID,
-					s.participantPresentation,
-				),
-			}
-			waitCh = getWaitCh()
-		})
-		if bridgeErr != nil {
-			return bridgeErr
-		}
-		if prevResp == nil || !resp.EqualVT(prevResp) {
-			if err := send(resp); err != nil {
-				return err
-			}
-			prevResp = resp
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-waitCh:
-		}
+func sharingStateToProto(state *sharingstate.SharingState) *s4wave_space.SpaceSharingState {
+	if state == nil {
+		return nil
+	}
+	return &s4wave_space.SpaceSharingState{
+		Participants:    state.Participants,
+		Invites:         state.Invites,
+		MailboxEntries:  sharingMailboxEntriesToProto(state.MailboxEntries),
+		ViewerRole:      state.ViewerRole,
+		CanManage:       state.CanManage,
+		ParticipantInfo: sharingParticipantInfoToProto(state.ParticipantInfo),
 	}
 }
 
-// getViewerRole returns the current viewer's effective participant role.
-func getViewerRole(state *sobject.SOState, peerID string) sobject.SOParticipantRole {
-	if state == nil || peerID == "" {
-		return sobject.SOParticipantRole_SOParticipantRole_UNKNOWN
+func sharingMailboxEntriesFromProto(
+	entries []*s4wave_provider_spacewave.MailboxEntryInfo,
+) []*sharingstate.MailboxEntry {
+	if len(entries) == 0 {
+		return nil
 	}
-
-	role := sobject.SOParticipantRole_SOParticipantRole_UNKNOWN
-	for _, participant := range state.GetConfig().GetParticipants() {
-		if participant.GetPeerId() != peerID {
+	out := make([]*sharingstate.MailboxEntry, 0, len(entries))
+	for _, entry := range entries {
+		if entry == nil {
+			out = append(out, nil)
 			continue
 		}
-		if participant.GetRole() > role {
-			role = participant.GetRole()
-		}
+		out = append(out, &sharingstate.MailboxEntry{
+			ID:        entry.GetId(),
+			InviteID:  entry.GetInviteId(),
+			PeerID:    entry.GetPeerId(),
+			Status:    entry.GetStatus(),
+			CreatedAt: entry.GetCreatedAt(),
+			AccountID: entry.GetAccountId(),
+			EntityID:  entry.GetEntityId(),
+		})
 	}
-	return role
+	return out
 }
 
-type sharingParticipantPresentationState struct {
-	selfAccountID string
-	selfEntityID  string
-	accountLabels map[string]string
+func sharingMailboxEntriesToProto(
+	entries []*sharingstate.MailboxEntry,
+) []*s4wave_provider_spacewave.MailboxEntryInfo {
+	if len(entries) == 0 {
+		return nil
+	}
+	out := make([]*s4wave_provider_spacewave.MailboxEntryInfo, 0, len(entries))
+	for _, entry := range entries {
+		if entry == nil {
+			out = append(out, nil)
+			continue
+		}
+		out = append(out, &s4wave_provider_spacewave.MailboxEntryInfo{
+			Id:        entry.ID,
+			InviteId:  entry.InviteID,
+			PeerId:    entry.PeerID,
+			Status:    entry.Status,
+			CreatedAt: entry.CreatedAt,
+			AccountId: entry.AccountID,
+			EntityId:  entry.EntityID,
+		})
+	}
+	return out
+}
+
+func sharingParticipantInfoToProto(
+	info []*sharingstate.ParticipantInfo,
+) []*s4wave_space.SpaceParticipantInfo {
+	if len(info) == 0 {
+		return nil
+	}
+	out := make([]*s4wave_space.SpaceParticipantInfo, 0, len(info))
+	for _, row := range info {
+		if row == nil {
+			out = append(out, nil)
+			continue
+		}
+		out = append(out, &s4wave_space.SpaceParticipantInfo{
+			AccountId: row.AccountID,
+			EntityId:  row.EntityID,
+			PeerIds:   row.PeerIDs,
+			Role:      row.Role,
+			IsSelf:    row.IsSelf,
+		})
+	}
+	return out
 }
 
 func loadSharingParticipantPresentationState(
@@ -501,15 +461,15 @@ func loadSharingParticipantPresentationState(
 	le *logrus.Entry,
 	swAcc *provider_spacewave.ProviderAccount,
 	soID string,
-) *sharingParticipantPresentationState {
-	state := &sharingParticipantPresentationState{}
+) *sharingstate.ParticipantPresentation {
+	state := &sharingstate.ParticipantPresentation{}
 	if swAcc == nil {
 		return state
 	}
 
 	if accountState := swAcc.AccountStateSnapshot(); accountState != nil {
-		state.selfAccountID = accountState.GetAccountId()
-		state.selfEntityID = accountState.GetEntityId()
+		state.SelfAccountID = accountState.GetAccountId()
+		state.SelfEntityID = accountState.GetEntityId()
 	}
 
 	if soID == "" {
@@ -538,100 +498,14 @@ func loadSharingParticipantPresentationState(
 		return state
 	}
 
-	state.accountLabels = make(map[string]string, len(orgInfo.GetMembers()))
+	state.AccountLabels = make(map[string]string, len(orgInfo.GetMembers()))
 	for _, member := range orgInfo.GetMembers() {
 		accountID := member.GetSubjectId()
 		entityID := member.GetEntityId()
 		if accountID == "" || entityID == "" {
 			continue
 		}
-		state.accountLabels[accountID] = entityID
+		state.AccountLabels[accountID] = entityID
 	}
 	return state
-}
-
-func buildSpaceParticipantInfo(
-	soState *sobject.SOState,
-	selfPeerID string,
-	presentation *sharingParticipantPresentationState,
-) []*s4wave_space.SpaceParticipantInfo {
-	if soState == nil || soState.GetConfig() == nil {
-		return nil
-	}
-
-	participants := soState.GetConfig().GetParticipants()
-	if len(participants) == 0 {
-		return nil
-	}
-
-	rows := make(map[string]*s4wave_space.SpaceParticipantInfo, len(participants))
-	keys := make([]string, 0, len(participants))
-	for _, participant := range participants {
-		peerID := participant.GetPeerId()
-		if peerID == "" {
-			continue
-		}
-
-		accountID := participant.GetEntityId()
-		key := accountID
-		if key == "" {
-			key = "peer:" + peerID
-		}
-
-		row := rows[key]
-		if row == nil {
-			row = &s4wave_space.SpaceParticipantInfo{
-				AccountId: accountID,
-				Role:      participant.GetRole(),
-			}
-			if accountID != "" && presentation != nil {
-				if label := presentation.accountLabels[accountID]; label != "" {
-					row.EntityId = label
-				}
-				if accountID == presentation.selfAccountID && presentation.selfEntityID != "" {
-					row.EntityId = presentation.selfEntityID
-				}
-			}
-			rows[key] = row
-			keys = append(keys, key)
-		}
-
-		if participant.GetRole() > row.GetRole() {
-			row.Role = participant.GetRole()
-		}
-		row.PeerIds = append(row.GetPeerIds(), peerID)
-		if peerID == selfPeerID {
-			row.IsSelf = true
-		}
-	}
-
-	if len(keys) == 0 {
-		return nil
-	}
-
-	slices.SortStableFunc(keys, func(a, b string) int {
-		return strings.Compare(participantSortLabel(rows[a]), participantSortLabel(rows[b]))
-	})
-
-	out := make([]*s4wave_space.SpaceParticipantInfo, 0, len(keys))
-	for _, key := range keys {
-		out = append(out, rows[key])
-	}
-	return out
-}
-
-func participantSortLabel(info *s4wave_space.SpaceParticipantInfo) string {
-	if info == nil {
-		return ""
-	}
-	if info.GetEntityId() != "" {
-		return info.GetEntityId()
-	}
-	if info.GetAccountId() != "" {
-		return info.GetAccountId()
-	}
-	if len(info.GetPeerIds()) != 0 {
-		return info.GetPeerIds()[0]
-	}
-	return ""
 }

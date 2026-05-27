@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package resource_account
 
 import (

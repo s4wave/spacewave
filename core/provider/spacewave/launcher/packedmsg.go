@@ -269,3 +269,23 @@ func ParseDistConfigPackedMsg(le *logrus.Entry, data []byte, distPeerIDs []peer.
 	}
 	return conf, confMsg, confPeer, err
 }
+
+// ResolvePushedDistConfig parses a pushed DistConfig and reports whether it
+// should replace the currently active revision.
+func ResolvePushedDistConfig(
+	le *logrus.Entry,
+	body []byte,
+	distPeerIDs []peer.ID,
+	projectID string,
+	currentRev uint64,
+) (*DistConfig, string, peer.ID, bool, error) {
+	distConf, distConfMsg, distConfPeer, err := ParseDistConfigPackedMsg(le, body, distPeerIDs, projectID)
+	rev := distConf.GetRev()
+	if err != nil || rev == 0 {
+		return distConf, distConfMsg, distConfPeer, false, err
+	}
+	if rev <= currentRev {
+		return distConf, distConfMsg, distConfPeer, false, nil
+	}
+	return distConf, distConfMsg, distConfPeer, true, nil
+}

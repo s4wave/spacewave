@@ -3,47 +3,24 @@ package provider_spacewave
 import (
 	"context"
 
-	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/orgstatecache"
 )
 
-type organizationSnapshot struct {
-	info    *api.GetOrgResponse
-	invites *api.ListOrgInvitesResponse
-	roleID  string
-}
-
-// getOrganizationSnapshotRcLocked returns the org snapshot cache for orgID.
-func (a *ProviderAccount) getOrganizationSnapshotRcLocked(
-	orgID string,
-) *refcount.RefCount[*organizationSnapshot] {
-	if orgID == "" {
-		return nil
+// getOrganizationStateCacheLocked returns the organization state cache.
+func (a *ProviderAccount) getOrganizationStateCacheLocked() *orgstatecache.Store {
+	if a.orgStateCache == nil {
+		a.orgStateCache = orgstatecache.NewStore(snapshotRefCountOptions)
 	}
-	return getOrCreateSnapshotRefCount(
-		&a.orgSnapshotRcs,
-		orgID,
-		func(ctx context.Context, key string, released func()) (*organizationSnapshot, func(), error) {
-			return a.resolveOrganizationSnapshot(ctx, key, released)
-		},
-	)
+	return a.orgStateCache
 }
 
 // invalidateOrganizationSnapshotsLocked invalidates one or all org snapshots.
 func (a *ProviderAccount) invalidateOrganizationSnapshotsLocked(orgID string) {
-	if orgID == "" {
-		for _, rc := range a.orgSnapshotRcs {
-			rc.Invalidate()
-		}
-		return
+	if a.orgStateCache != nil {
+		a.orgStateCache.Invalidate(orgID)
 	}
-
-	rc := a.getOrganizationSnapshotRcLocked(orgID)
-	if rc == nil {
-		return
-	}
-	rc.Invalidate()
 }
 
 // InvalidateOrganizationState invalidates a cached organization snapshot.
@@ -63,51 +40,23 @@ func (a *ProviderAccount) GetOrganizationSnapshot(
 		return nil, nil, "", errors.New("organization id is required")
 	}
 
-	var rc *refcount.RefCount[*organizationSnapshot]
+	var cache *orgstatecache.Store
 	a.orgBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		rc = a.getOrganizationSnapshotRcLocked(orgID)
+		cache = a.getOrganizationStateCacheLocked()
 	})
-	snapshot, rel, err := rc.Resolve(ctx)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	defer rel()
-	if snapshot == nil || snapshot.info == nil {
-		return nil, nil, "", errors.New("organization snapshot not available")
-	}
-	var invites *api.ListOrgInvitesResponse
-	if snapshot.invites != nil {
-		invites = snapshot.invites.CloneVT()
-	}
-	return snapshot.info.CloneVT(), invites, snapshot.roleID, nil
+	return cache.Get(ctx, orgID, a.GetSessionClient(), a.getOrganizationRole)
 }
 
-// resolveOrganizationSnapshot fetches an org detail snapshot from the cloud.
-func (a *ProviderAccount) resolveOrganizationSnapshot(
+// getOrganizationRole returns the cached or fetched role for an organization.
+func (a *ProviderAccount) getOrganizationRole(
 	ctx context.Context,
 	orgID string,
-	_ func(),
-) (*organizationSnapshot, func(), error) {
-	cli := a.GetSessionClient()
-	if cli == nil {
-		return nil, nil, errors.New("session client not available")
-	}
-
-	data, err := cli.GetOrganization(ctx, orgID)
-	if err != nil {
-		return nil, nil, err
-	}
-	info := &api.GetOrgResponse{}
-	if err := info.UnmarshalVT(data); err != nil {
-		return nil, nil, errors.Wrap(err, "unmarshal org info")
-	}
-
-	var roleID string
+) (string, error) {
 	orgSummary := a.GetCachedOrganization(orgID)
 	if orgSummary == nil {
 		orgs, err := a.getOrganizationList(ctx)
 		if err != nil {
-			return nil, nil, err
+			return "", err
 		}
 		for _, org := range orgs {
 			if org.GetId() == orgID {
@@ -117,27 +66,7 @@ func (a *ProviderAccount) resolveOrganizationSnapshot(
 		}
 	}
 	if orgSummary != nil {
-		roleID = orgSummary.GetRole()
+		return orgSummary.GetRole(), nil
 	}
-
-	var invites *api.ListOrgInvitesResponse
-	if roleID == "owner" || roleID == "org:owner" {
-		inviteData, err := cli.ListOrgInvites(ctx, orgID)
-		if err != nil {
-			return nil, nil, err
-		}
-		invites = &api.ListOrgInvitesResponse{}
-		if err := invites.UnmarshalVT(inviteData); err != nil {
-			return nil, nil, errors.Wrap(err, "unmarshal invite list")
-		}
-	}
-
-	if invites == nil {
-		invites = &api.ListOrgInvitesResponse{}
-	}
-	return &organizationSnapshot{
-		info:    info,
-		invites: invites,
-		roleID:  roleID,
-	}, nil, nil
+	return "", nil
 }

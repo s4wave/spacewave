@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package kvtx_block_okra
 
 import (

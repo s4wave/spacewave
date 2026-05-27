@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package store
 
 import (
@@ -7,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -1369,6 +1368,10 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 // produces a recoverable miss: the failed record is discarded and a later
 // GetBlock retries transport.
 func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("GoScript runtime currently cannot complete this background verify retry path within the package-test budget")
+	}
+
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	tail := mustReadIndexTail(t, packBytes)

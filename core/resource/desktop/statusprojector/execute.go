@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
+	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/logpolicy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/sirupsen/logrus"
@@ -127,10 +128,10 @@ func logDesktopTrayProjection(
 		"activity":        len(current.GetActivity()),
 		"attention-items": len(current.GetAttentionItems()),
 	})
-	decision := classifyDesktopTrayProjectionLog(prev, current, changed)
-	if decision.level == desktopTrayProjectionLogInfo {
-		entry.Info(decision.message)
+	decision := logpolicy.Classify(prev, current, changed)
+	if decision.Level == logpolicy.LevelInfo {
+		entry.Info(decision.Message)
 		return
 	}
-	entry.Debug(decision.message)
+	entry.Debug(decision.Message)
 }

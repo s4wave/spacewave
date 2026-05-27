@@ -102,7 +102,7 @@ func BuildJoinResponse(inviteID string, privKey crypto.PrivKey) (*sobject.SOJoin
 		return nil, errors.Wrap(err, "marshal join response for signing")
 	}
 
-	sig, err := peer.NewSignature("sobject join response", privKey, hash.HashType_HashType_BLAKE3, signData, true)
+	sig, err := peer.NewSignature("sobject join response", privKey, hash.RecommendedHashType, signData, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "sign join response")
 	}
