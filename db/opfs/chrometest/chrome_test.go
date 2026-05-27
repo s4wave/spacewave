@@ -1472,6 +1472,68 @@ self.__BLDR_TINYGO_UNBOX_VALUE = (go, rawRef) => {
   }
   return value
 }
+self.__BLDR_TINYGO_BOX_VALUE = (go, value) => {
+  const nanHead = 0x7ff80000n
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) {
+      return nanHead << 32n
+    }
+    if (value === 0) {
+      return (nanHead << 32n) | 1n
+    }
+    const buf = new ArrayBuffer(8)
+    const view = new DataView(buf)
+    view.setFloat64(0, value, true)
+    return view.getBigInt64(0, true)
+  }
+  switch (value) {
+    case undefined:
+      return 0n
+    case null:
+      return (nanHead << 32n) | 2n
+    case true:
+      return (nanHead << 32n) | 3n
+    case false:
+      return (nanHead << 32n) | 4n
+  }
+  if (!go._values || !go._ids || !go._goRefCounts || !go._idPool) {
+    throw new Error('TinyGo js.Value table is not initialized')
+  }
+  let id = go._ids.get(value)
+  if (id === undefined) {
+    id = go._idPool.pop()
+    if (id === undefined) {
+      id = BigInt(go._values.length)
+    }
+    const index = Number(id)
+    go._values[index] = value
+    go._goRefCounts[index] = 0
+    go._ids.set(value, id)
+  }
+  go._goRefCounts[Number(id)]++
+  let typeFlag = 1n
+  switch (typeof value) {
+    case 'string':
+      typeFlag = 2n
+      break
+    case 'symbol':
+      typeFlag = 3n
+      break
+    case 'function':
+      typeFlag = 4n
+      break
+  }
+  return id | ((nanHead | typeFlag) << 32n)
+}
+self.__BLDR_TINYGO_OPFS_RESOLVE_REF = (opID, value) => {
+  const go = self.__BLDR_TINYGO_CURRENT_GO
+  const ref = self.__BLDR_TINYGO_BOX_VALUE(go, value)
+  self.__BLDR_TINYGO_OPFS_RESOLVE(
+    opID,
+    Number((ref >> 32n) & 0xffffffffn),
+    Number(ref & 0xffffffffn),
+  )
+}
 self.__BLDR_TINYGO_DEFER_QUEUE = []
 self.__BLDR_TINYGO_DEFER_SCHEDULED = false
 self.__BLDR_TINYGO_DEFER_CHANNEL = new MessageChannel()
@@ -1793,6 +1855,72 @@ self.onmessage = async (event) => {
     go.importObject.gojs['bldr.opfs.releaseWebLock'] ??= (releaseID) => {
       return self.__BLDR_TINYGO_RELEASE_WEB_LOCK(releaseID)
     }
+    go.importObject.gojs['bldr.opfs.getRootRef'] ??= (opID) => {
+      self.navigator.storage.getDirectory()
+        .then((dir) => self.__BLDR_TINYGO_OPFS_RESOLVE_REF(opID, dir))
+        .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    }
+    go.importObject.gojs['bldr.opfs.getDirectoryRef'] ??= (opID, parentRef, namePtr, nameLen, create) => {
+      const parent = self.__BLDR_TINYGO_UNBOX_VALUE(go, parentRef)
+      const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      parent.getDirectoryHandle(name, { create: Boolean(create) })
+        .then((dir) => self.__BLDR_TINYGO_OPFS_RESOLVE_REF(opID, dir))
+        .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    }
+    go.importObject.gojs['bldr.opfs.openFileRef'] ??= (opID, dirRef, namePtr, nameLen, create) => {
+      const dir = self.__BLDR_TINYGO_UNBOX_VALUE(go, dirRef)
+      const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      const opts = create ? { create: true } : undefined
+      const filePromise = opts ? dir.getFileHandle(name, opts) : dir.getFileHandle(name)
+      filePromise
+        .then((handle) => self.__BLDR_TINYGO_OPFS_RESOLVE_REF(opID, handle))
+        .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    }
+    go.importObject.gojs['bldr.opfs.fileExistsRef'] ??= (opID, dirRef, namePtr, nameLen) => {
+      const dir = self.__BLDR_TINYGO_UNBOX_VALUE(go, dirRef)
+      const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      dir.getFileHandle(name)
+        .then(() => self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 1))
+        .catch((reason) => {
+          const code = self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)
+          if (code === 1) {
+            self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 0)
+            return
+          }
+          self.__BLDR_TINYGO_OPFS_REJECT(opID, code)
+        })
+    }
+    go.importObject.gojs['bldr.opfs.deleteEntryRef'] ??= (opID, dirRef, namePtr, nameLen, recursive) => {
+      const dir = self.__BLDR_TINYGO_UNBOX_VALUE(go, dirRef)
+      const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      dir.removeEntry(name, { recursive: Boolean(recursive) })
+        .then(() => self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 1))
+        .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    }
+    go.importObject.gojs['bldr.opfs.yieldMicrotask'] ??= (opID) => {
+      queueMicrotask(() => self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 1))
+    }
+    go.importObject.gojs['bldr.opfs.sizeRef'] ??= (opID, handleRef) => {
+      const handle = self.__BLDR_TINYGO_UNBOX_VALUE(go, handleRef)
+      handle.getFile()
+        .then((file) => self.__BLDR_TINYGO_OPFS_RESOLVE(opID, file.size))
+        .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    }
+    go.importObject.gojs['bldr.opfs.truncateRef'] ??= (opID, handleRef, size) => {
+      const handle = self.__BLDR_TINYGO_UNBOX_VALUE(go, handleRef)
+      let writable
+      handle.createWritable({ keepExistingData: true })
+        .then(async (next) => {
+          writable = next
+          await writable.truncate(Number(size))
+          await writable.close()
+          self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 1)
+        })
+        .catch((reason) => {
+          self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY(writable)
+          self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
+        })
+    }
     go.importObject.gojs['bldr.opfs.takeStoredBytes'] ??= (bytesID, ptr, len) => {
       const bytes = self.BLDR_TINYGO_TAKE_STORED_BYTES(bytesID)
       if (!bytes || bytes.byteLength !== len) {
@@ -1937,6 +2065,31 @@ self.onmessage = async (event) => {
       }
       self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY(session.writable)
       return 1
+    }
+    go.importObject.gojs['bldr.opfs.broadcastChannelNewRef'] ??= (namePtr, nameLen) => {
+      const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      return self.__BLDR_TINYGO_BOX_VALUE(go, new BroadcastChannel(name))
+    }
+    go.importObject.gojs['bldr.opfs.broadcastSendRef'] ??= (channelRef, shardID, generationHi, generationLo) => {
+      const channel = self.__BLDR_TINYGO_UNBOX_VALUE(go, channelRef)
+      const msg = new Uint8Array(10)
+      const sid = shardID & 0xffff
+      const hi = generationHi >>> 0
+      const lo = generationLo >>> 0
+      msg[0] = (sid >>> 8) & 0xff
+      msg[1] = sid & 0xff
+      msg[2] = (hi >>> 24) & 0xff
+      msg[3] = (hi >>> 16) & 0xff
+      msg[4] = (hi >>> 8) & 0xff
+      msg[5] = hi & 0xff
+      msg[6] = (lo >>> 24) & 0xff
+      msg[7] = (lo >>> 16) & 0xff
+      msg[8] = (lo >>> 8) & 0xff
+      msg[9] = lo & 0xff
+      channel.postMessage(msg)
+    }
+    go.importObject.gojs['bldr.opfs.broadcastCloseRef'] ??= (channelRef) => {
+      self.__BLDR_TINYGO_UNBOX_VALUE(go, channelRef).close()
     }
   }
   const res = await WebAssembly.instantiateStreaming(fetch('/testprog.wasm'), go.importObject)

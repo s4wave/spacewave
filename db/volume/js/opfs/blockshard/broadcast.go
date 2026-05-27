@@ -60,6 +60,11 @@ func (b *Broadcaster) Send(shardID int, generation uint64) {
 		ShardID:    uint16(shardID),
 		Generation: generation,
 	}
+	if useTinyGoBroadcastHelpers() {
+		sendTinyGoBroadcast(b.channel, int(msg.ShardID), msg.Generation)
+		return
+	}
+
 	send := js.Global().Get(bldrOPFSBroadcastSend)
 	if jsFuncAvailable(send) {
 		send.Invoke(
@@ -187,8 +192,12 @@ func (l *Listener) Close() {
 }
 
 func newBroadcastChannel(scope string) js.Value {
-	newChannel := js.Global().Get(bldrOPFSBroadcastChannelNew)
 	name := scopedBroadcastChannelName(scope)
+	if useTinyGoBroadcastHelpers() {
+		return newTinyGoBroadcastChannel(name)
+	}
+
+	newChannel := js.Global().Get(bldrOPFSBroadcastChannelNew)
 	if jsFuncAvailable(newChannel) {
 		return newChannel.Invoke(name)
 	}
@@ -206,6 +215,11 @@ func scopedBroadcastChannelName(scope string) string {
 }
 
 func closeBroadcastChannel(channel js.Value) {
+	if useTinyGoBroadcastHelpers() {
+		closeTinyGoBroadcastChannel(channel)
+		return
+	}
+
 	closeChannel := js.Global().Get(bldrOPFSBroadcastClose)
 	if jsFuncAvailable(closeChannel) {
 		closeChannel.Invoke(channel)

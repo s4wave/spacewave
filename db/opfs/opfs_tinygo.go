@@ -18,6 +18,30 @@ import (
 //go:wasmimport gojs bldr.opfs.takeStoredBytes
 func tinyGoOPFSTakeStoredBytes(bytesID uint32, ptr unsafe.Pointer, len uint32) uint32
 
+//go:wasmimport gojs bldr.opfs.getRootRef
+func tinyGoOPFSGetRootRef(opID uint32)
+
+//go:wasmimport gojs bldr.opfs.getDirectoryRef
+func tinyGoOPFSGetDirectoryRef(opID uint32, parentRef uint64, namePtr unsafe.Pointer, nameLen uint32, create uint32)
+
+//go:wasmimport gojs bldr.opfs.openFileRef
+func tinyGoOPFSOpenFileRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32, create uint32)
+
+//go:wasmimport gojs bldr.opfs.fileExistsRef
+func tinyGoOPFSFileExistsRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32)
+
+//go:wasmimport gojs bldr.opfs.deleteEntryRef
+func tinyGoOPFSDeleteEntryRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32, recursive uint32)
+
+//go:wasmimport gojs bldr.opfs.yieldMicrotask
+func tinyGoOPFSYieldMicrotask(opID uint32)
+
+//go:wasmimport gojs bldr.opfs.sizeRef
+func tinyGoOPFSSizeRef(opID uint32, handleRef uint64)
+
+//go:wasmimport gojs bldr.opfs.truncateRef
+func tinyGoOPFSTruncateRef(opID uint32, handleRef uint64, size int64)
+
 //go:wasmimport gojs bldr.opfs.readFileRef
 func tinyGoOPFSReadFileRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32)
 
@@ -52,6 +76,11 @@ func tinyGoJSRef(value js.Value) uint64 {
 	return (*tinyGoJSValue)(unsafe.Pointer(&value)).ref
 }
 
+func tinyGoJSValueFromRef(ref uint64) js.Value {
+	value := tinyGoJSValue{ref: ref}
+	return *(*js.Value)(unsafe.Pointer(&value))
+}
+
 func tinyGoBytesPtr(bytes []byte) unsafe.Pointer {
 	if len(bytes) == 0 {
 		return nil
@@ -66,6 +95,21 @@ func tinyGoBoolUint32(value bool) uint32 {
 	return 0
 }
 
+func tinyGoRefFromValues(values []int) (uint64, error) {
+	if len(values) < 2 {
+		return 0, errors.New("opfs helper returned incomplete js.Value ref")
+	}
+	return uint64(uint32(values[0]))<<32 | uint64(uint32(values[1])), nil
+}
+
+func tinyGoValueFromValues(values []int) (js.Value, error) {
+	ref, err := tinyGoRefFromValues(values)
+	if err != nil {
+		return js.Undefined(), err
+	}
+	return tinyGoJSValueFromRef(ref), nil
+}
+
 func tinyGoCopyStoredBytes(id, size int) ([]byte, error) {
 	if size == 0 {
 		if tinyGoOPFSTakeStoredBytes(uint32(id), nil, 0) == 0 {
@@ -78,6 +122,86 @@ func tinyGoCopyStoredBytes(id, size int) ([]byte, error) {
 		return nil, errors.New("opfs stored byte helper unavailable")
 	}
 	return buf, nil
+}
+
+func getRootWithTinyGoImport() (js.Value, error) {
+	values, err := invokeOPFSHelper(func(opID int) {
+		tinyGoOPFSGetRootRef(uint32(opID))
+	})
+	if err != nil {
+		return js.Undefined(), err
+	}
+	return tinyGoValueFromValues(values)
+}
+
+func getDirectoryWithTinyGoImport(parent js.Value, name string, create bool) (js.Value, error) {
+	nameBytes := []byte(name)
+	values, err := invokeOPFSHelper(func(opID int) {
+		tinyGoOPFSGetDirectoryRef(uint32(opID), tinyGoJSRef(parent), tinyGoBytesPtr(nameBytes), uint32(len(nameBytes)), tinyGoBoolUint32(create))
+		runtime.KeepAlive(nameBytes)
+	})
+	if err != nil {
+		return js.Undefined(), err
+	}
+	return tinyGoValueFromValues(values)
+}
+
+func openAsyncFileWithTinyGoImport(dir js.Value, name string, create bool) (*AsyncFile, error) {
+	nameBytes := []byte(name)
+	values, err := invokeOPFSHelper(func(opID int) {
+		tinyGoOPFSOpenFileRef(uint32(opID), tinyGoJSRef(dir), tinyGoBytesPtr(nameBytes), uint32(len(nameBytes)), tinyGoBoolUint32(create))
+		runtime.KeepAlive(nameBytes)
+	})
+	if err != nil {
+		return nil, err
+	}
+	handle, err := tinyGoValueFromValues(values)
+	if err != nil {
+		return nil, err
+	}
+	return &AsyncFile{name: name, handle: handle}, nil
+}
+
+func fileExistsWithTinyGoImport(dir js.Value, name string) (bool, error) {
+	nameBytes := []byte(name)
+	exists, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSFileExistsRef(uint32(opID), tinyGoJSRef(dir), tinyGoBytesPtr(nameBytes), uint32(len(nameBytes)))
+		runtime.KeepAlive(nameBytes)
+	})
+	if err != nil {
+		return false, err
+	}
+	return exists != 0, nil
+}
+
+func deleteEntryWithTinyGoImport(dir js.Value, name string, recursive bool) error {
+	nameBytes := []byte(name)
+	_, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSDeleteEntryRef(uint32(opID), tinyGoJSRef(dir), tinyGoBytesPtr(nameBytes), uint32(len(nameBytes)), tinyGoBoolUint32(recursive))
+		runtime.KeepAlive(nameBytes)
+	})
+	return err
+}
+
+func yieldMicrotaskWithTinyGoImport() error {
+	_, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSYieldMicrotask(uint32(opID))
+	})
+	return err
+}
+
+func (f *AsyncFile) sizeWithTinyGoImport() (int64, error) {
+	size, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSSizeRef(uint32(opID), tinyGoJSRef(f.handle))
+	})
+	return int64(size), err
+}
+
+func (f *AsyncFile) truncateWithTinyGoImport(size int64) error {
+	_, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSTruncateRef(uint32(opID), tinyGoJSRef(f.handle), size)
+	})
+	return err
 }
 
 func (f *AsyncFile) readAtWithTinyGoImport(p []byte, off int64) (int, error) {

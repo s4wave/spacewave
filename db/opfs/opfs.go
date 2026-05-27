@@ -126,6 +126,10 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 }
 
 func yieldMicrotask() error {
+	if jsutil.UseTinyGoHelpers() {
+		return yieldMicrotaskWithTinyGoImport()
+	}
+
 	var cb js.Func
 	exec := js.FuncOf(func(this js.Value, args []js.Value) any {
 		resolve := args[0]
@@ -152,6 +156,10 @@ func yieldMicrotask() error {
 
 // GetRoot returns the OPFS root FileSystemDirectoryHandle.
 func GetRoot() (js.Value, error) {
+	if jsutil.UseTinyGoHelpers() {
+		return getRootWithTinyGoImport()
+	}
+
 	storage := js.Global().Get("navigator").Get("storage")
 	promise := jsutil.Call(storage, "getDirectory")
 	return AwaitPromise(promise)
@@ -160,6 +168,10 @@ func GetRoot() (js.Value, error) {
 // GetDirectory returns a subdirectory handle within parent.
 // If create is true, the directory is created if it does not exist.
 func GetDirectory(parent js.Value, name string, create bool) (js.Value, error) {
+	if jsutil.UseTinyGoHelpers() {
+		return getDirectoryWithTinyGoImport(parent, name, create)
+	}
+
 	opts := jsutil.NewObject()
 	opts.Set("create", create)
 	promise := jsutil.Call(parent, "getDirectoryHandle", name, opts)
@@ -184,6 +196,10 @@ func GetDirectoryPath(parent js.Value, path []string, create bool) (js.Value, er
 // OpenAsyncFile opens an existing file with async OPFS APIs.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
 func OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
+	if jsutil.UseTinyGoHelpers() {
+		return openAsyncFileWithTinyGoImport(dir, name, false)
+	}
+
 	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
 	if err != nil {
 		return nil, err
@@ -194,6 +210,10 @@ func OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 // CreateAsyncFile opens or creates a file with async OPFS APIs.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
 func CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
+	if jsutil.UseTinyGoHelpers() {
+		return openAsyncFileWithTinyGoImport(dir, name, true)
+	}
+
 	opts := jsutil.NewObject()
 	opts.Set("create", true)
 	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name, opts))
@@ -385,6 +405,10 @@ func (f *AsyncFile) Seek(offset int64, whence int) (int64, error) {
 
 // Size returns the file size in bytes.
 func (f *AsyncFile) Size() (int64, error) {
+	if jsutil.UseTinyGoHelpers() {
+		return f.sizeWithTinyGoImport()
+	}
+
 	file, err := AwaitPromise(jsutil.Call(f.handle, "getFile"))
 	if err != nil {
 		return 0, errors.Wrap(err, "getFile")
@@ -398,6 +422,10 @@ func (f *AsyncFile) Size() (int64, error) {
 // preserved when growing or shrinking; otherwise the draft would start empty
 // and close() would replace the source file with a sparse zero-filled blob.
 func (f *AsyncFile) Truncate(size int64) error {
+	if jsutil.UseTinyGoHelpers() {
+		return f.truncateWithTinyGoImport(size)
+	}
+
 	writable, err := openWritable(f.handle, true)
 	if err != nil {
 		return err
@@ -492,6 +520,24 @@ func ReadFile(dir js.Value, name string) ([]byte, error) {
 // DeleteEntry removes a file or directory entry from the parent directory.
 // Returns a "not found" JSError if the entry does not exist.
 func DeleteEntry(dir js.Value, name string, recursive bool) error {
+	if jsutil.UseTinyGoHelpers() {
+		var lastErr error
+		for range syncAccessHandleRetries {
+			err := deleteEntryWithTinyGoImport(dir, name, recursive)
+			if err == nil {
+				return nil
+			}
+			if !IsNoModificationAllowed(err) {
+				return err
+			}
+			lastErr = err
+			if err := yieldMicrotask(); err != nil {
+				return err
+			}
+		}
+		return lastErr
+	}
+
 	opts := jsutil.NewObject()
 	opts.Set("recursive", recursive)
 	var lastErr error
@@ -593,6 +639,10 @@ func decodeHelperNameList(buf []byte) ([]string, error) {
 
 // FileExists checks if a file exists in the given directory without reading it.
 func FileExists(dir js.Value, name string) (bool, error) {
+	if jsutil.UseTinyGoHelpers() {
+		return fileExistsWithTinyGoImport(dir, name)
+	}
+
 	_, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
 	if err != nil {
 		if IsNotFound(err) {

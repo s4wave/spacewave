@@ -205,6 +205,78 @@ function tinyGoUnboxValue(go: TinyGoRuntime, rawRef: bigint | number): unknown {
   return value
 }
 
+function tinyGoBoxValue(go: TinyGoRuntime, value: unknown): bigint {
+  const nanHead = 0x7ff80000n
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) {
+      return nanHead << 32n
+    }
+    if (value === 0) {
+      return (nanHead << 32n) | 1n
+    }
+    const buf = new ArrayBuffer(8)
+    const view = new DataView(buf)
+    view.setFloat64(0, value, true)
+    return view.getBigInt64(0, true)
+  }
+  switch (value) {
+    case undefined:
+      return 0n
+    case null:
+      return (nanHead << 32n) | 2n
+    case true:
+      return (nanHead << 32n) | 3n
+    case false:
+      return (nanHead << 32n) | 4n
+  }
+  const values = go._values
+  const ids = go._ids
+  const refCounts = go._goRefCounts
+  const idPool = go._idPool
+  if (!values || !ids || !refCounts || !idPool) {
+    throw new Error('TinyGo js.Value table is not initialized')
+  }
+  let id = ids.get(value)
+  if (id === undefined) {
+    id = idPool.pop()
+    if (id === undefined) {
+      id = BigInt(values.length)
+    }
+    const index = Number(id)
+    values[index] = value
+    refCounts[index] = 0
+    ids.set(value, id)
+  }
+  refCounts[Number(id)]++
+  let typeFlag = 1n
+  switch (typeof value) {
+    case 'string':
+      typeFlag = 2n
+      break
+    case 'symbol':
+      typeFlag = 3n
+      break
+    case 'function':
+      typeFlag = 4n
+      break
+  }
+  return id | ((nanHead | typeFlag) << 32n)
+}
+
+function resolveTinyGoOPFSRef(
+  go: TinyGoRuntime,
+  opID: number,
+  value: unknown,
+): void {
+  const ref = tinyGoBoxValue(go, value)
+  resolveTinyGoOPFSHelper(
+    go,
+    opID,
+    Number((ref >> 32n) & 0xffffffffn),
+    Number(ref & 0xffffffffn),
+  )
+}
+
 function readTinyGoString(go: TinyGoRuntime, ptr: number, len: number): string {
   return new TextDecoder().decode(tinyGoMemoryView(go, ptr, len))
 }
@@ -811,6 +883,9 @@ export interface TinyGoRuntime {
   _inst?: WebAssembly.Instance
   _resume?: () => void
   _values?: unknown[]
+  _goRefCounts?: number[]
+  _ids?: Map<unknown, bigint>
+  _idPool?: bigint[]
 }
 
 declare class Go {
@@ -885,6 +960,107 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     }
     release()
     return 1
+  }
+  gojs['bldr.opfs.getRootRef'] ??= (opID: number) => {
+    globalThis.navigator.storage
+      .getDirectory()
+      .then((dir) => resolveTinyGoOPFSRef(go, opID, dir))
+      .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.getDirectoryRef'] ??= (
+    opID: number,
+    parentRef: bigint,
+    namePtr: number,
+    nameLen: number,
+    create: number,
+  ) => {
+    const parent = tinyGoUnboxValue(go, parentRef) as FileSystemDirectoryHandle
+    const name = readTinyGoString(go, namePtr, nameLen)
+    parent
+      .getDirectoryHandle(name, { create: Boolean(create) })
+      .then((dir) => resolveTinyGoOPFSRef(go, opID, dir))
+      .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.openFileRef'] ??= (
+    opID: number,
+    dirRef: bigint,
+    namePtr: number,
+    nameLen: number,
+    create: number,
+  ) => {
+    const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
+    const name = readTinyGoString(go, namePtr, nameLen)
+    const opts = create ? { create: true } : undefined
+    const filePromise = opts
+      ? dir.getFileHandle(name, opts)
+      : dir.getFileHandle(name)
+    filePromise
+      .then((handle) => resolveTinyGoOPFSRef(go, opID, handle))
+      .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.fileExistsRef'] ??= (
+    opID: number,
+    dirRef: bigint,
+    namePtr: number,
+    nameLen: number,
+  ) => {
+    const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
+    const name = readTinyGoString(go, namePtr, nameLen)
+    dir
+      .getFileHandle(name)
+      .then(() => resolveTinyGoOPFSHelper(go, opID, 1))
+      .catch((reason) => {
+        const code = tinyGoPromiseErrorCode(reason)
+        if (code === tinyGoPromiseErrorNotFound) {
+          resolveTinyGoOPFSHelper(go, opID, 0)
+          return
+        }
+        rejectTinyGoOPFSHelper(go, opID, code)
+      })
+  }
+  gojs['bldr.opfs.deleteEntryRef'] ??= (
+    opID: number,
+    dirRef: bigint,
+    namePtr: number,
+    nameLen: number,
+    recursive: number,
+  ) => {
+    const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
+    const name = readTinyGoString(go, namePtr, nameLen)
+    dir
+      .removeEntry(name, { recursive: Boolean(recursive) })
+      .then(() => resolveTinyGoOPFSHelper(go, opID, 1))
+      .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.yieldMicrotask'] ??= (opID: number) => {
+    queueMicrotask(() => resolveTinyGoOPFSHelper(go, opID, 1))
+  }
+  gojs['bldr.opfs.sizeRef'] ??= (opID: number, handleRef: bigint) => {
+    const handle = tinyGoUnboxValue(go, handleRef) as FileSystemFileHandle
+    handle
+      .getFile()
+      .then((file) => resolveTinyGoOPFSHelper(go, opID, file.size))
+      .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.truncateRef'] ??= (
+    opID: number,
+    handleRef: bigint,
+    size: bigint,
+  ) => {
+    const handle = tinyGoUnboxValue(go, handleRef) as FileSystemFileHandle
+    let writable: FileSystemWritableFileStream | undefined
+    handle
+      .createWritable({ keepExistingData: true })
+      .then(async (next) => {
+        writable = next
+        await writable.truncate(Number(size))
+        await writable.close()
+        resolveTinyGoOPFSHelper(go, opID, 1)
+      })
+      .catch((reason) => {
+        closeOPFSWritableQuietly(writable)
+        rejectTinyGoOPFSOp(go, opID, reason)
+      })
   }
   gojs['bldr.opfs.takeStoredBytes'] ??= (
     bytesID: number,
@@ -1081,6 +1257,40 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     }
     closeOPFSWritableQuietly(session.writable)
     return 1
+  }
+  gojs['bldr.opfs.broadcastChannelNewRef'] ??= (
+    namePtr: number,
+    nameLen: number,
+  ) => {
+    const name = readTinyGoString(go, namePtr, nameLen)
+    return tinyGoBoxValue(go, new BroadcastChannel(name))
+  }
+  gojs['bldr.opfs.broadcastSendRef'] ??= (
+    channelRef: bigint,
+    shardID: number,
+    generationHi: number,
+    generationLo: number,
+  ) => {
+    const channel = tinyGoUnboxValue(go, channelRef) as BroadcastChannel
+    const msg = new Uint8Array(10)
+    const sid = shardID & 0xffff
+    const hi = generationHi >>> 0
+    const lo = generationLo >>> 0
+    msg[0] = (sid >>> 8) & 0xff
+    msg[1] = sid & 0xff
+    msg[2] = (hi >>> 24) & 0xff
+    msg[3] = (hi >>> 16) & 0xff
+    msg[4] = (hi >>> 8) & 0xff
+    msg[5] = hi & 0xff
+    msg[6] = (lo >>> 24) & 0xff
+    msg[7] = (lo >>> 16) & 0xff
+    msg[8] = (lo >>> 8) & 0xff
+    msg[9] = lo & 0xff
+    channel.postMessage(msg)
+  }
+  gojs['bldr.opfs.broadcastCloseRef'] ??= (channelRef: bigint) => {
+    const channel = tinyGoUnboxValue(go, channelRef) as BroadcastChannel
+    channel.close()
   }
 }
 
