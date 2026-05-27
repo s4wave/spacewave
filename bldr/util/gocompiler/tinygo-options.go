@@ -20,6 +20,8 @@ const (
 	TinyGoGCEnv = "BLDR_TINYGO_GC"
 	// TinyGoSchedulerEnv overrides the TinyGo scheduler.
 	TinyGoSchedulerEnv = "BLDR_TINYGO_SCHEDULER"
+	// TinyGoStackSizeEnv overrides the TinyGo goroutine stack size.
+	TinyGoStackSizeEnv = "BLDR_TINYGO_STACK_SIZE"
 	// TinyGoLLVMFeaturesEnv overrides the TinyGo LLVM feature list.
 	TinyGoLLVMFeaturesEnv = "BLDR_TINYGO_LLVM_FEATURES"
 	// TinyGoInterpTimeoutEnv overrides TinyGo interp optimization timeout.
@@ -33,6 +35,10 @@ const (
 	TinyGoProfileFast = "fast"
 	// TinyGoProfileOptimized uses the optimized TinyGo profile.
 	TinyGoProfileOptimized = "optimized"
+
+	// TinyGoDefaultStackSize is the minimum stack headroom for TinyGo wasm
+	// plugins that run browser crypto, storage, and SRPC workloads.
+	TinyGoDefaultStackSize = "256KB"
 )
 
 var tinyGoStartupCacheEnvKeys = []string{
@@ -41,6 +47,7 @@ var tinyGoStartupCacheEnvKeys = []string{
 	TinyGoPanicStrategyEnv,
 	TinyGoGCEnv,
 	TinyGoSchedulerEnv,
+	TinyGoStackSizeEnv,
 	TinyGoLLVMFeaturesEnv,
 	TinyGoInterpTimeoutEnv,
 	TinyGoDebugInfoEnv,
@@ -58,6 +65,8 @@ type TinyGoOptions struct {
 	GC string
 	// Scheduler overrides the scheduler.
 	Scheduler string
+	// StackSize overrides the goroutine stack size.
+	StackSize string
 	// LLVMFeatures overrides the comma-separated LLVM feature list.
 	LLVMFeatures string
 	// InterpTimeout overrides the TinyGo interp optimization timeout.
@@ -77,6 +86,7 @@ func TinyGoOptionsFromEnv() TinyGoOptions {
 		PanicStrategy: os.Getenv(TinyGoPanicStrategyEnv),
 		GC:            os.Getenv(TinyGoGCEnv),
 		Scheduler:     os.Getenv(TinyGoSchedulerEnv),
+		StackSize:     os.Getenv(TinyGoStackSizeEnv),
 		LLVMFeatures:  os.Getenv(TinyGoLLVMFeaturesEnv),
 		InterpTimeout: os.Getenv(TinyGoInterpTimeoutEnv),
 	}
@@ -127,6 +137,13 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 			return nil, err
 		}
 		args = append(args, "-scheduler="+scheduler)
+	}
+	stackSize, err := resolveTinyGoStackSize(opts.StackSize)
+	if err != nil {
+		return nil, err
+	}
+	if stackSize != "" {
+		args = append(args, "-stack-size="+stackSize)
 	}
 	interpTimeout, err := resolveTinyGoInterpTimeout(profile, opts.InterpTimeout)
 	if err != nil {
@@ -192,6 +209,20 @@ func resolveTinyGoPanicStrategy(panicStrategy string) (string, error) {
 	default:
 		return "", errors.Errorf("unsupported %s value %q, expected trap or print", TinyGoPanicStrategyEnv, panicStrategy)
 	}
+}
+
+func resolveTinyGoStackSize(rawStackSize string) (string, error) {
+	stackSize := strings.TrimSpace(rawStackSize)
+	if stackSize == "" {
+		return TinyGoDefaultStackSize, nil
+	}
+	if stackSize == "default" {
+		return "", nil
+	}
+	if err := validateTinyGoArgValue(TinyGoStackSizeEnv, stackSize); err != nil {
+		return "", err
+	}
+	return stackSize, nil
 }
 
 func validateTinyGoOpt(opt string) error {

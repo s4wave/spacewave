@@ -19,6 +19,7 @@ func TestAddTinyGoStartupCacheInputsIncludesProfileIdentity(t *testing.T) {
 		gocompiler.TinyGoPanicStrategyEnv: "print",
 		gocompiler.TinyGoGCEnv:            "leaking",
 		gocompiler.TinyGoSchedulerEnv:     "none",
+		gocompiler.TinyGoStackSizeEnv:     "512KB",
 		gocompiler.TinyGoLLVMFeaturesEnv:  "+atomics,+bulk-memory",
 		gocompiler.TinyGoInterpTimeoutEnv: "10m",
 	}

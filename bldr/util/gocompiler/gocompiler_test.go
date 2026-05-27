@@ -31,6 +31,9 @@ func TestDefaultTinyGoArgsTrapOnPanic(t *testing.T) {
 	if !slices.Contains(args, "-panic=trap") {
 		t.Fatalf("tinygo args = %v, want -panic=trap", args)
 	}
+	if !slices.Contains(args, "-stack-size="+TinyGoDefaultStackSize) {
+		t.Fatalf("tinygo args = %v, want default stack size", args)
+	}
 }
 
 func TestFastTinyGoProfileDropsBrokenOptZero(t *testing.T) {
@@ -87,6 +90,47 @@ func TestTinyGoSchedulerIsExplicit(t *testing.T) {
 	}
 }
 
+func TestTinyGoStackSizeIsConfigurable(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoStackSizeEnv, "512KB")
+
+	args, err := GetDefaultTinygoArgs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(args, "-stack-size=512KB") {
+		t.Fatalf("tinygo args = %v, want configured stack size", args)
+	}
+}
+
+func TestTinyGoStackSizeCanUseTargetDefault(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoStackSizeEnv, "default")
+
+	args, err := GetDefaultTinygoArgs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-stack-size=") {
+			t.Fatalf("tinygo args = %v, want target default stack size", args)
+		}
+	}
+}
+
+func TestTinyGoStackSizeRejectsUnsafeValue(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoStackSizeEnv, "512 KB")
+
+	_, err := GetDefaultTinygoArgs()
+	if err == nil {
+		t.Fatal("expected invalid TinyGo stack size to fail")
+	}
+	if !strings.Contains(err.Error(), TinyGoStackSizeEnv) {
+		t.Fatalf("error = %q, want %s", err.Error(), TinyGoStackSizeEnv)
+	}
+}
+
 func TestTinyGoBrowserReleaseArgsIncludeNoDebugAndNoDWARF(t *testing.T) {
 	clearTinyGoOptionEnv(t)
 	t.Setenv(TinyGoProfileEnv, TinyGoProfileFast)
@@ -101,6 +145,7 @@ func TestTinyGoBrowserReleaseArgsIncludeNoDebugAndNoDWARF(t *testing.T) {
 		"wasm",
 		"-opt=1",
 		"-gc=leaking",
+		"-stack-size=" + TinyGoDefaultStackSize,
 		"-interp-timeout=10m",
 		"-no-debug",
 		tinyGoInternalNoDWARFArg,
@@ -224,6 +269,7 @@ func TestTinyGoArgsUseExplicitIdentityInputs(t *testing.T) {
 		"-opt=1",
 		"-gc=leaking",
 		"-llvm-features=+atomics,+bulk-memory",
+		"-stack-size=" + TinyGoDefaultStackSize,
 		"-interp-timeout=10m",
 	} {
 		if !slices.Contains(args, want) {
