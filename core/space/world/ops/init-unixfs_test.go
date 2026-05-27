@@ -1,12 +1,10 @@
 package space_world_ops
 
 import (
-	"bytes"
 	"context"
 	"testing"
 	"time"
 
-	billy_util "github.com/go-git/go-billy/v6/util"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	unixfs_sdk "github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
@@ -16,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestInitUnixFSBatchStarterTree(t *testing.T) {
+func TestInitUnixFSCreatesEmptyRoot(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -65,23 +63,11 @@ func TestInitUnixFSBatchStarterTree(t *testing.T) {
 	defer handle.Release()
 
 	bfs := unixfs_billy.NewBillyFS(ctx, handle, "", time.Now())
-	if _, err := bfs.Stat("test"); err == nil {
-		t.Fatal("test should not exist")
-	}
-	if _, err := billy_util.ReadFile(bfs, "hello.txt"); err == nil {
-		t.Fatal("hello.txt should not exist")
-	}
-	if _, err := billy_util.ReadFile(bfs, "world.md"); err == nil {
-		t.Fatal("world.md should not exist")
-	}
-	data, err := billy_util.ReadFile(bfs, "getting-started.md")
+	entries, err := bfs.ReadDir(".")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(data) == 0 {
-		t.Fatal("getting-started.md should not be empty")
-	}
-	if !bytes.Contains(data, []byte("single guide")) {
-		t.Fatalf("getting-started.md missing updated starter text: %q", string(data))
+	if len(entries) != 0 {
+		t.Fatalf("expected empty UnixFS root, got %d entries", len(entries))
 	}
 }

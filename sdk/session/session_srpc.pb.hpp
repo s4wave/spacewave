@@ -26,6 +26,8 @@ class SRPCSessionResourceService_WatchSharedObjectHealthClient;
 class SRPCSessionResourceService_WatchSharedObjectHealthStream;
 class SRPCSessionResourceService_WatchSyncStatusClient;
 class SRPCSessionResourceService_WatchSyncStatusStream;
+class SRPCSessionResourceService_WatchStorageStatsClient;
+class SRPCSessionResourceService_WatchStorageStatsStream;
 class SRPCSessionResourceService_WatchLockStateClient;
 class SRPCSessionResourceService_WatchLockStateStream;
 class SRPCSessionResourceService_WatchStateAtomsClient;
@@ -57,6 +59,8 @@ class SRPCSessionResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCSessionResourceService_WatchSharedObjectHealthClient>, starpc::Error> WatchSharedObjectHealth(const s4wave::session::WatchSharedObjectHealthRequest& in) = 0;
   // WatchSyncStatus
   virtual std::pair<std::unique_ptr<SRPCSessionResourceService_WatchSyncStatusClient>, starpc::Error> WatchSyncStatus(const s4wave::session::WatchSyncStatusRequest& in) = 0;
+  // WatchStorageStats
+  virtual std::pair<std::unique_ptr<SRPCSessionResourceService_WatchStorageStatsClient>, starpc::Error> WatchStorageStats(const s4wave::session::WatchStorageStatsRequest& in) = 0;
   // DeleteSpace
   virtual starpc::Error DeleteSpace(const s4wave::session::DeleteSpaceRequest& in, s4wave::session::DeleteSpaceResponse* out) = 0;
   // RenameSpace
@@ -141,6 +145,8 @@ class SRPCSessionResourceServiceClientImpl : public SRPCSessionResourceServiceCl
   virtual std::pair<std::unique_ptr<SRPCSessionResourceService_WatchSharedObjectHealthClient>, starpc::Error> WatchSharedObjectHealth(const s4wave::session::WatchSharedObjectHealthRequest& in) override;
   // WatchSyncStatus
   virtual std::pair<std::unique_ptr<SRPCSessionResourceService_WatchSyncStatusClient>, starpc::Error> WatchSyncStatus(const s4wave::session::WatchSyncStatusRequest& in) override;
+  // WatchStorageStats
+  virtual std::pair<std::unique_ptr<SRPCSessionResourceService_WatchStorageStatsClient>, starpc::Error> WatchStorageStats(const s4wave::session::WatchStorageStatsRequest& in) override;
   // DeleteSpace
   virtual starpc::Error DeleteSpace(const s4wave::session::DeleteSpaceRequest& in, s4wave::session::DeleteSpaceResponse* out) override;
   // RenameSpace
@@ -231,6 +237,8 @@ class SRPCSessionResourceServiceServer {
   virtual starpc::Error WatchSharedObjectHealth(const s4wave::session::WatchSharedObjectHealthRequest& req, SRPCSessionResourceService_WatchSharedObjectHealthStream* strm) = 0;
   // WatchSyncStatus
   virtual starpc::Error WatchSyncStatus(const s4wave::session::WatchSyncStatusRequest& req, SRPCSessionResourceService_WatchSyncStatusStream* strm) = 0;
+  // WatchStorageStats
+  virtual starpc::Error WatchStorageStats(const s4wave::session::WatchStorageStatsRequest& req, SRPCSessionResourceService_WatchStorageStatsStream* strm) = 0;
   // DeleteSpace
   virtual starpc::Error DeleteSpace(const s4wave::session::DeleteSpaceRequest& req, s4wave::session::DeleteSpaceResponse* resp) = 0;
   // RenameSpace
@@ -425,6 +433,41 @@ class SRPCSessionResourceService_WatchSyncStatusStream {
   }
 
   starpc::Error SendAndClose(const s4wave::session::WatchSyncStatusResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCSessionResourceService_WatchStorageStatsClient is the client stream for WatchStorageStats.
+class SRPCSessionResourceService_WatchStorageStatsClient {
+ public:
+  explicit SRPCSessionResourceService_WatchStorageStatsClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::session::WatchStorageStatsResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCSessionResourceService_WatchStorageStatsStream is the server stream for WatchStorageStats.
+class SRPCSessionResourceService_WatchStorageStatsStream {
+ public:
+  explicit SRPCSessionResourceService_WatchStorageStatsStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::session::WatchStorageStatsResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::session::WatchStorageStatsResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();

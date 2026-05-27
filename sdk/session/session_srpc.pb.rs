@@ -41,6 +41,17 @@ pub trait SessionResourceServiceWatchSyncStatusStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for SessionResourceService.WatchStorageStats.
+#[starpc::async_trait]
+pub trait SessionResourceServiceWatchStorageStatsStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchStorageStatsResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Stream trait for SessionResourceService.WatchLockState.
 #[starpc::async_trait]
 pub trait SessionResourceServiceWatchLockStateStream: Send + Sync {
@@ -111,6 +122,8 @@ pub trait SessionResourceServiceClient: Send + Sync {
     async fn watch_shared_object_health(&self, request: &WatchSharedObjectHealthRequest) -> starpc::Result<Box<dyn SessionResourceServiceWatchSharedObjectHealthStream>>;
     /// WatchSyncStatus.
     async fn watch_sync_status(&self, request: &WatchSyncStatusRequest) -> starpc::Result<Box<dyn SessionResourceServiceWatchSyncStatusStream>>;
+    /// WatchStorageStats.
+    async fn watch_storage_stats(&self, request: &WatchStorageStatsRequest) -> starpc::Result<Box<dyn SessionResourceServiceWatchStorageStatsStream>>;
     /// DeleteSpace.
     async fn delete_space(&self, request: &DeleteSpaceRequest) -> starpc::Result<DeleteSpaceResponse>;
     /// RenameSpace.
@@ -218,6 +231,13 @@ impl<C: starpc::Client + 'static> SessionResourceServiceClient for SessionResour
         let stream = self.client.new_stream("s4wave.session.SessionResourceService", "WatchSyncStatus", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(SessionResourceServiceWatchSyncStatusStreamImpl { stream }))
+    }
+    async fn watch_storage_stats(&self, request: &WatchStorageStatsRequest) -> starpc::Result<Box<dyn SessionResourceServiceWatchStorageStatsStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.session.SessionResourceService", "WatchStorageStats", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(SessionResourceServiceWatchStorageStatsStreamImpl { stream }))
     }
     async fn delete_space(&self, request: &DeleteSpaceRequest) -> starpc::Result<DeleteSpaceResponse> {
         self.client.exec_call("s4wave.session.SessionResourceService", "DeleteSpace", request).await
@@ -385,6 +405,23 @@ impl SessionResourceServiceWatchSyncStatusStream for SessionResourceServiceWatch
     }
 }
 
+struct SessionResourceServiceWatchStorageStatsStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl SessionResourceServiceWatchStorageStatsStream for SessionResourceServiceWatchStorageStatsStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchStorageStatsResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 struct SessionResourceServiceWatchLockStateStreamImpl {
     stream: Box<dyn starpc::Stream>,
 }
@@ -485,6 +522,8 @@ pub trait SessionResourceServiceServer: Send + Sync {
     async fn watch_shared_object_health(&self, request: WatchSharedObjectHealthRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// WatchSyncStatus.
     async fn watch_sync_status(&self, request: WatchSyncStatusRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// WatchStorageStats.
+    async fn watch_storage_stats(&self, request: WatchStorageStatsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// DeleteSpace.
     async fn delete_space(&self, request: DeleteSpaceRequest) -> starpc::Result<DeleteSpaceResponse>;
     /// RenameSpace.
@@ -556,6 +595,7 @@ const SESSION_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "MountSharedObject",
     "WatchSharedObjectHealth",
     "WatchSyncStatus",
+    "WatchStorageStats",
     "DeleteSpace",
     "RenameSpace",
     "WatchLockState",
@@ -680,6 +720,13 @@ impl<S: SessionResourceServiceServer + 'static> starpc::Invoker for SessionResou
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_sync_status(request, stream).await)
+            }
+            "WatchStorageStats" => {
+                let request: WatchStorageStatsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_storage_stats(request, stream).await)
             }
             "DeleteSpace" => {
                 let request: DeleteSpaceRequest = match stream.msg_recv().await {

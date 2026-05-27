@@ -26,6 +26,8 @@ type SRPCSessionResourceServiceClient interface {
 
 	WatchSyncStatus(ctx context.Context, in *WatchSyncStatusRequest) (SRPCSessionResourceService_WatchSyncStatusClient, error)
 
+	WatchStorageStats(ctx context.Context, in *WatchStorageStatsRequest) (SRPCSessionResourceService_WatchStorageStatsClient, error)
+
 	DeleteSpace(ctx context.Context, in *DeleteSpaceRequest) (*DeleteSpaceResponse, error)
 
 	RenameSpace(ctx context.Context, in *RenameSpaceRequest) (*RenameSpaceResponse, error)
@@ -233,6 +235,40 @@ func (x *srpcSessionResourceService_WatchSyncStatusClient) Recv() (*WatchSyncSta
 }
 
 func (x *srpcSessionResourceService_WatchSyncStatusClient) RecvTo(m *WatchSyncStatusResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcSessionResourceServiceClient) WatchStorageStats(ctx context.Context, in *WatchStorageStatsRequest) (SRPCSessionResourceService_WatchStorageStatsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchStorageStats", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSessionResourceService_WatchStorageStatsClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCSessionResourceService_WatchStorageStatsClient interface {
+	srpc.Stream
+	Recv() (*WatchStorageStatsResponse, error)
+	RecvTo(*WatchStorageStatsResponse) error
+}
+
+type srpcSessionResourceService_WatchStorageStatsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchStorageStatsClient) Recv() (*WatchStorageStatsResponse, error) {
+	m := new(WatchStorageStatsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSessionResourceService_WatchStorageStatsClient) RecvTo(m *WatchStorageStatsResponse) error {
 	return x.MsgRecv(m)
 }
 
@@ -653,6 +689,8 @@ type SRPCSessionResourceServiceServer interface {
 
 	WatchSyncStatus(*WatchSyncStatusRequest, SRPCSessionResourceService_WatchSyncStatusStream) error
 
+	WatchStorageStats(*WatchStorageStatsRequest, SRPCSessionResourceService_WatchStorageStatsStream) error
+
 	DeleteSpace(context.Context, *DeleteSpaceRequest) (*DeleteSpaceResponse, error)
 
 	RenameSpace(context.Context, *RenameSpaceRequest) (*RenameSpaceResponse, error)
@@ -748,6 +786,7 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"MountSharedObject",
 		"WatchSharedObjectHealth",
 		"WatchSyncStatus",
+		"WatchStorageStats",
 		"DeleteSpace",
 		"RenameSpace",
 		"WatchLockState",
@@ -803,6 +842,8 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchSharedObjectHealth(d.impl, strm)
 	case "WatchSyncStatus":
 		return true, d.InvokeMethod_WatchSyncStatus(d.impl, strm)
+	case "WatchStorageStats":
+		return true, d.InvokeMethod_WatchStorageStats(d.impl, strm)
 	case "DeleteSpace":
 		return true, d.InvokeMethod_DeleteSpace(d.impl, strm)
 	case "RenameSpace":
@@ -931,6 +972,15 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchSyncStatus(impl SRPCS
 	}
 	serverStrm := &srpcSessionResourceService_WatchSyncStatusStream{strm}
 	return impl.WatchSyncStatus(req, serverStrm)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchStorageStats(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchStorageStatsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSessionResourceService_WatchStorageStatsStream{strm}
+	return impl.WatchStorageStats(req, serverStrm)
 }
 
 func (SRPCSessionResourceServiceHandler) InvokeMethod_DeleteSpace(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
@@ -1375,6 +1425,29 @@ func (x *srpcSessionResourceService_WatchSyncStatusStream) Send(m *WatchSyncStat
 }
 
 func (x *srpcSessionResourceService_WatchSyncStatusStream) SendAndClose(m *WatchSyncStatusResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSessionResourceService_WatchStorageStatsStream interface {
+	srpc.Stream
+	Send(*WatchStorageStatsResponse) error
+	SendAndClose(*WatchStorageStatsResponse) error
+}
+
+type srpcSessionResourceService_WatchStorageStatsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchStorageStatsStream) Send(m *WatchStorageStatsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSessionResourceService_WatchStorageStatsStream) SendAndClose(m *WatchStorageStatsResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

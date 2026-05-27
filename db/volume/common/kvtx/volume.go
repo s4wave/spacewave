@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -38,6 +39,8 @@ type Volume struct {
 	gcManagerHooks *block_gc.ManagerHooks
 	// statsFn returns storage stats, may be nil.
 	statsFn StatsFn
+	// statsBcast wakes watchers when storage stats may have changed.
+	statsBcast broadcast.Broadcast
 	// closeFn is the close func, may be nil
 	closeFn func() error
 	// deleteFn removes the backing store after Close, may be nil.
@@ -252,6 +255,28 @@ func (v *Volume) GetStorageStats(ctx context.Context) (*volume.StorageStats, err
 	return &volume.StorageStats{}, nil
 }
 
+// GetStorageStatsSnapshotWithWait returns storage usage statistics and a wait
+// channel that closes when storage stats may have changed.
+func (v *Volume) GetStorageStatsSnapshotWithWait(
+	ctx context.Context,
+) (*volume.StorageStats, <-chan struct{}, error) {
+	var waitCh <-chan struct{}
+	v.statsBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		waitCh = getWaitCh()
+	})
+	stats, err := v.GetStorageStats(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return stats, waitCh, nil
+}
+
+func (v *Volume) broadcastStorageStatsChanged() {
+	v.statsBcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		broadcastFn()
+	})
+}
+
 // GetRefGraph returns the volume's GC reference graph.
 func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 	return v.refGraph
@@ -259,7 +284,25 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 
 // PutBlockBatch forwards batched writes to the embedded store when supported.
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	return v.Store.PutBlockBatch(ctx, entries)
+	if err := v.Store.PutBlockBatch(ctx, entries); err != nil {
+		return err
+	}
+	if len(entries) != 0 {
+		v.broadcastStorageStatsChanged()
+	}
+	return nil
+}
+
+// PutBlock forwards block writes to the embedded store.
+func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	ref, exists, err := v.Store.PutBlock(ctx, data, opts)
+	if err != nil {
+		return nil, exists, err
+	}
+	if ref != nil && !exists {
+		v.broadcastStorageStatsChanged()
+	}
+	return ref, exists, nil
 }
 
 // GetBlockExistsBatch forwards batched existence probes to the embedded store when supported.
@@ -269,7 +312,32 @@ func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef
 
 // PutBlockBackground forwards background writes to the embedded store when supported.
 func (v *Volume) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return v.Store.PutBlockBackground(ctx, data, opts)
+	ref, exists, err := v.Store.PutBlockBackground(ctx, data, opts)
+	if err != nil {
+		return nil, exists, err
+	}
+	if ref != nil && !exists {
+		v.broadcastStorageStatsChanged()
+	}
+	return ref, exists, nil
+}
+
+// RmBlock forwards block deletion to the embedded store.
+func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	if err := v.Store.RmBlock(ctx, ref); err != nil {
+		return err
+	}
+	v.broadcastStorageStatsChanged()
+	return nil
+}
+
+// Flush publishes buffered writes in the embedded store.
+func (v *Volume) Flush(ctx context.Context) error {
+	if err := v.Store.Flush(ctx); err != nil {
+		return err
+	}
+	v.broadcastStorageStatsChanged()
+	return nil
 }
 
 // BeginDeferFlush forwards deferred-flush scope entry to the embedded store when supported.
@@ -279,7 +347,11 @@ func (v *Volume) BeginDeferFlush() {
 
 // EndDeferFlush forwards deferred-flush scope exit to the embedded store when supported.
 func (v *Volume) EndDeferFlush(ctx context.Context) error {
-	return v.Store.EndDeferFlush(ctx)
+	if err := v.Store.EndDeferFlush(ctx); err != nil {
+		return err
+	}
+	v.broadcastStorageStatsChanged()
+	return nil
 }
 
 // GetWALAppender returns the volume's WAL appender, if any.
@@ -330,8 +402,11 @@ func (v *Volume) Delete() error {
 		return err
 	}
 	if v.deleteFn != nil {
-		return v.deleteFn()
+		if err := v.deleteFn(); err != nil {
+			return err
+		}
 	}
+	v.broadcastStorageStatsChanged()
 	return nil
 }
 

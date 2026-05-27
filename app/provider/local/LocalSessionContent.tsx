@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { SetupBanner } from '@s4wave/app/session/SetupBanner.js'
+import { SessionStorageStatsProvider } from '@s4wave/app/session/SessionStorageStatsContext.js'
 import { LocalSessionOnboardingProvider } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 import type { SessionMetadata } from '@s4wave/core/session/session.pb.js'
 
@@ -10,9 +11,11 @@ export function LocalSessionContent(props: {
   children: ReactNode
 }) {
   return (
-    <LocalSessionOnboardingProvider metadata={props.metadata}>
-      <SetupBanner />
-      {props.children}
-    </LocalSessionOnboardingProvider>
+    <SessionStorageStatsProvider>
+      <LocalSessionOnboardingProvider metadata={props.metadata}>
+        <SetupBanner />
+        {props.children}
+      </LocalSessionOnboardingProvider>
+    </SessionStorageStatsProvider>
   )
 }

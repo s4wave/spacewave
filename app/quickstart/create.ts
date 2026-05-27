@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session'
@@ -28,6 +27,7 @@ import {
   INIT_UNIXFS_OP_ID,
   UNIXFS_OBJECT_KEY,
 } from '@s4wave/core/space/world/ops/init-unixfs.js'
+import { FSHandle, MknodType } from '@s4wave/sdk/unixfs/index.js'
 import {
   INIT_OBJECT_LAYOUT_OP_ID,
   OBJECT_LAYOUT_OBJECT_KEY,
@@ -58,6 +58,11 @@ import {
   V86_WIZARD_TARGET_TYPE_ID,
   V86_WIZARD_TYPE_ID,
 } from '@s4wave/app/vm/v86-wizard-config.js'
+import {
+  DriveIntroTargetObjectKey,
+  DriveIntroTargetTypeID,
+  DriveIntroWizardTypeID,
+} from '@s4wave/app/wizard/drive-intro.js'
 
 import { type QuickstartSpaceCreateId } from './options.js'
 
@@ -70,6 +75,17 @@ const QUICKSTART_CREATE_LOCAL_ACCOUNT_TIMEOUT_MS = import.meta.env?.DEV
 const QUICKSTART_RECOVER_LOCAL_SESSION_TIMEOUT_MS = import.meta.env?.DEV
   ? 60000
   : 15000
+const DRIVE_STARTER_GUIDE_NAME = 'getting-started.md'
+const DRIVE_STARTER_GUIDE_CONTENT = `# Getting Started
+
+Welcome to your new drive! This starter guide is written by the Drive
+Quickstart after the generic UnixFS filesystem is initialized.
+
+## Next steps
+
+Try uploading a few files and opening them here. Video files are the best ones
+to try first.
+`
 
 type NotesQuickstartId = Extract<
   QuickstartSpaceCreateId,
@@ -636,7 +652,7 @@ export function getQuickstartInitialObjectKey(
 ): string {
   switch (quickstartId) {
     case 'drive':
-      return UNIXFS_OBJECT_KEY
+      return ''
     case 'canvas':
       return CANVAS_DEMO_OBJECT_KEY
     case 'chat':
@@ -662,7 +678,7 @@ export function getQuickstartInitialObjectType(
 ): string {
   switch (quickstartId) {
     case 'drive':
-      return 'unixfs/fs-node'
+      return ''
     case 'space':
     case 'git':
     case 'notebook':
@@ -864,7 +880,7 @@ async function waitForQuickstartRegistration(
   )
 }
 
-// initUnixFS initializes a UnixFS filesystem with starter content.
+// initUnixFS initializes an empty UnixFS filesystem.
 export async function initUnixFS(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
@@ -887,6 +903,87 @@ export async function initUnixFS(
     timing,
     'init-drive-unixfs',
   )
+}
+
+async function writeDriveStarterGuide(
+  spaceWorld: EngineWorldState,
+  abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
+): Promise<void> {
+  const access = await timeQuickstartPhase(
+    timing,
+    'write-drive-starter-guide-access',
+    () => spaceWorld.accessTypedObject(UNIXFS_OBJECT_KEY, abortSignal),
+  )
+  if (!access.resourceId || access.typeId !== DriveIntroTargetTypeID) {
+    throw new Error(
+      `Drive starter guide expected ${DriveIntroTargetTypeID}, got ${access.typeId || 'unknown'}`,
+    )
+  }
+
+  const ref = spaceWorld.getResourceRef().createRef(access.resourceId)
+  const root = new FSHandle(ref)
+  try {
+    await timeQuickstartPhase(timing, 'write-drive-starter-guide-create', () =>
+      root.mknod(
+        [DRIVE_STARTER_GUIDE_NAME],
+        MknodType.FILE,
+        0o644,
+        true,
+        abortSignal,
+      ),
+    )
+    const file = await timeQuickstartPhase(
+      timing,
+      'write-drive-starter-guide-lookup',
+      () => root.lookup(DRIVE_STARTER_GUIDE_NAME, abortSignal),
+    )
+    try {
+      await timeQuickstartPhase(
+        timing,
+        'write-drive-starter-guide-content',
+        () =>
+          file.writeAt(
+            0n,
+            new TextEncoder().encode(DRIVE_STARTER_GUIDE_CONTENT),
+            abortSignal,
+          ),
+      )
+    } finally {
+      file.release()
+    }
+  } finally {
+    root.release()
+  }
+}
+
+async function createDriveIntroWizard(
+  spaceWorld: EngineWorldState,
+  abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
+): Promise<string> {
+  const now = new Date()
+  const wizardKey = buildWizardObjectKey(
+    'Drive Intro ' + now.getTime().toString(36),
+  )
+  const op: CreateWizardObjectOp = {
+    objectKey: wizardKey,
+    wizardTypeId: DriveIntroWizardTypeID,
+    targetTypeId: DriveIntroTargetTypeID,
+    targetKeyPrefix: DriveIntroTargetObjectKey,
+    name: 'My Drive',
+    timestamp: now,
+  }
+  await applyQuickstartWorldOp(
+    spaceWorld,
+    CREATE_WIZARD_OBJECT_OP_ID,
+    CreateWizardObjectOp.toBinary(op),
+    '',
+    abortSignal,
+    timing,
+    'create-drive-intro-wizard',
+  )
+  return wizardKey
 }
 
 // initObjectLayout initializes an ObjectLayout with starter content.
@@ -1028,11 +1125,17 @@ export async function createDrive(
   await timeQuickstartPhase(timing, 'init-drive-unixfs', () =>
     initUnixFS(spaceWorld, abortSignal, timing),
   )
+  await writeDriveStarterGuide(spaceWorld, abortSignal, timing)
+  const wizardKey = await createDriveIntroWizard(
+    spaceWorld,
+    abortSignal,
+    timing,
+  )
   await timeQuickstartPhase(timing, 'create-drive-settings', () =>
     createSpaceSettingsObject(
       spaceWorld,
       abortSignal,
-      UNIXFS_OBJECT_KEY,
+      wizardKey,
       undefined,
       timing,
       'create-drive-settings',

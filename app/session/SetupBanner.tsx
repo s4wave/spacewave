@@ -6,6 +6,7 @@ import {
   useParentPaths,
   usePath,
 } from '@s4wave/web/router/router.js'
+import { useSessionStorageStats } from '@s4wave/app/session/SessionStorageStatsContext.js'
 import { useLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 
 // SetupBanner renders a persistent inline banner while local session onboarding is incomplete.
@@ -15,16 +16,19 @@ export function SetupBanner() {
   const path = usePath()
   const basePath = parentPaths[parentPaths.length - 1] ?? path
   const onboarding = useLocalSessionOnboardingContext()
+  const storage = useSessionStorageStats()
 
   const onSetupPage = path.startsWith(`${basePath}/setup`)
 
   const visible = useMemo(() => {
     if (onboarding.loading) return false
     if (!onboarding.metadataLoaded) return false
+    if (storage.loading) return false
+    if (!storage.setupBannerEligible) return false
     if (onSetupPage) return false
     if (onboarding.isComplete) return false
     return !onboarding.onboarding.dismissed
-  }, [onboarding, onSetupPage])
+  }, [onboarding, onSetupPage, storage])
 
   const handleSetupClick = useCallback(() => {
     if (!onboarding.providerChoiceComplete) {

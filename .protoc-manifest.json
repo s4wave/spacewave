@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
+  "protocFlagsHash": "1a5b43c51fb33f231c1ae273e927c7805651dd07d237582a8d0d4fc1c1273347",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -1558,7 +1558,7 @@
       "protoFiles": ["core/space/world/world.proto"]
     },
     "github.com/s4wave/spacewave/core/space/world/ops": {
-      "hash": "eccd603062a2b0813d96263cc5fe6b32f3c499321f2f29385f489e6adb45bf6c",
+      "hash": "8af62947c4a3670a8c0401a5816633638951f4477980b922812dcc2c6c936936",
       "generatedFiles": [
         "core/space/world/ops/ops.pb.cc",
         "core/space/world/ops/ops.pb.go",
@@ -4112,7 +4112,7 @@
       "protoFiles": ["sdk/secret/secret.proto"]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "42e12d5f1b7ec6ba6cd67a09748f0ccbd42380e7333c8a9d43570380bc44fc6d",
+      "hash": "17136ff376d9c79efa614af5593708f1fc18146e8ab35e158f327a54c60ddd70",
       "generatedFiles": [
         "sdk/session/local-session.pb.cc",
         "sdk/session/local-session.pb.go",

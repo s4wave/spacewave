@@ -1098,23 +1098,15 @@ func runWorldInitUnixFS(ctx context.Context, c *config) error {
 	}
 	defer handle.Release()
 
-	file, err := handle.Lookup(ctx, "getting-started.md")
-	if err != nil {
-		return errors.Wrap(err, "lookup getting-started.md")
+	var entries []string
+	if err := handle.ReaddirAll(ctx, 0, func(ent unixfs_sdk.FSCursorDirent) error {
+		entries = append(entries, ent.GetName())
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "read unixfs root")
 	}
-	defer file.Release()
-
-	size, err := file.GetSize(ctx)
-	if err != nil {
-		return errors.Wrap(err, "stat getting-started.md")
-	}
-	buf := make([]byte, size)
-	n, err := file.ReadAt(ctx, 0, buf)
-	if err != nil && err != io.EOF {
-		return errors.Wrap(err, "read getting-started.md")
-	}
-	if !bytes.Contains(buf[:n], []byte("single guide")) {
-		return errors.Errorf("getting-started.md content mismatch: %q", string(buf[:n]))
+	if len(entries) != 0 {
+		return errors.Errorf("unixfs root entries = %v, want empty", entries)
 	}
 	return nil
 }

@@ -16,6 +16,7 @@ service SessionResourceService {
   rpc MountSharedObject(MountSharedObjectRequest) returns (MountSharedObjectResponse) {};
   rpc WatchSharedObjectHealth(WatchSharedObjectHealthRequest) returns (stream WatchSharedObjectHealthResponse);
   rpc WatchSyncStatus(WatchSyncStatusRequest) returns (stream WatchSyncStatusResponse);
+  rpc WatchStorageStats(WatchStorageStatsRequest) returns (stream WatchStorageStatsResponse);
   rpc DeleteSpace(DeleteSpaceRequest) returns (DeleteSpaceResponse);
   rpc RenameSpace(RenameSpaceRequest) returns (RenameSpaceResponse);
   rpc WatchLockState(WatchLockStateRequest) returns (stream WatchLockStateResponse);
@@ -169,6 +170,9 @@ message WatchSharedObjectHealthResponse {
 
 // WatchSyncStatusRequest is the request type for WatchSyncStatus.
 message WatchSyncStatusRequest {}
+
+// WatchStorageStatsRequest is the request type for WatchStorageStats.
+message WatchStorageStatsRequest {}
 
 // SyncStatusState describes the aggregate session sync state.
 enum SyncStatusState {
@@ -330,6 +334,16 @@ message WatchSyncStatusResponse {
   uint64 pack_index_tail_fetch_bytes = 50;
   // PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
   uint64 pack_index_tail_response_bytes = 51;
+}
+
+// WatchStorageStatsResponse is the response type for WatchStorageStats.
+message WatchStorageStatsResponse {
+  // Supported indicates whether the provider can report storage stats.
+  bool supported = 1;
+  // TotalBytes is the total bytes stored by the session provider.
+  uint64 total_bytes = 2;
+  // BlockCount is the number of stored blocks reported by the session provider.
+  uint64 block_count = 3;
 }
 
 // WatchLockStateRequest is the request type for WatchLockState.

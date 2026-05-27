@@ -6,6 +6,7 @@ import { SetupBanner } from './SetupBanner.js'
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockDismiss = vi.hoisted(() => vi.fn())
 const mockUseLocalSessionOnboardingContext = vi.hoisted(() => vi.fn())
+const mockUseSessionStorageStats = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: vi.fn(() => mockNavigate),
@@ -15,6 +16,10 @@ vi.mock('@s4wave/web/router/router.js', () => ({
 
 vi.mock('@s4wave/app/session/setup/LocalSessionOnboardingContext.js', () => ({
   useLocalSessionOnboardingContext: mockUseLocalSessionOnboardingContext,
+}))
+
+vi.mock('@s4wave/app/session/SessionStorageStatsContext.js', () => ({
+  useSessionStorageStats: mockUseSessionStorageStats,
 }))
 
 describe('SetupBanner', () => {
@@ -35,6 +40,14 @@ describe('SetupBanner', () => {
       providerChoiceComplete: false,
       isComplete: false,
       dismiss: mockDismiss,
+    })
+    mockUseSessionStorageStats.mockReturnValue({
+      snapshot: { supported: true, totalBytes: 12n * 1024n * 1024n },
+      loading: false,
+      supported: true,
+      totalBytes: 12n * 1024n * 1024n,
+      blockCount: 2n,
+      setupBannerEligible: true,
     })
   })
 
@@ -137,6 +150,51 @@ describe('SetupBanner', () => {
       providerChoiceComplete: false,
       isComplete: false,
       dismiss: mockDismiss,
+    })
+
+    render(<SetupBanner />)
+
+    expect(screen.queryByText('Finish setting up your account')).toBeNull()
+  })
+
+  it('stays hidden until storage stats resolve', () => {
+    mockUseSessionStorageStats.mockReturnValue({
+      snapshot: null,
+      loading: true,
+      supported: false,
+      totalBytes: 0n,
+      blockCount: 0n,
+      setupBannerEligible: false,
+    })
+
+    render(<SetupBanner />)
+
+    expect(screen.queryByText('Finish setting up your account')).toBeNull()
+  })
+
+  it('stays hidden when storage stats are unsupported', () => {
+    mockUseSessionStorageStats.mockReturnValue({
+      snapshot: { supported: false },
+      loading: false,
+      supported: false,
+      totalBytes: 0n,
+      blockCount: 0n,
+      setupBannerEligible: false,
+    })
+
+    render(<SetupBanner />)
+
+    expect(screen.queryByText('Finish setting up your account')).toBeNull()
+  })
+
+  it('stays hidden until local storage exceeds ten MiB', () => {
+    mockUseSessionStorageStats.mockReturnValue({
+      snapshot: { supported: true, totalBytes: 10n * 1024n * 1024n },
+      loading: false,
+      supported: true,
+      totalBytes: 10n * 1024n * 1024n,
+      blockCount: 1n,
+      setupBannerEligible: false,
     })
 
     render(<SetupBanner />)

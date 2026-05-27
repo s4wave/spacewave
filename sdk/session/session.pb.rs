@@ -155,6 +155,10 @@ pub struct WatchSharedObjectHealthResponse {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchSyncStatusRequest {
 }
+/// WatchStorageStatsRequest is the request type for WatchStorageStats.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchStorageStatsRequest {
+}
 /// WatchSyncStatusResponse is the response type for WatchSyncStatus.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WatchSyncStatusResponse {
@@ -320,6 +324,19 @@ pub struct WatchSyncStatusResponse {
     /// PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
     #[prost(uint64, tag="51")]
     pub pack_index_tail_response_bytes: u64,
+}
+/// WatchStorageStatsResponse is the response type for WatchStorageStats.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchStorageStatsResponse {
+    /// Supported indicates whether the provider can report storage stats.
+    #[prost(bool, tag="1")]
+    pub supported: bool,
+    /// TotalBytes is the total bytes stored by the session provider.
+    #[prost(uint64, tag="2")]
+    pub total_bytes: u64,
+    /// BlockCount is the number of stored blocks reported by the session provider.
+    #[prost(uint64, tag="3")]
+    pub block_count: u64,
 }
 /// WatchLockStateRequest is the request type for WatchLockState.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

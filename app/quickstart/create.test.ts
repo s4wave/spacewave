@@ -22,6 +22,11 @@ import {
 } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
+import {
+  DriveIntroTargetObjectKey,
+  DriveIntroTargetTypeID,
+  DriveIntroWizardTypeID,
+} from '@s4wave/app/wizard/drive-intro.js'
 import { InitChatDemoOp } from '@s4wave/sdk/chat/chat.pb.js'
 import {
   CHAT_DEMO_CHANNEL_KEY,
@@ -61,6 +66,18 @@ const spaceMocks = vi.hoisted(() => ({
   mountSpace: vi.fn(),
 }))
 
+const fsHandleMocks = vi.hoisted(() => ({
+  mknod: vi.fn(),
+  lookup: vi.fn(),
+  writeAt: vi.fn(),
+  release: vi.fn(),
+}))
+
+const fsFileHandleMocks = vi.hoisted(() => ({
+  writeAt: vi.fn(),
+  release: vi.fn(),
+}))
+
 vi.mock('@s4wave/sdk/quickstart/registry/registry_srpc.pb.js', () => ({
   QuickstartRegistryResourceServiceClient: vi.fn(function () {
     return quickstartRegistryMocks
@@ -75,6 +92,15 @@ vi.mock('@s4wave/sdk/provider/local/local.js', () => ({
 
 vi.mock('@s4wave/app/space/space.js', () => ({
   mountSpace: spaceMocks.mountSpace,
+}))
+
+vi.mock('@s4wave/sdk/unixfs/index.js', () => ({
+  MknodType: {
+    FILE: 1,
+  },
+  FSHandle: vi.fn(function () {
+    return fsHandleMocks
+  }),
 }))
 
 type ApplyWorldOp = (
@@ -106,6 +132,16 @@ function buildQuickstartWorld() {
         }),
       ),
       createObject: vi.fn().mockResolvedValue({}),
+      accessTypedObject: vi.fn().mockResolvedValue({
+        resourceId: 71,
+        typeId: 'unixfs/fs-node',
+      }),
+      getResourceRef: vi.fn(() => ({
+        createRef: vi.fn((resourceId: number) => ({
+          resourceId,
+          client: {},
+        })),
+      })),
     },
     applyWorldOp,
   }
@@ -203,6 +239,15 @@ describe('quickstart create', () => {
     vi.unstubAllGlobals()
     localProviderMocks.createAccount.mockReset()
     spaceMocks.mountSpace.mockReset()
+    fsHandleMocks.mknod.mockReset()
+    fsHandleMocks.lookup.mockReset()
+    fsHandleMocks.writeAt.mockReset()
+    fsHandleMocks.release.mockReset()
+    fsFileHandleMocks.writeAt.mockReset()
+    fsFileHandleMocks.release.mockReset()
+    fsHandleMocks.mknod.mockResolvedValue(undefined)
+    fsHandleMocks.lookup.mockResolvedValue(fsFileHandleMocks)
+    fsFileHandleMocks.writeAt.mockResolvedValue(0n)
     quickstartRegistryMocks.ListQuickstarts.mockReset()
     quickstartRegistryMocks.WatchQuickstarts.mockReset()
     quickstartRegistryMocks.ExecuteQuickstart.mockReset()
@@ -403,14 +448,11 @@ describe('quickstart create', () => {
     }
   })
 
-  it('routes Drive quickstart straight to its seeded object', () => {
+  it('routes Drive quickstart through the Space default route', () => {
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'drive')).toBe(
-      '/u/2/so/space-1/files',
+      '/u/2/so/space-1',
     )
-    expect(getQuickstartInitialObjectRouteHandoff('drive')).toEqual({
-      objectKey: 'files',
-      objectType: 'unixfs/fs-node',
-    })
+    expect(getQuickstartInitialObjectRouteHandoff('drive')).toBeUndefined()
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1/', 'canvas')).toBe(
       '/u/2/so/space-1/canvas-1',
     )
@@ -592,7 +634,11 @@ describe('quickstart create', () => {
     expect(globalThis.__s4wave_debug?.quickstartTiming?.state).toBe('cancelled')
   })
 
-  it('creates Drive storage before pointing the index at the UnixFS object', async () => {
+  it('creates Drive storage and indexes the intro wizard before raw files', async () => {
+    const createRef = vi.fn((resourceId: number) => ({
+      resourceId,
+      client: {},
+    }))
     const putBlock = vi.fn((_arg: { data: Uint8Array }) =>
       Promise.resolve({ ref: {} }),
     )
@@ -615,15 +661,32 @@ describe('quickstart create', () => {
       createObject: vi.fn().mockResolvedValue({}),
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
       setGraphQuad: vi.fn().mockResolvedValue(undefined),
+      accessTypedObject: vi.fn().mockResolvedValue({
+        resourceId: 71,
+        typeId: 'unixfs/fs-node',
+      }),
+      getResourceRef: vi.fn(() => ({ createRef })),
       applyWorldOp,
     }
 
     await createDrive(spaceWorld as never)
 
-    expect(applyWorldOp).toHaveBeenCalledTimes(2)
+    expect(applyWorldOp).toHaveBeenCalledTimes(3)
     expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
 
-    const settingsCall = applyWorldOp.mock.calls[1]
+    const wizardCall = applyWorldOp.mock.calls[1]
+    if (!wizardCall) {
+      throw new Error('expected wizard op call')
+    }
+    expect(wizardCall[0]).toBe(CREATE_WIZARD_OBJECT_OP_ID)
+    const wizardOp = CreateWizardObjectOp.fromBinary(wizardCall[1])
+    expect(wizardOp.objectKey).toMatch(/^wizard\/drive-intro-/)
+    expect(wizardOp.wizardTypeId).toBe(DriveIntroWizardTypeID)
+    expect(wizardOp.targetTypeId).toBe(DriveIntroTargetTypeID)
+    expect(wizardOp.targetKeyPrefix).toBe(DriveIntroTargetObjectKey)
+    expect(wizardOp.name).toBe('My Drive')
+
+    const settingsCall = applyWorldOp.mock.calls[2]
     if (!settingsCall) {
       throw new Error('expected settings op call')
     }
@@ -632,7 +695,38 @@ describe('quickstart create', () => {
     if (!settings) {
       throw new Error('expected settings')
     }
-    expect(settings.indexPath).toBe(UNIXFS_OBJECT_KEY)
+    expect(settings.indexPath).toBe(wizardOp.objectKey)
+    expect(spaceWorld.accessTypedObject).toHaveBeenCalledWith(
+      UNIXFS_OBJECT_KEY,
+      undefined,
+    )
+    expect(createRef).toHaveBeenCalledWith(71)
+    expect(fsHandleMocks.mknod).toHaveBeenCalledWith(
+      ['getting-started.md'],
+      1,
+      0o644,
+      true,
+      undefined,
+    )
+    expect(fsHandleMocks.lookup).toHaveBeenCalledWith(
+      'getting-started.md',
+      undefined,
+    )
+    expect(fsFileHandleMocks.writeAt).toHaveBeenCalledWith(
+      0n,
+      expect.any(Uint8Array),
+      undefined,
+    )
+    const starterGuideBytes: unknown =
+      fsFileHandleMocks.writeAt.mock.calls[0]?.[1]
+    if (!(starterGuideBytes instanceof Uint8Array)) {
+      throw new Error('expected starter guide bytes')
+    }
+    expect(new TextDecoder().decode(starterGuideBytes)).toContain(
+      'starter guide is written by the Drive',
+    )
+    expect(fsFileHandleMocks.release).toHaveBeenCalled()
+    expect(fsHandleMocks.release).toHaveBeenCalled()
   })
 
   it('reuses the CreateSpace world resource instead of remounting it', async () => {
@@ -692,6 +786,16 @@ describe('quickstart create', () => {
       getObject: vi.fn(() => Promise.resolve(null)),
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
       setGraphQuad: vi.fn().mockResolvedValue(undefined),
+      accessTypedObject: vi.fn().mockResolvedValue({
+        resourceId: 71,
+        typeId: 'unixfs/fs-node',
+      }),
+      getResourceRef: vi.fn(() => ({
+        createRef: vi.fn((resourceId: number) => ({
+          resourceId,
+          client: {},
+        })),
+      })),
       applyWorldOp,
     }
     const timing: QuickstartSetupTiming = {
@@ -703,7 +807,7 @@ describe('quickstart create', () => {
 
     await createDrive(spaceWorld as never, undefined, timing)
 
-    expect(newTransaction).toHaveBeenCalledTimes(2)
+    expect(newTransaction).toHaveBeenCalledTimes(3)
     expect(newTransaction).toHaveBeenCalledWith(true, undefined)
     expect(txApplyWorldOp).toHaveBeenNthCalledWith(
       1,
@@ -714,13 +818,20 @@ describe('quickstart create', () => {
     )
     expect(txApplyWorldOp).toHaveBeenNthCalledWith(
       2,
+      CREATE_WIZARD_OBJECT_OP_ID,
+      expect.any(Uint8Array),
+      '',
+      undefined,
+    )
+    expect(txApplyWorldOp).toHaveBeenNthCalledWith(
+      3,
       SET_SPACE_SETTINGS_OP_ID,
       expect.any(Uint8Array),
       '',
       undefined,
     )
-    expect(commit).toHaveBeenCalledTimes(2)
-    expect(discard).toHaveBeenCalledTimes(2)
+    expect(commit).toHaveBeenCalledTimes(3)
+    expect(discard).toHaveBeenCalledTimes(3)
     expect(applyWorldOp).not.toHaveBeenCalled()
     expect(timing.phases.map((phase) => phase.name)).toEqual([
       'init-drive-unixfs',
@@ -728,6 +839,14 @@ describe('quickstart create', () => {
       'init-drive-unixfs-apply-op',
       'init-drive-unixfs-commit',
       'init-drive-unixfs-discard',
+      'write-drive-starter-guide-access',
+      'write-drive-starter-guide-create',
+      'write-drive-starter-guide-lookup',
+      'write-drive-starter-guide-content',
+      'create-drive-intro-wizard-new-transaction',
+      'create-drive-intro-wizard-apply-op',
+      'create-drive-intro-wizard-commit',
+      'create-drive-intro-wizard-discard',
       'create-drive-settings',
       'create-drive-settings-get-object',
       'create-drive-settings-new-transaction',
@@ -746,21 +865,34 @@ describe('quickstart create', () => {
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
       await populateSpace('drive', { spaceWorld: world } as never)
-      expect(getSettingsIndexPath(applyWorldOp)).toBe(UNIXFS_OBJECT_KEY)
+      expect(getSettingsIndexPath(applyWorldOp)).toMatch(
+        /^wizard\/drive-intro-/,
+      )
       const unixfsCall = applyWorldOp.mock.calls.find(
         (call) => call[0] === INIT_UNIXFS_OP_ID,
       )
       expect(InitUnixFSOp.fromBinary(unixfsCall?.[1]).objectKey).toBe(
         UNIXFS_OBJECT_KEY,
       )
+      const wizardCall = applyWorldOp.mock.calls.find(
+        (call) => call[0] === CREATE_WIZARD_OBJECT_OP_ID,
+      )
+      const wizardOp = CreateWizardObjectOp.fromBinary(wizardCall?.[1])
+      expect(wizardOp.wizardTypeId).toBe(DriveIntroWizardTypeID)
+      expect(wizardOp.targetKeyPrefix).toBe(DriveIntroTargetObjectKey)
       const settingsIndex = applyWorldOp.mock.calls.findIndex(
         (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
       )
       const unixfsIndex = applyWorldOp.mock.calls.findIndex(
         (call) => call[0] === INIT_UNIXFS_OP_ID,
       )
+      const wizardIndex = applyWorldOp.mock.calls.findIndex(
+        (call) => call[0] === CREATE_WIZARD_OBJECT_OP_ID,
+      )
       expect(unixfsIndex).toBeGreaterThanOrEqual(0)
+      expect(wizardIndex).toBeGreaterThan(unixfsIndex)
       expect(settingsIndex).toBeGreaterThan(unixfsIndex)
+      expect(settingsIndex).toBeGreaterThan(wizardIndex)
     }
     {
       const { world, applyWorldOp } = buildQuickstartWorld()

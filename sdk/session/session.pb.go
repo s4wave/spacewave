@@ -780,6 +780,17 @@ func (x *WatchSyncStatusRequest) Reset() {
 
 func (*WatchSyncStatusRequest) ProtoMessage() {}
 
+// WatchStorageStatsRequest is the request type for WatchStorageStats.
+type WatchStorageStatsRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchStorageStatsRequest) Reset() {
+	*x = WatchStorageStatsRequest{}
+}
+
+func (*WatchStorageStatsRequest) ProtoMessage() {}
+
 // WatchSyncStatusResponse is the response type for WatchSyncStatus.
 type WatchSyncStatusResponse struct {
 	unknownFields []byte
@@ -1273,6 +1284,44 @@ func (x *WatchSyncStatusResponse) GetPackIndexTailFetchBytes() uint64 {
 func (x *WatchSyncStatusResponse) GetPackIndexTailResponseBytes() uint64 {
 	if x != nil {
 		return x.PackIndexTailResponseBytes
+	}
+	return 0
+}
+
+// WatchStorageStatsResponse is the response type for WatchStorageStats.
+type WatchStorageStatsResponse struct {
+	unknownFields []byte
+	// Supported indicates whether the provider can report storage stats.
+	Supported bool `protobuf:"varint,1,opt,name=supported,proto3" json:"supported,omitempty"`
+	// TotalBytes is the total bytes stored by the session provider.
+	TotalBytes uint64 `protobuf:"varint,2,opt,name=total_bytes,json=totalBytes,proto3" json:"totalBytes,omitempty"`
+	// BlockCount is the number of stored blocks reported by the session provider.
+	BlockCount uint64 `protobuf:"varint,3,opt,name=block_count,json=blockCount,proto3" json:"blockCount,omitempty"`
+}
+
+func (x *WatchStorageStatsResponse) Reset() {
+	*x = WatchStorageStatsResponse{}
+}
+
+func (*WatchStorageStatsResponse) ProtoMessage() {}
+
+func (x *WatchStorageStatsResponse) GetSupported() bool {
+	if x != nil {
+		return x.Supported
+	}
+	return false
+}
+
+func (x *WatchStorageStatsResponse) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+func (x *WatchStorageStatsResponse) GetBlockCount() uint64 {
+	if x != nil {
+		return x.BlockCount
 	}
 	return 0
 }
@@ -2605,9 +2654,11 @@ func (m *GetSessionInfoResponse) CloneVT() *GetSessionInfoResponse {
 		return (*GetSessionInfoResponse)(nil)
 	}
 	r := new(GetSessionInfoResponse)
-	r.SessionRef = m.SessionRef.CloneVT()
 	r.PeerId = m.PeerId
 	r.CryptoInfo = m.CryptoInfo.CloneVT()
+	if rhs := m.SessionRef; rhs != nil {
+		r.SessionRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2697,11 +2748,15 @@ func (m *CreateSpaceResponse) CloneVT() *CreateSpaceResponse {
 		return (*CreateSpaceResponse)(nil)
 	}
 	r := new(CreateSpaceResponse)
-	r.SharedObjectRef = m.SharedObjectRef.CloneVT()
-	r.SharedObjectMeta = m.SharedObjectMeta.CloneVT()
 	r.MountedSharedObject = m.MountedSharedObject.CloneVT()
 	r.SharedObjectBodyResourceId = m.SharedObjectBodyResourceId
 	r.SpaceWorldResourceId = m.SpaceWorldResourceId
+	if rhs := m.SharedObjectRef; rhs != nil {
+		r.SharedObjectRef = rhs.CloneVT()
+	}
+	if rhs := m.SharedObjectMeta; rhs != nil {
+		r.SharedObjectMeta = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2797,11 +2852,13 @@ func (m *MountSharedObjectResponse) CloneVT() *MountSharedObjectResponse {
 	}
 	r := new(MountSharedObjectResponse)
 	r.ResourceId = m.ResourceId
-	r.SharedObjectMeta = m.SharedObjectMeta.CloneVT()
 	r.PeerId = m.PeerId
 	r.SharedObjectId = m.SharedObjectId
 	r.BlockStoreId = m.BlockStoreId
 	r.HashType = m.HashType
+	if rhs := m.SharedObjectMeta; rhs != nil {
+		r.SharedObjectMeta = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2833,7 +2890,9 @@ func (m *WatchSharedObjectHealthResponse) CloneVT() *WatchSharedObjectHealthResp
 		return (*WatchSharedObjectHealthResponse)(nil)
 	}
 	r := new(WatchSharedObjectHealthResponse)
-	r.Health = m.Health.CloneVT()
+	if rhs := m.Health; rhs != nil {
+		r.Health = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2856,6 +2915,21 @@ func (m *WatchSyncStatusRequest) CloneVT() *WatchSyncStatusRequest {
 }
 
 func (m *WatchSyncStatusRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchStorageStatsRequest) CloneVT() *WatchStorageStatsRequest {
+	if m == nil {
+		return (*WatchStorageStatsRequest)(nil)
+	}
+	r := new(WatchStorageStatsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchStorageStatsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2927,6 +3001,24 @@ func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 }
 
 func (m *WatchSyncStatusResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchStorageStatsResponse) CloneVT() *WatchStorageStatsResponse {
+	if m == nil {
+		return (*WatchStorageStatsResponse)(nil)
+	}
+	r := new(WatchStorageStatsResponse)
+	r.Supported = m.Supported
+	r.TotalBytes = m.TotalBytes
+	r.BlockCount = m.BlockCount
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchStorageStatsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3444,7 +3536,9 @@ func (m *WatchTransferProgressResponse) CloneVT() *WatchTransferProgressResponse
 		return (*WatchTransferProgressResponse)(nil)
 	}
 	r := new(WatchTransferProgressResponse)
-	r.State = m.State.CloneVT()
+	if rhs := m.State; rhs != nil {
+		r.State = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3619,8 +3713,10 @@ func (m *CreateSpaceInviteResponse) CloneVT() *CreateSpaceInviteResponse {
 		return (*CreateSpaceInviteResponse)(nil)
 	}
 	r := new(CreateSpaceInviteResponse)
-	r.InviteMessage = m.InviteMessage.CloneVT()
 	r.ShortCode = m.ShortCode
+	if rhs := m.InviteMessage; rhs != nil {
+		r.InviteMessage = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3775,7 +3871,9 @@ func (m *JoinSpaceViaInviteRequest) CloneVT() *JoinSpaceViaInviteRequest {
 		return (*JoinSpaceViaInviteRequest)(nil)
 	}
 	r := new(JoinSpaceViaInviteRequest)
-	r.InviteMessage = m.InviteMessage.CloneVT()
+	if rhs := m.InviteMessage; rhs != nil {
+		r.InviteMessage = rhs.CloneVT()
+	}
 	if rhs := m.TargetedInvitationEnvelope; rhs != nil {
 		r.TargetedInvitationEnvelope = slices.Clone(rhs)
 	}
@@ -3828,7 +3926,9 @@ func (m *GetTransferStatusResponse) CloneVT() *GetTransferStatusResponse {
 	r := new(GetTransferStatusResponse)
 	r.Active = m.Active
 	r.HasCheckpoint = m.HasCheckpoint
-	r.State = m.State.CloneVT()
+	if rhs := m.State; rhs != nil {
+		r.State = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4341,6 +4441,23 @@ func (this *WatchSyncStatusRequest) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *WatchStorageStatsRequest) EqualVT(that *WatchStorageStatsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchStorageStatsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchStorageStatsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool {
 	if this == that {
 		return true
@@ -4514,6 +4631,32 @@ func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool
 
 func (this *WatchSyncStatusResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchSyncStatusResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchStorageStatsResponse) EqualVT(that *WatchStorageStatsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Supported != that.Supported {
+		return false
+	}
+	if this.TotalBytes != that.TotalBytes {
+		return false
+	}
+	if this.BlockCount != that.BlockCount {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchStorageStatsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchStorageStatsResponse)
 	if !ok {
 		return false
 	}
@@ -6909,6 +7052,36 @@ func (x *WatchSyncStatusRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchStorageStatsRequest message to JSON.
+func (x *WatchStorageStatsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchStorageStatsRequest to JSON.
+func (x *WatchStorageStatsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchStorageStatsRequest message from JSON.
+func (x *WatchStorageStatsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchStorageStatsRequest from JSON.
+func (x *WatchStorageStatsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the WatchSyncStatusResponse message to JSON.
 func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -7376,6 +7549,64 @@ func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the WatchSyncStatusResponse from JSON.
 func (x *WatchSyncStatusResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchStorageStatsResponse message to JSON.
+func (x *WatchStorageStatsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Supported || s.HasField("supported") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("supported")
+		s.WriteBool(x.Supported)
+	}
+	if x.TotalBytes != 0 || s.HasField("totalBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("totalBytes")
+		s.WriteUint64(x.TotalBytes)
+	}
+	if x.BlockCount != 0 || s.HasField("blockCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockCount")
+		s.WriteUint64(x.BlockCount)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchStorageStatsResponse to JSON.
+func (x *WatchStorageStatsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchStorageStatsResponse message from JSON.
+func (x *WatchStorageStatsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "supported":
+			s.AddField("supported")
+			x.Supported = s.ReadBool()
+		case "total_bytes", "totalBytes":
+			s.AddField("total_bytes")
+			x.TotalBytes = s.ReadUint64()
+		case "block_count", "blockCount":
+			s.AddField("block_count")
+			x.BlockCount = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchStorageStatsResponse from JSON.
+func (x *WatchStorageStatsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10820,6 +11051,39 @@ func (m *WatchSyncStatusRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchStorageStatsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchStorageStatsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchStorageStatsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchSyncStatusResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -11208,6 +11472,59 @@ func (m *WatchSyncStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	}
 	if m.State != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchStorageStatsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchStorageStatsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchStorageStatsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BlockCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockCount))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.TotalBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TotalBytes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Supported {
+		i--
+		if m.Supported {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
 		i--
 		dAtA[i] = 0x8
 	}
@@ -14042,6 +14359,16 @@ func (m *WatchSyncStatusRequest) SizeVT() (n int) {
 	return n
 }
 
+func (m *WatchStorageStatsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchSyncStatusResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -14211,6 +14538,25 @@ func (m *WatchSyncStatusResponse) SizeVT() (n int) {
 	}
 	if m.InFlightUploadCount != 0 {
 		n += 2 + protobuf_go_lite.SizeOfVarint(uint64(m.InFlightUploadCount))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchStorageStatsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Supported {
+		n += 2
+	}
+	if m.TotalBytes != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TotalBytes))
+	}
+	if m.BlockCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BlockCount))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -15519,6 +15865,17 @@ func (x *WatchSyncStatusRequest) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *WatchStorageStatsRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchStorageStatsRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchStorageStatsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("WatchSyncStatusResponse {")
@@ -15913,6 +16270,38 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 }
 
 func (x *WatchSyncStatusResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchStorageStatsResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchStorageStatsResponse {")
+	if x.Supported != false {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("supported: ")
+		sb.WriteString(strconv.FormatBool(x.Supported))
+	}
+	if x.TotalBytes != 0 {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("total_bytes: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.TotalBytes), 10))
+	}
+	if x.BlockCount != 0 {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.BlockCount), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchStorageStatsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -18444,6 +18833,49 @@ func (m *WatchSyncStatusRequest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *WatchStorageStatsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchStorageStatsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchStorageStatsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -18993,6 +19425,79 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.InFlightUploadCount = 0
 			m.InFlightUploadCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchStorageStatsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchStorageStatsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchStorageStatsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Supported", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Supported = bool(v != 0)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalBytes", wireType)
+			}
+			m.TotalBytes = 0
+			m.TotalBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockCount", wireType)
+			}
+			m.BlockCount = 0
+			m.BlockCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

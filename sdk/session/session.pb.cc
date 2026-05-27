@@ -65,6 +65,51 @@ struct WatchSyncStatusRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSyncStatusRequestDefaultTypeInternal _WatchSyncStatusRequest_default_instance_;
 
+inline constexpr WatchStorageStatsResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        total_bytes_{::uint64_t{0u}},
+        block_count_{::uint64_t{0u}},
+        supported_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchStorageStatsResponse::WatchStorageStatsResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchStorageStatsResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchStorageStatsResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchStorageStatsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchStorageStatsResponseDefaultTypeInternal() {}
+  union {
+    WatchStorageStatsResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchStorageStatsResponseDefaultTypeInternal _WatchStorageStatsResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR WatchStorageStatsRequest::WatchStorageStatsRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(WatchStorageStatsRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct WatchStorageStatsRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchStorageStatsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchStorageStatsRequestDefaultTypeInternal() {}
+  union {
+    WatchStorageStatsRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchStorageStatsRequestDefaultTypeInternal _WatchStorageStatsRequest_default_instance_;
+
 inline constexpr WatchSharedObjectHealthRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -2134,6 +2179,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSharedObjectHealthResponse, _impl_.health_),
         0,
         0x000, // bitmap
+        0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_._has_bits_),
         57, // hasbit index offset
@@ -2245,6 +2291,15 @@ const ::uint32_t
         49,
         50,
         51,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchStorageStatsResponse, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchStorageStatsResponse, _impl_.supported_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchStorageStatsResponse, _impl_.total_bytes_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchStorageStatsResponse, _impl_.block_count_),
+        2,
+        0,
+        1,
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchLockStateResponse, _impl_._has_bits_),
@@ -2547,69 +2602,71 @@ static const ::_pbi::MigrationSchema
         {85, sizeof(::s4wave::session::WatchSharedObjectHealthRequest)},
         {90, sizeof(::s4wave::session::WatchSharedObjectHealthResponse)},
         {95, sizeof(::s4wave::session::WatchSyncStatusRequest)},
-        {96, sizeof(::s4wave::session::WatchSyncStatusResponse)},
-        {207, sizeof(::s4wave::session::WatchLockStateRequest)},
-        {208, sizeof(::s4wave::session::WatchLockStateResponse)},
-        {215, sizeof(::s4wave::session::SetLockModeRequest)},
-        {222, sizeof(::s4wave::session::SetLockModeResponse)},
-        {223, sizeof(::s4wave::session::UnlockSessionRequest)},
-        {228, sizeof(::s4wave::session::UnlockSessionResponse)},
-        {229, sizeof(::s4wave::session::LockSessionRequest)},
-        {230, sizeof(::s4wave::session::LockSessionResponse)},
-        {231, sizeof(::s4wave::session::GeneratePairingCodeRequest)},
-        {232, sizeof(::s4wave::session::GeneratePairingCodeResponse)},
-        {237, sizeof(::s4wave::session::CompletePairingRequest)},
-        {242, sizeof(::s4wave::session::CompletePairingResponse)},
-        {247, sizeof(::s4wave::session::GetSASEmojiRequest)},
-        {252, sizeof(::s4wave::session::GetSASEmojiResponse)},
-        {257, sizeof(::s4wave::session::ConfirmSASMatchRequest)},
-        {262, sizeof(::s4wave::session::ConfirmSASMatchResponse)},
-        {263, sizeof(::s4wave::session::ConfirmPairingRequest)},
-        {270, sizeof(::s4wave::session::ConfirmPairingResponse)},
-        {271, sizeof(::s4wave::session::DeleteAccountRequest)},
-        {276, sizeof(::s4wave::session::DeleteAccountResponse)},
-        {277, sizeof(::s4wave::session::AccessSessionStateAtomRequest)},
-        {282, sizeof(::s4wave::session::AccessSessionStateAtomResponse)},
-        {287, sizeof(::s4wave::session::WatchSessionStateAtomsRequest)},
-        {288, sizeof(::s4wave::session::WatchSessionStateAtomsResponse)},
-        {295, sizeof(::s4wave::session::ExportBackupKeyRequest)},
-        {300, sizeof(::s4wave::session::ExportBackupKeyResponse)},
-        {307, sizeof(::s4wave::session::GetTransferInventoryRequest)},
-        {312, sizeof(::s4wave::session::GetTransferInventoryResponse)},
-        {317, sizeof(::s4wave::session::StartTransferRequest)},
-        {328, sizeof(::s4wave::session::StartTransferResponse)},
-        {329, sizeof(::s4wave::session::WatchTransferProgressRequest)},
-        {330, sizeof(::s4wave::session::WatchTransferProgressResponse)},
-        {335, sizeof(::s4wave::session::CancelTransferRequest)},
-        {336, sizeof(::s4wave::session::CancelTransferResponse)},
-        {337, sizeof(::s4wave::session::WatchPairedDevicesRequest)},
-        {338, sizeof(::s4wave::session::WatchPairedDevicesResponse)},
-        {345, sizeof(::s4wave::session::UnlinkDeviceRequest)},
-        {350, sizeof(::s4wave::session::UnlinkDeviceResponse)},
-        {351, sizeof(::s4wave::session::WatchPairingStatusRequest)},
-        {352, sizeof(::s4wave::session::WatchPairingStatusResponse)},
-        {365, sizeof(::s4wave::session::CreateSpaceInviteRequest)},
-        {378, sizeof(::s4wave::session::CreateSpaceInviteResponse)},
-        {385, sizeof(::s4wave::session::ListSpaceInvitesRequest)},
-        {390, sizeof(::s4wave::session::ListSpaceInvitesResponse)},
-        {395, sizeof(::s4wave::session::ListSpaceParticipantsRequest)},
-        {400, sizeof(::s4wave::session::ListSpaceParticipantsResponse)},
-        {405, sizeof(::s4wave::session::RemoveSpaceParticipantRequest)},
-        {412, sizeof(::s4wave::session::RemoveSpaceParticipantResponse)},
-        {417, sizeof(::s4wave::session::RevokeSpaceInviteRequest)},
-        {424, sizeof(::s4wave::session::RevokeSpaceInviteResponse)},
-        {425, sizeof(::s4wave::session::JoinSpaceViaInviteRequest)},
-        {432, sizeof(::s4wave::session::JoinSpaceViaInviteResponse)},
-        {439, sizeof(::s4wave::session::GetTransferStatusRequest)},
-        {440, sizeof(::s4wave::session::GetTransferStatusResponse)},
-        {449, sizeof(::s4wave::session::LocalPairingOffer)},
-        {456, sizeof(::s4wave::session::LocalPairingAnswer)},
-        {463, sizeof(::s4wave::session::CreateLocalPairingOfferRequest)},
-        {464, sizeof(::s4wave::session::CreateLocalPairingOfferResponse)},
-        {469, sizeof(::s4wave::session::AcceptLocalPairingOfferRequest)},
-        {474, sizeof(::s4wave::session::AcceptLocalPairingOfferResponse)},
-        {479, sizeof(::s4wave::session::AcceptLocalPairingAnswerRequest)},
-        {484, sizeof(::s4wave::session::AcceptLocalPairingAnswerResponse)},
+        {96, sizeof(::s4wave::session::WatchStorageStatsRequest)},
+        {97, sizeof(::s4wave::session::WatchSyncStatusResponse)},
+        {208, sizeof(::s4wave::session::WatchStorageStatsResponse)},
+        {217, sizeof(::s4wave::session::WatchLockStateRequest)},
+        {218, sizeof(::s4wave::session::WatchLockStateResponse)},
+        {225, sizeof(::s4wave::session::SetLockModeRequest)},
+        {232, sizeof(::s4wave::session::SetLockModeResponse)},
+        {233, sizeof(::s4wave::session::UnlockSessionRequest)},
+        {238, sizeof(::s4wave::session::UnlockSessionResponse)},
+        {239, sizeof(::s4wave::session::LockSessionRequest)},
+        {240, sizeof(::s4wave::session::LockSessionResponse)},
+        {241, sizeof(::s4wave::session::GeneratePairingCodeRequest)},
+        {242, sizeof(::s4wave::session::GeneratePairingCodeResponse)},
+        {247, sizeof(::s4wave::session::CompletePairingRequest)},
+        {252, sizeof(::s4wave::session::CompletePairingResponse)},
+        {257, sizeof(::s4wave::session::GetSASEmojiRequest)},
+        {262, sizeof(::s4wave::session::GetSASEmojiResponse)},
+        {267, sizeof(::s4wave::session::ConfirmSASMatchRequest)},
+        {272, sizeof(::s4wave::session::ConfirmSASMatchResponse)},
+        {273, sizeof(::s4wave::session::ConfirmPairingRequest)},
+        {280, sizeof(::s4wave::session::ConfirmPairingResponse)},
+        {281, sizeof(::s4wave::session::DeleteAccountRequest)},
+        {286, sizeof(::s4wave::session::DeleteAccountResponse)},
+        {287, sizeof(::s4wave::session::AccessSessionStateAtomRequest)},
+        {292, sizeof(::s4wave::session::AccessSessionStateAtomResponse)},
+        {297, sizeof(::s4wave::session::WatchSessionStateAtomsRequest)},
+        {298, sizeof(::s4wave::session::WatchSessionStateAtomsResponse)},
+        {305, sizeof(::s4wave::session::ExportBackupKeyRequest)},
+        {310, sizeof(::s4wave::session::ExportBackupKeyResponse)},
+        {317, sizeof(::s4wave::session::GetTransferInventoryRequest)},
+        {322, sizeof(::s4wave::session::GetTransferInventoryResponse)},
+        {327, sizeof(::s4wave::session::StartTransferRequest)},
+        {338, sizeof(::s4wave::session::StartTransferResponse)},
+        {339, sizeof(::s4wave::session::WatchTransferProgressRequest)},
+        {340, sizeof(::s4wave::session::WatchTransferProgressResponse)},
+        {345, sizeof(::s4wave::session::CancelTransferRequest)},
+        {346, sizeof(::s4wave::session::CancelTransferResponse)},
+        {347, sizeof(::s4wave::session::WatchPairedDevicesRequest)},
+        {348, sizeof(::s4wave::session::WatchPairedDevicesResponse)},
+        {355, sizeof(::s4wave::session::UnlinkDeviceRequest)},
+        {360, sizeof(::s4wave::session::UnlinkDeviceResponse)},
+        {361, sizeof(::s4wave::session::WatchPairingStatusRequest)},
+        {362, sizeof(::s4wave::session::WatchPairingStatusResponse)},
+        {375, sizeof(::s4wave::session::CreateSpaceInviteRequest)},
+        {388, sizeof(::s4wave::session::CreateSpaceInviteResponse)},
+        {395, sizeof(::s4wave::session::ListSpaceInvitesRequest)},
+        {400, sizeof(::s4wave::session::ListSpaceInvitesResponse)},
+        {405, sizeof(::s4wave::session::ListSpaceParticipantsRequest)},
+        {410, sizeof(::s4wave::session::ListSpaceParticipantsResponse)},
+        {415, sizeof(::s4wave::session::RemoveSpaceParticipantRequest)},
+        {422, sizeof(::s4wave::session::RemoveSpaceParticipantResponse)},
+        {427, sizeof(::s4wave::session::RevokeSpaceInviteRequest)},
+        {434, sizeof(::s4wave::session::RevokeSpaceInviteResponse)},
+        {435, sizeof(::s4wave::session::JoinSpaceViaInviteRequest)},
+        {442, sizeof(::s4wave::session::JoinSpaceViaInviteResponse)},
+        {449, sizeof(::s4wave::session::GetTransferStatusRequest)},
+        {450, sizeof(::s4wave::session::GetTransferStatusResponse)},
+        {459, sizeof(::s4wave::session::LocalPairingOffer)},
+        {466, sizeof(::s4wave::session::LocalPairingAnswer)},
+        {473, sizeof(::s4wave::session::CreateLocalPairingOfferRequest)},
+        {474, sizeof(::s4wave::session::CreateLocalPairingOfferResponse)},
+        {479, sizeof(::s4wave::session::AcceptLocalPairingOfferRequest)},
+        {484, sizeof(::s4wave::session::AcceptLocalPairingOfferResponse)},
+        {489, sizeof(::s4wave::session::AcceptLocalPairingAnswerRequest)},
+        {494, sizeof(::s4wave::session::AcceptLocalPairingAnswerResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::session::_GetSessionInfoRequest_default_instance_._instance,
@@ -2628,7 +2685,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::session::_WatchSharedObjectHealthRequest_default_instance_._instance,
     &::s4wave::session::_WatchSharedObjectHealthResponse_default_instance_._instance,
     &::s4wave::session::_WatchSyncStatusRequest_default_instance_._instance,
+    &::s4wave::session::_WatchStorageStatsRequest_default_instance_._instance,
     &::s4wave::session::_WatchSyncStatusResponse_default_instance_._instance,
+    &::s4wave::session::_WatchStorageStatsResponse_default_instance_._instance,
     &::s4wave::session::_WatchLockStateRequest_default_instance_._instance,
     &::s4wave::session::_WatchLockStateResponse_default_instance_._instance,
     &::s4wave::session::_SetLockModeRequest_default_instance_._instance,
@@ -2739,274 +2798,280 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "st\022\030\n\020shared_object_id\030\001 \001(\t\"N\n\037WatchSha"
     "redObjectHealthResponse\022+\n\006health\030\001 \001(\0132"
     "\033.sobject.SharedObjectHealth\"\030\n\026WatchSyn"
-    "cStatusRequest\"\213\017\n\027WatchSyncStatusRespon"
-    "se\022.\n\005state\030\001 \001(\0162\037.s4wave.session.SyncS"
-    "tatusState\0228\n\tdirection\030\002 \001(\0162%.s4wave.s"
-    "ession.SyncActivityDirection\022;\n\017transpor"
-    "t_state\030\003 \001(\0162\".s4wave.session.SyncTrans"
-    "portState\022/\n\tp2p_state\030\004 \001(\0162\034.s4wave.se"
-    "ssion.SyncP2PState\022\034\n\024pending_upload_byt"
-    "es\030\005 \001(\004\022\036\n\026pending_download_bytes\030\006 \001(\004"
-    "\022\034\n\024pending_upload_count\030\007 \001(\r\022\036\n\026pendin"
-    "g_download_count\030\010 \001(\r\022\037\n\027upload_bytes_p"
-    "er_second\030\t \001(\004\022!\n\031download_bytes_per_se"
-    "cond\030\n \001(\004\022\033\n\023active_upload_bytes\0304 \001(\004\022"
-    "\'\n\037active_upload_transferred_bytes\0305 \001(\004"
-    "\022\036\n\026in_flight_upload_count\0306 \001(\r\022\032\n\022acti"
-    "ve_store_count\030\013 \001(\r\022\031\n\021active_peer_coun"
-    "t\030\014 \001(\r\022\022\n\nlast_error\030\r \001(\t\0224\n\020last_acti"
-    "vity_at\030\016 \001(\0132\032.google.protobuf.Timestam"
-    "p\022 \n\030pack_range_request_count\030\017 \001(\004\022!\n\031p"
-    "ack_range_response_bytes\030\020 \001(\004\022)\n!pack_f"
-    "ull_response_fallback_count\030\021 \001(\004\022)\n!pac"
-    "k_full_response_fallback_bytes\030\022 \001(\004\022.\n&"
-    "pack_last_full_response_fallback_bytes\030\023"
-    " \001(\004\022\035\n\025pack_manifest_entries\030\024 \001(\r\022\036\n\026p"
-    "ack_block_count_total\030\025 \001(\004\022\034\n\024pack_bloc"
-    "k_count_min\030\026 \001(\004\022\034\n\024pack_block_count_ma"
-    "x\030\027 \001(\004\022\035\n\025pack_size_bytes_total\030\030 \001(\004\022\033"
-    "\n\023pack_size_bytes_min\030\031 \001(\004\022\033\n\023pack_size"
-    "_bytes_max\030\032 \001(\004\022\037\n\027pack_bloom_filter_co"
-    "unt\030\033 \001(\r\022 \n\030pack_bloom_missing_count\030\034 "
-    "\001(\r\022 \n\030pack_bloom_invalid_count\030\035 \001(\r\022(\n"
-    " pack_bloom_parameter_shape_count\030\036 \001(\r\022"
-    "*\n\"pack_bloom_max_false_positive_rate\030\037 "
-    "\001(\001\022\"\n\032pack_bloom_risk_pack_count\030  \001(\r\022"
-    "\031\n\021pack_lookup_count\030! \001(\004\022\034\n\024pack_candi"
-    "date_packs\030\" \001(\004\022\031\n\021pack_opened_packs\030# "
-    "\001(\004\022\033\n\023pack_negative_packs\030$ \001(\004\022\030\n\020pack"
-    "_target_hits\030% \001(\004\022!\n\031pack_last_candidat"
-    "e_packs\030& \001(\r\022\036\n\026pack_last_opened_packs\030"
-    "\' \001(\r\022 \n\030pack_last_negative_packs\030( \001(\r\022"
-    "\034\n\024pack_last_target_hit\030) \001(\010\022\035\n\025pack_in"
-    "dex_cache_hits\030* \001(\004\022\037\n\027pack_index_cache"
-    "_misses\030+ \001(\004\022$\n\034pack_index_cache_read_e"
-    "rrors\030, \001(\004\022%\n\035pack_index_cache_write_er"
-    "rors\030- \001(\004\022\037\n\027pack_remote_index_loads\030. "
-    "\001(\004\022\037\n\027pack_remote_index_bytes\030/ \001(\004\022$\n\034"
-    "pack_last_remote_index_bytes\0300 \001(\004\022#\n\033pa"
-    "ck_index_tail_fetch_count\0301 \001(\004\022#\n\033pack_"
-    "index_tail_fetch_bytes\0302 \001(\004\022&\n\036pack_ind"
-    "ex_tail_response_bytes\0303 \001(\004\"\027\n\025WatchLoc"
-    "kStateRequest\"P\n\026WatchLockStateResponse\022"
-    "&\n\004mode\030\001 \001(\0162\030.session.SessionLockMode\022"
-    "\016\n\006locked\030\002 \001(\010\"I\n\022SetLockModeRequest\022&\n"
-    "\004mode\030\001 \001(\0162\030.session.SessionLockMode\022\013\n"
-    "\003pin\030\002 \001(\014\"\025\n\023SetLockModeResponse\"#\n\024Unl"
-    "ockSessionRequest\022\013\n\003pin\030\001 \001(\014\"\027\n\025Unlock"
-    "SessionResponse\"\024\n\022LockSessionRequest\"\025\n"
-    "\023LockSessionResponse\"\034\n\032GeneratePairingC"
-    "odeRequest\"+\n\033GeneratePairingCodeRespons"
-    "e\022\014\n\004code\030\001 \001(\t\"&\n\026CompletePairingReques"
-    "t\022\014\n\004code\030\001 \001(\t\"1\n\027CompletePairingRespon"
-    "se\022\026\n\016remote_peer_id\030\001 \001(\t\",\n\022GetSASEmoj"
-    "iRequest\022\026\n\016remote_peer_id\030\001 \001(\t\"$\n\023GetS"
-    "ASEmojiResponse\022\r\n\005emoji\030\001 \003(\t\"+\n\026Confir"
-    "mSASMatchRequest\022\021\n\tconfirmed\030\001 \001(\010\"\031\n\027C"
-    "onfirmSASMatchResponse\"E\n\025ConfirmPairing"
-    "Request\022\026\n\016remote_peer_id\030\001 \001(\t\022\024\n\014displ"
-    "ay_name\030\002 \001(\t\"\030\n\026ConfirmPairingResponse\""
-    "+\n\024DeleteAccountRequest\022\023\n\013session_idx\030\001"
-    " \001(\r\"\027\n\025DeleteAccountResponse\"1\n\035AccessS"
-    "essionStateAtomRequest\022\020\n\010store_id\030\001 \001(\t"
-    "\"5\n\036AccessSessionStateAtomResponse\022\023\n\013re"
-    "source_id\030\001 \001(\r\"\037\n\035WatchSessionStateAtom"
-    "sRequest\"H\n\036WatchSessionStateAtomsRespon"
-    "se\022\021\n\tstore_ids\030\001 \003(\t\022\023\n\013store_count\030\002 \001"
-    "(\r\"*\n\026ExportBackupKeyRequest\022\020\n\010password"
-    "\030\001 \001(\t\"<\n\027ExportBackupKeyResponse\022\020\n\010pem"
-    "_data\030\001 \001(\014\022\017\n\007peer_id\030\002 \001(\t\"4\n\033GetTrans"
-    "ferInventoryRequest\022\025\n\rsession_index\030\001 \001"
-    "(\r\"G\n\034GetTransferInventoryResponse\022\'\n\006sp"
-    "aces\030\001 \003(\0132\027.space.SpaceSoListEntry\"\224\001\n\024"
-    "StartTransferRequest\022\034\n\024source_session_i"
-    "ndex\030\001 \001(\r\022\034\n\024target_session_index\030\002 \001(\r"
-    "\022-\n\004mode\030\003 \001(\0162\037.provider.transfer.Trans"
-    "ferMode\022\021\n\tspace_ids\030\004 \003(\t\"\027\n\025StartTrans"
-    "ferResponse\"\036\n\034WatchTransferProgressRequ"
-    "est\"P\n\035WatchTransferProgressResponse\022/\n\005"
-    "state\030\001 \001(\0132 .provider.transfer.Transfer"
-    "State\"\027\n\025CancelTransferRequest\"\030\n\026Cancel"
-    "TransferResponse\"\033\n\031WatchPairedDevicesRe"
-    "quest\"m\n\032WatchPairedDevicesResponse\0226\n\016p"
-    "aired_devices\030\001 \003(\0132\036.account.settings.P"
-    "airedDevice\022\027\n\017online_peer_ids\030\002 \003(\t\"&\n\023"
-    "UnlinkDeviceRequest\022\017\n\007peer_id\030\001 \001(\t\"\026\n\024"
-    "UnlinkDeviceResponse\"\033\n\031WatchPairingStat"
-    "usRequest\"\227\001\n\032WatchPairingStatusResponse"
-    "\022-\n\006status\030\001 \001(\0162\035.s4wave.session.Pairin"
-    "gStatus\022\026\n\016remote_peer_id\030\002 \001(\t\022\014\n\004code\030"
-    "\003 \001(\t\022\r\n\005emoji\030\004 \003(\t\022\025\n\rerror_message\030\005 "
-    "\001(\t\"\260\001\n\030CreateSpaceInviteRequest\022\020\n\010spac"
-    "e_id\030\001 \001(\t\022(\n\004role\030\002 \001(\0162\032.sobject.SOPar"
-    "ticipantRole\022\026\n\016target_peer_id\030\003 \001(\t\022\020\n\010"
-    "max_uses\030\004 \001(\r\022.\n\nexpires_at\030\005 \001(\0132\032.goo"
-    "gle.protobuf.Timestamp\"a\n\031CreateSpaceInv"
-    "iteResponse\0220\n\016invite_message\030\001 \001(\0132\030.so"
-    "bject.SOInviteMessage\022\022\n\nshort_code\030\002 \001("
-    "\t\"+\n\027ListSpaceInvitesRequest\022\020\n\010space_id"
-    "\030\001 \001(\t\">\n\030ListSpaceInvitesResponse\022\"\n\007in"
-    "vites\030\001 \003(\0132\021.sobject.SOInvite\"0\n\034ListSp"
-    "aceParticipantsRequest\022\020\n\010space_id\030\001 \001(\t"
-    "\"S\n\035ListSpaceParticipantsResponse\0222\n\014par"
-    "ticipants\030\001 \003(\0132\034.sobject.SOParticipantC"
-    "onfig\"B\n\035RemoveSpaceParticipantRequest\022\020"
-    "\n\010space_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\"1\n\036Rem"
-    "oveSpaceParticipantResponse\022\017\n\007removed\030\001"
-    " \001(\010\"\?\n\030RevokeSpaceInviteRequest\022\020\n\010spac"
-    "e_id\030\001 \001(\t\022\021\n\tinvite_id\030\002 \001(\t\"\033\n\031RevokeS"
-    "paceInviteResponse\"s\n\031JoinSpaceViaInvite"
-    "Request\0220\n\016invite_message\030\001 \001(\0132\030.sobjec"
-    "t.SOInviteMessage\022$\n\034targeted_invitation"
-    "_envelope\030\002 \001(\014\"p\n\032JoinSpaceViaInviteRes"
-    "ponse\022\030\n\020shared_object_id\030\001 \001(\t\0228\n\006resul"
-    "t\030\002 \001(\0162(.s4wave.session.JoinSpaceViaInv"
-    "iteResult\"\032\n\030GetTransferStatusRequest\"t\n"
-    "\031GetTransferStatusResponse\022\016\n\006active\030\001 \001"
-    "(\010\022\026\n\016has_checkpoint\030\002 \001(\010\022/\n\005state\030\003 \001("
-    "\0132 .provider.transfer.TransferState\"1\n\021L"
-    "ocalPairingOffer\022\013\n\003sdp\030\001 \001(\t\022\017\n\007peer_id"
-    "\030\002 \001(\t\"2\n\022LocalPairingAnswer\022\013\n\003sdp\030\001 \001("
-    "\t\022\017\n\007peer_id\030\002 \001(\t\" \n\036CreateLocalPairing"
-    "OfferRequest\"8\n\037CreateLocalPairingOfferR"
-    "esponse\022\025\n\roffer_payload\030\001 \001(\t\"7\n\036Accept"
-    "LocalPairingOfferRequest\022\025\n\roffer_payloa"
-    "d\030\001 \001(\t\"9\n\037AcceptLocalPairingOfferRespon"
-    "se\022\026\n\016answer_payload\030\001 \001(\t\"9\n\037AcceptLoca"
-    "lPairingAnswerRequest\022\026\n\016answer_payload\030"
-    "\001 \001(\t\":\n AcceptLocalPairingAnswerRespons"
-    "e\022\026\n\016remote_peer_id\030\001 \001(\t*d\n\017SyncStatusS"
-    "tate\022\032\n\026SyncStatusState_SYNCED\020\000\022\032\n\026Sync"
-    "StatusState_ACTIVE\020\001\022\031\n\025SyncStatusState_"
-    "ERROR\020\002*\250\001\n\025SyncActivityDirection\022\036\n\032Syn"
-    "cActivityDirection_NONE\020\000\022 \n\034SyncActivit"
-    "yDirection_UPLOAD\020\001\022\"\n\036SyncActivityDirec"
-    "tion_DOWNLOAD\020\002\022)\n%SyncActivityDirection"
-    "_UPLOAD_DOWNLOAD\020\003*\270\001\n\022SyncTransportStat"
-    "e\022\036\n\032SyncTransportState_UNKNOWN\020\000\022\"\n\036Syn"
-    "cTransportState_UNAVAILABLE\020\001\022!\n\035SyncTra"
-    "nsportState_CONNECTING\020\002\022\035\n\031SyncTranspor"
-    "tState_ONLINE\020\003\022\034\n\030SyncTransportState_ER"
-    "ROR\020\004*\213\001\n\014SyncP2PState\022\030\n\024SyncP2PState_U"
-    "NKNOWN\020\000\022\031\n\025SyncP2PState_NO_PEERS\020\001\022\025\n\021S"
-    "yncP2PState_IDLE\020\002\022\027\n\023SyncP2PState_ACTIV"
-    "E\020\003\022\026\n\022SyncP2PState_ERROR\020\004*\316\003\n\rPairingS"
-    "tatus\022\026\n\022PairingStatus_IDLE\020\000\022 \n\034Pairing"
-    "Status_CODE_GENERATED\020\001\022\"\n\036PairingStatus"
-    "_WAITING_FOR_PEER\020\002\022 \n\034PairingStatus_PEE"
-    "R_CONNECTED\020\003\022!\n\035PairingStatus_VERIFYING"
-    "_EMOJI\020\004\022\032\n\026PairingStatus_VERIFIED\020\005\022\030\n\024"
-    "PairingStatus_FAILED\020\006\022\"\n\036PairingStatus_"
-    "SIGNALING_FAILED\020\007\022$\n PairingStatus_CONN"
-    "ECTION_TIMEOUT\020\010\022,\n(PairingStatus_WAITIN"
-    "G_FOR_REMOTE_CONFIRM\020\t\022 \n\034PairingStatus_"
-    "BOTH_CONFIRMED\020\n\022\"\n\036PairingStatus_PAIRIN"
-    "G_REJECTED\020\013\022&\n\"PairingStatus_CONFIRMATI"
-    "ON_TIMEOUT\020\014*\372\001\n\030JoinSpaceViaInviteResul"
-    "t\022(\n$JoinSpaceViaInviteResult_UNSPECIFIE"
-    "D\020\000\022%\n!JoinSpaceViaInviteResult_ACCEPTED"
-    "\020\001\0223\n/JoinSpaceViaInviteResult_PENDING_O"
-    "WNER_APPROVAL\020\002\022%\n!JoinSpaceViaInviteRes"
-    "ult_REJECTED\020\003\0221\n-JoinSpaceViaInviteResu"
-    "lt_OWNER_MUST_BE_ONLINE\020\0042\301\036\n\026SessionRes"
-    "ourceService\022_\n\016GetSessionInfo\022%.s4wave."
-    "session.GetSessionInfoRequest\032&.s4wave.s"
-    "ession.GetSessionInfoResponse\022m\n\022WatchRe"
-    "sourcesList\022).s4wave.session.WatchResour"
-    "cesListRequest\032*.s4wave.session.WatchRes"
-    "ourcesListResponse0\001\022V\n\013CreateSpace\022\".s4"
-    "wave.session.CreateSpaceRequest\032#.s4wave"
-    ".session.CreateSpaceResponse\022j\n\021MountSha"
-    "redObject\022(.s4wave.session.MountSharedOb"
-    "jectRequest\032).s4wave.session.MountShared"
-    "ObjectResponse\"\000\022|\n\027WatchSharedObjectHea"
-    "lth\022..s4wave.session.WatchSharedObjectHe"
-    "althRequest\032/.s4wave.session.WatchShared"
-    "ObjectHealthResponse0\001\022d\n\017WatchSyncStatu"
-    "s\022&.s4wave.session.WatchSyncStatusReques"
-    "t\032\'.s4wave.session.WatchSyncStatusRespon"
-    "se0\001\022V\n\013DeleteSpace\022\".s4wave.session.Del"
-    "eteSpaceRequest\032#.s4wave.session.DeleteS"
-    "paceResponse\022V\n\013RenameSpace\022\".s4wave.ses"
-    "sion.RenameSpaceRequest\032#.s4wave.session"
-    ".RenameSpaceResponse\022a\n\016WatchLockState\022%"
-    ".s4wave.session.WatchLockStateRequest\032&."
-    "s4wave.session.WatchLockStateResponse0\001\022"
-    "V\n\013SetLockMode\022\".s4wave.session.SetLockM"
-    "odeRequest\032#.s4wave.session.SetLockModeR"
-    "esponse\022\\\n\rUnlockSession\022$.s4wave.sessio"
-    "n.UnlockSessionRequest\032%.s4wave.session."
-    "UnlockSessionResponse\022V\n\013LockSession\022\".s"
-    "4wave.session.LockSessionRequest\032#.s4wav"
-    "e.session.LockSessionResponse\022n\n\023Generat"
-    "ePairingCode\022*.s4wave.session.GeneratePa"
-    "iringCodeRequest\032+.s4wave.session.Genera"
-    "tePairingCodeResponse\022b\n\017CompletePairing"
-    "\022&.s4wave.session.CompletePairingRequest"
-    "\032\'.s4wave.session.CompletePairingRespons"
-    "e\022V\n\013GetSASEmoji\022\".s4wave.session.GetSAS"
-    "EmojiRequest\032#.s4wave.session.GetSASEmoj"
-    "iResponse\022b\n\017ConfirmSASMatch\022&.s4wave.se"
-    "ssion.ConfirmSASMatchRequest\032\'.s4wave.se"
-    "ssion.ConfirmSASMatchResponse\022_\n\016Confirm"
-    "Pairing\022%.s4wave.session.ConfirmPairingR"
-    "equest\032&.s4wave.session.ConfirmPairingRe"
-    "sponse\022\\\n\rDeleteAccount\022$.s4wave.session"
-    ".DeleteAccountRequest\032%.s4wave.session.D"
-    "eleteAccountResponse\022p\n\017AccessStateAtom\022"
-    "-.s4wave.session.AccessSessionStateAtomR"
-    "equest\032..s4wave.session.AccessSessionSta"
-    "teAtomResponse\022r\n\017WatchStateAtoms\022-.s4wa"
-    "ve.session.WatchSessionStateAtomsRequest"
-    "\032..s4wave.session.WatchSessionStateAtoms"
-    "Response0\001\022q\n\024GetTransferInventory\022+.s4w"
-    "ave.session.GetTransferInventoryRequest\032"
-    ",.s4wave.session.GetTransferInventoryRes"
-    "ponse\022\\\n\rStartTransfer\022$.s4wave.session."
-    "StartTransferRequest\032%.s4wave.session.St"
-    "artTransferResponse\022v\n\025WatchTransferProg"
-    "ress\022,.s4wave.session.WatchTransferProgr"
-    "essRequest\032-.s4wave.session.WatchTransfe"
-    "rProgressResponse0\001\022_\n\016CancelTransfer\022%."
-    "s4wave.session.CancelTransferRequest\032&.s"
-    "4wave.session.CancelTransferResponse\022h\n\021"
-    "GetTransferStatus\022(.s4wave.session.GetTr"
-    "ansferStatusRequest\032).s4wave.session.Get"
-    "TransferStatusResponse\022m\n\022WatchPairedDev"
-    "ices\022).s4wave.session.WatchPairedDevices"
-    "Request\032*.s4wave.session.WatchPairedDevi"
-    "cesResponse0\001\022m\n\022WatchPairingStatus\022).s4"
-    "wave.session.WatchPairingStatusRequest\032*"
-    ".s4wave.session.WatchPairingStatusRespon"
-    "se0\001\022Y\n\014UnlinkDevice\022#.s4wave.session.Un"
-    "linkDeviceRequest\032$.s4wave.session.Unlin"
-    "kDeviceResponse\022h\n\021CreateSpaceInvite\022(.s"
-    "4wave.session.CreateSpaceInviteRequest\032)"
-    ".s4wave.session.CreateSpaceInviteRespons"
-    "e\022e\n\020ListSpaceInvites\022\'.s4wave.session.L"
-    "istSpaceInvitesRequest\032(.s4wave.session."
-    "ListSpaceInvitesResponse\022t\n\025ListSpacePar"
-    "ticipants\022,.s4wave.session.ListSpacePart"
-    "icipantsRequest\032-.s4wave.session.ListSpa"
-    "ceParticipantsResponse\022w\n\026RemoveSpacePar"
-    "ticipant\022-.s4wave.session.RemoveSpacePar"
-    "ticipantRequest\032..s4wave.session.RemoveS"
-    "paceParticipantResponse\022h\n\021RevokeSpaceIn"
-    "vite\022(.s4wave.session.RevokeSpaceInviteR"
-    "equest\032).s4wave.session.RevokeSpaceInvit"
-    "eResponse\022k\n\022JoinSpaceViaInvite\022).s4wave"
-    ".session.JoinSpaceViaInviteRequest\032*.s4w"
-    "ave.session.JoinSpaceViaInviteResponse\022z"
-    "\n\027CreateLocalPairingOffer\022..s4wave.sessi"
-    "on.CreateLocalPairingOfferRequest\032/.s4wa"
-    "ve.session.CreateLocalPairingOfferRespon"
-    "se\022z\n\027AcceptLocalPairingOffer\022..s4wave.s"
-    "ession.AcceptLocalPairingOfferRequest\032/."
-    "s4wave.session.AcceptLocalPairingOfferRe"
-    "sponse\022}\n\030AcceptLocalPairingAnswer\022/.s4w"
-    "ave.session.AcceptLocalPairingAnswerRequ"
-    "est\0320.s4wave.session.AcceptLocalPairingA"
-    "nswerResponseb\006proto3"
+    "cStatusRequest\"\032\n\030WatchStorageStatsReque"
+    "st\"\213\017\n\027WatchSyncStatusResponse\022.\n\005state\030"
+    "\001 \001(\0162\037.s4wave.session.SyncStatusState\0228"
+    "\n\tdirection\030\002 \001(\0162%.s4wave.session.SyncA"
+    "ctivityDirection\022;\n\017transport_state\030\003 \001("
+    "\0162\".s4wave.session.SyncTransportState\022/\n"
+    "\tp2p_state\030\004 \001(\0162\034.s4wave.session.SyncP2"
+    "PState\022\034\n\024pending_upload_bytes\030\005 \001(\004\022\036\n\026"
+    "pending_download_bytes\030\006 \001(\004\022\034\n\024pending_"
+    "upload_count\030\007 \001(\r\022\036\n\026pending_download_c"
+    "ount\030\010 \001(\r\022\037\n\027upload_bytes_per_second\030\t "
+    "\001(\004\022!\n\031download_bytes_per_second\030\n \001(\004\022\033"
+    "\n\023active_upload_bytes\0304 \001(\004\022\'\n\037active_up"
+    "load_transferred_bytes\0305 \001(\004\022\036\n\026in_fligh"
+    "t_upload_count\0306 \001(\r\022\032\n\022active_store_cou"
+    "nt\030\013 \001(\r\022\031\n\021active_peer_count\030\014 \001(\r\022\022\n\nl"
+    "ast_error\030\r \001(\t\0224\n\020last_activity_at\030\016 \001("
+    "\0132\032.google.protobuf.Timestamp\022 \n\030pack_ra"
+    "nge_request_count\030\017 \001(\004\022!\n\031pack_range_re"
+    "sponse_bytes\030\020 \001(\004\022)\n!pack_full_response"
+    "_fallback_count\030\021 \001(\004\022)\n!pack_full_respo"
+    "nse_fallback_bytes\030\022 \001(\004\022.\n&pack_last_fu"
+    "ll_response_fallback_bytes\030\023 \001(\004\022\035\n\025pack"
+    "_manifest_entries\030\024 \001(\r\022\036\n\026pack_block_co"
+    "unt_total\030\025 \001(\004\022\034\n\024pack_block_count_min\030"
+    "\026 \001(\004\022\034\n\024pack_block_count_max\030\027 \001(\004\022\035\n\025p"
+    "ack_size_bytes_total\030\030 \001(\004\022\033\n\023pack_size_"
+    "bytes_min\030\031 \001(\004\022\033\n\023pack_size_bytes_max\030\032"
+    " \001(\004\022\037\n\027pack_bloom_filter_count\030\033 \001(\r\022 \n"
+    "\030pack_bloom_missing_count\030\034 \001(\r\022 \n\030pack_"
+    "bloom_invalid_count\030\035 \001(\r\022(\n pack_bloom_"
+    "parameter_shape_count\030\036 \001(\r\022*\n\"pack_bloo"
+    "m_max_false_positive_rate\030\037 \001(\001\022\"\n\032pack_"
+    "bloom_risk_pack_count\030  \001(\r\022\031\n\021pack_look"
+    "up_count\030! \001(\004\022\034\n\024pack_candidate_packs\030\""
+    " \001(\004\022\031\n\021pack_opened_packs\030# \001(\004\022\033\n\023pack_"
+    "negative_packs\030$ \001(\004\022\030\n\020pack_target_hits"
+    "\030% \001(\004\022!\n\031pack_last_candidate_packs\030& \001("
+    "\r\022\036\n\026pack_last_opened_packs\030\' \001(\r\022 \n\030pac"
+    "k_last_negative_packs\030( \001(\r\022\034\n\024pack_last"
+    "_target_hit\030) \001(\010\022\035\n\025pack_index_cache_hi"
+    "ts\030* \001(\004\022\037\n\027pack_index_cache_misses\030+ \001("
+    "\004\022$\n\034pack_index_cache_read_errors\030, \001(\004\022"
+    "%\n\035pack_index_cache_write_errors\030- \001(\004\022\037"
+    "\n\027pack_remote_index_loads\030. \001(\004\022\037\n\027pack_"
+    "remote_index_bytes\030/ \001(\004\022$\n\034pack_last_re"
+    "mote_index_bytes\0300 \001(\004\022#\n\033pack_index_tai"
+    "l_fetch_count\0301 \001(\004\022#\n\033pack_index_tail_f"
+    "etch_bytes\0302 \001(\004\022&\n\036pack_index_tail_resp"
+    "onse_bytes\0303 \001(\004\"X\n\031WatchStorageStatsRes"
+    "ponse\022\021\n\tsupported\030\001 \001(\010\022\023\n\013total_bytes\030"
+    "\002 \001(\004\022\023\n\013block_count\030\003 \001(\004\"\027\n\025WatchLockS"
+    "tateRequest\"P\n\026WatchLockStateResponse\022&\n"
+    "\004mode\030\001 \001(\0162\030.session.SessionLockMode\022\016\n"
+    "\006locked\030\002 \001(\010\"I\n\022SetLockModeRequest\022&\n\004m"
+    "ode\030\001 \001(\0162\030.session.SessionLockMode\022\013\n\003p"
+    "in\030\002 \001(\014\"\025\n\023SetLockModeResponse\"#\n\024Unloc"
+    "kSessionRequest\022\013\n\003pin\030\001 \001(\014\"\027\n\025UnlockSe"
+    "ssionResponse\"\024\n\022LockSessionRequest\"\025\n\023L"
+    "ockSessionResponse\"\034\n\032GeneratePairingCod"
+    "eRequest\"+\n\033GeneratePairingCodeResponse\022"
+    "\014\n\004code\030\001 \001(\t\"&\n\026CompletePairingRequest\022"
+    "\014\n\004code\030\001 \001(\t\"1\n\027CompletePairingResponse"
+    "\022\026\n\016remote_peer_id\030\001 \001(\t\",\n\022GetSASEmojiR"
+    "equest\022\026\n\016remote_peer_id\030\001 \001(\t\"$\n\023GetSAS"
+    "EmojiResponse\022\r\n\005emoji\030\001 \003(\t\"+\n\026ConfirmS"
+    "ASMatchRequest\022\021\n\tconfirmed\030\001 \001(\010\"\031\n\027Con"
+    "firmSASMatchResponse\"E\n\025ConfirmPairingRe"
+    "quest\022\026\n\016remote_peer_id\030\001 \001(\t\022\024\n\014display"
+    "_name\030\002 \001(\t\"\030\n\026ConfirmPairingResponse\"+\n"
+    "\024DeleteAccountRequest\022\023\n\013session_idx\030\001 \001"
+    "(\r\"\027\n\025DeleteAccountResponse\"1\n\035AccessSes"
+    "sionStateAtomRequest\022\020\n\010store_id\030\001 \001(\t\"5"
+    "\n\036AccessSessionStateAtomResponse\022\023\n\013reso"
+    "urce_id\030\001 \001(\r\"\037\n\035WatchSessionStateAtomsR"
+    "equest\"H\n\036WatchSessionStateAtomsResponse"
+    "\022\021\n\tstore_ids\030\001 \003(\t\022\023\n\013store_count\030\002 \001(\r"
+    "\"*\n\026ExportBackupKeyRequest\022\020\n\010password\030\001"
+    " \001(\t\"<\n\027ExportBackupKeyResponse\022\020\n\010pem_d"
+    "ata\030\001 \001(\014\022\017\n\007peer_id\030\002 \001(\t\"4\n\033GetTransfe"
+    "rInventoryRequest\022\025\n\rsession_index\030\001 \001(\r"
+    "\"G\n\034GetTransferInventoryResponse\022\'\n\006spac"
+    "es\030\001 \003(\0132\027.space.SpaceSoListEntry\"\224\001\n\024St"
+    "artTransferRequest\022\034\n\024source_session_ind"
+    "ex\030\001 \001(\r\022\034\n\024target_session_index\030\002 \001(\r\022-"
+    "\n\004mode\030\003 \001(\0162\037.provider.transfer.Transfe"
+    "rMode\022\021\n\tspace_ids\030\004 \003(\t\"\027\n\025StartTransfe"
+    "rResponse\"\036\n\034WatchTransferProgressReques"
+    "t\"P\n\035WatchTransferProgressResponse\022/\n\005st"
+    "ate\030\001 \001(\0132 .provider.transfer.TransferSt"
+    "ate\"\027\n\025CancelTransferRequest\"\030\n\026CancelTr"
+    "ansferResponse\"\033\n\031WatchPairedDevicesRequ"
+    "est\"m\n\032WatchPairedDevicesResponse\0226\n\016pai"
+    "red_devices\030\001 \003(\0132\036.account.settings.Pai"
+    "redDevice\022\027\n\017online_peer_ids\030\002 \003(\t\"&\n\023Un"
+    "linkDeviceRequest\022\017\n\007peer_id\030\001 \001(\t\"\026\n\024Un"
+    "linkDeviceResponse\"\033\n\031WatchPairingStatus"
+    "Request\"\227\001\n\032WatchPairingStatusResponse\022-"
+    "\n\006status\030\001 \001(\0162\035.s4wave.session.PairingS"
+    "tatus\022\026\n\016remote_peer_id\030\002 \001(\t\022\014\n\004code\030\003 "
+    "\001(\t\022\r\n\005emoji\030\004 \003(\t\022\025\n\rerror_message\030\005 \001("
+    "\t\"\260\001\n\030CreateSpaceInviteRequest\022\020\n\010space_"
+    "id\030\001 \001(\t\022(\n\004role\030\002 \001(\0162\032.sobject.SOParti"
+    "cipantRole\022\026\n\016target_peer_id\030\003 \001(\t\022\020\n\010ma"
+    "x_uses\030\004 \001(\r\022.\n\nexpires_at\030\005 \001(\0132\032.googl"
+    "e.protobuf.Timestamp\"a\n\031CreateSpaceInvit"
+    "eResponse\0220\n\016invite_message\030\001 \001(\0132\030.sobj"
+    "ect.SOInviteMessage\022\022\n\nshort_code\030\002 \001(\t\""
+    "+\n\027ListSpaceInvitesRequest\022\020\n\010space_id\030\001"
+    " \001(\t\">\n\030ListSpaceInvitesResponse\022\"\n\007invi"
+    "tes\030\001 \003(\0132\021.sobject.SOInvite\"0\n\034ListSpac"
+    "eParticipantsRequest\022\020\n\010space_id\030\001 \001(\t\"S"
+    "\n\035ListSpaceParticipantsResponse\0222\n\014parti"
+    "cipants\030\001 \003(\0132\034.sobject.SOParticipantCon"
+    "fig\"B\n\035RemoveSpaceParticipantRequest\022\020\n\010"
+    "space_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\"1\n\036Remov"
+    "eSpaceParticipantResponse\022\017\n\007removed\030\001 \001"
+    "(\010\"\?\n\030RevokeSpaceInviteRequest\022\020\n\010space_"
+    "id\030\001 \001(\t\022\021\n\tinvite_id\030\002 \001(\t\"\033\n\031RevokeSpa"
+    "ceInviteResponse\"s\n\031JoinSpaceViaInviteRe"
+    "quest\0220\n\016invite_message\030\001 \001(\0132\030.sobject."
+    "SOInviteMessage\022$\n\034targeted_invitation_e"
+    "nvelope\030\002 \001(\014\"p\n\032JoinSpaceViaInviteRespo"
+    "nse\022\030\n\020shared_object_id\030\001 \001(\t\0228\n\006result\030"
+    "\002 \001(\0162(.s4wave.session.JoinSpaceViaInvit"
+    "eResult\"\032\n\030GetTransferStatusRequest\"t\n\031G"
+    "etTransferStatusResponse\022\016\n\006active\030\001 \001(\010"
+    "\022\026\n\016has_checkpoint\030\002 \001(\010\022/\n\005state\030\003 \001(\0132"
+    " .provider.transfer.TransferState\"1\n\021Loc"
+    "alPairingOffer\022\013\n\003sdp\030\001 \001(\t\022\017\n\007peer_id\030\002"
+    " \001(\t\"2\n\022LocalPairingAnswer\022\013\n\003sdp\030\001 \001(\t\022"
+    "\017\n\007peer_id\030\002 \001(\t\" \n\036CreateLocalPairingOf"
+    "ferRequest\"8\n\037CreateLocalPairingOfferRes"
+    "ponse\022\025\n\roffer_payload\030\001 \001(\t\"7\n\036AcceptLo"
+    "calPairingOfferRequest\022\025\n\roffer_payload\030"
+    "\001 \001(\t\"9\n\037AcceptLocalPairingOfferResponse"
+    "\022\026\n\016answer_payload\030\001 \001(\t\"9\n\037AcceptLocalP"
+    "airingAnswerRequest\022\026\n\016answer_payload\030\001 "
+    "\001(\t\":\n AcceptLocalPairingAnswerResponse\022"
+    "\026\n\016remote_peer_id\030\001 \001(\t*d\n\017SyncStatusSta"
+    "te\022\032\n\026SyncStatusState_SYNCED\020\000\022\032\n\026SyncSt"
+    "atusState_ACTIVE\020\001\022\031\n\025SyncStatusState_ER"
+    "ROR\020\002*\250\001\n\025SyncActivityDirection\022\036\n\032SyncA"
+    "ctivityDirection_NONE\020\000\022 \n\034SyncActivityD"
+    "irection_UPLOAD\020\001\022\"\n\036SyncActivityDirecti"
+    "on_DOWNLOAD\020\002\022)\n%SyncActivityDirection_U"
+    "PLOAD_DOWNLOAD\020\003*\270\001\n\022SyncTransportState\022"
+    "\036\n\032SyncTransportState_UNKNOWN\020\000\022\"\n\036SyncT"
+    "ransportState_UNAVAILABLE\020\001\022!\n\035SyncTrans"
+    "portState_CONNECTING\020\002\022\035\n\031SyncTransportS"
+    "tate_ONLINE\020\003\022\034\n\030SyncTransportState_ERRO"
+    "R\020\004*\213\001\n\014SyncP2PState\022\030\n\024SyncP2PState_UNK"
+    "NOWN\020\000\022\031\n\025SyncP2PState_NO_PEERS\020\001\022\025\n\021Syn"
+    "cP2PState_IDLE\020\002\022\027\n\023SyncP2PState_ACTIVE\020"
+    "\003\022\026\n\022SyncP2PState_ERROR\020\004*\316\003\n\rPairingSta"
+    "tus\022\026\n\022PairingStatus_IDLE\020\000\022 \n\034PairingSt"
+    "atus_CODE_GENERATED\020\001\022\"\n\036PairingStatus_W"
+    "AITING_FOR_PEER\020\002\022 \n\034PairingStatus_PEER_"
+    "CONNECTED\020\003\022!\n\035PairingStatus_VERIFYING_E"
+    "MOJI\020\004\022\032\n\026PairingStatus_VERIFIED\020\005\022\030\n\024Pa"
+    "iringStatus_FAILED\020\006\022\"\n\036PairingStatus_SI"
+    "GNALING_FAILED\020\007\022$\n PairingStatus_CONNEC"
+    "TION_TIMEOUT\020\010\022,\n(PairingStatus_WAITING_"
+    "FOR_REMOTE_CONFIRM\020\t\022 \n\034PairingStatus_BO"
+    "TH_CONFIRMED\020\n\022\"\n\036PairingStatus_PAIRING_"
+    "REJECTED\020\013\022&\n\"PairingStatus_CONFIRMATION"
+    "_TIMEOUT\020\014*\372\001\n\030JoinSpaceViaInviteResult\022"
+    "(\n$JoinSpaceViaInviteResult_UNSPECIFIED\020"
+    "\000\022%\n!JoinSpaceViaInviteResult_ACCEPTED\020\001"
+    "\0223\n/JoinSpaceViaInviteResult_PENDING_OWN"
+    "ER_APPROVAL\020\002\022%\n!JoinSpaceViaInviteResul"
+    "t_REJECTED\020\003\0221\n-JoinSpaceViaInviteResult"
+    "_OWNER_MUST_BE_ONLINE\020\0042\255\037\n\026SessionResou"
+    "rceService\022_\n\016GetSessionInfo\022%.s4wave.se"
+    "ssion.GetSessionInfoRequest\032&.s4wave.ses"
+    "sion.GetSessionInfoResponse\022m\n\022WatchReso"
+    "urcesList\022).s4wave.session.WatchResource"
+    "sListRequest\032*.s4wave.session.WatchResou"
+    "rcesListResponse0\001\022V\n\013CreateSpace\022\".s4wa"
+    "ve.session.CreateSpaceRequest\032#.s4wave.s"
+    "ession.CreateSpaceResponse\022j\n\021MountShare"
+    "dObject\022(.s4wave.session.MountSharedObje"
+    "ctRequest\032).s4wave.session.MountSharedOb"
+    "jectResponse\"\000\022|\n\027WatchSharedObjectHealt"
+    "h\022..s4wave.session.WatchSharedObjectHeal"
+    "thRequest\032/.s4wave.session.WatchSharedOb"
+    "jectHealthResponse0\001\022d\n\017WatchSyncStatus\022"
+    "&.s4wave.session.WatchSyncStatusRequest\032"
+    "\'.s4wave.session.WatchSyncStatusResponse"
+    "0\001\022j\n\021WatchStorageStats\022(.s4wave.session"
+    ".WatchStorageStatsRequest\032).s4wave.sessi"
+    "on.WatchStorageStatsResponse0\001\022V\n\013Delete"
+    "Space\022\".s4wave.session.DeleteSpaceReques"
+    "t\032#.s4wave.session.DeleteSpaceResponse\022V"
+    "\n\013RenameSpace\022\".s4wave.session.RenameSpa"
+    "ceRequest\032#.s4wave.session.RenameSpaceRe"
+    "sponse\022a\n\016WatchLockState\022%.s4wave.sessio"
+    "n.WatchLockStateRequest\032&.s4wave.session"
+    ".WatchLockStateResponse0\001\022V\n\013SetLockMode"
+    "\022\".s4wave.session.SetLockModeRequest\032#.s"
+    "4wave.session.SetLockModeResponse\022\\\n\rUnl"
+    "ockSession\022$.s4wave.session.UnlockSessio"
+    "nRequest\032%.s4wave.session.UnlockSessionR"
+    "esponse\022V\n\013LockSession\022\".s4wave.session."
+    "LockSessionRequest\032#.s4wave.session.Lock"
+    "SessionResponse\022n\n\023GeneratePairingCode\022*"
+    ".s4wave.session.GeneratePairingCodeReque"
+    "st\032+.s4wave.session.GeneratePairingCodeR"
+    "esponse\022b\n\017CompletePairing\022&.s4wave.sess"
+    "ion.CompletePairingRequest\032\'.s4wave.sess"
+    "ion.CompletePairingResponse\022V\n\013GetSASEmo"
+    "ji\022\".s4wave.session.GetSASEmojiRequest\032#"
+    ".s4wave.session.GetSASEmojiResponse\022b\n\017C"
+    "onfirmSASMatch\022&.s4wave.session.ConfirmS"
+    "ASMatchRequest\032\'.s4wave.session.ConfirmS"
+    "ASMatchResponse\022_\n\016ConfirmPairing\022%.s4wa"
+    "ve.session.ConfirmPairingRequest\032&.s4wav"
+    "e.session.ConfirmPairingResponse\022\\\n\rDele"
+    "teAccount\022$.s4wave.session.DeleteAccount"
+    "Request\032%.s4wave.session.DeleteAccountRe"
+    "sponse\022p\n\017AccessStateAtom\022-.s4wave.sessi"
+    "on.AccessSessionStateAtomRequest\032..s4wav"
+    "e.session.AccessSessionStateAtomResponse"
+    "\022r\n\017WatchStateAtoms\022-.s4wave.session.Wat"
+    "chSessionStateAtomsRequest\032..s4wave.sess"
+    "ion.WatchSessionStateAtomsResponse0\001\022q\n\024"
+    "GetTransferInventory\022+.s4wave.session.Ge"
+    "tTransferInventoryRequest\032,.s4wave.sessi"
+    "on.GetTransferInventoryResponse\022\\\n\rStart"
+    "Transfer\022$.s4wave.session.StartTransferR"
+    "equest\032%.s4wave.session.StartTransferRes"
+    "ponse\022v\n\025WatchTransferProgress\022,.s4wave."
+    "session.WatchTransferProgressRequest\032-.s"
+    "4wave.session.WatchTransferProgressRespo"
+    "nse0\001\022_\n\016CancelTransfer\022%.s4wave.session"
+    ".CancelTransferRequest\032&.s4wave.session."
+    "CancelTransferResponse\022h\n\021GetTransferSta"
+    "tus\022(.s4wave.session.GetTransferStatusRe"
+    "quest\032).s4wave.session.GetTransferStatus"
+    "Response\022m\n\022WatchPairedDevices\022).s4wave."
+    "session.WatchPairedDevicesRequest\032*.s4wa"
+    "ve.session.WatchPairedDevicesResponse0\001\022"
+    "m\n\022WatchPairingStatus\022).s4wave.session.W"
+    "atchPairingStatusRequest\032*.s4wave.sessio"
+    "n.WatchPairingStatusResponse0\001\022Y\n\014Unlink"
+    "Device\022#.s4wave.session.UnlinkDeviceRequ"
+    "est\032$.s4wave.session.UnlinkDeviceRespons"
+    "e\022h\n\021CreateSpaceInvite\022(.s4wave.session."
+    "CreateSpaceInviteRequest\032).s4wave.sessio"
+    "n.CreateSpaceInviteResponse\022e\n\020ListSpace"
+    "Invites\022\'.s4wave.session.ListSpaceInvite"
+    "sRequest\032(.s4wave.session.ListSpaceInvit"
+    "esResponse\022t\n\025ListSpaceParticipants\022,.s4"
+    "wave.session.ListSpaceParticipantsReques"
+    "t\032-.s4wave.session.ListSpaceParticipants"
+    "Response\022w\n\026RemoveSpaceParticipant\022-.s4w"
+    "ave.session.RemoveSpaceParticipantReques"
+    "t\032..s4wave.session.RemoveSpaceParticipan"
+    "tResponse\022h\n\021RevokeSpaceInvite\022(.s4wave."
+    "session.RevokeSpaceInviteRequest\032).s4wav"
+    "e.session.RevokeSpaceInviteResponse\022k\n\022J"
+    "oinSpaceViaInvite\022).s4wave.session.JoinS"
+    "paceViaInviteRequest\032*.s4wave.session.Jo"
+    "inSpaceViaInviteResponse\022z\n\027CreateLocalP"
+    "airingOffer\022..s4wave.session.CreateLocal"
+    "PairingOfferRequest\032/.s4wave.session.Cre"
+    "ateLocalPairingOfferResponse\022z\n\027AcceptLo"
+    "calPairingOffer\022..s4wave.session.AcceptL"
+    "ocalPairingOfferRequest\032/.s4wave.session"
+    ".AcceptLocalPairingOfferResponse\022}\n\030Acce"
+    "ptLocalPairingAnswer\022/.s4wave.session.Ac"
+    "ceptLocalPairingAnswerRequest\0320.s4wave.s"
+    "ession.AcceptLocalPairingAnswerResponseb"
+    "\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_deps[7] = {
@@ -3022,13 +3087,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto = {
     false,
     false,
-    12501,
+    12727,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
     "github.com/s4wave/spacewave/sdk/session/session.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_deps,
     7,
-    79,
+    81,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto::offsets,
@@ -7427,6 +7492,115 @@ WatchSyncStatusRequest::_table_ = {
 }
 // ===================================================================
 
+class WatchStorageStatsRequest::_Internal {
+ public:
+};
+
+WatchStorageStatsRequest::WatchStorageStatsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchStorageStatsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.session.WatchStorageStatsRequest)
+}
+WatchStorageStatsRequest::WatchStorageStatsRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchStorageStatsRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchStorageStatsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchStorageStatsRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.session.WatchStorageStatsRequest)
+}
+
+inline void* PROTOBUF_NONNULL WatchStorageStatsRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchStorageStatsRequest(arena);
+}
+constexpr auto WatchStorageStatsRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchStorageStatsRequest),
+                                            alignof(WatchStorageStatsRequest));
+}
+constexpr auto WatchStorageStatsRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchStorageStatsRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchStorageStatsRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchStorageStatsRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchStorageStatsRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchStorageStatsRequest>(), &WatchStorageStatsRequest::ByteSizeLong,
+              &WatchStorageStatsRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchStorageStatsRequest, _impl_._cached_size_),
+          false,
+      },
+      &WatchStorageStatsRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchStorageStatsRequest_class_data_ =
+        WatchStorageStatsRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchStorageStatsRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchStorageStatsRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchStorageStatsRequest_class_data_.tc_table);
+  return WatchStorageStatsRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+WatchStorageStatsRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    WatchStorageStatsRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::session::WatchStorageStatsRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata WatchStorageStatsRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
 class WatchSyncStatusResponse::_Internal {
  public:
   using HasBits =
@@ -9146,6 +9320,326 @@ void WatchSyncStatusResponse::InternalSwap(WatchSyncStatusResponse* PROTOBUF_RES
 }
 
 ::google::protobuf::Metadata WatchSyncStatusResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchStorageStatsResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<WatchStorageStatsResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_._has_bits_);
+};
+
+WatchStorageStatsResponse::WatchStorageStatsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchStorageStatsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.session.WatchStorageStatsResponse)
+}
+WatchStorageStatsResponse::WatchStorageStatsResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchStorageStatsResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchStorageStatsResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE WatchStorageStatsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void WatchStorageStatsResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, total_bytes_),
+           0,
+           offsetof(Impl_, supported_) -
+               offsetof(Impl_, total_bytes_) +
+               sizeof(Impl_::supported_));
+}
+WatchStorageStatsResponse::~WatchStorageStatsResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.session.WatchStorageStatsResponse)
+  SharedDtor(*this);
+}
+inline void WatchStorageStatsResponse::SharedDtor(MessageLite& self) {
+  WatchStorageStatsResponse& this_ = static_cast<WatchStorageStatsResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL WatchStorageStatsResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchStorageStatsResponse(arena);
+}
+constexpr auto WatchStorageStatsResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchStorageStatsResponse),
+                                            alignof(WatchStorageStatsResponse));
+}
+constexpr auto WatchStorageStatsResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchStorageStatsResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchStorageStatsResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<WatchStorageStatsResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchStorageStatsResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<WatchStorageStatsResponse>(), &WatchStorageStatsResponse::ByteSizeLong,
+              &WatchStorageStatsResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_._cached_size_),
+          false,
+      },
+      &WatchStorageStatsResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchStorageStatsResponse_class_data_ =
+        WatchStorageStatsResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchStorageStatsResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchStorageStatsResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchStorageStatsResponse_class_data_.tc_table);
+  return WatchStorageStatsResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 0, 2>
+WatchStorageStatsResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    WatchStorageStatsResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::session::WatchStorageStatsResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // bool supported = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WatchStorageStatsResponse, _impl_.supported_), 2>(),
+     {8, 2, 0,
+      PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_.supported_)}},
+    // uint64 total_bytes = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(WatchStorageStatsResponse, _impl_.total_bytes_), 0>(),
+     {16, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_.total_bytes_)}},
+    // uint64 block_count = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(WatchStorageStatsResponse, _impl_.block_count_), 1>(),
+     {24, 1, 0,
+      PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_.block_count_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool supported = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_.supported_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint64 total_bytes = 2;
+    {PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_.total_bytes_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 block_count = 3;
+    {PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_.block_count_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void WatchStorageStatsResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.session.WatchStorageStatsResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    ::memset(&_impl_.total_bytes_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.supported_) -
+        reinterpret_cast<char*>(&_impl_.total_bytes_)) + sizeof(_impl_.supported_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchStorageStatsResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchStorageStatsResponse& this_ = static_cast<const WatchStorageStatsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchStorageStatsResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchStorageStatsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.session.WatchStorageStatsResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool supported = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_supported() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_supported(), target);
+    }
+  }
+
+  // uint64 total_bytes = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_total_bytes() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_total_bytes(), target);
+    }
+  }
+
+  // uint64 block_count = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_block_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_block_count(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.session.WatchStorageStatsResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchStorageStatsResponse::ByteSizeLong(const MessageLite& base) {
+  const WatchStorageStatsResponse& this_ = static_cast<const WatchStorageStatsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchStorageStatsResponse::ByteSizeLong() const {
+  const WatchStorageStatsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.session.WatchStorageStatsResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // uint64 total_bytes = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_total_bytes() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_total_bytes());
+      }
+    }
+    // uint64 block_count = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_block_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_block_count());
+      }
+    }
+    // bool supported = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_supported() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchStorageStatsResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchStorageStatsResponse*>(&to_msg);
+  auto& from = static_cast<const WatchStorageStatsResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.session.WatchStorageStatsResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (from._internal_total_bytes() != 0) {
+        _this->_impl_.total_bytes_ = from._impl_.total_bytes_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_block_count() != 0) {
+        _this->_impl_.block_count_ = from._impl_.block_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_supported() != 0) {
+        _this->_impl_.supported_ = from._impl_.supported_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchStorageStatsResponse::CopyFrom(const WatchStorageStatsResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.session.WatchStorageStatsResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void WatchStorageStatsResponse::InternalSwap(WatchStorageStatsResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_.supported_)
+      + sizeof(WatchStorageStatsResponse::_impl_.supported_)
+      - PROTOBUF_FIELD_OFFSET(WatchStorageStatsResponse, _impl_.total_bytes_)>(
+          reinterpret_cast<char*>(&_impl_.total_bytes_),
+          reinterpret_cast<char*>(&other->_impl_.total_bytes_));
+}
+
+::google::protobuf::Metadata WatchStorageStatsResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

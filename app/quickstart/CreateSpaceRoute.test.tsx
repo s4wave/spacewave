@@ -166,7 +166,7 @@ describe('CreateSpaceRoute', () => {
 
     await waitFor(() => {
       expect(mockUseSessionNavigate).toHaveBeenCalledWith({
-        path: 'so/01HXYZ/files',
+        path: 'so/01HXYZ',
         replace: true,
       })
     })
@@ -298,7 +298,7 @@ describe('CreateSpaceRoute', () => {
 
     await waitFor(() => {
       expect(mockUseSessionNavigate).toHaveBeenCalledWith({
-        path: 'so/01HXYZ/files',
+        path: 'so/01HXYZ',
         replace: true,
       })
     })
