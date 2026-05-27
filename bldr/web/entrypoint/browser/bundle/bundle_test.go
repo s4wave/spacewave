@@ -75,6 +75,43 @@ func TestBrowserBuildOptsResolvesGoVendorImportsFromNestedDir(t *testing.T) {
 	}
 }
 
+func TestBrowserEntrypointBuildOptsBuildsDistributedEntrypoint(t *testing.T) {
+	testDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bldrRoot := filepath.Clean(filepath.Join(testDir, "../../../.."))
+	if _, err := os.Stat(filepath.Join(bldrRoot, "web", "entrypoint", "entrypoint.tsx")); os.IsNotExist(err) {
+		t.Skipf("skipping: bldr entrypoint not found under %s", bldrRoot)
+	}
+
+	outDir := t.TempDir()
+	opts := BrowserEntrypointBuildOpts(bldrRoot, false, false)
+	opts.Outdir = outDir
+	opts.Write = true
+
+	result := esbuild.Build(opts)
+	if len(result.Errors) != 0 {
+		for _, e := range result.Errors {
+			t.Errorf("esbuild error: %s", e.Text)
+		}
+		t.Fatal("esbuild build failed")
+	}
+
+	out, err := os.ReadFile(filepath.Join(outDir, "entrypoint.mjs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, unexpected := range []string{
+		"@s4wave/web/router/app-path.js",
+		"@s4wave/app/prerender/boot-status.js",
+	} {
+		if strings.Contains(string(out), unexpected) {
+			t.Fatalf("output still contains unresolved import %q", unexpected)
+		}
+	}
+}
+
 func TestServiceWorkerBuildOptsBuildsClassicScript(t *testing.T) {
 	opts := ServiceWorkerBuildOpts(t.TempDir(), false, true, true)
 	if opts.Format != esbuild.FormatIIFE {

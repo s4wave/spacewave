@@ -7,11 +7,10 @@ import {
 } from '@aptre/bldr-react'
 import { WebDocument as BldrWebDocument, WebDocumentOptions } from '@aptre/bldr'
 
-import { setAppPath } from '@s4wave/web/router/app-path.js'
-import { writeBrowserBootStatus } from '@s4wave/app/prerender/boot-status.js'
-
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
 import { markStartupBoundary } from '../bldr/startup-marks.js'
+import { setAppPath } from './app-path.js'
+import { writeBrowserBootStatus } from './boot-status.js'
 
 declare global {
   var __swDeferBoot: boolean | undefined
