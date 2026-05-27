@@ -6,6 +6,7 @@ import { DocsSidebar } from './DocsSidebar.js'
 import { DocsSearch } from './DocsSearch.js'
 import { DocsPage } from './DocsPage.js'
 import { loadDocs } from './load-docs.js'
+import { getLegacyDocRedirect } from './legacy-doc-redirects.js'
 import { getSections } from './sections.js'
 import type { DocPage } from './types.js'
 
@@ -40,6 +41,8 @@ export function DocsPageRoute() {
   )
 
   if (docIndex === -1) {
+    const redirectUrl = getLegacyDocRedirect(url)
+    if (redirectUrl) return <NavigatePath to={redirectUrl} replace />
     return <NavigatePath to="/docs" replace />
   }
 
@@ -52,7 +55,7 @@ export function DocsPageRoute() {
       <div className="px-4 pt-4">
         <DocsSearch docs={siteDocs} onSelect={handleSearchSelect} />
       </div>
-      <DocsSidebar sections={sections} currentSlug={slug} currentDoc={doc} />
+      <DocsSidebar sections={sections} currentDoc={doc} />
     </div>
   )
 

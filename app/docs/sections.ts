@@ -14,19 +14,22 @@ export const siteDefs: DocSite[] = [
   {
     id: 'users',
     label: 'Users',
-    description: 'Understand and use.',
+    description:
+      'Start a Space, move files into it, protect your session, and know when to use the CLI.',
     order: 1,
   },
   {
     id: 'self-hosters',
     label: 'Self-Hosters',
-    description: 'Deploy, operate, back up, and recover.',
+    description:
+      'Choose where state lives, operate a local or cloud-backed runtime, and recover data without guessing.',
     order: 2,
   },
   {
     id: 'developers',
     label: 'Developers',
-    description: 'Use CLI and platform references.',
+    description:
+      'Build ObjectTypes, plugins, Quickstarts, SDK resources, and public surfaces on top of Spaces.',
     order: 3,
   },
 ]
@@ -37,130 +40,56 @@ export type SectionDef = Omit<DocSection, 'pages'>
 // sectionDefs defines the documentation sections in display order.
 export const sectionDefs: SectionDef[] = [
   // Users
-  {
-    id: 'overview',
-    label: 'Overview',
-    site: 'users',
-    order: 1,
-  },
-  {
-    id: 'getting-started',
-    label: 'Getting Started',
-    site: 'users',
-    order: 2,
-  },
+  { id: 'start', label: 'Start', site: 'users', order: 1 },
+  { id: 'files', label: 'Files and Drive', site: 'users', order: 2 },
   { id: 'spaces', label: 'Spaces', site: 'users', order: 3 },
   {
-    id: 'files',
-    label: 'Files & Data',
+    id: 'accounts',
+    label: 'Accounts and Storage',
     site: 'users',
     order: 4,
   },
-  {
-    id: 'accounts',
-    label: 'Accounts',
-    site: 'users',
-    order: 5,
-  },
-  {
-    id: 'sessions',
-    label: 'Sessions',
-    site: 'users',
-    order: 6,
-  },
-  {
-    id: 'features',
-    label: 'Features',
-    site: 'users',
-    order: 7,
-  },
-  {
-    id: 'organizations',
-    label: 'Organizations',
-    site: 'users',
-    order: 8,
-  },
-  {
-    id: 'devices',
-    label: 'Devices & Migration',
-    site: 'users',
-    order: 9,
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    site: 'users',
-    order: 10,
-  },
-  {
-    id: 'cli',
-    label: 'Command Line',
-    site: 'users',
-    order: 11,
-  },
+  { id: 'devices', label: 'Devices', site: 'users', order: 5 },
+  { id: 'cli', label: 'Command Line', site: 'users', order: 6 },
+  { id: 'features', label: 'Feature Surfaces', site: 'users', order: 7 },
+
   // Self-hosters
+  { id: 'start', label: 'Start', site: 'self-hosters', order: 1 },
   {
-    id: 'start-here',
-    label: 'Start Here',
+    id: 'storage',
+    label: 'Storage and Recovery',
     site: 'self-hosters',
-    order: 8,
+    order: 2,
   },
-  {
-    id: 'deployment-modes',
-    label: 'Deployment Modes',
-    site: 'self-hosters',
-    order: 9,
-  },
-  {
-    id: 'operations',
-    label: 'Operations',
-    site: 'self-hosters',
-    order: 10,
-  },
-  {
-    id: 'backups-and-recovery',
-    label: 'Backups & Recovery',
-    site: 'self-hosters',
-    order: 11,
-  },
+  { id: 'operations', label: 'Operations', site: 'self-hosters', order: 3 },
+  { id: 'ownership', label: 'Ownership', site: 'self-hosters', order: 4 },
+
   // Developers
-  {
-    id: 'dev-start-here',
-    label: 'Start Here',
-    site: 'developers',
-    order: 20,
-  },
-  {
-    id: 'plugins',
-    label: 'Plugin Development',
-    site: 'developers',
-    order: 21,
-  },
-  {
-    id: 'sdk',
-    label: 'SDK Reference',
-    site: 'developers',
-    order: 22,
-  },
-  {
-    id: 'cli',
-    label: 'CLI & Tools',
-    site: 'developers',
-    order: 23,
-  },
-  {
-    id: 'platform',
-    label: 'Platform',
-    site: 'developers',
-    order: 24,
-  },
-  {
-    id: 'internals',
-    label: 'Internals',
-    site: 'developers',
-    order: 25,
-  },
+  { id: 'start', label: 'Start', site: 'developers', order: 1 },
+  { id: 'plugins', label: 'Plugins', site: 'developers', order: 2 },
+  { id: 'objects', label: 'Objects', site: 'developers', order: 3 },
+  { id: 'sdk', label: 'SDK and RPC', site: 'developers', order: 4 },
+  { id: 'cli', label: 'CLI Reference', site: 'developers', order: 5 },
+  { id: 'platform', label: 'Platform', site: 'developers', order: 6 },
 ]
+
+// getSectionKey is the stable identity for a section inside an audience site.
+export function getSectionKey(site: string, section: string): string {
+  return `${site}/${section}`
+}
+
+// getSectionDef returns the definition for a site-owned section.
+export function getSectionDef(
+  site: string,
+  section: string,
+): SectionDef | undefined {
+  return sectionDefs.find((def) => def.site === site && def.id === section)
+}
+
+// getSectionLabel returns the label for a site-owned section.
+export function getSectionLabel(site: string, section: string): string {
+  return getSectionDef(site, section)?.label ?? section
+}
 
 // cachedSections holds the parsed sections after first load.
 let cachedSections: DocSection[] | null = null
@@ -172,7 +101,7 @@ export function getSections(): DocSection[] {
   const docs = loadDocs()
   const sections: DocSection[] = sectionDefs.flatMap((def) => {
     const pages = docs
-      .filter((d) => d.section === def.id)
+      .filter((d) => d.site === def.site && d.section === def.id)
       .sort((a, b) => a.order - b.order)
     return pages.length > 0 ? [{ ...def, pages }] : []
   })

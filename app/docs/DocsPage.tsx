@@ -20,7 +20,8 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { PreBlock } from './CodeBlock.js'
 import { MarkdownLink } from './MarkdownLink.js'
-import { sectionDefs, siteDefs } from './sections.js'
+import { getSectionLabel, siteDefs } from './sections.js'
+import { getRawMarkdownUrl } from './source-url.js'
 import type { DocPage as DocPageType } from './types.js'
 import './docs-prose.css'
 
@@ -31,8 +32,6 @@ export interface DocsPageProps {
   nextDoc?: DocPageType
 }
 
-// sectionLabels maps section IDs to display labels, derived from sectionDefs.
-const sectionLabels = new Map(sectionDefs.map((s) => [s.id, s.label]))
 // siteLabels maps site IDs to display labels, derived from siteDefs.
 const siteLabels = new Map(siteDefs.map((s) => [s.id, s.label]))
 
@@ -69,7 +68,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
     copyTimer.current = setTimeout(() => setCopied(false), 1500)
   }, [doc.body])
 
-  const rawGitHubUrl = `https://raw.githubusercontent.com/aperturerobotics/alpha/master/app/docs/content/${doc.site}/${doc.section}/${doc.filename}`
+  const rawGitHubUrl = getRawMarkdownUrl(doc)
 
   const handleCopyMarkdownUrl = useCallback(() => {
     void navigator.clipboard.writeText(rawGitHubUrl)
@@ -94,7 +93,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
         <div className="text-foreground-alt/50 flex items-center gap-2 text-xs">
           <span>{siteLabels.get(doc.site) ?? doc.site}</span>
           <span className="text-foreground-alt/30">/</span>
-          <span>{sectionLabels.get(doc.section) ?? doc.section}</span>
+          <span>{getSectionLabel(doc.site, doc.section)}</span>
           <span className="text-foreground-alt/30">/</span>
           <span className="text-foreground-alt">{doc.title}</span>
         </div>

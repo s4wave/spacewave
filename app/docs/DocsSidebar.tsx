@@ -10,16 +10,11 @@ import type { DocSection, DocPage } from './types.js'
 // DocsSidebarProps defines the props for DocsSidebar.
 interface DocsSidebarProps {
   sections: DocSection[]
-  currentSlug?: string
   currentDoc?: DocPage
 }
 
 // DocsSidebar renders the navigation sidebar showing all sections and pages.
-export function DocsSidebar({
-  sections,
-  currentSlug,
-  currentDoc,
-}: DocsSidebarProps) {
+export function DocsSidebar({ sections, currentDoc }: DocsSidebarProps) {
   const navigate = useNavigate()
 
   const goToPage = useCallback(
@@ -67,7 +62,7 @@ export function DocsSidebar({
           onClick={goToIndex}
           className={cn(
             'mb-4 cursor-pointer text-left text-sm font-semibold transition-colors',
-            !currentSlug
+            !currentDoc
               ? 'text-brand'
               : 'text-foreground hover:text-foreground-alt',
           )}
@@ -81,18 +76,18 @@ export function DocsSidebar({
               {cat.name}
             </h2>
             {cat.sections.map((section) => (
-              <div key={section.id} className="mb-3">
+              <div key={`${section.site}/${section.id}`} className="mb-3">
                 <h3 className="text-foreground-alt/50 mb-1.5 text-xs font-semibold tracking-wider uppercase">
                   {section.label}
                 </h3>
                 <ul className="flex flex-col">
                   {section.pages.map((page) => (
-                    <li key={page.slug}>
+                    <li key={page.url}>
                       <button
                         onClick={() => goToPage(page.url)}
                         className={cn(
                           'w-full cursor-pointer border-l-2 py-1.5 pl-3 text-left text-sm transition-colors',
-                          currentSlug === page.slug
+                          currentDoc?.url === page.url
                             ? 'border-brand text-brand'
                             : 'text-foreground-alt/70 hover:text-foreground hover:border-foreground-alt/20 border-transparent',
                         )}
@@ -117,11 +112,11 @@ export function DocsSidebar({
           View on GitHub
         </ExternalLink>
         <button
-          onClick={currentSlug ? goToIndex : goHome}
+          onClick={currentDoc ? goToIndex : goHome}
           className="text-foreground-alt/50 hover:text-foreground-alt flex cursor-pointer items-center gap-1.5 text-left text-xs transition-colors"
         >
           <LuArrowLeft className="size-3" />
-          {currentSlug ? 'Back to Documentation' : 'Back to Home'}
+          {currentDoc ? 'Back to Documentation' : 'Back to Home'}
         </button>
       </div>
     </nav>

@@ -4,6 +4,65 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { siteDefs } from './sections.js'
 import type { DocSection } from './types.js'
 
+const siteHomePaths: Record<
+  string,
+  { title: string; url: string; summary: string }[]
+> = {
+  users: [
+    {
+      title: 'Create your first Space',
+      url: '/docs/users/start/create-your-first-space',
+      summary: 'Pick the smallest useful Quickstart and verify persistence.',
+    },
+    {
+      title: 'Drive and files',
+      url: '/docs/users/files/drive-and-files',
+      summary: 'Use Drive for folders, uploads, downloads, and CLI paths.',
+    },
+    {
+      title: 'Backup and lock setup',
+      url: '/docs/users/accounts/backup-and-lock-setup',
+      summary: 'Protect a local or cloud session before it holds real work.',
+    },
+  ],
+  'self-hosters': [
+    {
+      title: 'Choose how to run Spacewave',
+      url: '/docs/self-hosters/start/choose-how-to-run-spacewave',
+      summary: 'Pick browser, desktop, daemon, or cloud-backed operation.',
+    },
+    {
+      title: 'Storage modes',
+      url: '/docs/self-hosters/storage/storage-modes',
+      summary: 'Tie backups to the state path or provider that owns the data.',
+    },
+    {
+      title: 'Upgrades and daemons',
+      url: '/docs/self-hosters/operations/upgrades-and-daemons',
+      summary: 'Keep daemon, socket, and state-path ownership explicit.',
+    },
+  ],
+  developers: [
+    {
+      title: 'Developer start here',
+      url: '/docs/developers/start/developer-start-here',
+      summary:
+        'Start from Space, ObjectType, viewer, wizard, and plugin owners.',
+    },
+    {
+      title: 'Build a plugin',
+      url: '/docs/developers/plugins/build-a-plugin',
+      summary: 'Own the ObjectType, viewer, manifest, and registration path.',
+    },
+    {
+      title: 'CLI reference',
+      url: '/docs/developers/cli/cli-reference',
+      summary:
+        'Use the current command tree and connection rules while building.',
+    },
+  ],
+}
+
 // SiteHomeProps defines the props for SiteHome.
 interface SiteHomeProps {
   siteId: string
@@ -31,6 +90,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
     () => siteDefs.filter((s) => s.id !== siteId),
     [siteId],
   )
+  const startPaths = siteHomePaths[siteId] ?? []
 
   return (
     <div>
@@ -49,6 +109,29 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
           {site?.description}
         </p>
       </header>
+
+      {startPaths.length > 0 && (
+        <div className="mb-10 grid gap-4 @lg:grid-cols-3">
+          {startPaths.map((path) => (
+            <button
+              key={path.url}
+              onClick={() => goToPage(path.url)}
+              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-5 text-left transition-all duration-200"
+            >
+              <h2 className="text-foreground text-base font-semibold">
+                {path.title}
+              </h2>
+              <p className="text-foreground-alt/70 text-sm leading-relaxed">
+                {path.summary}
+              </p>
+              <span className="text-brand group-hover:text-brand-highlight mt-auto flex items-center gap-1.5 text-xs font-medium transition-colors">
+                Open
+                <LuArrowRight className="size-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-5 @lg:grid-cols-2">
         {sections.map((section) => {

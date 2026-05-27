@@ -1,4 +1,9 @@
-import { sectionDefs, siteDefs } from './sections.js'
+import {
+  getSectionDef,
+  getSectionKey,
+  sectionDefs,
+  siteDefs,
+} from './sections.js'
 import type { DocPage, DocFrontmatter } from './types.js'
 
 // docModules imports all .md files from the content directory.
@@ -51,9 +56,6 @@ export function loadDocs(): DocPage[] {
 
   const docs: DocPage[] = []
 
-  // Build a map from section id to site id.
-  const sectionSiteMap = new Map(sectionDefs.map((s) => [s.id, s.site]))
-
   for (const [path, raw] of Object.entries(docModules)) {
     const { data: fm, content } = parseFrontmatter(raw as string)
 
@@ -81,7 +83,7 @@ export function loadDocs(): DocPage[] {
     } else {
       // Legacy layout: content/{section}/{page}.md
       section = parts[parts.length - 2]
-      site = sectionSiteMap.get(section) ?? 'users'
+      site = getSectionDef('users', section)?.site ?? 'users'
     }
 
     // Derive slug from filename, stripping numeric prefix.
@@ -105,19 +107,16 @@ export function loadDocs(): DocPage[] {
   }
 
   // Sort by site order, then section order, then page order.
-  const siteOrder = new Map(
-    sectionDefs.map((s) => [
-      s.site,
-      siteDefs.findIndex((sd) => sd.id === s.site),
-    ]),
+  const siteOrder = new Map(siteDefs.map((s) => [s.id, s.order]))
+  const sectionOrder = new Map(
+    sectionDefs.map((s) => [getSectionKey(s.site, s.id), s.order]),
   )
-  const sectionOrder = new Map(sectionDefs.map((s) => [s.id, s.order]))
   docs.sort((a, b) => {
     const siteA = siteOrder.get(a.site) ?? 99
     const siteB = siteOrder.get(b.site) ?? 99
     if (siteA !== siteB) return siteA - siteB
-    const sa = sectionOrder.get(a.section) ?? 99
-    const sb = sectionOrder.get(b.section) ?? 99
+    const sa = sectionOrder.get(getSectionKey(a.site, a.section)) ?? 99
+    const sb = sectionOrder.get(getSectionKey(b.site, b.section)) ?? 99
     if (sa !== sb) return sa - sb
     return a.order - b.order
   })

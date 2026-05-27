@@ -2,39 +2,27 @@
 title: Link Devices
 section: devices
 order: 1
-summary: Pairing codes, emoji verification, sync expectations, and unlinking.
+summary: Add another device without confusing account sign-in, session storage, and Space ownership.
 ---
 
-## Overview
+Device linking connects a new device to an existing account or session path. It is not the same as copying the browser profile or exporting a single file.
 
-Device linking connects two Spacewave sessions so they stay in sync. Once linked, your spaces, files, and settings replicate between devices automatically. Linking uses a pairing code and emoji verification to ensure you are connecting to the right device.
+Use the pairing flow when you already have one trusted device and want another device to join. Start from the existing device, create or display the pairing code, then enter it on the new device.
 
-## Prerequisites
+## Before Pairing
 
-You need Spacewave open on both devices. Both devices need an internet connection during the pairing process (after pairing, sync works peer-to-peer whenever the devices can reach each other). One device generates the code, the other enters it.
+Check three things:
 
-## Steps
+1. The original session opens and unlocks.
+2. The Space you care about appears in that session.
+3. Backup setup is complete or you have another recovery path.
 
-1. On the first device, open Link Device and choose "Generate code for another device." An 8-character code and QR code appear. The code expires after 10 minutes.
+Pairing a second device is not a substitute for backup. It gives you another active device, not a durable archive.
 
-2. On the second device, choose "Enter a code from another device." Type the code or scan the QR code.
+## After Pairing
 
-3. Both devices establish an encrypted connection and display a set of emoji. Verify the emoji match on both screens to confirm you are connecting to the correct device.
+Open the same Space on the new device. Confirm the primary surface opens, then inspect one small object or file.
 
-4. Tap "Yes, they match" on both devices. If they do not match, abort and start over.
+If the new device should become the main device, keep the old device until you have verified the Space from the new one after a restart.
 
-5. Sync begins automatically. You can continue to your dashboard while it finishes in the background.
-
-## Verify
-
-After linking, open a space on one device and check that it appears on the other. Changes made on either device should show up on the other within a few seconds when both are online.
-
-## Troubleshooting
-
-If the code expires, generate a new one. Codes auto-regenerate on expiry.
-
-If the connection times out, check that both devices have internet access and retry with a fresh code. If sync appears stuck, check sync status in session settings. Initial sync of a large session may take several minutes.
-
-## Next Steps
-
-To move data between sessions after linking, see [Merge and Transfer Sessions](/docs/users/devices/merge-and-transfer-sessions).
+For storage changes, read [Move to Cloud](/docs/users/devices/move-to-cloud).

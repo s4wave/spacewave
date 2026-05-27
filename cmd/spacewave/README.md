@@ -32,16 +32,18 @@ spacewave fs write /u/1/so/SPACE_ID/-/docs/-/hello.txt --from hello.txt
 
 | Flag | Env | Description |
 |---|---|---|
-| `--state-path, -s` | `BLDR_STATE_PATH` | State directory (default: `.bldr`) |
-| `--output, -o` | `SPACEWAVE_CLI_OUTPUT` | Output format: `text` (default), `json`, `yaml` |
-| `--color` | `SPACEWAVE_CLI_COLOR` | Color mode: `auto`, `always`, `never` |
-| `--log-level` | `BLDR_LOG_LEVEL` | Log level: `debug`, `info`, `warn`, `error` |
+| `--state-path, -s` | `SPACEWAVE_STATE_PATH`, `SPACEWAVE_DATA_DIR`, `BLDR_STATE_PATH` | State directory |
+| `--output, -o` | `SPACEWAVE_OUTPUT` | Output format: `text` (default), `json`, `yaml` |
+| `--color` | `SPACEWAVE_COLOR` | Color mode: `auto`, `always`, `never` |
+| `--log-level` | `SPACEWAVE_LOG_LEVEL`, `BLDR_LOG_LEVEL` | Log level: `debug`, `info`, `warn`, `error` |
 | `--log-file` | `BLDR_LOG_FILE` | File logging spec |
 
 Many commands also accept `--session-index` (default: 1) to select which
-session to operate on. Client commands connect to an existing daemon by
-default. Use `--autostart` or `SPACEWAVE_CLI_AUTOSTART=true` only when you want
-the CLI to start a background daemon if none is reachable.
+session to operate on. Client commands use `--socket-path` when present.
+Otherwise they resolve `--state-path` and connect to
+`STATE_PATH/spacewave.sock`; when no state path is explicitly set, development
+workflows can discover a live `.spacewave/spacewave.sock` in the current
+directory or Git root before falling back to the shared user state path.
 
 ## Command Reference
 
@@ -70,11 +72,12 @@ spacewave start              Start daemon in foreground without socket
 ```
 
 `serve` listens on a Unix socket at `STATE_PATH/spacewave.sock`. Runtime-dependent
-commands connect to that socket as clients and do not start or take over a
-daemon unless `--autostart` is set. If another runtime already owns the socket,
-plain `serve` fails instead of taking it over; use `serve --takeover` only when
-you intentionally want that runtime to yield. `start` runs the bus inline
-without a socket (for development and testing).
+commands connect to that socket as clients; when no socket is reachable through
+state-path resolution, they may start a CLI-owned daemon for that state path.
+`--socket-path` is connect-only and never autostarts. If another runtime already
+owns the socket, plain `serve` fails instead of taking it over; use
+`serve --takeover` only when you intentionally want that runtime to yield.
+`start` runs the bus inline without a socket (for development and testing).
 
 In desktop builds, the Electron tray/menu-bar runtime also owns a daemon
 socket. Closing every renderer window leaves that runtime alive when
