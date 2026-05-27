@@ -21,6 +21,7 @@ import (
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	entrypoint_browser_build "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
+	web_plugin_compiler "github.com/s4wave/spacewave/bldr/web/plugin/compiler"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	web_runtime_controller "github.com/s4wave/spacewave/bldr/web/runtime/controller"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -77,9 +78,11 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 	defer pluginStorageCtrlRef.Release()
 
-	// HACK: set an environment variable to make the web plugin skip starting.
-	// HACK: in future we can pass this via some other kind of signal.
-	os.Setenv("BLDR_PLUGIN_WEB_SKIP_ELECTRON", "true")
+	// Web-server mode still loads the web plugin for package/RPC ownership, but
+	// the devtool serves the browser shell and must not embed a native renderer.
+	if err := os.Setenv(web_plugin_compiler.SkipNativeWebRendererEnvVar, "true"); err != nil {
+		return err
+	}
 
 	// execute the project controller
 	projCtrl, projCtrlRef, err := d.StartProjectController(

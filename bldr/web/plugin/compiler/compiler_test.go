@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	electron "github.com/s4wave/spacewave/bldr/web/plugin/electron"
 )
 
@@ -49,4 +50,42 @@ func TestGetElectronDesktopPresencePolicy(t *testing.T) {
 	if got := getElectronDesktopPresencePolicy(nativeApp); got != electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND {
 		t.Fatalf("tray background desktop presence policy = %v, want %v", got, electron.DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND)
 	}
+}
+
+func TestShouldBundleNativeWebRendererHonorsSkipEnv(t *testing.T) {
+	t.Setenv(SkipNativeWebRendererEnvVar, "")
+	if !shouldBundleNativeWebRenderer() {
+		t.Fatal("empty skip env should bundle native web renderer")
+	}
+
+	t.Setenv(SkipNativeWebRendererEnvVar, "true")
+	if shouldBundleNativeWebRenderer() {
+		t.Fatal("true skip env should not bundle native web renderer")
+	}
+
+	t.Setenv(SkipNativeWebRendererEnvVar, "false")
+	if !shouldBundleNativeWebRenderer() {
+		t.Fatal("false skip env should bundle native web renderer")
+	}
+}
+
+func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
+	t.Setenv(SkipNativeWebRendererEnvVar, "true")
+	result := &bldr_manifest_builder.BuilderResult{}
+	if err := addWebPluginStartupInputs(
+		&bldr_manifest_builder.BuilderConfig{SourcePath: t.TempDir()},
+		result,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, input := range result.GetInputManifest().GetStartupInputs() {
+		if input.GetKey() == SkipNativeWebRendererEnvVar {
+			if input.GetStringValue() != "true" {
+				t.Fatalf("skip renderer env input = %q, want true", input.GetStringValue())
+			}
+			return
+		}
+	}
+	t.Fatalf("missing startup input for %s", SkipNativeWebRendererEnvVar)
 }

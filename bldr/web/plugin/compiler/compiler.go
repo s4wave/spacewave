@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -38,6 +39,15 @@ const ControllerID = "bldr/web/plugin/compiler"
 
 // Version is the controller version
 var Version = controller.MustParseVersion("0.0.1")
+
+// SkipNativeWebRendererEnvVar disables native renderer bundling for web-server
+// dev mode, where the browser shell is served by the devtool itself.
+const SkipNativeWebRendererEnvVar = "BLDR_PLUGIN_WEB_SKIP_ELECTRON"
+
+func shouldBundleNativeWebRenderer() bool {
+	skip, err := strconv.ParseBool(os.Getenv(SkipNativeWebRendererEnvVar))
+	return err != nil || !skip
+}
 
 func getElectronQuitPolicy(
 	buildType bldr_manifest.BuildType,
@@ -160,13 +170,15 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	// Check which web renderer to bundle based on BLDR_WEB_RENDERER env var.
-	renderer := web_runtime.GetWebRendererFromEnv().Resolve()
-	switch renderer {
-	case web_runtime.WebRenderer_WEB_RENDERER_SAUCER:
-		pluginCompilerCtrl.AddPreBuildHook(c.BundleSaucerHook)
-	case web_runtime.WebRenderer_WEB_RENDERER_ELECTRON:
-		pluginCompilerCtrl.AddPreBuildHook(c.BundleElectronHook)
+	if shouldBundleNativeWebRenderer() {
+		// Check which web renderer to bundle based on BLDR_WEB_RENDERER env var.
+		renderer := web_runtime.GetWebRendererFromEnv().Resolve()
+		switch renderer {
+		case web_runtime.WebRenderer_WEB_RENDERER_SAUCER:
+			pluginCompilerCtrl.AddPreBuildHook(c.BundleSaucerHook)
+		case web_runtime.WebRenderer_WEB_RENDERER_ELECTRON:
+			pluginCompilerCtrl.AddPreBuildHook(c.BundleElectronHook)
+		}
 	}
 
 	// build the manifest
@@ -582,6 +594,12 @@ func addWebPluginStartupInputs(
 		bldr_manifest_builder.NewEnvStartupInput(
 			web_runtime.WebRendererEnvVar,
 			web_runtime.GetWebRendererFromEnv().Resolve().String(),
+		),
+	)
+	inputManifest.AddStartupInput(
+		bldr_manifest_builder.NewEnvStartupInput(
+			SkipNativeWebRendererEnvVar,
+			os.Getenv(SkipNativeWebRendererEnvVar),
 		),
 	)
 	inputManifest.AddStartupInput(
