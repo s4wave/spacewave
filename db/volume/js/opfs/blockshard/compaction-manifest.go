@@ -96,7 +96,10 @@ func selectCompactionLevelSegments(segs []SegmentMeta, minCount int, maxInputByt
 		if size < 1 {
 			size = 1
 		}
-		if total+size > maxInputBytes {
+		// The trigger batch is the unit of compaction progress. Encoded
+		// SSTable overhead can make minCount bounded-data segments exceed the
+		// input cap, so the cap only limits optional extra segments.
+		if len(out) >= minCount && total+size > maxInputBytes {
 			break
 		}
 		out = append(out, seg)
