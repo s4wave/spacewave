@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
@@ -86,5 +87,50 @@ func TestCachedManifestFetchControllerResolvesImportedExternalManifest(t *testin
 	}
 	if got.GetPlatformId() != "web/js/wasm" {
 		t.Fatalf("platform id = %q, want web/js/wasm", got.GetPlatformId())
+	}
+}
+
+func TestCachedManifestFetchControllerDoesNotEmitEmptyManifestValue(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	repoRoot := t.TempDir()
+	d, err := BuildDevtoolBus(ctx, logrus.NewEntry(logrus.New()), repoRoot, filepath.Join(repoRoot, ".bldr"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Release()
+
+	rel, err := d.startCachedManifestFetchController(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+
+	valueCh := make(chan *bldr_manifest.FetchManifestValue, 1)
+	handler := directive.NewTypedCallbackHandler(
+		func(v directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
+			select {
+			case valueCh <- v.GetValue():
+			default:
+			}
+		},
+		nil,
+		nil,
+		nil,
+	)
+	_, ref, err := d.GetBus().AddDirective(
+		bldr_manifest.NewFetchManifest("missing-core", nil, []string{"web/js/wasm"}, 0),
+		handler,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ref.Release()
+
+	select {
+	case val := <-valueCh:
+		t.Fatalf("unexpected cache-miss FetchManifest value with %d refs", len(val.GetManifestRefs()))
+	case <-time.After(250 * time.Millisecond):
 	}
 }

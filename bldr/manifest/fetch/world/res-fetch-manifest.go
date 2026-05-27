@@ -80,16 +80,24 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 			}
 		}
 
-		// compare against the previous emitted value (if any)
-		nextValue := &manifest.FetchManifestValue{ManifestRefs: manifestRefs}
-		if emittedValue == nil || !nextValue.EqualVT(emittedValue) {
-			// emit the next value
-			emittedValue = nextValue
+		// A cache miss is absence of a value, not a successful zero-ref
+		// FetchManifestValue. Devtool builder resolvers can share the same
+		// directive, and early empty cache values can otherwise win startup
+		// races before builders publish their manifest refs.
+		if len(manifestRefs) == 0 {
 			if emittedValue != nil {
+				emittedValue = nil
 				_ = handler.ClearValues()
 			}
-			_, _ = handler.AddValue(nextValue)
 			le.Debugf("fetched %v manifest(s) from world", len(manifests))
+		} else {
+			nextValue := &manifest.FetchManifestValue{ManifestRefs: manifestRefs}
+			if emittedValue == nil || !nextValue.EqualVT(emittedValue) {
+				emittedValue = nextValue
+				_ = handler.ClearValues()
+				_, _ = handler.AddValue(nextValue)
+				le.Debugf("fetched %v manifest(s) from world", len(manifests))
+			}
 		}
 
 		// we are done
