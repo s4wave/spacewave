@@ -234,7 +234,7 @@ func (s *ResourceServer) ResourceRefRelease(
 	var isRootResource bool
 	var attachedClient *RemoteResourceClient
 	var releaseFn func()
-	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		client := s.clients[clientID]
 		if client == nil || client.released {
 			return
@@ -247,9 +247,10 @@ func (s *ResourceServer) ResourceRefRelease(
 
 			// Don't actually delete root resources, just mark as found
 			if !isRootResource {
+				// The release RPC is the acknowledgment for dropping this
+				// client reference. No ResourceClient queue event is produced.
 				delete(client.resources, resourceID)
 				releaseFn = res.releaseFn
-				broadcast()
 			}
 			found = true
 			return

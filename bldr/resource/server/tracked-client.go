@@ -51,7 +51,7 @@ func (c *RemoteResourceClient) AddResourceValue(mux srpc.Invoker, value any, rel
 
 	err := func() error {
 		var released bool
-		c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			if c.released {
 				released = true
 				return
@@ -67,8 +67,10 @@ func (c *RemoteResourceClient) AddResourceValue(mux srpc.Invoker, value any, rel
 				releaseFn:     releaseFn,
 			}
 
+			// ResourceClient waits on this broadcast only for outbound queue
+			// events. Adding a resource mutates the lookup table for later
+			// RPCs, but it does not enqueue a client notification.
 			c.resources[resourceID] = res
-			broadcast()
 		})
 
 		if released {
@@ -120,7 +122,6 @@ func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 			attachedCancel = ar.cancel
 			releaseFn = ar.releaseFn
 			released = true
-			broadcast()
 			return
 		}
 
