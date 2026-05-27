@@ -171,7 +171,12 @@ function callTinyGoExport(
   fn(...args)
   const resume = (go as TinyGoRuntime & { _resume?: () => void })._resume
   if (typeof resume === 'function') {
-    resume.call(go)
+    // Export callbacks only publish completion. Resume the TinyGo scheduler
+    // from a later task so resumed goroutines do not issue syscall/js calls
+    // while the command-export entrypoint is still unwinding.
+    deferTinyGoCallback(() => {
+      resume.call(go)
+    })
   }
 }
 
@@ -777,6 +782,7 @@ export async function loadWebAssemblyModule(
 export interface TinyGoRuntime {
   importObject: WebAssembly.Imports
   _inst?: WebAssembly.Instance
+  _resume?: () => void
 }
 
 declare class Go {

@@ -196,6 +196,15 @@ describe('patchTinyGoRuntimeImports', () => {
       acquired: number
     }> = []
     const rejected: Array<{ opID: number; code: number }> = []
+    const callbackOrder: string[] = []
+    let exportMicrotask!: () => void
+    let resumeCallback!: () => void
+    const exportMicrotaskDone = new Promise<void>((resolve) => {
+      exportMicrotask = resolve
+    })
+    const resumeDone = new Promise<void>((resolve) => {
+      resumeCallback = resolve
+    })
     const request = vi.fn(
       (
         lockName: string,
@@ -220,12 +229,21 @@ describe('patchTinyGoRuntimeImports', () => {
             releaseID: number,
             acquired: number,
           ) => {
+            callbackOrder.push('export')
+            queueMicrotask(() => {
+              callbackOrder.push('microtask-after-export')
+              exportMicrotask()
+            })
             resolved.push({ opID, releaseID, acquired })
           },
           BLDR_OPFS_WEB_LOCK_REJECT: (opID: number, code: number) => {
             rejected.push({ opID, code })
           },
         },
+      },
+      _resume: () => {
+        callbackOrder.push('resume')
+        resumeCallback()
       },
     }
 
@@ -247,7 +265,9 @@ describe('patchTinyGoRuntimeImports', () => {
     }
 
     acquire(17, 32, name.byteLength, 1, 0)
-    await new Promise((resolve) => setTimeout(resolve, 20))
+    await exportMicrotaskDone
+    expect(callbackOrder).toEqual(['export', 'microtask-after-export'])
+    await resumeDone
 
     expect(request).toHaveBeenCalledWith(
       'spacewave-lock',
@@ -256,6 +276,11 @@ describe('patchTinyGoRuntimeImports', () => {
     )
     expect(rejected).toEqual([])
     expect(resolved).toEqual([{ opID: 17, releaseID: 1, acquired: 1 }])
+    expect(callbackOrder).toEqual([
+      'export',
+      'microtask-after-export',
+      'resume',
+    ])
     expect(release(1)).toBe(1)
     expect(release(1)).toBe(0)
   })
