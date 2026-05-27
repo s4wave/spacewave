@@ -57,6 +57,17 @@ type Config struct {
 	// other goroutines to continue encoding and enqueuing while I/O is
 	// in flight.
 	AsyncIo bool `protobuf:"varint,14,opt,name=async_io,json=asyncIo,proto3" json:"asyncIo,omitempty"`
+	// BlockMaxSegmentDataBytes bounds one block SSTable segment's data bytes.
+	BlockMaxSegmentDataBytes uint32 `protobuf:"varint,15,opt,name=block_max_segment_data_bytes,json=blockMaxSegmentDataBytes,proto3" json:"blockMaxSegmentDataBytes,omitempty"`
+	// DriverMode selects the browser OPFS driver ABI.
+	// Empty defaults to the current runtime's standard wasm or TinyGo mode.
+	DriverMode string `protobuf:"bytes,16,opt,name=driver_mode,json=driverMode,proto3" json:"driverMode,omitempty"`
+	// StorageFormatVersion is the OPFS Volume Runtime format marker version.
+	// Empty/zero defaults to the current v2 format.
+	StorageFormatVersion uint32 `protobuf:"varint,17,opt,name=storage_format_version,json=storageFormatVersion,proto3" json:"storageFormatVersion,omitempty"`
+	// ResetPolicy selects the open-time incompatible-state policy.
+	// Empty defaults to "automatic"; no v1 compatibility policy is supported.
+	ResetPolicy string `protobuf:"bytes,18,opt,name=reset_policy,json=resetPolicy,proto3" json:"resetPolicy,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -163,6 +174,34 @@ func (x *Config) GetAsyncIo() bool {
 	return false
 }
 
+func (x *Config) GetBlockMaxSegmentDataBytes() uint32 {
+	if x != nil {
+		return x.BlockMaxSegmentDataBytes
+	}
+	return 0
+}
+
+func (x *Config) GetDriverMode() string {
+	if x != nil {
+		return x.DriverMode
+	}
+	return ""
+}
+
+func (x *Config) GetStorageFormatVersion() uint32 {
+	if x != nil {
+		return x.StorageFormatVersion
+	}
+	return 0
+}
+
+func (x *Config) GetResetPolicy() string {
+	if x != nil {
+		return x.ResetPolicy
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -170,18 +209,28 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.RootPath = m.RootPath
 	r.LockPrefix = m.LockPrefix
-	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.Verbose = m.Verbose
-	r.VolumeConfig = m.VolumeConfig.CloneVT()
-	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.BlockShardCount = m.BlockShardCount
 	r.MetaShardCount = m.MetaShardCount
 	r.BlockBloomFpr = m.BlockBloomFpr
 	r.BlockCompactionTrigger = m.BlockCompactionTrigger
 	r.PageSize = m.PageSize
 	r.AsyncIo = m.AsyncIo
+	r.BlockMaxSegmentDataBytes = m.BlockMaxSegmentDataBytes
+	r.DriverMode = m.DriverMode
+	r.StorageFormatVersion = m.StorageFormatVersion
+	r.ResetPolicy = m.ResetPolicy
+	if rhs := m.KvKeyOpts; rhs != nil {
+		r.KvKeyOpts = rhs.CloneVT()
+	}
+	if rhs := m.VolumeConfig; rhs != nil {
+		r.VolumeConfig = rhs.CloneVT()
+	}
+	if rhs := m.StoreConfig; rhs != nil {
+		r.StoreConfig = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -238,6 +287,18 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.AsyncIo != that.AsyncIo {
+		return false
+	}
+	if this.BlockMaxSegmentDataBytes != that.BlockMaxSegmentDataBytes {
+		return false
+	}
+	if this.DriverMode != that.DriverMode {
+		return false
+	}
+	if this.StorageFormatVersion != that.StorageFormatVersion {
+		return false
+	}
+	if this.ResetPolicy != that.ResetPolicy {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -329,6 +390,26 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("asyncIo")
 		s.WriteBool(x.AsyncIo)
 	}
+	if x.BlockMaxSegmentDataBytes != 0 || s.HasField("blockMaxSegmentDataBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockMaxSegmentDataBytes")
+		s.WriteUint32(x.BlockMaxSegmentDataBytes)
+	}
+	if x.DriverMode != "" || s.HasField("driverMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("driverMode")
+		s.WriteString(x.DriverMode)
+	}
+	if x.StorageFormatVersion != 0 || s.HasField("storageFormatVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageFormatVersion")
+		s.WriteUint32(x.StorageFormatVersion)
+	}
+	if x.ResetPolicy != "" || s.HasField("resetPolicy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resetPolicy")
+		s.WriteString(x.ResetPolicy)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -400,6 +481,18 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "async_io", "asyncIo":
 			s.AddField("async_io")
 			x.AsyncIo = s.ReadBool()
+		case "block_max_segment_data_bytes", "blockMaxSegmentDataBytes":
+			s.AddField("block_max_segment_data_bytes")
+			x.BlockMaxSegmentDataBytes = s.ReadUint32()
+		case "driver_mode", "driverMode":
+			s.AddField("driver_mode")
+			x.DriverMode = s.ReadString()
+		case "storage_format_version", "storageFormatVersion":
+			s.AddField("storage_format_version")
+			x.StorageFormatVersion = s.ReadUint32()
+		case "reset_policy", "resetPolicy":
+			s.AddField("reset_policy")
+			x.ResetPolicy = s.ReadString()
 		}
 	})
 }
@@ -438,6 +531,36 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ResetPolicy) > 0 {
+		i -= len(m.ResetPolicy)
+		copy(dAtA[i:], m.ResetPolicy)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ResetPolicy)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
+	}
+	if m.StorageFormatVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StorageFormatVersion))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
+	if len(m.DriverMode) > 0 {
+		i -= len(m.DriverMode)
+		copy(dAtA[i:], m.DriverMode)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DriverMode)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
+	if m.BlockMaxSegmentDataBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockMaxSegmentDataBytes))
+		i--
+		dAtA[i] = 0x78
 	}
 	if m.AsyncIo {
 		i--
@@ -605,6 +728,20 @@ func (m *Config) SizeVT() (n int) {
 	if m.AsyncIo {
 		n += 2
 	}
+	if m.BlockMaxSegmentDataBytes != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.BlockMaxSegmentDataBytes))
+	}
+	l = len(m.DriverMode)
+	if l > 0 {
+		n += 2 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.StorageFormatVersion != 0 {
+		n += 2 + protobuf_go_lite.SizeOfVarint(uint64(m.StorageFormatVersion))
+	}
+	l = len(m.ResetPolicy)
+	if l > 0 {
+		n += 2 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -709,6 +846,34 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("async_io: ")
 		sb.WriteString(strconv.FormatBool(x.AsyncIo))
+	}
+	if x.BlockMaxSegmentDataBytes != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("block_max_segment_data_bytes: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.BlockMaxSegmentDataBytes), 10))
+	}
+	if x.DriverMode != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("driver_mode: ")
+		sb.WriteString(strconv.Quote(x.DriverMode))
+	}
+	if x.StorageFormatVersion != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("storage_format_version: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.StorageFormatVersion), 10))
+	}
+	if x.ResetPolicy != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("reset_policy: ")
+		sb.WriteString(strconv.Quote(x.ResetPolicy))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -962,6 +1127,68 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.AsyncIo = bool(v != 0)
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockMaxSegmentDataBytes", wireType)
+			}
+			m.BlockMaxSegmentDataBytes = 0
+			m.BlockMaxSegmentDataBytes, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DriverMode", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DriverMode = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageFormatVersion", wireType)
+			}
+			m.StorageFormatVersion = 0
+			m.StorageFormatVersion, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResetPolicy", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ResetPolicy = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

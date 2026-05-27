@@ -15,6 +15,17 @@ func (c *Config) Validate() error {
 	if c.GetRootPath() == "" {
 		return errors.New("root_path required")
 	}
+	if version := c.GetStorageFormatVersion(); version != 0 && version != currentStorageFormatVersion {
+		return errors.Errorf("unsupported storage_format_version %d", version)
+	}
+	switch runtimeDriverMode(c) {
+	case driverModeAuto, driverModeStandardWasm, driverModeTinyGo:
+	default:
+		return errors.Errorf("unsupported driver_mode %q", c.GetDriverMode())
+	}
+	if policy := runtimeResetPolicy(c); policy != resetPolicyAutomatic {
+		return errors.Errorf("unsupported reset_policy %q", policy)
+	}
 	return nil
 }
 

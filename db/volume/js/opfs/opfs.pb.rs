@@ -51,5 +51,20 @@ pub struct Config {
     /// in flight.
     #[prost(bool, tag="14")]
     pub async_io: bool,
+    /// BlockMaxSegmentDataBytes bounds one block SSTable segment's data bytes.
+    #[prost(uint32, tag="15")]
+    pub block_max_segment_data_bytes: u32,
+    /// DriverMode selects the browser OPFS driver ABI.
+    /// Empty defaults to the current runtime's standard wasm or TinyGo mode.
+    #[prost(string, tag="16")]
+    pub driver_mode: ::prost::alloc::string::String,
+    /// StorageFormatVersion is the OPFS Volume Runtime format marker version.
+    /// Empty/zero defaults to the current v2 format.
+    #[prost(uint32, tag="17")]
+    pub storage_format_version: u32,
+    /// ResetPolicy selects the open-time incompatible-state policy.
+    /// Empty defaults to "automatic"; no v1 compatibility policy is supported.
+    #[prost(string, tag="18")]
+    pub reset_policy: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

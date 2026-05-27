@@ -41,4 +41,15 @@ message Config {
   // other goroutines to continue encoding and enqueuing while I/O is
   // in flight.
   bool async_io = 14;
+  // BlockMaxSegmentDataBytes bounds one block SSTable segment's data bytes.
+  uint32 block_max_segment_data_bytes = 15;
+  // DriverMode selects the browser OPFS driver ABI.
+  // Empty defaults to the current runtime's standard wasm or TinyGo mode.
+  string driver_mode = 16;
+  // StorageFormatVersion is the OPFS Volume Runtime format marker version.
+  // Empty/zero defaults to the current v2 format.
+  uint32 storage_format_version = 17;
+  // ResetPolicy selects the open-time incompatible-state policy.
+  // Empty defaults to "automatic"; no v1 compatibility policy is supported.
+  string reset_policy = 18;
 }

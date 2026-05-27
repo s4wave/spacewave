@@ -106,6 +106,33 @@ export interface Config {
    * @generated from field: bool async_io = 14;
    */
   asyncIo?: boolean
+  /**
+   * BlockMaxSegmentDataBytes bounds one block SSTable segment's data bytes.
+   *
+   * @generated from field: uint32 block_max_segment_data_bytes = 15;
+   */
+  blockMaxSegmentDataBytes?: number
+  /**
+   * DriverMode selects the browser OPFS driver ABI.
+   * Empty defaults to the current runtime's standard wasm or TinyGo mode.
+   *
+   * @generated from field: string driver_mode = 16;
+   */
+  driverMode?: string
+  /**
+   * StorageFormatVersion is the OPFS Volume Runtime format marker version.
+   * Empty/zero defaults to the current v2 format.
+   *
+   * @generated from field: uint32 storage_format_version = 17;
+   */
+  storageFormatVersion?: number
+  /**
+   * ResetPolicy selects the open-time incompatible-state policy.
+   * Empty defaults to "automatic"; no v1 compatibility policy is supported.
+   *
+   * @generated from field: string reset_policy = 18;
+   */
+  resetPolicy?: string
 }
 
 // Config contains the message type declaration for Config.
@@ -131,6 +158,20 @@ export const Config: MessageType<Config> = createMessageType({
     },
     { no: 13, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 14, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 15,
+      name: 'block_max_segment_data_bytes',
+      kind: 'scalar',
+      T: ScalarType.UINT32,
+    },
+    { no: 16, name: 'driver_mode', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 17,
+      name: 'storage_format_version',
+      kind: 'scalar',
+      T: ScalarType.UINT32,
+    },
+    { no: 18, name: 'reset_policy', kind: 'scalar', T: ScalarType.STRING },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })

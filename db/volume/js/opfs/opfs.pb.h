@@ -222,6 +222,8 @@ class Config final : public ::google::protobuf::Message
   enum : int {
     kRootPathFieldNumber = 1,
     kLockPrefixFieldNumber = 2,
+    kDriverModeFieldNumber = 16,
+    kResetPolicyFieldNumber = 18,
     kKvKeyOptsFieldNumber = 3,
     kVolumeConfigFieldNumber = 7,
     kStoreConfigFieldNumber = 8,
@@ -234,6 +236,8 @@ class Config final : public ::google::protobuf::Message
     kMetaShardCountFieldNumber = 10,
     kBlockCompactionTriggerFieldNumber = 12,
     kPageSizeFieldNumber = 13,
+    kBlockMaxSegmentDataBytesFieldNumber = 15,
+    kStorageFormatVersionFieldNumber = 17,
   };
   // string root_path = 1;
   void clear_root_path() ;
@@ -263,6 +267,36 @@ class Config final : public ::google::protobuf::Message
   const ::std::string& _internal_lock_prefix() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_lock_prefix(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_lock_prefix();
+
+  public:
+  // string driver_mode = 16;
+  void clear_driver_mode() ;
+  const ::std::string& driver_mode() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_driver_mode(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_driver_mode();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_driver_mode();
+  void set_allocated_driver_mode(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_driver_mode() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_driver_mode(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_driver_mode();
+
+  public:
+  // string reset_policy = 18;
+  void clear_reset_policy() ;
+  const ::std::string& reset_policy() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_reset_policy(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_reset_policy();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_reset_policy();
+  void set_allocated_reset_policy(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_reset_policy() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_reset_policy(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_reset_policy();
 
   public:
   // .store.kvkey.Config kv_key_opts = 3;
@@ -400,12 +434,32 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_page_size(::uint32_t value);
 
   public:
+  // uint32 block_max_segment_data_bytes = 15;
+  void clear_block_max_segment_data_bytes() ;
+  ::uint32_t block_max_segment_data_bytes() const;
+  void set_block_max_segment_data_bytes(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_block_max_segment_data_bytes() const;
+  void _internal_set_block_max_segment_data_bytes(::uint32_t value);
+
+  public:
+  // uint32 storage_format_version = 17;
+  void clear_storage_format_version() ;
+  ::uint32_t storage_format_version() const;
+  void set_storage_format_version(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_storage_format_version() const;
+  void _internal_set_storage_format_version(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:volume.opfs.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 14,
-                                   3, 55,
+  static const ::google::protobuf::internal::TcParseTable<5, 18,
+                                   3, 86,
                                    2>
       _table_;
 
@@ -428,6 +482,8 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr root_path_;
     ::google::protobuf::internal::ArenaStringPtr lock_prefix_;
+    ::google::protobuf::internal::ArenaStringPtr driver_mode_;
+    ::google::protobuf::internal::ArenaStringPtr reset_policy_;
     ::store::kvkey::Config* PROTOBUF_NULLABLE kv_key_opts_;
     ::volume::controller::Config* PROTOBUF_NULLABLE volume_config_;
     ::store::kvtx::Config* PROTOBUF_NULLABLE store_config_;
@@ -440,6 +496,8 @@ class Config final : public ::google::protobuf::Message
     ::uint32_t meta_shard_count_;
     ::uint32_t block_compaction_trigger_;
     ::uint32_t page_size_;
+    ::uint32_t block_max_segment_data_bytes_;
+    ::uint32_t storage_format_version_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -596,7 +654,7 @@ inline void Config::set_allocated_lock_prefix(::std::string* PROTOBUF_NULLABLE v
 
 // .store.kvkey.Config kv_key_opts = 3;
 inline bool Config::has_kv_key_opts() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
   PROTOBUF_ASSUME(!value || _impl_.kv_key_opts_ != nullptr);
   return value;
 }
@@ -617,16 +675,16 @@ inline void Config::unsafe_arena_set_allocated_kv_key_opts(
   }
   _impl_.kv_key_opts_ = reinterpret_cast<::store::kvkey::Config*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.opfs.Config.kv_key_opts)
 }
 inline ::store::kvkey::Config* PROTOBUF_NULLABLE Config::release_kv_key_opts() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::store::kvkey::Config* released = _impl_.kv_key_opts_;
   _impl_.kv_key_opts_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -646,7 +704,7 @@ inline ::store::kvkey::Config* PROTOBUF_NULLABLE Config::unsafe_arena_release_kv
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:volume.opfs.Config.kv_key_opts)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::store::kvkey::Config* temp = _impl_.kv_key_opts_;
   _impl_.kv_key_opts_ = nullptr;
   return temp;
@@ -661,7 +719,7 @@ inline ::store::kvkey::Config* PROTOBUF_NONNULL Config::_internal_mutable_kv_key
 }
 inline ::store::kvkey::Config* PROTOBUF_NONNULL Config::mutable_kv_key_opts()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::store::kvkey::Config* _msg = _internal_mutable_kv_key_opts();
   // @@protoc_insertion_point(field_mutable:volume.opfs.Config.kv_key_opts)
   return _msg;
@@ -678,9 +736,9 @@ inline void Config::set_allocated_kv_key_opts(::store::kvkey::Config* PROTOBUF_N
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
 
   _impl_.kv_key_opts_ = reinterpret_cast<::store::kvkey::Config*>(value);
@@ -692,7 +750,7 @@ inline void Config::clear_no_generate_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.no_generate_key_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000080U);
 }
 inline bool Config::no_generate_key() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.no_generate_key)
@@ -700,7 +758,7 @@ inline bool Config::no_generate_key() const {
 }
 inline void Config::set_no_generate_key(bool value) {
   _internal_set_no_generate_key(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.no_generate_key)
 }
 inline bool Config::_internal_no_generate_key() const {
@@ -717,7 +775,7 @@ inline void Config::clear_no_write_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.no_write_key_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000100U);
 }
 inline bool Config::no_write_key() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.no_write_key)
@@ -725,7 +783,7 @@ inline bool Config::no_write_key() const {
 }
 inline void Config::set_no_write_key(bool value) {
   _internal_set_no_write_key(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.no_write_key)
 }
 inline bool Config::_internal_no_write_key() const {
@@ -742,7 +800,7 @@ inline void Config::clear_verbose() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.verbose_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000200U);
 }
 inline bool Config::verbose() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.verbose)
@@ -750,7 +808,7 @@ inline bool Config::verbose() const {
 }
 inline void Config::set_verbose(bool value) {
   _internal_set_verbose(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.verbose)
 }
 inline bool Config::_internal_verbose() const {
@@ -764,7 +822,7 @@ inline void Config::_internal_set_verbose(bool value) {
 
 // .volume.controller.Config volume_config = 7;
 inline bool Config::has_volume_config() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
   PROTOBUF_ASSUME(!value || _impl_.volume_config_ != nullptr);
   return value;
 }
@@ -785,16 +843,16 @@ inline void Config::unsafe_arena_set_allocated_volume_config(
   }
   _impl_.volume_config_ = reinterpret_cast<::volume::controller::Config*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.opfs.Config.volume_config)
 }
 inline ::volume::controller::Config* PROTOBUF_NULLABLE Config::release_volume_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::volume::controller::Config* released = _impl_.volume_config_;
   _impl_.volume_config_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -814,7 +872,7 @@ inline ::volume::controller::Config* PROTOBUF_NULLABLE Config::unsafe_arena_rele
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:volume.opfs.Config.volume_config)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::volume::controller::Config* temp = _impl_.volume_config_;
   _impl_.volume_config_ = nullptr;
   return temp;
@@ -829,7 +887,7 @@ inline ::volume::controller::Config* PROTOBUF_NONNULL Config::_internal_mutable_
 }
 inline ::volume::controller::Config* PROTOBUF_NONNULL Config::mutable_volume_config()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::volume::controller::Config* _msg = _internal_mutable_volume_config();
   // @@protoc_insertion_point(field_mutable:volume.opfs.Config.volume_config)
   return _msg;
@@ -846,9 +904,9 @@ inline void Config::set_allocated_volume_config(::volume::controller::Config* PR
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
 
   _impl_.volume_config_ = reinterpret_cast<::volume::controller::Config*>(value);
@@ -857,7 +915,7 @@ inline void Config::set_allocated_volume_config(::volume::controller::Config* PR
 
 // .store.kvtx.Config store_config = 8;
 inline bool Config::has_store_config() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
   PROTOBUF_ASSUME(!value || _impl_.store_config_ != nullptr);
   return value;
 }
@@ -878,16 +936,16 @@ inline void Config::unsafe_arena_set_allocated_store_config(
   }
   _impl_.store_config_ = reinterpret_cast<::store::kvtx::Config*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.opfs.Config.store_config)
 }
 inline ::store::kvtx::Config* PROTOBUF_NULLABLE Config::release_store_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::store::kvtx::Config* released = _impl_.store_config_;
   _impl_.store_config_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -907,7 +965,7 @@ inline ::store::kvtx::Config* PROTOBUF_NULLABLE Config::unsafe_arena_release_sto
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:volume.opfs.Config.store_config)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::store::kvtx::Config* temp = _impl_.store_config_;
   _impl_.store_config_ = nullptr;
   return temp;
@@ -922,7 +980,7 @@ inline ::store::kvtx::Config* PROTOBUF_NONNULL Config::_internal_mutable_store_c
 }
 inline ::store::kvtx::Config* PROTOBUF_NONNULL Config::mutable_store_config()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::store::kvtx::Config* _msg = _internal_mutable_store_config();
   // @@protoc_insertion_point(field_mutable:volume.opfs.Config.store_config)
   return _msg;
@@ -939,9 +997,9 @@ inline void Config::set_allocated_store_config(::store::kvtx::Config* PROTOBUF_N
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   }
 
   _impl_.store_config_ = reinterpret_cast<::store::kvtx::Config*>(value);
@@ -953,7 +1011,7 @@ inline void Config::clear_block_shard_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_shard_count_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000800U);
 }
 inline ::uint32_t Config::block_shard_count() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_shard_count)
@@ -961,7 +1019,7 @@ inline ::uint32_t Config::block_shard_count() const {
 }
 inline void Config::set_block_shard_count(::uint32_t value) {
   _internal_set_block_shard_count(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_shard_count)
 }
 inline ::uint32_t Config::_internal_block_shard_count() const {
@@ -978,7 +1036,7 @@ inline void Config::clear_meta_shard_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.meta_shard_count_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000800U);
+                  0x00002000U);
 }
 inline ::uint32_t Config::meta_shard_count() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.meta_shard_count)
@@ -986,7 +1044,7 @@ inline ::uint32_t Config::meta_shard_count() const {
 }
 inline void Config::set_meta_shard_count(::uint32_t value) {
   _internal_set_meta_shard_count(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.meta_shard_count)
 }
 inline ::uint32_t Config::_internal_meta_shard_count() const {
@@ -1003,7 +1061,7 @@ inline void Config::clear_block_bloom_fpr() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_bloom_fpr_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00001000U);
 }
 inline double Config::block_bloom_fpr() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_bloom_fpr)
@@ -1011,7 +1069,7 @@ inline double Config::block_bloom_fpr() const {
 }
 inline void Config::set_block_bloom_fpr(double value) {
   _internal_set_block_bloom_fpr(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_bloom_fpr)
 }
 inline double Config::_internal_block_bloom_fpr() const {
@@ -1028,7 +1086,7 @@ inline void Config::clear_block_compaction_trigger() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.block_compaction_trigger_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00001000U);
+                  0x00004000U);
 }
 inline ::uint32_t Config::block_compaction_trigger() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.block_compaction_trigger)
@@ -1036,7 +1094,7 @@ inline ::uint32_t Config::block_compaction_trigger() const {
 }
 inline void Config::set_block_compaction_trigger(::uint32_t value) {
   _internal_set_block_compaction_trigger(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.block_compaction_trigger)
 }
 inline ::uint32_t Config::_internal_block_compaction_trigger() const {
@@ -1053,7 +1111,7 @@ inline void Config::clear_page_size() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.page_size_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00002000U);
+                  0x00008000U);
 }
 inline ::uint32_t Config::page_size() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.page_size)
@@ -1061,7 +1119,7 @@ inline ::uint32_t Config::page_size() const {
 }
 inline void Config::set_page_size(::uint32_t value) {
   _internal_set_page_size(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.page_size)
 }
 inline ::uint32_t Config::_internal_page_size() const {
@@ -1078,7 +1136,7 @@ inline void Config::clear_async_io() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.async_io_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000400U);
 }
 inline bool Config::async_io() const {
   // @@protoc_insertion_point(field_get:volume.opfs.Config.async_io)
@@ -1086,7 +1144,7 @@ inline bool Config::async_io() const {
 }
 inline void Config::set_async_io(bool value) {
   _internal_set_async_io(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:volume.opfs.Config.async_io)
 }
 inline bool Config::_internal_async_io() const {
@@ -1096,6 +1154,186 @@ inline bool Config::_internal_async_io() const {
 inline void Config::_internal_set_async_io(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.async_io_ = value;
+}
+
+// uint32 block_max_segment_data_bytes = 15;
+inline void Config::clear_block_max_segment_data_bytes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_max_segment_data_bytes_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00010000U);
+}
+inline ::uint32_t Config::block_max_segment_data_bytes() const {
+  // @@protoc_insertion_point(field_get:volume.opfs.Config.block_max_segment_data_bytes)
+  return _internal_block_max_segment_data_bytes();
+}
+inline void Config::set_block_max_segment_data_bytes(::uint32_t value) {
+  _internal_set_block_max_segment_data_bytes(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00010000U);
+  // @@protoc_insertion_point(field_set:volume.opfs.Config.block_max_segment_data_bytes)
+}
+inline ::uint32_t Config::_internal_block_max_segment_data_bytes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.block_max_segment_data_bytes_;
+}
+inline void Config::_internal_set_block_max_segment_data_bytes(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_max_segment_data_bytes_ = value;
+}
+
+// string driver_mode = 16;
+inline void Config::clear_driver_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.driver_mode_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& Config::driver_mode() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.opfs.Config.driver_mode)
+  return _internal_driver_mode();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_driver_mode(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.driver_mode_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.opfs.Config.driver_mode)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_driver_mode()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_driver_mode();
+  // @@protoc_insertion_point(field_mutable:volume.opfs.Config.driver_mode)
+  return _s;
+}
+inline const ::std::string& Config::_internal_driver_mode() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.driver_mode_.Get();
+}
+inline void Config::_internal_set_driver_mode(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.driver_mode_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_driver_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.driver_mode_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_driver_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.opfs.Config.driver_mode)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.driver_mode_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.driver_mode_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_driver_mode(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.driver_mode_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.driver_mode_.IsDefault()) {
+    _impl_.driver_mode_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.opfs.Config.driver_mode)
+}
+
+// uint32 storage_format_version = 17;
+inline void Config::clear_storage_format_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.storage_format_version_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00020000U);
+}
+inline ::uint32_t Config::storage_format_version() const {
+  // @@protoc_insertion_point(field_get:volume.opfs.Config.storage_format_version)
+  return _internal_storage_format_version();
+}
+inline void Config::set_storage_format_version(::uint32_t value) {
+  _internal_set_storage_format_version(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00020000U);
+  // @@protoc_insertion_point(field_set:volume.opfs.Config.storage_format_version)
+}
+inline ::uint32_t Config::_internal_storage_format_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.storage_format_version_;
+}
+inline void Config::_internal_set_storage_format_version(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.storage_format_version_ = value;
+}
+
+// string reset_policy = 18;
+inline void Config::clear_reset_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reset_policy_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& Config::reset_policy() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.opfs.Config.reset_policy)
+  return _internal_reset_policy();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_reset_policy(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.reset_policy_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.opfs.Config.reset_policy)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_reset_policy()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_reset_policy();
+  // @@protoc_insertion_point(field_mutable:volume.opfs.Config.reset_policy)
+  return _s;
+}
+inline const ::std::string& Config::_internal_reset_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.reset_policy_.Get();
+}
+inline void Config::_internal_set_reset_policy(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.reset_policy_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_reset_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.reset_policy_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_reset_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.opfs.Config.reset_policy)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.reset_policy_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.reset_policy_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_reset_policy(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.reset_policy_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.reset_policy_.IsDefault()) {
+    _impl_.reset_policy_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.opfs.Config.reset_policy)
 }
 
 #ifdef __GNUC__

@@ -13,6 +13,8 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_opfs "github.com/s4wave/spacewave/db/volume/js/opfs"
+	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
+	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 )
 
 // OpfsStorage implements OPFS-backed browser storage.
@@ -39,10 +41,18 @@ func (s *OpfsStorage) AddFactories(b bus.Bus, sr *static.Resolver) {
 func (s *OpfsStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
 	rootPath := s.prefix + id
 	return &volume_opfs.Config{
-		RootPath:               rootPath,
-		AsyncIo:                runtime.Compiler == "tinygo",
-		BlockCompactionTrigger: 8,
-		VolumeConfig:           baseVolCtrlConf,
+		RootPath:                 rootPath,
+		LockPrefix:               rootPath,
+		AsyncIo:                  runtime.Compiler == "tinygo",
+		BlockShardCount:          blockshard.DefaultShardCount,
+		BlockCompactionTrigger:   8,
+		BlockMaxSegmentDataBytes: blockshard.DefaultMaxSegmentDataBytes,
+		MetaShardCount:           1,
+		PageSize:                 pagestore.DefaultPageSize,
+		DriverMode:               "auto",
+		StorageFormatVersion:     2,
+		ResetPolicy:              "automatic",
+		VolumeConfig:             baseVolCtrlConf,
 	}, nil
 }
 

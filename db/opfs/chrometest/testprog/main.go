@@ -209,6 +209,14 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeRuntimeWrite(ctx, c)
 	case "volume-runtime-verify":
 		return runVolumeRuntimeVerify(ctx, c)
+	case "volume-runtime-seed-current-v1":
+		return runVolumeRuntimeSeedCurrentV1(c)
+	case "volume-runtime-seed-incompatible":
+		return runVolumeRuntimeSeedIncompatible(c)
+	case "volume-runtime-seed-unknown":
+		return runVolumeRuntimeSeedUnknown(c)
+	case "volume-runtime-verify-reset":
+		return runVolumeRuntimeVerifyReset(ctx, c)
 	case "world-init-unixfs":
 		return runWorldInitUnixFS(ctx, c)
 	default:
@@ -1028,6 +1036,73 @@ func runVolumeRuntimeVerify(ctx context.Context, c *config) error {
 	}
 	if !found || !bytes.Equal(data, volumeBlockValue()) {
 		return errors.Errorf("volume block mismatch found=%v value=%q", found, string(data))
+	}
+	return nil
+}
+
+func runVolumeRuntimeSeedCurrentV1(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"volume"})
+	if err != nil {
+		return err
+	}
+	for _, name := range []string{"blocks", "meta", "gc"} {
+		if _, err := opfs.GetDirectory(dir, name, true); err != nil {
+			return errors.Wrapf(err, "create v1 %s directory", name)
+		}
+	}
+	return opfs.WriteFile(dir, "legacy-only", []byte("current-v1"))
+}
+
+func runVolumeRuntimeSeedIncompatible(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"volume"})
+	if err != nil {
+		return err
+	}
+	if err := opfs.WriteFile(dir, ".spacewave-opfs-format.json", []byte(`{"kind":"spacewave-opfs-volume","version":1}`)); err != nil {
+		return errors.Wrap(err, "write incompatible marker")
+	}
+	return opfs.WriteFile(dir, "legacy-only", []byte("incompatible"))
+}
+
+func runVolumeRuntimeSeedUnknown(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"volume"})
+	if err != nil {
+		return err
+	}
+	return opfs.WriteFile(dir, "legacy-only", []byte("unknown"))
+}
+
+func runVolumeRuntimeVerifyReset(ctx context.Context, c *config) error {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	if err := vol.Close(); err != nil {
+		return err
+	}
+
+	dir, err := openTestDirectory(c.root, []string{"volume"})
+	if err != nil {
+		return err
+	}
+	exists, err := opfs.FileExists(dir, "legacy-only")
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("legacy-only file survived v2 reset")
+	}
+	marker, err := opfs.ReadFile(dir, ".spacewave-opfs-format.json")
+	if err != nil {
+		return errors.Wrap(err, "read v2 marker")
+	}
+	if !strings.Contains(string(marker), `"version":2`) {
+		return errors.Errorf("marker = %s, want version 2", string(marker))
+	}
+	for _, name := range []string{"blocks", "meta", "gc"} {
+		if _, err := opfs.GetDirectory(dir, name, false); err != nil {
+			return errors.Wrapf(err, "open v2 %s directory", name)
+		}
 	}
 	return nil
 }

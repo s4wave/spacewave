@@ -15,7 +15,6 @@ import (
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
-	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
@@ -49,16 +48,13 @@ func NewOpfs(
 		lockPrefix = rootPath
 	}
 
-	// Open or create the OPFS directory for this volume.
 	opfsRoot, err := opfs.GetRoot()
 	if err != nil {
 		return nil, errors.Wrap(err, "opfs GetRoot")
 	}
-
-	pathParts, _ := unixfs.SplitPath(rootPath)
-	volDir, err := opfs.GetDirectoryPath(opfsRoot, pathParts, true)
+	volDir, err := openRuntimeRoot(ctx, le, opfsRoot, conf)
 	if err != nil {
-		return nil, errors.Wrap(err, "create volume directory")
+		return nil, errors.Wrap(err, "open runtime root")
 	}
 
 	// Block shard engine: sharded SSTable segments with per-shard write actors.
@@ -68,10 +64,11 @@ func NewOpfs(
 	}
 
 	blockSettings := &blockshard.Settings{
-		ShardCount:        int(conf.GetBlockShardCount()),
-		BloomFPR:          conf.GetBlockBloomFpr(),
-		CompactionTrigger: int(conf.GetBlockCompactionTrigger()),
-		AsyncIO:           conf.GetAsyncIo(),
+		ShardCount:          int(conf.GetBlockShardCount()),
+		BloomFPR:            conf.GetBlockBloomFpr(),
+		CompactionTrigger:   int(conf.GetBlockCompactionTrigger()),
+		AsyncIO:             conf.GetAsyncIo(),
+		MaxSegmentDataBytes: int(conf.GetBlockMaxSegmentDataBytes()),
 	}
 	blkEngine, err := blockshard.NewEngineWithSettings(ctx, blocksDir, lockPrefix+"/blocks", blockSettings)
 	if err != nil {
@@ -168,20 +165,7 @@ func NewOpfs(
 			return gcGraph.Close()
 		},
 		func() error {
-			// Delete: navigate to the parent, then remove the leaf directory.
-			parts, _ := unixfs.SplitPath(rootPath)
-			parent := opfsRoot
-			for _, p := range parts[:len(parts)-1] {
-				var err error
-				parent, err = opfs.GetDirectory(parent, p, false)
-				if err != nil {
-					if opfs.IsNotFound(err) {
-						return nil
-					}
-					return err
-				}
-			}
-			return opfs.DeleteEntry(parent, parts[len(parts)-1], true)
+			return deleteRuntimeRoot(opfsRoot, rootPath)
 		},
 	)
 	if err != nil {

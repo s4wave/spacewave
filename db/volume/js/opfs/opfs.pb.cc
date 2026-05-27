@@ -38,6 +38,12 @@ inline constexpr Config::Impl_::Impl_(
         lock_prefix_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        driver_mode_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        reset_policy_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         kv_key_opts_{nullptr},
         volume_config_{nullptr},
         store_config_{nullptr},
@@ -49,7 +55,9 @@ inline constexpr Config::Impl_::Impl_(
         block_bloom_fpr_{0},
         meta_shard_count_{0u},
         block_compaction_trigger_{0u},
-        page_size_{0u} {}
+        page_size_{0u},
+        block_max_segment_data_bytes_{0u},
+        storage_format_version_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -81,7 +89,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_._has_bits_),
-        17, // hasbit index offset
+        21, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.root_path_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.lock_prefix_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.kv_key_opts_),
@@ -96,20 +104,28 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_compaction_trigger_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.page_size_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.async_io_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_max_segment_data_bytes_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.driver_mode_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.storage_format_version_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.reset_policy_),
         0,
         1,
-        2,
+        4,
+        7,
+        8,
+        9,
         5,
         6,
-        7,
-        3,
-        4,
-        9,
         11,
-        10,
-        12,
         13,
-        8,
+        12,
+        14,
+        15,
+        10,
+        16,
+        2,
+        17,
+        3,
 };
 
 static const ::_pbi::MigrationSchema
@@ -127,7 +143,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvo
     "y.proto\0324github.com/s4wave/spacewave/db/"
     "store/kvtx/kvtx.proto\032Agithub.com/s4wave"
     "/spacewave/db/volume/controller/controll"
-    "er.proto\"\213\003\n\006Config\022\021\n\troot_path\030\001 \001(\t\022\023"
+    "er.proto\"\374\003\n\006Config\022\021\n\troot_path\030\001 \001(\t\022\023"
     "\n\013lock_prefix\030\002 \001(\t\022(\n\013kv_key_opts\030\003 \001(\013"
     "2\023.store.kvkey.Config\022\027\n\017no_generate_key"
     "\030\004 \001(\010\022\024\n\014no_write_key\030\005 \001(\010\022\017\n\007verbose\030"
@@ -137,7 +153,10 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvo
     " \001(\r\022\030\n\020meta_shard_count\030\n \001(\r\022\027\n\017block_"
     "bloom_fpr\030\013 \001(\001\022 \n\030block_compaction_trig"
     "ger\030\014 \001(\r\022\021\n\tpage_size\030\r \001(\r\022\020\n\010async_io"
-    "\030\016 \001(\010b\006proto3"
+    "\030\016 \001(\010\022$\n\034block_max_segment_data_bytes\030\017"
+    " \001(\r\022\023\n\013driver_mode\030\020 \001(\t\022\036\n\026storage_for"
+    "mat_version\030\021 \001(\r\022\024\n\014reset_policy\030\022 \001(\tb"
+    "\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fjs_2fopfs_2fopfs_2eproto_deps[3] = {
@@ -149,7 +168,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fjs_2fopfs_2fopfs_2eproto = {
     false,
     false,
-    654,
+    767,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fjs_2fopfs_2fopfs_2eproto,
     "github.com/s4wave/spacewave/db/volume/js/opfs/opfs.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fjs_2fopfs_2fopfs_2eproto_once,
@@ -178,19 +197,19 @@ void Config::clear_kv_key_opts() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.kv_key_opts_ != nullptr) _impl_.kv_key_opts_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000010U);
 }
 void Config::clear_volume_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.volume_config_ != nullptr) _impl_.volume_config_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000020U);
 }
 void Config::clear_store_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.store_config_ != nullptr) _impl_.store_config_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000040U);
 }
 Config::Config(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -208,7 +227,9 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         root_path_(arena, from.root_path_),
-        lock_prefix_(arena, from.lock_prefix_) {}
+        lock_prefix_(arena, from.lock_prefix_),
+        driver_mode_(arena, from.driver_mode_),
+        reset_policy_(arena, from.reset_policy_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -224,22 +245,22 @@ Config::Config(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.kv_key_opts_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+  _impl_.kv_key_opts_ = (CheckHasBit(cached_has_bits, 0x00000010U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.kv_key_opts_)
                 : nullptr;
-  _impl_.volume_config_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+  _impl_.volume_config_ = (CheckHasBit(cached_has_bits, 0x00000020U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.volume_config_)
                 : nullptr;
-  _impl_.store_config_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+  _impl_.store_config_ = (CheckHasBit(cached_has_bits, 0x00000040U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.store_config_)
                 : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, no_generate_key_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, no_generate_key_),
-           offsetof(Impl_, page_size_) -
+           offsetof(Impl_, storage_format_version_) -
                offsetof(Impl_, no_generate_key_) +
-               sizeof(Impl_::page_size_));
+               sizeof(Impl_::storage_format_version_));
 
   // @@protoc_insertion_point(copy_constructor:volume.opfs.Config)
 }
@@ -248,16 +269,18 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         root_path_(arena),
-        lock_prefix_(arena) {}
+        lock_prefix_(arena),
+        driver_mode_(arena),
+        reset_policy_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, kv_key_opts_),
            0,
-           offsetof(Impl_, page_size_) -
+           offsetof(Impl_, storage_format_version_) -
                offsetof(Impl_, kv_key_opts_) +
-               sizeof(Impl_::page_size_));
+               sizeof(Impl_::storage_format_version_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:volume.opfs.Config)
@@ -272,6 +295,8 @@ inline void Config::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.root_path_.Destroy();
   this_._impl_.lock_prefix_.Destroy();
+  this_._impl_.driver_mode_.Destroy();
+  this_._impl_.reset_policy_.Destroy();
   delete this_._impl_.kv_key_opts_;
   delete this_._impl_.volume_config_;
   delete this_._impl_.store_config_;
@@ -321,16 +346,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 14, 3, 55, 2>
+const ::_pbi::TcParseTable<5, 18, 3, 86, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    14, 120,  // max_field_number, fast_idx_mask
+    18, 248,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294950912,  // skipmap
+    4294705152,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    14,  // num_field_entries
+    18,  // num_field_entries
     3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -351,52 +376,80 @@ Config::_table_ = {
       PROTOBUF_FIELD_OFFSET(Config, _impl_.lock_prefix_)}},
     // .store.kvkey.Config kv_key_opts = 3;
     {::_pbi::TcParser::FastMtS1,
-     {26, 2, 0,
+     {26, 4, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.kv_key_opts_)}},
     // bool no_generate_key = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.no_generate_key_), 5>(),
-     {32, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.no_generate_key_), 7>(),
+     {32, 7, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.no_generate_key_)}},
     // bool no_write_key = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.no_write_key_), 6>(),
-     {40, 6, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.no_write_key_), 8>(),
+     {40, 8, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.no_write_key_)}},
     // bool verbose = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.verbose_), 7>(),
-     {48, 7, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.verbose_), 9>(),
+     {48, 9, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.verbose_)}},
     // .volume.controller.Config volume_config = 7;
     {::_pbi::TcParser::FastMtS1,
-     {58, 3, 1,
+     {58, 5, 1,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_config_)}},
     // .store.kvtx.Config store_config = 8;
     {::_pbi::TcParser::FastMtS1,
-     {66, 4, 2,
+     {66, 6, 2,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.store_config_)}},
     // uint32 block_shard_count = 9;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_shard_count_), 9>(),
-     {72, 9, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_shard_count_), 11>(),
+     {72, 11, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_shard_count_)}},
     // uint32 meta_shard_count = 10;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.meta_shard_count_), 11>(),
-     {80, 11, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.meta_shard_count_), 13>(),
+     {80, 13, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.meta_shard_count_)}},
     // double block_bloom_fpr = 11;
     {::_pbi::TcParser::FastF64S1,
-     {89, 10, 0,
+     {89, 12, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_bloom_fpr_)}},
     // uint32 block_compaction_trigger = 12;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_compaction_trigger_), 12>(),
-     {96, 12, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_compaction_trigger_), 14>(),
+     {96, 14, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.block_compaction_trigger_)}},
     // uint32 page_size = 13;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.page_size_), 13>(),
-     {104, 13, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.page_size_), 15>(),
+     {104, 15, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_)}},
     // bool async_io = 14;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.async_io_), 8>(),
-     {112, 8, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.async_io_), 10>(),
+     {112, 10, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.async_io_)}},
+    // uint32 block_max_segment_data_bytes = 15;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_max_segment_data_bytes_), 16>(),
+     {120, 16, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.block_max_segment_data_bytes_)}},
+    // string driver_mode = 16;
+    {::_pbi::TcParser::FastUS2,
+     {386, 2, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.driver_mode_)}},
+    // uint32 storage_format_version = 17;
+    {::_pbi::TcParser::FastV32S2,
+     {392, 17, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.storage_format_version_)}},
+    // string reset_policy = 18;
+    {::_pbi::TcParser::FastUS2,
+     {402, 3, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.reset_policy_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -406,29 +459,37 @@ Config::_table_ = {
     // string lock_prefix = 2;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.lock_prefix_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .store.kvkey.Config kv_key_opts = 3;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.kv_key_opts_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.kv_key_opts_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool no_generate_key = 4;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.no_generate_key_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.no_generate_key_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool no_write_key = 5;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.no_write_key_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.no_write_key_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool verbose = 6;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.verbose_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.verbose_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // .volume.controller.Config volume_config = 7;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_config_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.volume_config_), _Internal::kHasBitsOffset + 5, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .store.kvtx.Config store_config = 8;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.store_config_), _Internal::kHasBitsOffset + 4, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.store_config_), _Internal::kHasBitsOffset + 6, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // uint32 block_shard_count = 9;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_shard_count_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_shard_count_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 meta_shard_count = 10;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.meta_shard_count_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.meta_shard_count_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // double block_bloom_fpr = 11;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_bloom_fpr_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kDouble)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_bloom_fpr_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kDouble)},
     // uint32 block_compaction_trigger = 12;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_compaction_trigger_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_compaction_trigger_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 page_size = 13;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_), _Internal::kHasBitsOffset + 15, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // bool async_io = 14;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.async_io_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.async_io_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint32 block_max_segment_data_bytes = 15;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_max_segment_data_bytes_), _Internal::kHasBitsOffset + 16, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // string driver_mode = 16;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.driver_mode_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 storage_format_version = 17;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.storage_format_version_), _Internal::kHasBitsOffset + 17, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // string reset_policy = 18;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.reset_policy_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::store::kvkey::Config>()},
@@ -436,10 +497,12 @@ Config::_table_ = {
       {::_pbi::TcParser::GetTable<::store::kvtx::Config>()},
   }},
   {{
-    "\22\11\13\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    "\22\11\13\0\0\0\0\0\0\0\0\0\0\0\0\0\13\0\14\0\0\0\0\0"
     "volume.opfs.Config"
     "root_path"
     "lock_prefix"
+    "driver_mode"
+    "reset_policy"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -450,7 +513,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.root_path_.ClearNonDefaultToEmpty();
     }
@@ -458,27 +521,34 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.lock_prefix_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.driver_mode_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.reset_policy_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(_impl_.kv_key_opts_ != nullptr);
       _impl_.kv_key_opts_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(_impl_.volume_config_ != nullptr);
       _impl_.volume_config_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       ABSL_DCHECK(_impl_.store_config_ != nullptr);
       _impl_.store_config_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
-    ::memset(&_impl_.no_generate_key_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.verbose_) -
-        reinterpret_cast<char*>(&_impl_.no_generate_key_)) + sizeof(_impl_.verbose_));
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
-    ::memset(&_impl_.async_io_, 0, static_cast<::size_t>(
+  _impl_.no_generate_key_ = false;
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    ::memset(&_impl_.no_write_key_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.page_size_) -
-        reinterpret_cast<char*>(&_impl_.async_io_)) + sizeof(_impl_.page_size_));
+        reinterpret_cast<char*>(&_impl_.no_write_key_)) + sizeof(_impl_.page_size_));
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00030000U)) {
+    ::memset(&_impl_.block_max_segment_data_bytes_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.storage_format_version_) -
+        reinterpret_cast<char*>(&_impl_.block_max_segment_data_bytes_)) + sizeof(_impl_.storage_format_version_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -524,14 +594,14 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // .store.kvkey.Config kv_key_opts = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         3, *this_._impl_.kv_key_opts_, this_._impl_.kv_key_opts_->GetCachedSize(), target,
         stream);
   }
 
   // bool no_generate_key = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_no_generate_key() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -540,7 +610,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool no_write_key = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_no_write_key() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -549,7 +619,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool verbose = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_verbose() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -558,21 +628,21 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // .volume.controller.Config volume_config = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         7, *this_._impl_.volume_config_, this_._impl_.volume_config_->GetCachedSize(), target,
         stream);
   }
 
   // .store.kvtx.Config store_config = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         8, *this_._impl_.store_config_, this_._impl_.store_config_->GetCachedSize(), target,
         stream);
   }
 
   // uint32 block_shard_count = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
     if (this_._internal_block_shard_count() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -581,7 +651,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // uint32 meta_shard_count = 10;
-  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
     if (this_._internal_meta_shard_count() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -590,7 +660,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // double block_bloom_fpr = 11;
-  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
     if (::absl::bit_cast<::uint64_t>(this_._internal_block_bloom_fpr()) != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteDoubleToArray(
@@ -599,7 +669,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // uint32 block_compaction_trigger = 12;
-  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
     if (this_._internal_block_compaction_trigger() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -608,7 +678,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // uint32 page_size = 13;
-  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00008000U)) {
     if (this_._internal_page_size() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -617,11 +687,49 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool async_io = 14;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_async_io() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           14, this_._internal_async_io(), target);
+    }
+  }
+
+  // uint32 block_max_segment_data_bytes = 15;
+  if (CheckHasBit(cached_has_bits, 0x00010000U)) {
+    if (this_._internal_block_max_segment_data_bytes() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          15, this_._internal_block_max_segment_data_bytes(), target);
+    }
+  }
+
+  // string driver_mode = 16;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_driver_mode().empty()) {
+      const ::std::string& _s = this_._internal_driver_mode();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "volume.opfs.Config.driver_mode");
+      target = stream->WriteStringMaybeAliased(16, _s, target);
+    }
+  }
+
+  // uint32 storage_format_version = 17;
+  if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+    if (this_._internal_storage_format_version() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          17, this_._internal_storage_format_version(), target);
+    }
+  }
+
+  // string reset_policy = 18;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_reset_policy().empty()) {
+      const ::std::string& _s = this_._internal_reset_policy();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "volume.opfs.Config.reset_policy");
+      target = stream->WriteStringMaybeAliased(18, _s, target);
     }
   }
 
@@ -665,79 +773,109 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_lock_prefix());
       }
     }
-    // .store.kvkey.Config kv_key_opts = 3;
+    // string driver_mode = 16;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_driver_mode().empty()) {
+        total_size += 2 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_driver_mode());
+      }
+    }
+    // string reset_policy = 18;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_reset_policy().empty()) {
+        total_size += 2 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_reset_policy());
+      }
+    }
+    // .store.kvkey.Config kv_key_opts = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.kv_key_opts_);
     }
     // .volume.controller.Config volume_config = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.volume_config_);
     }
     // .store.kvtx.Config store_config = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.store_config_);
     }
     // bool no_generate_key = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_no_generate_key() != 0) {
         total_size += 2;
       }
     }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
     // bool no_write_key = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_no_write_key() != 0) {
         total_size += 2;
       }
     }
     // bool verbose = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_verbose() != 0) {
         total_size += 2;
       }
     }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
     // bool async_io = 14;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_async_io() != 0) {
         total_size += 2;
       }
     }
     // uint32 block_shard_count = 9;
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (this_._internal_block_shard_count() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_block_shard_count());
       }
     }
     // double block_bloom_fpr = 11;
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (::absl::bit_cast<::uint64_t>(this_._internal_block_bloom_fpr()) != 0) {
         total_size += 9;
       }
     }
     // uint32 meta_shard_count = 10;
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
       if (this_._internal_meta_shard_count() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_meta_shard_count());
       }
     }
     // uint32 block_compaction_trigger = 12;
-    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
       if (this_._internal_block_compaction_trigger() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_block_compaction_trigger());
       }
     }
     // uint32 page_size = 13;
-    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
       if (this_._internal_page_size() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_page_size());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00030000U)) {
+    // uint32 block_max_segment_data_bytes = 15;
+    if (CheckHasBit(cached_has_bits, 0x00010000U)) {
+      if (this_._internal_block_max_segment_data_bytes() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_block_max_segment_data_bytes());
+      }
+    }
+    // uint32 storage_format_version = 17;
+    if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+      if (this_._internal_storage_format_version() != 0) {
+        total_size += 2 + ::_pbi::WireFormatLite::UInt32Size(
+                                        this_._internal_storage_format_version());
       }
     }
   }
@@ -780,6 +918,24 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_driver_mode().empty()) {
+        _this->_internal_set_driver_mode(from._internal_driver_mode());
+      } else {
+        if (_this->_impl_.driver_mode_.IsDefault()) {
+          _this->_internal_set_driver_mode("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_reset_policy().empty()) {
+        _this->_internal_set_reset_policy(from._internal_reset_policy());
+      } else {
+        if (_this->_impl_.reset_policy_.IsDefault()) {
+          _this->_internal_set_reset_policy("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(from._impl_.kv_key_opts_ != nullptr);
       if (_this->_impl_.kv_key_opts_ == nullptr) {
         _this->_impl_.kv_key_opts_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.kv_key_opts_);
@@ -787,7 +943,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.kv_key_opts_->MergeFrom(*from._impl_.kv_key_opts_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(from._impl_.volume_config_ != nullptr);
       if (_this->_impl_.volume_config_ == nullptr) {
         _this->_impl_.volume_config_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.volume_config_);
@@ -795,7 +951,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.volume_config_->MergeFrom(*from._impl_.volume_config_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       ABSL_DCHECK(from._impl_.store_config_ != nullptr);
       if (_this->_impl_.store_config_ == nullptr) {
         _this->_impl_.store_config_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.store_config_);
@@ -803,51 +959,63 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.store_config_->MergeFrom(*from._impl_.store_config_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_no_generate_key() != 0) {
         _this->_impl_.no_generate_key_ = from._impl_.no_generate_key_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_no_write_key() != 0) {
         _this->_impl_.no_write_key_ = from._impl_.no_write_key_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (from._internal_verbose() != 0) {
         _this->_impl_.verbose_ = from._impl_.verbose_;
       }
     }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (from._internal_async_io() != 0) {
         _this->_impl_.async_io_ = from._impl_.async_io_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (from._internal_block_shard_count() != 0) {
         _this->_impl_.block_shard_count_ = from._impl_.block_shard_count_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (::absl::bit_cast<::uint64_t>(from._internal_block_bloom_fpr()) != 0) {
         _this->_impl_.block_bloom_fpr_ = from._impl_.block_bloom_fpr_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
       if (from._internal_meta_shard_count() != 0) {
         _this->_impl_.meta_shard_count_ = from._impl_.meta_shard_count_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
       if (from._internal_block_compaction_trigger() != 0) {
         _this->_impl_.block_compaction_trigger_ = from._impl_.block_compaction_trigger_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
       if (from._internal_page_size() != 0) {
         _this->_impl_.page_size_ = from._impl_.page_size_;
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00030000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00010000U)) {
+      if (from._internal_block_max_segment_data_bytes() != 0) {
+        _this->_impl_.block_max_segment_data_bytes_ = from._impl_.block_max_segment_data_bytes_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+      if (from._internal_storage_format_version() != 0) {
+        _this->_impl_.storage_format_version_ = from._impl_.storage_format_version_;
       }
     }
   }
@@ -872,9 +1040,11 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.root_path_, &other->_impl_.root_path_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.lock_prefix_, &other->_impl_.lock_prefix_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.driver_mode_, &other->_impl_.driver_mode_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.reset_policy_, &other->_impl_.reset_policy_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_)
-      + sizeof(Config::_impl_.page_size_)
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.storage_format_version_)
+      + sizeof(Config::_impl_.storage_format_version_)
       - PROTOBUF_FIELD_OFFSET(Config, _impl_.kv_key_opts_)>(
           reinterpret_cast<char*>(&_impl_.kv_key_opts_),
           reinterpret_cast<char*>(&other->_impl_.kv_key_opts_));
