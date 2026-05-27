@@ -155,66 +155,15 @@ func (rd *Reader) ReadEntries() ([]Entry, error) {
 // Returns the value and true if found, nil and false if not found.
 // Tombstoned keys return nil and false.
 func (rd *Reader) Get(key []byte) ([]byte, bool, error) {
-	keyStr := string(key)
-
-	// Quick range check.
-	if keyStr < string(rd.minKey) || keyStr > string(rd.maxKey) {
-		return nil, false, nil
+	meta := &LookupMeta{
+		Header: rd.header,
+		MinKey: rd.minKey,
+		MaxKey: rd.maxKey,
+		Index:  rd.index,
+		Bloom:  rd.bloom,
 	}
-
-	// Bloom filter fast rejection.
-	if rd.bloom != nil && !rd.bloom.MayContain(key) {
-		return nil, false, nil
-	}
-
-	dataSize := rd.header.DataSize
-
-	// Use sparse index to narrow the scan window.
-	start, limit := SearchIndex(rd.index, key, dataSize)
-	windowSize := limit - start
-	window := make([]byte, windowSize)
-	if _, err := rd.r.ReadAt(window, int64(rd.header.DataOffset)+int64(start)); err != nil {
-		return nil, false, errors.Wrap(err, "read data window")
-	}
-
-	// Linear scan within the window.
-	off := 0
-	for off < len(window) {
-		if off+2 > len(window) {
-			break
-		}
-		keyLen := int(binary.BigEndian.Uint16(window[off : off+2]))
-		off += 2
-		if off+keyLen > len(window) {
-			break
-		}
-		entryKey := string(window[off : off+keyLen])
-		off += keyLen
-		if off+4 > len(window) {
-			break
-		}
-		valLen := binary.BigEndian.Uint32(window[off : off+4])
-		off += 4
-
-		if entryKey == keyStr {
-			if valLen == TombstoneLen {
-				return nil, false, nil
-			}
-			if off+int(valLen) > len(window) {
-				return nil, false, errors.New("truncated value in data window")
-			}
-			val := make([]byte, valLen)
-			copy(val, window[off:off+int(valLen)])
-			return val, true, nil
-		}
-		if entryKey > keyStr {
-			return nil, false, nil
-		}
-		if valLen != TombstoneLen {
-			off += int(valLen)
-		}
-	}
-	return nil, false, nil
+	val, found, _, err := meta.Locate(rd.r, key, true)
+	return val, found, err
 }
 
 // decodeDataBlock parses entries from the data block bytes.

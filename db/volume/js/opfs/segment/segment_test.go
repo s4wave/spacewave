@@ -197,6 +197,86 @@ func TestLookupMetaLocateBatchValuesAndTombstones(t *testing.T) {
 	}
 }
 
+func TestLookupMetaLocateStreamsLargeDataWindow(t *testing.T) {
+	const valueSize = 128 * 1024
+
+	w := NewWriter()
+	w.SetIndexInterval(16)
+	for i := range 17 {
+		w.Add(
+			[]byte("key-"+zeroPad(i, 4)),
+			bytes.Repeat([]byte{byte('a' + i%26)}, valueSize),
+		)
+	}
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	data := buf.Bytes()
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+
+	reader := &recordingReaderAt{data: data}
+	val, found, err := meta.Get(reader, []byte("key-0015"))
+	if err != nil {
+		t.Fatalf("LookupMeta.Get: %v", err)
+	}
+	if !found {
+		t.Fatal("LookupMeta.Get: not found")
+	}
+	if len(val) != valueSize || val[0] != 'p' || val[len(val)-1] != 'p' {
+		t.Fatalf("LookupMeta.Get value mismatch: len=%d first=%q last=%q", len(val), val[0], val[len(val)-1])
+	}
+	if reader.maxRead > valueSize {
+		t.Fatalf("largest ReadAt = %d, want bounded by returned value size %d", reader.maxRead, valueSize)
+	}
+}
+
+func TestLookupMetaLocateBatchStreamsLargeDataWindowWithoutValues(t *testing.T) {
+	const valueSize = 128 * 1024
+
+	w := NewWriter()
+	w.SetIndexInterval(16)
+	for i := range 17 {
+		w.Add(
+			[]byte("key-"+zeroPad(i, 4)),
+			bytes.Repeat([]byte{byte('a' + i%26)}, valueSize),
+		)
+	}
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	data := buf.Bytes()
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+
+	reader := &recordingReaderAt{data: data}
+	results, err := meta.LocateBatch(reader, [][]byte{
+		[]byte("key-0001"),
+		[]byte("key-0015"),
+	}, false)
+	if err != nil {
+		t.Fatalf("LocateBatch: %v", err)
+	}
+	for i, result := range results {
+		if !result.Found || result.Tombstone || result.Value != nil {
+			t.Fatalf("result %d = %#v, want live existence hit without value", i, result)
+		}
+	}
+	if reader.maxRead > len("key-0000") {
+		t.Fatalf("largest ReadAt = %d, want key-sized scan without reading values", reader.maxRead)
+	}
+}
+
 func TestEmptyWriter(t *testing.T) {
 	w := NewWriter()
 	var buf bytes.Buffer
@@ -535,6 +615,18 @@ type countingReaderAt struct {
 
 func (r *countingReaderAt) ReadAt(p []byte, off int64) (int, error) {
 	r.reads++
+	return bytes.NewReader(r.data).ReadAt(p, off)
+}
+
+type recordingReaderAt struct {
+	data    []byte
+	reads   int
+	maxRead int
+}
+
+func (r *recordingReaderAt) ReadAt(p []byte, off int64) (int, error) {
+	r.reads++
+	r.maxRead = max(r.maxRead, len(p))
 	return bytes.NewReader(r.data).ReadAt(p, off)
 }
 

@@ -1,6 +1,7 @@
 package segment
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"io"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 )
+
+const maxLookupWindowRead = 256 * 1024
 
 // LookupMeta is the metadata needed for point lookups without reparsing the
 // full SSTable on each access.
@@ -113,7 +116,7 @@ func (m *LookupMeta) Has(r io.ReaderAt, key []byte) (bool, error) {
 	return found, err
 }
 
-// Locate resolves a key using cached metadata and a single data-window read.
+// Locate resolves a key using cached metadata.
 // Returns either a live value, a tombstone marker, or a miss.
 func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, bool, bool, error) {
 	ctx := context.Background()
@@ -131,17 +134,43 @@ func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, 
 	_, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/search-index")
 	start, limit := SearchIndex(m.Index, key, m.Header.DataSize)
 	subtask.End()
-	windowSize := int(limit - start)
-	window := make([]byte, windowSize)
-	trace.Log(ctx, "window", "size="+strconv.Itoa(windowSize))
-	_, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/read-window")
-	if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(start)); err != nil {
-		subtask.End()
-		return nil, false, false, errors.Wrap(err, "read data window")
-	}
-	subtask.End()
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/scan-window")
+	if limit < start {
+		return nil, false, false, errors.New("invalid data window")
+	}
+	windowSize, err := uint32ToInt(limit - start)
+	if err != nil {
+		return nil, false, false, err
+	}
+	trace.Log(ctx, "window", "size="+strconv.Itoa(windowSize))
+
+	if windowSize <= maxLookupWindowRead {
+		_, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/read-window")
+		window := make([]byte, windowSize)
+		if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(start)); err != nil {
+			subtask.End()
+			return nil, false, false, errors.Wrap(err, "read data window")
+		}
+		subtask.End()
+
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/scan-window")
+		val, found, tombstone, err := locateInWindowBytes(taskCtx, window, keyStr, loadValue)
+		subtask.End()
+		return val, found, tombstone, err
+	}
+
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/scan-window-streamed")
+	val, found, tombstone, err := locateInWindowReader(r, int64(m.Header.DataOffset), start, limit, key, loadValue)
+	subtask.End()
+	return val, found, tombstone, err
+}
+
+func locateInWindowBytes(
+	ctx context.Context,
+	window []byte,
+	keyStr string,
+	loadValue bool,
+) ([]byte, bool, bool, error) {
 	off := 0
 	for off < len(window) {
 		if off+2 > len(window) {
@@ -162,37 +191,120 @@ func (m *LookupMeta) Locate(r io.ReaderAt, key []byte, loadValue bool) ([]byte, 
 
 		if entryKey == keyStr {
 			if valLen == TombstoneLen {
-				subtask.End()
 				return nil, false, true, nil
 			}
 			if !loadValue {
-				subtask.End()
 				return nil, true, false, nil
 			}
-			if off+int(valLen) > len(window) {
-				subtask.End()
+			if uint64(len(window)-off) < uint64(valLen) {
 				return nil, false, false, errors.New("truncated value in data window")
 			}
-			_, copyTask := trace.NewTask(taskCtx, "hydra/opfs-segment/lookup-meta/locate/copy-value")
-			val := make([]byte, valLen)
-			copy(val, window[off:off+int(valLen)])
+			valLenInt, err := uint32ToInt(valLen)
+			if err != nil {
+				return nil, false, false, err
+			}
+			_, copyTask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate/copy-value")
+			val := make([]byte, valLenInt)
+			copy(val, window[off:off+valLenInt])
 			copyTask.End()
-			subtask.End()
 			return val, true, false, nil
 		}
 		if entryKey > keyStr {
-			subtask.End()
 			return nil, false, false, nil
 		}
 		if valLen != TombstoneLen {
-			off += int(valLen)
+			valLenInt, err := uint32ToInt(valLen)
+			if err != nil {
+				return nil, false, false, err
+			}
+			if len(window)-off < valLenInt {
+				break
+			}
+			off += valLenInt
 		}
 	}
-	subtask.End()
 	return nil, false, false, nil
 }
 
-// LocateBatch resolves keys using cached metadata and one data-window read per
+func locateInWindowReader(
+	r io.ReaderAt,
+	dataOffset int64,
+	start uint32,
+	limit uint32,
+	key []byte,
+	loadValue bool,
+) ([]byte, bool, bool, error) {
+	off := start
+	var header [4]byte
+	for off < limit {
+		if limit-off < 2 {
+			break
+		}
+		if _, err := r.ReadAt(header[:2], dataOffset+int64(off)); err != nil {
+			return nil, false, false, errors.Wrap(err, "read data window key length")
+		}
+		keyLen := uint32(binary.BigEndian.Uint16(header[:2]))
+		off += 2
+		if limit-off < keyLen {
+			break
+		}
+
+		entryKey := make([]byte, keyLen)
+		if keyLen != 0 {
+			if _, err := r.ReadAt(entryKey, dataOffset+int64(off)); err != nil {
+				return nil, false, false, errors.Wrap(err, "read data window key")
+			}
+		}
+		off += keyLen
+
+		if limit-off < 4 {
+			break
+		}
+		if _, err := r.ReadAt(header[:4], dataOffset+int64(off)); err != nil {
+			return nil, false, false, errors.Wrap(err, "read data window value length")
+		}
+		valLen := binary.BigEndian.Uint32(header[:4])
+		off += 4
+
+		cmp := bytes.Compare(entryKey, key)
+		if cmp == 0 {
+			if valLen == TombstoneLen {
+				return nil, false, true, nil
+			}
+			if !loadValue {
+				return nil, true, false, nil
+			}
+			if uint64(limit-off) < uint64(valLen) {
+				return nil, false, false, errors.New("truncated value in data window")
+			}
+			valLenInt, err := uint32ToInt(valLen)
+			if err != nil {
+				return nil, false, false, err
+			}
+			val := make([]byte, valLenInt)
+			if valLenInt != 0 {
+				if _, err := r.ReadAt(val, dataOffset+int64(off)); err != nil {
+					return nil, false, false, errors.Wrap(err, "read data window value")
+				}
+			}
+			return val, true, false, nil
+		}
+		if cmp > 0 {
+			return nil, false, false, nil
+		}
+
+		if valLen == TombstoneLen {
+			continue
+		}
+		if uint64(limit-off) < uint64(valLen) {
+			break
+		}
+		off += valLen
+	}
+	return nil, false, false, nil
+}
+
+// LocateBatch resolves keys using cached metadata and groups keys by
 // sparse-index window.
 func (m *LookupMeta) LocateBatch(r io.ReaderAt, keys [][]byte, loadValue bool) ([]LookupResult, error) {
 	ctx := context.Background()
@@ -238,15 +350,14 @@ func (m *LookupMeta) LocateBatch(r io.ReaderAt, keys [][]byte, loadValue bool) (
 	}
 
 	for _, lw := range windows {
-		windowSize := int(lw.limit - lw.start)
-		window := make([]byte, windowSize)
-		trace.Log(ctx, "window", "size="+strconv.Itoa(windowSize))
-		_, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate-batch/read-window")
-		if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(lw.start)); err != nil {
-			subtask.End()
-			return nil, errors.Wrap(err, "read data window")
+		if lw.limit < lw.start {
+			return nil, errors.New("invalid data window")
 		}
-		subtask.End()
+		windowSize, err := uint32ToInt(lw.limit - lw.start)
+		if err != nil {
+			return nil, err
+		}
+		trace.Log(ctx, "window", "size="+strconv.Itoa(windowSize))
 
 		want := make(map[string][]int, len(lw.keys))
 		for _, keyIdx := range lw.keys {
@@ -254,61 +365,193 @@ func (m *LookupMeta) LocateBatch(r io.ReaderAt, keys [][]byte, loadValue bool) (
 			want[keyStr] = append(want[keyStr], keyIdx)
 		}
 
-		_, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate-batch/scan-window")
-		off := 0
-		for off < len(window) && len(want) != 0 {
-			if off+2 > len(window) {
-				break
+		if windowSize <= maxLookupWindowRead {
+			_, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate-batch/read-window")
+			window := make([]byte, windowSize)
+			if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(lw.start)); err != nil {
+				subtask.End()
+				return nil, errors.Wrap(err, "read data window")
 			}
-			keyLen := int(binary.BigEndian.Uint16(window[off : off+2]))
-			off += 2
-			if off+keyLen > len(window) {
-				break
-			}
-			entryKey := string(window[off : off+keyLen])
-			off += keyLen
-			if off+4 > len(window) {
-				break
-			}
-			valLen := binary.BigEndian.Uint32(window[off : off+4])
-			off += 4
+			subtask.End()
 
-			if keyIdxs, ok := want[entryKey]; ok {
-				if valLen == TombstoneLen {
-					for _, keyIdx := range keyIdxs {
-						out[keyIdx].Tombstone = true
-					}
-					delete(want, entryKey)
-					continue
-				}
-				if loadValue {
-					if off+int(valLen) > len(window) {
-						subtask.End()
-						return nil, errors.New("truncated value in data window")
-					}
-					for _, keyIdx := range keyIdxs {
-						val := make([]byte, valLen)
-						copy(val, window[off:off+int(valLen)])
-						out[keyIdx].Value = val
-						out[keyIdx].Found = true
-					}
-				} else {
-					for _, keyIdx := range keyIdxs {
-						out[keyIdx].Found = true
-					}
-				}
-				delete(want, entryKey)
+			_, subtask = trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate-batch/scan-window")
+			if err := locateBatchInWindowBytes(window, want, out, loadValue); err != nil {
+				subtask.End()
+				return nil, err
 			}
+			subtask.End()
+			continue
+		}
 
-			if valLen != TombstoneLen {
-				if off+int(valLen) > len(window) {
-					break
-				}
-				off += int(valLen)
-			}
+		_, subtask := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/locate-batch/scan-window-streamed")
+		if err := locateBatchInWindowReader(r, int64(m.Header.DataOffset), lw.start, lw.limit, want, out, loadValue); err != nil {
+			subtask.End()
+			return nil, err
 		}
 		subtask.End()
 	}
 
 	return out, nil
+}
+
+func locateBatchInWindowBytes(
+	window []byte,
+	want map[string][]int,
+	out []LookupResult,
+	loadValue bool,
+) error {
+	off := 0
+	for off < len(window) && len(want) != 0 {
+		if off+2 > len(window) {
+			break
+		}
+		keyLen := int(binary.BigEndian.Uint16(window[off : off+2]))
+		off += 2
+		if off+keyLen > len(window) {
+			break
+		}
+		entryKey := string(window[off : off+keyLen])
+		off += keyLen
+		if off+4 > len(window) {
+			break
+		}
+		valLen := binary.BigEndian.Uint32(window[off : off+4])
+		off += 4
+
+		if keyIdxs, ok := want[entryKey]; ok {
+			if valLen == TombstoneLen {
+				for _, keyIdx := range keyIdxs {
+					out[keyIdx].Tombstone = true
+				}
+				delete(want, entryKey)
+				continue
+			}
+			if loadValue {
+				if uint64(len(window)-off) < uint64(valLen) {
+					return errors.New("truncated value in data window")
+				}
+				valLenInt, err := uint32ToInt(valLen)
+				if err != nil {
+					return err
+				}
+				for _, keyIdx := range keyIdxs {
+					val := make([]byte, valLenInt)
+					copy(val, window[off:off+valLenInt])
+					out[keyIdx].Value = val
+					out[keyIdx].Found = true
+				}
+			} else {
+				for _, keyIdx := range keyIdxs {
+					out[keyIdx].Found = true
+				}
+			}
+			delete(want, entryKey)
+		}
+
+		if valLen != TombstoneLen {
+			valLenInt, err := uint32ToInt(valLen)
+			if err != nil {
+				return err
+			}
+			if len(window)-off < valLenInt {
+				break
+			}
+			off += valLenInt
+		}
+	}
+	return nil
+}
+
+func locateBatchInWindowReader(
+	r io.ReaderAt,
+	dataOffset int64,
+	start uint32,
+	limit uint32,
+	want map[string][]int,
+	out []LookupResult,
+	loadValue bool,
+) error {
+	off := start
+	var header [4]byte
+	for off < limit && len(want) != 0 {
+		if limit-off < 2 {
+			break
+		}
+		if _, err := r.ReadAt(header[:2], dataOffset+int64(off)); err != nil {
+			return errors.Wrap(err, "read data window key length")
+		}
+		keyLen := uint32(binary.BigEndian.Uint16(header[:2]))
+		off += 2
+		if limit-off < keyLen {
+			break
+		}
+
+		entryKey := make([]byte, keyLen)
+		if keyLen != 0 {
+			if _, err := r.ReadAt(entryKey, dataOffset+int64(off)); err != nil {
+				return errors.Wrap(err, "read data window key")
+			}
+		}
+		off += keyLen
+
+		if limit-off < 4 {
+			break
+		}
+		if _, err := r.ReadAt(header[:4], dataOffset+int64(off)); err != nil {
+			return errors.Wrap(err, "read data window value length")
+		}
+		valLen := binary.BigEndian.Uint32(header[:4])
+		off += 4
+
+		entryKeyStr := string(entryKey)
+		if keyIdxs, ok := want[entryKeyStr]; ok {
+			if valLen == TombstoneLen {
+				for _, keyIdx := range keyIdxs {
+					out[keyIdx].Tombstone = true
+				}
+				delete(want, entryKeyStr)
+				continue
+			}
+			if loadValue {
+				if uint64(limit-off) < uint64(valLen) {
+					return errors.New("truncated value in data window")
+				}
+				valLenInt, err := uint32ToInt(valLen)
+				if err != nil {
+					return err
+				}
+				for _, keyIdx := range keyIdxs {
+					val := make([]byte, valLenInt)
+					if valLenInt != 0 {
+						if _, err := r.ReadAt(val, dataOffset+int64(off)); err != nil {
+							return errors.Wrap(err, "read data window value")
+						}
+					}
+					out[keyIdx].Value = val
+					out[keyIdx].Found = true
+				}
+			} else {
+				for _, keyIdx := range keyIdxs {
+					out[keyIdx].Found = true
+				}
+			}
+			delete(want, entryKeyStr)
+		}
+
+		if valLen == TombstoneLen {
+			continue
+		}
+		if uint64(limit-off) < uint64(valLen) {
+			break
+		}
+		off += valLen
+	}
+	return nil
+}
+
+func uint32ToInt(v uint32) (int, error) {
+	if uint64(v) > uint64(int(^uint(0)>>1)) {
+		return 0, errors.New("value length exceeds maximum")
+	}
+	return int(v), nil
 }
