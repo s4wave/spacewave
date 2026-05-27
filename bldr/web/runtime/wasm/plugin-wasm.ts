@@ -245,7 +245,6 @@ class TinyGoPluginStreamBridge {
       const stream = this.createStream(packetStream)
       try {
         this.callExport('BLDR_PLUGIN_STREAM_ACCEPT', stream.id)
-        await stream.done
       } catch (err) {
         this.releaseStream(stream.id)
         throw err
@@ -256,15 +255,9 @@ class TinyGoPluginStreamBridge {
   private createStream(packetStream: PacketStream): TinyGoPluginStream {
     const id = this.nextStreamID++
     const outbound = pushable<Uint8Array>({ objectMode: true })
-    let resolveDone!: () => void
-    const done = new Promise<void>((resolve) => {
-      resolveDone = resolve
-    })
     const stream: TinyGoPluginStream = {
       id,
       outbound,
-      done,
-      resolveDone,
       released: false,
     }
     this.streams.set(id, stream)
@@ -370,7 +363,6 @@ class TinyGoPluginStreamBridge {
     } catch {
       // ignored: the sink may already be closed by the peer.
     }
-    stream.resolveDone()
   }
 
   private takeBytes(bytesID: number, ptr: number, len: number): number {
@@ -426,8 +418,6 @@ class TinyGoPluginStreamBridge {
 type TinyGoPluginStream = {
   id: number
   outbound: ReturnType<typeof pushable<Uint8Array>>
-  done: Promise<void>
-  resolveDone: () => void
   released: boolean
 }
 

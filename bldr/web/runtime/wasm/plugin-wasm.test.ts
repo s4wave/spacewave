@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { pushable } from 'it-pushable'
 import { HandleStreamCtr, PacketStream } from 'starpc'
 import { BackendAPI } from '@aptre/bldr-sdk'
 
@@ -422,6 +423,46 @@ describe('plugin-wasm generation lifecycle', () => {
     expect(sinkPackets.map((packet) => Array.from(packet))).toEqual([[9, 10]])
   })
 
+  it('keeps accepted TinyGo streams alive after handoff returns', async () => {
+    goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+
+    const api = buildBackendAPI()
+    const { default: main } = await import('./plugin-wasm.js')
+    await main(api)
+
+    const acceptExport = vi.fn()
+    const closeExport = vi.fn()
+    const messageExport = vi.fn()
+    const gojs = installTinyGoStreamImports({
+      memory: new WebAssembly.Memory({ initial: 1 }),
+      go_scheduler: vi.fn(),
+      BLDR_PLUGIN_STREAM_ACCEPT: acceptExport,
+      BLDR_PLUGIN_STREAM_CLOSE: closeExport,
+      BLDR_PLUGIN_STREAM_MESSAGE: messageExport,
+    })
+    getGoImport(gojs, 'bldr.plugin.setAcceptStreams')(1)
+
+    const source = pushable<Uint8Array>({ objectMode: true })
+    const handled = api.handleStreamCtr.handleStreamFunc({
+      source,
+      sink: vi.fn(async () => {}),
+    })
+    await waitForGoCallbackQueue()
+
+    expect(acceptExport).toHaveBeenCalledWith(1)
+    await handled
+
+    source.push(new Uint8Array([3, 4]))
+    await waitForGoCallbackQueue()
+
+    expect(messageExport).toHaveBeenCalledWith(1, expect.any(Number), 2)
+
+    source.end()
+    await waitForGoCallbackQueue()
+
+    expect(closeExport).toHaveBeenCalledWith(1, 0, 0)
+  })
+
   it('does not globally filter Go released-callback logs inside the plugin worker', async () => {
     goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
     const consoleError = vi.spyOn(console, 'error')
@@ -437,6 +478,46 @@ describe('plugin-wasm generation lifecycle', () => {
     expect(consoleError).toHaveBeenNthCalledWith(2, 'other failure')
   })
 })
+
+function installTinyGoStreamImports(
+  exports: Record<string, unknown>,
+): Record<string, unknown> {
+  const call = goProcessState.constructor.mock.calls[0]
+  const imports = getTinyGoRuntimeImports(call?.[1])
+  const gojs: Record<string, unknown> = {}
+  imports({
+    importObject: { gojs },
+    _inst: { exports },
+    _resume: vi.fn(),
+  })
+  return gojs
+}
+
+function getTinyGoRuntimeImports(value: unknown): (go: unknown) => void {
+  if (typeof value !== 'object' || value === null) {
+    throw new Error('missing TinyGo runtime import options')
+  }
+  const imports = Reflect.get(value, 'tinyGoRuntimeImports')
+  if (typeof imports !== 'function') {
+    throw new Error('missing TinyGo runtime imports')
+  }
+  return (go: unknown) => {
+    imports(go)
+  }
+}
+
+function getGoImport(
+  gojs: Record<string, unknown>,
+  name: string,
+): (...args: number[]) => void {
+  const fn = gojs[name]
+  if (typeof fn !== 'function') {
+    throw new Error(`missing Go import ${name}`)
+  }
+  return (...args: number[]) => {
+    fn(...args)
+  }
+}
 
 function buildBackendAPI(
   openStream: BackendAPI['openStream'] = vi.fn(),
