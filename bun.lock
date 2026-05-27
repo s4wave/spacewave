@@ -52,7 +52,7 @@
         "lodash.isequal": "^4.5.0",
         "markdown-to-jsx": "^9.7.16",
         "qrcode": "^1.5.4",
-        "quickjs-wasi-reactor": "0.14.0-rev.2",
+        "quickjs-wasi-reactor": "0.15.0",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
         "react-icons": "^5.6.0",
@@ -1390,7 +1390,7 @@
 
     "qrcode": ["qrcode@1.5.4", "", { "dependencies": { "dijkstrajs": "^1.0.1", "pngjs": "^5.0.0", "yargs": "^15.3.1" }, "bin": { "qrcode": "bin/qrcode" } }, "sha512-1ca71Zgiu6ORjHqFBDpnSMTR2ReToX4l1Au1VFLyVeBTFavzQnv5JxMFr3ukHVKpSrSA2MCk0lNJSykjUfz7Zg=="],
 
-    "quickjs-wasi-reactor": ["quickjs-wasi-reactor@0.14.0-rev.2", "", {}, "sha512-X0H4JVIyp1YGnwUhcp5fNGzDK84F69EjpL/aOltPfhlOt3yqGaXEXjHtbKzgADcLLCuyG7e236DhgYNbIJoouA=="],
+    "quickjs-wasi-reactor": ["quickjs-wasi-reactor@0.15.0", "", {}, "sha512-el0Lt6KvGlRVa0uTC+806Rvbsn3zeWllKg0cBF59IQZ3fa74if/voqrKY7mI/dgUtzRglyHZITJ8TYKESyNU9Q=="],
 
     "race-event": ["race-event@1.6.1", "", { "dependencies": { "abort-error": "^1.0.1" } }, "sha512-vi7WH5g5KoTFpu2mme/HqZiWH14XSOtg5rfp6raBskBHl7wnmy3F/biAIyY5MsK+BHWhoPhxtZ1Y2R7OHHaWyQ=="],
 
