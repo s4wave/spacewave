@@ -734,6 +734,79 @@ describe('GoWasmProcess', () => {
       ])
       expect(g.BLDR_OPFS_WRITE_FILE_ABORT?.(sessionID)).toBe(false)
 
+      const throwingChunkSessionID = await new Promise<number>((resolve) => {
+        g.BLDR_OPFS_WRITE_FILE_BEGIN?.(
+          {
+            getFileHandle: async () => ({
+              createWritable: async () => ({
+                close: () => {
+                  throw new Error('close after chunk failure')
+                },
+                write: () => {
+                  const err = new Error('sync chunk failure')
+                  err.name = 'NoModificationAllowedError'
+                  throw err
+                },
+              }),
+            }),
+          } as unknown as FileSystemDirectoryHandle,
+          'seg-sync-throw',
+          110,
+          (_opID, id) => resolve(id),
+          () => resolve(0),
+        )
+      })
+      const chunkRejectCode = await new Promise<number>((resolve, reject) => {
+        try {
+          g.BLDR_OPFS_WRITE_FILE_CHUNK?.(
+            throwingChunkSessionID,
+            new Uint8Array([41]),
+            111,
+            () => resolve(-1),
+            (_opID, code) => resolve(code),
+          )
+        } catch (err) {
+          reject(err)
+        }
+      })
+      expect(chunkRejectCode).toBe(2)
+      expect(g.BLDR_OPFS_WRITE_FILE_ABORT?.(throwingChunkSessionID)).toBe(false)
+
+      const throwingCloseSessionID = await new Promise<number>((resolve) => {
+        g.BLDR_OPFS_WRITE_FILE_BEGIN?.(
+          {
+            getFileHandle: async () => ({
+              createWritable: async () => ({
+                close: () => {
+                  const err = new Error('sync close failure')
+                  err.name = 'NoModificationAllowedError'
+                  throw err
+                },
+                write: async () => undefined,
+              }),
+            }),
+          } as unknown as FileSystemDirectoryHandle,
+          'seg-close-sync-throw',
+          112,
+          (_opID, id) => resolve(id),
+          () => resolve(0),
+        )
+      })
+      const closeRejectCode = await new Promise<number>((resolve, reject) => {
+        try {
+          g.BLDR_OPFS_WRITE_FILE_CLOSE?.(
+            throwingCloseSessionID,
+            113,
+            () => resolve(-1),
+            (_opID, code) => resolve(code),
+          )
+        } catch (err) {
+          reject(err)
+        }
+      })
+      expect(closeRejectCode).toBe(2)
+      expect(g.BLDR_OPFS_WRITE_FILE_ABORT?.(throwingCloseSessionID)).toBe(false)
+
       await new Promise<void>((resolve) => {
         g.BLDR_TINYGO_PROMISE_AWAIT?.(
           Promise.resolve(undefined),
