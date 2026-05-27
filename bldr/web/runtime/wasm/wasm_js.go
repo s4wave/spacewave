@@ -5,9 +5,11 @@ package web_runtime_wasm
 import (
 	"context"
 	"io"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall/js"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -130,15 +132,15 @@ func openPushableStream(
 	jsThen = js.FuncOf(func(this js.Value, args []js.Value) any {
 		defer recoverJSCallback("resolve stream sink", func(err error) {
 			releasePromiseCallbacks.Do(func() {
-				jsThen.Release()
-				jsCatch.Release()
+				releaseJSFunc(jsThen)
+				releaseJSFunc(jsCatch)
 			})
 			packetWriter.fail(err)
 			closeHandler(err)
 		})
 		releasePromiseCallbacks.Do(func() {
-			jsThen.Release()
-			jsCatch.Release()
+			releaseJSFunc(jsThen)
+			releaseJSFunc(jsCatch)
 		})
 		packetWriter.resolve(args[0])
 		return nil
@@ -146,15 +148,15 @@ func openPushableStream(
 	jsCatch = js.FuncOf(func(this js.Value, args []js.Value) any {
 		defer recoverJSCallback("reject stream sink", func(err error) {
 			releasePromiseCallbacks.Do(func() {
-				jsThen.Release()
-				jsCatch.Release()
+				releaseJSFunc(jsThen)
+				releaseJSFunc(jsCatch)
 			})
 			packetWriter.fail(err)
 			closeHandler(err)
 		})
 		releasePromiseCallbacks.Do(func() {
-			jsThen.Release()
-			jsCatch.Release()
+			releaseJSFunc(jsThen)
+			releaseJSFunc(jsCatch)
 		})
 		var err error
 		if len(args) == 0 || args[0].IsUndefined() || args[0].IsNull() {
@@ -170,13 +172,27 @@ func openPushableStream(
 	})
 	if packetWriter.isClosed() {
 		releasePromiseCallbacks.Do(func() {
-			jsThen.Release()
-			jsCatch.Release()
+			releaseJSFunc(jsThen)
+			releaseJSFunc(jsCatch)
 		})
 		packetCallbacks.Release()
 		return
 	}
 	openStreamFunc.Invoke(jsOnMessage, jsOnClose, jsThen, jsCatch)
+}
+
+func releaseJSFunc(fn js.Func) {
+	if runtime.Compiler != "tinygo" {
+		fn.Release()
+		return
+	}
+	go func() {
+		// TinyGo's syscall/js callback frame is still live while the callback
+		// is running. Releasing from that same stack can corrupt the JS value
+		// table and make later unrelated js.Value calls trap.
+		time.Sleep(time.Millisecond)
+		fn.Release()
+	}()
 }
 
 type jsStreamPacketCallbacks struct {
@@ -217,8 +233,8 @@ func (c *jsStreamPacketCallbacks) Release() {
 	onClose := c.onClose
 	c.mtx.Unlock()
 
-	onMessage.Release()
-	onClose.Release()
+	releaseJSFunc(onMessage)
+	releaseJSFunc(onClose)
 }
 
 func recoverJSCallback(label string, onErr func(error)) {
@@ -465,7 +481,7 @@ func (p *WasmPluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.Invoke
 	go func() {
 		<-ctx.Done()
 		setAcceptStream.Invoke(js.Undefined())
-		acceptStreamFn.Release()
+		releaseJSFunc(acceptStreamFn)
 		closeActiveStreams()
 	}()
 }
