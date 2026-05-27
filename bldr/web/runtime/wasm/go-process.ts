@@ -196,21 +196,33 @@ function tinyGoExport(
     : undefined
 }
 
+function tinyGoScheduler(go: TinyGoRuntime): (() => void) | undefined {
+  const scheduler = go._inst?.exports.go_scheduler
+  if (typeof scheduler === 'function') {
+    return () => {
+      scheduler()
+    }
+  }
+  const resume = go._resume
+  return typeof resume === 'function' ? () => resume.call(go) : undefined
+}
+
 function callTinyGoExport(
   go: TinyGoRuntime,
   fn: (...args: number[]) => void,
   ...args: number[]
 ): void {
   fn(...args)
-  const resume = (go as TinyGoRuntime & { _resume?: () => void })._resume
-  if (typeof resume === 'function') {
-    // Export callbacks only publish completion. Resume the TinyGo scheduler
-    // from a later task so resumed goroutines do not issue syscall/js calls
-    // while the command-export entrypoint is still unwinding.
-    deferTinyGoCallback(() => {
-      resume.call(go)
-    })
+  const scheduler = tinyGoScheduler(go)
+  if (!scheduler) {
+    return
   }
+  // Export callbacks only publish completion. Wake ordinary TinyGo goroutines
+  // through go_scheduler from a later task; _resume is the js.FuncOf event path
+  // and can corrupt syscall/js argument frames when no pending event exists.
+  deferTinyGoCallback(() => {
+    scheduler()
+  })
 }
 
 function encodeTinyGoNameList(names: string[]): Uint8Array {
