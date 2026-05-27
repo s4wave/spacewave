@@ -808,6 +808,11 @@ func TestOpfsChromeVolumeRuntimeSlice(t *testing.T) {
 		root:     root,
 		shards:   defaultShards,
 	})
+	s.runWorker(t, workerArgs{
+		scenario: "volume-runtime-delete-verify",
+		root:     root,
+		shards:   defaultShards,
+	})
 }
 
 func TestOpfsChromeVolumeRuntimeResetsCurrentV1Root(t *testing.T) {

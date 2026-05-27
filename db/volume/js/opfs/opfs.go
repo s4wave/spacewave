@@ -162,6 +162,9 @@ func NewOpfs(
 		statsFn,
 		func() error {
 			blkEngine.Close()
+			if err := meta.Close(); err != nil {
+				return err
+			}
 			return gcGraph.Close()
 		},
 		func() error {

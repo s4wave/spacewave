@@ -219,6 +219,8 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeRuntimeSeedUnknown(c)
 	case "volume-runtime-verify-reset":
 		return runVolumeRuntimeVerifyReset(ctx, c)
+	case "volume-runtime-delete-verify":
+		return runVolumeRuntimeDeleteVerify(ctx, c)
 	case "world-init-unixfs":
 		return runWorldInitUnixFS(ctx, c)
 	default:
@@ -1038,6 +1040,36 @@ func runVolumeRuntimeVerify(ctx context.Context, c *config) error {
 	}
 	if !found || !bytes.Equal(data, volumeBlockValue()) {
 		return errors.Errorf("volume block mismatch found=%v value=%q", found, string(data))
+	}
+	stats, err := vol.GetStorageStats(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get volume stats")
+	}
+	if stats.GetBlockCount() != 1 {
+		return errors.Errorf("volume block count=%d want=1", stats.GetBlockCount())
+	}
+	if stats.GetTotalBytes() != uint64(len(data)) {
+		return errors.Errorf("volume total bytes=%d want=%d", stats.GetTotalBytes(), len(data))
+	}
+	return nil
+}
+
+func runVolumeRuntimeDeleteVerify(ctx context.Context, c *config) error {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	if err := vol.Delete(); err != nil {
+		return err
+	}
+
+	root, err := opfs.GetRoot()
+	if err != nil {
+		return err
+	}
+	_, err = opfs.GetDirectoryPath(root, strings.Split(c.root+"/volume", "/"), false)
+	if !opfs.IsNotFound(err) {
+		return errors.Errorf("volume root after delete: %v", err)
 	}
 	return nil
 }

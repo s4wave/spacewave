@@ -223,6 +223,13 @@ func (ms *MetaShard) Generation() uint64 {
 	return ms.generation
 }
 
+// Close releases open metadata page-file handles.
+func (ms *MetaShard) Close() error {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+	return ms.pager.Close()
+}
+
 // OpenCommittedTree opens a tree at the currently committed root.
 func (ms *MetaShard) OpenCommittedTree() (*pagestore.Tree, uint64) {
 	ms.mu.RLock()
