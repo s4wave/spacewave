@@ -247,7 +247,7 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 	if _, err := pageB.Goto(quickstartURL); err != nil {
 		t.Fatalf("goto second quickstart drive: %v", err)
 	}
-	waitForPrerenderRoot(t, pageB)
+	waitForPrerenderRootOrLiveApp(t, pageB)
 	waitForBootFunction(t, pageB)
 	waitForLiveApp(t, pageB)
 	waitForCanonicalQuickstartURL(t, pageB)
@@ -456,6 +456,27 @@ func waitForPrerenderRoot(t *testing.T, page playwright.Page) {
 	}
 }
 
+func waitForPrerenderRootOrLiveApp(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	_, err := page.Evaluate(`async () => {
+		const deadline = performance.now() + 30000
+		while (true) {
+			const root = document.querySelector('#bldr-root')
+			if (root?.hasAttribute('data-prerendered')) return true
+			if (root && !root.hasAttribute('data-prerendered')) return true
+			if (globalThis.__swReady) return true
+			if (performance.now() > deadline) {
+				throw new Error('missing prerendered or live bldr root')
+			}
+			await new Promise((resolve) => requestAnimationFrame(resolve))
+		}
+	}`)
+	if err != nil {
+		t.Fatalf("wait for prerender or live app: %v", err)
+	}
+}
+
 func waitForBootFunction(t *testing.T, page playwright.Page) {
 	t.Helper()
 
@@ -564,17 +585,21 @@ func completeQuickstartDriveIntroIfPresent(t *testing.T, page playwright.Page) {
 
 	_, err := page.Evaluate(`async () => {
 		const deadline = Date.now() + 120000
+		const state = { readyDeadline: 0 }
 		for (;;) {
 			if (document.querySelector('[data-testid="unixfs-browser"]')) return null
 			const text = document.body.textContent ?? ''
 			if (text.includes('Your Drive is ready')) {
+				if (!state.readyDeadline) state.readyDeadline = Date.now() + 5000
 				const buttons = Array.from(document.querySelectorAll('button'))
 				const open = buttons.find((button) => button.textContent?.includes('Open files'))
-				if (!(open instanceof HTMLButtonElement)) {
-					throw new Error('Drive intro open button not found')
+				if (open instanceof HTMLButtonElement) {
+					open.click()
+					return null
 				}
-				open.click()
-				return null
+				if (Date.now() > state.readyDeadline) {
+					throw new Error('Drive intro ready text appeared without Open files button')
+				}
 			}
 			if (Date.now() > deadline) {
 				throw new Error('Drive intro or file browser did not appear')

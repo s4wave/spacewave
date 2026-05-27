@@ -212,6 +212,26 @@ func recordRuntimeReset(reason ResetReason) {
 	resetCounts.byReason[reason]++
 }
 
+// RuntimeResetCount returns the number of runtime root resets for a reason in
+// this browser Go runtime.
+func RuntimeResetCount(reason ResetReason) uint64 {
+	resetCounts.Lock()
+	defer resetCounts.Unlock()
+	return resetCounts.byReason[reason]
+}
+
+// RuntimeResetCounts returns a snapshot of runtime root reset counts in this
+// browser Go runtime.
+func RuntimeResetCounts() map[ResetReason]uint64 {
+	resetCounts.Lock()
+	defer resetCounts.Unlock()
+	out := make(map[ResetReason]uint64, len(resetCounts.byReason))
+	for reason, count := range resetCounts.byReason {
+		out[reason] = count
+	}
+	return out
+}
+
 func logRuntimeReset(
 	le *logrus.Entry,
 	rootPath string,

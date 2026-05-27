@@ -257,18 +257,22 @@ func CompleteDriveIntroWizardIfPresent(t testing.TB, page playwright.Page) {
 
 	_, err := page.Evaluate(`async () => {
 		const deadline = Date.now() + 120000
+		const state = { readyDeadline: 0 }
 		for (;;) {
 			const browser = document.querySelector('[data-testid="unixfs-browser"]')
 			if (browser) return null
 			const text = document.body.textContent ?? ''
 			if (text.includes('Your Drive is ready')) {
+				if (!state.readyDeadline) state.readyDeadline = Date.now() + 5000
 				const buttons = Array.from(document.querySelectorAll('button'))
 				const open = buttons.find((button) => button.textContent?.includes('Open files'))
-				if (!(open instanceof HTMLButtonElement)) {
-					throw new Error('Drive intro open button not found')
+				if (open instanceof HTMLButtonElement) {
+					open.click()
+					return null
 				}
-				open.click()
-				return null
+				if (Date.now() > state.readyDeadline) {
+					throw new Error('Drive intro ready text appeared without Open files button')
+				}
 			}
 			if (Date.now() > deadline) {
 				throw new Error('Drive intro or file browser did not appear')

@@ -22,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	entrypoint_browser_build "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
+	web_plugin_compiler "github.com/s4wave/spacewave/bldr/web/plugin/compiler"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
 	link_holdopen_controller "github.com/s4wave/spacewave/net/link/hold-open"
 	"github.com/s4wave/spacewave/net/protocol"
@@ -85,6 +86,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 	appID := currProjConf.GetId()
 	startConf := currProjConf.GetStart()
 	startupPlugins := startConf.GetPlugins()
+	startupManifestPreflights := ProjectOwnedStartupManifestPreflights(currProjConf, "web/js/wasm")
 	webStartupSrcPath, _ := startConf.ParseWebStartupPath()
 
 	buildType := bldr_manifest.BuildType(a.BuildType)
@@ -98,6 +100,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 		a.WebListenAddr,
 		appID,
 		startupPlugins,
+		startupManifestPreflights,
 		webStartupSrcPath,
 		false,
 	)
@@ -112,6 +115,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	listenAddr string,
 	appID string,
 	startPlugins []string,
+	startupManifestPreflights []StartupManifestPreflight,
 	webStartupSrcPath string,
 	forceDedicatedWorkers bool,
 ) error {
@@ -120,6 +124,12 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	distSrcDir := d.GetDistSrcDir()
 	entrypointDataDir := filepath.Join(stateDir, "entry")
 	entrypointDir := filepath.Join(entrypointDataDir, "web/wasm")
+
+	// WASM devtool mode serves the browser runtime directly and should not spend
+	// startup building the native web renderer package.
+	if err := os.Setenv(web_plugin_compiler.SkipNativeWebRendererEnvVar, "true"); err != nil {
+		return err
+	}
 
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
@@ -256,13 +266,12 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	// trigger FetchManifest for the startup plugins in advance
 	// if this is commented out, the plugin build begins once the browser asks for it.
 	if devMode {
-		platformIDs := []string{bldr_platform.PlatformID_JS, buildPlatform.GetPlatformID()}
-		for _, startPluginID := range startPlugins {
+		for _, preflight := range startupManifestPreflights {
 			_, dir, err := d.GetBus().AddDirective(
 				bldr_manifest.NewFetchManifest(
-					startPluginID,
+					preflight.PluginID,
 					nil,
-					platformIDs,
+					preflight.PlatformIDs,
 					0,
 				),
 				nil,

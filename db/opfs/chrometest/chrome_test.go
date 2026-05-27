@@ -188,7 +188,7 @@ func TestOpfsChromeConcurrentMetaOverflowWriters(t *testing.T) {
 func TestOpfsChromeManifestBloomSplitSafety(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)
-	s := h.newSession(t)
+	s := h.newPersistentSession(t, "volume-reset-current-v1")
 	defer s.close(t)
 
 	root := "opfs-chrome-manifest-bloom-" + time.Now().Format("150405.000000000")
@@ -214,7 +214,7 @@ func TestOpfsChromeManifestBloomSplitSafety(t *testing.T) {
 func TestOpfsChromeClassifiesPromiseRejection(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)
-	s := h.newSession(t)
+	s := h.newPersistentSession(t, "volume-reset-incompatible")
 	defer s.close(t)
 
 	root := "opfs-chrome-reject-" + time.Now().Format("150405.000000000")
@@ -231,7 +231,7 @@ func TestOpfsChromeClassifiesPromiseRejection(t *testing.T) {
 func TestOpfsChromeReadFileHelperLoop(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)
-	s := h.newSession(t)
+	s := h.newPersistentSession(t, "volume-reset-unknown")
 	defer s.close(t)
 
 	root := "opfs-chrome-read-helper-" + time.Now().Format("150405.000000000")
@@ -832,7 +832,7 @@ func TestOpfsChromeVolumeRuntimeResetsCurrentV1Root(t *testing.T) {
 		shards:   defaultShards,
 	})
 	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-verify-reset",
+		scenario: "volume-runtime-verify-current-v1-reset",
 		root:     root,
 		shards:   defaultShards,
 	})
@@ -855,7 +855,7 @@ func TestOpfsChromeVolumeRuntimeResetsIncompatibleRoot(t *testing.T) {
 		shards:   defaultShards,
 	})
 	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-verify-reset",
+		scenario: "volume-runtime-verify-incompatible-reset",
 		root:     root,
 		shards:   defaultShards,
 	})
@@ -878,7 +878,7 @@ func TestOpfsChromeVolumeRuntimeResetsUnknownRoot(t *testing.T) {
 		shards:   defaultShards,
 	})
 	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-verify-reset",
+		scenario: "volume-runtime-verify-unknown-reset",
 		root:     root,
 		shards:   defaultShards,
 	})

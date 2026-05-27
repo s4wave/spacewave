@@ -247,6 +247,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	// Resolve startup values from the loaded config.
 	appID := projConfig.GetId()
 	startPlugins := projConfig.GetStart().GetPlugins()
+	startupManifestPreflights := devtool.ProjectOwnedStartupManifestPreflights(projConfig, "web/js/wasm")
 	webStartupSrcPath, _ := projConfig.GetStart().ParseWebStartupPath()
 
 	port, err := findFreePort()
@@ -268,6 +269,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 			addr,
 			appID,
 			startPlugins,
+			startupManifestPreflights,
 			webStartupSrcPath,
 			workerMode == WorkerModeDedicated,
 		)
@@ -524,7 +526,10 @@ type manifestWait struct {
 	done <-chan error
 }
 
-const defaultManifestBuildTimeout = 2 * time.Minute
+// Cold browser startup compiles Go wasm plugins and frontend Vite bundles
+// concurrently. Keep the gate bounded, but long enough that slow cold builds
+// fail on the actual phase instead of canceling startup manifest publication.
+const defaultManifestBuildTimeout = 5 * time.Minute
 
 func (r manifestFetchRequest) directive() directive.Directive {
 	return bldr_manifest.NewFetchManifest(r.pluginID, r.buildTypes, r.platformIDs, 0)
@@ -685,20 +690,15 @@ func (h *Harness) startupManifestSummary() string {
 }
 
 func (h *Harness) startupManifestRequests() []manifestFetchRequest {
-	jsPlatform := []string{"js"}
-	webWASMPlatform := []string{"web/js/wasm"}
-	return []manifestFetchRequest{
-		{pluginID: "spacewave-core", platformIDs: webWASMPlatform},
-		{pluginID: "spacewave-debug", platformIDs: webWASMPlatform},
-		{pluginID: "web", platformIDs: webWASMPlatform},
-		{pluginID: "spacewave-web", platformIDs: webWASMPlatform},
-		{pluginID: "spacewave-app", platformIDs: webWASMPlatform},
-		// Browser plugin startup later requests app plugins with exactly
-		// platform-ids=js. Keep equivalent directives warm so those pages reuse
-		// prebuilt values instead of starting cancelable per-page rebuilds.
-		{pluginID: "spacewave-web", platformIDs: jsPlatform},
-		{pluginID: "spacewave-app", platformIDs: jsPlatform},
+	preflights := devtool.ProjectOwnedStartupManifestPreflights(h.projConfig, "web/js/wasm")
+	requests := make([]manifestFetchRequest, 0, len(preflights))
+	for _, preflight := range preflights {
+		requests = append(requests, manifestFetchRequest{
+			pluginID:    preflight.PluginID,
+			platformIDs: preflight.PlatformIDs,
+		})
 	}
+	return requests
 }
 
 // waitForReady polls the /bldr-dev/web-wasm/info endpoint until the server

@@ -121,6 +121,19 @@ The smoke profile is intended for routine automation. The stress profile covers
 concurrent block and metadata writers, metadata overflow, Web Lock behavior,
 worker termination recovery, and the integrated OPFS volume slice.
 
+### Browser OPFS alpha reset policy
+
+Browser OPFS volumes use storage format version 2. During alpha, browser OPFS
+opens reset non-v2 roots automatically instead of trying to migrate or mix
+layouts. The runtime writes `.spacewave-opfs-format.json` for the clean v2 root
+and logs `reset opfs volume root for v2 format` with `root_path`, `reason`, and
+`format_version` fields when it deletes an incompatible, current-v1, or unknown
+root. Reset counts are exposed from the browser runtime by reset reason for
+operator diagnostics.
+
+This policy intentionally applies only to browser OPFS volume roots. Other
+storage backends keep their existing persistence behavior.
+
 ## Examples
 
 Hydra can be used as either a [Go library] or a command-line / daemon.

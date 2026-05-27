@@ -217,8 +217,12 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeRuntimeSeedIncompatible(c)
 	case "volume-runtime-seed-unknown":
 		return runVolumeRuntimeSeedUnknown(c)
-	case "volume-runtime-verify-reset":
-		return runVolumeRuntimeVerifyReset(ctx, c)
+	case "volume-runtime-verify-current-v1-reset":
+		return runVolumeRuntimeVerifyReset(ctx, c, volume_opfs.ResetReasonCurrentV1)
+	case "volume-runtime-verify-incompatible-reset":
+		return runVolumeRuntimeVerifyReset(ctx, c, volume_opfs.ResetReasonIncompatible)
+	case "volume-runtime-verify-unknown-reset":
+		return runVolumeRuntimeVerifyReset(ctx, c, volume_opfs.ResetReasonUnknown)
 	case "volume-runtime-delete-verify":
 		return runVolumeRuntimeDeleteVerify(ctx, c)
 	case "world-init-unixfs":
@@ -1106,13 +1110,25 @@ func runVolumeRuntimeSeedUnknown(c *config) error {
 	return opfs.WriteFile(dir, "legacy-only", []byte("unknown"))
 }
 
-func runVolumeRuntimeVerifyReset(ctx context.Context, c *config) error {
-	vol, err := openVolume(ctx, c)
+func runVolumeRuntimeVerifyReset(ctx context.Context, c *config, reason volume_opfs.ResetReason) error {
+	logger := logrus.New()
+	hook := &captureLogHook{}
+	logger.AddHook(hook)
+	le := logrus.NewEntry(logger)
+	before := volume_opfs.RuntimeResetCount(reason)
+	vol, err := openVolumeWithLogger(ctx, c, le)
 	if err != nil {
 		return err
 	}
 	if err := vol.Close(); err != nil {
 		return err
+	}
+	after := volume_opfs.RuntimeResetCount(reason)
+	if after != before+1 {
+		return errors.Errorf("runtime reset count for %s = %d, want %d", reason, after, before+1)
+	}
+	if !hook.hasVolumeResetLog(c.root+"/volume", reason) {
+		return errors.Errorf("missing reset log for reason %s logs=%v", reason, hook.entries)
 	}
 
 	dir, err := openTestDirectory(c.root, []string{"volume"})
@@ -1139,6 +1155,58 @@ func runVolumeRuntimeVerifyReset(ctx context.Context, c *config) error {
 		}
 	}
 	return nil
+}
+
+type captureLogHook struct {
+	entries []capturedLogEntry
+}
+
+type capturedLogEntry struct {
+	level   logrus.Level
+	message string
+	data    logrus.Fields
+}
+
+func (h *captureLogHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+func (h *captureLogHook) Fire(entry *logrus.Entry) error {
+	data := make(logrus.Fields, len(entry.Data))
+	for key, val := range entry.Data {
+		data[key] = val
+	}
+	h.entries = append(h.entries, capturedLogEntry{
+		level:   entry.Level,
+		message: entry.Message,
+		data:    data,
+	})
+	return nil
+}
+
+func (h *captureLogHook) hasVolumeResetLog(rootPath string, reason volume_opfs.ResetReason) bool {
+	for _, entry := range h.entries {
+		if entry.level != logrus.WarnLevel {
+			continue
+		}
+		if entry.message != "reset opfs volume root for v2 format" {
+			continue
+		}
+		if entry.data["root_path"] != rootPath {
+			continue
+		}
+		if entry.data["reason"] != string(reason) {
+			continue
+		}
+		if entry.data["format_version"] != uint32(2) {
+			continue
+		}
+		if reason == volume_opfs.ResetReasonIncompatible && entry.data["previous_format_version"] != uint32(1) {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func runWorldInitUnixFS(ctx context.Context, c *config) error {
@@ -1249,12 +1317,17 @@ func openMetaStore(c *config) (*metashard.MetaStore, error) {
 }
 
 func openVolume(ctx context.Context, c *config) (*volume_opfs.Opfs, error) {
-	return volume_opfs.NewOpfs(ctx, logrus.NewEntry(logrus.New()), &volume_opfs.Config{
+	return openVolumeWithLogger(ctx, c, logrus.NewEntry(logrus.New()))
+}
+
+func openVolumeWithLogger(ctx context.Context, c *config, le *logrus.Entry) (*volume_opfs.Opfs, error) {
+	return volume_opfs.NewOpfs(ctx, le, &volume_opfs.Config{
 		RootPath:        c.root + "/volume",
 		LockPrefix:      c.root + "/volume",
 		StoreConfig:     &store_kvtx.Config{},
 		BlockShardCount: uint32(c.shards),
 		AsyncIo:         true,
+		ResetPolicy:     "automatic",
 	})
 }
 
