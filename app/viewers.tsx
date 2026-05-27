@@ -208,6 +208,7 @@ const staticViewers: ObjectViewerComponent[] = [
     typeID: ForgeJobWizardTypeID,
     name: 'Job Wizard',
     category: 'Forge',
+    requiresObjectState: false,
     component: ForgeJobWizardViewer,
   },
   {
@@ -215,6 +216,7 @@ const staticViewers: ObjectViewerComponent[] = [
     typeID: ForgeTaskWizardTypeID,
     name: 'Task Wizard',
     category: 'Forge',
+    requiresObjectState: false,
     component: ForgeTaskWizardViewer,
   },
   {
@@ -222,6 +224,7 @@ const staticViewers: ObjectViewerComponent[] = [
     typeID: GitRepoWizardTypeID,
     name: 'Git Repo Wizard',
     category: 'Code',
+    requiresObjectState: false,
     component: GitRepoWizardViewer,
   },
   {
@@ -229,6 +232,7 @@ const staticViewers: ObjectViewerComponent[] = [
     typeID: DriveIntroWizardTypeID,
     name: 'Drive Intro',
     category: 'Files',
+    requiresObjectState: false,
     component: DriveIntroWizardViewer,
   },
   {
@@ -236,6 +240,7 @@ const staticViewers: ObjectViewerComponent[] = [
     typeID: VmV86WizardTypeID,
     name: 'V86 Wizard',
     category: 'VM',
+    requiresObjectState: false,
     component: VmV86WizardViewer,
   },
   {
@@ -243,6 +248,7 @@ const staticViewers: ObjectViewerComponent[] = [
     typeID: WizardTypePrefix + '*',
     name: 'Wizard',
     category: 'System',
+    requiresObjectState: false,
     component: WizardViewer,
   },
   {

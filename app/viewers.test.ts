@@ -55,6 +55,25 @@ describe('getObjectViewersForType', () => {
     ).toEqual(['Drive Intro', 'Wizard', 'Debug Viewer'])
   })
 
+  it('lets wizard viewers open through their typed resource handle', () => {
+    expect(
+      getObjectViewersForType('wizard/drive/intro')
+        .filter((viewer) => viewer.typeID.startsWith('wizard/'))
+        .map((viewer) => [viewer.name, viewer.requiresObjectState]),
+    ).toEqual([
+      ['Drive Intro', false],
+      ['Wizard', false],
+    ])
+    expect(
+      getObjectViewersForType('wizard/forge/job')
+        .filter((viewer) => viewer.typeID.startsWith('wizard/'))
+        .map((viewer) => [viewer.name, viewer.requiresObjectState]),
+    ).toEqual([
+      ['Job Wizard', false],
+      ['Wizard', false],
+    ])
+  })
+
   it('renders notes objects through dynamic plugin viewer registrations', () => {
     function DynamicViewer() {
       return null
