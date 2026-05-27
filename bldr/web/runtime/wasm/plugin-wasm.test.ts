@@ -20,15 +20,19 @@ vi.mock('it-pipe', () => ({
   pipe: pipeState.pipe,
 }))
 
-vi.mock('./go-process.js', () => ({
-  GoWasmProcess: vi.fn().mockImplementation(function (source, opts) {
-    goProcessState.constructor(source, opts)
-    return {
-      start: goProcessState.start,
-      stop: vi.fn(),
-    }
-  }),
-}))
+vi.mock('./go-process.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./go-process.js')>()
+  return {
+    ...actual,
+    GoWasmProcess: vi.fn().mockImplementation(function (source, opts) {
+      goProcessState.constructor(source, opts)
+      return {
+        start: goProcessState.start,
+        stop: vi.fn(),
+      }
+    }),
+  }
+})
 
 describe('plugin-wasm generation lifecycle', () => {
   beforeEach(() => {
@@ -342,6 +346,80 @@ describe('plugin-wasm generation lifecycle', () => {
 
     expect(onResolve).not.toHaveBeenCalled()
     expect(onReject).toHaveBeenCalledWith('Error: stream unavailable')
+  })
+
+  it('opens TinyGo streams through primitive wasm imports', async () => {
+    goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+    const sinkPackets: Uint8Array[] = []
+    const api = buildBackendAPI(
+      vi.fn(async () => ({
+        source: (async function* () {
+          yield new Uint8Array([7, 8])
+        })(),
+        sink: vi.fn(async (packets: Parameters<PacketStream['sink']>[0]) => {
+          for await (const packet of packets) {
+            sinkPackets.push(packet)
+          }
+        }),
+      })),
+    )
+
+    const { default: main } = await import('./plugin-wasm.js')
+    await main(api)
+
+    const opts = goProcessState.constructor.mock.calls[0][1] as {
+      tinyGoRuntimeImports?: (go: unknown) => void
+    }
+    const memory = new WebAssembly.Memory({ initial: 1 })
+    const exports = {
+      memory,
+      go_scheduler: vi.fn(),
+      BLDR_PLUGIN_STREAM_OPEN_RESOLVE: vi.fn(),
+      BLDR_PLUGIN_STREAM_OPEN_REJECT: vi.fn(),
+      BLDR_PLUGIN_STREAM_MESSAGE: vi.fn(),
+      BLDR_PLUGIN_STREAM_CLOSE: vi.fn(),
+      BLDR_PLUGIN_STREAM_ACCEPT: vi.fn(),
+    }
+    const go = {
+      importObject: { gojs: {} as Record<string, unknown> },
+      _inst: { exports },
+      _resume: vi.fn(),
+    }
+    opts.tinyGoRuntimeImports?.(go)
+
+    const openStream = go.importObject.gojs[
+      'bldr.plugin.openStream'
+    ] as (opID: number) => void
+    openStream(41)
+    await Promise.resolve()
+
+    expect(exports.BLDR_PLUGIN_STREAM_OPEN_RESOLVE).toHaveBeenCalledWith(41, 1)
+
+    await waitForGoCallbackQueue()
+    expect(exports.BLDR_PLUGIN_STREAM_MESSAGE).toHaveBeenCalledWith(
+      1,
+      expect.any(Number),
+      2,
+    )
+    const messageBytesID = exports.BLDR_PLUGIN_STREAM_MESSAGE.mock.calls[0][1]
+    const takeBytes = go.importObject.gojs[
+      'bldr.plugin.streamTakeBytes'
+    ] as (bytesID: number, ptr: number, len: number) => number
+    expect(takeBytes(messageBytesID, 16, 2)).toBe(1)
+    expect(Array.from(new Uint8Array(memory.buffer, 16, 2))).toEqual([7, 8])
+
+    new Uint8Array(memory.buffer, 32, 2).set([9, 10])
+    const writeStream = go.importObject.gojs[
+      'bldr.plugin.streamWrite'
+    ] as (streamID: number, ptr: number, len: number) => number
+    expect(writeStream(1, 32, 2)).toBe(1)
+    const closeStream = go.importObject.gojs[
+      'bldr.plugin.streamClose'
+    ] as (streamID: number) => number
+    expect(closeStream(1)).toBe(1)
+    await waitForGoCallbackQueue()
+
+    expect(sinkPackets.map((packet) => Array.from(packet))).toEqual([[9, 10]])
   })
 
   it('does not globally filter Go released-callback logs inside the plugin worker', async () => {

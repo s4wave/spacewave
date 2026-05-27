@@ -552,6 +552,9 @@ func (p *WasmPluginIo) OpenStream(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 ) (srpc.PacketWriter, error) {
+	if runtime.Compiler == "tinygo" {
+		return newTinyGoPluginOpenStream(ctx, msgHandler, closeHandler)
+	}
 	openStreamFunc, err := getGlobalFunc(p.openStreamName)
 	if err != nil {
 		return nil, err
@@ -566,6 +569,11 @@ func (p *WasmPluginIo) BuildClient() srpc.Client {
 
 // SetAcceptStreams sets the function to call to accept incoming streams.
 func (p *WasmPluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.Invoker) {
+	if runtime.Compiler == "tinygo" {
+		setTinyGoPluginAcceptStreams(ctx, invoker)
+		return
+	}
+
 	var activeMtx sync.Mutex
 	activeStreams := map[*message_port.MessagePort]struct{}{}
 	addActiveStream := func(stream *message_port.MessagePort) {

@@ -1,7 +1,13 @@
 import { pipe } from 'it-pipe'
 import { pushable } from 'it-pushable'
 import { MessagePortDuplex, PacketStream, castToError } from 'starpc'
-import { GoWasmProcess } from '../../runtime/wasm/go-process.js'
+import {
+  callTinyGoExport,
+  GoWasmProcess,
+  tinyGoExport,
+  tinyGoMemory,
+  type TinyGoRuntime,
+} from '../../runtime/wasm/go-process.js'
 import { BackendAPI } from '@aptre/bldr-sdk'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
@@ -46,6 +52,7 @@ class WasmPluginGeneration {
     MessagePortDuplex<Uint8Array>
   >()
   private terminalError?: Error
+  private tinyGoStreamBridge?: TinyGoPluginStreamBridge
 
   public constructor(
     private readonly api: BackendAPI,
@@ -55,6 +62,10 @@ class WasmPluginGeneration {
   public start(startInfo: PluginStartInfo) {
     const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
+    const tinyGoStreamBridge = new TinyGoPluginStreamBridge(this.api, (err) =>
+      this.fail(err),
+    )
+    this.tinyGoStreamBridge = tinyGoStreamBridge
     const goProcess = new GoWasmProcess(
       new URL(pluginEntrypointPath, baseURL).toString(),
       {
@@ -64,6 +75,7 @@ class WasmPluginGeneration {
         },
         abortSignal: this.abortSignal,
         retry: false,
+        tinyGoRuntimeImports: (go) => tinyGoStreamBridge.install(go),
       },
     )
 
@@ -129,6 +141,7 @@ class WasmPluginGeneration {
     this.terminalError = terminalError
     console.warn('plugin-wasm: Go WASM process exited', terminalError)
     this.closeActiveAcceptedStreams()
+    this.tinyGoStreamBridge?.closeAll()
     this.installTerminalAcceptHandler(terminalError)
     globalScope.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?.(terminalError)
   }
@@ -145,6 +158,277 @@ class WasmPluginGeneration {
       throw err
     })
   }
+}
+
+class TinyGoPluginStreamBridge {
+  private go?: TinyGoRuntime
+  private nextStreamID = 1
+  private nextBytesID = 1
+  private readonly streams = new Map<number, TinyGoPluginStream>()
+  private readonly storedBytes = new Map<number, Uint8Array>()
+  private readonly encoder = new TextEncoder()
+
+  public constructor(
+    private readonly api: BackendAPI,
+    private readonly reportFailure: (err: unknown) => void,
+  ) {}
+
+  public install(go: TinyGoRuntime): void {
+    this.go = go
+    const gojs = go.importObject['gojs']
+    if (!gojs) {
+      return
+    }
+
+    gojs['bldr.plugin.openStream'] ??= (opID: number) => {
+      this.openStream(opID)
+    }
+    gojs['bldr.plugin.streamWrite'] ??= (
+      streamID: number,
+      ptr: number,
+      len: number,
+    ) => this.writeStream(streamID, ptr, len)
+    gojs['bldr.plugin.streamClose'] ??= (streamID: number) =>
+      this.closeStream(streamID)
+    gojs['bldr.plugin.streamRelease'] ??= (streamID: number) => {
+      this.releaseStream(streamID)
+    }
+    gojs['bldr.plugin.streamTakeBytes'] ??= (
+      bytesID: number,
+      ptr: number,
+      len: number,
+    ) => this.takeBytes(bytesID, ptr, len)
+    gojs['bldr.plugin.setAcceptStreams'] ??= (enabled: number) => {
+      this.setAcceptStreams(enabled !== 0)
+    }
+  }
+
+  public closeAll(): void {
+    for (const streamID of Array.from(this.streams.keys())) {
+      this.releaseStream(streamID)
+    }
+    this.storedBytes.clear()
+    this.api.handleStreamCtr.set(undefined)
+  }
+
+  private openStream(opID: number): void {
+    void (async () => {
+      const packetStream = await this.api.openStream()
+      const stream = this.createStream(packetStream)
+      try {
+        this.callExport('BLDR_PLUGIN_STREAM_OPEN_RESOLVE', opID, stream.id)
+      } catch (err) {
+        this.releaseStream(stream.id)
+        throw err
+      }
+    })().catch((err) => {
+      this.rejectOpenStream(opID, err)
+    })
+  }
+
+  private rejectOpenStream(opID: number, err: unknown): void {
+    try {
+      const { id, len } = this.storeError(err)
+      this.callExport('BLDR_PLUGIN_STREAM_OPEN_REJECT', opID, id, len)
+    } catch (callbackErr) {
+      this.reportFailure(callbackErr)
+    }
+  }
+
+  private setAcceptStreams(enabled: boolean): void {
+    if (!enabled) {
+      this.api.handleStreamCtr.set(undefined)
+      return
+    }
+
+    this.api.handleStreamCtr.set(async (packetStream: PacketStream) => {
+      const stream = this.createStream(packetStream)
+      try {
+        this.callExport('BLDR_PLUGIN_STREAM_ACCEPT', stream.id)
+        await stream.done
+      } catch (err) {
+        this.releaseStream(stream.id)
+        throw err
+      }
+    })
+  }
+
+  private createStream(packetStream: PacketStream): TinyGoPluginStream {
+    const id = this.nextStreamID++
+    const outbound = pushable<Uint8Array>({ objectMode: true })
+    let resolveDone!: () => void
+    const done = new Promise<void>((resolve) => {
+      resolveDone = resolve
+    })
+    const stream: TinyGoPluginStream = {
+      id,
+      outbound,
+      done,
+      resolveDone,
+      released: false,
+    }
+    this.streams.set(id, stream)
+
+    void packetStream.sink(outbound).catch((err) => {
+      this.closeFromJS(id, err)
+    })
+    void (async () => {
+      try {
+        for await (const message of packetStream.source) {
+          if (!this.deliverMessage(id, message)) {
+            return
+          }
+        }
+        this.closeFromJS(id)
+      } catch (err) {
+        this.closeFromJS(id, err)
+      }
+    })()
+
+    return stream
+  }
+
+  private deliverMessage(streamID: number, message: Uint8Array): boolean {
+    if (!this.streams.has(streamID)) {
+      return false
+    }
+    try {
+      const bytes = copyUint8Array(message)
+      const bytesID = this.storeBytes(bytes)
+      this.callExport(
+        'BLDR_PLUGIN_STREAM_MESSAGE',
+        streamID,
+        bytesID,
+        bytes.byteLength,
+      )
+      return true
+    } catch (err) {
+      this.releaseStream(streamID)
+      this.reportFailure(err)
+      return false
+    }
+  }
+
+  private closeFromJS(streamID: number, err?: unknown): void {
+    if (!this.streams.has(streamID)) {
+      return
+    }
+    try {
+      if (err == null) {
+        this.callExport('BLDR_PLUGIN_STREAM_CLOSE', streamID, 0, 0)
+        return
+      }
+      const { id, len } = this.storeError(err)
+      this.callExport('BLDR_PLUGIN_STREAM_CLOSE', streamID, id, len)
+    } catch (callbackErr) {
+      this.releaseStream(streamID)
+      this.reportFailure(callbackErr)
+    }
+  }
+
+  private writeStream(streamID: number, ptr: number, len: number): number {
+    const stream = this.streams.get(streamID)
+    if (!stream || stream.released) {
+      return 0
+    }
+    try {
+      const bytes = new Uint8Array(len)
+      if (len !== 0) {
+        bytes.set(
+          new Uint8Array(tinyGoMemory(this.mustGo()).buffer, ptr >>> 0, len),
+        )
+      }
+      stream.outbound.push(bytes)
+      return 1
+    } catch {
+      return 0
+    }
+  }
+
+  private closeStream(streamID: number): number {
+    const stream = this.streams.get(streamID)
+    if (!stream || stream.released) {
+      return 0
+    }
+    try {
+      stream.outbound.end()
+      return 1
+    } catch {
+      return 0
+    }
+  }
+
+  private releaseStream(streamID: number): void {
+    const stream = this.streams.get(streamID)
+    if (!stream || stream.released) {
+      return
+    }
+    stream.released = true
+    this.streams.delete(streamID)
+    try {
+      stream.outbound.end()
+    } catch {
+      // ignored: the sink may already be closed by the peer.
+    }
+    stream.resolveDone()
+  }
+
+  private takeBytes(bytesID: number, ptr: number, len: number): number {
+    const bytes = this.storedBytes.get(bytesID)
+    this.storedBytes.delete(bytesID)
+    if (!bytes) {
+      return 0
+    }
+    if (bytes.byteLength !== len) {
+      return 0
+    }
+    if (len === 0) {
+      return 1
+    }
+    try {
+      new Uint8Array(tinyGoMemory(this.mustGo()).buffer, ptr >>> 0, len).set(
+        bytes,
+      )
+      return 1
+    } catch {
+      return 0
+    }
+  }
+
+  private storeError(err: unknown): { id: number; len: number } {
+    const bytes = this.encoder.encode(castToError(err).toString())
+    return { id: this.storeBytes(bytes), len: bytes.byteLength }
+  }
+
+  private storeBytes(bytes: Uint8Array): number {
+    const id = this.nextBytesID++
+    this.storedBytes.set(id, bytes)
+    return id
+  }
+
+  private callExport(name: string, ...args: number[]): void {
+    const go = this.mustGo()
+    const fn = tinyGoExport(go, name)
+    if (!fn) {
+      throw new Error(`TinyGo stream export ${name} is not initialized`)
+    }
+    callTinyGoExport(go, fn, ...args)
+  }
+
+  private mustGo(): TinyGoRuntime {
+    if (!this.go) {
+      throw new Error('TinyGo stream bridge is not initialized')
+    }
+    return this.go
+  }
+}
+
+type TinyGoPluginStream = {
+  id: number
+  outbound: ReturnType<typeof pushable<Uint8Array>>
+  done: Promise<void>
+  resolveDone: () => void
+  released: boolean
 }
 
 // Main function exported by this module.
@@ -259,6 +543,12 @@ function closeMessagePortDuplex(duplex: MessagePortDuplex<Uint8Array>) {
   } catch {
     // ignored: the port may already be closed by the pipe.
   }
+}
+
+function copyUint8Array(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return copy
 }
 
 function flushGoCallbacks(): void {

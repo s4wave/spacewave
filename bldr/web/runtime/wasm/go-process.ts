@@ -16,6 +16,9 @@ export interface GoWasmProcessOpts {
   env?: Record<string, string>
   // argv contains the args to pass
   argv?: string[]
+  // tinyGoRuntimeImports installs per-process imports that need access to the
+  // TinyGo runtime before WebAssembly instantiation.
+  tinyGoRuntimeImports?: (go: TinyGoRuntime) => void
 }
 
 // WasmSource allows specifying a URL, Module, or Promise for a Module to load.
@@ -172,7 +175,7 @@ function takeTinyGoWebLockRelease(id: number): (() => void) | undefined {
   return release
 }
 
-function tinyGoMemory(go: TinyGoRuntime): WebAssembly.Memory {
+export function tinyGoMemory(go: TinyGoRuntime): WebAssembly.Memory {
   const memory = go._inst?.exports.memory
   if (!(memory instanceof WebAssembly.Memory)) {
     throw new Error('TinyGo runtime memory is not initialized')
@@ -186,7 +189,7 @@ function readTinyGoString(go: TinyGoRuntime, ptr: number, len: number): string {
   )
 }
 
-function tinyGoExport(
+export function tinyGoExport(
   go: TinyGoRuntime,
   name: string,
 ): ((...args: number[]) => void) | undefined {
@@ -207,7 +210,7 @@ function tinyGoScheduler(go: TinyGoRuntime): (() => void) | undefined {
   return typeof resume === 'function' ? () => resume.call(go) : undefined
 }
 
-function callTinyGoExport(
+export function callTinyGoExport(
   go: TinyGoRuntime,
   fn: (...args: number[]) => void,
   ...args: number[]
@@ -942,6 +945,7 @@ export class GoWasmProcess {
     const wasmModule = await loadWebAssemblyModule(this.wasmSource)
     patchWorkerBrowserGlobals(go)
     patchTinyGoRuntimeImports(go)
+    this.opts?.tinyGoRuntimeImports?.(go)
     if (this.opts?.argv) {
       go.argv = this.opts.argv
     }
