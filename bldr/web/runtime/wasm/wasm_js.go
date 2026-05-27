@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"syscall/js"
-	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -79,12 +78,12 @@ func openPushableStream(
 		closeHandler(err)
 		return
 	}
+	packetHandler := newSerialPacketDataHandler(msgHandler, closeHandler, packetCallbacks.Release)
 
 	// (message: Uint8Array) => void
 	jsOnMessage := js.FuncOf(func(this js.Value, args []js.Value) any {
 		defer recoverJSCallback("handle stream packet", func(err error) {
-			closeHandler(err)
-			packetCallbacks.Release()
+			packetHandler.Fail(err)
 		})
 		// copy packet from Uint8Array to []byte
 		packet := args[0]
@@ -94,17 +93,12 @@ func openPushableStream(
 			bin[i] = byte(packet.Index(i).Int())
 		}
 
-		// call handler and handle error
-		if err := msgHandler(bin); err != nil {
-			closeHandler(err)
-			packetCallbacks.Release()
-		}
-
+		packetHandler.Handle(bin)
 		return nil
 	})
 	// (errMsg?: string) => void,
 	jsOnClose := js.FuncOf(func(this js.Value, args []js.Value) any {
-		defer recoverJSCallback("handle stream close", closeHandler)
+		defer recoverJSCallback("handle stream close", packetHandler.Fail)
 		var errMsg string
 		if len(args) > 0 {
 			errMsgVal := args[0]
@@ -118,11 +112,11 @@ func openPushableStream(
 			err = errors.New(errMsg)
 		}
 
-		closeHandler(err)
-		packetCallbacks.Release()
+		packetHandler.Close(err)
 		return nil
 	})
 	if !packetCallbacks.Set(jsOnMessage, jsOnClose) {
+		packetHandler.Close(io.ErrClosedPipe)
 		return
 	}
 
@@ -188,9 +182,9 @@ func releaseJSFunc(fn js.Func) {
 	}
 	go func() {
 		// TinyGo's syscall/js callback frame is still live while the callback
-		// is running. Releasing from that same stack can corrupt the JS value
-		// table and make later unrelated js.Value calls trap.
-		time.Sleep(time.Millisecond)
+		// is running. Release from a later goroutine turn so the callback has
+		// returned to the JS runtime before TinyGo mutates its function table.
+		runtime.Gosched()
 		fn.Release()
 	}()
 }
@@ -247,6 +241,117 @@ func recoverJSCallback(label string, onErr func(error)) {
 			err = errors.Errorf("%s: %v", label, recovered)
 		}
 		onErr(err)
+	}
+}
+
+// serialPacketDataHandler owns srpc.OpenStreamFunc's non-concurrent msgHandler
+// contract. TinyGo can re-enter js.FuncOf from later JS tasks while an earlier
+// callback goroutine is blocked, so callbacks enqueue packets and one Go
+// goroutine drains them.
+type serialPacketDataHandler struct {
+	msgHandler   srpc.PacketDataHandler
+	closeHandler srpc.CloseHandler
+	releaseFn    func()
+
+	mtx      sync.Mutex
+	notify   chan struct{}
+	finish   sync.Once
+	queue    [][]byte
+	closed   bool
+	closeErr error
+}
+
+func newSerialPacketDataHandler(
+	msgHandler srpc.PacketDataHandler,
+	closeHandler srpc.CloseHandler,
+	releaseFn func(),
+) *serialPacketDataHandler {
+	h := &serialPacketDataHandler{
+		msgHandler:   msgHandler,
+		closeHandler: closeHandler,
+		releaseFn:    releaseFn,
+		notify:       make(chan struct{}, 1),
+	}
+	go h.run()
+	return h
+}
+
+func (h *serialPacketDataHandler) Handle(data []byte) {
+	h.mtx.Lock()
+	if h.closed {
+		h.mtx.Unlock()
+		return
+	}
+	h.queue = append(h.queue, data)
+	h.signalLocked()
+	h.mtx.Unlock()
+}
+
+func (h *serialPacketDataHandler) Close(err error) {
+	h.mtx.Lock()
+	if h.closed {
+		h.mtx.Unlock()
+		return
+	}
+	h.closed = true
+	h.closeErr = err
+	h.signalLocked()
+	h.mtx.Unlock()
+}
+
+func (h *serialPacketDataHandler) Fail(err error) {
+	h.mtx.Lock()
+	if h.closed && len(h.queue) == 0 {
+		h.mtx.Unlock()
+		return
+	}
+	h.closed = true
+	h.closeErr = err
+	h.queue = nil
+	h.signalLocked()
+	h.mtx.Unlock()
+
+	h.finish.Do(func() {
+		h.closeHandler(err)
+		h.releaseFn()
+	})
+}
+
+func (h *serialPacketDataHandler) run() {
+	for {
+		h.mtx.Lock()
+		for len(h.queue) == 0 && !h.closed {
+			h.mtx.Unlock()
+			<-h.notify
+			h.mtx.Lock()
+		}
+		if len(h.queue) != 0 {
+			data := h.queue[0]
+			copy(h.queue, h.queue[1:])
+			h.queue[len(h.queue)-1] = nil
+			h.queue = h.queue[:len(h.queue)-1]
+			h.mtx.Unlock()
+			if err := h.msgHandler(data); err != nil {
+				h.Fail(err)
+				return
+			}
+			continue
+		}
+		err := h.closeErr
+		h.mtx.Unlock()
+
+		h.finish.Do(func() {
+			h.closeHandler(err)
+			h.releaseFn()
+		})
+		return
+	}
+}
+
+func (h *serialPacketDataHandler) signalLocked() {
+	select {
+	case h.notify <- struct{}{}:
+	default:
 	}
 }
 
