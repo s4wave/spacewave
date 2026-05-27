@@ -29,6 +29,10 @@ type trackedResource = {
   releaseFn: (() => void) | null
 }
 
+type ResourceMuxRegister =
+  | ((mux: srpc.Mux | null) => $.GoError | globalThis.Promise<$.GoError>)
+  | null
+
 export class ResourceServer {
   private resources = new Map<number, trackedResource>()
   private resourceIDCtr = 1
@@ -97,7 +101,7 @@ export function NewResourceServer(
 }
 
 export function NewResourceMux(
-  ...register: (((mux: srpc.Mux | null) => $.GoError) | null)[]
+  ...register: ResourceMuxRegister[]
 ): srpc.Mux {
   const mux = srpc.NewMux()
   for (const fn of register) {
@@ -105,6 +109,11 @@ export function NewResourceMux(
       continue
     }
     const err = fn(mux)
+    if (err != null && typeof (err as PromiseLike<$.GoError>).then === 'function') {
+      throw new globalThis.Error(
+        'resource_server.NewResourceMux does not support async registration',
+      )
+    }
     if (err != null) {
       throw err
     }

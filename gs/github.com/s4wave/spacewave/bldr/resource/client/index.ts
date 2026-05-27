@@ -52,6 +52,37 @@ export class Client implements resource_server.ResourceClientContext {
     return this.AddResource(mux, releaseFn)
   }
 
+  public AttachRawInvoker(
+    _ctx: context.Context | null,
+    _label: string,
+    mux: srpc.Invoker | null,
+  ): [number, $.GoError] {
+    return this.AttachResource(_ctx, _label, mux)
+  }
+
+  public AttachResourceTree(
+    _ctx: context.Context | null,
+    _label: string,
+    mux: srpc.Invoker | null,
+  ): [number, $.GoError] {
+    return this.AttachResource(_ctx, _label, mux)
+  }
+
+  public AttachResource(
+    _ctx: context.Context | null,
+    _label: string,
+    mux: srpc.Invoker | null,
+  ): [number, $.GoError] {
+    return this.AddResource(mux, null)
+  }
+
+  public DetachResource(
+    _ctx: context.Context | null,
+    resourceID: number,
+  ): $.GoError {
+    return this.ReleaseResource(resourceID) ? null : resource.ErrResourceNotFound
+  }
+
   public ReleaseResource(resourceID: number): boolean {
     return this.server.ReleaseResource(resourceID)
   }
