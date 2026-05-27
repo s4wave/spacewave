@@ -8,9 +8,11 @@ import (
 // ConfigID is the id attached to the config objects.
 var ConfigID = ControllerID
 
+const redisClientName = "bifrost"
+
 // BuildRedisOptions builds redis options from the config.
 func (c *Config) BuildRedisOptions() ([]redis.DialOption, error) {
-	return []redis.DialOption{redis.DialClientName("bifrost")}, nil
+	return nil, nil
 }
 
 // Validate validates the configuration.

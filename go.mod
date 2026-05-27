@@ -90,7 +90,7 @@ require (
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.1.0.20260519112248-0095b064a6c6 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.4 // main
 	github.com/goccy/go-json v0.10.6
-	github.com/gomodule/redigo v1.9.3
+	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/hack-pad/safejs v0.1.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51

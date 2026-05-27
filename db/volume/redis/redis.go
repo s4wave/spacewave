@@ -36,8 +36,9 @@ func NewRedis(
 		return nil, err
 	}
 
-	store, err := conf.GetClient().Connect(
+	store, err := conf.GetClient().ConnectWithClientName(
 		ctx,
+		redisClientName,
 		redisOpts...,
 	)
 	if err != nil {

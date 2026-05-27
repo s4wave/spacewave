@@ -31,13 +31,42 @@ func Connect(
 	rawurl string,
 	options ...redis.DialOption,
 ) (*Store, error) {
+	return connect(ctx, rawurl, "", options...)
+}
+
+// ConnectWithClientName connects to a redis store and names each pooled client.
+func ConnectWithClientName(
+	ctx context.Context,
+	rawurl string,
+	clientName string,
+	options ...redis.DialOption,
+) (*Store, error) {
+	return connect(ctx, rawurl, clientName, options...)
+}
+
+func connect(
+	ctx context.Context,
+	rawurl string,
+	clientName string,
+	options ...redis.DialOption,
+) (*Store, error) {
 	pool := &redis.Pool{
 		MaxIdle:         2,
 		IdleTimeout:     60 * time.Second,
 		MaxConnLifetime: 15 * time.Minute,
 
 		Dial: func() (redis.Conn, error) {
-			return redis.DialURL(rawurl, options...)
+			conn, err := redis.DialURL(rawurl, options...)
+			if err != nil {
+				return nil, err
+			}
+			if clientName != "" {
+				if _, err := conn.Do("CLIENT", "SETNAME", clientName); err != nil {
+					_ = conn.Close()
+					return nil, err
+				}
+			}
+			return conn, nil
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			if time.Since(t) < time.Minute {
@@ -65,6 +94,15 @@ func Connect(
 // Connect connects to the redis store using the config.
 func (c *ClientConfig) Connect(ctx context.Context, opts ...redis.DialOption) (*Store, error) {
 	return Connect(ctx, c.GetUrl(), opts...)
+}
+
+// ConnectWithClientName connects to the redis store using the config and names clients.
+func (c *ClientConfig) ConnectWithClientName(
+	ctx context.Context,
+	clientName string,
+	opts ...redis.DialOption,
+) (*Store, error) {
+	return ConnectWithClientName(ctx, c.GetUrl(), clientName, opts...)
 }
 
 // Validate validates the client config
