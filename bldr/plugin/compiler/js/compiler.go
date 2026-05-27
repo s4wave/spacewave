@@ -470,7 +470,7 @@ func (c *Controller) BuildManifest(
 	buildOptions.NodePaths = []string{distDepsNodeModules}
 
 	buildOptions.Plugins = append(buildOptions.Plugins,
-		bldr_esbuild_build.GoVendorTsResolverPlugin(builderConf.GetSourcePath()),
+		bldr_esbuild_build.GoVendorTsResolverPlugin(builderConf.GetSourcePath(), builderConf.GetDistSourcePath()),
 	)
 
 	// Run esbuild

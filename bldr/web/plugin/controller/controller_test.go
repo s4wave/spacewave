@@ -54,8 +54,7 @@ func TestAddControllerSendReadyAndWaitIgnoresNilControllerExit(t *testing.T) {
 }
 
 func TestAddControllerSendReadyAndWaitReturnsControllerError(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	wantErr := errors.New("controller failed")
 	bus := &nilExitBus{exitErr: wantErr, released: make(chan struct{})}

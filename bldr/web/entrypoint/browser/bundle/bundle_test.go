@@ -23,6 +23,9 @@ func TestBrowserBuildOptsResolvesGoVendorImportsFromNestedDir(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "global.d.ts"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	vendorDir := filepath.Join(projectRoot, "vendor", "example")
 	if err := os.MkdirAll(vendorDir, 0o755); err != nil {

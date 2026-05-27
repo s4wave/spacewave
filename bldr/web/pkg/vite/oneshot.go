@@ -75,7 +75,7 @@ func RunOneShot(
 		},
 		Plugins: []esbuild.Plugin{
 			bldr_esbuild_build.ExternalNodeModulesPlugin(),
-			bldr_esbuild_build.GoVendorTsResolverPlugin(sourcePath),
+			bldr_esbuild_build.GoVendorTsResolverPlugin(sourcePath, distSourcePath),
 		},
 		External: []string{"starpc", "vite"},
 		Bundle:   true,

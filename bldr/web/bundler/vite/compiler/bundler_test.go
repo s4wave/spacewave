@@ -6,7 +6,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
@@ -33,19 +32,21 @@ func (f *fakeViteBundlerClient) BuildWebPkg(context.Context, *bldr_web_bundler_v
 	return nil, nil
 }
 
-// TestViteCompilerBootstrapBuild verifies the vite compiler bootstrap can be
-// bundled from embedded dist sources even though vendor/ is absent there.
+// TestViteCompilerBootstrapBuild verifies the vite compiler bootstrap resolves
+// vendored @go imports from the generated dist source tree, not the app root.
 func TestViteCompilerBootstrapBuild(t *testing.T) {
 	ctx := context.Background()
 
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("failed to locate test file")
-	}
-	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "../../../../.."))
-
 	distDir := filepath.Join(t.TempDir(), "src")
 	if err := os.MkdirAll(distDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sourceRoot := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(sourceRoot, "go.mod"),
+		[]byte("module github.com/example/app\n\ngo 1.26\n"),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 
@@ -61,6 +62,19 @@ func TestViteCompilerBootstrapBuild(t *testing.T) {
 		unixfs_sync.NewSkipPathPrefixes([]string{"vendor", "node_modules"}),
 	)
 	if err != nil {
+		t.Fatal(err)
+	}
+	pipesockDir := filepath.Join(distDir, "vendor", "github.com", "aperturerobotics", "util", "pipesock")
+	if err := os.MkdirAll(pipesockDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(pipesockDir, "pipesock.ts"),
+		[]byte(`export function buildPipeName() { return "" }
+export function createSocketConnection() { return null }
+export function startSocketSender() { return undefined }`),
+		0o644,
+	); err != nil {
 		t.Fatal(err)
 	}
 
@@ -79,7 +93,7 @@ func TestViteCompilerBootstrapBuild(t *testing.T) {
 		},
 		Plugins: []esbuild.Plugin{
 			bldr_esbuild_build.ExternalNodeModulesPlugin(),
-			bldr_esbuild_build.GoVendorTsResolverPlugin(repoRoot),
+			bldr_esbuild_build.GoVendorTsResolverPlugin(sourceRoot, distDir),
 		},
 		External: []string{"@aptre/protobuf-es-lite", "starpc", "vite"},
 		Bundle:   true,

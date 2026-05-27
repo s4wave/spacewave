@@ -300,6 +300,20 @@ func resolveBrowserBuildRoot(workingDir string) string {
 	}
 }
 
+func resolveBrowserDistBuildRoot(workingDir string) string {
+	dir := workingDir
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "global.d.ts")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return workingDir
+		}
+		dir = parent
+	}
+}
+
 // BrowserBuildOpts are general options for building for the browser.
 func BrowserBuildOpts(workingDir string, minify, sourcemaps bool) esbuild.BuildOptions {
 	sourceMap := esbuild.SourceMapNone
@@ -313,6 +327,7 @@ func BrowserBuildOpts(workingDir string, minify, sourcemaps bool) esbuild.BuildO
 	}
 
 	projectRoot := resolveBrowserBuildRoot(workingDir)
+	distRoot := resolveBrowserDistBuildRoot(workingDir)
 
 	return esbuild.BuildOptions{
 		AbsWorkingDir: workingDir,
@@ -333,7 +348,7 @@ func BrowserBuildOpts(workingDir string, minify, sourcemaps bool) esbuild.BuildO
 			"BLDR_IS_BROWSER": "true",
 		},
 		Plugins: []esbuild.Plugin{
-			bldr_esbuild_build.GoVendorTsResolverPlugin(projectRoot),
+			bldr_esbuild_build.GoVendorTsResolverPlugin(projectRoot, distRoot),
 		},
 
 		Loader: map[string]esbuild.Loader{

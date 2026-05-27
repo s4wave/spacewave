@@ -12,15 +12,92 @@ import (
 
 const localModulePrefix = "github.com/s4wave/spacewave/"
 
-func resolveGoImportPath(projectRoot, importPath string) string {
-	if after, ok := strings.CutPrefix(importPath, localModulePrefix); ok {
-		return filepath.Join(projectRoot, after)
-	}
-
-	return filepath.Join(projectRoot, "vendor", importPath)
+var bldrDistSourcePrefixes = []string{
+	"devtool/",
+	"manifest/",
+	"plugin/",
+	"resource/",
+	"sdk/",
+	"web/",
 }
 
-func GoVendorTsResolverPlugin(projectRoot string) esbuild.Plugin {
+type goVendorTsResolver struct {
+	sourcePath     string
+	distSourcePath string
+	localModule    string
+}
+
+func newGoVendorTsResolver(sourcePath, distSourcePath string) goVendorTsResolver {
+	if distSourcePath == "" {
+		distSourcePath = sourcePath
+	}
+	return goVendorTsResolver{
+		sourcePath:     sourcePath,
+		distSourcePath: distSourcePath,
+		localModule:    readLocalModulePath(sourcePath),
+	}
+}
+
+func (r goVendorTsResolver) resolveGoImportPath(importPath string) string {
+	if r.localModule != "" {
+		if after, ok := strings.CutPrefix(importPath, r.localModule+"/"); ok {
+			return filepath.Join(r.sourcePath, filepath.FromSlash(after))
+		}
+	}
+
+	if after, ok := strings.CutPrefix(importPath, localModulePrefix); ok && r.localModule == "" {
+		return filepath.Join(r.sourcePath, filepath.FromSlash(after))
+	}
+
+	return filepath.Join(r.distSourcePath, "vendor", filepath.FromSlash(importPath))
+}
+
+func (r goVendorTsResolver) resolveDistSourcePath(importPath string) (string, bool) {
+	for _, prefix := range bldrDistSourcePrefixes {
+		if strings.HasPrefix(importPath, prefix) {
+			return filepath.Join(r.distSourcePath, filepath.FromSlash(importPath)), true
+		}
+	}
+	return "", false
+}
+
+func readLocalModulePath(projectRoot string) string {
+	data, err := os.ReadFile(filepath.Join(projectRoot, "go.mod"))
+	if err != nil {
+		return ""
+	}
+	for line := range strings.SplitSeq(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if after, ok := strings.CutPrefix(line, "module "); ok {
+			fields := strings.Fields(after)
+			if len(fields) != 0 {
+				return fields[0]
+			}
+		}
+	}
+	return ""
+}
+
+func resolveExistingSourcePath(jsPath string) (string, bool) {
+	if fileExists(jsPath) {
+		return jsPath, true
+	}
+
+	tsPath := strings.TrimSuffix(jsPath, ".js") + ".ts"
+	if fileExists(tsPath) {
+		return tsPath, true
+	}
+
+	tsxPath := strings.TrimSuffix(jsPath, ".js") + ".tsx"
+	if fileExists(tsxPath) {
+		return tsxPath, true
+	}
+
+	return "", false
+}
+
+func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin {
+	resolver := newGoVendorTsResolver(sourcePath, distSourcePath)
 	return esbuild.Plugin{
 		Name: "go-vendor-ts-resolver",
 		Setup: func(build esbuild.PluginBuild) {
@@ -38,23 +115,33 @@ func GoVendorTsResolverPlugin(projectRoot string) esbuild.Plugin {
 					return result, nil
 				}
 
-				subPath := filepath.FromSlash(strings.TrimPrefix(args.Path, "@go/"))
-				jsPath := resolveGoImportPath(projectRoot, subPath)
+				subPath := strings.TrimPrefix(args.Path, "@go/")
+				jsPath := resolver.resolveGoImportPath(subPath)
 
-				if fileExists(jsPath) {
-					result.Path = jsPath
+				if sourcePath, ok := resolveExistingSourcePath(jsPath); ok {
+					result.Path = sourcePath
 					return result, nil
 				}
 
-				tsPath := strings.TrimSuffix(jsPath, ".js") + ".ts"
-				if fileExists(tsPath) {
-					result.Path = tsPath
+				return result, nil
+			})
+			build.OnResolve(esbuild.OnResolveOptions{
+				Filter: `^(devtool|manifest|plugin|resource|sdk|web)/.*\.js$`,
+			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+				var result esbuild.OnResolveResult
+				if args.Importer == "bldr-go-vendor-ts-resolver" {
+					return result, nil
+				}
+				if !strings.HasSuffix(args.Path, ".js") {
 					return result, nil
 				}
 
-				tsxPath := strings.TrimSuffix(jsPath, ".js") + ".tsx"
-				if fileExists(tsxPath) {
-					result.Path = tsxPath
+				jsPath, ok := resolver.resolveDistSourcePath(args.Path)
+				if !ok {
+					return result, nil
+				}
+				if sourcePath, ok := resolveExistingSourcePath(jsPath); ok {
+					result.Path = sourcePath
 					return result, nil
 				}
 

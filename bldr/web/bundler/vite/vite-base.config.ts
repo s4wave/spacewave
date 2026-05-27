@@ -45,7 +45,7 @@ export default defineConfig({
   },
   resolve: {
     alias: [
-      ...buildGoAliases(bldrProjectRoot),
+      ...buildGoAliases(bldrProjectRoot, bldrDistRoot),
       {
         find: /^@aptre\/bldr$/,
         replacement: resolveBldrDistPath('web/bldr/index.js'),
@@ -58,6 +58,6 @@ export default defineConfig({
   },
   plugins: [
     // This plugin fixes issues with resolving paths like @go/foo/bar/baz.js where baz.ts exists only.
-    goTsResolver(bldrProjectRoot),
+    goTsResolver(bldrProjectRoot, bldrDistRoot),
   ],
 })

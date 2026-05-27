@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { goTsResolver } from './go-ts-resolver.js'
+import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
 
 describe('goTsResolver', () => {
   let tmpDir: string
@@ -102,5 +102,46 @@ describe('goTsResolver', () => {
     expect(result).toBe(
       join(tmpDir, 'vendor', 'github.com/example/pkg/types.ts'),
     )
+  })
+
+  it('resolves external app @go imports from the dist vendor tree', async () => {
+    const sourceRoot = await mkdtemp(join(tmpdir(), 'go-ts-source-'))
+    const distRoot = await mkdtemp(join(tmpdir(), 'go-ts-dist-'))
+    try {
+      await writeFile(
+        join(sourceRoot, 'go.mod'),
+        'module github.com/example/app\n\ngo 1.26\n',
+      )
+      const vendorDir = join(
+        distRoot,
+        'vendor',
+        'github.com/aperturerobotics/util/pipesock',
+      )
+      await mkdir(vendorDir, { recursive: true })
+      await writeFile(join(vendorDir, 'pipesock.ts'), 'export const pipe = 1')
+
+      const plugin = goTsResolver(sourceRoot, distRoot)
+      const resolveId = plugin.resolveId as (
+        source: string,
+        importer?: string,
+      ) => Promise<string | null>
+      const result = await resolveId(
+        '@go/github.com/aperturerobotics/util/pipesock/pipesock.js',
+      )
+      expect(result).toBe(join(vendorDir, 'pipesock.ts'))
+
+      const vendorRelativeResult = await resolveId(
+        'vendor/github.com/aperturerobotics/util/pipesock/pipesock.js',
+      )
+      expect(vendorRelativeResult).toBe(join(vendorDir, 'pipesock.ts'))
+
+      const aliases = buildGoAliases(sourceRoot, distRoot)
+      const vendorAlias = aliases[aliases.length - 1]
+      expect(String(vendorAlias.find)).toBe(String(/^@go\/(.*)$/))
+      expect(vendorAlias.replacement).toBe(join(distRoot, 'vendor', '$1'))
+    } finally {
+      await rm(sourceRoot, { recursive: true, force: true })
+      await rm(distRoot, { recursive: true, force: true })
+    }
   })
 })

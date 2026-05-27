@@ -20,6 +20,7 @@ function readLocalModuleSync(projectRoot: string): string | null {
 
 function resolveGoImportPath(
   projectRoot: string,
+  distRoot: string,
   localModule: string | null,
   source: string,
 ): string | null {
@@ -32,15 +33,19 @@ function resolveGoImportPath(
     return resolve(projectRoot, importPath.slice(localModule.length + 1))
   }
 
-  return resolve(projectRoot, 'vendor', importPath)
+  return resolve(distRoot, 'vendor', importPath)
 }
 
-function resolveSourcePath(source: string, importer?: string): string | null {
+function resolveSourcePath(
+  distRoot: string,
+  source: string,
+  importer?: string,
+): string | null {
   if (source.startsWith('@go/')) {
     return null
   }
   if (source.startsWith('vendor/')) {
-    return source
+    return resolve(distRoot, source)
   }
   if (isAbsolute(source)) {
     return source
@@ -58,8 +63,11 @@ function resolveSourcePath(source: string, importer?: string): string | null {
 // buildGoAliases builds Vite aliases for vendored and monorepo-local @go
 // imports. The local module path is read from projectRoot/go.mod so the same
 // helper works for any repo consuming bldr; @go/<module>/* maps to project
-// source while every other @go/* falls back to projectRoot/vendor.
-export function buildGoAliases(projectRoot: string): Alias[] {
+// source while every other @go/* falls back to distRoot/vendor.
+export function buildGoAliases(
+  projectRoot: string,
+  distRoot = projectRoot,
+): Alias[] {
   const aliases: Alias[] = []
   const localModule = readLocalModuleSync(projectRoot)
   if (localModule) {
@@ -71,7 +79,7 @@ export function buildGoAliases(projectRoot: string): Alias[] {
   }
   aliases.push({
     find: /^@go\/(.*)$/,
-    replacement: resolve(projectRoot, 'vendor', '$1'),
+    replacement: resolve(distRoot, 'vendor', '$1'),
   })
   return aliases
 }
@@ -80,7 +88,10 @@ export function buildGoAliases(projectRoot: string): Alias[] {
  * Creates a Vite plugin that resolves @go/ paths that end in .js to their .ts equivalents
  * when the .ts file exists but the .js file doesn't
  */
-export function goTsResolver(projectRoot: string): Plugin {
+export function goTsResolver(
+  projectRoot: string,
+  distRoot = projectRoot,
+): Plugin {
   const localModule = readLocalModuleSync(projectRoot)
   const tsPathCache = new Map<string, Promise<string | null>>()
   return {
@@ -99,8 +110,8 @@ export function goTsResolver(projectRoot: string): Plugin {
       }
 
       const sourcePath =
-        resolveGoImportPath(projectRoot, localModule, source) ??
-        resolveSourcePath(source, importer)
+        resolveGoImportPath(projectRoot, distRoot, localModule, source) ??
+        resolveSourcePath(distRoot, source, importer)
       if (!sourcePath) {
         return null
       }
