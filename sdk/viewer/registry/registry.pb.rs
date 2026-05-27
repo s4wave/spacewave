@@ -18,6 +18,9 @@ pub struct ViewerRegistration {
     /// DevModeOnly indicates this viewer is only shown when dev mode is enabled.
     #[prost(bool, tag="5")]
     pub dev_mode_only: bool,
+    /// ComponentId is the stable ID used for persisted viewer selection.
+    #[prost(string, tag="6")]
+    pub component_id: ::prost::alloc::string::String,
 }
 /// RegisterViewerRequest is the request type for RegisterViewer.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

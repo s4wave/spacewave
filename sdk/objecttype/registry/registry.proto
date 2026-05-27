@@ -13,6 +13,30 @@ service ObjectTypeHandlerService {
     returns (InvokeObjectTypeResponse);
 }
 
+// ObjectTypeVisibility controls where an ObjectType should appear.
+enum ObjectTypeVisibility {
+  // OBJECT_TYPE_VISIBILITY_UNSPECIFIED uses the default visible behavior.
+  OBJECT_TYPE_VISIBILITY_UNSPECIFIED = 0;
+  // OBJECT_TYPE_VISIBILITY_VISIBLE makes the ObjectType visible in browsers and links.
+  OBJECT_TYPE_VISIBILITY_VISIBLE = 1;
+  // OBJECT_TYPE_VISIBILITY_HIDDEN hides the ObjectType from routine browsing.
+  OBJECT_TYPE_VISIBILITY_HIDDEN = 2;
+  // OBJECT_TYPE_VISIBILITY_INTERNAL is for implementation-owned objects.
+  OBJECT_TYPE_VISIBILITY_INTERNAL = 3;
+}
+
+// ObjectTypeMetadata is user-facing metadata for an ObjectType.
+message ObjectTypeMetadata {
+  // DisplayName is the readable label for the ObjectType.
+  string display_name = 1;
+  // IconName is a stable icon key understood by Spacewave UI.
+  string icon_name = 2;
+  // Visibility controls where the ObjectType appears.
+  ObjectTypeVisibility visibility = 3;
+  // Description is optional supporting copy for browsers and links.
+  string description = 4;
+}
+
 // ObjectTypeRegistration is a registered ObjectType.
 message ObjectTypeRegistration {
   // TypeId is the ObjectType ID (e.g. "notes/notebook").
@@ -21,6 +45,8 @@ message ObjectTypeRegistration {
   uint32 registration_id = 2;
   // PluginId is the source plugin.
   string plugin_id = 3;
+  // Metadata is user-facing display metadata for the ObjectType.
+  ObjectTypeMetadata metadata = 4;
 }
 
 // RegisterObjectTypeRequest is the request for RegisterObjectType.
@@ -29,6 +55,8 @@ message RegisterObjectTypeRequest {
   string type_id = 1;
   // PluginId is the registering plugin's ID.
   string plugin_id = 2;
+  // Metadata is user-facing display metadata for the ObjectType.
+  ObjectTypeMetadata metadata = 3;
 }
 
 // RegisterObjectTypeResponse is the response for RegisterObjectType.

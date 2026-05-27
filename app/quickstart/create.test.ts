@@ -161,12 +161,12 @@ function registeredNotesQuickstart(id: string) {
 function watchQuickstartRegistrations(
   ...registrations: Array<Array<{ quickstartId: string; pluginId: string }>>
 ) {
-  let index = 0
+  const cursor = { index: 0 }
   return {
     [Symbol.asyncIterator]() {
       return {
         next() {
-          if (index >= registrations.length) {
+          if (cursor.index >= registrations.length) {
             return Promise.resolve({
               done: true,
               value: undefined,
@@ -174,8 +174,8 @@ function watchQuickstartRegistrations(
               registrations: Array<{ quickstartId: string; pluginId: string }>
             }>)
           }
-          const batch = registrations[index]
-          index += 1
+          const batch = registrations[cursor.index]
+          cursor.index += 1
           return Promise.resolve({
             done: false,
             value: { registrations: batch },
@@ -331,7 +331,7 @@ describe('quickstart create', () => {
 
   it('executes dynamic quickstarts through the registry and applies returned routing', async () => {
     quickstartRegistryMocks.ExecuteQuickstart.mockResolvedValue({
-      indexPath: 'glados/org-chart',
+      indexPath: 'glados/operator-home',
       pluginIds: ['glados-core', 'glados-web'],
     })
     const { world, applyWorldOp } = buildQuickstartWorld()
@@ -349,7 +349,8 @@ describe('quickstart create', () => {
       { quickstartId: 'glados-workspace', spaceResourceId: 42 },
       undefined,
     )
-    expect(getSettingsIndexPath(applyWorldOp)).toBe('glados/org-chart')
+    expect(getSettingsIndexPath(applyWorldOp)).toBe('glados/operator-home')
+    expect(getSettingsIndexPath(applyWorldOp)).not.toBe('glados/org-chart')
     const settingsCall = applyWorldOp.mock.calls.find(
       (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
     )

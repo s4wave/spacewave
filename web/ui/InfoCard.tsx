@@ -9,7 +9,7 @@ export interface InfoCardProps {
 
 export function InfoCard({ icon, title, children }: InfoCardProps) {
   return (
-    <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5 backdrop-blur-sm">
+    <div className="border-foreground/6 bg-background-card/30 min-w-0 rounded-lg border p-3.5 backdrop-blur-sm">
       {title && (
         <h3 className="text-foreground mb-3 flex items-center gap-2 text-sm select-none">
           {icon}

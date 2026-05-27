@@ -47,6 +47,7 @@ describe('ObjectViewerContent', () => {
         }>(() => {}),
     )
     const component: ObjectViewerComponent = {
+      componentID: 'glados.llm-session.viewer',
       typeID: 'glados/llm-session',
       name: 'LlmSession',
       component: PendingViewer,
@@ -77,6 +78,7 @@ describe('ObjectViewerContent', () => {
       ),
     )
     const component: ObjectViewerComponent = {
+      componentID: 'glados.workfront.viewer',
       typeID: 'glados/workfront',
       name: 'Workfront',
       component: BrokenViewer,

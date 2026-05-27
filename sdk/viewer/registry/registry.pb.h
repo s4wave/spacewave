@@ -383,6 +383,7 @@ class ViewerRegistration final : public ::google::protobuf::Message
     kViewerNameFieldNumber = 2,
     kScriptPathFieldNumber = 3,
     kCategoryFieldNumber = 4,
+    kComponentIdFieldNumber = 6,
     kDevModeOnlyFieldNumber = 5,
   };
   // string type_id = 1;
@@ -445,6 +446,21 @@ class ViewerRegistration final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_category();
 
   public:
+  // string component_id = 6;
+  void clear_component_id() ;
+  const ::std::string& component_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_component_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_component_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_component_id();
+  void set_allocated_component_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_component_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_component_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_component_id();
+
+  public:
   // bool dev_mode_only = 5;
   void clear_dev_mode_only() ;
   bool dev_mode_only() const;
@@ -459,8 +475,8 @@ class ViewerRegistration final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   0, 87,
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 99,
                                    2>
       _table_;
 
@@ -485,6 +501,7 @@ class ViewerRegistration final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr viewer_name_;
     ::google::protobuf::internal::ArenaStringPtr script_path_;
     ::google::protobuf::internal::ArenaStringPtr category_;
+    ::google::protobuf::internal::ArenaStringPtr component_id_;
     bool dev_mode_only_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1688,7 +1705,7 @@ inline void ViewerRegistration::clear_dev_mode_only() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_mode_only_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline bool ViewerRegistration::dev_mode_only() const {
   // @@protoc_insertion_point(field_get:s4wave.viewer.registry.ViewerRegistration.dev_mode_only)
@@ -1696,7 +1713,7 @@ inline bool ViewerRegistration::dev_mode_only() const {
 }
 inline void ViewerRegistration::set_dev_mode_only(bool value) {
   _internal_set_dev_mode_only(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:s4wave.viewer.registry.ViewerRegistration.dev_mode_only)
 }
 inline bool ViewerRegistration::_internal_dev_mode_only() const {
@@ -1706,6 +1723,71 @@ inline bool ViewerRegistration::_internal_dev_mode_only() const {
 inline void ViewerRegistration::_internal_set_dev_mode_only(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_mode_only_ = value;
+}
+
+// string component_id = 6;
+inline void ViewerRegistration::clear_component_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.component_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& ViewerRegistration::component_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.viewer.registry.ViewerRegistration.component_id)
+  return _internal_component_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ViewerRegistration::set_component_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.component_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.viewer.registry.ViewerRegistration.component_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ViewerRegistration::mutable_component_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_component_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.viewer.registry.ViewerRegistration.component_id)
+  return _s;
+}
+inline const ::std::string& ViewerRegistration::_internal_component_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.component_id_.Get();
+}
+inline void ViewerRegistration::_internal_set_component_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.component_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ViewerRegistration::_internal_mutable_component_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.component_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ViewerRegistration::release_component_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.viewer.registry.ViewerRegistration.component_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.component_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.component_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ViewerRegistration::set_allocated_component_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.component_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.component_id_.IsDefault()) {
+    _impl_.component_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.viewer.registry.ViewerRegistration.component_id)
 }
 
 // -------------------------------------------------------------------

@@ -10,6 +10,7 @@ import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
 
 function makeComponent(name: string): ObjectViewerComponent {
   return {
+    componentID: `test.${name}`,
     typeID: 'test-type',
     name,
     component: () => null,

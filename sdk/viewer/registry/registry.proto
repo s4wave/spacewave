@@ -19,6 +19,8 @@ message ViewerRegistration {
   string category = 4;
   // DevModeOnly indicates this viewer is only shown when dev mode is enabled.
   bool dev_mode_only = 5;
+  // ComponentId is the stable ID used for persisted viewer selection.
+  string component_id = 6;
 }
 
 // RegisterViewerRequest is the request type for RegisterViewer.

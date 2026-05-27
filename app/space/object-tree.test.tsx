@@ -2,6 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import type { WorldContentsObject } from '@s4wave/core/space/world/world.pb.js'
 import {
+  ObjectTypeVisibility,
+  type ObjectTypeRegistration,
+} from '@s4wave/sdk/objecttype/registry/registry.pb.js'
+import {
+  buildObjectTypeMetadataMap,
   buildObjectTree,
   HIDDEN_OBJECT_TYPES,
   getObjectTypeLabel,
@@ -40,9 +45,39 @@ describe('isHiddenSpaceObject', () => {
       ),
     ).toBe(true)
   })
+
+  it('hides object types marked hidden or internal by metadata', () => {
+    const metadata = buildObjectTypeMetadataMap([
+      {
+        typeId: 'plugin/internal',
+        registrationId: 1,
+        metadata: { visibility: ObjectTypeVisibility.INTERNAL },
+      },
+      {
+        typeId: 'plugin/hidden',
+        registrationId: 2,
+        metadata: { visibility: ObjectTypeVisibility.HIDDEN },
+      },
+    ])
+    expect(isHiddenSpaceObject('internal', 'plugin/internal', metadata)).toBe(
+      true,
+    )
+    expect(isHiddenSpaceObject('hidden', 'plugin/hidden', metadata)).toBe(true)
+  })
 })
 
 describe('getObjectTypeLabel', () => {
+  it('returns registered display metadata before static fallbacks', () => {
+    const metadata = buildObjectTypeMetadataMap([
+      {
+        typeId: 'canvas',
+        registrationId: 1,
+        metadata: { displayName: 'Board' },
+      },
+    ])
+    expect(getObjectTypeLabel('canvas', metadata)).toBe('Board')
+  })
+
   it('returns Layout for alpha/object-layout', () => {
     expect(getObjectTypeLabel('alpha/object-layout')).toBe('Layout')
   })
@@ -73,6 +108,17 @@ describe('getObjectTypeLabel', () => {
 })
 
 describe('getObjectTypeIcon', () => {
+  it('returns registered icons before static fallbacks', () => {
+    const metadata = buildObjectTypeMetadataMap([
+      {
+        typeId: 'canvas',
+        registrationId: 1,
+        metadata: { iconName: 'bot' },
+      },
+    ])
+    expect(getObjectTypeIcon('canvas', metadata)).toBeDefined()
+  })
+
   it('returns a React element for alpha/object-layout', () => {
     expect(getObjectTypeIcon('alpha/object-layout')).toBeDefined()
   })
@@ -98,6 +144,25 @@ describe('getObjectTypeIcon', () => {
   })
 })
 
+describe('buildObjectTypeMetadataMap', () => {
+  it('keeps the first registration for a type by registration ID', () => {
+    const registrations: ObjectTypeRegistration[] = [
+      {
+        typeId: 'plugin/object',
+        registrationId: 2,
+        metadata: { displayName: 'Second' },
+      },
+      {
+        typeId: 'plugin/object',
+        registrationId: 1,
+        metadata: { displayName: 'First' },
+      },
+    ]
+    const metadata = buildObjectTypeMetadataMap(registrations)
+    expect(metadata.get('plugin/object')?.displayName).toBe('First')
+  })
+})
+
 describe('buildObjectTree', () => {
   it('returns empty array for empty input', () => {
     expect(buildObjectTree([])).toEqual([])
@@ -113,6 +178,8 @@ describe('buildObjectTree', () => {
     expect(result[0].name).toBe('readme')
     expect(result[0].data?.objectKey).toBe('readme')
     expect(result[0].data?.objectType).toBe('unixfs/fs-node')
+    expect(result[0].data?.objectTypeLabel).toBe('File System')
+    expect(result[0].detail).toBe('File System')
     expect(result[0].data?.isVirtual).toBe(false)
   })
 
@@ -126,6 +193,7 @@ describe('buildObjectTree', () => {
     expect(result[0].name).toBe('dir')
     expect(result[0].data?.isVirtual).toBe(true)
     expect(result[0].data?.objectType).toBe('')
+    expect(result[0].detail).toBe('')
     expect(result[0].children).toHaveLength(1)
     expect(result[0].children![0].id).toBe('dir/file')
     expect(result[0].children![0].name).toBe('file')
@@ -154,6 +222,46 @@ describe('buildObjectTree', () => {
       { objectKey: 'doc', objectType: 'canvas' },
     ]
     const result = buildObjectTree(objects)
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('doc')
+  })
+
+  it('uses metadata labels and descriptions in leaf node data', () => {
+    const metadata = buildObjectTypeMetadataMap([
+      {
+        typeId: 'glados/operator-home',
+        registrationId: 1,
+        metadata: {
+          displayName: 'GLaDOS Home',
+          description: 'Operator command surface.',
+        },
+      },
+    ])
+    const objects: WorldContentsObject[] = [
+      { objectKey: 'glados-home', objectType: 'glados/operator-home' },
+    ]
+    const result = buildObjectTree(objects, metadata)
+    expect(result[0].name).toBe('glados-home')
+    expect(result[0].detail).toBe('GLaDOS Home')
+    expect(result[0].data?.objectTypeLabel).toBe('GLaDOS Home')
+    expect(result[0].data?.objectTypeDescription).toBe(
+      'Operator command surface.',
+    )
+  })
+
+  it('filters objects hidden by registered metadata', () => {
+    const metadata = buildObjectTypeMetadataMap([
+      {
+        typeId: 'plugin/internal',
+        registrationId: 1,
+        metadata: { visibility: ObjectTypeVisibility.INTERNAL },
+      },
+    ])
+    const objects: WorldContentsObject[] = [
+      { objectKey: 'internal', objectType: 'plugin/internal' },
+      { objectKey: 'doc', objectType: 'canvas' },
+    ]
+    const result = buildObjectTree(objects, metadata)
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('doc')
   })

@@ -76,7 +76,7 @@ function useDynamicViewers(
     WatchViewersRequest.equals,
     WatchViewersResponse.equals,
     viewerGetRegs,
-    registrationToViewer,
+    viewerRegistrationToComponent,
   )
 }
 
@@ -107,20 +107,21 @@ export function getViewersForType(
   return [...exact, ...prefix, ...wildcard]
 }
 
-// registrationToViewer converts a ViewerRegistration to an ObjectViewerComponent.
+// viewerRegistrationToComponent converts a ViewerRegistration to an ObjectViewerComponent.
 // Uses React.lazy to dynamically load the viewer module from the script path.
-function registrationToViewer(
+export function viewerRegistrationToComponent(
   reg: ViewerRegistration,
 ): ObjectViewerComponent | null {
+  const componentId = reg.componentId
   const typeId = reg.typeId
   const scriptPath = reg.scriptPath
-  if (!typeId || !scriptPath) return null
+  if (!componentId || !typeId || !scriptPath) return null
 
   return {
+    componentID: componentId,
     typeID: typeId,
     name: reg.viewerName || typeId,
     category: reg.category || undefined,
-    // eslint-disable-next-line react-doctor/no-dynamic-import-path
     component: React.lazy(() => import(/* @vite-ignore */ scriptPath)),
   }
 }

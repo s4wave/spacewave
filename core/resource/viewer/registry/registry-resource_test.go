@@ -72,9 +72,10 @@ func TestRegisterViewerReleaseRemovesRegistration(t *testing.T) {
 
 	resp, err := svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
 		Registration: &s4wave_viewer_registry.ViewerRegistration{
-			TypeId:     "spacewave/test",
-			ViewerName: "Test",
-			ScriptPath: "/viewer.js",
+			TypeId:      "spacewave/test",
+			ViewerName:  "Test",
+			ScriptPath:  "/viewer.js",
+			ComponentId: "spacewave.test.viewer",
 		},
 	})
 	if err != nil {
@@ -90,6 +91,9 @@ func TestRegisterViewerReleaseRemovesRegistration(t *testing.T) {
 	}
 	if len(list.GetRegistrations()) != 1 {
 		t.Fatalf("expected 1 registration, got %d", len(list.GetRegistrations()))
+	}
+	if list.GetRegistrations()[0].GetComponentId() != "spacewave.test.viewer" {
+		t.Fatalf("expected component id to round trip, got %q", list.GetRegistrations()[0].GetComponentId())
 	}
 
 	var waitCh <-chan struct{}
@@ -112,5 +116,64 @@ func TestRegisterViewerReleaseRemovesRegistration(t *testing.T) {
 	}
 	if len(list.GetRegistrations()) != 0 {
 		t.Fatalf("expected registration release to remove viewer, got %d", len(list.GetRegistrations()))
+	}
+}
+
+func TestRegisterViewerRequiresComponentID(t *testing.T) {
+	ctx, client, _ := setupViewerRegistryClient(t)
+
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_viewer_registry.NewSRPCViewerRegistryResourceServiceClient(rootClient)
+
+	_, err = svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
+		Registration: &s4wave_viewer_registry.ViewerRegistration{
+			TypeId:     "spacewave/test",
+			ViewerName: "Test",
+			ScriptPath: "/viewer.js",
+		},
+	})
+	if err == nil {
+		t.Fatal("expected component id validation error")
+	}
+}
+
+func TestRegisterViewerClonesRegistrationState(t *testing.T) {
+	ctx, client, _ := setupViewerRegistryClient(t)
+
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_viewer_registry.NewSRPCViewerRegistryResourceServiceClient(rootClient)
+
+	reg := &s4wave_viewer_registry.ViewerRegistration{
+		TypeId:      "spacewave/test",
+		ViewerName:  "Test",
+		ScriptPath:  "/viewer.js",
+		ComponentId: "spacewave.test.viewer",
+	}
+	resp, err := svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
+		Registration: reg,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ref := client.CreateResourceReference(resp.GetResourceId())
+	t.Cleanup(ref.Release)
+
+	reg.ComponentId = "mutated.viewer"
+	list, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if list.GetRegistrations()[0].GetComponentId() != "spacewave.test.viewer" {
+		t.Fatalf("expected cloned component id, got %q", list.GetRegistrations()[0].GetComponentId())
 	}
 }

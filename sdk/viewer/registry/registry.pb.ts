@@ -43,6 +43,12 @@ export interface ViewerRegistration {
    * @generated from field: bool dev_mode_only = 5;
    */
   devModeOnly?: boolean
+  /**
+   * ComponentId is the stable ID used for persisted viewer selection.
+   *
+   * @generated from field: string component_id = 6;
+   */
+  componentId?: string
 }
 
 // ViewerRegistration contains the message type declaration for ViewerRegistration.
@@ -55,6 +61,7 @@ export const ViewerRegistration: MessageType<ViewerRegistration> =
       { no: 3, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'category', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'dev_mode_only', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'component_id', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

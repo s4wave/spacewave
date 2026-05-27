@@ -743,6 +743,7 @@ export function startNotesBackend(
           registration: {
             typeId: 'notes/notebook',
             viewerName: 'Notebook',
+            componentId: 'notes.notebook.viewer',
             scriptPath: notebookViewerScript,
           },
         },
@@ -756,6 +757,7 @@ export function startNotesBackend(
           registration: {
             typeId: 'notes/blog',
             viewerName: 'Blog',
+            componentId: 'notes.blog.viewer',
             scriptPath: blogViewerScript,
           },
         },
@@ -767,6 +769,7 @@ export function startNotesBackend(
           registration: {
             typeId: 'notes/docs',
             viewerName: 'Documentation',
+            componentId: 'notes.docs.viewer',
             scriptPath: docsViewerScript,
           },
         },
@@ -778,6 +781,7 @@ export function startNotesBackend(
           registration: {
             typeId: 'wizard/notes/notebook',
             viewerName: 'Notebook Wizard',
+            componentId: 'notes.notebook-wizard.viewer',
             scriptPath: notesWizardViewerScript,
           },
         },
@@ -794,6 +798,7 @@ export function startNotesBackend(
           registration: {
             typeId: 'wizard/notes/docs',
             viewerName: 'Documentation Wizard',
+            componentId: 'notes.docs-wizard.viewer',
             scriptPath: notesWizardViewerScript,
           },
         },
@@ -807,6 +812,7 @@ export function startNotesBackend(
           registration: {
             typeId: 'wizard/notes/blog',
             viewerName: 'Blog Wizard',
+            componentId: 'notes.blog-wizard.viewer',
             scriptPath: notesWizardViewerScript,
           },
         },

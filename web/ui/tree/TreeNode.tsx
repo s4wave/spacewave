@@ -4,6 +4,7 @@ import { TreeState } from './TreeState.js'
 export interface TreeNode<T = void> {
   id: string
   name: string
+  detail?: string
   icon?: React.ReactNode
   children?: TreeNode<T>[]
   data?: T

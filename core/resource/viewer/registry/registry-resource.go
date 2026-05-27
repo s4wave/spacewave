@@ -51,6 +51,9 @@ func (r *ViewerRegistryResource) RegisterViewer(
 	if reg.GetScriptPath() == "" {
 		return nil, ErrScriptPathRequired
 	}
+	if reg.GetComponentId() == "" {
+		return nil, ErrComponentIdRequired
+	}
 
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
@@ -61,7 +64,7 @@ func (r *ViewerRegistryResource) RegisterViewer(
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		regID = r.nextID
 		r.nextID++
-		r.registrations[regID] = reg
+		r.registrations[regID] = reg.CloneVT()
 		broadcast()
 	})
 

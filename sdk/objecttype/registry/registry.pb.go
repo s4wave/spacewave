@@ -15,6 +15,97 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// ObjectTypeVisibility controls where an ObjectType should appear.
+type ObjectTypeVisibility int32
+
+const (
+	// OBJECT_TYPE_VISIBILITY_UNSPECIFIED uses the default visible behavior.
+	ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_UNSPECIFIED ObjectTypeVisibility = 0
+	// OBJECT_TYPE_VISIBILITY_VISIBLE makes the ObjectType visible in browsers and links.
+	ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_VISIBLE ObjectTypeVisibility = 1
+	// OBJECT_TYPE_VISIBILITY_HIDDEN hides the ObjectType from routine browsing.
+	ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_HIDDEN ObjectTypeVisibility = 2
+	// OBJECT_TYPE_VISIBILITY_INTERNAL is for implementation-owned objects.
+	ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_INTERNAL ObjectTypeVisibility = 3
+)
+
+// Enum value maps for ObjectTypeVisibility.
+var (
+	ObjectTypeVisibility_name = map[int32]string{
+		0: "OBJECT_TYPE_VISIBILITY_UNSPECIFIED",
+		1: "OBJECT_TYPE_VISIBILITY_VISIBLE",
+		2: "OBJECT_TYPE_VISIBILITY_HIDDEN",
+		3: "OBJECT_TYPE_VISIBILITY_INTERNAL",
+	}
+	ObjectTypeVisibility_value = map[string]int32{
+		"OBJECT_TYPE_VISIBILITY_UNSPECIFIED": 0,
+		"OBJECT_TYPE_VISIBILITY_VISIBLE":     1,
+		"OBJECT_TYPE_VISIBILITY_HIDDEN":      2,
+		"OBJECT_TYPE_VISIBILITY_INTERNAL":    3,
+	}
+)
+
+func (x ObjectTypeVisibility) Enum() *ObjectTypeVisibility {
+	p := new(ObjectTypeVisibility)
+	*p = x
+	return p
+}
+
+func (x ObjectTypeVisibility) String() string {
+	name, valid := ObjectTypeVisibility_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// ObjectTypeMetadata is user-facing metadata for an ObjectType.
+type ObjectTypeMetadata struct {
+	unknownFields []byte
+	// DisplayName is the readable label for the ObjectType.
+	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"displayName,omitempty"`
+	// IconName is a stable icon key understood by Spacewave UI.
+	IconName string `protobuf:"bytes,2,opt,name=icon_name,json=iconName,proto3" json:"iconName,omitempty"`
+	// Visibility controls where the ObjectType appears.
+	Visibility ObjectTypeVisibility `protobuf:"varint,3,opt,name=visibility,proto3" json:"visibility,omitempty"`
+	// Description is optional supporting copy for browsers and links.
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+}
+
+func (x *ObjectTypeMetadata) Reset() {
+	*x = ObjectTypeMetadata{}
+}
+
+func (*ObjectTypeMetadata) ProtoMessage() {}
+
+func (x *ObjectTypeMetadata) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *ObjectTypeMetadata) GetIconName() string {
+	if x != nil {
+		return x.IconName
+	}
+	return ""
+}
+
+func (x *ObjectTypeMetadata) GetVisibility() ObjectTypeVisibility {
+	if x != nil {
+		return x.Visibility
+	}
+	return ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_UNSPECIFIED
+}
+
+func (x *ObjectTypeMetadata) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
 // ObjectTypeRegistration is a registered ObjectType.
 type ObjectTypeRegistration struct {
 	unknownFields []byte
@@ -24,6 +115,8 @@ type ObjectTypeRegistration struct {
 	RegistrationId uint32 `protobuf:"varint,2,opt,name=registration_id,json=registrationId,proto3" json:"registrationId,omitempty"`
 	// PluginId is the source plugin.
 	PluginId string `protobuf:"bytes,3,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// Metadata is user-facing display metadata for the ObjectType.
+	Metadata *ObjectTypeMetadata `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
 }
 
 func (x *ObjectTypeRegistration) Reset() {
@@ -53,6 +146,13 @@ func (x *ObjectTypeRegistration) GetPluginId() string {
 	return ""
 }
 
+func (x *ObjectTypeRegistration) GetMetadata() *ObjectTypeMetadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
 // RegisterObjectTypeRequest is the request for RegisterObjectType.
 type RegisterObjectTypeRequest struct {
 	unknownFields []byte
@@ -60,6 +160,8 @@ type RegisterObjectTypeRequest struct {
 	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
 	// PluginId is the registering plugin's ID.
 	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// Metadata is user-facing display metadata for the ObjectType.
+	Metadata *ObjectTypeMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 }
 
 func (x *RegisterObjectTypeRequest) Reset() {
@@ -80,6 +182,13 @@ func (x *RegisterObjectTypeRequest) GetPluginId() string {
 		return x.PluginId
 	}
 	return ""
+}
+
+func (x *RegisterObjectTypeRequest) GetMetadata() *ObjectTypeMetadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
 }
 
 // RegisterObjectTypeResponse is the response for RegisterObjectType.
@@ -191,6 +300,25 @@ func (x *InvokeObjectTypeResponse) GetResourceId() uint32 {
 	return 0
 }
 
+func (m *ObjectTypeMetadata) CloneVT() *ObjectTypeMetadata {
+	if m == nil {
+		return (*ObjectTypeMetadata)(nil)
+	}
+	r := new(ObjectTypeMetadata)
+	r.DisplayName = m.DisplayName
+	r.IconName = m.IconName
+	r.Visibility = m.Visibility
+	r.Description = m.Description
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectTypeMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ObjectTypeRegistration) CloneVT() *ObjectTypeRegistration {
 	if m == nil {
 		return (*ObjectTypeRegistration)(nil)
@@ -199,6 +327,7 @@ func (m *ObjectTypeRegistration) CloneVT() *ObjectTypeRegistration {
 	r.TypeId = m.TypeId
 	r.RegistrationId = m.RegistrationId
 	r.PluginId = m.PluginId
+	r.Metadata = m.Metadata.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -216,6 +345,7 @@ func (m *RegisterObjectTypeRequest) CloneVT() *RegisterObjectTypeRequest {
 	r := new(RegisterObjectTypeRequest)
 	r.TypeId = m.TypeId
 	r.PluginId = m.PluginId
+	r.Metadata = m.Metadata.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -312,6 +442,35 @@ func (m *InvokeObjectTypeResponse) CloneMessageVT() protobuf_go_lite.CloneMessag
 	return m.CloneVT()
 }
 
+func (this *ObjectTypeMetadata) EqualVT(that *ObjectTypeMetadata) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DisplayName != that.DisplayName {
+		return false
+	}
+	if this.IconName != that.IconName {
+		return false
+	}
+	if this.Visibility != that.Visibility {
+		return false
+	}
+	if this.Description != that.Description {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectTypeMetadata) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectTypeMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *ObjectTypeRegistration) EqualVT(that *ObjectTypeRegistration) bool {
 	if this == that {
 		return true
@@ -325,6 +484,9 @@ func (this *ObjectTypeRegistration) EqualVT(that *ObjectTypeRegistration) bool {
 		return false
 	}
 	if this.PluginId != that.PluginId {
+		return false
+	}
+	if !this.Metadata.EqualVT(that.Metadata) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -348,6 +510,9 @@ func (this *RegisterObjectTypeRequest) EqualVT(that *RegisterObjectTypeRequest) 
 		return false
 	}
 	if this.PluginId != that.PluginId {
+		return false
+	}
+	if !this.Metadata.EqualVT(that.Metadata) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -478,6 +643,112 @@ func (this *InvokeObjectTypeResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+// MarshalProtoJSON marshals the ObjectTypeVisibility to JSON.
+func (x ObjectTypeVisibility) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), ObjectTypeVisibility_name)
+}
+
+// MarshalText marshals the ObjectTypeVisibility to text.
+func (x ObjectTypeVisibility) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), ObjectTypeVisibility_name)), nil
+}
+
+// MarshalJSON marshals the ObjectTypeVisibility to JSON.
+func (x ObjectTypeVisibility) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectTypeVisibility from JSON.
+func (x *ObjectTypeVisibility) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(ObjectTypeVisibility_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read ObjectTypeVisibility enum: %v", err)
+		return
+	}
+	*x = ObjectTypeVisibility(v)
+}
+
+// UnmarshalText unmarshals the ObjectTypeVisibility from text.
+func (x *ObjectTypeVisibility) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), ObjectTypeVisibility_value)
+	if err != nil {
+		return err
+	}
+	*x = ObjectTypeVisibility(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the ObjectTypeVisibility from JSON.
+func (x *ObjectTypeVisibility) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ObjectTypeMetadata message to JSON.
+func (x *ObjectTypeMetadata) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.DisplayName != "" || s.HasField("displayName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("displayName")
+		s.WriteString(x.DisplayName)
+	}
+	if x.IconName != "" || s.HasField("iconName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("iconName")
+		s.WriteString(x.IconName)
+	}
+	if x.Visibility != 0 || s.HasField("visibility") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("visibility")
+		x.Visibility.MarshalProtoJSON(s)
+	}
+	if x.Description != "" || s.HasField("description") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("description")
+		s.WriteString(x.Description)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectTypeMetadata to JSON.
+func (x *ObjectTypeMetadata) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectTypeMetadata message from JSON.
+func (x *ObjectTypeMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "display_name", "displayName":
+			s.AddField("display_name")
+			x.DisplayName = s.ReadString()
+		case "icon_name", "iconName":
+			s.AddField("icon_name")
+			x.IconName = s.ReadString()
+		case "visibility":
+			s.AddField("visibility")
+			x.Visibility.UnmarshalProtoJSON(s)
+		case "description":
+			s.AddField("description")
+			x.Description = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectTypeMetadata from JSON.
+func (x *ObjectTypeMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ObjectTypeRegistration message to JSON.
 func (x *ObjectTypeRegistration) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -500,6 +771,11 @@ func (x *ObjectTypeRegistration) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("pluginId")
 		s.WriteString(x.PluginId)
+	}
+	if x.Metadata != nil || s.HasField("metadata") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("metadata")
+		x.Metadata.MarshalProtoJSON(s.WithField("metadata"))
 	}
 	s.WriteObjectEnd()
 }
@@ -527,6 +803,13 @@ func (x *ObjectTypeRegistration) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "plugin_id", "pluginId":
 			s.AddField("plugin_id")
 			x.PluginId = s.ReadString()
+		case "metadata":
+			if s.ReadNil() {
+				x.Metadata = nil
+				return
+			}
+			x.Metadata = &ObjectTypeMetadata{}
+			x.Metadata.UnmarshalProtoJSON(s.WithField("metadata", true))
 		}
 	})
 }
@@ -554,6 +837,11 @@ func (x *RegisterObjectTypeRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pluginId")
 		s.WriteString(x.PluginId)
 	}
+	if x.Metadata != nil || s.HasField("metadata") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("metadata")
+		x.Metadata.MarshalProtoJSON(s.WithField("metadata"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -577,6 +865,13 @@ func (x *RegisterObjectTypeRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "plugin_id", "pluginId":
 			s.AddField("plugin_id")
 			x.PluginId = s.ReadString()
+		case "metadata":
+			if s.ReadNil() {
+				x.Metadata = nil
+				return
+			}
+			x.Metadata = &ObjectTypeMetadata{}
+			x.Metadata.UnmarshalProtoJSON(s.WithField("metadata", true))
 		}
 	})
 }
@@ -821,6 +1116,65 @@ func (x *InvokeObjectTypeResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *ObjectTypeMetadata) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectTypeMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectTypeMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Description) > 0 {
+		i -= len(m.Description)
+		copy(dAtA[i:], m.Description)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Description)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Visibility != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Visibility))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.IconName) > 0 {
+		i -= len(m.IconName)
+		copy(dAtA[i:], m.IconName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.IconName)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.DisplayName) > 0 {
+		i -= len(m.DisplayName)
+		copy(dAtA[i:], m.DisplayName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DisplayName)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ObjectTypeRegistration) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -850,6 +1204,16 @@ func (m *ObjectTypeRegistration) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Metadata != nil {
+		size, err := m.Metadata.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.PluginId) > 0 {
 		i -= len(m.PluginId)
@@ -902,6 +1266,16 @@ func (m *RegisterObjectTypeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Metadata != nil {
+		size, err := m.Metadata.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.PluginId) > 0 {
 		i -= len(m.PluginId)
@@ -1126,6 +1500,31 @@ func (m *InvokeObjectTypeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
+func (m *ObjectTypeMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.DisplayName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.IconName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Visibility != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Visibility))
+	}
+	l = len(m.Description)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ObjectTypeRegistration) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1141,6 +1540,10 @@ func (m *ObjectTypeRegistration) SizeVT() (n int) {
 	}
 	l = len(m.PluginId)
 	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Metadata != nil {
+		l = m.Metadata.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1159,6 +1562,10 @@ func (m *RegisterObjectTypeRequest) SizeVT() (n int) {
 	}
 	l = len(m.PluginId)
 	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Metadata != nil {
+		l = m.Metadata.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1238,6 +1645,51 @@ func (m *InvokeObjectTypeResponse) SizeVT() (n int) {
 	return n
 }
 
+func (x ObjectTypeVisibility) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x *ObjectTypeMetadata) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ObjectTypeMetadata {")
+	if x.DisplayName != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("display_name: ")
+		sb.WriteString(strconv.Quote(x.DisplayName))
+	}
+	if x.IconName != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("icon_name: ")
+		sb.WriteString(strconv.Quote(x.IconName))
+	}
+	if x.Visibility != 0 {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("visibility: ")
+		sb.WriteString("\"")
+		sb.WriteString(ObjectTypeVisibility(x.Visibility).String())
+		sb.WriteString("\"")
+	}
+	if x.Description != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("description: ")
+		sb.WriteString(strconv.Quote(x.Description))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ObjectTypeMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *ObjectTypeRegistration) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ObjectTypeRegistration {")
@@ -1261,6 +1713,13 @@ func (x *ObjectTypeRegistration) MarshalProtoText() string {
 		}
 		sb.WriteString("plugin_id: ")
 		sb.WriteString(strconv.Quote(x.PluginId))
+	}
+	if x.Metadata != nil {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("metadata: ")
+		sb.WriteString(x.Metadata.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1286,6 +1745,13 @@ func (x *RegisterObjectTypeRequest) MarshalProtoText() string {
 		}
 		sb.WriteString("plugin_id: ")
 		sb.WriteString(strconv.Quote(x.PluginId))
+	}
+	if x.Metadata != nil {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("metadata: ")
+		sb.WriteString(x.Metadata.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1398,6 +1864,126 @@ func (x *InvokeObjectTypeResponse) String() string {
 	return x.MarshalProtoText()
 }
 
+func (m *ObjectTypeMetadata) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectTypeMetadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectTypeMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DisplayName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IconName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.IconName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Visibility", wireType)
+			}
+			m.Visibility = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Visibility = ObjectTypeVisibility(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Description", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Description = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *ObjectTypeRegistration) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1470,6 +2056,34 @@ func (m *ObjectTypeRegistration) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PluginId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Metadata == nil {
+				m.Metadata = &ObjectTypeMetadata{}
+			}
+			if err := m.Metadata.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1557,6 +2171,34 @@ func (m *RegisterObjectTypeRequest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PluginId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Metadata == nil {
+				m.Metadata = &ObjectTypeMetadata{}
+			}
+			if err := m.Metadata.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

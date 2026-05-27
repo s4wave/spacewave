@@ -15,6 +15,8 @@ export interface TabContextValue {
   addTab: (request: AddTabRequest) => Promise<AddTabResponse>
   // navigateTab navigates the current tab to a new path.
   navigateTab: (path: string) => Promise<NavigateTabResponse>
+  // isObjectLayout is true when the context is provided by an ObjectLayout tab.
+  isObjectLayout?: boolean
 }
 
 const TabContext = createContext<TabContextValue | null>(null)

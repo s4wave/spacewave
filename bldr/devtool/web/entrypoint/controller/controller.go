@@ -4,6 +4,7 @@ package devtool_web_entrypoint_controller
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -295,6 +296,10 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		true, // fetched manifest refs point at the devtool bucket
 		true, // no need to copy into browser storage in devtool mode
 	)
+	plugin_host_default.AllowBrowserNativePluginIDs(
+		pluginSchedConf,
+		externalStartupPluginIDs(devtoolInfo.GetStartPlugins()),
+	)
 	pluginSchedCtrl := plugin_host_scheduler.NewController(le, b, pluginSchedConf)
 	pluginSchecCtrlRel, err := b.AddController(ctx, pluginSchedCtrl, func(err error) {
 		le.WithError(err).Error("plugin scheduler controller failed")
@@ -359,6 +364,17 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	// wait to run all the defer calls until context cancels
 	<-ctx.Done()
 	return nil
+}
+
+func externalStartupPluginIDs(pluginIDs []string) []string {
+	out := make([]string, 0, len(pluginIDs))
+	for _, pluginID := range pluginIDs {
+		if pluginID == "" || pluginID == "web" || strings.HasPrefix(pluginID, "spacewave-") {
+			continue
+		}
+		out = append(out, pluginID)
+	}
+	return out
 }
 
 // HandleDirective asks if the handler can resolve the directive.

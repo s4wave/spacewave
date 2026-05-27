@@ -372,6 +372,7 @@ describe('v86 backend registration', () => {
       {
         typeId: 'vm/v86',
         viewerName: 'V86',
+        componentId: 'spacewave.v86.viewer',
         scriptPath: '/asset/spacewave-v86/v/b/fe/assets/v86-viewer.mjs',
       },
     ])

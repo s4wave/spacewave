@@ -120,10 +120,10 @@ export function TreeRow<T = void>({
     <div
       className={cn(
         'relative flex cursor-pointer items-center text-xs select-none',
-        'border-ui-outline border-b transition-colors',
-        isSelected && 'bg-ui-selected',
-        !isSelected && 'hover:bg-outliner-selected-highlight',
-        !isSelected && index % 2 === 1 && 'bg-file-row-alternate',
+        'border-foreground/6 border-b transition-colors',
+        isSelected && 'bg-brand/10',
+        !isSelected && 'hover:bg-background-card/50',
+        !isSelected && index % 2 === 1 && 'bg-background-card/20',
       )}
       draggable={!!nodeOnDragStart}
       onDragStart={nodeOnDragStart ? onDragStart : undefined}
@@ -143,7 +143,7 @@ export function TreeRow<T = void>({
       aria-current={isFocused ? 'true' : undefined}
       aria-setsize={node.children?.length}
       aria-posinset={level + 1}
-      aria-label={`${node.name}${hasChildren ? `, ${isExpanded ? 'expanded' : 'collapsed'}, ${node.children?.length} items` : ''}`}
+      aria-label={`${node.name}${node.detail ? `, ${node.detail}` : ''}${hasChildren ? `, ${isExpanded ? 'expanded' : 'collapsed'}, ${node.children?.length} items` : ''}`}
       aria-description={`Level ${level + 1}${isSelected ? ', selected' : ''}${isFocused ? ', focused' : ''}`}
       tabIndex={isFocused ? 0 : -1}
       onFocus={handleTreeItemFocus}
@@ -157,7 +157,7 @@ export function TreeRow<T = void>({
           {Array.from({ length: level }).map((_, i) => (
             <div
               key={i}
-              className="border-tree-indent-line absolute top-0 bottom-0 border-l"
+              className="border-foreground/6 absolute top-0 bottom-0 border-l"
               style={{ left: `${(i + 1) * levelIndentPx + 1.5}px` }}
             />
           ))}
@@ -165,7 +165,7 @@ export function TreeRow<T = void>({
       )}
       {hasChildren ? (
         <button
-          className="hover:bg-menu-hover rounded p-[2px]"
+          className="hover:bg-foreground/5 rounded p-[2px] transition-colors"
           onClick={handleToggle}
           tabIndex={-1}
           aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${node.name}`}
@@ -187,13 +187,21 @@ export function TreeRow<T = void>({
           {node.icon}
         </span>
       )}
-      <span className="ml-1 flex-1 truncate">{node.name}</span>
+      <span className="ml-1 min-w-0 flex-1 truncate">{node.name}</span>
+      {node.detail && (
+        <span
+          className="text-foreground-alt/60 ml-1 max-w-[45%] min-w-0 shrink truncate text-[0.6rem]"
+          title={node.detail}
+        >
+          {node.detail}
+        </span>
+      )}
       {node.icons && (
         <div className="mr-2 flex items-center gap-1">
           {node.icons.map((iconData, iconIndex) => (
             <button
               key={iconIndex}
-              className="text-foreground-alt hover:bg-menu-hover hover:text-foreground relative rounded p-[2px] [&>svg]:h-3 [&>svg]:w-3"
+              className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground relative rounded p-[2px] transition-colors [&>svg]:h-3 [&>svg]:w-3"
               onClick={(e) => {
                 e.stopPropagation()
                 iconData.onClick?.(e)

@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -368,7 +369,7 @@ func (l *webListener) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if req.URL.Path == "/" || req.URL.Path == "/index.html" {
-		l.serveBootShell(rw)
+		l.serveBootShell(rw, req)
 		return
 	}
 	if !l.isAuthorized(req) {
@@ -471,13 +472,89 @@ func (l *webListener) isAuthorized(req *http.Request) bool {
 	return ok
 }
 
-func (l *webListener) serveBootShell(rw http.ResponseWriter) {
+func (l *webListener) serveBootShell(rw http.ResponseWriter, req *http.Request) {
+	html, err := l.fetchReleaseRootHTML(req.Context())
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadGateway)
+		return
+	}
+	metadata, err := webListenerReleaseBootMetadataFromHTML(html)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadGateway)
+		return
+	}
+	shell, err := renderWebListenerBootShell(metadata)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rw.Header().Set("Cache-Control", "no-store")
 	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = rw.Write([]byte(`<!doctype html>
+	_, _ = rw.Write(shell)
+}
+
+func (l *webListener) fetchReleaseRootHTML(ctx context.Context) (string, error) {
+	remoteURL, err := url.JoinPath(webAppEndpoint(), "/")
+	if err != nil {
+		return "", err
+	}
+	upstreamReq, err := http.NewRequestWithContext(ctx, http.MethodGet, remoteURL, nil)
+	if err != nil {
+		return "", err
+	}
+	if auth := webAppAuthorization(); auth != "" {
+		upstreamReq.Header.Set("Authorization", auth)
+	}
+	resp, err := http.DefaultClient.Do(upstreamReq)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", errors.Errorf("spacewave: release root returned status %d", resp.StatusCode)
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+type webListenerReleaseBootMetadata struct {
+	importMapScript string
+	stylesheetLinks string
+}
+
+var (
+	releaseImportMapScriptRE = regexp.MustCompile(`(?is)<script\s+type=["']importmap["'][^>]*>.*?</script>`)
+	releaseStylesheetLinkRE  = regexp.MustCompile(`(?is)<link\s+[^>]*rel=["']stylesheet["'][^>]*>`)
+)
+
+func webListenerReleaseBootMetadataFromHTML(html string) (*webListenerReleaseBootMetadata, error) {
+	importMapScript := releaseImportMapScriptRE.FindString(html)
+	if importMapScript == "" {
+		return nil, errors.New("spacewave: release root missing import map")
+	}
+	return &webListenerReleaseBootMetadata{
+		importMapScript: importMapScript,
+		stylesheetLinks: strings.Join(releaseStylesheetLinkRE.FindAllString(html, -1), "\n"),
+	}, nil
+}
+
+func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata) ([]byte, error) {
+	stylesheetLinks := quoteWebListenerScriptString(metadata.stylesheetLinks)
+	return []byte(`<!doctype html>
 <meta charset="utf-8">
 <title>Spacewave</title>
-<div id="root">Starting Spacewave...</div>
+` + metadata.importMapScript + `
+<div id="bldr-root" role="main"></div>
 <script type="module">
+function setBootstrapFailure(message) {
+  const status = document.querySelector('[data-sw-boot-status]');
+  if (status) status.textContent = message;
+  const root = document.getElementById('bldr-root') || document.getElementById('root') || document.body;
+  if (root) root.textContent = message;
+}
 const params = new URLSearchParams(location.hash.slice(1));
 const otp = params.get('otp') || params.get('spacewave_bootstrap') || '';
 if (otp) {
@@ -486,13 +563,24 @@ if (otp) {
     headers: { 'X-Spacewave-Bootstrap': otp },
   });
   if (!boot.ok) {
-    document.getElementById('root').textContent = 'Spacewave bootstrap failed: ' + await boot.text();
+    setBootstrapFailure('Spacewave bootstrap failed: ' + await boot.text());
     throw new Error('Spacewave bootstrap failed');
   }
+  try { localStorage.setItem('spacewave-has-session', '1'); } catch (_) {}
   history.replaceState(null, '', location.pathname + location.search);
 }
+const stylesheetLinks = ` + string(stylesheetLinks) + `;
+if (stylesheetLinks) document.head.insertAdjacentHTML('beforeend', stylesheetLinks);
 await import('/boot.mjs');
-</script>`))
+</script>`), nil
+}
+
+func quoteWebListenerScriptString(value string) string {
+	quoted := strconv.Quote(value)
+	quoted = strings.ReplaceAll(quoted, "<", `\u003c`)
+	quoted = strings.ReplaceAll(quoted, ">", `\u003e`)
+	quoted = strings.ReplaceAll(quoted, "&", `\u0026`)
+	return quoted
 }
 
 func (l *webListener) serveNativeRuntimeHTTP(rw http.ResponseWriter, req *http.Request) {

@@ -20,6 +20,7 @@ describe('getObjectViewersForType', () => {
     }
     const dynamicViewers: ObjectViewerComponent[] = [
       {
+        componentID: 'plugin.custom.surface',
         typeID: 'plugin/custom',
         name: 'Plugin Surface',
         component: DynamicViewer,
@@ -52,16 +53,19 @@ describe('getObjectViewersForType', () => {
     }
     const dynamicViewers: ObjectViewerComponent[] = [
       {
+        componentID: 'notes.notebook.viewer',
         typeID: 'notes/notebook',
         name: 'Notebook',
         component: DynamicViewer,
       },
       {
+        componentID: 'notes.blog.viewer',
         typeID: 'notes/blog',
         name: 'Blog',
         component: DynamicViewer,
       },
       {
+        componentID: 'notes.docs.viewer',
         typeID: 'notes/docs',
         name: 'Documentation',
         component: DynamicViewer,
@@ -97,6 +101,7 @@ describe('getObjectViewersForType', () => {
     }
     const dynamicViewers: ObjectViewerComponent[] = [
       {
+        componentID: 'vm.v86.viewer',
         typeID: 'vm/v86',
         name: 'V86',
         component: DynamicViewer,

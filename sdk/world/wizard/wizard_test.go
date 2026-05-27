@@ -243,15 +243,15 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 
 	resp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
 		Wizard: &s4wave_wizard.ObjectWizard{
-			TypeId:             "glados/org-chart",
-			PluginId:           "glados-web",
-			DisplayName:        "Org Chart",
-			Category:           "Glados",
-			IconName:           "LuBot",
-			DefaultNamePattern: "Org Chart",
+			TypeId:             "example/project-board",
+			PluginId:           "example-plugin",
+			DisplayName:        "Project Board",
+			Category:           "Examples",
+			IconName:           "LuPanelTop",
+			DefaultNamePattern: "Project Board",
 			Persistent:         true,
-			WizardTypeId:       "wizard/glados/org-chart",
-			KeyPrefix:          "glados/org-chart/",
+			WizardTypeId:       "wizard/example/project-board",
+			KeyPrefix:          "example/project-board/",
 		},
 	})
 	if err != nil {
@@ -269,8 +269,8 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 		t.Fatalf("expected %d wizards, got %d", initialCount+1, len(list.GetWizards()))
 	}
 	registered := list.GetWizards()[initialCount]
-	if registered.GetTypeId() != "glados/org-chart" {
-		t.Fatalf("expected glados/org-chart, got %s", registered.GetTypeId())
+	if registered.GetTypeId() != "example/project-board" {
+		t.Fatalf("expected example/project-board, got %s", registered.GetTypeId())
 	}
 	if registered.GetRegistrationId() == 0 {
 		t.Fatal("expected assigned registration id")
@@ -283,7 +283,7 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 	}
 	var foundInSpaceRegistry bool
 	for _, wizard := range spaceList.GetWizards() {
-		if wizard.GetTypeId() == "glados/org-chart" {
+		if wizard.GetTypeId() == "example/project-board" {
 			foundInSpaceRegistry = true
 			break
 		}

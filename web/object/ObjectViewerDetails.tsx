@@ -22,6 +22,7 @@ export interface ObjectViewerDetailsProps {
   exportUrl?: string
   availableComponents: ObjectViewerComponent[]
   selectedComponent?: ObjectViewerComponent
+  missingComponentID?: string
   onComponentSelect: (component: ObjectViewerComponent) => void
   onCloseClick?: () => void
 }
@@ -34,6 +35,7 @@ export function ObjectViewerDetails({
   exportUrl,
   availableComponents,
   selectedComponent,
+  missingComponentID,
   onComponentSelect,
   onCloseClick,
 }: ObjectViewerDetailsProps) {
@@ -72,6 +74,12 @@ export function ObjectViewerDetails({
               <div className="space-y-2">
                 <CopyableField label="Object Key" value={objectKey} />
                 <CopyableField label="Type ID" value={typeID} />
+                {missingComponentID && (
+                  <CopyableField
+                    label="Missing Component ID"
+                    value={missingComponentID}
+                  />
+                )}
                 {rootRef && <CopyableField label="Root Ref" value={rootRef} />}
               </div>
             </InfoCard>
@@ -92,10 +100,10 @@ export function ObjectViewerDetails({
                 <div className="space-y-1.5">
                   {availableComponents.map((component) => {
                     const isSelected =
-                      selectedComponent?.name === component.name
+                      selectedComponent?.componentID === component.componentID
                     return (
                       <button
-                        key={component.name}
+                        key={component.componentID}
                         onClick={() => onComponentSelect(component)}
                         className={cn(
                           'border-foreground/8 hover:border-foreground/12 hover:bg-foreground/5 flex w-full cursor-pointer items-center justify-between rounded-lg border p-2.5 text-left transition-colors',
@@ -107,7 +115,7 @@ export function ObjectViewerDetails({
                             {component.name}
                           </p>
                           <p className="text-foreground-alt text-xs select-none">
-                            Type: {component.typeID}
+                            ID: {component.componentID}
                           </p>
                         </div>
                         {isSelected && (

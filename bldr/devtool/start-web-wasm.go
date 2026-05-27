@@ -17,6 +17,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	entrypoint_browser_build "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/build"
@@ -210,6 +211,12 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	}
 	defer holdOpenRef.Release()
 
+	relCachedManifestFetch, err := d.startCachedManifestFetchController(ctx)
+	if err != nil {
+		return err
+	}
+	defer relCachedManifestFetch()
+
 	// handle incoming srpc requests
 	rpcServer, err := stream_srpc_server.NewServer(
 		d.GetBus(),
@@ -370,4 +377,19 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		return nil
 	}
 	return err
+}
+
+func (d *DevtoolBus) startCachedManifestFetchController(ctx context.Context) (func(), error) {
+	conf := &manifest_fetch_world.Config{
+		EngineId:   d.GetWorldEngineID(),
+		ObjectKeys: []string{d.GetPluginHostObjectKey()},
+	}
+	ctrl := manifest_fetch_world.NewController(
+		d.GetLogger().WithField("source", "cached-devtool-manifests"),
+		d.GetBus(),
+		conf,
+	)
+	return d.GetBus().AddController(ctx, ctrl, func(err error) {
+		d.GetLogger().WithError(err).Error("cached manifest fetch controller failed")
+	})
 }

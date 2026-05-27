@@ -10,3 +10,6 @@ var ErrTypeIdRequired = errors.New("type_id is required")
 
 // ErrScriptPathRequired is returned when the script_path field is empty.
 var ErrScriptPathRequired = errors.New("script_path is required")
+
+// ErrComponentIdRequired is returned when the component_id field is empty.
+var ErrComponentIdRequired = errors.New("component_id is required")

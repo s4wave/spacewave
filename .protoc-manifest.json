@@ -3963,7 +3963,7 @@
       "protoFiles": ["sdk/layout/world/world.proto"]
     },
     "github.com/s4wave/spacewave/sdk/objecttype/registry": {
-      "hash": "9d16943e7958478b6e3e62ae480bcf104f3066dd1cda78c0b35b1959f78bac78",
+      "hash": "5bcea4a33d7f43aaed84bf86f2d272e7b7f51b487ef06587ed041ade5a81d5a8",
       "generatedFiles": [
         "sdk/objecttype/registry/registry.pb.cc",
         "sdk/objecttype/registry/registry.pb.go",
@@ -4258,7 +4258,7 @@
       "protoFiles": ["sdk/unixfs/handle.proto"]
     },
     "github.com/s4wave/spacewave/sdk/viewer/registry": {
-      "hash": "c11f98410150b9e4eafe9c6736a345ac70204c783ffabf5a6b201da821fe50da",
+      "hash": "4ff475fdd597dc05a1530b57fd0e7e957ab50b16631b1b9c30392c36449cc0da",
       "generatedFiles": [
         "sdk/viewer/registry/registry.pb.cc",
         "sdk/viewer/registry/registry.pb.go",

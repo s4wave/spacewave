@@ -99,12 +99,13 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	webStartupSrcPath, _ := currProjCtrl.GetConfig().GetProjectConfig().GetStart().ParseWebStartupPath()
+	projectConfig := currProjCtrl.GetConfig().GetProjectConfig()
+	webStartupSrcPath, _ := projectConfig.GetStart().ParseWebStartupPath()
 	preflightRemote := a.Remote
 	if preflightRemote == "" {
 		preflightRemote = "devtool"
 	}
-	startPlugins := currProjCtrl.GetConfig().GetProjectConfig().GetStart().GetPlugins()
+	startPlugins := projectOwnedStartupPlugins(projectConfig)
 	if len(startPlugins) != 0 {
 		le.WithField("plugin-count", len(startPlugins)).Info("preflighting startup manifests")
 		_, _, err = currProjCtrl.BuildManifests(
@@ -178,7 +179,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 	// run esbuild to compile the web entrypoint
 	le.Info("building websocket entrypoint")
 	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
-	_, err := entrypoint_browser_bundle.BuildBrowserBundle(
+	bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
 		le,
 		stateDir,
@@ -207,6 +208,9 @@ func (d *DevtoolBus) ExecuteWebWs(
 		return err
 	}
 	if err := entrypoint_browser_build.BuildWsRuntime(ctx, le, distSrcDir, wsRuntimeDir, minifyEntrypoint, !minifyEntrypoint); err != nil {
+		return err
+	}
+	if err := writeWebWsBuildManifest(entrypointDir, bundleResult); err != nil {
 		return err
 	}
 
@@ -249,6 +253,19 @@ func (d *DevtoolBus) ExecuteWebWs(
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
 	return server.ListenAndServe()
+}
+
+func writeWebWsBuildManifest(entrypointDir string, bundleResult *entrypoint_browser_bundle.BrowserBundleResult) error {
+	return entrypoint_browser_bundle.WriteBuildManifest(entrypointDir, &entrypoint_browser_bundle.BuildManifest{
+		Entrypoint:    bundleResult.EntrypointPath,
+		ServiceWorker: bundleResult.ServiceWorkerFilename,
+		SharedWorker:  bundleResult.SharedWorkerFilename,
+		// The websocket dev runtime has no runtime.wasm. boot.mjs still
+		// preloads the shellAssets.wasm path, so point it at the runtime asset
+		// that this server actually serves.
+		Wasm: "entrypoint/runtime-ws.mjs",
+		CSS:  bundleResult.CSSPaths,
+	})
 }
 
 // buildWsWebRuntime builds a websocket web runtime controller.

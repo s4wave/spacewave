@@ -21,12 +21,14 @@ vi.mock('./ObjectViewer.js', () => ({
     path,
     stateNamespace,
     bottomBarId,
+    preferredComponentID,
   }: {
     objectInfo: ObjectInfo
     standalone?: boolean
     path?: string
     stateNamespace?: string[]
     bottomBarId?: string
+    preferredComponentID?: string
   }) => (
     <div data-testid="object-viewer-mock">
       <span data-testid="info-case">{objectInfo?.info?.case ?? 'none'}</span>
@@ -34,6 +36,9 @@ vi.mock('./ObjectViewer.js', () => ({
       <span data-testid="path">{path ?? ''}</span>
       <span data-testid="bar-id">{bottomBarId ?? ''}</span>
       <span data-testid="namespace">{stateNamespace?.join('/') ?? ''}</span>
+      <span data-testid="preferred-component">
+        {preferredComponentID ?? ''}
+      </span>
       {objectInfo?.info?.case === 'worldObjectInfo' && (
         <span data-testid="object-key">
           {(objectInfo.info.value as { objectKey?: string })?.objectKey ?? ''}
@@ -141,6 +146,35 @@ describe('TabContent', () => {
       )
 
       expect(getByTestId('path').textContent).toBe('/subdir')
+    })
+
+    it('passes the tab component ID as the initial viewer preference', () => {
+      const objectInfo: ObjectInfo = {
+        info: {
+          case: 'worldObjectInfo',
+          value: { objectKey: 'files', objectType: '' },
+        },
+      }
+
+      const tabData = ObjectLayoutTab.toBinary({
+        objectInfo,
+        componentId: 'spacewave.debug.viewer',
+      })
+      const navigate = vi.fn()
+      const addTab = vi.fn()
+
+      const { getByTestId } = render(
+        <TabContent
+          tabID="test-tab"
+          tabData={tabData}
+          navigate={navigate}
+          addTab={addTab}
+        />,
+      )
+
+      expect(getByTestId('preferred-component').textContent).toBe(
+        'spacewave.debug.viewer',
+      )
     })
   })
 

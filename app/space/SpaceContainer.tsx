@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import { useMemo, useCallback, useEffect, useState } from 'react'
 import { joinPath } from '@aptre/bldr'
 import { DebugInfo, useWatchStateRpc } from '@aptre/bldr-react'
@@ -461,11 +460,14 @@ export function SpaceContainer() {
     [tabId, updateTabPath],
   )
 
-  const handleExportClick = useCallback(() => {
-    downloadURL(
+  const buildExportUrl = useCallback(
+    () =>
       `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(sharedObjectId)}`,
-    )
-  }, [sessionIndex, sharedObjectId])
+    [sessionIndex, sharedObjectId],
+  )
+  const handleExportClick = useCallback(() => {
+    downloadURL(buildExportUrl())
+  }, [buildExportUrl])
   const handleCreateObject = useCallback(() => {
     openCommand('spacewave.create-object')
   }, [openCommand])
@@ -500,6 +502,7 @@ export function SpaceContainer() {
             spaceSharingState={spaceSharingState}
             orgState={spaceOrgState}
             buildObjectUrls={buildObjectUrls}
+            buildExportUrl={buildExportUrl}
             objectKey={objectKey}
             objectPath={objectPath || undefined}
             navigateToSubPath={navigateToSubPath}
@@ -596,6 +599,7 @@ export function SpaceContainer() {
     spaceSharingState,
     spaceOrgState,
     buildObjectUrls,
+    buildExportUrl,
     objectKey,
     objectPath,
     navigateToSubPath,
@@ -656,6 +660,7 @@ export function SpaceContainer() {
                 spaceSharingState={spaceSharingState}
                 orgState={spaceOrgState}
                 buildObjectUrls={buildObjectUrls}
+                buildExportUrl={buildExportUrl}
                 objectKey={objectKey}
                 objectPath={objectPath || undefined}
                 navigateToSubPath={navigateToSubPath}

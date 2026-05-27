@@ -41,6 +41,12 @@ func TestLookupRegistrationFound(t *testing.T) {
 			TypeId:         "test-plugin/test-type",
 			RegistrationId: 1,
 			PluginId:       "test-plugin",
+			Metadata: &s4wave_objecttype_registry.ObjectTypeMetadata{
+				DisplayName: "Test Type",
+				IconName:    "box",
+				Visibility:  s4wave_objecttype_registry.ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_VISIBLE,
+				Description: "Test object type",
+			},
 		}
 		broadcast()
 	})
@@ -58,6 +64,15 @@ func TestLookupRegistrationFound(t *testing.T) {
 	if reg.GetPluginId() != "test-plugin" {
 		t.Fatalf("expected plugin_id test-plugin, got %s", reg.GetPluginId())
 	}
+	if reg.GetMetadata().GetDisplayName() != "Test Type" {
+		t.Fatalf("expected display_name Test Type, got %s", reg.GetMetadata().GetDisplayName())
+	}
+	if reg.GetMetadata().GetIconName() != "box" {
+		t.Fatalf("expected icon_name box, got %s", reg.GetMetadata().GetIconName())
+	}
+	if reg.GetMetadata().GetVisibility() != s4wave_objecttype_registry.ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_VISIBLE {
+		t.Fatalf("expected visible metadata, got %s", reg.GetMetadata().GetVisibility().String())
+	}
 }
 
 // TestLookupRegistrationReturnsClone tests that LookupRegistration returns a clone.
@@ -68,6 +83,11 @@ func TestLookupRegistrationReturnsClone(t *testing.T) {
 		TypeId:         "test-plugin/cloned",
 		RegistrationId: 1,
 		PluginId:       "test-plugin",
+		Metadata: &s4wave_objecttype_registry.ObjectTypeMetadata{
+			DisplayName: "Clone Me",
+			IconName:    "box",
+			Visibility:  s4wave_objecttype_registry.ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_VISIBLE,
+		},
 	}
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = orig
@@ -81,12 +101,16 @@ func TestLookupRegistrationReturnsClone(t *testing.T) {
 
 	// Mutating the returned value should not affect the stored one.
 	reg.TypeId = "mutated"
+	reg.Metadata.DisplayName = "mutated"
 	reg2 := r.LookupRegistration("test-plugin/cloned")
 	if reg2 == nil {
 		t.Fatal("expected registration to still exist after mutating clone")
 	}
 	if reg2.GetTypeId() != "test-plugin/cloned" {
 		t.Fatalf("stored registration was mutated: got %s", reg2.GetTypeId())
+	}
+	if reg2.GetMetadata().GetDisplayName() != "Clone Me" {
+		t.Fatalf("stored metadata was mutated: got %s", reg2.GetMetadata().GetDisplayName())
 	}
 }
 

@@ -28,6 +28,8 @@ type ViewerRegistration struct {
 	Category string `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
 	// DevModeOnly indicates this viewer is only shown when dev mode is enabled.
 	DevModeOnly bool `protobuf:"varint,5,opt,name=dev_mode_only,json=devModeOnly,proto3" json:"devModeOnly,omitempty"`
+	// ComponentId is the stable ID used for persisted viewer selection.
+	ComponentId string `protobuf:"bytes,6,opt,name=component_id,json=componentId,proto3" json:"componentId,omitempty"`
 }
 
 func (x *ViewerRegistration) Reset() {
@@ -69,6 +71,13 @@ func (x *ViewerRegistration) GetDevModeOnly() bool {
 		return x.DevModeOnly
 	}
 	return false
+}
+
+func (x *ViewerRegistration) GetComponentId() string {
+	if x != nil {
+		return x.ComponentId
+	}
+	return ""
 }
 
 // RegisterViewerRequest is the request type for RegisterViewer.
@@ -183,6 +192,7 @@ func (m *ViewerRegistration) CloneVT() *ViewerRegistration {
 	r.ScriptPath = m.ScriptPath
 	r.Category = m.Category
 	r.DevModeOnly = m.DevModeOnly
+	r.ComponentId = m.ComponentId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -316,6 +326,9 @@ func (this *ViewerRegistration) EqualVT(that *ViewerRegistration) bool {
 		return false
 	}
 	if this.DevModeOnly != that.DevModeOnly {
+		return false
+	}
+	if this.ComponentId != that.ComponentId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -504,6 +517,11 @@ func (x *ViewerRegistration) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("devModeOnly")
 		s.WriteBool(x.DevModeOnly)
 	}
+	if x.ComponentId != "" || s.HasField("componentId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("componentId")
+		s.WriteString(x.ComponentId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -536,6 +554,9 @@ func (x *ViewerRegistration) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "dev_mode_only", "devModeOnly":
 			s.AddField("dev_mode_only")
 			x.DevModeOnly = s.ReadBool()
+		case "component_id", "componentId":
+			s.AddField("component_id")
+			x.ComponentId = s.ReadString()
 		}
 	})
 }
@@ -849,6 +870,13 @@ func (m *ViewerRegistration) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ComponentId) > 0 {
+		i -= len(m.ComponentId)
+		copy(dAtA[i:], m.ComponentId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ComponentId)))
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.DevModeOnly {
 		i--
 		if m.DevModeOnly {
@@ -1152,6 +1180,10 @@ func (m *ViewerRegistration) SizeVT() (n int) {
 	if m.DevModeOnly {
 		n += 2
 	}
+	l = len(m.ComponentId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1272,6 +1304,13 @@ func (x *ViewerRegistration) MarshalProtoText() string {
 		}
 		sb.WriteString("dev_mode_only: ")
 		sb.WriteString(strconv.FormatBool(x.DevModeOnly))
+	}
+	if x.ComponentId != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("component_id: ")
+		sb.WriteString(strconv.Quote(x.ComponentId))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1507,6 +1546,28 @@ func (m *ViewerRegistration) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DevModeOnly = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ComponentId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ComponentId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

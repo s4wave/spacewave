@@ -175,6 +175,7 @@ export default async function main(
       registration: {
         typeId: 'vm/v86',
         viewerName: 'V86',
+        componentId: 'spacewave.v86.viewer',
         scriptPath: v86ViewerScript,
       },
     },

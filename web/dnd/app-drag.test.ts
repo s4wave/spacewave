@@ -221,6 +221,12 @@ describe('app drag envelope', () => {
           '{"version":1,"items":[{"id":"bad","capabilities":[{"kind":"openable"}]}]}',
       }),
     ).toBeNull()
+    expect(
+      readAppDragEnvelope({
+        getData: () =>
+          '{"version":1,"items":[{"id":"bad","capabilities":[{"kind":"openable","value":{"case":"object","value":{"objectInfo":{},"path":"","componentId":7}}}]}]}',
+      }),
+    ).toBeNull()
   })
 
   it('distinguishes native file drags from internal app drags', () => {

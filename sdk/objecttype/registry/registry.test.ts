@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
+  ObjectTypeMetadata,
   ObjectTypeRegistration,
+  ObjectTypeVisibility,
   RegisterObjectTypeRequest,
   RegisterObjectTypeResponse,
   WatchObjectTypesResponse,
@@ -24,24 +26,50 @@ function createMockRef(): ClientResourceRef {
 }
 
 describe('ObjectTypeRegistry proto types', () => {
-  it('ObjectTypeRegistration has typeId, registrationId, pluginId fields', () => {
+  it('ObjectTypeMetadata has display fields and visibility', () => {
+    const metadata = ObjectTypeMetadata.create({
+      displayName: 'Notebook',
+      iconName: 'notebook',
+      visibility: ObjectTypeVisibility.VISIBLE,
+      description: 'Markdown notes',
+    })
+    expect(metadata.displayName).toBe('Notebook')
+    expect(metadata.iconName).toBe('notebook')
+    expect(metadata.visibility).toBe(ObjectTypeVisibility.VISIBLE)
+    expect(metadata.description).toBe('Markdown notes')
+  })
+
+  it('ObjectTypeRegistration has typeId, registrationId, pluginId, and metadata fields', () => {
     const reg = ObjectTypeRegistration.create({
       typeId: 'test-type',
       registrationId: 7,
       pluginId: 'my-plugin',
+      metadata: {
+        displayName: 'Test Type',
+        iconName: 'box',
+        visibility: ObjectTypeVisibility.VISIBLE,
+      },
     })
     expect(reg.typeId).toBe('test-type')
     expect(reg.registrationId).toBe(7)
     expect(reg.pluginId).toBe('my-plugin')
+    expect(reg.metadata?.displayName).toBe('Test Type')
   })
 
-  it('RegisterObjectTypeRequest has typeId and pluginId fields', () => {
+  it('RegisterObjectTypeRequest has typeId, pluginId, and metadata fields', () => {
     const req = RegisterObjectTypeRequest.create({
       typeId: 'notes/notebook',
       pluginId: 'notes-plugin',
+      metadata: {
+        displayName: 'Notebook',
+        iconName: 'notebook',
+        visibility: ObjectTypeVisibility.VISIBLE,
+        description: 'Markdown notes',
+      },
     })
     expect(req.typeId).toBe('notes/notebook')
     expect(req.pluginId).toBe('notes-plugin')
+    expect(req.metadata?.description).toBe('Markdown notes')
   })
 
   it('RegisterObjectTypeResponse has resourceId field', () => {
@@ -66,12 +94,20 @@ describe('ObjectTypeRegistry proto types', () => {
       typeId: 'notes/notebook',
       registrationId: 42,
       pluginId: 'notes-plugin',
+      metadata: {
+        displayName: 'Notebook',
+        iconName: 'notebook',
+        visibility: ObjectTypeVisibility.VISIBLE,
+        description: 'Markdown notes',
+      },
     })
     const bytes = ObjectTypeRegistration.toBinary(original)
     const decoded = ObjectTypeRegistration.fromBinary(bytes)
     expect(decoded.typeId).toBe('notes/notebook')
     expect(decoded.registrationId).toBe(42)
     expect(decoded.pluginId).toBe('notes-plugin')
+    expect(decoded.metadata?.displayName).toBe('Notebook')
+    expect(decoded.metadata?.visibility).toBe(ObjectTypeVisibility.VISIBLE)
   })
 })
 

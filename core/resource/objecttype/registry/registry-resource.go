@@ -66,10 +66,15 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		regID = r.nextID
 		r.nextID++
+		var metadata *s4wave_objecttype_registry.ObjectTypeMetadata
+		if req.GetMetadata() != nil {
+			metadata = req.GetMetadata().CloneVT()
+		}
 		r.registrations[regID] = &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         typeID,
 			RegistrationId: regID,
 			PluginId:       pluginID,
+			Metadata:       metadata,
 		}
 		broadcast()
 	})

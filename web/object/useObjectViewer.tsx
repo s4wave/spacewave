@@ -31,6 +31,7 @@ export interface UseObjectViewerProps {
   bottomBarId?: string
   stateNamespace?: string[]
   exportUrl?: string
+  preferredComponentID?: string
 }
 
 // UseObjectViewerResult is the return type of the useObjectViewer hook.
@@ -41,6 +42,7 @@ export interface UseObjectViewerResult {
   objectKey: string | undefined
   visibleComponents: ObjectViewerComponent[]
   selectedComponent: ObjectViewerComponent | undefined
+  missingComponentID: string | undefined
   onSelectComponent: (c: ObjectViewerComponent) => void
   viewerContextValue: {
     visibleComponents: ObjectViewerComponent[]
@@ -55,6 +57,43 @@ export interface UseObjectViewerResult {
   overlayContent: React.ReactNode | undefined
   buttonKeyValue: string
   overlayKeyValue: string
+}
+
+export interface ObjectViewerSelection {
+  selectedComponent: ObjectViewerComponent | undefined
+  missingComponentID: string | undefined
+}
+
+export function resolveObjectViewerSelection(
+  visibleComponents: ObjectViewerComponent[],
+  selectedComponentID: string | undefined,
+  preferredComponentID: string | undefined,
+): ObjectViewerSelection {
+  if (visibleComponents.length === 0) {
+    return {
+      selectedComponent: undefined,
+      missingComponentID: selectedComponentID ?? preferredComponentID,
+    }
+  }
+
+  const requestedComponentID = selectedComponentID ?? preferredComponentID
+  if (requestedComponentID) {
+    const found = visibleComponents.find(
+      (component) => component.componentID === requestedComponentID,
+    )
+    if (found) {
+      return { selectedComponent: found, missingComponentID: undefined }
+    }
+    return {
+      selectedComponent: visibleComponents[0],
+      missingComponentID: requestedComponentID,
+    }
+  }
+
+  return {
+    selectedComponent: visibleComponents[0],
+    missingComponentID: undefined,
+  }
 }
 
 export function getDefaultStateNamespace(
@@ -81,6 +120,7 @@ export function useObjectViewer({
   bottomBarId,
   stateNamespace,
   exportUrl,
+  preferredComponentID,
 }: UseObjectViewerProps): UseObjectViewerResult {
   const infoCase = objectInfo?.info?.case
   const barId = bottomBarId ?? 'objectViewer'
@@ -127,28 +167,27 @@ export function useObjectViewer({
   )
   const namespace = useStateNamespace(defaultNs)
 
-  const [selectedComponentName, setSelectedComponentName] = useStateAtom<
+  const [selectedComponentID, setSelectedComponentID] = useStateAtom<
     string | undefined
-  >(namespace, 'selectedComponent', undefined)
+  >(namespace, 'selectedComponentID', undefined)
 
   const [selectorOpen, setSelectorOpen] = useState(false)
 
-  const selectedComponent = useMemo(() => {
-    if (visibleComponents.length === 0) return undefined
-    if (selectedComponentName) {
-      const found = visibleComponents.find(
-        (c) => c.name === selectedComponentName,
-      )
-      if (found) return found
-    }
-    return visibleComponents[0]
-  }, [visibleComponents, selectedComponentName])
+  const { selectedComponent, missingComponentID } = useMemo(
+    () =>
+      resolveObjectViewerSelection(
+        visibleComponents,
+        selectedComponentID,
+        preferredComponentID,
+      ),
+    [visibleComponents, selectedComponentID, preferredComponentID],
+  )
 
   const handleSelectComponent = useCallback(
     (component: ObjectViewerComponent) => {
-      setSelectedComponentName(component.name)
+      setSelectedComponentID(component.componentID)
     },
-    [setSelectedComponentName],
+    [setSelectedComponentID],
   )
 
   const viewerContextValue = useMemo(
@@ -164,7 +203,7 @@ export function useObjectViewer({
   const isLastItem = useIsLastBottomBarItem(barId)
   const setOpenMenu = useBottomBarSetOpenMenu()
 
-  const selectedComponentDisplay = selectedComponent?.name ?? 'default'
+  const selectedComponentIDDisplay = selectedComponent?.componentID ?? 'default'
   const hasMultipleComponents = visibleComponents.length > 1
   const displayKey = objectKey ?? (isUnixfs ? 'UnixFS' : 'No object')
 
@@ -172,14 +211,14 @@ export function useObjectViewer({
     () =>
       [
         displayKey,
-        selectedComponentDisplay,
+        selectedComponentIDDisplay,
         hasMultipleComponents ? 'multi' : 'single',
         selectorOpen ? 'open' : 'closed',
         typeID ?? 'none',
       ].join(':'),
     [
       displayKey,
-      selectedComponentDisplay,
+      selectedComponentIDDisplay,
       hasMultipleComponents,
       selectorOpen,
       typeID,
@@ -192,9 +231,9 @@ export function useObjectViewer({
         objectKey ?? 'none',
         typeID ?? 'none',
         rootRef ?? 'none',
-        selectedComponentDisplay,
+        selectedComponentIDDisplay,
       ].join(':'),
-    [objectKey, typeID, rootRef, selectedComponentDisplay],
+    [objectKey, typeID, rootRef, selectedComponentIDDisplay],
   )
 
   const handleCloseDetails = useCallback(() => {
@@ -260,7 +299,7 @@ export function useObjectViewer({
     () =>
       typeID && objectKey ? (
         <ObjectViewerDetails
-          key={selectedComponent?.name}
+          key={selectedComponent?.componentID}
           objectKey={objectKey}
           typeID={typeID}
           rootRef={rootRef ?? ''}
@@ -271,6 +310,7 @@ export function useObjectViewer({
           }
           availableComponents={visibleComponents}
           selectedComponent={selectedComponent}
+          missingComponentID={missingComponentID}
           onComponentSelect={handleSelectComponent}
           onCloseClick={handleCloseDetails}
         />
@@ -282,6 +322,7 @@ export function useObjectViewer({
       exportUrl,
       visibleComponents,
       selectedComponent,
+      missingComponentID,
       handleSelectComponent,
       handleCloseDetails,
     ],
@@ -323,6 +364,7 @@ export function useObjectViewer({
     objectKey,
     visibleComponents,
     selectedComponent,
+    missingComponentID,
     onSelectComponent: handleSelectComponent,
     viewerContextValue,
     buttonRender,

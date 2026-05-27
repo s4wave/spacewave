@@ -98,7 +98,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	if preflightRemote == "" {
 		preflightRemote = "devtool"
 	}
-	startPlugins := projCtrl.GetConfig().GetProjectConfig().GetStart().GetPlugins()
+	startPlugins := projectOwnedStartupPlugins(projCtrl.GetConfig().GetProjectConfig())
 	if len(startPlugins) != 0 {
 		le.WithField("plugin-count", len(startPlugins)).Info("preflighting startup manifests")
 		_, _, err = projCtrl.BuildManifests(

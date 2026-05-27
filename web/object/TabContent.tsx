@@ -8,7 +8,6 @@ import type {
   AddTabRequest,
   AddTabResponse,
 } from '@s4wave/sdk/layout/layout.pb.js'
-import { pluginPathPrefix } from '@s4wave/app/urls.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { resolvePath, type To } from '@s4wave/web/router/router.js'
@@ -58,11 +57,8 @@ export function TabContent({
   const worldState = spaceContext?.spaceWorldResource ?? null
 
   const exportUrl = useMemo(
-    () =>
-      sessionIndex != null && spaceContext?.spaceId
-        ? `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(spaceContext.spaceId)}`
-        : undefined,
-    [sessionIndex, spaceContext?.spaceId],
+    () => (sessionIndex != null ? spaceContext?.buildExportUrl?.() : undefined),
+    [sessionIndex, spaceContext],
   )
 
   const tabPath = layoutTab?.path ?? ''
@@ -83,7 +79,7 @@ export function TabContent({
   )
 
   const tabContext = useMemo<TabContextValue>(
-    () => ({ tabId: tabID, addTab, navigateTab }),
+    () => ({ tabId: tabID, addTab, navigateTab, isObjectLayout: true }),
     [tabID, addTab, navigateTab],
   )
 
@@ -91,7 +87,7 @@ export function TabContent({
   if (!layoutTab) {
     content = (
       <div className="text-muted-foreground flex h-full w-full items-center justify-center">
-        <div className="text-ui">Empty tab: {tabID}</div>
+        <div className="text-foreground-alt/60 text-xs">Empty tab: {tabID}</div>
       </div>
     )
   } else {
@@ -99,7 +95,7 @@ export function TabContent({
     if (!objectInfo?.info?.case || !worldState) {
       content = (
         <div className="text-muted-foreground flex h-full w-full items-center justify-center">
-          <div className="text-ui">
+          <div className="text-foreground-alt/60 text-xs">
             {!worldState ? 'No world state available' : `Tab: ${tabID}`}
             {layoutTab.componentId && (
               <span className="ml-2">Component: {layoutTab.componentId}</span>
@@ -118,6 +114,7 @@ export function TabContent({
           exportUrl={exportUrl}
           onNavigate={handleNavigate}
           stateNamespace={['tab', tabID]}
+          preferredComponentID={layoutTab.componentId || undefined}
         />
       )
     }

@@ -79,7 +79,18 @@ export default function MyViewer({
 }
 ```
 
-Register the viewer in the backend by calling `ViewerRegistryResourceServiceClient.RegisterViewer` with the type ID and the path to the frontend module.
+Register the viewer in the backend by calling `ViewerRegistryResourceServiceClient.RegisterViewer` with the type ID, a stable component ID, display name, and the path to the frontend module:
+
+```typescript
+await viewerRegistry.RegisterViewer({
+  registration: {
+    typeId: 'my-plugin/object',
+    componentId: 'my-plugin.object.viewer',
+    viewerName: 'My Object',
+    scriptPath: viewerScriptPath,
+  },
+})
+```
 
 ## Testing Your Plugin
 

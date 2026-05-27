@@ -92,6 +92,12 @@ function isAppDragOpenableValue(value: unknown): value is AppDragOpenableValue {
   ) {
     return false
   }
+  if (
+    value.value.componentId !== undefined &&
+    typeof value.value.componentId !== 'string'
+  ) {
+    return false
+  }
   return typeof value.value.path === 'string'
 }
 

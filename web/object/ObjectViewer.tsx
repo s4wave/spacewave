@@ -31,6 +31,7 @@ export interface ObjectViewerProps {
   onNavigate?: (to: To) => void
   onBreadcrumbClick?: () => void
   stateNamespace?: string[]
+  preferredComponentID?: string
 }
 
 // ObjectViewer is a reusable component that renders an object viewer with
@@ -47,6 +48,7 @@ export function ObjectViewer({
   onNavigate,
   onBreadcrumbClick,
   stateNamespace,
+  preferredComponentID,
 }: ObjectViewerProps) {
   const barId = bottomBarId ?? 'objectViewer'
 
@@ -56,6 +58,7 @@ export function ObjectViewer({
     bottomBarId: barId,
     stateNamespace,
     exportUrl,
+    preferredComponentID,
   })
 
   const routerPath = path ?? '/'

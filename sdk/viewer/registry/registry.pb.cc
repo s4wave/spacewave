@@ -63,6 +63,9 @@ inline constexpr ViewerRegistration::Impl_::Impl_(
         category_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        component_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         dev_mode_only_{false} {}
 
 template <typename>
@@ -214,16 +217,18 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_._has_bits_),
-        8, // hasbit index offset
+        9, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.type_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.viewer_name_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.script_path_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.category_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.dev_mode_only_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.component_id_),
         0,
         1,
         2,
         3,
+        5,
         4,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::RegisterViewerRequest, _impl_._has_bits_),
@@ -252,12 +257,12 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::s4wave::viewer::registry::ViewerRegistration)},
-        {13, sizeof(::s4wave::viewer::registry::RegisterViewerRequest)},
-        {18, sizeof(::s4wave::viewer::registry::RegisterViewerResponse)},
-        {23, sizeof(::s4wave::viewer::registry::ListViewersRequest)},
-        {24, sizeof(::s4wave::viewer::registry::ListViewersResponse)},
-        {29, sizeof(::s4wave::viewer::registry::WatchViewersRequest)},
-        {30, sizeof(::s4wave::viewer::registry::WatchViewersResponse)},
+        {15, sizeof(::s4wave::viewer::registry::RegisterViewerRequest)},
+        {20, sizeof(::s4wave::viewer::registry::RegisterViewerResponse)},
+        {25, sizeof(::s4wave::viewer::registry::ListViewersRequest)},
+        {26, sizeof(::s4wave::viewer::registry::ListViewersResponse)},
+        {31, sizeof(::s4wave::viewer::registry::WatchViewersRequest)},
+        {32, sizeof(::s4wave::viewer::registry::WatchViewersResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::viewer::registry::_ViewerRegistration_default_instance_._instance,
@@ -272,34 +277,35 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fv
     protodesc_cold) = {
     "\n>github.com/s4wave/spacewave/sdk/viewer"
     "/registry/registry.proto\022\026s4wave.viewer."
-    "registry\"x\n\022ViewerRegistration\022\017\n\007type_i"
-    "d\030\001 \001(\t\022\023\n\013viewer_name\030\002 \001(\t\022\023\n\013script_p"
-    "ath\030\003 \001(\t\022\020\n\010category\030\004 \001(\t\022\025\n\rdev_mode_"
-    "only\030\005 \001(\010\"Y\n\025RegisterViewerRequest\022@\n\014r"
-    "egistration\030\001 \001(\0132*.s4wave.viewer.regist"
-    "ry.ViewerRegistration\"-\n\026RegisterViewerR"
-    "esponse\022\023\n\013resource_id\030\001 \001(\r\"\024\n\022ListView"
-    "ersRequest\"X\n\023ListViewersResponse\022A\n\rreg"
-    "istrations\030\001 \003(\0132*.s4wave.viewer.registr"
-    "y.ViewerRegistration\"\025\n\023WatchViewersRequ"
-    "est\"Y\n\024WatchViewersResponse\022A\n\rregistrat"
-    "ions\030\001 \003(\0132*.s4wave.viewer.registry.View"
-    "erRegistration2\345\002\n\035ViewerRegistryResourc"
-    "eService\022o\n\016RegisterViewer\022-.s4wave.view"
-    "er.registry.RegisterViewerRequest\032..s4wa"
-    "ve.viewer.registry.RegisterViewerRespons"
-    "e\022f\n\013ListViewers\022*.s4wave.viewer.registr"
-    "y.ListViewersRequest\032+.s4wave.viewer.reg"
-    "istry.ListViewersResponse\022k\n\014WatchViewer"
-    "s\022+.s4wave.viewer.registry.WatchViewersR"
-    "equest\032,.s4wave.viewer.registry.WatchVie"
-    "wersResponse0\001b\006proto3"
+    "registry\"\216\001\n\022ViewerRegistration\022\017\n\007type_"
+    "id\030\001 \001(\t\022\023\n\013viewer_name\030\002 \001(\t\022\023\n\013script_"
+    "path\030\003 \001(\t\022\020\n\010category\030\004 \001(\t\022\025\n\rdev_mode"
+    "_only\030\005 \001(\010\022\024\n\014component_id\030\006 \001(\t\"Y\n\025Reg"
+    "isterViewerRequest\022@\n\014registration\030\001 \001(\013"
+    "2*.s4wave.viewer.registry.ViewerRegistra"
+    "tion\"-\n\026RegisterViewerResponse\022\023\n\013resour"
+    "ce_id\030\001 \001(\r\"\024\n\022ListViewersRequest\"X\n\023Lis"
+    "tViewersResponse\022A\n\rregistrations\030\001 \003(\0132"
+    "*.s4wave.viewer.registry.ViewerRegistrat"
+    "ion\"\025\n\023WatchViewersRequest\"Y\n\024WatchViewe"
+    "rsResponse\022A\n\rregistrations\030\001 \003(\0132*.s4wa"
+    "ve.viewer.registry.ViewerRegistration2\345\002"
+    "\n\035ViewerRegistryResourceService\022o\n\016Regis"
+    "terViewer\022-.s4wave.viewer.registry.Regis"
+    "terViewerRequest\032..s4wave.viewer.registr"
+    "y.RegisterViewerResponse\022f\n\013ListViewers\022"
+    "*.s4wave.viewer.registry.ListViewersRequ"
+    "est\032+.s4wave.viewer.registry.ListViewers"
+    "Response\022k\n\014WatchViewers\022+.s4wave.viewer"
+    ".registry.WatchViewersRequest\032,.s4wave.v"
+    "iewer.registry.WatchViewersResponse0\001b\006p"
+    "roto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto = {
     false,
     false,
-    942,
+    965,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto,
     "github.com/s4wave/spacewave/sdk/viewer/registry/registry.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto_once,
@@ -343,7 +349,8 @@ PROTOBUF_NDEBUG_INLINE ViewerRegistration::Impl_::Impl_(
         type_id_(arena, from.type_id_),
         viewer_name_(arena, from.viewer_name_),
         script_path_(arena, from.script_path_),
-        category_(arena, from.category_) {}
+        category_(arena, from.category_),
+        component_id_(arena, from.component_id_) {}
 
 ViewerRegistration::ViewerRegistration(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -369,7 +376,8 @@ PROTOBUF_NDEBUG_INLINE ViewerRegistration::Impl_::Impl_(
         type_id_(arena),
         viewer_name_(arena),
         script_path_(arena),
-        category_(arena) {}
+        category_(arena),
+        component_id_(arena) {}
 
 inline void ViewerRegistration::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -390,6 +398,7 @@ inline void ViewerRegistration::SharedDtor(MessageLite& self) {
   this_._impl_.viewer_name_.Destroy();
   this_._impl_.script_path_.Destroy();
   this_._impl_.category_.Destroy();
+  this_._impl_.component_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -436,16 +445,16 @@ ViewerRegistration::GetClassData() const {
   return ViewerRegistration_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 0, 87, 2>
+const ::_pbi::TcParseTable<3, 6, 0, 99, 2>
 ViewerRegistration::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_._has_bits_),
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
+    6,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ViewerRegistration_class_data_.base(),
@@ -473,10 +482,13 @@ ViewerRegistration::_table_ = {
      {34, 3, 0,
       PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.category_)}},
     // bool dev_mode_only = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ViewerRegistration, _impl_.dev_mode_only_), 4>(),
-     {40, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ViewerRegistration, _impl_.dev_mode_only_), 5>(),
+     {40, 5, 0,
       PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.dev_mode_only_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // string component_id = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 4, 0,
+      PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.component_id_)}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -490,16 +502,19 @@ ViewerRegistration::_table_ = {
     // string category = 4;
     {PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.category_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool dev_mode_only = 5;
-    {PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.dev_mode_only_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.dev_mode_only_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string component_id = 6;
+    {PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.component_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\51\7\13\13\10\0\0\0"
+    "\51\7\13\13\10\0\14\0"
     "s4wave.viewer.registry.ViewerRegistration"
     "type_id"
     "viewer_name"
     "script_path"
     "category"
+    "component_id"
   }},
 };
 PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
@@ -510,7 +525,7 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.type_id_.ClearNonDefaultToEmpty();
     }
@@ -522,6 +537,9 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       _impl_.category_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.component_id_.ClearNonDefaultToEmpty();
     }
   }
   _impl_.dev_mode_only_ = false;
@@ -589,11 +607,21 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
   }
 
   // bool dev_mode_only = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_dev_mode_only() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           5, this_._internal_dev_mode_only(), target);
+    }
+  }
+
+  // string component_id = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_component_id().empty()) {
+      const ::std::string& _s = this_._internal_component_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.viewer.registry.ViewerRegistration.component_id");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
     }
   }
 
@@ -622,7 +650,7 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     // string type_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_type_id().empty()) {
@@ -651,8 +679,15 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
                                         this_._internal_category());
       }
     }
-    // bool dev_mode_only = 5;
+    // string component_id = 6;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_component_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_component_id());
+      }
+    }
+    // bool dev_mode_only = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_dev_mode_only() != 0) {
         total_size += 2;
       }
@@ -676,7 +711,7 @@ void ViewerRegistration::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_type_id().empty()) {
         _this->_internal_set_type_id(from._internal_type_id());
@@ -714,6 +749,15 @@ void ViewerRegistration::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_component_id().empty()) {
+        _this->_internal_set_component_id(from._internal_component_id());
+      } else {
+        if (_this->_impl_.component_id_.IsDefault()) {
+          _this->_internal_set_component_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_dev_mode_only() != 0) {
         _this->_impl_.dev_mode_only_ = from._impl_.dev_mode_only_;
       }
@@ -742,6 +786,7 @@ void ViewerRegistration::InternalSwap(ViewerRegistration* PROTOBUF_RESTRICT PROT
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.viewer_name_, &other->_impl_.viewer_name_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.script_path_, &other->_impl_.script_path_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.category_, &other->_impl_.category_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.component_id_, &other->_impl_.component_id_, arena);
   swap(_impl_.dev_mode_only_, other->_impl_.dev_mode_only_);
 }
 

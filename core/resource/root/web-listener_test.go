@@ -54,6 +54,18 @@ func TestWebListenerServesHealth(t *testing.T) {
 }
 
 func TestWebListenerServesBootShell(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path != "/" {
+			t.Fatalf("upstream path = %s, want /", req.URL.Path)
+		}
+		_, _ = rw.Write([]byte(`<!doctype html>
+<script type="importmap">{"imports":{"react":"/entrypoint/release/pkgs/react/index.mjs"}}</script>
+<link rel="stylesheet" href="/static/app.css"/>
+<script type="module" src="/boot.mjs"></script>`))
+	}))
+	defer upstream.Close()
+	t.Setenv("SPACEWAVE_WEB_ENDPOINT", upstream.URL)
+
 	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
 	if err != nil {
 		t.Fatal(err)
@@ -73,8 +85,14 @@ func TestWebListenerServesBootShell(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("boot shell status = %d, want 200", resp.StatusCode)
 	}
-	if !strings.Contains(text, "/_spacewave/bootstrap") || !strings.Contains(text, "/boot.mjs") {
+	if !strings.Contains(text, "/_spacewave/bootstrap") || !strings.Contains(text, "await import('/boot.mjs')") {
 		t.Fatalf("boot shell missing bootstrap/release wiring: %s", text)
+	}
+	if !strings.Contains(text, `"react":"/entrypoint/release/pkgs/react/index.mjs"`) {
+		t.Fatalf("boot shell missing release import map: %s", text)
+	}
+	if !strings.Contains(text, `/static/app.css`) {
+		t.Fatalf("boot shell should defer release stylesheet until after bootstrap: %s", text)
 	}
 	if !strings.Contains(text, "if (otp)") {
 		t.Fatalf("boot shell should allow reloads with an existing capability: %s", text)

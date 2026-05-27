@@ -86,6 +86,7 @@ function buildViewerResult(overrides: Record<string, unknown> = {}) {
     objectKey: undefined,
     visibleComponents: [],
     selectedComponent: undefined,
+    missingComponentID: undefined,
     onSelectComponent: vi.fn(),
     viewerContextValue: {
       visibleComponents: [],
@@ -178,6 +179,7 @@ describe('ObjectViewer', () => {
       buildViewerResult({
         typeID: 'unixfs/fs-node',
         selectedComponent: {
+          componentID: 'spacewave.unixfs.viewer',
           typeID: 'unixfs/fs-node',
           name: 'UnixFS Viewer',
           requiresObjectState: false,
@@ -300,6 +302,7 @@ describe('ObjectViewer', () => {
       buildViewerResult({
         typeID: 'canvas',
         selectedComponent: {
+          componentID: 'spacewave.canvas.viewer',
           typeID: 'canvas',
           name: 'Canvas',
           disablePadding: true,
@@ -339,6 +342,7 @@ describe('ObjectViewer', () => {
       buildViewerResult({
         typeID: 'unixfs/fs-node',
         selectedComponent: {
+          componentID: 'spacewave.unixfs.viewer',
           typeID: 'unixfs/fs-node',
           name: 'UnixFS Viewer',
           component: () => null,
@@ -374,6 +378,7 @@ describe('ObjectViewer', () => {
       buildViewerResult({
         typeID: 'unixfs/fs-node',
         selectedComponent: {
+          componentID: 'spacewave.unixfs.viewer',
           typeID: 'unixfs/fs-node',
           name: 'UnixFS Viewer',
           component: () => null,

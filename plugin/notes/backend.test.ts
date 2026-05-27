@@ -369,31 +369,37 @@ describe('notes backend registration', () => {
       {
         typeId: 'notes/notebook',
         viewerName: 'Notebook',
+        componentId: 'notes.notebook.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notebook.mjs',
       },
       {
         typeId: 'notes/blog',
         viewerName: 'Blog',
+        componentId: 'notes.blog.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/blog.mjs',
       },
       {
         typeId: 'notes/docs',
         viewerName: 'Documentation',
+        componentId: 'notes.docs.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/docs.mjs',
       },
       {
         typeId: 'wizard/notes/notebook',
         viewerName: 'Notebook Wizard',
+        componentId: 'notes.notebook-wizard.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
       },
       {
         typeId: 'wizard/notes/docs',
         viewerName: 'Documentation Wizard',
+        componentId: 'notes.docs-wizard.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
       },
       {
         typeId: 'wizard/notes/blog',
         viewerName: 'Blog Wizard',
+        componentId: 'notes.blog-wizard.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
       },
     ])

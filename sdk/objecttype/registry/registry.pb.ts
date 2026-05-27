@@ -3,9 +3,104 @@
 /* eslint-disable */
 
 import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import {
+  createEnumType,
+  createMessageType,
+  ScalarType,
+} from '@aptre/protobuf-es-lite'
 
 export const protobufPackage = 's4wave.objecttype.registry'
+
+/**
+ * ObjectTypeVisibility controls where an ObjectType should appear.
+ *
+ * @generated from enum s4wave.objecttype.registry.ObjectTypeVisibility
+ */
+export enum ObjectTypeVisibility {
+  /**
+   * OBJECT_TYPE_VISIBILITY_UNSPECIFIED uses the default visible behavior.
+   *
+   * @generated from enum value: OBJECT_TYPE_VISIBILITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * OBJECT_TYPE_VISIBILITY_VISIBLE makes the ObjectType visible in browsers and links.
+   *
+   * @generated from enum value: OBJECT_TYPE_VISIBILITY_VISIBLE = 1;
+   */
+  VISIBLE = 1,
+
+  /**
+   * OBJECT_TYPE_VISIBILITY_HIDDEN hides the ObjectType from routine browsing.
+   *
+   * @generated from enum value: OBJECT_TYPE_VISIBILITY_HIDDEN = 2;
+   */
+  HIDDEN = 2,
+
+  /**
+   * OBJECT_TYPE_VISIBILITY_INTERNAL is for implementation-owned objects.
+   *
+   * @generated from enum value: OBJECT_TYPE_VISIBILITY_INTERNAL = 3;
+   */
+  INTERNAL = 3,
+}
+
+// ObjectTypeVisibility_Enum is the enum type for ObjectTypeVisibility.
+export const ObjectTypeVisibility_Enum = createEnumType(
+  's4wave.objecttype.registry.ObjectTypeVisibility',
+  [
+    { no: 0, name: 'OBJECT_TYPE_VISIBILITY_UNSPECIFIED' },
+    { no: 1, name: 'OBJECT_TYPE_VISIBILITY_VISIBLE' },
+    { no: 2, name: 'OBJECT_TYPE_VISIBILITY_HIDDEN' },
+    { no: 3, name: 'OBJECT_TYPE_VISIBILITY_INTERNAL' },
+  ],
+)
+
+/**
+ * ObjectTypeMetadata is user-facing metadata for an ObjectType.
+ *
+ * @generated from message s4wave.objecttype.registry.ObjectTypeMetadata
+ */
+export interface ObjectTypeMetadata {
+  /**
+   * DisplayName is the readable label for the ObjectType.
+   *
+   * @generated from field: string display_name = 1;
+   */
+  displayName?: string
+  /**
+   * IconName is a stable icon key understood by Spacewave UI.
+   *
+   * @generated from field: string icon_name = 2;
+   */
+  iconName?: string
+  /**
+   * Visibility controls where the ObjectType appears.
+   *
+   * @generated from field: s4wave.objecttype.registry.ObjectTypeVisibility visibility = 3;
+   */
+  visibility?: ObjectTypeVisibility
+  /**
+   * Description is optional supporting copy for browsers and links.
+   *
+   * @generated from field: string description = 4;
+   */
+  description?: string
+}
+
+// ObjectTypeMetadata contains the message type declaration for ObjectTypeMetadata.
+export const ObjectTypeMetadata: MessageType<ObjectTypeMetadata> =
+  createMessageType({
+    typeName: 's4wave.objecttype.registry.ObjectTypeMetadata',
+    fields: [
+      { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'icon_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'visibility', kind: 'enum', T: ObjectTypeVisibility_Enum },
+      { no: 4, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ObjectTypeRegistration is a registered ObjectType.
@@ -31,6 +126,12 @@ export interface ObjectTypeRegistration {
    * @generated from field: string plugin_id = 3;
    */
   pluginId?: string
+  /**
+   * Metadata is user-facing display metadata for the ObjectType.
+   *
+   * @generated from field: s4wave.objecttype.registry.ObjectTypeMetadata metadata = 4;
+   */
+  metadata?: ObjectTypeMetadata
 }
 
 // ObjectTypeRegistration contains the message type declaration for ObjectTypeRegistration.
@@ -41,6 +142,7 @@ export const ObjectTypeRegistration: MessageType<ObjectTypeRegistration> =
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'metadata', kind: 'message', T: () => ObjectTypeMetadata },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -63,6 +165,12 @@ export interface RegisterObjectTypeRequest {
    * @generated from field: string plugin_id = 2;
    */
   pluginId?: string
+  /**
+   * Metadata is user-facing display metadata for the ObjectType.
+   *
+   * @generated from field: s4wave.objecttype.registry.ObjectTypeMetadata metadata = 3;
+   */
+  metadata?: ObjectTypeMetadata
 }
 
 // RegisterObjectTypeRequest contains the message type declaration for RegisterObjectTypeRequest.
@@ -72,6 +180,7 @@ export const RegisterObjectTypeRequest: MessageType<RegisterObjectTypeRequest> =
     fields: [
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'metadata', kind: 'message', T: () => ObjectTypeMetadata },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

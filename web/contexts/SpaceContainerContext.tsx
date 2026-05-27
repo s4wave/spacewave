@@ -16,6 +16,9 @@ export type NavigateToObjectsFunc = (objectKeys: string[]) => void
 // BuildObjectUrlsFunc builds the URLs for a list of object keys.
 export type BuildObjectUrlsFunc = (objectKeys: string[]) => string[]
 
+// BuildExportUrlFunc builds the URL for exporting the current space.
+export type BuildExportUrlFunc = () => string
+
 export interface SpaceContainerContextValue {
   // spaceId is the space shared object id
   spaceId: string
@@ -35,6 +38,8 @@ export interface SpaceContainerContextValue {
   navigateToObjects: NavigateToObjectsFunc
   // buildObjectUrls builds urls for the given object keys.
   buildObjectUrls: BuildObjectUrlsFunc
+  // buildExportUrl builds the export URL for the current space.
+  buildExportUrl?: BuildExportUrlFunc
   // objectKey is the current object key we are displaying (navigated to)
   objectKey?: string
   // objectPath is the sub-path from the URL after the /-/ delimiter
@@ -50,6 +55,7 @@ const Provider: React.FC<
 > = ({
   children,
   buildObjectUrls,
+  buildExportUrl,
   navigateToObjects,
   navigateToRoot,
   spaceId,
@@ -65,6 +71,7 @@ const Provider: React.FC<
   const contextValue: SpaceContainerContextValue = useMemo(
     () => ({
       buildObjectUrls,
+      buildExportUrl,
       navigateToObjects,
       navigateToRoot,
       spaceId,
@@ -79,6 +86,7 @@ const Provider: React.FC<
     }),
     [
       buildObjectUrls,
+      buildExportUrl,
       navigateToObjects,
       navigateToRoot,
       spaceId,

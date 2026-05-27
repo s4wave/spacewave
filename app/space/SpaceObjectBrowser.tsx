@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import { useMemo, useState, useCallback, useId } from 'react'
 import {
   LuArrowRight,
@@ -20,6 +19,8 @@ import {
   isHiddenSpaceObject,
   type ObjectTreeNode,
 } from '@s4wave/web/space/object-tree.js'
+import { RootContext } from '@s4wave/web/contexts/contexts.js'
+import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
@@ -54,6 +55,8 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
     spaceWorld,
     objectKey: currentObjectKey,
   } = SpaceContainerContext.useContext()
+  const rootResource = RootContext.useContext()
+  const objectTypeMetadataById = useObjectTypeMetadata(rootResource)
   const openCommand = useOpenCommand()
   const indexPath = spaceState.settings?.indexPath ?? ''
   const renameInputId = useId()
@@ -69,9 +72,10 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
   const objectCount = useMemo(() => {
     if (!objects) return 0
     return objects.filter(
-      (o) => !isHiddenSpaceObject(o.objectKey, o.objectType),
+      (o) =>
+        !isHiddenSpaceObject(o.objectKey, o.objectType, objectTypeMetadataById),
     ).length
-  }, [objects])
+  }, [objects, objectTypeMetadataById])
 
   const openObject = useCallback(
     (objectKey: string) => {
@@ -96,7 +100,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
   )
 
   const treeNodes = useMemo(() => {
-    const nodes = buildObjectTree(objects ?? [])
+    const nodes = buildObjectTree(objects ?? [], objectTypeMetadataById)
     const addIcons = (list: TreeNode<ObjectTreeNode>[]) => {
       for (const node of list) {
         if (!node.data?.isVirtual) {
@@ -129,7 +133,14 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
     }
     addIcons(nodes)
     return nodes
-  }, [objects, openObject, handleSetAsIndexClick, indexPath, currentObjectKey])
+  }, [
+    objects,
+    objectTypeMetadataById,
+    openObject,
+    handleSetAsIndexClick,
+    indexPath,
+    currentObjectKey,
+  ])
 
   const handleOpen = useCallback(
     (nodes: TreeNode<ObjectTreeNode>[]) => {
@@ -461,7 +472,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
   return (
     <section>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs select-none">
+        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
           <LuBox className="size-3.5" />
           Objects
           <span className="text-foreground-alt">({objectCount})</span>

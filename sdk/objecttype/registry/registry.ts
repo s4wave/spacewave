@@ -5,6 +5,7 @@ import {
   ObjectTypeRegistryResourceServiceClient,
 } from './registry_srpc.pb.js'
 import {
+  type ObjectTypeMetadata,
   RegisterObjectTypeResponse,
   WatchObjectTypesResponse,
 } from './registry.pb.js'
@@ -26,10 +27,11 @@ export class ObjectTypeRegistry extends Resource {
   public async registerObjectType(
     typeId: string,
     pluginId: string,
+    metadata?: ObjectTypeMetadata,
     abortSignal?: AbortSignal,
   ): Promise<RegisterObjectTypeResponse> {
     return await this.service.RegisterObjectType(
-      { typeId, pluginId },
+      { typeId, pluginId, metadata },
       abortSignal,
     )
   }

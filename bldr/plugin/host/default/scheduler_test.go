@@ -21,3 +21,26 @@ func TestNewSchedulerConfigUsesSpacewavePlatformPolicy(t *testing.T) {
 		t.Fatalf("spacewave-v86 platform ids: got %v, want %v", got, want)
 	}
 }
+
+func TestAllowBrowserNativePluginIDsExtendsPolicy(t *testing.T) {
+	conf := NewSchedulerConfig("engine", "plugin-host", "volume", "peer", true, false, false)
+
+	AllowBrowserNativePluginIDs(conf, []string{"glados-core", "glados-core", ""})
+
+	got := conf.FilterPluginPlatformIDs("glados-core", []string{"js", plugin_host_scheduler.WebJSWASMPlatformID})
+	want := []string{"js", plugin_host_scheduler.WebJSWASMPlatformID}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("glados-core platform ids: got %v, want %v", got, want)
+	}
+
+	got = conf.GetPlatformSelectionPolicies()[0].GetAllowedPluginIds()
+	var count int
+	for _, pluginID := range got {
+		if pluginID == "glados-core" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("glados-core allow-list count = %d, want 1 in %v", count, got)
+	}
+}

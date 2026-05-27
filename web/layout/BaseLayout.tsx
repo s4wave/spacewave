@@ -352,10 +352,18 @@ export class BaseLayout extends AbortComponent<
       }
     }
 
+    const tabId = tab.id || `tab-${Date.now()}`
+    const existingTab = model.getNodeById(tabId)
+    if (existingTab) {
+      if (request.select) {
+        this.selectTab(tabId)
+      }
+      return Promise.resolve({ tabId })
+    }
+
     // Store tab data so it's available synchronously when the tab renders.
     // model.doAction triggers a synchronous render before setState completes,
     // so we write to pendingTabData first for getTabData to read immediately.
-    const tabId = tab.id || `tab-${Date.now()}`
     if (tab.data && tab.data.length > 0) {
       this.pendingTabData[tabId] = tab.data
       const tabDataMap = {

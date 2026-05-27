@@ -34,6 +34,8 @@ export function getTypeID(info: ObjectInfo): string {
 
 // ObjectViewerComponent describes a registered viewer component.
 export interface ObjectViewerComponent {
+  // componentID is the stable identifier used for persisted viewer selection.
+  componentID: string
   // typeID is the type identifier this component handles.
   typeID: string
   // name is the display name of the component.

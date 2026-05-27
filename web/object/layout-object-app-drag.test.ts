@@ -39,7 +39,7 @@ describe('buildObjectLayoutExternalDrag', () => {
                           },
                         },
                         path: '/preview',
-                        componentId: 'details',
+                        componentId: 'spacewave.unixfs.viewer',
                       },
                     },
                   },
@@ -62,7 +62,7 @@ describe('buildObjectLayoutExternalDrag', () => {
 
     const layoutTab = ObjectLayoutTab.fromBinary(json?.config as Uint8Array)
     expect(layoutTab).toMatchObject({
-      componentId: 'details',
+      componentId: 'spacewave.unixfs.viewer',
       path: '/preview',
       objectInfo: {
         info: {

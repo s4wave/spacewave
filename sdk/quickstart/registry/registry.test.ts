@@ -73,7 +73,7 @@ describe('QuickstartRegistry proto types', () => {
       spaceResourceId: 42,
     })
     const executeResp = ExecuteQuickstartResponse.create({
-      indexPath: 'glados/org-chart',
+      indexPath: 'glados/operator-home',
       pluginIds: ['glados-core', 'glados-web'],
     })
     const seedReq = SeedQuickstartRequest.create({
@@ -81,13 +81,13 @@ describe('QuickstartRegistry proto types', () => {
       attachedEngineResourceId: 77,
     })
     const seedResp = SeedQuickstartResponse.create({
-      indexPath: 'glados/org-chart',
+      indexPath: 'glados/operator-home',
       pluginIds: ['glados-web'],
     })
     expect(executeReq.spaceResourceId).toBe(42)
     expect(executeResp.pluginIds).toEqual(['glados-core', 'glados-web'])
     expect(seedReq.attachedEngineResourceId).toBe(77)
-    expect(seedResp.indexPath).toBe('glados/org-chart')
+    expect(seedResp.indexPath).toBe('glados/operator-home')
   })
 
   it('ListQuickstartsResponse and WatchQuickstartsResponse carry registrations', () => {

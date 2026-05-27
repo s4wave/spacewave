@@ -222,13 +222,14 @@ export function ComponentSelector({
                 </div>
               )
             }
-            const isSelected = selectedComponent?.name === entry.component.name
+            const isSelected =
+              selectedComponent?.componentID === entry.component.componentID
             const isFocused = focusedEntryIndex === idx
             return (
               <div
                 role="menuitem"
                 tabIndex={-1}
-                key={`item-${entry.index}`}
+                key={entry.component.componentID}
                 className={cn(
                   'text-foreground-alt relative flex cursor-pointer items-center rounded px-2 py-1.5 text-sm outline-none select-none',
                   'hover:bg-muted hover:text-foreground',
