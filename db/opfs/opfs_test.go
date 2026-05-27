@@ -4,8 +4,53 @@ package opfs
 
 import (
 	"io"
+	"slices"
 	"testing"
 )
+
+func TestBrowserDriverReadWriteListDeleteClassify(t *testing.T) {
+	root, err := DefaultDriver.GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer DefaultDriver.DeleteEntry(root, "test-driver", true) //nolint
+
+	dir, err := DefaultDriver.GetDirectory(root, "test-driver", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := DefaultDriver.WriteFile(dir, "alpha", []byte("driver-owned")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := DefaultDriver.ReadFile(dir, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "driver-owned" {
+		t.Fatalf("ReadFile = %q, want driver-owned", string(got))
+	}
+	names, err := DefaultDriver.ListDirectory(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(names, "alpha") {
+		t.Fatalf("ListDirectory = %v, want alpha", names)
+	}
+	if err := DefaultDriver.DeleteEntry(dir, "alpha", false); err != nil {
+		t.Fatal(err)
+	}
+	exists, err := DefaultDriver.FileExists(dir, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists {
+		t.Fatal("expected alpha to be deleted")
+	}
+	err = DefaultDriver.DeleteEntry(dir, "alpha", false)
+	if DefaultDriver.ClassifyError(err) != ErrorKindNotFound {
+		t.Fatalf("ClassifyError(%v) = %v, want ErrorKindNotFound", err, DefaultDriver.ClassifyError(err))
+	}
+}
 
 func TestAsyncFileReadWrite(t *testing.T) {
 	root, err := GetRoot()

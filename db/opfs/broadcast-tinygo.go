@@ -1,6 +1,6 @@
 //go:build js && tinygo
 
-package blockshard
+package opfs
 
 import (
 	"syscall/js"
@@ -16,23 +16,8 @@ func tinyGoBroadcastSendRef(channelRef uint64, shardID uint32, generationHi uint
 //go:wasmimport gojs bldr.opfs.broadcastCloseRef
 func tinyGoBroadcastCloseRef(channelRef uint64)
 
-type tinyGoJSValue struct {
-	_     [0]func()
-	ref   uint64
-	gcPtr unsafe.Pointer
-}
-
 func useTinyGoBroadcastHelpers() bool {
 	return true
-}
-
-func tinyGoJSRef(value js.Value) uint64 {
-	return (*tinyGoJSValue)(unsafe.Pointer(&value)).ref
-}
-
-func tinyGoJSValueFromRef(ref uint64) js.Value {
-	value := tinyGoJSValue{ref: ref}
-	return *(*js.Value)(unsafe.Pointer(&value))
 }
 
 func newTinyGoBroadcastChannel(name string) js.Value {

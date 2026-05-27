@@ -42,6 +42,11 @@ const tinyGoOPFSWriteSessions = new Map<
 >()
 let tinyGoWebLockReleaseID = 1
 const tinyGoWebLockReleases = new Map<number, () => void>()
+const tinyGoWebLockReleaseOps = new Map<number, number>()
+const tinyGoWebLockRequests = new Map<
+  number,
+  { abort?: AbortController; canceled?: boolean; releaseID?: number }
+>()
 const tinyGoCallbackQueue: (() => void)[] = []
 let tinyGoCallbackScheduled = false
 let tinyGoCallbackChannel: MessageChannel | undefined
@@ -163,16 +168,45 @@ function takeOPFSWriteSession(
   return session
 }
 
-function storeTinyGoWebLockRelease(release: () => void): number {
+function storeTinyGoWebLockRelease(release: () => void, opID?: number): number {
   const id = tinyGoWebLockReleaseID++
   tinyGoWebLockReleases.set(id, release)
+  if (opID !== undefined) {
+    tinyGoWebLockReleaseOps.set(id, opID)
+    const request = tinyGoWebLockRequests.get(opID)
+    if (request) {
+      request.releaseID = id
+    }
+  }
   return id
 }
 
 function takeTinyGoWebLockRelease(id: number): (() => void) | undefined {
+  const opID = tinyGoWebLockReleaseOps.get(id)
+  tinyGoWebLockReleaseOps.delete(id)
+  if (opID !== undefined) {
+    tinyGoWebLockRequests.delete(opID)
+  }
   const release = tinyGoWebLockReleases.get(id)
   tinyGoWebLockReleases.delete(id)
   return release
+}
+
+function cancelTinyGoWebLock(opID: number): boolean {
+  const request = tinyGoWebLockRequests.get(opID)
+  if (!request) {
+    return false
+  }
+  request.canceled = true
+  if (request.releaseID !== undefined) {
+    const release = takeTinyGoWebLockRelease(request.releaseID)
+    if (release) {
+      release()
+      return true
+    }
+  }
+  request.abort?.abort()
+  return true
 }
 
 export function tinyGoMemory(go: TinyGoRuntime): WebAssembly.Memory {
@@ -930,29 +964,51 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     const lockOptions: LockOptions = {
       mode: exclusive ? 'exclusive' : 'shared',
     }
+    const abort = ifAvailable ? undefined : new AbortController()
+    if (abort) {
+      lockOptions.signal = abort.signal
+    }
     if (ifAvailable) {
       lockOptions.ifAvailable = true
     }
     const name = readTinyGoString(go, namePtr, nameLen)
+    const request: {
+      abort?: AbortController
+      canceled?: boolean
+      releaseID?: number
+    } = { abort }
+    tinyGoWebLockRequests.set(opID, request)
     locks
       .request(name, lockOptions, (lock) => {
         if (ifAvailable && !lock) {
+          tinyGoWebLockRequests.delete(opID)
           deferTinyGoCallback(() => callTinyGoExport(go, resolve, opID, 0, 0))
           return undefined
         }
         return new Promise<void>((releaseLock) => {
-          const releaseID = storeTinyGoWebLockRelease(releaseLock)
+          if (request.canceled) {
+            releaseLock()
+            tinyGoWebLockRequests.delete(opID)
+            return
+          }
+          const releaseID = storeTinyGoWebLockRelease(releaseLock, opID)
           deferTinyGoCallback(() =>
             callTinyGoExport(go, resolve, opID, releaseID, 1),
           )
         })
       })
       .catch((reason) => {
+        tinyGoWebLockRequests.delete(opID)
+        if (request.canceled) {
+          return
+        }
         deferTinyGoCallback(() =>
           callTinyGoExport(go, reject, opID, tinyGoPromiseErrorCode(reason)),
         )
       })
   }
+  gojs['bldr.opfs.cancelWebLock'] ??= (opID: number) =>
+    cancelTinyGoWebLock(opID) ? 1 : 0
   gojs['bldr.opfs.releaseWebLock'] ??= (releaseID: number) => {
     const release = takeTinyGoWebLockRelease(releaseID)
     if (!release) {

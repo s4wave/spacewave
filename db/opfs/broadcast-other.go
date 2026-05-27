@@ -1,6 +1,6 @@
 //go:build js && !tinygo
 
-package blockshard
+package opfs
 
 import "syscall/js"
 

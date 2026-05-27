@@ -263,8 +263,8 @@ func writeFileWithTinyGoImport(dir js.Value, name string, data []byte) error {
 	}()
 
 	written := 0
-	for off := 0; off < len(data); off += tinyGoOPFSWriteFileChunkSize {
-		end := off + tinyGoOPFSWriteFileChunkSize
+	for off := 0; off < len(data); off += browserDriverFileChunkSize {
+		end := off + browserDriverFileChunkSize
 		if end > len(data) {
 			end = len(data)
 		}

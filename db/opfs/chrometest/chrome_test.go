@@ -246,6 +246,25 @@ func TestOpfsChromeReadFileHelperLoop(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeLargeWriteReadList(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-large-write-read-list-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "large-write-read-list",
+		root:       root,
+		iterations: 8 * 1024 * 1024,
+		batch:      4,
+	})
+}
+
 func TestOpfsChromeTinyGoLargeWriteReadList(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
@@ -554,6 +573,31 @@ func TestOpfsChromeWebLockIfAvailable(t *testing.T) {
 	s.runHeldLockCheck(t, holder, heldCheck)
 	s.runWorker(t, workerArgs{
 		scenario: "counter-try-lock-available",
+		root:     root,
+	})
+}
+
+func TestOpfsChromeWebLockCancellation(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-lock-cancel-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "counter-init",
+		root:     root,
+	})
+
+	s.runHeldLockCheck(t, workerArgs{
+		scenario: "counter-hold",
+		root:     root,
+	}, workerArgs{
+		scenario: "counter-timeout-lock",
 		root:     root,
 	})
 }
@@ -1475,6 +1519,8 @@ self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS = new Map()
 self.__BLDR_TINYGO_OPFS_WRITE_SESSION_NEXT_ID = 1
 self.__BLDR_TINYGO_WEB_LOCK_RELEASES = new Map()
 self.__BLDR_TINYGO_WEB_LOCK_RELEASE_NEXT_ID = 1
+self.__BLDR_TINYGO_WEB_LOCK_RELEASE_OPS = new Map()
+self.__BLDR_TINYGO_WEB_LOCK_REQUESTS = new Map()
 self.__BLDR_TINYGO_COPY_BYTES = (bytes) => {
   if (!(bytes instanceof Uint8Array)) {
     throw new TypeError('expected Uint8Array')
@@ -1647,18 +1693,46 @@ self.__BLDR_TINYGO_OPFS_REJECT = (opID, code) => {
   const reject = self.__BLDR_TINYGO_EXPORT(go, 'BLDR_OPFS_HELPER_REJECT')
   self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, reject, opID, code))
 }
-self.__BLDR_TINYGO_STORE_WEB_LOCK_RELEASE = (release) => {
+self.__BLDR_TINYGO_STORE_WEB_LOCK_RELEASE = (release, opID) => {
   const id = self.__BLDR_TINYGO_WEB_LOCK_RELEASE_NEXT_ID++
   self.__BLDR_TINYGO_WEB_LOCK_RELEASES.set(id, release)
+  if (opID !== undefined) {
+    self.__BLDR_TINYGO_WEB_LOCK_RELEASE_OPS.set(id, opID)
+    const request = self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.get(opID)
+    if (request) {
+      request.releaseID = id
+    }
+  }
   return id
 }
 self.__BLDR_TINYGO_RELEASE_WEB_LOCK = (releaseID) => {
+  const opID = self.__BLDR_TINYGO_WEB_LOCK_RELEASE_OPS.get(releaseID)
+  self.__BLDR_TINYGO_WEB_LOCK_RELEASE_OPS.delete(releaseID)
+  if (opID !== undefined) {
+    self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.delete(opID)
+  }
   const release = self.__BLDR_TINYGO_WEB_LOCK_RELEASES.get(releaseID)
   self.__BLDR_TINYGO_WEB_LOCK_RELEASES.delete(releaseID)
   if (!release) {
     return 0
   }
   release()
+  return 1
+}
+self.__BLDR_TINYGO_CANCEL_WEB_LOCK = (opID) => {
+  const request = self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.get(opID)
+  if (!request) {
+    return 0
+  }
+  request.canceled = true
+  if (request.releaseID !== undefined) {
+    const release = self.__BLDR_TINYGO_WEB_LOCK_RELEASES.get(request.releaseID)
+    self.__BLDR_TINYGO_RELEASE_WEB_LOCK(request.releaseID)
+    return release ? 1 : 0
+  }
+  if (request.abort) {
+    request.abort.abort()
+  }
   return 1
 }
 self.BLDR_TINYGO_NEW_BYTES ??= (len) => new Uint8Array(len)
@@ -1904,22 +1978,41 @@ self.onmessage = async (event) => {
         return
       }
       const opts = { mode: exclusive ? 'exclusive' : 'shared' }
+      const abort = ifAvailable ? undefined : new AbortController()
+      if (abort) {
+        opts.signal = abort.signal
+      }
       if (ifAvailable) {
         opts.ifAvailable = true
       }
       const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      const request = { abort }
+      self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.set(opID, request)
       locks.request(name, opts, (lock) => {
         if (ifAvailable && !lock) {
+          self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.delete(opID)
           self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, resolve, opID, 0, 0))
           return undefined
         }
         return new Promise((releaseLock) => {
-          const releaseID = self.__BLDR_TINYGO_STORE_WEB_LOCK_RELEASE(releaseLock)
+          if (request.canceled) {
+            releaseLock()
+            self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.delete(opID)
+            return
+          }
+          const releaseID = self.__BLDR_TINYGO_STORE_WEB_LOCK_RELEASE(releaseLock, opID)
           self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, resolve, opID, releaseID, 1))
         })
       }).catch((reason) => {
+        self.__BLDR_TINYGO_WEB_LOCK_REQUESTS.delete(opID)
+        if (request.canceled) {
+          return
+        }
         self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, reject, opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
       })
+    }
+    go.importObject.gojs['bldr.opfs.cancelWebLock'] ??= (opID) => {
+      return self.__BLDR_TINYGO_CANCEL_WEB_LOCK(opID)
     }
     go.importObject.gojs['bldr.opfs.releaseWebLock'] ??= (releaseID) => {
       return self.__BLDR_TINYGO_RELEASE_WEB_LOCK(releaseID)

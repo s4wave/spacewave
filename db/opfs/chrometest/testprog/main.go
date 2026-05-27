@@ -203,6 +203,8 @@ func run(ctx context.Context, c *config) error {
 		return runCounterTryLock(c, false)
 	case "counter-try-lock-available":
 		return runCounterTryLock(c, true)
+	case "counter-timeout-lock":
+		return runCounterTimeoutLock(ctx, c)
 	case "counter-verify":
 		return runCounterVerify(c)
 	case "volume-runtime-write":
@@ -1324,6 +1326,22 @@ func runCounterTryLock(c *config, want bool) error {
 	}
 	if release != nil {
 		release()
+	}
+	return nil
+}
+
+func runCounterTimeoutLock(ctx context.Context, c *config) error {
+	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	defer cancel()
+	result, err := opfs.DefaultDriver.AcquireWebLock(ctx, c.root+"/locks/counter", true)
+	if err == nil {
+		if result != nil && result.Release != nil {
+			result.Release()
+		}
+		return errors.New("blocking WebLock unexpectedly acquired before timeout")
+	}
+	if result == nil || result.Outcome != opfs.WebLockOutcomeCanceled {
+		return errors.Errorf("WebLock timeout outcome=%v err=%v", result, err)
 	}
 	return nil
 }

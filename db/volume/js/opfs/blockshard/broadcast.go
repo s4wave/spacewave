@@ -6,16 +6,12 @@ import (
 	"encoding/binary"
 	"sync"
 	"syscall/js"
+
+	"github.com/s4wave/spacewave/db/opfs"
 )
 
 // BroadcastChannelName is the base channel name for shard generation invalidation.
 const BroadcastChannelName = "hydra-blockshard-gen"
-
-const (
-	bldrOPFSBroadcastChannelNew = "BLDR_OPFS_BROADCAST_CHANNEL_NEW"
-	bldrOPFSBroadcastSend       = "BLDR_OPFS_BROADCAST_SEND"
-	bldrOPFSBroadcastClose      = "BLDR_OPFS_BROADCAST_CLOSE"
-)
 
 // InvalidationMsg is a shard generation invalidation message.
 // Wire format: [shard_id: u16] [generation: u64] = 10 bytes.
@@ -50,7 +46,7 @@ type Broadcaster struct {
 
 // NewBroadcaster creates a BroadcastChannel for sending invalidation messages.
 func NewBroadcaster(scope string) *Broadcaster {
-	ch := newBroadcastChannel(scope)
+	ch, _ := opfs.NewBroadcastChannel(scopedBroadcastChannelName(scope))
 	return &Broadcaster{channel: ch}
 }
 
@@ -60,35 +56,12 @@ func (b *Broadcaster) Send(shardID int, generation uint64) {
 		ShardID:    uint16(shardID),
 		Generation: generation,
 	}
-	if useTinyGoBroadcastHelpers() {
-		sendTinyGoBroadcast(b.channel, int(msg.ShardID), msg.Generation)
-		return
-	}
-
-	send := js.Global().Get(bldrOPFSBroadcastSend)
-	if jsFuncAvailable(send) {
-		send.Invoke(
-			b.channel,
-			int(msg.ShardID),
-			int(uint32(msg.Generation>>32)),
-			int(uint32(msg.Generation)),
-		)
-		return
-	}
-
-	arr := js.Global().Get("Uint8Array").New(10)
-	arr.SetIndex(0, int(msg.ShardID>>8))
-	arr.SetIndex(1, int(msg.ShardID))
-	for i := 0; i < 8; i++ {
-		shift := uint((7 - i) * 8)
-		arr.SetIndex(2+i, int(byte(msg.Generation>>shift)))
-	}
-	b.channel.Call("postMessage", arr)
+	_ = opfs.SendBroadcastChannel(b.channel, opfs.BroadcastMessage(msg))
 }
 
 // Close closes the BroadcastChannel.
 func (b *Broadcaster) Close() {
-	closeBroadcastChannel(b.channel)
+	_ = opfs.CloseBroadcastChannel(b.channel)
 }
 
 // Listener receives shard generation invalidation messages.
@@ -102,7 +75,7 @@ type Listener struct {
 
 // NewListener creates a BroadcastChannel listener for invalidation messages.
 func NewListener(scope string) *Listener {
-	ch := newBroadcastChannel(scope)
+	ch, _ := opfs.NewBroadcastChannel(scopedBroadcastChannelName(scope))
 	l := &Listener{
 		channel: ch,
 		pending: make(map[uint16]uint64),
@@ -187,21 +160,8 @@ func (l *Listener) DrainPending() []InvalidationMsg {
 
 // Close closes the BroadcastChannel listener.
 func (l *Listener) Close() {
-	closeBroadcastChannel(l.channel)
+	_ = opfs.CloseBroadcastChannel(l.channel)
 	l.cleanup.Release()
-}
-
-func newBroadcastChannel(scope string) js.Value {
-	name := scopedBroadcastChannelName(scope)
-	if useTinyGoBroadcastHelpers() {
-		return newTinyGoBroadcastChannel(name)
-	}
-
-	newChannel := js.Global().Get(bldrOPFSBroadcastChannelNew)
-	if jsFuncAvailable(newChannel) {
-		return newChannel.Invoke(name)
-	}
-	return js.Global().Get("BroadcastChannel").New(name)
 }
 
 func scopedBroadcastChannelName(scope string) string {
@@ -212,22 +172,4 @@ func scopedBroadcastChannelName(scope string) string {
 	// within that owner so another engine on the same origin cannot advance this
 	// engine's shard generations and force refreshes on every read.
 	return BroadcastChannelName + ":" + scope
-}
-
-func closeBroadcastChannel(channel js.Value) {
-	if useTinyGoBroadcastHelpers() {
-		closeTinyGoBroadcastChannel(channel)
-		return
-	}
-
-	closeChannel := js.Global().Get(bldrOPFSBroadcastClose)
-	if jsFuncAvailable(closeChannel) {
-		closeChannel.Invoke(channel)
-		return
-	}
-	channel.Call("close")
-}
-
-func jsFuncAvailable(fn js.Value) bool {
-	return !fn.IsUndefined() && !fn.IsNull()
 }

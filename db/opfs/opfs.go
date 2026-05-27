@@ -21,7 +21,7 @@ const (
 	jsErrorCodeNotFound
 	jsErrorCodeNoModificationAllowed
 
-	tinyGoOPFSWriteFileChunkSize = 1 << 20
+	browserDriverFileChunkSize = 1 << 20
 )
 
 type opfsHelperResult struct {
@@ -33,6 +33,21 @@ var (
 	opfsHelperMu     sync.Mutex
 	opfsHelperNextID int
 	opfsHelperOps    = map[int]chan opfsHelperResult{}
+)
+
+// BrowserDriver owns browser OPFS operations and error classification.
+type BrowserDriver struct{}
+
+// DefaultDriver is the process-local browser OPFS driver.
+var DefaultDriver BrowserDriver
+
+// ErrorKind classifies browser OPFS failures into storage-owner outcomes.
+type ErrorKind int
+
+const (
+	ErrorKindUnknown ErrorKind = iota
+	ErrorKindNotFound
+	ErrorKindNoModificationAllowed
 )
 
 // JSError represents a JavaScript error or DOMException.
@@ -53,8 +68,28 @@ func (e *JSError) Error() string {
 
 // IsNotFound checks if an error is a "NotFoundError" DOMException.
 func IsNotFound(err error) bool {
+	return DefaultDriver.ClassifyError(err) == ErrorKindNotFound
+}
+
+// ClassifyError classifies an OPFS/browser error.
+func ClassifyError(err error) ErrorKind {
+	return DefaultDriver.ClassifyError(err)
+}
+
+// ClassifyError classifies an OPFS/browser error.
+func (BrowserDriver) ClassifyError(err error) ErrorKind {
 	var jsErr *JSError
-	return errors.As(err, &jsErr) && jsErr.Name == "NotFoundError"
+	if !errors.As(err, &jsErr) {
+		return ErrorKindUnknown
+	}
+	switch jsErr.Name {
+	case "NotFoundError":
+		return ErrorKindNotFound
+	case "NoModificationAllowedError":
+		return ErrorKindNoModificationAllowed
+	default:
+		return ErrorKindUnknown
+	}
 }
 
 // newJSError creates a JSError from a js.Value error object.
@@ -156,6 +191,11 @@ func yieldMicrotask() error {
 
 // GetRoot returns the OPFS root FileSystemDirectoryHandle.
 func GetRoot() (js.Value, error) {
+	return DefaultDriver.GetRoot()
+}
+
+// GetRoot returns the OPFS root FileSystemDirectoryHandle.
+func (BrowserDriver) GetRoot() (js.Value, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return getRootWithTinyGoImport()
 	}
@@ -168,6 +208,12 @@ func GetRoot() (js.Value, error) {
 // GetDirectory returns a subdirectory handle within parent.
 // If create is true, the directory is created if it does not exist.
 func GetDirectory(parent js.Value, name string, create bool) (js.Value, error) {
+	return DefaultDriver.GetDirectory(parent, name, create)
+}
+
+// GetDirectory returns a subdirectory handle within parent.
+// If create is true, the directory is created if it does not exist.
+func (d BrowserDriver) GetDirectory(parent js.Value, name string, create bool) (js.Value, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return getDirectoryWithTinyGoImport(parent, name, create)
 	}
@@ -182,9 +228,16 @@ func GetDirectory(parent js.Value, name string, create bool) (js.Value, error) {
 // Each element is a single directory name (no slashes).
 // If create is true, intermediate directories are created.
 func GetDirectoryPath(parent js.Value, path []string, create bool) (js.Value, error) {
+	return DefaultDriver.GetDirectoryPath(parent, path, create)
+}
+
+// GetDirectoryPath navigates a sequence of directory names from parent.
+// Each element is a single directory name (no slashes).
+// If create is true, intermediate directories are created.
+func (d BrowserDriver) GetDirectoryPath(parent js.Value, path []string, create bool) (js.Value, error) {
 	dir := parent
 	for _, name := range path {
-		next, err := GetDirectory(dir, name, create)
+		next, err := d.GetDirectory(dir, name, create)
 		if err != nil {
 			return js.Undefined(), errors.Wrap(err, name)
 		}
@@ -196,6 +249,12 @@ func GetDirectoryPath(parent js.Value, path []string, create bool) (js.Value, er
 // OpenAsyncFile opens an existing file with async OPFS APIs.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
 func OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
+	return DefaultDriver.OpenAsyncFile(dir, name)
+}
+
+// OpenAsyncFile opens an existing file with async OPFS APIs.
+// Works in any context (SharedWorker, DedicatedWorker, main thread).
+func (BrowserDriver) OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return openAsyncFileWithTinyGoImport(dir, name, false)
 	}
@@ -210,6 +269,12 @@ func OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 // CreateAsyncFile opens or creates a file with async OPFS APIs.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
 func CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
+	return DefaultDriver.CreateAsyncFile(dir, name)
+}
+
+// CreateAsyncFile opens or creates a file with async OPFS APIs.
+// Works in any context (SharedWorker, DedicatedWorker, main thread).
+func (BrowserDriver) CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return openAsyncFileWithTinyGoImport(dir, name, true)
 	}
@@ -465,8 +530,16 @@ func (f *AsyncFile) Close() error {
 // bytes (any prior file content is replaced). One Promise round-trip per
 // stage instead of two (vs separate Truncate then Write calls).
 func WriteFile(dir js.Value, name string, data []byte) error {
+	return DefaultDriver.WriteFile(dir, name, data)
+}
+
+// WriteFile creates or overwrites a file in the given directory.
+func (BrowserDriver) WriteFile(dir js.Value, name string, data []byte) error {
 	if jsutil.UseTinyGoHelpers() {
 		return writeFileWithTinyGoImport(dir, name, data)
+	}
+	if len(data) > browserDriverFileChunkSize {
+		return writeFileChunked(dir, name, data)
 	}
 
 	opts := jsutil.NewObject()
@@ -495,31 +568,74 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 
 // ReadFile reads the contents of a file in the given directory.
 func ReadFile(dir js.Value, name string) ([]byte, error) {
-	if jsutil.UseTinyGoHelpers() {
-		return readFileWithTinyGoImport(dir, name)
-	}
+	return DefaultDriver.ReadFile(dir, name)
+}
 
-	f, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
+// ReadFile reads the contents of a file in the given directory.
+func (d BrowserDriver) ReadFile(dir js.Value, name string) ([]byte, error) {
+	f, err := d.OpenAsyncFile(dir, name)
 	if err != nil {
 		return nil, err
 	}
-	file, err := AwaitPromise(jsutil.Call(f, "getFile"))
+	defer f.Close()
+	size, err := f.Size()
 	if err != nil {
-		return nil, errors.Wrap(err, "getFile")
+		return nil, err
 	}
-	ab, err := AwaitPromise(jsutil.Call(file, "arrayBuffer"))
-	if err != nil {
-		return nil, errors.Wrap(err, "arrayBuffer")
+	if size == 0 {
+		return nil, nil
 	}
-	arr := jsutil.NewUint8Array(ab)
-	buf := make([]byte, arr.Get("length").Int())
-	js.CopyBytesToGo(buf, arr)
+	if int64(int(size)) != size {
+		return nil, errors.Errorf("file %s too large to read into memory: %d bytes", name, size)
+	}
+	buf := make([]byte, int(size))
+	for off := int64(0); off < size; {
+		end := off + browserDriverFileChunkSize
+		if end > size {
+			end = size
+		}
+		n, err := f.ReadAt(buf[off:end], off)
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		if n == 0 {
+			return nil, errors.Errorf("short read file %s at offset %d", name, off)
+		}
+		off += int64(n)
+	}
 	return buf, nil
+}
+
+func writeFileChunked(dir js.Value, name string, data []byte) error {
+	f, err := CreateAsyncFile(dir, name)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err := f.Truncate(0); err != nil {
+		return err
+	}
+	for off := 0; off < len(data); off += browserDriverFileChunkSize {
+		end := off + browserDriverFileChunkSize
+		if end > len(data) {
+			end = len(data)
+		}
+		if _, err := f.WriteAt(data[off:end], int64(off)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // DeleteEntry removes a file or directory entry from the parent directory.
 // Returns a "not found" JSError if the entry does not exist.
 func DeleteEntry(dir js.Value, name string, recursive bool) error {
+	return DefaultDriver.DeleteEntry(dir, name, recursive)
+}
+
+// DeleteEntry removes a file or directory entry from the parent directory.
+// Returns a "not found" JSError if the entry does not exist.
+func (d BrowserDriver) DeleteEntry(dir js.Value, name string, recursive bool) error {
 	if jsutil.UseTinyGoHelpers() {
 		var lastErr error
 		for range syncAccessHandleRetries {
@@ -527,7 +643,7 @@ func DeleteEntry(dir js.Value, name string, recursive bool) error {
 			if err == nil {
 				return nil
 			}
-			if !IsNoModificationAllowed(err) {
+			if d.ClassifyError(err) != ErrorKindNoModificationAllowed {
 				return err
 			}
 			lastErr = err
@@ -546,7 +662,7 @@ func DeleteEntry(dir js.Value, name string, recursive bool) error {
 		if err == nil {
 			return nil
 		}
-		if !IsNoModificationAllowed(err) {
+		if d.ClassifyError(err) != ErrorKindNoModificationAllowed {
 			return err
 		}
 		lastErr = err
@@ -587,6 +703,11 @@ func DeleteFile(dir js.Value, name string) error {
 
 // ListDirectory returns sorted entry names in the given directory.
 func ListDirectory(dir js.Value) ([]string, error) {
+	return DefaultDriver.ListDirectory(dir)
+}
+
+// ListDirectory returns sorted entry names in the given directory.
+func (BrowserDriver) ListDirectory(dir js.Value) ([]string, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return listDirectoryWithTinyGoImport(dir)
 	}
@@ -639,13 +760,18 @@ func decodeHelperNameList(buf []byte) ([]string, error) {
 
 // FileExists checks if a file exists in the given directory without reading it.
 func FileExists(dir js.Value, name string) (bool, error) {
+	return DefaultDriver.FileExists(dir, name)
+}
+
+// FileExists checks if a file exists in the given directory without reading it.
+func (d BrowserDriver) FileExists(dir js.Value, name string) (bool, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return fileExistsWithTinyGoImport(dir, name)
 	}
 
 	_, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
 	if err != nil {
-		if IsNotFound(err) {
+		if d.ClassifyError(err) == ErrorKindNotFound {
 			return false, nil
 		}
 		return false, err
@@ -656,6 +782,12 @@ func FileExists(dir js.Value, name string) (bool, error) {
 // SyncAvailable returns true if sync access handles are available.
 // Sync access handles are only available in DedicatedWorker contexts.
 func SyncAvailable() bool {
+	return DefaultDriver.SyncAvailable()
+}
+
+// SyncAvailable returns true if sync access handles are available.
+// Sync access handles are only available in DedicatedWorker contexts.
+func (BrowserDriver) SyncAvailable() bool {
 	fileHandleCtor := js.Global().Get("FileSystemFileHandle")
 	if fileHandleCtor.IsUndefined() || fileHandleCtor.IsNull() {
 		return false
@@ -671,12 +803,24 @@ func SyncAvailable() bool {
 // PreferSyncAccessHandles reports whether OPFS owners should use sync access
 // handles for writes in the current runtime.
 func PreferSyncAccessHandles() bool {
-	return SyncAvailable() && !jsutil.UseTinyGoHelpers()
+	return DefaultDriver.PreferSyncAccessHandles()
+}
+
+// PreferSyncAccessHandles reports whether OPFS owners should use sync access
+// handles for writes in the current runtime.
+func (d BrowserDriver) PreferSyncAccessHandles() bool {
+	return d.SyncAvailable() && !jsutil.UseTinyGoHelpers()
 }
 
 // OpenSyncFile opens an existing file with a sync access handle.
 // Only available in DedicatedWorker contexts (check SyncAvailable first).
 func OpenSyncFile(dir js.Value, name string) (*SyncFile, error) {
+	return DefaultDriver.OpenSyncFile(dir, name)
+}
+
+// OpenSyncFile opens an existing file with a sync access handle.
+// Only available in DedicatedWorker contexts (check SyncAvailable first).
+func (BrowserDriver) OpenSyncFile(dir js.Value, name string) (*SyncFile, error) {
 	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
 	if err != nil {
 		return nil, err
@@ -687,13 +831,26 @@ func OpenSyncFile(dir js.Value, name string) (*SyncFile, error) {
 // CreateSyncFile opens or creates a file with a sync access handle.
 // Only available in DedicatedWorker contexts (check SyncAvailable first).
 func CreateSyncFile(dir js.Value, name string) (*SyncFile, error) {
-	return CreateSyncFileContext(context.Background(), dir, name)
+	return DefaultDriver.CreateSyncFile(dir, name)
+}
+
+// CreateSyncFile opens or creates a file with a sync access handle.
+// Only available in DedicatedWorker contexts (check SyncAvailable first).
+func (d BrowserDriver) CreateSyncFile(dir js.Value, name string) (*SyncFile, error) {
+	return d.CreateSyncFileContext(context.Background(), dir, name)
 }
 
 // CreateSyncFileContext opens or creates a file with a sync access handle and
 // attributes the handle lookup and access-handle creation work to ctx.
 // Only available in DedicatedWorker contexts (check SyncAvailable first).
 func CreateSyncFileContext(ctx context.Context, dir js.Value, name string) (*SyncFile, error) {
+	return DefaultDriver.CreateSyncFileContext(ctx, dir, name)
+}
+
+// CreateSyncFileContext opens or creates a file with a sync access handle and
+// attributes the handle lookup and access-handle creation work to ctx.
+// Only available in DedicatedWorker contexts (check SyncAvailable first).
+func (BrowserDriver) CreateSyncFileContext(ctx context.Context, dir js.Value, name string) (*SyncFile, error) {
 	// Split lookup from sync-handle creation so traces show which OPFS call is expensive.
 	_, subtask := trace.NewTask(ctx, "hydra/opfs/create-sync-file/get-file-handle")
 	opts := jsutil.NewObject()
@@ -720,8 +877,7 @@ type SyncFile struct {
 // DOMException. This occurs when createSyncAccessHandle is called while another
 // access handle or writable stream is open on the same file.
 func IsNoModificationAllowed(err error) bool {
-	var jsErr *JSError
-	return errors.As(err, &jsErr) && jsErr.Name == "NoModificationAllowedError"
+	return DefaultDriver.ClassifyError(err) == ErrorKindNoModificationAllowed
 }
 
 // syncAccessHandleRetries is the number of times to retry createSyncAccessHandle

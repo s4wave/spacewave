@@ -1,10 +1,8 @@
-//go:build js && !tinygo
+//go:build js && tinygo
 
 package filelock
 
-import (
-	"github.com/s4wave/spacewave/db/opfs"
-)
+import "github.com/s4wave/spacewave/db/opfs"
 
 // AcquireWebLock requests a WebLock via navigator.locks.request.
 // The returned function releases the lock. It is safe to call once.
