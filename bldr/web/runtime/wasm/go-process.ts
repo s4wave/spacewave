@@ -147,11 +147,7 @@ function tinyGoMemory(go: TinyGoRuntime): WebAssembly.Memory {
   return memory
 }
 
-function readTinyGoString(
-  go: TinyGoRuntime,
-  ptr: number,
-  len: number,
-): string {
+function readTinyGoString(go: TinyGoRuntime, ptr: number, len: number): string {
   return new TextDecoder().decode(
     new Uint8Array(tinyGoMemory(go).buffer, ptr >>> 0, len),
   )
@@ -233,11 +229,11 @@ function runTinyGoCallback(callback: () => void): void {
 
 function flushTinyGoCallbacks(): void {
   tinyGoCallbackScheduled = false
-  const callbacks = tinyGoCallbackQueue.splice(0)
-  for (const callback of callbacks) {
-    // Go/TinyGo can release callback functions before a queued JS callback
-    // runs. Filter that known runtime edge only while invoking the callback
-    // owner; do not patch worker console state globally.
+  const callback = tinyGoCallbackQueue.shift()
+  if (callback) {
+    // TinyGo's asyncified runtime owns a single pending JS callback event.
+    // Give each callback a fresh task boundary so resumed goroutines can
+    // issue syscall/js calls without the next callback overwriting that state.
     runTinyGoCallback(callback)
   }
   if (tinyGoCallbackQueue.length !== 0) {

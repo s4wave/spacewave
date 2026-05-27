@@ -230,9 +230,7 @@ describe('patchTinyGoRuntimeImports', () => {
     }
 
     patchTinyGoRuntimeImports(go)
-    const acquire = go.importObject['gojs']?.[
-      'bldr.opfs.acquireWebLock'
-    ] as
+    const acquire = go.importObject['gojs']?.['bldr.opfs.acquireWebLock'] as
       | ((
           opID: number,
           namePtr: number,
@@ -241,9 +239,9 @@ describe('patchTinyGoRuntimeImports', () => {
           ifAvailable: number,
         ) => void)
       | undefined
-    const release = go.importObject['gojs']?.[
-      'bldr.opfs.releaseWebLock'
-    ] as ((releaseID: number) => number) | undefined
+    const release = go.importObject['gojs']?.['bldr.opfs.releaseWebLock'] as
+      | ((releaseID: number) => number)
+      | undefined
     if (!acquire || !release) {
       throw new Error('WebLock imports were not installed')
     }
@@ -264,6 +262,47 @@ describe('patchTinyGoRuntimeImports', () => {
 })
 
 describe('installTinyGoJSHelpers', () => {
+  it('runs deferred TinyGo callbacks with a task boundary between callbacks', async () => {
+    installTinyGoJSHelpers()
+
+    const g = globalThis as TinyGoHelperGlobal
+    const calls: string[] = []
+    let firstMicrotask!: () => void
+    let secondCallback!: () => void
+    const firstDone = new Promise<void>((resolve) => {
+      firstMicrotask = resolve
+    })
+    const secondDone = new Promise<void>((resolve) => {
+      secondCallback = resolve
+    })
+
+    g.BLDR_TINYGO_PROMISE_AWAIT?.(
+      Promise.resolve('first'),
+      () => {
+        calls.push('first')
+        queueMicrotask(() => {
+          calls.push('microtask-after-first')
+          firstMicrotask()
+        })
+      },
+      () => undefined,
+    )
+    g.BLDR_TINYGO_PROMISE_AWAIT?.(
+      Promise.resolve('second'),
+      () => {
+        calls.push('second')
+        secondCallback()
+      },
+      () => undefined,
+    )
+
+    await firstDone
+    expect(calls).toEqual(['first', 'microtask-after-first'])
+
+    await secondDone
+    expect(calls).toEqual(['first', 'microtask-after-first', 'second'])
+  })
+
   it('calls methods, constructs values, and attaches promise callbacks from JS', async () => {
     installTinyGoJSHelpers()
 

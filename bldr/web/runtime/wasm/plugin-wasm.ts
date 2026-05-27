@@ -263,8 +263,11 @@ function closeMessagePortDuplex(duplex: MessagePortDuplex<Uint8Array>) {
 
 function flushGoCallbacks(): void {
   goCallbackScheduled = false
-  const callbacks = goCallbackQueue.splice(0)
-  for (const callback of callbacks) {
+  const callback = goCallbackQueue.shift()
+  if (callback) {
+    // TinyGo's asyncified runtime owns a single pending JS callback event.
+    // Run one callback per task so stream delivery cannot re-enter the Go
+    // runtime before the prior callback's resumed goroutines settle.
     callback()
   }
   if (goCallbackQueue.length !== 0) {
