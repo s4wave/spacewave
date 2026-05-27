@@ -70,13 +70,46 @@ function tinyGoPromiseErrorCode(reason: unknown): number {
   return tinyGoPromiseErrorUnknown
 }
 
-function rejectTinyGoOPFSOp(
+function resolveTinyGoOPFSHelper(
+  go: TinyGoRuntime,
   opID: number,
-  reject: (opID: number, code: number) => void,
+  ...values: number[]
+): void {
+  const resolve = tinyGoExport(go, 'BLDR_OPFS_HELPER_RESOLVE')
+  if (!resolve) {
+    throw new Error('TinyGo OPFS resolve export is not initialized')
+  }
+  deferTinyGoCallback(() =>
+    callTinyGoExport(
+      go,
+      resolve,
+      opID,
+      values.length,
+      values[0] ?? 0,
+      values[1] ?? 0,
+    ),
+  )
+}
+
+function rejectTinyGoOPFSHelper(
+  go: TinyGoRuntime,
+  opID: number,
+  code: number,
+): void {
+  const reject = tinyGoExport(go, 'BLDR_OPFS_HELPER_REJECT')
+  if (!reject) {
+    throw new Error('TinyGo OPFS reject export is not initialized')
+  }
+  deferTinyGoCallback(() => callTinyGoExport(go, reject, opID, code))
+}
+
+function rejectTinyGoOPFSOp(
+  go: TinyGoRuntime,
+  opID: number,
   reason: unknown,
 ): void {
   const code = tinyGoPromiseErrorCode(reason)
-  deferTinyGoCallback(() => reject(opID, code))
+  rejectTinyGoOPFSHelper(go, opID, code)
 }
 
 function closeOPFSWritableQuietly(
@@ -268,8 +301,8 @@ function deferTinyGoCallback(callback: () => void): void {
 // patchWorkerBrowserGlobals makes browser-only global lookups available inside
 // worker-hosted Go WASM modules. Some JS/WASM libraries still reach through
 // window even when the equivalent constructor already exists on globalThis.
-function patchWorkerBrowserGlobals() {
-  installTinyGoJSHelpers()
+function patchWorkerBrowserGlobals(go: TinyGoRuntime) {
+  installTinyGoJSHelpers(go)
   installOPFSBroadcastHelpers()
   if (typeof globalThis.window === 'undefined') {
     Object.defineProperty(globalThis, 'window', {
@@ -287,7 +320,7 @@ function patchWorkerBrowserGlobals() {
   }
 }
 
-export function installTinyGoJSHelpers(): void {
+export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
   const g = globalThis as typeof globalThis & {
     BLDR_TINYGO_JS_CALL?: (
       target: Record<PropertyKey, unknown>,
@@ -324,22 +357,16 @@ export function installTinyGoJSHelpers(): void {
       dir: FileSystemDirectoryHandle,
       name: string,
       opID: number,
-      resolve: (opID: number, id: number, len: number) => void,
-      reject: (opID: number, code: number) => void,
     ) => void
     BLDR_OPFS_READ_AT?: (
       handle: FileSystemFileHandle,
       dst: Uint8Array,
       off: number,
       opID: number,
-      resolve: (opID: number, read: number) => void,
-      reject: (opID: number, code: number) => void,
     ) => void
     BLDR_OPFS_LIST_DIRECTORY?: (
       dir: FileSystemDirectoryHandle,
       opID: number,
-      resolve: (opID: number, id: number, len: number) => void,
-      reject: (opID: number, code: number) => void,
     ) => void
     BLDR_OPFS_WRITE_AT?: (
       handle: FileSystemFileHandle,
@@ -347,37 +374,24 @@ export function installTinyGoJSHelpers(): void {
       off: number,
       keepExisting: boolean,
       opID: number,
-      resolve: (opID: number, written: number) => void,
-      reject: (opID: number, code: number) => void,
     ) => void
     BLDR_OPFS_WRITE_FILE?: (
       dir: FileSystemDirectoryHandle,
       name: string,
       data: Uint8Array,
       opID: number,
-      resolve: (opID: number, written: number) => void,
-      reject: (opID: number, code: number) => void,
     ) => void
     BLDR_OPFS_WRITE_FILE_BEGIN?: (
       dir: FileSystemDirectoryHandle,
       name: string,
       opID: number,
-      resolve: (opID: number, sessionID: number) => void,
-      reject: (opID: number, code: number) => void,
     ) => void
     BLDR_OPFS_WRITE_FILE_CHUNK?: (
       sessionID: number,
       data: Uint8Array,
       opID: number,
-      resolve: (opID: number, written: number) => void,
-      reject: (opID: number, code: number) => void,
     ) => void
-    BLDR_OPFS_WRITE_FILE_CLOSE?: (
-      sessionID: number,
-      opID: number,
-      resolve: (opID: number, written: number) => void,
-      reject: (opID: number, code: number) => void,
-    ) => void
+    BLDR_OPFS_WRITE_FILE_CLOSE?: (sessionID: number, opID: number) => void
     BLDR_OPFS_WRITE_FILE_ABORT?: (sessionID: number) => boolean
   }
 
@@ -472,8 +486,6 @@ export function installTinyGoJSHelpers(): void {
     dir: FileSystemDirectoryHandle,
     name: string,
     opID: number,
-    resolve: (opID: number, id: number, len: number) => void,
-    reject: (opID: number, code: number) => void,
   ) => {
     dir
       .getFileHandle(name)
@@ -483,11 +495,10 @@ export function installTinyGoJSHelpers(): void {
         const bytes = new Uint8Array(buf)
         const id = storeTinyGoBytes(bytes)
         const len = bytes.byteLength
-        deferTinyGoCallback(() => resolve(opID, id, len))
+        resolveTinyGoOPFSHelper(go, opID, id, len)
       })
       .catch((reason) => {
-        const code = tinyGoPromiseErrorCode(reason)
-        deferTinyGoCallback(() => reject(opID, code))
+        rejectTinyGoOPFSOp(go, opID, reason)
       })
   }
   g.BLDR_OPFS_READ_AT ??= (
@@ -495,15 +506,13 @@ export function installTinyGoJSHelpers(): void {
     dst: Uint8Array,
     off: number,
     opID: number,
-    resolve: (opID: number, read: number) => void,
-    reject: (opID: number, code: number) => void,
   ) => {
     const dstLen = dst.byteLength
     handle
       .getFile()
       .then(async (file) => {
         if (off >= file.size || dstLen === 0) {
-          deferTinyGoCallback(() => resolve(opID, 0))
+          resolveTinyGoOPFSHelper(go, opID, 0)
           return
         }
         const end = Math.min(off + dstLen, file.size)
@@ -513,18 +522,15 @@ export function installTinyGoJSHelpers(): void {
           dst.subarray(0, bytes.byteLength).set(bytes)
         }
         const read = bytes.byteLength
-        deferTinyGoCallback(() => resolve(opID, read))
+        resolveTinyGoOPFSHelper(go, opID, read)
       })
       .catch((reason) => {
-        const code = tinyGoPromiseErrorCode(reason)
-        deferTinyGoCallback(() => reject(opID, code))
+        rejectTinyGoOPFSOp(go, opID, reason)
       })
   }
   g.BLDR_OPFS_LIST_DIRECTORY ??= (
     dir: FileSystemDirectoryHandle,
     opID: number,
-    resolve: (opID: number, id: number, len: number) => void,
-    reject: (opID: number, code: number) => void,
   ) => {
     ;(async () => {
       const names: string[] = []
@@ -534,10 +540,9 @@ export function installTinyGoJSHelpers(): void {
       const bytes = encodeTinyGoNameList(names)
       const id = storeTinyGoBytes(bytes)
       const len = bytes.byteLength
-      deferTinyGoCallback(() => resolve(opID, id, len))
+      resolveTinyGoOPFSHelper(go, opID, id, len)
     })().catch((reason) => {
-      const code = tinyGoPromiseErrorCode(reason)
-      deferTinyGoCallback(() => reject(opID, code))
+      rejectTinyGoOPFSOp(go, opID, reason)
     })
   }
   g.BLDR_OPFS_WRITE_AT ??= (
@@ -546,8 +551,6 @@ export function installTinyGoJSHelpers(): void {
     off: number,
     keepExisting: boolean,
     opID: number,
-    resolve: (opID: number, written: number) => void,
-    reject: (opID: number, code: number) => void,
   ) => {
     let writable: FileSystemWritableFileStream | undefined
     try {
@@ -566,15 +569,15 @@ export function installTinyGoJSHelpers(): void {
             await writable.write(writeData)
           }
           await writable.close()
-          deferTinyGoCallback(() => resolve(opID, writeData.byteLength))
+          resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
         })
         .catch((reason) => {
           closeOPFSWritableQuietly(writable)
-          rejectTinyGoOPFSOp(opID, reject, reason)
+          rejectTinyGoOPFSOp(go, opID, reason)
         })
     } catch (reason) {
       closeOPFSWritableQuietly(writable)
-      rejectTinyGoOPFSOp(opID, reject, reason)
+      rejectTinyGoOPFSOp(go, opID, reason)
     }
   }
   g.BLDR_OPFS_WRITE_FILE ??= (
@@ -582,8 +585,6 @@ export function installTinyGoJSHelpers(): void {
     name: string,
     data: Uint8Array,
     opID: number,
-    resolve: (opID: number, written: number) => void,
-    reject: (opID: number, code: number) => void,
   ) => {
     let writable: FileSystemWritableFileStream | undefined
     try {
@@ -596,23 +597,21 @@ export function installTinyGoJSHelpers(): void {
             await writable.write(writeData)
           }
           await writable.close()
-          deferTinyGoCallback(() => resolve(opID, writeData.byteLength))
+          resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
         })
         .catch((reason) => {
           closeOPFSWritableQuietly(writable)
-          rejectTinyGoOPFSOp(opID, reject, reason)
+          rejectTinyGoOPFSOp(go, opID, reason)
         })
     } catch (reason) {
       closeOPFSWritableQuietly(writable)
-      rejectTinyGoOPFSOp(opID, reject, reason)
+      rejectTinyGoOPFSOp(go, opID, reason)
     }
   }
   g.BLDR_OPFS_WRITE_FILE_BEGIN ??= (
     dir: FileSystemDirectoryHandle,
     name: string,
     opID: number,
-    resolve: (opID: number, sessionID: number) => void,
-    reject: (opID: number, code: number) => void,
   ) => {
     try {
       dir
@@ -620,32 +619,30 @@ export function installTinyGoJSHelpers(): void {
         .then((handle) => handle.createWritable())
         .then((writable) => {
           const sessionID = storeOPFSWriteSession(writable)
-          deferTinyGoCallback(() => resolve(opID, sessionID))
+          resolveTinyGoOPFSHelper(go, opID, sessionID)
         })
         .catch((reason) => {
-          rejectTinyGoOPFSOp(opID, reject, reason)
+          rejectTinyGoOPFSOp(go, opID, reason)
         })
     } catch (reason) {
-      rejectTinyGoOPFSOp(opID, reject, reason)
+      rejectTinyGoOPFSOp(go, opID, reason)
     }
   }
   g.BLDR_OPFS_WRITE_FILE_CHUNK ??= (
     sessionID: number,
     data: Uint8Array,
     opID: number,
-    resolve: (opID: number, written: number) => void,
-    reject: (opID: number, code: number) => void,
   ) => {
     const session = tinyGoOPFSWriteSessions.get(sessionID)
     if (!session) {
-      deferTinyGoCallback(() => reject(opID, tinyGoPromiseErrorNotFound))
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorNotFound)
       return
     }
     let writeData: Uint8Array<ArrayBuffer>
     try {
       writeData = copyUint8Array(data)
     } catch {
-      deferTinyGoCallback(() => reject(opID, tinyGoPromiseErrorUnknown))
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorUnknown)
       return
     }
     try {
@@ -653,41 +650,36 @@ export function installTinyGoJSHelpers(): void {
         .write(writeData)
         .then(() => {
           session.written += writeData.byteLength
-          deferTinyGoCallback(() => resolve(opID, writeData.byteLength))
+          resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
         })
         .catch((reason) => {
           tinyGoOPFSWriteSessions.delete(sessionID)
           closeOPFSWritableQuietly(session.writable)
-          rejectTinyGoOPFSOp(opID, reject, reason)
+          rejectTinyGoOPFSOp(go, opID, reason)
         })
     } catch (reason) {
       tinyGoOPFSWriteSessions.delete(sessionID)
       closeOPFSWritableQuietly(session.writable)
-      rejectTinyGoOPFSOp(opID, reject, reason)
+      rejectTinyGoOPFSOp(go, opID, reason)
     }
   }
-  g.BLDR_OPFS_WRITE_FILE_CLOSE ??= (
-    sessionID: number,
-    opID: number,
-    resolve: (opID: number, written: number) => void,
-    reject: (opID: number, code: number) => void,
-  ) => {
+  g.BLDR_OPFS_WRITE_FILE_CLOSE ??= (sessionID: number, opID: number) => {
     const session = takeOPFSWriteSession(sessionID)
     if (!session) {
-      deferTinyGoCallback(() => reject(opID, tinyGoPromiseErrorNotFound))
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorNotFound)
       return
     }
     try {
       session.writable
         .close()
         .then(() => {
-          deferTinyGoCallback(() => resolve(opID, session.written))
+          resolveTinyGoOPFSHelper(go, opID, session.written)
         })
         .catch((reason) => {
-          rejectTinyGoOPFSOp(opID, reject, reason)
+          rejectTinyGoOPFSOp(go, opID, reason)
         })
     } catch (reason) {
-      rejectTinyGoOPFSOp(opID, reject, reason)
+      rejectTinyGoOPFSOp(go, opID, reason)
     }
   }
   g.BLDR_OPFS_WRITE_FILE_ABORT ??= (sessionID: number) => {
@@ -934,10 +926,9 @@ export class GoWasmProcess {
     // TODO: Find a way to kill the module if abortSignal is aborted.
     abortSignal: AbortSignal,
   ) {
-    const wasmModule = await loadWebAssemblyModule(this.wasmSource)
-    patchWorkerBrowserGlobals()
-
     const go = new Go()
+    const wasmModule = await loadWebAssemblyModule(this.wasmSource)
+    patchWorkerBrowserGlobals(go)
     patchTinyGoRuntimeImports(go)
     if (this.opts?.argv) {
       go.argv = this.opts.argv

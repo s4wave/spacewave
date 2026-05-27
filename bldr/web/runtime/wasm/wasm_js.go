@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"syscall/js"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -132,11 +133,14 @@ func openPushableStream(
 			packetWriter.fail(err)
 			closeHandler(err)
 		})
+		sink := args[0]
 		releasePromiseCallbacks.Do(func() {
 			releaseJSFunc(jsThen)
 			releaseJSFunc(jsCatch)
 		})
-		packetWriter.resolve(args[0])
+		deferTinyGoCallbackTask(func() {
+			packetWriter.resolve(sink)
+		})
 		return nil
 	})
 	jsCatch = js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -160,8 +164,10 @@ func openPushableStream(
 		} else {
 			err = errors.Errorf("open stream rejected: %v", args[0])
 		}
-		packetWriter.fail(err)
-		closeHandler(err)
+		deferTinyGoCallbackTask(func() {
+			packetWriter.fail(err)
+			closeHandler(err)
+		})
 		return nil
 	})
 	if packetWriter.isClosed() {
@@ -180,13 +186,20 @@ func releaseJSFunc(fn js.Func) {
 		fn.Release()
 		return
 	}
-	go func() {
-		// TinyGo's syscall/js callback frame is still live while the callback
-		// is running. Release from a later goroutine turn so the callback has
-		// returned to the JS runtime before TinyGo mutates its function table.
-		runtime.Gosched()
+	// TinyGo's syscall/js callback frame is still live while the callback is
+	// running. Release from a later scheduler task so the callback has returned
+	// to the JS runtime before TinyGo mutates its function table.
+	deferTinyGoCallbackTask(func() {
 		fn.Release()
-	}()
+	})
+}
+
+func deferTinyGoCallbackTask(fn func()) {
+	if runtime.Compiler != "tinygo" {
+		fn()
+		return
+	}
+	time.AfterFunc(0, fn)
 }
 
 type jsStreamPacketCallbacks struct {
@@ -253,12 +266,13 @@ type serialPacketDataHandler struct {
 	closeHandler srpc.CloseHandler
 	releaseFn    func()
 
-	mtx      sync.Mutex
-	notify   chan struct{}
-	finish   sync.Once
-	queue    [][]byte
-	closed   bool
-	closeErr error
+	mtx       sync.Mutex
+	notify    chan struct{}
+	finish    sync.Once
+	queue     [][]byte
+	closed    bool
+	closeErr  error
+	scheduled bool
 }
 
 func newSerialPacketDataHandler(
@@ -283,7 +297,7 @@ func (h *serialPacketDataHandler) Handle(data []byte) {
 		return
 	}
 	h.queue = append(h.queue, data)
-	h.signalLocked()
+	h.scheduleLocked()
 	h.mtx.Unlock()
 }
 
@@ -295,7 +309,7 @@ func (h *serialPacketDataHandler) Close(err error) {
 	}
 	h.closed = true
 	h.closeErr = err
-	h.signalLocked()
+	h.scheduleLocked()
 	h.mtx.Unlock()
 }
 
@@ -308,7 +322,7 @@ func (h *serialPacketDataHandler) Fail(err error) {
 	h.closed = true
 	h.closeErr = err
 	h.queue = nil
-	h.signalLocked()
+	h.scheduleLocked()
 	h.mtx.Unlock()
 
 	h.finish.Do(func() {
@@ -353,6 +367,23 @@ func (h *serialPacketDataHandler) signalLocked() {
 	case h.notify <- struct{}{}:
 	default:
 	}
+}
+
+func (h *serialPacketDataHandler) scheduleLocked() {
+	if runtime.Compiler != "tinygo" {
+		h.signalLocked()
+		return
+	}
+	if h.scheduled {
+		return
+	}
+	h.scheduled = true
+	time.AfterFunc(0, func() {
+		h.mtx.Lock()
+		h.scheduled = false
+		h.signalLocked()
+		h.mtx.Unlock()
+	})
 }
 
 type deferredPushablePacketWriter struct {

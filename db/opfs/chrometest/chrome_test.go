@@ -1443,12 +1443,44 @@ self.__BLDR_TINYGO_READ_STRING = (go, ptr, len) => {
   }
   return new TextDecoder().decode(new Uint8Array(memory.buffer, ptr >>> 0, len))
 }
-self.__BLDR_TINYGO_DEFER = (cb) => queueMicrotask(cb)
+self.__BLDR_TINYGO_DEFER_QUEUE = []
+self.__BLDR_TINYGO_DEFER_SCHEDULED = false
+self.__BLDR_TINYGO_DEFER_CHANNEL = new MessageChannel()
+self.__BLDR_TINYGO_DEFER_CHANNEL.port1.onmessage = () => {
+  self.__BLDR_TINYGO_DEFER_SCHEDULED = false
+  const cb = self.__BLDR_TINYGO_DEFER_QUEUE.shift()
+  if (cb) {
+    cb()
+  }
+  if (self.__BLDR_TINYGO_DEFER_QUEUE.length !== 0) {
+    self.__BLDR_TINYGO_DEFER_SCHEDULED = true
+    self.__BLDR_TINYGO_DEFER_CHANNEL.port2.postMessage(undefined)
+  }
+}
+self.__BLDR_TINYGO_DEFER = (cb) => {
+  self.__BLDR_TINYGO_DEFER_QUEUE.push(cb)
+  if (!self.__BLDR_TINYGO_DEFER_SCHEDULED) {
+    self.__BLDR_TINYGO_DEFER_SCHEDULED = true
+    self.__BLDR_TINYGO_DEFER_CHANNEL.port2.postMessage(undefined)
+  }
+}
 self.__BLDR_TINYGO_CALL_EXPORT = (go, fn, ...args) => {
   fn(...args)
   if (typeof go._resume === 'function') {
-    go._resume()
+    self.__BLDR_TINYGO_DEFER(() => go._resume())
   }
+}
+self.__BLDR_TINYGO_OPFS_RESOLVE = (opID, ...values) => {
+  const go = self.__BLDR_TINYGO_CURRENT_GO
+  const resolve = self.__BLDR_TINYGO_EXPORT(go, 'BLDR_OPFS_HELPER_RESOLVE')
+  self.__BLDR_TINYGO_DEFER(() => {
+    self.__BLDR_TINYGO_CALL_EXPORT(go, resolve, opID, values.length, values[0] ?? 0, values[1] ?? 0)
+  })
+}
+self.__BLDR_TINYGO_OPFS_REJECT = (opID, code) => {
+  const go = self.__BLDR_TINYGO_CURRENT_GO
+  const reject = self.__BLDR_TINYGO_EXPORT(go, 'BLDR_OPFS_HELPER_REJECT')
+  self.__BLDR_TINYGO_DEFER(() => self.__BLDR_TINYGO_CALL_EXPORT(go, reject, opID, code))
 }
 self.__BLDR_TINYGO_STORE_WEB_LOCK_RELEASE = (release) => {
   const id = self.__BLDR_TINYGO_WEB_LOCK_RELEASE_NEXT_ID++
@@ -1541,22 +1573,22 @@ self.__BLDR_TINYGO_ENCODE_NAMES ??= (names) => {
   }
   return bytes
 }
-self.BLDR_OPFS_READ_FILE ??= (dir, name, opID, resolve, reject) => {
+self.BLDR_OPFS_READ_FILE ??= (dir, name, opID) => {
   dir.getFileHandle(name)
     .then((handle) => handle.getFile())
     .then((file) => file.arrayBuffer())
     .then((buf) => {
       const bytes = new Uint8Array(buf)
-      resolve(opID, self.__BLDR_TINYGO_STORE_BYTES(bytes), bytes.byteLength)
+      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, self.__BLDR_TINYGO_STORE_BYTES(bytes), bytes.byteLength)
     })
-    .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
 }
-self.BLDR_OPFS_READ_AT ??= (handle, dst, off, opID, resolve, reject) => {
+self.BLDR_OPFS_READ_AT ??= (handle, dst, off, opID) => {
   const dstLen = dst.byteLength
   handle.getFile()
     .then(async (file) => {
       if (off >= file.size || dstLen === 0) {
-        resolve(opID, 0)
+        self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 0)
         return
       }
       const end = Math.min(off + dstLen, file.size)
@@ -1565,21 +1597,21 @@ self.BLDR_OPFS_READ_AT ??= (handle, dst, off, opID, resolve, reject) => {
       if (bytes.byteLength !== 0) {
         dst.subarray(0, bytes.byteLength).set(bytes)
       }
-      resolve(opID, bytes.byteLength)
+      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, bytes.byteLength)
     })
-    .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
 }
-self.BLDR_OPFS_LIST_DIRECTORY ??= (dir, opID, resolve, reject) => {
+self.BLDR_OPFS_LIST_DIRECTORY ??= (dir, opID) => {
   ;(async () => {
     const names = []
     for await (const [name] of dir.entries()) {
       names.push(name)
     }
     const bytes = self.__BLDR_TINYGO_ENCODE_NAMES(names)
-    resolve(opID, self.__BLDR_TINYGO_STORE_BYTES(bytes), bytes.byteLength)
-  })().catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    self.__BLDR_TINYGO_OPFS_RESOLVE(opID, self.__BLDR_TINYGO_STORE_BYTES(bytes), bytes.byteLength)
+  })().catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
 }
-self.BLDR_OPFS_WRITE_AT ??= (handle, data, off, keepExisting, opID, resolve, reject) => {
+self.BLDR_OPFS_WRITE_AT ??= (handle, data, off, keepExisting, opID) => {
   const writeData = self.__BLDR_TINYGO_COPY_BYTES(data)
   let writable
   const opts = keepExisting ? { keepExistingData: true } : undefined
@@ -1594,16 +1626,16 @@ self.BLDR_OPFS_WRITE_AT ??= (handle, data, off, keepExisting, opID, resolve, rej
         await writable.write(writeData)
       }
       await writable.close()
-      resolve(opID, writeData.byteLength)
+      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, writeData.byteLength)
     })
     .catch((reason) => {
       if (writable) {
         void writable.close().catch(() => {})
       }
-      reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
+      self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
     })
 }
-self.BLDR_OPFS_WRITE_FILE ??= (dir, name, data, opID, resolve, reject) => {
+self.BLDR_OPFS_WRITE_FILE ??= (dir, name, data, opID) => {
   const writeData = self.__BLDR_TINYGO_COPY_BYTES(data)
   let writable
   dir.getFileHandle(name, { create: true })
@@ -1613,56 +1645,56 @@ self.BLDR_OPFS_WRITE_FILE ??= (dir, name, data, opID, resolve, reject) => {
         await writable.write(writeData)
       }
       await writable.close()
-      resolve(opID, writeData.byteLength)
+      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, writeData.byteLength)
     })
     .catch((reason) => {
       if (writable) {
         void writable.close().catch(() => {})
       }
-      reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
+      self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
     })
 }
-self.BLDR_OPFS_WRITE_FILE_BEGIN ??= (dir, name, opID, resolve, reject) => {
+self.BLDR_OPFS_WRITE_FILE_BEGIN ??= (dir, name, opID) => {
   dir.getFileHandle(name, { create: true })
     .then((handle) => handle.createWritable())
     .then((writable) => {
-      resolve(opID, self.__BLDR_TINYGO_STORE_OPFS_WRITE_SESSION(writable))
+      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, self.__BLDR_TINYGO_STORE_OPFS_WRITE_SESSION(writable))
     })
-    .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
 }
-self.BLDR_OPFS_WRITE_FILE_CHUNK ??= (sessionID, data, opID, resolve, reject) => {
+self.BLDR_OPFS_WRITE_FILE_CHUNK ??= (sessionID, data, opID) => {
   const session = self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.get(sessionID)
   if (!session) {
-    reject(opID, 1)
+    self.__BLDR_TINYGO_OPFS_REJECT(opID, 1)
     return
   }
   let writeData
   try {
     writeData = self.__BLDR_TINYGO_COPY_BYTES(data)
   } catch {
-    reject(opID, 0)
+    self.__BLDR_TINYGO_OPFS_REJECT(opID, 0)
     return
   }
   session.writable.write(writeData)
     .then(() => {
       session.written += writeData.byteLength
-      resolve(opID, writeData.byteLength)
+      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, writeData.byteLength)
     })
     .catch((reason) => {
       self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.delete(sessionID)
       void session.writable.close().catch(() => {})
-      reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
+      self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
     })
 }
-self.BLDR_OPFS_WRITE_FILE_CLOSE ??= (sessionID, opID, resolve, reject) => {
+self.BLDR_OPFS_WRITE_FILE_CLOSE ??= (sessionID, opID) => {
   const session = self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION(sessionID)
   if (!session) {
-    reject(opID, 1)
+    self.__BLDR_TINYGO_OPFS_REJECT(opID, 1)
     return
   }
   session.writable.close()
-    .then(() => resolve(opID, session.written))
-    .catch((reason) => reject(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    .then(() => self.__BLDR_TINYGO_OPFS_RESOLVE(opID, session.written))
+    .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
 }
 self.BLDR_OPFS_WRITE_FILE_ABORT ??= (sessionID) => {
   const session = self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION(sessionID)
@@ -1676,6 +1708,7 @@ self.BLDR_OPFS_WRITE_FILE_ABORT ??= (sessionID) => {
 self.onmessage = async (event) => {
   const args = event.data
   const go = new Go()
+  self.__BLDR_TINYGO_CURRENT_GO = go
   go.argv = [
     'testprog',
     args.scenario ?? '',

@@ -42,12 +42,9 @@ type opfsHelperResult struct {
 }
 
 var (
-	opfsHelperOnce    sync.Once
-	opfsHelperResolve js.Func
-	opfsHelperReject  js.Func
-	opfsHelperMu      sync.Mutex
-	opfsHelperNextID  int
-	opfsHelperOps     = map[int]chan opfsHelperResult{}
+	opfsHelperMu     sync.Mutex
+	opfsHelperNextID int
+	opfsHelperOps    = map[int]chan opfsHelperResult{}
 )
 
 // JSError represents a JavaScript error or DOMException.
@@ -280,8 +277,8 @@ func (f *AsyncFile) readAtWithHelper(readAt js.Value, p []byte, off int64) (int,
 		return 0, err
 	}
 
-	n, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		readAt.Invoke(f.handle, dst, off, opID, resolve, reject)
+	n, err := invokeOPFSIntHelper(func(opID int) {
+		readAt.Invoke(f.handle, dst, off, opID)
 	})
 	if err != nil {
 		return 0, err
@@ -370,8 +367,8 @@ func (f *AsyncFile) writeAtWithHelper(writeAt js.Value, p []byte, off int64, kee
 	if err != nil {
 		return 0, err
 	}
-	written, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		writeAt.Invoke(f.handle, data, off, keepExisting, opID, resolve, reject)
+	written, err := invokeOPFSIntHelper(func(opID int) {
+		writeAt.Invoke(f.handle, data, off, keepExisting, opID)
 	})
 	if err != nil {
 		return 0, err
@@ -382,7 +379,7 @@ func (f *AsyncFile) writeAtWithHelper(writeAt js.Value, p []byte, off int64, kee
 	return written, nil
 }
 
-func invokeOPFSIntHelper(call func(opID int, resolve, reject js.Func)) (int, error) {
+func invokeOPFSIntHelper(call func(opID int)) (int, error) {
 	values, err := invokeOPFSHelper(call)
 	if err != nil || len(values) == 0 {
 		return 0, err
@@ -390,43 +387,13 @@ func invokeOPFSIntHelper(call func(opID int, resolve, reject js.Func)) (int, err
 	return values[0], nil
 }
 
-func invokeOPFSHelper(call func(opID int, resolve, reject js.Func)) ([]int, error) {
-	initOPFSHelperCallbacks()
+func invokeOPFSHelper(call func(opID int)) ([]int, error) {
 	opID, ch := registerOPFSHelperOp()
 	defer unregisterOPFSHelperOp(opID)
 
-	call(opID, opfsHelperResolve, opfsHelperReject)
+	call(opID)
 	result := <-ch
 	return result.values, result.err
-}
-
-func initOPFSHelperCallbacks() {
-	opfsHelperOnce.Do(func() {
-		opfsHelperResolve = js.FuncOf(func(this js.Value, args []js.Value) any {
-			if len(args) == 0 {
-				return nil
-			}
-			opID := args[0].Int()
-			values := make([]int, 0, len(args)-1)
-			for _, arg := range args[1:] {
-				values = append(values, arg.Int())
-			}
-			completeOPFSHelperOp(opID, opfsHelperResult{values: values})
-			return nil
-		})
-		opfsHelperReject = js.FuncOf(func(this js.Value, args []js.Value) any {
-			if len(args) == 0 {
-				return nil
-			}
-			opID := args[0].Int()
-			err := errors.New("promise rejected")
-			if len(args) > 1 && !args[1].IsUndefined() && !args[1].IsNull() {
-				err = newJSError(args[1])
-			}
-			completeOPFSHelperOp(opID, opfsHelperResult{err: err})
-			return nil
-		})
-	})
 }
 
 func registerOPFSHelperOp() (int, chan opfsHelperResult) {
@@ -568,8 +535,8 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 }
 
 func writeFileWithChunkedHelper(begin, chunk, closeFile, abort js.Value, dir js.Value, name string, data []byte) error {
-	sessionID, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		begin.Invoke(dir, name, opID, resolve, reject)
+	sessionID, err := invokeOPFSIntHelper(func(opID int) {
+		begin.Invoke(dir, name, opID)
 	})
 	if err != nil {
 		return err
@@ -591,8 +558,8 @@ func writeFileWithChunkedHelper(begin, chunk, closeFile, abort js.Value, dir js.
 		if err != nil {
 			return err
 		}
-		n, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-			chunk.Invoke(sessionID, bytes, opID, resolve, reject)
+		n, err := invokeOPFSIntHelper(func(opID int) {
+			chunk.Invoke(sessionID, bytes, opID)
 		})
 		if err != nil {
 			return err
@@ -603,8 +570,8 @@ func writeFileWithChunkedHelper(begin, chunk, closeFile, abort js.Value, dir js.
 		written += n
 	}
 
-	closedWritten, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		closeFile.Invoke(sessionID, opID, resolve, reject)
+	closedWritten, err := invokeOPFSIntHelper(func(opID int) {
+		closeFile.Invoke(sessionID, opID)
 	})
 	if err != nil {
 		return err
@@ -621,8 +588,8 @@ func writeFileWithHelper(writeFile js.Value, dir js.Value, name string, data []b
 	if err != nil {
 		return err
 	}
-	written, err := invokeOPFSIntHelper(func(opID int, resolve, reject js.Func) {
-		writeFile.Invoke(dir, name, bytes, opID, resolve, reject)
+	written, err := invokeOPFSIntHelper(func(opID int) {
+		writeFile.Invoke(dir, name, bytes, opID)
 	})
 	if err != nil {
 		return err
@@ -661,8 +628,8 @@ func ReadFile(dir js.Value, name string) ([]byte, error) {
 }
 
 func readFileWithHelper(readFile js.Value, dir js.Value, name string) ([]byte, error) {
-	values, err := invokeOPFSHelper(func(opID int, resolve, reject js.Func) {
-		readFile.Invoke(dir, name, opID, resolve, reject)
+	values, err := invokeOPFSHelper(func(opID int) {
+		readFile.Invoke(dir, name, opID)
 	})
 	if err != nil {
 		return nil, err
@@ -766,8 +733,8 @@ func ListDirectory(dir js.Value) ([]string, error) {
 }
 
 func listDirectoryWithHelper(listDirectory js.Value, dir js.Value) ([]string, error) {
-	values, err := invokeOPFSHelper(func(opID int, resolve, reject js.Func) {
-		listDirectory.Invoke(dir, opID, resolve, reject)
+	values, err := invokeOPFSHelper(func(opID int) {
+		listDirectory.Invoke(dir, opID)
 	})
 	if err != nil {
 		return nil, err
