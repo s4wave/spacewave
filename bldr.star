@@ -583,9 +583,7 @@ build("release-remote-js",
 # selected REMOTE_WORLD_MANIFESTS from the devtool world into a local bolt DB
 # at =.bldr/release-spacewave.bdb=. Release automation exports that bolt DB as
 # a kvfile and uploads it to the plugin channel namespace at
-# =release/plugins/world/<plugin-rev>.kvfile=. Transform config (s2 + blockenc
-# with PEER_ENCRYPTION_KEY) is applied during the copy so the remote-world
-# blocks are compressed and encrypted at rest. The publish timestamp is pinned
+# =release/plugins/world/<plugin-rev>.kvfile=. The publish timestamp is pinned
 # so identical inputs yield byte-identical bolt output across runs; bump
 # =RELEASE_PIN_TIMESTAMP_SECONDS= at each release cut.
 
@@ -593,23 +591,6 @@ build("release-remote-js",
 # across rebuilds but advance with real releases. Bump at each release cut to
 # match the git tag date. RFC3339 UTC ("Z" suffix required).
 RELEASE_PIN_TIMESTAMP = "2026-04-16T00:00:00Z"
-
-# RELEASE_TRANSFORM mirrors the blockenc step used by core_config_set so the
-# published remote world uses the same encryption key as the runtime peer
-# store. s2 compresses first (better compression of unencrypted bytes), then
-# blockenc encrypts the compressed output.
-RELEASE_TRANSFORM = {
-    "steps": [
-        {"id": "hydra/transform/s2"},
-        {
-            "id": "hydra/transform/blockenc",
-            "config": {
-                "blockEnc": "BlockEnc_XCHACHA20_POLY1305",
-                "key": PEER_ENCRYPTION_KEY,
-            },
-        },
-    ],
-}
 
 remote("spacewave-release",
     engineId="spacewave-release-world",
@@ -641,7 +622,6 @@ publish("spacewave-release",
     remotes=["spacewave-release"],
     manifests=REMOTE_WORLD_MANIFESTS,
     storage={
-        "transformConf": RELEASE_TRANSFORM,
         "timestamp": RELEASE_PIN_TIMESTAMP,
     },
 )

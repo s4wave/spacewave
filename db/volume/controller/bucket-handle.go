@@ -316,11 +316,23 @@ func (b *bucketHandle) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 	if v, ok := scopedV.(volume.Volume); ok {
 		scoped.v = v
 	}
+	var releaseGC func()
 	if b.gcOps != nil {
-		scoped.gcOps = b.gcOps.WithStore(scopedV)
-		scoped.readOps = scoped.gcOps
+		scopedGC, release, err := b.gcOps.BeginReadOperation(ctx)
+		if err != nil {
+			releaseV()
+			return nil, nil, err
+		}
+		if gcOps, ok := scopedGC.(*block_gc.GCStoreOps); ok {
+			scoped.gcOps = gcOps
+			scoped.readOps = gcOps
+		}
+		releaseGC = release
 	}
 	return scoped, func() {
+		if releaseGC != nil {
+			releaseGC()
+		}
 		releaseV()
 	}, nil
 }

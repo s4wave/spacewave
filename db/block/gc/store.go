@@ -147,30 +147,15 @@ func (g *GCStoreOps) GetStore() block.StoreOps {
 	return g.store
 }
 
-// WithStore returns a GC wrapper over an already-scoped store without opening
-// another read scope on the same underlying database.
-func (g *GCStoreOps) WithStore(store block.StoreOps) *GCStoreOps {
-	if g == nil {
-		return nil
-	}
-	scoped := &GCStoreOps{
-		store:     store,
-		refGraph:  g.refGraph,
-		wal:       g.wal,
-		parentIRI: g.parentIRI,
-		flushTask: g.flushTask,
-	}
-	scoped.deferFlush.Store(g.deferFlush.Load())
-	return scoped
-}
-
 // BeginReadOperation opens a read scope on the inner store.
 func (g *GCStoreOps) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	store, release, err := g.store.BeginReadOperation(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	return g.WithStore(store), release, nil
+	scoped := *g
+	scoped.store = store
+	return &scoped, release, nil
 }
 
 // PutBlock puts a block into the store and buffers a gc/ref edge for

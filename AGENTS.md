@@ -126,6 +126,44 @@ environment, so `BLDR_LOG_FILE`, `BLDR_LOG_LEVEL`, `SPACEWAVE_LOG_LEVEL`,
 `SPACEWAVE_LOG_RETENTION_DAYS`, `SPACEWAVE_DATA_DIR`, and `BLDR_STATE_PATH` set
 on `spacewave-cli start` reach the spawned daemon.
 
+### TinyGo Browser/WASM Boundaries
+
+Browser TinyGo code is sensitive to `syscall/js` calls from hot paths, resumed
+callbacks, and large heap states. Keep the browser boundary JS-owned.
+
+- Treat `syscall/js.Value.Call`, `Invoke`, `New`, `String`, and `js.FuncOf` as
+  integration boundaries, not utility calls. Do not add them inside large-byte
+  paths, OPFS writes/listing, Web Locks, MessagePort send/close,
+  ResourceAttach, or StarPC packet pumps without an owner-level reason and a
+  browser test.
+- Prefer JS-owned helpers for browser APIs. JavaScript should perform method
+  dispatch, Promise chaining, object construction, typed-array allocation, Web
+  Lock orchestration, and JS exception classification. Go should pass
+  primitives or existing JS values, then transfer bytes with `js.CopyBytesToJS`
+  or `js.CopyBytesToGo`.
+- Never block inside a JavaScript-to-Go callback such as a `js.FuncOf` handler.
+  If the callback needs to wait on Go work, copy or retain only the JS values it
+  needs, start a goroutine, return to JavaScript immediately, and report
+  completion through the owning Promise, callback, stream, or message port.
+- Do not pass raw wasm-memory pointer/length pairs to helper JavaScript for
+  long-lived or large data. Do not make helper JavaScript call back into TinyGo
+  exports to recover pointer/length metadata while a `syscall/js` call is
+  active.
+- Bound heap pressure before crossing browser APIs. Large uploads, block
+  shards, SSTables, and RPC packets should stream or chunk at the owning
+  storage or transport layer instead of constructing one giant Go buffer and
+  converting it through `syscall/js`.
+- When Chrome reports `RuntimeError: unreachable`, `Offset is outside the
+  bounds of the DataView`, `syscall/js.valueCall`, `valueInvoke`, `valueNew`,
+  `valuePrepareString`, or a `js.FuncOf` frame, trace the exact Go
+  `syscall/js` boundary first. Do not patch downstream callers such as UI
+  enablement, resource release, or command state unless they own the failing
+  boundary.
+- Verification for this area needs a real browser path with both small and
+  large payloads. A direct OPFS/helper test is not enough when production also
+  crosses blockshard, ResourceAttach, Web Locks, MessagePort, or runtime stream
+  code.
+
 ## RPC, Cache, And Resource Lifecycles
 
 ### Plugin, RPC, And Directive Namespaces
