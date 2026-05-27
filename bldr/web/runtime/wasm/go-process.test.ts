@@ -146,6 +146,10 @@ function newTinyGoRuntime(
   }
 }
 
+function tinyGoObjectRef(id: number): bigint {
+  return BigInt(id) | ((0x7ff80000n | 1n) << 32n)
+}
+
 describe('patchTinyGoRuntimeImports', () => {
   it('adds TinyGo random data import backed by wasm memory', () => {
     const memory = new WebAssembly.Memory({ initial: 1 })
@@ -300,6 +304,140 @@ describe('patchTinyGoRuntimeImports', () => {
     ])
     expect(release(1)).toBe(1)
     expect(release(1)).toBe(0)
+  })
+
+  it('adds TinyGo OPFS imports backed by wasm memory and js.Value refs', async () => {
+    const resolved = new Map<number, (values: number[]) => void>()
+    const rejected = new Map<number, (code: number) => void>()
+    const waitOPFS = <T>(
+      opID: number,
+      invoke: () => void,
+      map: (values: number[]) => T,
+    ) =>
+      new Promise<T>((resolve) => {
+        resolved.set(opID, (values) => resolve(map(values)))
+        rejected.set(opID, (code) => resolve(map([-code])))
+        invoke()
+      })
+    const go = newTinyGoRuntime(
+      (opID, count, value0, value1) => {
+        resolved.get(opID)?.([value0, value1].slice(0, count))
+        resolved.delete(opID)
+        rejected.delete(opID)
+      },
+      (opID, code) => {
+        rejected.get(opID)?.(code)
+        resolved.delete(opID)
+        rejected.delete(opID)
+      },
+    )
+    const memory = go._inst?.exports.memory as WebAssembly.Memory
+    const mem = new Uint8Array(memory.buffer)
+    const writeString = (ptr: number, value: string) => {
+      const bytes = new TextEncoder().encode(value)
+      mem.set(bytes, ptr)
+      return bytes.byteLength
+    }
+    const writes: number[][] = []
+    const writable = {
+      close: async () => undefined,
+      write: async (data: BufferSource | Blob | string) => {
+        if (!(data instanceof Uint8Array)) {
+          throw new Error('expected Uint8Array write')
+        }
+        writes.push(Array.from(data))
+      },
+    }
+    const dir = {
+      getFileHandle: async (name: string, opts?: { create?: boolean }) => {
+        if (name === 'read.bin') {
+          return {
+            getFile: async () => ({
+              arrayBuffer: async () => new Uint8Array([4, 5, 6]).buffer,
+            }),
+          }
+        }
+        if (name === 'seg.bin' && opts?.create === true) {
+          return {
+            createWritable: async () => writable,
+          }
+        }
+        throw new Error('unexpected file handle request')
+      },
+    }
+    go._values = [NaN, 0, null, true, false, globalThis, go, dir]
+
+    patchTinyGoRuntimeImports(go)
+    const gojs = go.importObject.gojs as Record<string, unknown>
+    const readFile = gojs['bldr.opfs.readFileRef'] as
+      | ((
+          opID: number,
+          dirRef: bigint,
+          namePtr: number,
+          nameLen: number,
+        ) => void)
+      | undefined
+    const takeStoredBytes = gojs['bldr.opfs.takeStoredBytes'] as
+      | ((bytesID: number, ptr: number, len: number) => number)
+      | undefined
+    const begin = gojs['bldr.opfs.writeFileBeginRef'] as
+      | ((
+          opID: number,
+          dirRef: bigint,
+          namePtr: number,
+          nameLen: number,
+        ) => void)
+      | undefined
+    const chunk = gojs['bldr.opfs.writeFileChunkRef'] as
+      | ((
+          opID: number,
+          sessionID: number,
+          dataPtr: number,
+          dataLen: number,
+        ) => void)
+      | undefined
+    const close = gojs['bldr.opfs.writeFileCloseRef'] as
+      | ((opID: number, sessionID: number) => void)
+      | undefined
+    if (!readFile || !takeStoredBytes || !begin || !chunk || !close) {
+      throw new Error('OPFS import bridge was not installed')
+    }
+
+    const readNameLen = writeString(32, 'read.bin')
+    const read = await waitOPFS(
+      301,
+      () => readFile(301, tinyGoObjectRef(7), 32, readNameLen),
+      ([id = 0, len = 0]) => ({ id, len }),
+    )
+    expect(read.len).toBe(3)
+    expect(takeStoredBytes(read.id, 80, read.len)).toBe(1)
+    expect(Array.from(mem.subarray(80, 83))).toEqual([4, 5, 6])
+    expect(takeStoredBytes(read.id, 80, read.len)).toBe(0)
+
+    const writeNameLen = writeString(96, 'seg.bin')
+    const sessionID = await waitOPFS(
+      302,
+      () => begin(302, tinyGoObjectRef(7), 96, writeNameLen),
+      ([id = 0]) => id,
+    )
+    mem.set([11, 12, 13], 128)
+    const written = await waitOPFS(
+      303,
+      () => {
+        chunk(303, sessionID, 128, 3)
+        mem[128] = 99
+      },
+      ([n = 0]) => n,
+    )
+    const total = await waitOPFS(
+      304,
+      () => close(304, sessionID),
+      ([n = 0]) => n,
+    )
+
+    expect(written).toBe(3)
+    expect(total).toBe(3)
+    expect(writes).toEqual([[11, 12, 13]])
   })
 })
 

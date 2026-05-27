@@ -183,10 +183,30 @@ export function tinyGoMemory(go: TinyGoRuntime): WebAssembly.Memory {
   return memory
 }
 
+function tinyGoMemoryView(
+  go: TinyGoRuntime,
+  ptr: number,
+  len: number,
+): Uint8Array {
+  return new Uint8Array(tinyGoMemory(go).buffer, ptr >>> 0, len)
+}
+
+function tinyGoUnboxValue(go: TinyGoRuntime, rawRef: bigint | number): unknown {
+  const ref = typeof rawRef === 'bigint' ? rawRef : BigInt(rawRef)
+  const nanHead = 0x7ff80000n
+  if (((ref >> 32n) & nanHead) !== nanHead) {
+    throw new Error('TinyGo numeric js.Value refs are unsupported here')
+  }
+  const id = Number(ref & 0xffffffffn)
+  const value = go._values?.[id]
+  if (value === undefined) {
+    throw new Error(`TinyGo js.Value ref ${id} is unavailable`)
+  }
+  return value
+}
+
 function readTinyGoString(go: TinyGoRuntime, ptr: number, len: number): string {
-  return new TextDecoder().decode(
-    new Uint8Array(tinyGoMemory(go).buffer, ptr >>> 0, len),
-  )
+  return new TextDecoder().decode(tinyGoMemoryView(go, ptr, len))
 }
 
 export function tinyGoExport(
@@ -790,6 +810,7 @@ export interface TinyGoRuntime {
   importObject: WebAssembly.Imports
   _inst?: WebAssembly.Instance
   _resume?: () => void
+  _values?: unknown[]
 }
 
 declare class Go {
@@ -863,6 +884,202 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
       return 0
     }
     release()
+    return 1
+  }
+  gojs['bldr.opfs.takeStoredBytes'] ??= (
+    bytesID: number,
+    ptr: number,
+    len: number,
+  ) => {
+    const bytes = takeTinyGoBytes(bytesID)
+    if (!bytes || bytes.byteLength !== len) {
+      return 0
+    }
+    if (len !== 0) {
+      tinyGoMemoryView(go, ptr, len).set(bytes)
+    }
+    return 1
+  }
+  gojs['bldr.opfs.readFileRef'] ??= (
+    opID: number,
+    dirRef: bigint,
+    namePtr: number,
+    nameLen: number,
+  ) => {
+    const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
+    const name = readTinyGoString(go, namePtr, nameLen)
+    dir
+      .getFileHandle(name)
+      .then((handle) => handle.getFile())
+      .then((file) => file.arrayBuffer())
+      .then((buf) => {
+        const bytes = new Uint8Array(buf)
+        resolveTinyGoOPFSHelper(
+          go,
+          opID,
+          storeTinyGoBytes(bytes),
+          bytes.byteLength,
+        )
+      })
+      .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.readAtRef'] ??= (
+    opID: number,
+    handleRef: bigint,
+    dstPtr: number,
+    dstLen: number,
+    off: bigint,
+  ) => {
+    const handle = tinyGoUnboxValue(go, handleRef) as FileSystemFileHandle
+    const offset = Number(off)
+    handle
+      .getFile()
+      .then(async (file) => {
+        if (offset >= file.size || dstLen === 0) {
+          resolveTinyGoOPFSHelper(go, opID, 0)
+          return
+        }
+        const end = Math.min(offset + dstLen, file.size)
+        const buf = await file.slice(offset, end).arrayBuffer()
+        const bytes = new Uint8Array(buf)
+        if (bytes.byteLength !== 0) {
+          tinyGoMemoryView(go, dstPtr, bytes.byteLength).set(bytes)
+        }
+        resolveTinyGoOPFSHelper(go, opID, bytes.byteLength)
+      })
+      .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.listDirectoryRef'] ??= (opID: number, dirRef: bigint) => {
+    const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
+    ;(async () => {
+      const names: string[] = []
+      for await (const [name] of dir.entries()) {
+        names.push(name)
+      }
+      const bytes = encodeTinyGoNameList(names)
+      resolveTinyGoOPFSHelper(
+        go,
+        opID,
+        storeTinyGoBytes(bytes),
+        bytes.byteLength,
+      )
+    })().catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.writeAtRef'] ??= (
+    opID: number,
+    handleRef: bigint,
+    dataPtr: number,
+    dataLen: number,
+    off: bigint,
+    keepExisting: number,
+  ) => {
+    const handle = tinyGoUnboxValue(go, handleRef) as FileSystemFileHandle
+    let writable: FileSystemWritableFileStream | undefined
+    try {
+      const writeData = copyUint8Array(tinyGoMemoryView(go, dataPtr, dataLen))
+      const opts = keepExisting ? { keepExistingData: true } : undefined
+      const writablePromise = opts
+        ? handle.createWritable(opts)
+        : handle.createWritable()
+      writablePromise
+        .then(async (next) => {
+          writable = next
+          const offset = Number(off)
+          if (offset !== 0) {
+            await writable.seek(offset)
+          }
+          if (writeData.byteLength !== 0) {
+            await writable.write(writeData)
+          }
+          await writable.close()
+          resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
+        })
+        .catch((reason) => {
+          closeOPFSWritableQuietly(writable)
+          rejectTinyGoOPFSOp(go, opID, reason)
+        })
+    } catch (reason) {
+      closeOPFSWritableQuietly(writable)
+      rejectTinyGoOPFSOp(go, opID, reason)
+    }
+  }
+  gojs['bldr.opfs.writeFileBeginRef'] ??= (
+    opID: number,
+    dirRef: bigint,
+    namePtr: number,
+    nameLen: number,
+  ) => {
+    const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
+    const name = readTinyGoString(go, namePtr, nameLen)
+    try {
+      dir
+        .getFileHandle(name, { create: true })
+        .then((handle) => handle.createWritable())
+        .then((writable) => {
+          resolveTinyGoOPFSHelper(go, opID, storeOPFSWriteSession(writable))
+        })
+        .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+    } catch (reason) {
+      rejectTinyGoOPFSOp(go, opID, reason)
+    }
+  }
+  gojs['bldr.opfs.writeFileChunkRef'] ??= (
+    opID: number,
+    sessionID: number,
+    dataPtr: number,
+    dataLen: number,
+  ) => {
+    const session = tinyGoOPFSWriteSessions.get(sessionID)
+    if (!session) {
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorNotFound)
+      return
+    }
+    let writeData: Uint8Array<ArrayBuffer>
+    try {
+      writeData = copyUint8Array(tinyGoMemoryView(go, dataPtr, dataLen))
+    } catch {
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorUnknown)
+      return
+    }
+    try {
+      session.writable
+        .write(writeData)
+        .then(() => {
+          session.written += writeData.byteLength
+          resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
+        })
+        .catch((reason) => {
+          tinyGoOPFSWriteSessions.delete(sessionID)
+          closeOPFSWritableQuietly(session.writable)
+          rejectTinyGoOPFSOp(go, opID, reason)
+        })
+    } catch (reason) {
+      tinyGoOPFSWriteSessions.delete(sessionID)
+      closeOPFSWritableQuietly(session.writable)
+      rejectTinyGoOPFSOp(go, opID, reason)
+    }
+  }
+  gojs['bldr.opfs.writeFileCloseRef'] ??= (opID: number, sessionID: number) => {
+    const session = takeOPFSWriteSession(sessionID)
+    if (!session) {
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorNotFound)
+      return
+    }
+    try {
+      session.writable
+        .close()
+        .then(() => resolveTinyGoOPFSHelper(go, opID, session.written))
+        .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+    } catch (reason) {
+      rejectTinyGoOPFSOp(go, opID, reason)
+    }
+  }
+  gojs['bldr.opfs.writeFileAbortRef'] ??= (sessionID: number) => {
+    const session = takeOPFSWriteSession(sessionID)
+    if (!session) {
+      return 0
+    }
+    closeOPFSWritableQuietly(session.writable)
     return 1
   }
 }

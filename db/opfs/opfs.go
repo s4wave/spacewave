@@ -14,24 +14,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs/jsutil"
 	trace "github.com/s4wave/spacewave/db/traceutil"
-	"github.com/s4wave/spacewave/db/util/jsbuf"
 )
 
 const (
 	jsErrorCodeUnknown = iota
 	jsErrorCodeNotFound
 	jsErrorCodeNoModificationAllowed
-
-	tinyGoOPFSReadFile  = "BLDR_OPFS_READ_FILE"
-	tinyGoOPFSReadAt    = "BLDR_OPFS_READ_AT"
-	tinyGoOPFSListDir   = "BLDR_OPFS_LIST_DIRECTORY"
-	tinyGoOPFSWriteAt   = "BLDR_OPFS_WRITE_AT"
-	tinyGoOPFSWriteFile = "BLDR_OPFS_WRITE_FILE"
-
-	tinyGoOPFSWriteFileBegin = "BLDR_OPFS_WRITE_FILE_BEGIN"
-	tinyGoOPFSWriteFileChunk = "BLDR_OPFS_WRITE_FILE_CHUNK"
-	tinyGoOPFSWriteFileClose = "BLDR_OPFS_WRITE_FILE_CLOSE"
-	tinyGoOPFSWriteFileAbort = "BLDR_OPFS_WRITE_FILE_ABORT"
 
 	tinyGoOPFSWriteFileChunkSize = 1 << 20
 )
@@ -235,10 +223,7 @@ func (f *AsyncFile) Read(p []byte) (int, error) {
 // Uses File.slice() for range reads without loading the entire file.
 func (f *AsyncFile) ReadAt(p []byte, off int64) (int, error) {
 	if jsutil.UseTinyGoHelpers() {
-		readAt := js.Global().Get(tinyGoOPFSReadAt)
-		if jsutil.Available(readAt) {
-			return f.readAtWithHelper(readAt, p, off)
-		}
+		return f.readAtWithTinyGoImport(p, off)
 	}
 
 	file, err := AwaitPromise(jsutil.Call(f.handle, "getFile"))
@@ -271,30 +256,6 @@ func (f *AsyncFile) ReadAt(p []byte, off int64) (int, error) {
 	return n, nil
 }
 
-func (f *AsyncFile) readAtWithHelper(readAt js.Value, p []byte, off int64) (int, error) {
-	dst, err := jsbuf.NewBytes(len(p))
-	if err != nil {
-		return 0, err
-	}
-
-	n, err := invokeOPFSIntHelper(func(opID int) {
-		readAt.Invoke(f.handle, dst, off, opID)
-	})
-	if err != nil {
-		return 0, err
-	}
-	if n > len(p) {
-		return 0, errors.Errorf("read exceeded buffer for file %s: read %d into %d", f.name, n, len(p))
-	}
-	if n > 0 {
-		js.CopyBytesToGo(p[:n], dst)
-	}
-	if n == 0 && len(p) > 0 {
-		return 0, io.EOF
-	}
-	return n, nil
-}
-
 // Write writes len(p) bytes at the current position.
 // Opens a writable stream, seeks, writes, and closes per call.
 func (f *AsyncFile) Write(p []byte) (int, error) {
@@ -319,10 +280,7 @@ func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (in
 	defer task.End()
 
 	if jsutil.UseTinyGoHelpers() {
-		writeAt := js.Global().Get(tinyGoOPFSWriteAt)
-		if jsutil.Available(writeAt) {
-			return f.writeAtWithHelper(writeAt, p, off, true)
-		}
+		return f.writeAtWithTinyGoImport(p, off, true)
 	}
 
 	writeCtx, writeTask := trace.NewTask(ctx, "hydra/opfs/async-file/write-at/create-writable")
@@ -360,23 +318,6 @@ func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (in
 		return len(p), errors.Wrap(err, "close writable")
 	}
 	return len(p), nil
-}
-
-func (f *AsyncFile) writeAtWithHelper(writeAt js.Value, p []byte, off int64, keepExisting bool) (int, error) {
-	data, err := jsbuf.CopyBytesToJS(p)
-	if err != nil {
-		return 0, err
-	}
-	written, err := invokeOPFSIntHelper(func(opID int) {
-		writeAt.Invoke(f.handle, data, off, keepExisting, opID)
-	})
-	if err != nil {
-		return 0, err
-	}
-	if written != len(p) {
-		return written, errors.Errorf("short write file %s: wrote %d of %d", f.name, written, len(p))
-	}
-	return written, nil
 }
 
 func invokeOPFSIntHelper(call func(opID int)) (int, error) {
@@ -497,17 +438,7 @@ func (f *AsyncFile) Close() error {
 // stage instead of two (vs separate Truncate then Write calls).
 func WriteFile(dir js.Value, name string, data []byte) error {
 	if jsutil.UseTinyGoHelpers() {
-		begin := js.Global().Get(tinyGoOPFSWriteFileBegin)
-		chunk := js.Global().Get(tinyGoOPFSWriteFileChunk)
-		closeFile := js.Global().Get(tinyGoOPFSWriteFileClose)
-		if jsutil.Available(begin) && jsutil.Available(chunk) && jsutil.Available(closeFile) {
-			return writeFileWithChunkedHelper(begin, chunk, closeFile, js.Global().Get(tinyGoOPFSWriteFileAbort), dir, name, data)
-		}
-
-		writeFile := js.Global().Get(tinyGoOPFSWriteFile)
-		if jsutil.Available(writeFile) {
-			return writeFileWithHelper(writeFile, dir, name, data)
-		}
+		return writeFileWithTinyGoImport(dir, name, data)
 	}
 
 	opts := jsutil.NewObject()
@@ -534,79 +465,10 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 	return nil
 }
 
-func writeFileWithChunkedHelper(begin, chunk, closeFile, abort js.Value, dir js.Value, name string, data []byte) error {
-	sessionID, err := invokeOPFSIntHelper(func(opID int) {
-		begin.Invoke(dir, name, opID)
-	})
-	if err != nil {
-		return err
-	}
-	closed := false
-	defer func() {
-		if !closed && jsutil.Available(abort) {
-			abort.Invoke(sessionID)
-		}
-	}()
-
-	written := 0
-	for off := 0; off < len(data); off += tinyGoOPFSWriteFileChunkSize {
-		end := off + tinyGoOPFSWriteFileChunkSize
-		if end > len(data) {
-			end = len(data)
-		}
-		bytes, err := jsbuf.CopyBytesToJS(data[off:end])
-		if err != nil {
-			return err
-		}
-		n, err := invokeOPFSIntHelper(func(opID int) {
-			chunk.Invoke(sessionID, bytes, opID)
-		})
-		if err != nil {
-			return err
-		}
-		if n != end-off {
-			return errors.Errorf("short write file %s: wrote chunk %d of %d", name, n, end-off)
-		}
-		written += n
-	}
-
-	closedWritten, err := invokeOPFSIntHelper(func(opID int) {
-		closeFile.Invoke(sessionID, opID)
-	})
-	if err != nil {
-		return err
-	}
-	closed = true
-	if closedWritten != written || written != len(data) {
-		return errors.Errorf("short write file %s: wrote %d of %d", name, closedWritten, len(data))
-	}
-	return nil
-}
-
-func writeFileWithHelper(writeFile js.Value, dir js.Value, name string, data []byte) error {
-	bytes, err := jsbuf.CopyBytesToJS(data)
-	if err != nil {
-		return err
-	}
-	written, err := invokeOPFSIntHelper(func(opID int) {
-		writeFile.Invoke(dir, name, bytes, opID)
-	})
-	if err != nil {
-		return err
-	}
-	if written != len(data) {
-		return errors.Errorf("short write file %s: wrote %d of %d", name, written, len(data))
-	}
-	return nil
-}
-
 // ReadFile reads the contents of a file in the given directory.
 func ReadFile(dir js.Value, name string) ([]byte, error) {
 	if jsutil.UseTinyGoHelpers() {
-		readFile := js.Global().Get(tinyGoOPFSReadFile)
-		if jsutil.Available(readFile) {
-			return readFileWithHelper(readFile, dir, name)
-		}
+		return readFileWithTinyGoImport(dir, name)
 	}
 
 	f, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
@@ -624,31 +486,6 @@ func ReadFile(dir js.Value, name string) ([]byte, error) {
 	arr := jsutil.NewUint8Array(ab)
 	buf := make([]byte, arr.Get("length").Int())
 	js.CopyBytesToGo(buf, arr)
-	return buf, nil
-}
-
-func readFileWithHelper(readFile js.Value, dir js.Value, name string) ([]byte, error) {
-	values, err := invokeOPFSHelper(func(opID int) {
-		readFile.Invoke(dir, name, opID)
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(values) < 2 {
-		return nil, errors.New("opfs read file helper returned incomplete result")
-	}
-	id, size := values[0], values[1]
-	if size == 0 {
-		return nil, nil
-	}
-	buf := make([]byte, size)
-	n, ok := jsutil.CopyStoredBytes(id, buf)
-	if !ok {
-		return nil, errors.New("opfs read file byte copy helper unavailable")
-	}
-	if n != size {
-		return nil, errors.Errorf("opfs read file copied %d bytes, expected %d", n, size)
-	}
 	return buf, nil
 }
 
@@ -705,10 +542,7 @@ func DeleteFile(dir js.Value, name string) error {
 // ListDirectory returns sorted entry names in the given directory.
 func ListDirectory(dir js.Value) ([]string, error) {
 	if jsutil.UseTinyGoHelpers() {
-		listDirectory := js.Global().Get(tinyGoOPFSListDir)
-		if jsutil.Available(listDirectory) {
-			return listDirectoryWithHelper(listDirectory, dir)
-		}
+		return listDirectoryWithTinyGoImport(dir)
 	}
 
 	// OPFS directories expose an async iterator via values().
@@ -728,35 +562,6 @@ func ListDirectory(dir js.Value) ([]string, error) {
 		entry := nextResult.Get("value")
 		name := entry.Index(0).String()
 		names = append(names, name)
-	}
-	return names, nil
-}
-
-func listDirectoryWithHelper(listDirectory js.Value, dir js.Value) ([]string, error) {
-	values, err := invokeOPFSHelper(func(opID int) {
-		listDirectory.Invoke(dir, opID)
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(values) < 2 {
-		return nil, errors.New("opfs list directory helper returned incomplete result")
-	}
-	id, size := values[0], values[1]
-	if size == 0 {
-		return nil, nil
-	}
-	buf := make([]byte, size)
-	n, ok := jsutil.CopyStoredBytes(id, buf)
-	if !ok {
-		return nil, errors.New("opfs list directory byte copy helper unavailable")
-	}
-	if n != size {
-		return nil, errors.Errorf("opfs list directory copied %d bytes, expected %d", n, size)
-	}
-	names, err := decodeHelperNameList(buf)
-	if err != nil {
-		return nil, errors.Wrap(err, "decode opfs list directory names")
 	}
 	return names, nil
 }
