@@ -3,6 +3,9 @@
 package bldr_plugin_compiler_go
 
 import (
+	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
@@ -37,5 +40,66 @@ func TestAddTinyGoStartupCacheInputsIncludesProfileIdentity(t *testing.T) {
 		if got[key] != values[key] {
 			t.Fatalf("startup input %s = %q, want %q", key, got[key], values[key])
 		}
+	}
+}
+
+func TestAppendInputManifestFilesKeepsGoInputsAppRootRelative(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "app")
+	moduleCachePath := filepath.Join(t.TempDir(), "pkg", "mod", "github.com", "s4wave", "spacewave@v0.0.0")
+	paths := []string{
+		filepath.Join(sourcePath, "core", "doc.go"),
+		filepath.Join(moduleCachePath, "bldr", "platform", "native.go"),
+		filepath.Join(sourcePath, "go.mod"),
+		filepath.Join(sourcePath, "go.sum"),
+	}
+
+	inputManifest := &bldr_manifest_builder.InputManifest{}
+	if err := appendInputManifestFiles(inputManifest, sourcePath, InputFileKind_InputFileKind_GO, paths); err != nil {
+		t.Fatal(err)
+	}
+
+	var gotPaths []string
+	for _, file := range inputManifest.GetFiles() {
+		gotPaths = append(gotPaths, filepath.ToSlash(file.GetPath()))
+		meta := &InputFileMeta{}
+		if err := meta.UnmarshalVT(file.GetMetadata()); err != nil {
+			t.Fatal(err)
+		}
+		if meta.GetKind() != InputFileKind_InputFileKind_GO {
+			t.Fatalf("input kind = %s, want GO", meta.GetKind())
+		}
+	}
+
+	for _, want := range []string{"core/doc.go", "go.mod", "go.sum"} {
+		if !slices.Contains(gotPaths, want) {
+			t.Fatalf("input manifest paths missing %q: %v", want, gotPaths)
+		}
+	}
+	for _, relPath := range gotPaths {
+		if strings.HasPrefix(relPath, "..") {
+			t.Fatalf("input manifest paths included external module-cache file: %v", gotPaths)
+		}
+	}
+}
+
+func TestAppendInputManifestFilesRejectsExternalAssetInputs(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "app")
+	externalAssetPath := filepath.Join(t.TempDir(), "assets", "icon.png")
+	inputManifest := &bldr_manifest_builder.InputManifest{}
+
+	err := appendInputManifestFiles(
+		inputManifest,
+		sourcePath,
+		InputFileKind_InputFileKind_ASSET,
+		[]string{externalAssetPath},
+	)
+	if err == nil {
+		t.Fatal("expected external asset input to fail")
+	}
+	if !strings.Contains(err.Error(), "path cannot be above the base dir") {
+		t.Fatalf("external asset error = %v, want base-dir failure", err)
+	}
+	if len(inputManifest.GetFiles()) != 0 {
+		t.Fatalf("external asset appended files: %v", inputManifest.GetFiles())
 	}
 }

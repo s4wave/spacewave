@@ -970,28 +970,21 @@ func (c *Controller) BuildPlugin(
 
 	inputManifest := &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
 	moduleSrcFiles := existingSourceFiles(sourcePath, "go.mod", "go.sum", "vendor/modules.txt")
-	inputFileKinds := map[InputFileKind][]string{
-		InputFileKind_InputFileKind_GO:    append(goSrcFiles, moduleSrcFiles...),
-		InputFileKind_InputFileKind_ASSET: assetSrcFiles,
+	if err := appendInputManifestFiles(
+		inputManifest,
+		sourcePath,
+		InputFileKind_InputFileKind_GO,
+		append(goSrcFiles, moduleSrcFiles...),
+	); err != nil {
+		return nil, nil, err
 	}
-	for kind, srcPaths := range inputFileKinds {
-		meta := &InputFileMeta{Kind: kind}
-		metaBin, err := meta.MarshalVT()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		err = fsutil.ConvertPathsToRelative(sourcePath, srcPaths)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		for _, srcPath := range srcPaths {
-			inputManifest.Files = append(inputManifest.Files, &bldr_manifest_builder.InputManifest_File{
-				Path:     srcPath,
-				Metadata: metaBin,
-			})
-		}
+	if err := appendInputManifestFiles(
+		inputManifest,
+		sourcePath,
+		InputFileKind_InputFileKind_ASSET,
+		assetSrcFiles,
+	); err != nil {
+		return nil, nil, err
 	}
 	webRuntimeSrcFiles = filterPathsUnderBase(sourcePath, webRuntimeSrcFiles)
 	if len(webRuntimeSrcFiles) != 0 {
@@ -1027,6 +1020,35 @@ func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManif
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
 	}
 	inputManifest.SortStartupInputs()
+}
+
+func appendInputManifestFiles(
+	inputManifest *bldr_manifest_builder.InputManifest,
+	sourcePath string,
+	kind InputFileKind,
+	srcPaths []string,
+) error {
+	if kind == InputFileKind_InputFileKind_GO {
+		srcPaths = filterPathsUnderBase(sourcePath, srcPaths)
+	}
+
+	meta := &InputFileMeta{Kind: kind}
+	metaBin, err := meta.MarshalVT()
+	if err != nil {
+		return err
+	}
+
+	if err := fsutil.ConvertPathsToRelative(sourcePath, srcPaths); err != nil {
+		return err
+	}
+
+	for _, srcPath := range srcPaths {
+		inputManifest.Files = append(inputManifest.Files, &bldr_manifest_builder.InputManifest_File{
+			Path:     srcPath,
+			Metadata: metaBin,
+		})
+	}
+	return nil
 }
 
 func filterPathsUnderBase(basePath string, paths []string) []string {
