@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -885,6 +886,11 @@ type syncErrorTransport struct {
 	err error
 }
 
+type syncCountingBlockStore struct {
+	block.StoreOps
+	onGet func(*block.BlockRef)
+}
+
 func (t *syncPackTransport) Fetch(_ context.Context, off int64, length int) ([]byte, error) {
 	if off >= int64(len(t.data)) {
 		return nil, io.EOF
@@ -895,6 +901,13 @@ func (t *syncPackTransport) Fetch(_ context.Context, off int64, length int) ([]b
 
 func (t *syncErrorTransport) Fetch(context.Context, int64, int) ([]byte, error) {
 	return nil, t.err
+}
+
+func (s *syncCountingBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if s.onGet != nil {
+		s.onGet(ref)
+	}
+	return s.StoreOps.GetBlock(ctx, ref)
 }
 
 func newSyncTestBlockStore() block.StoreOps {
@@ -1123,10 +1136,16 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		t.Fatalf("new manifest: %v", err)
 	}
 
-	pushSizes := make([]int, 0, 2)
+	const blockCount = 48
+	pushSizes := make([]int, 0, 4)
+	var getCount atomic.Int64
+	var firstPushGetCount atomic.Int64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/bstore/test-res/sync/push" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if len(pushSizes) == 0 {
+			firstPushGetCount.Store(getCount.Load())
 		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -1154,14 +1173,20 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		return fn("ticket-push")
 	}
 
-	upper := newSyncTestBlockStore()
+	baseUpper := newSyncTestBlockStore()
+	upper := &syncCountingBlockStore{
+		StoreOps: baseUpper,
+		onGet: func(*block.BlockRef) {
+			getCount.Add(1)
+		},
+	}
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
 	}
 	defer wtx.Discard()
-	for i := range 3 {
-		data := bytes.Repeat([]byte{byte(i + 1)}, 24*1024*1024)
+	for i := range blockCount {
+		data := bytes.Repeat([]byte{byte(i + 1)}, 1024*1024)
 		ref, _, err := upper.PutBlock(ctx, data, nil)
 		if err != nil {
 			t.Fatalf("put upper block: %v", err)
@@ -1192,16 +1217,22 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		t.Fatalf("flush: %v", err)
 	}
 
-	if len(pushSizes) != 2 {
-		t.Fatalf("expected 2 sync pushes, got %d", len(pushSizes))
+	if len(pushSizes) < 2 {
+		t.Fatalf("expected multiple sync pushes, got %d", len(pushSizes))
+	}
+	if firstPushGetCount.Load() >= blockCount {
+		t.Fatalf("expected first push before all dirty blocks loaded, loaded %d", firstPushGetCount.Load())
 	}
 	for i, size := range pushSizes {
+		if int64(size) > syncFlushMaxPackBytes {
+			t.Fatalf("push %d exceeded browser chunk target: %d", i, size)
+		}
 		if int64(size) > packfile_delta.DefaultMaxChunkBytes {
-			t.Fatalf("push %d exceeded chunk limit: %d", i, size)
+			t.Fatalf("push %d exceeded wire chunk limit: %d", i, size)
 		}
 	}
-	if len(mfst.GetEntries()) != 2 {
-		t.Fatalf("expected 2 manifest entries, got %d", len(mfst.GetEntries()))
+	if len(mfst.GetEntries()) != len(pushSizes) {
+		t.Fatalf("manifest entries = %d, want %d", len(mfst.GetEntries()), len(pushSizes))
 	}
 	assertSyncPackEntryMetadata(t, mfst.GetEntries())
 
@@ -1264,16 +1295,25 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 		return fn("ticket-push")
 	}
 
-	upper := newSyncTestBlockStore()
+	baseUpper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
 	}
 	defer wtx.Discard()
-	duplicate := addSyncDirtyBlock(t, ctx, wtx, upper, "duplicate dirty block")
-	fresh := addSyncDirtyBlock(t, ctx, wtx, upper, "fresh dirty block")
+	duplicate := addSyncDirtyBlock(t, ctx, wtx, baseUpper, "duplicate dirty block")
+	fresh := addSyncDirtyBlock(t, ctx, wtx, baseUpper, "fresh dirty block")
 	if err := wtx.Commit(ctx); err != nil {
 		t.Fatalf("commit dirty tx: %v", err)
+	}
+	var duplicateFetched atomic.Bool
+	upper := &syncCountingBlockStore{
+		StoreOps: baseUpper,
+		onGet: func(ref *block.BlockRef) {
+			if ref.GetHash().MarshalString() == duplicate.GetHash().MarshalString() {
+				duplicateFetched.Store(true)
+			}
+		},
 	}
 
 	s := &syncController{
@@ -1292,6 +1332,9 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
+	}
+	if duplicateFetched.Load() {
+		t.Fatal("expected lower-existing duplicate to be filtered before reading upper data")
 	}
 
 	if len(mfst.GetEntries()) != 1 {

@@ -36,7 +36,10 @@ const defaultSyncSizeThresholdBytes = 48 * 1024 * 1024
 
 const syncOrderDirtyBlocksLimit = 1024
 
-const syncPushConcurrency = 1
+// syncFlushMaxPackBytes is the browser sync target for one upload body. The
+// wire cap remains writer.DefaultMaxPackBytes, but TinyGo browser builds need
+// headroom for the pack writer, request body, OPFS, and app runtime.
+const syncFlushMaxPackBytes int64 = 16 * 1024 * 1024
 
 // syncController manages packfile push/pull synchronization.
 type syncController struct {
@@ -360,11 +363,7 @@ func (s *syncController) recalcDirtySize(ctx context.Context) {
 	defer tx.Discard()
 	prefix := []byte("dirty/")
 	_ = tx.ScanPrefix(ctx, prefix, func(_, v []byte) error {
-		if len(v) > 0 {
-			if n, err := strconv.ParseInt(string(v), 10, 64); err == nil {
-				total += n
-			}
-		}
+		total += parseDirtySize(v)
 		count++
 		return nil
 	})
@@ -378,10 +377,17 @@ func (s *syncController) recalcDirtySize(ctx context.Context) {
 	})
 }
 
-// dirtyBlock holds a dirty block's hash key and data for flushing.
-type dirtyBlock struct {
+// dirtyCandidate is the metadata needed to decide which dirty blocks belong in
+// a flush chunk without loading block data into memory.
+type dirtyCandidate struct {
 	key  []byte
 	hash *hash.Hash
+	size int64
+}
+
+// dirtyBlock holds one loaded block for the currently packed flush chunk.
+type dirtyBlock struct {
+	dirtyCandidate
 	data []byte
 }
 
@@ -414,8 +420,8 @@ func (s *syncController) packBlocks(w io.Writer, blocks []dirtyBlock) (*writer.P
 	return result, hashWriter.Sum(nil), nil
 }
 
-// cleanupDirtyBlocks removes flushed dirty keys from the object store.
-func (s *syncController) cleanupDirtyBlocks(ctx context.Context, blocks []dirtyBlock) error {
+// cleanupDirtyCandidates removes flushed dirty keys from the object store.
+func (s *syncController) cleanupDirtyCandidates(ctx context.Context, blocks []dirtyCandidate) error {
 	wtx, err := s.store.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "write tx for dirty cleanup")
@@ -432,10 +438,11 @@ func (s *syncController) cleanupDirtyBlocks(ctx context.Context, blocks []dirtyB
 	return nil
 }
 
-// orderDirtyBlocks orders dirty blocks for pack locality before chunking.
-func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyBlock) ([]dirtyBlock, error) {
+// orderDirtyBlocks orders dirty block metadata for pack locality before
+// loading data.
+func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyCandidate) ([]dirtyCandidate, error) {
 	refs := make([]*block.BlockRef, 0, len(blocks))
-	byKey := make(map[string]dirtyBlock, len(blocks))
+	byKey := make(map[string]dirtyCandidate, len(blocks))
 	for _, b := range blocks {
 		key := b.hash.MarshalString()
 		byKey[key] = b
@@ -446,7 +453,7 @@ func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyBlo
 	if err != nil {
 		return nil, err
 	}
-	ordered := make([]dirtyBlock, 0, len(orderedRefs))
+	ordered := make([]dirtyCandidate, 0, len(orderedRefs))
 	for _, ref := range orderedRefs {
 		b, ok := byKey[ref.GetHash().MarshalString()]
 		if ok {
@@ -456,7 +463,7 @@ func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyBlo
 	return ordered, nil
 }
 
-func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks []dirtyBlock) ([]dirtyBlock, []dirtyBlock, error) {
+func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks []dirtyCandidate) ([]dirtyCandidate, []dirtyCandidate, error) {
 	refs := make([]*block.BlockRef, 0, len(blocks))
 	for _, b := range blocks {
 		refs = append(refs, block.NewBlockRef(b.hash))
@@ -466,8 +473,8 @@ func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks 
 		return nil, nil, err
 	}
 
-	pack := make([]dirtyBlock, 0, len(blocks))
-	deduped := make([]dirtyBlock, 0)
+	pack := make([]dirtyCandidate, 0, len(blocks))
+	deduped := make([]dirtyCandidate, 0)
 	for i, b := range blocks {
 		if exists[i] {
 			deduped = append(deduped, b)
@@ -478,7 +485,7 @@ func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks 
 	if len(deduped) != 0 {
 		var bytes int64
 		for _, b := range deduped {
-			bytes += int64(len(b.data))
+			bytes += b.size
 		}
 		s.le.WithField("dirty-blocks", len(blocks)).
 			WithField("deduped-blocks", len(deduped)).
@@ -489,6 +496,151 @@ func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks 
 		})
 	}
 	return pack, deduped, nil
+}
+
+func (s *syncController) scanDirtyCandidates(ctx context.Context) ([]dirtyCandidate, error) {
+	tx, err := s.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "read tx for dirty")
+	}
+	defer tx.Discard()
+
+	prefix := []byte("dirty/")
+	var candidates []dirtyCandidate
+	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
+		keyCopy := make([]byte, len(k))
+		copy(keyCopy, k)
+		hashStr := string(k[len(prefix):])
+		h := &hash.Hash{}
+		if err := h.ParseFromB58(hashStr); err != nil {
+			return errors.Wrap(err, "parsing dirty hash key")
+		}
+		candidates = append(candidates, dirtyCandidate{
+			key:  keyCopy,
+			hash: h,
+			size: parseDirtySize(v),
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "scanning dirty keys")
+	}
+	return candidates, nil
+}
+
+func parseDirtySize(v []byte) int64 {
+	size, err := strconv.ParseInt(string(v), 10, 64)
+	if err != nil || size < 0 {
+		return 0
+	}
+	return size
+}
+
+func dirtyCandidateChunkSize(size int64) int64 {
+	if size <= 0 {
+		return syncFlushMaxPackBytes
+	}
+	return size
+}
+
+func nextDirtyCandidateChunk(blocks []dirtyCandidate, start int, maxChunkBytes int64, maxChunkBlocks int) (int, error) {
+	if maxChunkBytes <= 0 {
+		maxChunkBytes = syncFlushMaxPackBytes
+	}
+	var chunkBytes int64
+	end := start
+	for end < len(blocks) {
+		size := dirtyCandidateChunkSize(blocks[end].size)
+		if size > writer.DefaultMaxPackBytes {
+			return 0, errors.Errorf(
+				"dirty block %s exceeds max pack chunk size",
+				blocks[end].hash.MarshalString(),
+			)
+		}
+		if maxChunkBlocks > 0 && end-start >= maxChunkBlocks {
+			break
+		}
+		if chunkBytes > 0 && chunkBytes+size > maxChunkBytes {
+			break
+		}
+		chunkBytes += size
+		end++
+	}
+	if end == start {
+		end++
+	}
+	return end, nil
+}
+
+func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirtyCandidate) ([]dirtyBlock, error) {
+	blocks := make([]dirtyBlock, 0, len(candidates))
+	for _, candidate := range candidates {
+		ref := block.NewBlockRef(candidate.hash)
+		data, found, err := s.upper.GetBlock(ctx, ref)
+		if err != nil {
+			return nil, errors.Wrap(err, "getting dirty block")
+		}
+		if !found {
+			continue
+		}
+		if int64(len(data)) > writer.DefaultMaxPackBytes {
+			return nil, errors.Errorf(
+				"dirty block %s exceeds max pack chunk size",
+				candidate.hash.MarshalString(),
+			)
+		}
+		blocks = append(blocks, dirtyBlock{
+			dirtyCandidate: candidate,
+			data:           data,
+		})
+	}
+	return blocks, nil
+}
+
+func (s *syncController) flushLoadedBlocks(
+	ctx context.Context,
+	blocks []dirtyBlock,
+	entries *[]*packfile.PackfileEntry,
+	flushedBlocks *[]dirtyCandidate,
+) error {
+	chunk, err := s.prepareFlushChunk(blocks)
+	if err != nil {
+		return err
+	}
+	if chunk == nil {
+		return nil
+	}
+	if int64(len(chunk.packData)) > syncFlushMaxPackBytes && len(blocks) > 1 {
+		chunk.blocks = nil
+		chunk.packData = nil
+		mid := len(blocks) / 2
+		if err := s.flushLoadedBlocks(ctx, blocks[:mid], entries, flushedBlocks); err != nil {
+			return err
+		}
+		return s.flushLoadedBlocks(ctx, blocks[mid:], entries, flushedBlocks)
+	}
+	if int64(len(chunk.packData)) > writer.DefaultMaxPackBytes {
+		return errors.Errorf(
+			"dirty pack %s exceeds max pack size",
+			chunk.entry.GetId(),
+		)
+	}
+	if int64(len(chunk.packData)) > syncFlushMaxPackBytes {
+		s.le.WithField("pack-id", chunk.entry.GetId()).
+			WithField("bytes", len(chunk.packData)).
+			WithField("target", syncFlushMaxPackBytes).
+			Debug("single-block sync pack exceeds browser target")
+	}
+	if err := s.pushPreparedChunk(ctx, chunk); err != nil {
+		return err
+	}
+	*entries = append(*entries, chunk.entry)
+	for _, block := range chunk.blocks {
+		*flushedBlocks = append(*flushedBlocks, block.dirtyCandidate)
+	}
+	chunk.blocks = nil
+	chunk.packData = nil
+	return nil
 }
 
 // prepareFlushChunk packs one bounded dirty-block chunk.
@@ -510,7 +662,6 @@ func (s *syncController) prepareFlushChunk(blocks []dirtyBlock) (*preparedSyncCh
 		return nil, errors.Wrap(err, "build pack id")
 	}
 
-	packData := bytes.Clone(buf.Bytes())
 	entry := &packfile.PackfileEntry{
 		Id:                 packID,
 		BloomFilter:        result.BloomFilter,
@@ -522,7 +673,7 @@ func (s *syncController) prepareFlushChunk(blocks []dirtyBlock) (*preparedSyncCh
 	return &preparedSyncChunk{
 		blocks:   blocks,
 		entry:    entry,
-		packData: packData,
+		packData: buf.Bytes(),
 		bodyHash: bodyHash,
 	}, nil
 }
@@ -575,86 +726,21 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 	return nil
 }
 
-func (s *syncController) pushPreparedChunks(ctx context.Context, chunks []*preparedSyncChunk) error {
-	sem := make(chan struct{}, syncPushConcurrency)
-	errCh := make(chan error, len(chunks))
-	var wg sync.WaitGroup
-	for _, chunk := range chunks {
-		if chunk == nil {
-			continue
-		}
-		sem <- struct{}{}
-		wg.Add(1)
-		go func(chunk *preparedSyncChunk) {
-			defer wg.Done()
-			defer func() { <-sem }()
-			errCh <- s.pushPreparedChunk(ctx, chunk)
-		}(chunk)
-	}
-	wg.Wait()
-	close(errCh)
-	for err := range errCh {
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // flush collects dirty blocks, packs them, pushes to the server, and updates the manifest.
 func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
-	// Collect dirty keys from ObjectStore.
-	var dirtyKeys [][]byte
-	var dirtyHashes []*hash.Hash
-	tx, err := s.store.NewTransaction(ctx, false)
+	blocks, err := s.scanDirtyCandidates(ctx)
 	if err != nil {
-		return errors.Wrap(err, "read tx for dirty")
+		return err
 	}
-	prefix := []byte("dirty/")
-	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
-		keyCopy := make([]byte, len(k))
-		copy(keyCopy, k)
-		hashStr := string(k[len(prefix):])
-		h := &hash.Hash{}
-		if err := h.ParseFromB58(hashStr); err != nil {
-			return errors.Wrap(err, "parsing dirty hash key")
-		}
-		dirtyKeys = append(dirtyKeys, keyCopy)
-		dirtyHashes = append(dirtyHashes, h)
-		return nil
-	})
-	tx.Discard()
-	if err != nil {
-		return errors.Wrap(err, "scanning dirty keys")
-	}
-
-	if len(dirtyHashes) == 0 {
-		s.recalcDirtySize(ctx)
-		return nil
-	}
-
-	s.le.WithField("dirty-blocks", len(dirtyHashes)).
-		WithField("order-blocks", orderBlocks).
-		Debug("starting dirty block flush")
-
-	// Collect block data from upper store.
-	var blocks []dirtyBlock
-	for i, h := range dirtyHashes {
-		ref := block.NewBlockRef(h)
-		data, found, err := s.upper.GetBlock(ctx, ref)
-		if err != nil {
-			return errors.Wrap(err, "getting dirty block")
-		}
-		if !found {
-			continue
-		}
-		blocks = append(blocks, dirtyBlock{key: dirtyKeys[i], hash: h, data: data})
-	}
-
 	if len(blocks) == 0 {
 		s.recalcDirtySize(ctx)
 		return nil
 	}
+
+	s.le.WithField("dirty-blocks", len(blocks)).
+		WithField("order-blocks", orderBlocks).
+		WithField("max-chunk-bytes", syncFlushMaxPackBytes).
+		Debug("starting dirty block flush")
 
 	blocks, dedupedBlocks, err := s.filterDuplicateDirtyBlocks(ctx, blocks)
 	if err != nil {
@@ -662,7 +748,7 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		return errors.Wrap(err, "filtering duplicate dirty blocks")
 	}
 	if len(blocks) == 0 {
-		if err := s.cleanupDirtyBlocks(ctx, dedupedBlocks); err != nil {
+		if err := s.cleanupDirtyCandidates(ctx, dedupedBlocks); err != nil {
 			return err
 		}
 		s.recalcDirtySize(ctx)
@@ -688,55 +774,36 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		}
 	}
 
-	policy := writer.DefaultPolicy()
-	maxChunkBytes := policy.MaxPackBytes
-	maxChunkBlocks := int(policy.MaxBlocksPerPack)
+	maxChunkBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack)
 	start := 0
-	var chunks []*preparedSyncChunk
+	entries := make([]*packfile.PackfileEntry, 0)
+	flushedBlocks := make([]dirtyCandidate, 0, len(dedupedBlocks)+len(blocks))
+	flushedBlocks = append(flushedBlocks, dedupedBlocks...)
 	for start < len(blocks) {
-		end := start
-		var chunkBytes int64
-		for end < len(blocks) {
-			blockBytes := int64(len(blocks[end].data))
-			if chunkBytes == 0 && blockBytes > maxChunkBytes {
-				return errors.Errorf(
-					"dirty block %s exceeds max pack chunk size",
-					blocks[end].hash.MarshalString(),
-				)
-			}
-			if chunkBytes > 0 && chunkBytes+blockBytes > maxChunkBytes {
-				break
-			}
-			if maxChunkBlocks > 0 && end-start >= maxChunkBlocks {
-				break
-			}
-			chunkBytes += blockBytes
-			end++
-		}
-
-		chunk, err := s.prepareFlushChunk(blocks[start:end])
+		end, err := nextDirtyCandidateChunk(blocks, start, syncFlushMaxPackBytes, maxChunkBlocks)
 		if err != nil {
 			s.recalcDirtySize(ctx)
 			return err
 		}
-		if chunk != nil {
-			chunks = append(chunks, chunk)
+
+		loadedBlocks, err := s.loadDirtyBlocks(ctx, blocks[start:end])
+		if err != nil {
+			s.recalcDirtySize(ctx)
+			return err
 		}
+		if len(loadedBlocks) == 0 {
+			start = end
+			continue
+		}
+
+		if err := s.flushLoadedBlocks(ctx, loadedBlocks, &entries, &flushedBlocks); err != nil {
+			s.recalcDirtySize(ctx)
+			return err
+		}
+		loadedBlocks = nil
 		start = end
 	}
 
-	if err := s.pushPreparedChunks(ctx, chunks); err != nil {
-		s.recalcDirtySize(ctx)
-		return err
-	}
-
-	entries := make([]*packfile.PackfileEntry, 0, len(chunks))
-	flushedBlocks := make([]dirtyBlock, 0, len(dedupedBlocks)+len(blocks))
-	flushedBlocks = append(flushedBlocks, dedupedBlocks...)
-	for _, chunk := range chunks {
-		entries = append(entries, chunk.entry)
-		flushedBlocks = append(flushedBlocks, chunk.blocks...)
-	}
 	if len(entries) != 0 {
 		if err := s.mfst.ApplyDelta(ctx, entries, nil); err != nil {
 			return errors.Wrap(err, "applying push delta")
@@ -744,8 +811,10 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		s.lower.UpdateManifest(s.mergedManifestEntries())
 	}
 
-	if err := s.cleanupDirtyBlocks(ctx, flushedBlocks); err != nil {
-		return err
+	if len(flushedBlocks) != 0 {
+		if err := s.cleanupDirtyCandidates(ctx, flushedBlocks); err != nil {
+			return err
+		}
 	}
 
 	// Recalculate dirty size from the store so concurrent markDirty calls that
