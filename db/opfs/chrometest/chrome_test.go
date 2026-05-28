@@ -1011,6 +1011,75 @@ func TestOpfsChromeTinyGoWorldResourceLargeUnixFSUpload(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeTinyGoWorldControllerResourceLargeUnixFSUpload(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo controller bucket large-upload path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-controller-resource-large-unixfs-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "world-controller-resource-large-unixfs-upload",
+		root:       root,
+		iterations: 68056093,
+		shards:     defaultShards,
+	})
+}
+
+func TestOpfsChromeTinyGoWorldCloudOverlayResourceLargeUnixFSUpload(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo cloud-overlay large-upload path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-cloud-overlay-resource-large-unixfs-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "world-cloud-overlay-resource-large-unixfs-upload",
+		root:       root,
+		iterations: 68056093,
+		shards:     defaultShards,
+	})
+}
+
+func TestOpfsChromeTinyGoWorldCloudSyncResourceLargeUnixFSUpload(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo cloud-sync large-upload path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-cloud-sync-resource-large-unixfs-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "world-cloud-sync-resource-large-unixfs-upload",
+		root:       root,
+		iterations: 68056093,
+		shards:     defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {

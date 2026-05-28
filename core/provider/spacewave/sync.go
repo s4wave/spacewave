@@ -38,8 +38,9 @@ const syncOrderDirtyBlocksLimit = 1024
 
 // syncFlushMaxPackBytes is the browser sync target for one upload body. The
 // wire cap remains writer.DefaultMaxPackBytes, but TinyGo browser builds need
-// headroom for the pack writer, request body, OPFS, and app runtime.
-const syncFlushMaxPackBytes int64 = 16 * 1024 * 1024
+// enough headroom for the pack writer, request body, foreground uploads, OPFS,
+// and the full app runtime.
+const syncFlushMaxPackBytes int64 = 4 * 1024 * 1024
 
 // syncController manages packfile push/pull synchronization.
 type syncController struct {

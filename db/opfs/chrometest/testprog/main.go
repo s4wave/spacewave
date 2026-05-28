@@ -12,25 +12,31 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall/js"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	packfile_writer "github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 	resource_unixfs "github.com/s4wave/spacewave/core/resource/unixfs"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc_wal "github.com/s4wave/spacewave/db/block/gc/wal"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	unixfs_sdk "github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	"github.com/s4wave/spacewave/db/volume"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_opfs "github.com/s4wave/spacewave/db/volume/js/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/metashard"
@@ -38,6 +44,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/hash"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 	"github.com/sirupsen/logrus"
 )
@@ -243,6 +250,12 @@ func run(ctx context.Context, c *config) error {
 		return runWorldLargeUnixFSUpload(ctx, c)
 	case "world-resource-large-unixfs-upload":
 		return runWorldResourceLargeUnixFSUpload(ctx, c)
+	case "world-controller-resource-large-unixfs-upload":
+		return runWorldControllerResourceLargeUnixFSUpload(ctx, c)
+	case "world-cloud-overlay-resource-large-unixfs-upload":
+		return runWorldCloudOverlayResourceLargeUnixFSUpload(ctx, c)
+	case "world-cloud-sync-resource-large-unixfs-upload":
+		return runWorldCloudSyncResourceLargeUnixFSUpload(ctx, c)
 	default:
 		return errors.Errorf("unknown scenario %q", c.scenario)
 	}
@@ -1606,6 +1619,57 @@ func runWorldResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr e
 	}
 	defer vol.Close()
 
+	return runWorldResourceLargeUnixFSUploadOnBucket(ctx, c, vol, vol)
+}
+
+func runWorldControllerResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr error) {
+	vol, bkt, cleanup, err := openControllerBucket(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := cleanup(); retErr == nil && err != nil {
+			retErr = err
+		}
+	}()
+
+	return runWorldResourceLargeUnixFSUploadOnBucket(ctx, c, vol, bkt)
+}
+
+func runWorldCloudOverlayResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr error) {
+	vol, bkt, cleanup, err := openControllerCloudOverlayBucket(ctx, c, false)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := cleanup(); retErr == nil && err != nil {
+			retErr = err
+		}
+	}()
+
+	return runWorldResourceLargeUnixFSUploadOnBucket(ctx, c, vol, bkt)
+}
+
+func runWorldCloudSyncResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr error) {
+	vol, bkt, cleanup, err := openControllerCloudOverlayBucket(ctx, c, true)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := cleanup(); retErr == nil && err != nil {
+			retErr = err
+		}
+	}()
+
+	return runWorldResourceLargeUnixFSUploadOnBucket(ctx, c, vol, bkt)
+}
+
+func runWorldResourceLargeUnixFSUploadOnBucket(
+	ctx context.Context,
+	c *config,
+	vol volume.Volume,
+	bkt bucket.BucketOps,
+) (retErr error) {
 	le := logrus.NewEntry(logrus.New())
 	bucketID := c.root + "/world"
 	ref := &bucket.ObjectRef{BucketId: bucketID}
@@ -1614,7 +1678,7 @@ func runWorldResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr e
 		nil,
 		le,
 		nil,
-		vol,
+		bkt,
 		nil,
 		ref,
 		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: vol.GetID()},
@@ -1707,6 +1771,405 @@ func runWorldResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr e
 	}
 	fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
 	return verifyDeterministicResourceFile(ctx, fileSvc, totalSize, 0)
+}
+
+func openControllerBucket(
+	ctx context.Context,
+	c *config,
+) (volume.Volume, bucket.BucketOps, func() error, error) {
+	le := logrus.NewEntry(logrus.New())
+	ctrlCtx, cancelCtrl := context.WithCancel(ctx)
+	ctrl := volume_controller.NewController(
+		le,
+		&volume_controller.Config{DisablePeer: true},
+		nil,
+		controller.NewInfo(
+			volume_opfs.ControllerID,
+			volume_opfs.Version,
+			"opfs-chrometest@"+c.root,
+		),
+		func(ctx context.Context, le *logrus.Entry) (volume.Volume, error) {
+			return volume_opfs.NewOpfs(ctx, le, newOPFSConfig(c))
+		},
+	)
+
+	ctrlErrCh := make(chan error, 1)
+	go func() {
+		ctrlErrCh <- ctrl.Execute(ctrlCtx)
+	}()
+
+	cleanup := func() error {
+		cancelCtrl()
+		err := <-ctrlErrCh
+		if err != nil && !stderrors.Is(err, context.Canceled) {
+			return err
+		}
+		return nil
+	}
+
+	vol, err := ctrl.GetVolume(ctx)
+	if err != nil {
+		_ = cleanup()
+		return nil, nil, nil, err
+	}
+
+	bucketID := c.root + "/world"
+	if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{
+		Id:  bucketID,
+		Rev: 1,
+	}); err != nil {
+		_ = cleanup()
+		return nil, nil, nil, errors.Wrap(err, "apply controller bucket config")
+	}
+
+	bktHandle, releaseBucket, err := ctrl.BuildBucketAPI(ctx, bucketID)
+	if err != nil {
+		_ = cleanup()
+		return nil, nil, nil, errors.Wrap(err, "build controller bucket api")
+	}
+	bkt := bktHandle.GetBucket()
+	if bkt == nil {
+		releaseBucket()
+		_ = cleanup()
+		return nil, nil, nil, errors.New("controller bucket handle did not exist")
+	}
+
+	return vol, bkt, func() error {
+		releaseBucket()
+		return cleanup()
+	}, nil
+}
+
+func openControllerCloudOverlayBucket(
+	ctx context.Context,
+	c *config,
+	syncDuringUpload bool,
+) (volume.Volume, bucket.BucketOps, func() error, error) {
+	vol, upper, cleanupBucket, err := openControllerBucket(ctx, c)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	objStore, releaseObjStore, err := vol.AccessObjectStore(ctx, c.root+"/cloud-overlay-meta", func() {})
+	if err != nil {
+		_ = cleanupBucket()
+		return nil, nil, nil, errors.Wrap(err, "open cloud overlay dirty store")
+	}
+
+	var flusher *probeSyncFlusher
+	if syncDuringUpload {
+		flusher = newProbeSyncFlusher(upper, objStore)
+	}
+
+	dirtyUpper := &probeDirtyTrackingStore{store: upper, dirtyStore: objStore, flusher: flusher}
+	overlay := block.NewOverlay(
+		ctx,
+		logrus.NewEntry(logrus.New()),
+		block.NopStoreOps{},
+		dirtyUpper,
+		block.OverlayMode_UPPER_WRITE_CACHE,
+		0,
+		nil,
+	)
+
+	return vol, overlay, func() error {
+		var err error
+		if flusher != nil {
+			err = flusher.wait()
+		}
+		releaseObjStore()
+		if cleanupErr := cleanupBucket(); err == nil {
+			err = cleanupErr
+		}
+		return err
+	}, nil
+}
+
+type probeDirtyTrackingStore struct {
+	store      block.StoreOps
+	dirtyStore kvtx.Store
+	flusher    *probeSyncFlusher
+}
+
+func (d *probeDirtyTrackingStore) GetHashType() hash.HashType {
+	return d.store.GetHashType()
+}
+
+func (d *probeDirtyTrackingStore) GetSupportedFeatures() block.StoreFeature {
+	return d.store.GetSupportedFeatures()
+}
+
+func (d *probeDirtyTrackingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := d.store.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &probeDirtyTrackingStore{store: store, dirtyStore: d.dirtyStore, flusher: d.flusher}, release, nil
+}
+
+func (d *probeDirtyTrackingStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	ref, existed, err := d.store.PutBlock(ctx, data, opts)
+	if err == nil && !existed {
+		err = d.markDirty(ctx, ref.GetHash(), int64(len(data)))
+	}
+	return ref, existed, err
+}
+
+func (d *probeDirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	var refs []*block.BlockRef
+	var valid []int
+	for i, entry := range entries {
+		if entry == nil || entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
+			continue
+		}
+		valid = append(valid, i)
+		refs = append(refs, entry.Ref)
+	}
+	exists, err := d.store.GetBlockExistsBatch(ctx, refs)
+	if err != nil || len(exists) != len(refs) {
+		exists = nil
+	}
+
+	if err := d.store.PutBlockBatch(ctx, entries); err != nil {
+		return err
+	}
+
+	for j, i := range valid {
+		if exists != nil && exists[j] {
+			continue
+		}
+		entry := entries[i]
+		if err := d.markDirty(ctx, entry.Ref.GetHash(), int64(len(entry.Data))); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *probeDirtyTrackingStore) PutBlockBackground(
+	ctx context.Context,
+	data []byte,
+	opts *block.PutOpts,
+) (*block.BlockRef, bool, error) {
+	ref, existed, err := d.store.PutBlockBackground(ctx, data, opts)
+	if err == nil && !existed {
+		err = d.markDirty(ctx, ref.GetHash(), int64(len(data)))
+	}
+	return ref, existed, err
+}
+
+func (d *probeDirtyTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	return d.store.GetBlock(ctx, ref)
+}
+
+func (d *probeDirtyTrackingStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return d.store.GetBlockExists(ctx, ref)
+}
+
+func (d *probeDirtyTrackingStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return d.store.GetBlockExistsBatch(ctx, refs)
+}
+
+func (d *probeDirtyTrackingStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	return d.store.RmBlock(ctx, ref)
+}
+
+func (d *probeDirtyTrackingStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	return d.store.StatBlock(ctx, ref)
+}
+
+func (d *probeDirtyTrackingStore) Flush(ctx context.Context) error {
+	return d.store.Flush(ctx)
+}
+
+func (d *probeDirtyTrackingStore) BeginDeferFlush() {
+	d.store.BeginDeferFlush()
+}
+
+func (d *probeDirtyTrackingStore) EndDeferFlush(ctx context.Context) error {
+	return d.store.EndDeferFlush(ctx)
+}
+
+func (d *probeDirtyTrackingStore) markDirty(ctx context.Context, h *hash.Hash, size int64) error {
+	tx, err := d.dirtyStore.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open dirty tx")
+	}
+	defer tx.Discard()
+	if err := tx.Set(ctx, []byte("dirty/"+h.MarshalString()), []byte(strconv.FormatInt(size, 10))); err != nil {
+		return errors.Wrap(err, "set dirty key")
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit dirty key")
+	}
+	if d.flusher != nil {
+		d.flusher.markDirty(ctx, size)
+	}
+	return nil
+}
+
+const (
+	probeSyncSizeThresholdBytes int64 = 48 * 1024 * 1024
+	probeSyncFlushMaxPackBytes  int64 = 4 * 1024 * 1024
+)
+
+type probeSyncFlusher struct {
+	upper      block.StoreOps
+	dirtyStore kvtx.Store
+	done       chan error
+
+	mtx       sync.Mutex
+	dirtySize int64
+	started   bool
+}
+
+func newProbeSyncFlusher(upper block.StoreOps, dirtyStore kvtx.Store) *probeSyncFlusher {
+	return &probeSyncFlusher{
+		upper:      upper,
+		dirtyStore: dirtyStore,
+		done:       make(chan error, 1),
+	}
+}
+
+func (f *probeSyncFlusher) markDirty(ctx context.Context, size int64) {
+	f.mtx.Lock()
+	f.dirtySize += size
+	if f.started || f.dirtySize < probeSyncSizeThresholdBytes {
+		f.mtx.Unlock()
+		return
+	}
+	f.started = true
+	f.mtx.Unlock()
+
+	go func() {
+		f.done <- f.flush(ctx)
+	}()
+}
+
+func (f *probeSyncFlusher) wait() error {
+	f.mtx.Lock()
+	started := f.started
+	f.mtx.Unlock()
+	if !started {
+		return nil
+	}
+	return <-f.done
+}
+
+type probeDirtyCandidate struct {
+	hash *hash.Hash
+	size int64
+}
+
+type probeDirtyBlock struct {
+	hash *hash.Hash
+	data []byte
+}
+
+func (f *probeSyncFlusher) flush(ctx context.Context) error {
+	candidates, err := f.scanDirty(ctx)
+	if err != nil {
+		return err
+	}
+
+	maxBlocks := int(packfile_writer.DefaultPolicy().MaxBlocksPerPack)
+	for start := 0; start < len(candidates); {
+		end, err := nextProbeDirtyChunk(candidates, start, probeSyncFlushMaxPackBytes, maxBlocks)
+		if err != nil {
+			return err
+		}
+		blocks, err := f.loadDirtyBlocks(ctx, candidates[start:end])
+		if err != nil {
+			return err
+		}
+		if err := packProbeDirtyBlocks(blocks); err != nil {
+			return err
+		}
+		blocks = nil
+		start = end
+	}
+	return nil
+}
+
+func (f *probeSyncFlusher) scanDirty(ctx context.Context) ([]probeDirtyCandidate, error) {
+	tx, err := f.dirtyStore.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "open dirty scan tx")
+	}
+	defer tx.Discard()
+
+	var out []probeDirtyCandidate
+	prefix := []byte("dirty/")
+	if err := tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
+		h := &hash.Hash{}
+		if err := h.ParseFromB58(string(k[len(prefix):])); err != nil {
+			return err
+		}
+		size, err := strconv.ParseInt(string(v), 10, 64)
+		if err != nil || size < 0 {
+			size = 0
+		}
+		out = append(out, probeDirtyCandidate{hash: h, size: size})
+		return nil
+	}); err != nil {
+		return nil, errors.Wrap(err, "scan dirty keys")
+	}
+	return out, nil
+}
+
+func (f *probeSyncFlusher) loadDirtyBlocks(ctx context.Context, candidates []probeDirtyCandidate) ([]probeDirtyBlock, error) {
+	blocks := make([]probeDirtyBlock, 0, len(candidates))
+	for _, candidate := range candidates {
+		data, found, err := f.upper.GetBlock(ctx, block.NewBlockRef(candidate.hash))
+		if err != nil {
+			return nil, errors.Wrap(err, "get dirty block")
+		}
+		if !found {
+			continue
+		}
+		blocks = append(blocks, probeDirtyBlock{hash: candidate.hash, data: data})
+	}
+	return blocks, nil
+}
+
+func nextProbeDirtyChunk(blocks []probeDirtyCandidate, start int, maxChunkBytes int64, maxChunkBlocks int) (int, error) {
+	var chunkBytes int64
+	end := start
+	for end < len(blocks) {
+		size := blocks[end].size
+		if size <= 0 {
+			size = maxChunkBytes
+		}
+		if size > packfile_writer.DefaultMaxPackBytes {
+			return 0, errors.Errorf("dirty block %s exceeds max pack chunk size", blocks[end].hash.MarshalString())
+		}
+		if maxChunkBlocks > 0 && end-start >= maxChunkBlocks {
+			break
+		}
+		if chunkBytes > 0 && chunkBytes+size > maxChunkBytes {
+			break
+		}
+		chunkBytes += size
+		end++
+	}
+	if end == start {
+		end++
+	}
+	return end, nil
+}
+
+func packProbeDirtyBlocks(blocks []probeDirtyBlock) error {
+	var buf bytes.Buffer
+	idx := 0
+	_, err := packfile_writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+		if idx >= len(blocks) {
+			return nil, nil, nil
+		}
+		block := blocks[idx]
+		idx++
+		return block.hash, block.data, nil
+	})
+	return errors.Wrap(err, "pack dirty blocks")
 }
 
 func openFSHandleResourceClient(
@@ -1933,14 +2396,18 @@ func openVolume(ctx context.Context, c *config) (*volume_opfs.Opfs, error) {
 }
 
 func openVolumeWithLogger(ctx context.Context, c *config, le *logrus.Entry) (*volume_opfs.Opfs, error) {
-	return volume_opfs.NewOpfs(ctx, le, &volume_opfs.Config{
+	return volume_opfs.NewOpfs(ctx, le, newOPFSConfig(c))
+}
+
+func newOPFSConfig(c *config) *volume_opfs.Config {
+	return &volume_opfs.Config{
 		RootPath:        c.root + "/volume",
 		LockPrefix:      c.root + "/volume",
 		StoreConfig:     &store_kvtx.Config{},
 		BlockShardCount: uint32(c.shards),
 		AsyncIo:         true,
 		ResetPolicy:     "automatic",
-	})
+	}
 }
 
 func verifyMetaKey(ctx context.Context, store *metashard.MetaStore, key []byte) error {
