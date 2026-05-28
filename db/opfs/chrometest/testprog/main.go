@@ -6,14 +6,21 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	stderrors "errors"
 	"io"
+	"net"
 	"os"
 	"strconv"
 	"strings"
 	"syscall/js"
 	"time"
 
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	resource "github.com/s4wave/spacewave/bldr/resource"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	resource_unixfs "github.com/s4wave/spacewave/core/resource/unixfs"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc_wal "github.com/s4wave/spacewave/db/block/gc/wal"
@@ -31,6 +38,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 	"github.com/sirupsen/logrus"
 )
 
@@ -233,6 +241,8 @@ func run(ctx context.Context, c *config) error {
 		return runWorldInitUnixFS(ctx, c)
 	case "world-large-unixfs-upload":
 		return runWorldLargeUnixFSUpload(ctx, c)
+	case "world-resource-large-unixfs-upload":
+		return runWorldResourceLargeUnixFSUpload(ctx, c)
 	default:
 		return errors.Errorf("unknown scenario %q", c.scenario)
 	}
@@ -1587,6 +1597,276 @@ func runWorldLargeUnixFSUpload(ctx context.Context, c *config) error {
 	}
 	defer largeFile.Release()
 	return verifyDeterministicFSFile(ctx, largeFile, totalSize, 0)
+}
+
+func runWorldResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr error) {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+
+	le := logrus.NewEntry(logrus.New())
+	bucketID := c.root + "/world"
+	ref := &bucket.ObjectRef{BucketId: bucketID}
+	cursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		le,
+		nil,
+		vol,
+		nil,
+		ref,
+		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: vol.GetID()},
+		nil,
+	)
+	defer cursor.Release()
+
+	ws, err := world_block.BuildWorldStateFromCursor(
+		ctx,
+		le,
+		true,
+		cursor,
+		world.NewWorldStorageFromCursor(cursor),
+		space_world_ops.LookupWorldOp,
+		false,
+	)
+	if err != nil {
+		return errors.Wrap(err, "build world state")
+	}
+	defer ws.Discard()
+
+	if _, _, err := space_world_ops.InitUnixFS(ctx, ws, vol.GetPeerID(), "files", time.Now()); err != nil {
+		return errors.Wrap(err, "init unixfs")
+	}
+	if err := ws.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit initial world state")
+	}
+
+	fsCursor, err := unixfs_world.FollowUnixfsRef(
+		ctx,
+		le,
+		ws,
+		&unixfs_world.UnixfsRef{
+			ObjectKey: "files",
+			FsType:    unixfs_world.FSType_FSType_FS_NODE,
+		},
+		vol.GetPeerID(),
+		true,
+	)
+	if err != nil {
+		return errors.Wrap(err, "follow unixfs")
+	}
+	defer fsCursor.Release()
+
+	handle, err := unixfs_sdk.NewFSHandle(fsCursor)
+	if err != nil {
+		return errors.Wrap(err, "open fs handle")
+	}
+	defer handle.Release()
+
+	resClient, cleanup, err := openFSHandleResourceClient(ctx, handle, ws, "files")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := cleanup(); retErr == nil && err != nil {
+			retErr = err
+		}
+	}()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		return errors.Wrap(err, "get root resource client")
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	totalSize := c.iterations
+	if totalSize <= 0 {
+		totalSize = 64 * 1024 * 1024
+	}
+	if err := uploadDeterministicResourceFile(ctx, rootSvc, "large-video.mp4", totalSize, 0); err != nil {
+		return err
+	}
+
+	fileResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+		Path: "large-video.mp4",
+	})
+	if err != nil {
+		return errors.Wrap(err, "lookup uploaded resource file")
+	}
+	fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
+	defer fileRef.Release()
+
+	fileClient, err := fileRef.GetClient()
+	if err != nil {
+		return errors.Wrap(err, "get uploaded resource file client")
+	}
+	fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+	return verifyDeterministicResourceFile(ctx, fileSvc, totalSize, 0)
+}
+
+func openFSHandleResourceClient(
+	ctx context.Context,
+	handle *unixfs_sdk.FSHandle,
+	ws world.WorldState,
+	objKey string,
+) (*resource_client.Client, func() error, error) {
+	clientPipe, serverPipe := net.Pipe()
+	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
+	if err != nil {
+		clientPipe.Close()
+		serverPipe.Close()
+		return nil, nil, errors.Wrap(err, "open client muxed conn")
+	}
+
+	serverMp, err := srpc.NewMuxedConn(serverPipe, false, nil)
+	if err != nil {
+		clientMp.Close()
+		clientPipe.Close()
+		serverPipe.Close()
+		return nil, nil, errors.Wrap(err, "open server muxed conn")
+	}
+
+	rootResource := resource_unixfs.NewFSHandleObjectResource(
+		handle,
+		nil,
+		ws,
+		objKey,
+		unixfs_world.FSType_FSType_FS_NODE,
+		nil,
+	)
+	resourceSrv := resource_server.NewResourceServer(rootResource.GetMux())
+	serverMux := srpc.NewMux()
+	if err := resourceSrv.Register(serverMux); err != nil {
+		clientMp.Close()
+		serverMp.Close()
+		clientPipe.Close()
+		serverPipe.Close()
+		return nil, nil, errors.Wrap(err, "register resource server")
+	}
+
+	serverCtx, cancelServer := context.WithCancel(ctx)
+	serverErrCh := make(chan error, 1)
+	server := srpc.NewServer(serverMux)
+	go func() {
+		serverErrCh <- server.AcceptMuxedConn(serverCtx, serverMp)
+	}()
+
+	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
+	resourceSvc := resource.NewSRPCResourceServiceClient(srpcClient)
+	resClient, err := resource_client.NewClient(ctx, resourceSvc)
+	if err != nil {
+		cancelServer()
+		clientMp.Close()
+		serverMp.Close()
+		clientPipe.Close()
+		serverPipe.Close()
+		return nil, nil, errors.Wrap(err, "open resource client")
+	}
+
+	cleanup := func() error {
+		resClient.Release()
+		cancelServer()
+		_ = clientMp.Close()
+		_ = serverMp.Close()
+		_ = clientPipe.Close()
+		_ = serverPipe.Close()
+		if err := <-serverErrCh; err != nil && !isExpectedMuxCloseError(err) {
+			return errors.Wrap(err, "resource server mux")
+		}
+		return nil
+	}
+	return resClient, cleanup, nil
+}
+
+func isExpectedMuxCloseError(err error) bool {
+	return stderrors.Is(err, context.Canceled) ||
+		stderrors.Is(err, io.EOF) ||
+		stderrors.Is(err, io.ErrClosedPipe) ||
+		stderrors.Is(err, net.ErrClosed)
+}
+
+func uploadDeterministicResourceFile(
+	ctx context.Context,
+	rootSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
+	name string,
+	totalSize int,
+	salt int,
+) error {
+	strm, err := rootSvc.UploadTree(ctx)
+	if err != nil {
+		return errors.Wrap(err, "open UploadTree stream")
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+				Path:      name,
+				TotalSize: int64(totalSize),
+				Mode:      0o644,
+			},
+		},
+	}); err != nil {
+		return errors.Wrap(err, "send UploadTree file_start")
+	}
+	const chunkSize = 64 * 1024
+	for offset := 0; offset < totalSize; offset += chunkSize {
+		n := min(chunkSize, totalSize-offset)
+		if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+			Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{
+				Data: deterministicLargeWindow(offset, n, salt),
+			},
+		}); err != nil {
+			return errors.Wrapf(err, "send UploadTree data offset=%d", offset)
+		}
+	}
+	resp, err := strm.CloseAndRecv()
+	if err != nil {
+		return errors.Wrap(err, "close UploadTree stream")
+	}
+	if resp.GetBytesWritten() != int64(totalSize) {
+		return errors.Errorf("UploadTree bytes_written=%d want=%d", resp.GetBytesWritten(), totalSize)
+	}
+	if resp.GetFilesWritten() != 1 {
+		return errors.Errorf("UploadTree files_written=%d want=1", resp.GetFilesWritten())
+	}
+	return nil
+}
+
+func verifyDeterministicResourceFile(
+	ctx context.Context,
+	fileSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
+	totalSize int,
+	salt int,
+) error {
+	sizeResp, err := fileSvc.GetSize(ctx, &s4wave_unixfs.HandleGetSizeRequest{})
+	if err != nil {
+		return errors.Wrap(err, "get uploaded resource file size")
+	}
+	if sizeResp.GetSize() != uint64(totalSize) {
+		return errors.Errorf("resource file size=%d want=%d", sizeResp.GetSize(), totalSize)
+	}
+	for _, offset := range []int{0, totalSize / 2, max(0, totalSize-4096)} {
+		wantLen := min(4096, totalSize-offset)
+		resp, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
+			Offset: int64(offset),
+			Length: int64(wantLen),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "read uploaded resource file offset=%d", offset)
+		}
+		if len(resp.GetData()) != wantLen {
+			return errors.Errorf("resource file offset=%d read=%d want=%d", offset, len(resp.GetData()), wantLen)
+		}
+		want := deterministicLargeWindow(offset, wantLen, salt)
+		if !bytes.Equal(resp.GetData(), want) {
+			return errors.Errorf("resource file offset=%d data mismatch", offset)
+		}
+	}
+	return nil
 }
 
 func verifyDeterministicFSFile(

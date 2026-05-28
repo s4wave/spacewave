@@ -1,0 +1,247 @@
+diff --git a/dist/srpc/common-rpc.d.ts b/dist/srpc/common-rpc.d.ts
+index 444e7ca66fcdca095fb41736dc14b18a8c24675c..4261e6b83d8dba2e76633b790e3b626d7058f175 100644
+--- a/dist/srpc/common-rpc.d.ts
++++ b/dist/srpc/common-rpc.d.ts
+@@ -10,12 +10,14 @@ export declare class CommonRPC {
+     protected service?: string;
+     protected method?: string;
+     private closed?;
++    private readonly writeDrainAbort;
+     constructor();
+     get isClosed(): boolean | Error;
+     writeCallData(data?: Uint8Array, complete?: boolean, error?: string): Promise<void>;
++    private writeCallDataPacket;
+     writeCallCancel(): Promise<void>;
+     writeCallDataFromSource(dataSource: AsyncIterable<Uint8Array>): Promise<void>;
+-    protected writePacket(packet: Packet): Promise<void>;
++    protected writePacket(packet: Packet, options?: WritePacketOptions): Promise<void>;
+     handleMessage(message: Uint8Array): Promise<void>;
+     handlePacket(packet: Packet): Promise<void>;
+     handleCallStart(packet: Partial<CallStart>): Promise<void>;
+@@ -25,3 +27,8 @@ export declare class CommonRPC {
+     close(err?: Error): Promise<void>;
+     private _createSink;
+ }
++interface WritePacketOptions {
++    allowClosed?: boolean;
++    waitForDrain?: boolean;
++}
++export {};
+diff --git a/dist/srpc/common-rpc.js b/dist/srpc/common-rpc.js
+index 38bb9a35fbefcc199eb26612a750e1b94bc506bc..a8e7236ddaac4e9182de422ad173b0119b3ee557 100644
+--- a/dist/srpc/common-rpc.js
++++ b/dist/srpc/common-rpc.js
+@@ -1,6 +1,7 @@
+ import { pushable } from 'it-pushable';
+ import { Packet } from './rpcproto.pb.js';
+ import { ERR_RPC_ABORT, RemoteRPCError } from './errors.js';
++const maxBufferedOutgoingPackets = 1;
+ // CommonRPC is common logic between server and client RPCs.
+ export class CommonRPC {
+     // sink is the data sink for incoming messages.
+@@ -23,6 +24,8 @@ export class CommonRPC {
+     method;
+     // closed indicates this rpc has been closed already.
+     closed;
++    // writeDrainAbort wakes writers waiting for outbound stream drain on close.
++    writeDrainAbort = new AbortController();
+     constructor() {
+         this.sink = this._createSink();
+         this.source = this._source;
+@@ -34,6 +37,10 @@ export class CommonRPC {
+     }
+     // writeCallData writes the call data packet.
+     async writeCallData(data, complete, error) {
++        await this.writeCallDataPacket(data, complete, error);
++    }
++    // writeCallDataPacket writes a call-data packet with optional drain control.
++    async writeCallDataPacket(data, complete, error, writeOptions) {
+         const callData = {
+             data: data || new Uint8Array(0),
+             dataIsZero: !!data && data.length === 0,
+@@ -45,7 +52,7 @@ export class CommonRPC {
+                 case: 'callData',
+                 value: callData,
+             },
+-        });
++        }, writeOptions);
+     }
+     // writeCallCancel writes the call cancel packet.
+     async writeCallCancel() {
+@@ -54,7 +61,7 @@ export class CommonRPC {
+                 case: 'callCancel',
+                 value: true,
+             },
+-        });
++        }, { waitForDrain: false });
+     }
+     // writeCallDataFromSource writes all call data from the iterable.
+     async writeCallDataFromSource(dataSource) {
+@@ -69,8 +76,24 @@ export class CommonRPC {
+         }
+     }
+     // writePacket writes a packet to the stream.
+-    async writePacket(packet) {
++    async writePacket(packet, options) {
++        if (this.closed && !options?.allowClosed) {
++            throw new Error(ERR_RPC_ABORT);
++        }
+         this._source.push(packet);
++        if (options?.waitForDrain === false ||
++            this._source.readableLength <= maxBufferedOutgoingPackets) {
++            return;
++        }
++        try {
++            await this._source.onEmpty({ signal: this.writeDrainAbort.signal });
++        }
++        catch (err) {
++            if (this.closed) {
++                throw new Error(ERR_RPC_ABORT, { cause: err });
++            }
++            throw err;
++        }
+     }
+     // handleMessage handles an incoming encoded Packet.
+     //
+@@ -149,8 +172,12 @@ export class CommonRPC {
+         this.closed = err ?? true;
+         // note: this does nothing if _source is already ended.
+         if (err && err.message) {
+-            await this.writeCallData(undefined, true, err.message);
++            await this.writeCallDataPacket(undefined, true, err.message, {
++                allowClosed: true,
++                waitForDrain: false,
++            });
+         }
++        this.writeDrainAbort.abort();
+         this._source.end();
+         this._rpcDataSource.end(err);
+     }
+diff --git a/srpc/common-rpc.ts b/srpc/common-rpc.ts
+index b19f8be1d198a4aed90649db4147222901fd079f..02356cb3205da25553bf8bdd5cb037e165dcfdba 100644
+--- a/srpc/common-rpc.ts
++++ b/srpc/common-rpc.ts
+@@ -6,6 +6,8 @@ import type { CallData, CallStart } from './rpcproto.pb.js'
+ import { Packet } from './rpcproto.pb.js'
+ import { ERR_RPC_ABORT, RemoteRPCError } from './errors.js'
+ 
++const maxBufferedOutgoingPackets = 1
++
+ // CommonRPC is common logic between server and client RPCs.
+ export class CommonRPC {
+   // sink is the data sink for incoming messages.
+@@ -32,6 +34,8 @@ export class CommonRPC {
+ 
+   // closed indicates this rpc has been closed already.
+   private closed?: true | Error
++  // writeDrainAbort wakes writers waiting for outbound stream drain on close.
++  private readonly writeDrainAbort = new AbortController()
+ 
+   constructor() {
+     this.sink = this._createSink()
+@@ -49,6 +53,16 @@ export class CommonRPC {
+     data?: Uint8Array,
+     complete?: boolean,
+     error?: string,
++  ) {
++    await this.writeCallDataPacket(data, complete, error)
++  }
++
++  // writeCallDataPacket writes a call-data packet with optional drain control.
++  private async writeCallDataPacket(
++    data?: Uint8Array,
++    complete?: boolean,
++    error?: string,
++    writeOptions?: WritePacketOptions,
+   ) {
+     const callData: CompleteMessage<CallData> = {
+       data: data || new Uint8Array(0),
+@@ -56,22 +70,28 @@ export class CommonRPC {
+       complete: complete || false,
+       error: error || '',
+     }
+-    await this.writePacket({
+-      body: {
+-        case: 'callData',
+-        value: callData,
++    await this.writePacket(
++      {
++        body: {
++          case: 'callData',
++          value: callData,
++        },
+       },
+-    })
++      writeOptions,
++    )
+   }
+ 
+   // writeCallCancel writes the call cancel packet.
+   public async writeCallCancel() {
+-    await this.writePacket({
+-      body: {
+-        case: 'callCancel',
+-        value: true,
++    await this.writePacket(
++      {
++        body: {
++          case: 'callCancel',
++          value: true,
++        },
+       },
+-    })
++      { waitForDrain: false },
++    )
+   }
+ 
+   // writeCallDataFromSource writes all call data from the iterable.
+@@ -87,8 +107,25 @@ export class CommonRPC {
+   }
+ 
+   // writePacket writes a packet to the stream.
+-  protected async writePacket(packet: Packet) {
++  protected async writePacket(packet: Packet, options?: WritePacketOptions) {
++    if (this.closed && !options?.allowClosed) {
++      throw new Error(ERR_RPC_ABORT)
++    }
+     this._source.push(packet)
++    if (
++      options?.waitForDrain === false ||
++      this._source.readableLength <= maxBufferedOutgoingPackets
++    ) {
++      return
++    }
++    try {
++      await this._source.onEmpty({ signal: this.writeDrainAbort.signal })
++    } catch (err) {
++      if (this.closed) {
++        throw new Error(ERR_RPC_ABORT, { cause: err })
++      }
++      throw err
++    }
+   }
+ 
+   // handleMessage handles an incoming encoded Packet.
+@@ -179,8 +216,12 @@ export class CommonRPC {
+     this.closed = err ?? true
+     // note: this does nothing if _source is already ended.
+     if (err && err.message) {
+-      await this.writeCallData(undefined, true, err.message)
++      await this.writeCallDataPacket(undefined, true, err.message, {
++        allowClosed: true,
++        waitForDrain: false,
++      })
+     }
++    this.writeDrainAbort.abort()
+     this._source.end()
+     this._rpcDataSource.end(err)
+   }
+@@ -206,3 +247,8 @@ export class CommonRPC {
+     }
+   }
+ }
++
++interface WritePacketOptions {
++  allowClosed?: boolean
++  waitForDrain?: boolean
++}

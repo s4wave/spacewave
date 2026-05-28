@@ -292,5 +292,8 @@
     "ulid": "^3.0.2",
     "workbox-window": "^7.4.1",
     "yaml": "^2.8.4"
+  },
+  "patchedDependencies": {
+    "starpc@0.49.14": "patches/starpc@0.49.14.patch"
   }
 }

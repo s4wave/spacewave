@@ -988,6 +988,29 @@ func TestOpfsChromeTinyGoWorldLargeUnixFSUpload(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeTinyGoWorldResourceLargeUnixFSUpload(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo UnixFS resource large-upload path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-resource-large-unixfs-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "world-resource-large-unixfs-upload",
+		root:       root,
+		iterations: 68056093,
+		shards:     defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
