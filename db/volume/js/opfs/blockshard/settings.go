@@ -5,11 +5,12 @@ package blockshard
 import "github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 
 const (
-	// DefaultMaxSegmentDataBytes bounds one SSTable data block before indexes,
-	// bloom filters, and headers are added. Browser TinyGo builds duplicate the
-	// data block while producing the final SSTable, so large uploads must publish
-	// multiple small immutable segments instead of one large segment buffer.
-	DefaultMaxSegmentDataBytes = 2 << 20
+	// DefaultMaxSegmentDataBytes targets one current large blob chunk before
+	// indexes, bloom filters, and headers are added. Single larger entries still
+	// publish as one segment. Browser TinyGo builds duplicate SSTable data while
+	// producing the final segment, so the default keeps normal Spacewave upload
+	// chunks below multi-megabyte Go heap growth in the blockshard writer.
+	DefaultMaxSegmentDataBytes = 768 << 10
 )
 
 // Settings configures the block shard engine.
@@ -21,7 +22,7 @@ type Settings struct {
 	MaxSegmentDataBytes int
 }
 
-// DefaultSettings returns the benchmark-selected default block shard settings.
+// DefaultSettings returns the default block shard settings.
 func DefaultSettings() *Settings {
 	return &Settings{
 		ShardCount:          DefaultShardCount,
