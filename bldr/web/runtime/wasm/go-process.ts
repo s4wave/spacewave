@@ -315,6 +315,128 @@ function readTinyGoString(go: TinyGoRuntime, ptr: number, len: number): string {
   return new TextDecoder().decode(tinyGoMemoryView(go, ptr, len))
 }
 
+type TinyGoCallable = (...args: unknown[]) => unknown
+
+function tinyGoCallableMethod(
+  target: unknown,
+  method: string,
+): TinyGoCallable {
+  if (
+    target === null ||
+    (typeof target !== 'object' && typeof target !== 'function')
+  ) {
+    throw new TypeError(`TinyGo JS target for ${method} is not an object`)
+  }
+  const fn = Reflect.get(target, method)
+  if (typeof fn !== 'function') {
+    throw new TypeError(`method ${method} is not callable`)
+  }
+  return (...args: unknown[]) => Reflect.apply(fn, target, args)
+}
+
+function tinyGoCallResult(
+  go: TinyGoRuntime,
+  targetRef: bigint,
+  methodPtr: number,
+  methodLen: number,
+  args: unknown[],
+): bigint {
+  const target = tinyGoUnboxValue(go, targetRef)
+  const method = readTinyGoString(go, methodPtr, methodLen)
+  const fn = tinyGoCallableMethod(target, method)
+  return tinyGoBoxValue(go, fn(...args))
+}
+
+function tinyGoConstructResult(
+  go: TinyGoRuntime,
+  ctorRef: bigint,
+  args: unknown[],
+): bigint {
+  const ctor = tinyGoUnboxValue(go, ctorRef)
+  if (typeof ctor !== 'function') {
+    throw new TypeError('TinyGo JS constructor ref is not callable')
+  }
+  return tinyGoBoxValue(go, Reflect.construct(ctor, args))
+}
+
+function tinyGoFunctionRef(
+  go: TinyGoRuntime,
+  rawRef: bigint,
+  label: string,
+): TinyGoCallable {
+  const fn = tinyGoUnboxValue(go, rawRef)
+  if (typeof fn !== 'function') {
+    throw new TypeError(`TinyGo JS ${label} ref is not callable`)
+  }
+  return (...args: unknown[]) => Reflect.apply(fn, undefined, args)
+}
+
+function setTinyGoJSImport(imports: object, name: string, fn: unknown): void {
+  if (!Reflect.has(imports, name)) {
+    Reflect.set(imports, name, fn)
+  }
+}
+
+function installTinyGoJSImportHelpers(go: TinyGoRuntime): void {
+  const gojs = go.importObject['gojs']
+  if (!gojs || typeof gojs !== 'object') {
+    return
+  }
+  setTinyGoJSImport(gojs, 'bldr.tinygo.jsCall0', (
+    targetRef: bigint,
+    methodPtr: number,
+    methodLen: number,
+  ) => tinyGoCallResult(go, targetRef, methodPtr, methodLen, []))
+  setTinyGoJSImport(gojs, 'bldr.tinygo.jsCall1Value', (
+    targetRef: bigint,
+    methodPtr: number,
+    methodLen: number,
+    arg0Ref: bigint,
+  ) =>
+    tinyGoCallResult(go, targetRef, methodPtr, methodLen, [
+      tinyGoUnboxValue(go, arg0Ref),
+    ]))
+  setTinyGoJSImport(gojs, 'bldr.tinygo.jsCall2StringValue', (
+    targetRef: bigint,
+    methodPtr: number,
+    methodLen: number,
+    arg0Ptr: number,
+    arg0Len: number,
+    arg1Ref: bigint,
+  ) =>
+    tinyGoCallResult(go, targetRef, methodPtr, methodLen, [
+      readTinyGoString(go, arg0Ptr, arg0Len),
+      tinyGoUnboxValue(go, arg1Ref),
+    ]))
+  setTinyGoJSImport(gojs, 'bldr.tinygo.jsNew0', (ctorRef: bigint) =>
+    tinyGoConstructResult(go, ctorRef, []))
+  setTinyGoJSImport(gojs, 'bldr.tinygo.jsNew1Int', (
+    ctorRef: bigint,
+    arg0: number,
+  ) => tinyGoConstructResult(go, ctorRef, [arg0]))
+  setTinyGoJSImport(gojs, 'bldr.tinygo.promiseAwait', (
+    promiseRef: bigint,
+    resolveRef: bigint,
+    rejectRef: bigint,
+  ) => {
+    const promise = tinyGoUnboxValue(go, promiseRef)
+    const resolve = tinyGoFunctionRef(go, resolveRef, 'promise resolve')
+    const reject = tinyGoFunctionRef(go, rejectRef, 'promise reject')
+    Promise.resolve(promise)
+      .then((value) => {
+        deferTinyGoCallback(() => {
+          resolve(value)
+        })
+      })
+      .catch((reason) => {
+        const code = tinyGoPromiseErrorCode(reason)
+        deferTinyGoCallback(() => {
+          reject(code)
+        })
+      })
+  })
+}
+
 export function tinyGoExport(
   go: TinyGoRuntime,
   name: string,
@@ -462,6 +584,8 @@ function patchWorkerBrowserGlobals(go: TinyGoRuntime) {
 }
 
 export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
+  installTinyGoJSImportHelpers(go)
+
   const g = globalThis as typeof globalThis & {
     BLDR_TINYGO_JS_CALL?: (
       target: Record<PropertyKey, unknown>,

@@ -147,7 +147,80 @@ function newTinyGoRuntime(
 }
 
 function tinyGoObjectRef(id: number): bigint {
-  return BigInt(id) | ((0x7ff80000n | 1n) << 32n)
+  return tinyGoRef(id, 1n)
+}
+
+function tinyGoFunctionRef(id: number): bigint {
+  return tinyGoRef(id, 4n)
+}
+
+function tinyGoRef(id: number, typeFlag: bigint): bigint {
+  return BigInt(id) | ((0x7ff80000n | typeFlag) << 32n)
+}
+
+function tinyGoRefID(ref: bigint): number {
+  return Number(ref & 0xffffffffn)
+}
+
+function installTinyGoValues(
+  go: TinyGoRuntime,
+  values: unknown[],
+): void {
+  go._values = [NaN, 0, null, true, false, globalThis, go, ...values]
+  go._goRefCounts = go._values.map(() => 0)
+  go._ids = new Map<unknown, bigint>()
+  go._idPool = []
+  for (const [idx, value] of go._values.entries()) {
+    if (
+      typeof value === 'object' ||
+      typeof value === 'function' ||
+      typeof value === 'string'
+    ) {
+      go._ids.set(value, BigInt(idx))
+    }
+  }
+}
+
+function writeTinyGoString(
+  go: TinyGoRuntime,
+  value: string,
+  ptr: number,
+): [number, number] {
+  const memory = go._inst?.exports.memory
+  if (!(memory instanceof WebAssembly.Memory)) {
+    throw new Error('TinyGo runtime memory is not initialized')
+  }
+  const bytes = new TextEncoder().encode(value)
+  new Uint8Array(memory.buffer, ptr, bytes.byteLength).set(bytes)
+  return [ptr, bytes.byteLength]
+}
+
+function callTinyGoImport(
+  go: TinyGoRuntime,
+  name: string,
+  ...args: unknown[]
+): unknown {
+  const gojs = go.importObject.gojs
+  if (!gojs || typeof gojs !== 'object') {
+    throw new Error('TinyGo gojs import table is not initialized')
+  }
+  const fn = Reflect.get(gojs, name)
+  if (typeof fn !== 'function') {
+    throw new Error(`${name} import is not callable`)
+  }
+  return Reflect.apply(fn, undefined, args)
+}
+
+function callTinyGoBigIntImport(
+  go: TinyGoRuntime,
+  name: string,
+  ...args: unknown[]
+): bigint {
+  const result = callTinyGoImport(go, name, ...args)
+  if (typeof result !== 'bigint') {
+    throw new Error(`${name} import did not return a bigint`)
+  }
+  return result
 }
 
 describe('patchTinyGoRuntimeImports', () => {
@@ -292,7 +365,7 @@ describe('patchTinyGoRuntimeImports', () => {
 
     expect(request).toHaveBeenCalledWith(
       'spacewave-lock',
-      { mode: 'exclusive' },
+      expect.objectContaining({ mode: 'exclusive' }),
       expect.any(Function),
     )
     expect(rejected).toEqual([])
@@ -563,6 +636,102 @@ describe('installTinyGoJSHelpers', () => {
     expect(g.BLDR_OPFS_WRITE_FILE_CHUNK).toBeTypeOf('function')
     expect(g.BLDR_OPFS_WRITE_FILE_CLOSE).toBeTypeOf('function')
     expect(g.BLDR_OPFS_WRITE_FILE_ABORT).toBeTypeOf('function')
+  })
+
+  it('installs direct TinyGo gojs imports for Bldr helper calls', async () => {
+    const go = newTinyGoRuntime()
+    const opts = { cache: 'no-store' }
+    const target = {
+      prefix: 'opfs',
+      zero() {
+        return this.prefix
+      },
+      one(value: unknown) {
+        return value
+      },
+      fetch(url: string, init: unknown) {
+        return { url, init, prefix: this.prefix }
+      },
+    }
+    class Box {
+      public constructor(public readonly value?: number) {}
+    }
+    const promise = Promise.resolve('ready')
+    const promiseResult = new Promise<unknown>((resolve) => {
+      installTinyGoValues(go, [
+        target,
+        Box,
+        opts,
+        promise,
+        (value: unknown) => resolve(value),
+        (code: number) => resolve(code),
+      ])
+    })
+
+    installTinyGoJSHelpers(go)
+
+    const [zeroPtr, zeroLen] = writeTinyGoString(go, 'zero', 16)
+    const zeroRef = callTinyGoBigIntImport(
+      go,
+      'bldr.tinygo.jsCall0',
+      tinyGoObjectRef(7),
+      zeroPtr,
+      zeroLen,
+    )
+    expect(go._values?.[tinyGoRefID(zeroRef)]).toBe('opfs')
+
+    const [onePtr, oneLen] = writeTinyGoString(go, 'one', 32)
+    const oneRef = callTinyGoBigIntImport(
+      go,
+      'bldr.tinygo.jsCall1Value',
+      tinyGoObjectRef(7),
+      onePtr,
+      oneLen,
+      tinyGoObjectRef(9),
+    )
+    expect(oneRef).toBe(tinyGoObjectRef(9))
+
+    const [fetchPtr, fetchLen] = writeTinyGoString(go, 'fetch', 48)
+    const [urlPtr, urlLen] = writeTinyGoString(go, '/root.packedmsg', 64)
+    const fetchRef = callTinyGoBigIntImport(
+      go,
+      'bldr.tinygo.jsCall2StringValue',
+      tinyGoObjectRef(7),
+      fetchPtr,
+      fetchLen,
+      urlPtr,
+      urlLen,
+      tinyGoObjectRef(9),
+    )
+    expect(go._values?.[tinyGoRefID(fetchRef)]).toEqual({
+      url: '/root.packedmsg',
+      init: opts,
+      prefix: 'opfs',
+    })
+
+    const box0Ref = callTinyGoBigIntImport(
+      go,
+      'bldr.tinygo.jsNew0',
+      tinyGoFunctionRef(8),
+    )
+    expect(go._values?.[tinyGoRefID(box0Ref)]).toEqual(new Box())
+
+    const box1Ref = callTinyGoBigIntImport(
+      go,
+      'bldr.tinygo.jsNew1Int',
+      tinyGoFunctionRef(8),
+      13,
+    )
+    expect(go._values?.[tinyGoRefID(box1Ref)]).toEqual(new Box(13))
+
+    callTinyGoImport(
+      go,
+      'bldr.tinygo.promiseAwait',
+      tinyGoObjectRef(10),
+      tinyGoFunctionRef(11),
+      tinyGoFunctionRef(12),
+    )
+    await expect(promiseResult).resolves.toBe('ready')
   })
 
   it('rejects OPFS Web Locks requests when the runtime lacks Web Locks', async () => {

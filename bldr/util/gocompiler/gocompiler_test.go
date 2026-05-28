@@ -149,7 +149,7 @@ func TestTinyGoBrowserReleaseArgsIncludeNoDebugAndNoDWARF(t *testing.T) {
 		"-interp-timeout=10m",
 		"-no-debug",
 		tinyGoInternalNoDWARFArg,
-		"-tags=build_type_release purego",
+		"-tags=build_type_release purego " + BldrTinyGoJSImportBuildTag,
 	} {
 		if !slices.Contains(args, want) {
 			t.Fatalf("tinygo release args = %v, want %s", args, want)
@@ -225,6 +225,9 @@ func TestTinyGoNonBrowserReleaseArgsDoNotUseInternalNoDWARF(t *testing.T) {
 	}
 	if slices.Contains(args, tinyGoInternalNoDWARFArg) {
 		t.Fatalf("tinygo wasi release args should not use browser-only %s: %v", tinyGoInternalNoDWARFArg, args)
+	}
+	if slices.Contains(args, "-tags=build_type_release purego "+BldrTinyGoJSImportBuildTag) {
+		t.Fatalf("tinygo wasi release args should not use browser-only JS imports tag: %v", args)
 	}
 }
 

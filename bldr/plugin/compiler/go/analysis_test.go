@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	"github.com/sirupsen/logrus"
 )
 
@@ -327,7 +328,12 @@ type WebBundlerOutput struct{}
 
 func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 	tags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, true)
-	for _, want := range []string{"build_type_release", "purego", "tinygo"} {
+	for _, want := range []string{
+		"build_type_release",
+		"purego",
+		"tinygo",
+		gocompiler.BldrTinyGoJSImportBuildTag,
+	} {
 		if !slices.Contains(tags, want) {
 			t.Fatalf("TinyGo analysis tags missing %q: %v", want, tags)
 		}

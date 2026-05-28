@@ -168,6 +168,10 @@ func newTinyGoBuildArgs(
 	if err != nil {
 		return nil, err
 	}
+	buildTags = slices.Clone(buildTags)
+	if shouldUseBldrTinyGoJSImportBuildTag(buildPlatform, tinygoPlat) {
+		buildTags = append(buildTags, BldrTinyGoJSImportBuildTag)
+	}
 
 	args := append([]string{
 		"build",
@@ -187,6 +191,10 @@ func newTinyGoBuildArgs(
 
 	args = append(args, "-tags="+strings.Join(buildTags, " "))
 	return args, nil
+}
+
+func shouldUseBldrTinyGoJSImportBuildTag(buildPlatform bldr_platform.Platform, tinygoPlat string) bool {
+	return buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_WEB && tinygoPlat == "wasm"
 }
 
 func shouldSkipTinyGoInternalDWARF(buildPlatform bldr_platform.Platform, buildType bldr_manifest.BuildType) bool {

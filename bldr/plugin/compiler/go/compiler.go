@@ -1080,6 +1080,7 @@ func newBuildTagsForAnalyze(
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
 	if enableTinygo {
 		buildTags = append(buildTags, "tinygo")
+		buildTags = append(buildTags, gocompiler.BldrTinyGoJSImportBuildTag)
 	}
 	return buildTags
 }
