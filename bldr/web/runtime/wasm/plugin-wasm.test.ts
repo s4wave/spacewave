@@ -527,8 +527,9 @@ describe('plugin-wasm generation lifecycle', () => {
     await main(api)
 
     const messageExport = vi.fn()
+    const memory = new WebAssembly.Memory({ initial: 1 })
     const gojs = installTinyGoStreamImports({
-      memory: new WebAssembly.Memory({ initial: 1 }),
+      memory,
       go_scheduler: vi.fn(),
       BLDR_PLUGIN_STREAM_ACCEPT: vi.fn(),
       BLDR_PLUGIN_STREAM_MESSAGE: messageExport,
@@ -546,12 +547,54 @@ describe('plugin-wasm generation lifecycle', () => {
     source.push(new Uint8Array([1]))
     await waitForGoCallbackQueue()
     expect(messageExport).toHaveBeenCalledTimes(1)
+    const firstBytesID = messageExport.mock.calls[0][1]
 
     getGoImport(gojs, 'bldr.plugin.streamRelease')(1)
     source.push(new Uint8Array([2]))
     await waitForGoCallbackQueue()
 
     expect(messageExport).toHaveBeenCalledTimes(1)
+    const takeBytes = getGoNumberImport(gojs, 'bldr.plugin.streamTakeBytes')
+    expect(takeBytes(firstBytesID, 16, 1)).toBe(0)
+    source.end()
+  })
+
+  it('lets TinyGo drop stored stream bytes without copying them', async () => {
+    goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+
+    const api = buildBackendAPI()
+    const { default: main } = await import('./plugin-wasm.js')
+    await main(api)
+
+    const messageExport = vi.fn()
+    const memory = new WebAssembly.Memory({ initial: 1 })
+    const gojs = installTinyGoStreamImports({
+      memory,
+      go_scheduler: vi.fn(),
+      BLDR_PLUGIN_STREAM_ACCEPT: vi.fn(),
+      BLDR_PLUGIN_STREAM_MESSAGE: messageExport,
+      BLDR_PLUGIN_STREAM_CLOSE: vi.fn(),
+    })
+    getGoImport(gojs, 'bldr.plugin.setAcceptStreams')(1)
+
+    const source = pushable<Uint8Array>({ objectMode: true })
+    void api.handleStreamCtr.handleStreamFunc({
+      source,
+      sink: vi.fn(async () => {}),
+    })
+    await waitForGoCallbackQueue()
+
+    source.push(new Uint8Array([9]))
+    await waitForGoCallbackQueue()
+    expect(messageExport).toHaveBeenCalledTimes(1)
+    const bytesID = messageExport.mock.calls[0][1]
+
+    const dropBytes = getGoNumberImport(gojs, 'bldr.plugin.streamDropBytes')
+    const takeBytes = getGoNumberImport(gojs, 'bldr.plugin.streamTakeBytes')
+    expect(dropBytes(bytesID)).toBe(1)
+    expect(takeBytes(bytesID, 16, 1)).toBe(0)
+
+    getGoImport(gojs, 'bldr.plugin.streamMessageHandled')(bytesID, 0)
     source.end()
   })
 
@@ -608,6 +651,23 @@ function getGoImport(
   }
   return (...args: number[]) => {
     fn(...args)
+  }
+}
+
+function getGoNumberImport(
+  gojs: Record<string, unknown>,
+  name: string,
+): (...args: number[]) => number {
+  const fn = gojs[name]
+  if (typeof fn !== 'function') {
+    throw new Error(`missing Go import ${name}`)
+  }
+  return (...args: number[]) => {
+    const result = fn(...args)
+    if (typeof result !== 'number') {
+      throw new Error(`Go import ${name} did not return a number`)
+    }
+    return result
   }
 }
 

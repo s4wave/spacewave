@@ -25,8 +25,13 @@ const (
 )
 
 type opfsHelperResult struct {
-	values []int
-	err    error
+	values     []int
+	valueCount int
+	value0     int
+	value1     int
+	err        error
+	rejected   bool
+	errCode    int
 }
 
 var (
@@ -419,7 +424,23 @@ func invokeOPFSHelper(call func(opID int)) ([]int, error) {
 
 	call(opID)
 	result := <-ch
-	return result.values, result.err
+	if result.err != nil {
+		return nil, result.err
+	}
+	if result.rejected {
+		return nil, newJSErrorCode(result.errCode)
+	}
+	if result.values != nil {
+		return result.values, nil
+	}
+	switch result.valueCount {
+	case 0:
+		return nil, nil
+	case 1:
+		return []int{result.value0}, nil
+	default:
+		return []int{result.value0, result.value1}, nil
+	}
 }
 
 func registerOPFSHelperOp() (int, chan opfsHelperResult) {

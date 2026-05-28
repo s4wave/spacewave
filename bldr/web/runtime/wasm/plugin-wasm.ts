@@ -199,6 +199,8 @@ class TinyGoPluginStreamBridge {
       ptr: number,
       len: number,
     ) => this.takeBytes(bytesID, ptr, len)
+    gojs['bldr.plugin.streamDropBytes'] ??= (bytesID: number) =>
+      this.dropBytes(bytesID) ? 1 : 0
     gojs['bldr.plugin.streamMessageHandled'] ??= (
       bytesID: number,
       delivered: number,
@@ -412,6 +414,10 @@ class TinyGoPluginStreamBridge {
     }
   }
 
+  private dropBytes(bytesID: number): boolean {
+    return this.storedBytes.delete(bytesID)
+  }
+
   private storeError(err: unknown): { id: number; len: number } {
     const bytes = this.encoder.encode(castToError(err).toString())
     return { id: this.storeBytes(bytes), len: bytes.byteLength }
@@ -430,6 +436,7 @@ class TinyGoPluginStreamBridge {
   }
 
   private resolveDelivery(bytesID: number, delivered: boolean): void {
+    this.storedBytes.delete(bytesID)
     const delivery = this.pendingDeliveries.get(bytesID)
     if (!delivery) {
       return
@@ -441,6 +448,7 @@ class TinyGoPluginStreamBridge {
   private resolveStreamDeliveries(streamID: number, delivered: boolean): void {
     for (const [bytesID, delivery] of this.pendingDeliveries) {
       if (delivery.streamID === streamID) {
+        this.storedBytes.delete(bytesID)
         this.pendingDeliveries.delete(bytesID)
         delivery.resolve(delivered)
       }
@@ -449,6 +457,7 @@ class TinyGoPluginStreamBridge {
 
   private resolveAllDeliveries(delivered: boolean): void {
     for (const [bytesID, delivery] of this.pendingDeliveries) {
+      this.storedBytes.delete(bytesID)
       this.pendingDeliveries.delete(bytesID)
       delivery.resolve(delivered)
     }

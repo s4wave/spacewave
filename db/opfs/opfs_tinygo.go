@@ -11,9 +11,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Exported OPFS helper callbacks publish completion only. JavaScript owns the
-// later TinyGo scheduler resume so resumed goroutines do not enter syscall/js
-// while a js.FuncOf callback frame is still active.
+// Exported OPFS helper callbacks publish primitive completion only. JavaScript
+// owns the later TinyGo scheduler resume, and direct //export callbacks avoid
+// TinyGo asyncify's //go:wasmexport goroutine-stack allocation on every
+// Promise completion.
 
 //go:wasmimport gojs bldr.opfs.takeStoredBytes
 func tinyGoOPFSTakeStoredBytes(bytesID uint32, ptr unsafe.Pointer, len uint32) uint32
@@ -332,19 +333,19 @@ func listDirectoryWithTinyGoImport(dir js.Value) ([]string, error) {
 	return names, nil
 }
 
-//go:wasmexport BLDR_OPFS_HELPER_RESOLVE
+//export BLDR_OPFS_HELPER_RESOLVE
 func tinygoOPFSHelperResolve(opID uint32, count uint32, value0 uint32, value1 uint32) {
-	values := make([]int, 0, count)
-	if count > 0 {
-		values = append(values, int(value0))
-	}
-	if count > 1 {
-		values = append(values, int(value1))
-	}
-	completeOPFSHelperOp(int(opID), opfsHelperResult{values: values})
+	completeOPFSHelperOp(int(opID), opfsHelperResult{
+		valueCount: int(count),
+		value0:     int(value0),
+		value1:     int(value1),
+	})
 }
 
-//go:wasmexport BLDR_OPFS_HELPER_REJECT
+//export BLDR_OPFS_HELPER_REJECT
 func tinygoOPFSHelperReject(opID uint32, code uint32) {
-	completeOPFSHelperOp(int(opID), opfsHelperResult{err: newJSErrorCode(int(code))})
+	completeOPFSHelperOp(int(opID), opfsHelperResult{
+		rejected: true,
+		errCode:  int(code),
+	})
 }

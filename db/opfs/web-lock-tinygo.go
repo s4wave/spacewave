@@ -15,6 +15,7 @@ type webLockOp struct {
 	releaseID uint32
 	acquired  bool
 	err       error
+	rejected  bool
 	closed    bool
 }
 
@@ -90,7 +91,7 @@ func (BrowserDriver) acquireWebLock(ctx context.Context, name string, exclusive,
 	opID, op := registerWebLockOp()
 	nameBytes := []byte(name)
 	if len(nameBytes) == 0 {
-		completeWebLockOp(opID, 0, false, errors.New("WebLock name is empty"))
+		failWebLockOp(opID, errors.New("WebLock name is empty"))
 	} else {
 		tinygoAcquireWebLock(
 			opID,
@@ -110,6 +111,9 @@ func (BrowserDriver) acquireWebLock(ctx context.Context, name string, exclusive,
 	deleteWebLockOp(opID)
 	if op.err != nil {
 		return &WebLockResult{Outcome: WebLockOutcomeRejected}, op.err
+	}
+	if op.rejected {
+		return &WebLockResult{Outcome: WebLockOutcomeRejected}, errors.New("WebLock request rejected")
 	}
 	if !op.acquired {
 		return &WebLockResult{Outcome: WebLockOutcomeUnavailable}, nil
@@ -146,7 +150,7 @@ func deleteWebLockOp(opID uint32) {
 	webLockMu.Unlock()
 }
 
-func completeWebLockOp(opID, releaseID uint32, acquired bool, err error) {
+func completeWebLockOp(opID, releaseID uint32, acquired bool, rejected bool) {
 	webLockMu.Lock()
 	op := webLockOps[opID]
 	if op == nil || op.closed {
@@ -155,21 +159,35 @@ func completeWebLockOp(opID, releaseID uint32, acquired bool, err error) {
 	}
 	op.releaseID = releaseID
 	op.acquired = acquired
+	op.rejected = rejected
+	op.closed = true
+	close(op.done)
+	webLockMu.Unlock()
+}
+
+func failWebLockOp(opID uint32, err error) {
+	webLockMu.Lock()
+	op := webLockOps[opID]
+	if op == nil || op.closed {
+		webLockMu.Unlock()
+		return
+	}
 	op.err = err
 	op.closed = true
 	close(op.done)
 	webLockMu.Unlock()
 }
 
-// Exported WebLock callbacks must not block: they run from JavaScript back
-// into TinyGo only to publish completion. The original Go caller owns waiting.
+// Exported WebLock callbacks must not block or allocate: they run from
+// JavaScript back into TinyGo only to publish primitive completion. The
+// original Go caller owns waiting and error construction.
 //
-//go:wasmexport BLDR_OPFS_WEB_LOCK_RESOLVE
+//export BLDR_OPFS_WEB_LOCK_RESOLVE
 func tinygoWebLockResolve(opID uint32, releaseID uint32, acquired uint32) {
-	completeWebLockOp(opID, releaseID, acquired != 0, nil)
+	completeWebLockOp(opID, releaseID, acquired != 0, false)
 }
 
-//go:wasmexport BLDR_OPFS_WEB_LOCK_REJECT
+//export BLDR_OPFS_WEB_LOCK_REJECT
 func tinygoWebLockReject(opID uint32, _ uint32) {
-	completeWebLockOp(opID, 0, false, errors.New("WebLock request rejected"))
+	completeWebLockOp(opID, 0, false, true)
 }
