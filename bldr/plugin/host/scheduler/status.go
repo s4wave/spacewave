@@ -22,19 +22,24 @@ func (c *Controller) GetPluginStatusCtr() ccontainer.Watchable[*PluginStatusSnap
 	return c.pluginStatusCtr
 }
 
+// FindControllerOnBus returns the first plugin host scheduler on b.
+func FindControllerOnBus(b bus.Bus) *Controller {
+	for _, ctrl := range b.GetControllers() {
+		scheduler, ok := ctrl.(*Controller)
+		if ok {
+			return scheduler
+		}
+	}
+	return nil
+}
+
 // IsPluginRunningOnBus reports whether the scheduler on b has a running plugin.
 func IsPluginRunningOnBus(ctx context.Context, b bus.Bus, pluginID string) bool {
 	if err := ctx.Err(); err != nil {
 		return false
 	}
-	for _, ctrl := range b.GetControllers() {
-		scheduler, ok := ctrl.(*Controller)
-		if !ok {
-			continue
-		}
-		return scheduler.IsPluginRunning(pluginID)
-	}
-	return false
+	scheduler := FindControllerOnBus(b)
+	return scheduler != nil && scheduler.IsPluginRunning(pluginID)
 }
 
 // IsPluginRunning reports whether any instance for pluginID is running.
@@ -49,6 +54,71 @@ func (c *Controller) IsPluginRunning(pluginID string) bool {
 		}
 	}
 	return false
+}
+
+// WaitPluginsRunning waits until all shared instances in pluginIDs report
+// running, or returns the first scheduler error recorded for one of them.
+func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string) error {
+	if len(pluginIDs) == 0 {
+		return nil
+	}
+	if c.pluginStatusCtr == nil {
+		return errors.New("plugin status controller is not initialized")
+	}
+
+	required := make(map[string]struct{}, len(pluginIDs))
+	for _, pluginID := range pluginIDs {
+		if pluginID != "" {
+			required[pluginID] = struct{}{}
+		}
+	}
+	if len(required) == 0 {
+		return nil
+	}
+
+	var current *PluginStatusSnapshot
+	for {
+		next, err := c.pluginStatusCtr.WaitValueChange(ctx, current, nil)
+		if err != nil {
+			return err
+		}
+		current = next
+
+		running, err := pluginsRunningOrError(current, required)
+		if err != nil || running {
+			return err
+		}
+	}
+}
+
+func pluginsRunningOrError(snapshot *PluginStatusSnapshot, required map[string]struct{}) (bool, error) {
+	if snapshot == nil {
+		return false, nil
+	}
+
+	running := make(map[string]struct{}, len(required))
+	for _, plugin := range snapshot.Plugins {
+		if plugin == nil || plugin.GetInstanceKey() != "" {
+			continue
+		}
+		pluginID := plugin.GetPluginId()
+		if _, ok := required[pluginID]; !ok {
+			continue
+		}
+		if msg := plugin.GetLastErrorMessage(); msg != "" && !plugin.GetRunning() {
+			return false, errors.Errorf("plugin %s failed: %s", pluginID, msg)
+		}
+		if plugin.GetRunning() {
+			running[pluginID] = struct{}{}
+		}
+	}
+
+	for pluginID := range required {
+		if _, ok := running[pluginID]; !ok {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func (c *Controller) setPluginStatus(

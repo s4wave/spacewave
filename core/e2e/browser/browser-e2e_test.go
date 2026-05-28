@@ -88,7 +88,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	}
 
 	// check out the web dist sources
-	err = s4wave_core_e2e.CheckoutWebDistSources(ctx, le, distDir)
+	err = s4wave_core_e2e.CheckoutWebDistSources(ctx, le, repoRoot, distDir)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

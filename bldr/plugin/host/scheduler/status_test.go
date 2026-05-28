@@ -1,7 +1,10 @@
 package plugin_host_scheduler
 
 import (
+	"context"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
@@ -109,6 +112,49 @@ func TestIsPluginRunning(t *testing.T) {
 	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_RUNNING)
 	if !ctrl.IsPluginRunning("notes") {
 		t.Fatal("running plugin should report running")
+	}
+}
+
+func TestWaitPluginsRunningReturnsWhenRequiredPluginsRun(t *testing.T) {
+	ctrl := &Controller{
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+
+	ctrl.setPluginStatusClearingError("spacewave-core", "", bldr_plugin.PluginState_PluginState_RUNNING)
+	ctrl.setPluginStatusClearingError("spacewave-e2e", "", bldr_plugin.PluginState_PluginState_RUNNING)
+	ctrl.setPluginStatus("debug-helper", "", bldr_plugin.PluginState_PluginState_REQUESTED)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := ctrl.WaitPluginsRunning(ctx, []string{"spacewave-core", "spacewave-e2e"}); err != nil {
+		t.Fatalf("expected required plugins to be running: %v", err)
+	}
+}
+
+func TestWaitPluginsRunningReturnsRecordedStartupError(t *testing.T) {
+	ctrl := &Controller{
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+
+	ctrl.setPluginStatus("spacewave-e2e", "", bldr_plugin.PluginState_PluginState_REQUESTED)
+	ctrl.recordPluginStatusError("spacewave-e2e", "", "fetch plugin manifest", errors.New("vite failed"))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err := ctrl.WaitPluginsRunning(ctx, []string{"spacewave-e2e"})
+	if err == nil {
+		t.Fatal("expected startup plugin status error")
+	}
+	if !strings.Contains(err.Error(), "plugin spacewave-e2e failed: fetch plugin manifest: vite failed") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

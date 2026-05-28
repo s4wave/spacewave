@@ -6,13 +6,11 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/pkg/errors"
 	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
-	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/sirupsen/logrus"
 )
 
@@ -107,43 +105,14 @@ func mergeExtendedConfigs(
 }
 
 // CheckoutWebDistSources checks out the web dist sources to the specified directory.
-func CheckoutWebDistSources(ctx context.Context, le *logrus.Entry, distDir string) error {
-	distSourcesHandle := bldr.BuildDistSourcesFSHandle(ctx, le)
-	defer distSourcesHandle.Release()
-
-	// sync the entrypoint sources to the path
-	err := os.MkdirAll(distDir, 0o755)
+func CheckoutWebDistSources(ctx context.Context, le *logrus.Entry, repoRoot, distDir string) error {
+	bldrSrcPath, err := filepath.Rel(distDir, repoRoot)
 	if err != nil {
 		return err
 	}
-	err = unixfs_sync.Sync(
-		ctx,
-		distDir,
-		distSourcesHandle,
-		unixfs_sync.DeleteMode_DeleteMode_DURING,
-		unixfs_sync.NewSkipPathPrefixes([]string{"vendor", "node_modules"}),
-	)
-	if err != nil {
-		return err
-	}
-
-	// patch tsconfig.json to use host project vendor/
-	tsconfigPath := filepath.Join(distDir, "tsconfig.json")
-	tsconfigData, err := os.ReadFile(tsconfigPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
-	// Replace the @go/* path mapping
-	updatedConfig := strings.Replace(string(tsconfigData), `"@go/*": ["./vendor/*"]`, `"@go/*": ["../../../../vendor/*"]`, 1)
-
-	err = os.WriteFile(tsconfigPath, []byte(updatedConfig), 0o644)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return bldr.SyncDistSources(ctx, le, bldr.DistSourceSyncConfig{
+		RepoRoot:    repoRoot,
+		DistRoot:    distDir,
+		BldrSrcPath: bldrSrcPath,
+	})
 }

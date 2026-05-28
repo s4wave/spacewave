@@ -70,7 +70,7 @@ func setupPluginClients(
 	if err := fsutil.CleanCreateDir(pluginDistDir); err != nil {
 		t.Fatal(err)
 	}
-	if err := s4wave_core_e2e.CheckoutWebDistSources(ctx, le, distDir); err != nil {
+	if err := s4wave_core_e2e.CheckoutWebDistSources(ctx, le, repoRoot, distDir); err != nil {
 		t.Fatal(err)
 	}
 

@@ -5,7 +5,9 @@ package bldr_project_controller
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
@@ -23,6 +25,14 @@ func (c *Controller) executeStartup(ctx context.Context, conf *bldr_project.Star
 			return err
 		}
 		defer plugRef.Release()
+	}
+
+	scheduler := plugin_host_scheduler.FindControllerOnBus(c.bus)
+	if scheduler == nil {
+		return errors.New("plugin host scheduler is not running")
+	}
+	if err := scheduler.WaitPluginsRunning(ctx, loadPluginIDs); err != nil {
+		return err
 	}
 
 	// wait for context cancel to release plugin refs

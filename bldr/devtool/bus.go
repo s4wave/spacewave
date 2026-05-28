@@ -4,13 +4,8 @@ package devtool
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -19,7 +14,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/util/exec"
 	"github.com/pkg/errors"
 	bldr "github.com/s4wave/spacewave/bldr"
 	"github.com/s4wave/spacewave/bldr/core"
@@ -36,23 +30,18 @@ import (
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
-	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/mod/modfile"
 )
 
 // devtoolTransformConf is the block transform conf to use.
 var devtoolTransformConf = []config.Config{
 	&transform_s2.Config{},
 }
-
-// distGoMod is the go mod path to use for the distribution bundle.
-const distGoMod = "github.com/s4wave/spacewave/bldr-dist"
 
 // DevtoolBus contains a built devtool bus.
 type DevtoolBus struct {
@@ -370,162 +359,13 @@ func BuildDevtoolBus(
 // bldrSum can be empty
 // bldrSrcPath can be empty
 func (d *DevtoolBus) SyncDistSources(bldrVersion, bldrSum, bldrSrcPath string) error {
-	// mount the entrypoint web sources fsHandle
-	ctx, le := d.ctx, d.le
-	distSourcesHandle := bldr.BuildDistSourcesFSHandle(ctx, le)
-	defer distSourcesHandle.Release()
-
-	// sync the entrypoint sources to the path
-	err := os.MkdirAll(d.distSrcRoot, 0o755)
-	if err != nil {
-		return err
-	}
-	err = unixfs_sync.Sync(
-		ctx,
-		d.distSrcRoot,
-		distSourcesHandle,
-		unixfs_sync.DeleteMode_DeleteMode_DURING,
-		unixfs_sync.NewSkipPathPrefixes([]string{"vendor", "node_modules", "go.mod", "go.sum", ".sync-hash"}),
-	)
-	if err != nil {
-		return err
-	}
-
-	runGoMod := func(cmd string) error {
-		le.Infof("bldr sources: running go mod %s", cmd)
-		goVendorCmd := exec.NewCmd(ctx, "go", "mod", cmd)
-		goVendorCmd.Dir = d.distSrcRoot
-		goModWriter := le.WriterLevel(logrus.DebugLevel)
-		goVendorCmd.Stderr = goModWriter
-		goVendorCmd.Stdout = goModWriter
-		goVendorCmd.Env = os.Environ()
-		runErr := goVendorCmd.Run()
-		closeErr := goModWriter.Close()
-		if runErr != nil {
-			return runErr
-		}
-		return closeErr
-	}
-
-	// Read the live repo-root module files. In the monorepo layout, go.mod and
-	// go.sum live at the project root rather than under the embedded bldr tree.
-	bldrGoModPath := filepath.Join(d.distSrcRoot, "go.mod")
-	sourceGoModPath := filepath.Join(d.repoRoot, "go.mod")
-	bldrGoModData, err := os.ReadFile(sourceGoModPath)
-	if err != nil {
-		return errors.Wrapf(err, "read repo go.mod at %s", sourceGoModPath)
-	}
-	bldrModFile, err := modfile.Parse(sourceGoModPath, bldrGoModData, nil)
-	if err != nil {
-		return err
-	}
-	bldrModPath := bldrModFile.Module.Mod.Path
-	bldrModFile.Module.Mod.Path = distGoMod
-
-	// change the mod to bldr-dist
-	if err := bldrModFile.AddModuleStmt(distGoMod); err != nil {
-		return err
-	}
-
-	if bldrSrcPath != "" {
-		// apply the relative path
-		if err := bldrModFile.AddReplace(bldrModPath, "", bldrSrcPath, ""); err != nil {
-			return err
-		}
-	} else {
-		// add a require for bldr if using bldrVersion
-		if err := bldrModFile.AddRequire(bldrModPath, bldrVersion); err != nil {
-			return err
-		}
-	}
-
-	bldrModFile.Cleanup()
-	updatedBldrGoMod, err := bldrModFile.Format()
-	if err != nil {
-		return err
-	}
-
-	// Check if we can skip tidy+vendor by comparing input hash.
-	goModHash := sha256.Sum256(updatedBldrGoMod)
-	hashStr := hex.EncodeToString(goModHash[:])
-	syncHashPath := filepath.Join(d.distSrcRoot, ".sync-hash")
-	vendorDir := filepath.Join(d.distSrcRoot, "vendor")
-
-	existingHash, hashReadErr := os.ReadFile(syncHashPath)
-	_, vendorStatErr := os.Stat(vendorDir)
-
-	if hashReadErr == nil && strings.TrimSpace(string(existingHash)) == hashStr && vendorStatErr == nil {
-		le.Info("bldr sources: inputs unchanged, skipping tidy+vendor")
-		le.Info("done checking out bldr sources")
-		return nil
-	}
-
-	// Inputs changed or first run: write go.mod and run tidy+vendor.
-	if err := os.WriteFile(bldrGoModPath, updatedBldrGoMod, 0o644); err != nil {
-		return err
-	}
-
-	// Write the repo-root go.sum as a base. It contains checksums for the
-	// current workspace dependencies which bldr-dist also needs.
-	bldrGoSumPath := filepath.Join(d.distSrcRoot, "go.sum")
-	sourceGoSumPath := filepath.Join(d.repoRoot, "go.sum")
-	bldrGoSumData, err := os.ReadFile(sourceGoSumPath)
-	if err != nil {
-		return errors.Wrapf(err, "read repo go.sum at %s", sourceGoSumPath)
-	}
-	if err := os.WriteFile(bldrGoSumPath, bldrGoSumData, 0o644); err != nil {
-		return err
-	}
-
-	// If bldrSum is set, we are using bldr as a Go module.
-	// In this case we can skip "go mod tidy" (much faster) by appending bldr's
-	// own entry to go.sum (the embedded go.sum has deps but not bldr itself).
-	if bldrSum != "" {
-		goModSum := sha256.Sum256(bldrGoModData)
-		goModInner := fmt.Sprintf("%x  %s\n", goModSum, "go.mod")
-		goModInnerSum := sha256.Sum256([]byte(goModInner))
-		goModSumHash := "h1:" + base64.StdEncoding.EncodeToString(goModInnerSum[:])
-
-		goSumFile, err := os.OpenFile(bldrGoSumPath, os.O_APPEND|os.O_WRONLY, 0o644)
-		if err != nil {
-			return err
-		}
-		defer goSumFile.Close()
-		_, err = goSumFile.WriteString(bldrModPath + " " + bldrVersion + " " + bldrSum + "\n")
-		if err != nil {
-			return err
-		}
-		_, err = goSumFile.WriteString(bldrModPath + " " + bldrVersion + "/go.mod " + goModSumHash + "\n")
-		if err != nil {
-			return err
-		}
-		if err = goSumFile.Close(); err != nil {
-			return err
-		}
-
-		// Run go mod download to verify and complete go.sum with any
-		// transitive dependencies not covered by the embedded go.sum.
-		// The embedded go.sum matches the build-time version of bldr; if a
-		// different version is requested, its transitive deps may differ.
-		if err := runGoMod("download"); err != nil {
-			return err
-		}
-	} else {
-		if err := runGoMod("tidy"); err != nil {
-			return err
-		}
-	}
-
-	if err := runGoMod("vendor"); err != nil {
-		return err
-	}
-
-	// Save hash for next run.
-	_ = os.WriteFile(syncHashPath, []byte(hashStr), 0o644)
-
-	le.Info("done checking out bldr sources")
-
-	return nil
+	return bldr.SyncDistSources(d.ctx, d.le, bldr.DistSourceSyncConfig{
+		RepoRoot:    d.repoRoot,
+		DistRoot:    d.distSrcRoot,
+		BldrVersion: bldrVersion,
+		BldrSum:     bldrSum,
+		BldrSrcPath: bldrSrcPath,
+	})
 }
 
 // GetContext returns the context.

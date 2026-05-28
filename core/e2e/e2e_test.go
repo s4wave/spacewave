@@ -65,7 +65,7 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	}
 
 	// check out the web dist sources
-	err = s4wave_core_e2e.CheckoutWebDistSources(ctx, le, distDir)
+	err = s4wave_core_e2e.CheckoutWebDistSources(ctx, le, repoRoot, distDir)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -192,15 +192,50 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	defer projCtrlRef.Release()
 	_ = projCtrl
 
-	// wait for the test to complete and get the result
+	type testResult struct {
+		success  bool
+		errorMsg string
+		err      error
+	}
+	waitCtx, waitCancel := context.WithCancel(ctx)
+	defer waitCancel()
+	startupErrCh := make(chan error, 1)
+	go func() {
+		startupErrCh <- tb.GetScheduler().WaitPluginsRunning(waitCtx, projectConfig.GetStart().GetPlugins())
+	}()
+	testResultCh := make(chan testResult, 1)
+	go func() {
+		success, errorMsg, err := testbedResourceServer.WaitForTestResult(waitCtx)
+		testResultCh <- testResult{success: success, errorMsg: errorMsg, err: err}
+	}()
+
 	le.Info("waiting for test to complete...")
-	success, errorMsg, err := testbedResourceServer.WaitForTestResult(ctx)
-	if err != nil {
-		t.Fatalf("error waiting for test result: %v", err)
+	for startupErrCh != nil {
+		select {
+		case err := <-startupErrCh:
+			startupErrCh = nil
+			if err != nil {
+				t.Fatalf("error waiting for startup plugins: %v", err)
+			}
+		case result := <-testResultCh:
+			waitCancel()
+			if result.err != nil {
+				t.Fatalf("error waiting for test result: %v", result.err)
+			}
+			if !result.success {
+				t.Fatalf("test failed: %s", result.errorMsg)
+			}
+			le.Info("test completed successfully")
+			return
+		}
 	}
 
-	if !success {
-		t.Fatalf("test failed: %s", errorMsg)
+	result := <-testResultCh
+	if result.err != nil {
+		t.Fatalf("error waiting for test result: %v", result.err)
+	}
+	if !result.success {
+		t.Fatalf("test failed: %s", result.errorMsg)
 	}
 
 	le.Info("test completed successfully")
