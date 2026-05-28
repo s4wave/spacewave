@@ -43,6 +43,17 @@ const tinyGoWebLockRequests = new Map<
   { abort?: AbortController; canceled?: boolean; releaseID?: number }
 >()
 const tinyGoFetchRequests = new Map<number, AbortController>()
+let tinyGoOPFSWriteStreamID = 1
+const tinyGoOPFSWriteStreams = new Map<
+  number,
+  {
+    go: TinyGoRuntime
+    writable: FileSystemWritableFileStream
+    chain: Promise<void>
+  }
+>()
+const tinyGoOPFSRuntimeTasks = new WeakMap<TinyGoRuntime, Set<Promise<void>>>()
+const tinyGoExitedRuntimes = new WeakSet<TinyGoRuntime>()
 const tinyGoCallbackQueue: (() => void)[] = []
 let tinyGoCallbackScheduled = false
 let tinyGoCallbackChannel: MessageChannel | undefined
@@ -83,7 +94,10 @@ function resolveTinyGoOPFSHelper(
   if (!resolve) {
     throw new Error('TinyGo OPFS resolve export is not initialized')
   }
-  deferTinyGoCallback(() =>
+  deferTinyGoCallback(() => {
+    if (tinyGoExitedRuntimes.has(go)) {
+      return
+    }
     callTinyGoExport(
       go,
       resolve,
@@ -91,8 +105,8 @@ function resolveTinyGoOPFSHelper(
       values.length,
       values[0] ?? 0,
       values[1] ?? 0,
-    ),
-  )
+    )
+  })
 }
 
 function rejectTinyGoOPFSHelper(
@@ -104,7 +118,11 @@ function rejectTinyGoOPFSHelper(
   if (!reject) {
     throw new Error('TinyGo OPFS reject export is not initialized')
   }
-  deferTinyGoCallback(() => callTinyGoExport(go, reject, opID, code))
+  deferTinyGoCallback(() => {
+    if (!tinyGoExitedRuntimes.has(go)) {
+      callTinyGoExport(go, reject, opID, code)
+    }
+  })
 }
 
 function rejectTinyGoOPFSOp(
@@ -116,16 +134,132 @@ function rejectTinyGoOPFSOp(
   rejectTinyGoOPFSHelper(go, opID, code)
 }
 
+async function rejectTinyGoOPFSWritableFailure(
+  go: TinyGoRuntime,
+  opID: number,
+  writable: FileSystemWritableFileStream | undefined,
+  reason: unknown,
+): Promise<void> {
+  const abortReason = await abortOPFSWritableStrict(writable).then(
+    () => undefined,
+    (value) => value,
+  )
+  const report = abortReason === undefined ? reason : abortReason
+  if (!tinyGoExitedRuntimes.has(go)) {
+    rejectTinyGoOPFSOp(go, opID, report)
+  }
+}
+
+function abortOPFSWritableStrict(
+  writable: FileSystemWritableFileStream | undefined,
+): Promise<void> {
+  if (!writable) {
+    return Promise.resolve()
+  }
+  try {
+    return writable.abort()
+  } catch (reason) {
+    return Promise.reject(reason)
+  }
+}
+
+function abortOPFSWritable(
+  writable: FileSystemWritableFileStream | undefined,
+): Promise<void> {
+  return abortOPFSWritableStrict(writable).then(
+    () => undefined,
+    () => undefined,
+  )
+}
+
 function abortOPFSWritableQuietly(
   writable: FileSystemWritableFileStream | undefined,
 ): void {
-  if (!writable) {
-    return
+  void abortOPFSWritable(writable)
+}
+
+function tinyGoOPFSRuntimeTaskSet(
+  go: TinyGoRuntime,
+): Set<Promise<void>> {
+  const existing = tinyGoOPFSRuntimeTasks.get(go)
+  if (existing) {
+    return existing
   }
-  try {
-    void writable.abort().catch(() => {})
-  } catch {
-    // Best-effort cleanup only; the caller reports the primary OPFS failure.
+  const tasks = new Set<Promise<void>>()
+  tinyGoOPFSRuntimeTasks.set(go, tasks)
+  return tasks
+}
+
+function trackTinyGoOPFSRuntimeTask(
+  go: TinyGoRuntime,
+  task: Promise<unknown>,
+): void {
+  const tasks = tinyGoOPFSRuntimeTaskSet(go)
+  const tracked = Promise.resolve(task)
+    .then(
+      () => undefined,
+      () => undefined,
+    )
+    .finally(() => {
+      tasks.delete(tracked)
+    })
+  tasks.add(tracked)
+}
+
+async function awaitTinyGoOPFSRuntimeTasks(
+  go: TinyGoRuntime,
+): Promise<void> {
+  const tasks = tinyGoOPFSRuntimeTasks.get(go)
+  while (tasks && tasks.size !== 0) {
+    await Promise.all([...tasks])
+  }
+}
+
+function createTinyGoOPFSWritable(
+  go: TinyGoRuntime,
+  handle: FileSystemFileHandle,
+  options?: FileSystemCreateWritableOptions,
+): Promise<FileSystemWritableFileStream | undefined> {
+  if (tinyGoExitedRuntimes.has(go)) {
+    return Promise.resolve(undefined)
+  }
+  const created = options
+    ? handle.createWritable(options)
+    : handle.createWritable()
+  return created.then(async (writable) => {
+    if (tinyGoExitedRuntimes.has(go)) {
+      await abortOPFSWritable(writable)
+      return undefined
+    }
+    return writable
+  })
+}
+
+function abortTinyGoOPFSWriteStream(
+  id: number,
+  strict = false,
+): Promise<boolean> {
+  const stream = tinyGoOPFSWriteStreams.get(id)
+  if (!stream) {
+    return Promise.resolve(false)
+  }
+  trackTinyGoOPFSRuntimeTask(stream.go, stream.chain)
+  const abort = strict
+    ? abortOPFSWritableStrict(stream.writable)
+    : abortOPFSWritable(stream.writable)
+  const aborted = abort.then(() => {
+    tinyGoOPFSWriteStreams.delete(id)
+    return true
+  })
+  trackTinyGoOPFSRuntimeTask(stream.go, aborted)
+  return aborted
+}
+
+function abortTinyGoOPFSWriteStreamsForGo(go: TinyGoRuntime): void {
+  for (const [id, stream] of tinyGoOPFSWriteStreams) {
+    if (stream.go === go) {
+      void abortTinyGoOPFSWriteStream(id)
+    }
   }
 }
 
@@ -1015,7 +1149,7 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
       return false
     }
   }
-  g.BLDR_OPFS_READ_FILE ??= (
+  g.BLDR_OPFS_READ_FILE = (
     dir: FileSystemDirectoryHandle,
     name: string,
     opID: number,
@@ -1034,7 +1168,7 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
         rejectTinyGoOPFSOp(go, opID, reason)
       })
   }
-  g.BLDR_OPFS_READ_AT ??= (
+  g.BLDR_OPFS_READ_AT = (
     handle: FileSystemFileHandle,
     dst: Uint8Array,
     off: number,
@@ -1061,7 +1195,7 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
         rejectTinyGoOPFSOp(go, opID, reason)
       })
   }
-  g.BLDR_OPFS_LIST_DIRECTORY ??= (
+  g.BLDR_OPFS_LIST_DIRECTORY = (
     dir: FileSystemDirectoryHandle,
     opID: number,
   ) => {
@@ -1078,67 +1212,91 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
       rejectTinyGoOPFSOp(go, opID, reason)
     })
   }
-  g.BLDR_OPFS_WRITE_AT ??= (
+  g.BLDR_OPFS_WRITE_AT = (
     handle: FileSystemFileHandle,
     data: Uint8Array,
     off: number,
     keepExisting: boolean,
     opID: number,
   ) => {
-    let writable: FileSystemWritableFileStream | undefined
+    const state: { writable?: FileSystemWritableFileStream } = {}
     try {
       const writeData = copyUint8Array(data)
       const opts = keepExisting ? { keepExistingData: true } : undefined
-      const writablePromise = opts
-        ? handle.createWritable(opts)
-        : handle.createWritable()
-      writablePromise
+      const task = createTinyGoOPFSWritable(go, handle, opts)
         .then(async (next) => {
-          writable = next
+          if (!next) {
+            return
+          }
+          state.writable = next
           if (off !== 0) {
-            await writable.seek(off)
+            await next.seek(off)
           }
           if (writeData.byteLength !== 0) {
-            await writable.write(writeData)
+            await next.write(writeData)
           }
-          await writable.close()
+          await next.close()
+          if (tinyGoExitedRuntimes.has(go)) {
+            return
+          }
           resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
         })
-        .catch((reason) => {
-          abortOPFSWritableQuietly(writable)
-          rejectTinyGoOPFSOp(go, opID, reason)
+        .catch(async (reason) => {
+          await rejectTinyGoOPFSWritableFailure(
+            go,
+            opID,
+            state.writable,
+            reason,
+          )
         })
+      trackTinyGoOPFSRuntimeTask(go, task)
     } catch (reason) {
-      abortOPFSWritableQuietly(writable)
-      rejectTinyGoOPFSOp(go, opID, reason)
+      abortOPFSWritableQuietly(state.writable)
+      if (!tinyGoExitedRuntimes.has(go)) {
+        rejectTinyGoOPFSOp(go, opID, reason)
+      }
     }
   }
-  g.BLDR_OPFS_WRITE_FILE ??= (
+  g.BLDR_OPFS_WRITE_FILE = (
     dir: FileSystemDirectoryHandle,
     name: string,
     data: Uint8Array,
     opID: number,
   ) => {
-    let writable: FileSystemWritableFileStream | undefined
+    const state: { writable?: FileSystemWritableFileStream } = {}
     try {
       const writeData = copyUint8Array(data)
-      dir
+      const task = dir
         .getFileHandle(name, { create: true })
-        .then(async (handle) => {
-          writable = await handle.createWritable()
-          if (writeData.byteLength !== 0) {
-            await writable.write(writeData)
+        .then((handle) => createTinyGoOPFSWritable(go, handle))
+        .then(async (next) => {
+          if (!next) {
+            return
           }
-          await writable.close()
+          state.writable = next
+          if (writeData.byteLength !== 0) {
+            await next.write(writeData)
+          }
+          await next.close()
+          if (tinyGoExitedRuntimes.has(go)) {
+            return
+          }
           resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
         })
-        .catch((reason) => {
-          abortOPFSWritableQuietly(writable)
-          rejectTinyGoOPFSOp(go, opID, reason)
+        .catch(async (reason) => {
+          await rejectTinyGoOPFSWritableFailure(
+            go,
+            opID,
+            state.writable,
+            reason,
+          )
         })
+      trackTinyGoOPFSRuntimeTask(go, task)
     } catch (reason) {
-      abortOPFSWritableQuietly(writable)
-      rejectTinyGoOPFSOp(go, opID, reason)
+      abortOPFSWritableQuietly(state.writable)
+      if (!tinyGoExitedRuntimes.has(go)) {
+        rejectTinyGoOPFSOp(go, opID, reason)
+      }
     }
   }
 }
@@ -1414,19 +1572,29 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     size: bigint,
   ) => {
     const handle = tinyGoUnboxValue(go, handleRef) as FileSystemFileHandle
-    let writable: FileSystemWritableFileStream | undefined
-    handle
-      .createWritable({ keepExistingData: true })
+    const state: { writable?: FileSystemWritableFileStream } = {}
+    const task = createTinyGoOPFSWritable(go, handle, { keepExistingData: true })
       .then(async (next) => {
-        writable = next
-        await writable.truncate(Number(size))
-        await writable.close()
+        if (!next) {
+          return
+        }
+        state.writable = next
+        await next.truncate(Number(size))
+        await next.close()
+        if (tinyGoExitedRuntimes.has(go)) {
+          return
+        }
         resolveTinyGoOPFSHelper(go, opID, 1)
       })
-      .catch((reason) => {
-        abortOPFSWritableQuietly(writable)
-        rejectTinyGoOPFSOp(go, opID, reason)
+      .catch(async (reason) => {
+        await rejectTinyGoOPFSWritableFailure(
+          go,
+          opID,
+          state.writable,
+          reason,
+        )
       })
+    trackTinyGoOPFSRuntimeTask(go, task)
   }
   gojs['bldr.opfs.takeStoredBytes'] ??= (
     bytesID: number,
@@ -1516,33 +1684,43 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     keepExisting: number,
   ) => {
     const handle = tinyGoUnboxValue(go, handleRef) as FileSystemFileHandle
-    let writable: FileSystemWritableFileStream | undefined
+    const state: { writable?: FileSystemWritableFileStream } = {}
     try {
       const writeData = copyUint8Array(tinyGoMemoryView(go, dataPtr, dataLen))
       const opts = keepExisting ? { keepExistingData: true } : undefined
-      const writablePromise = opts
-        ? handle.createWritable(opts)
-        : handle.createWritable()
-      writablePromise
+      const task = createTinyGoOPFSWritable(go, handle, opts)
         .then(async (next) => {
-          writable = next
+          if (!next) {
+            return
+          }
+          state.writable = next
           const offset = Number(off)
           if (offset !== 0) {
-            await writable.seek(offset)
+            await next.seek(offset)
           }
           if (writeData.byteLength !== 0) {
-            await writable.write(writeData)
+            await next.write(writeData)
           }
-          await writable.close()
+          await next.close()
+          if (tinyGoExitedRuntimes.has(go)) {
+            return
+          }
           resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
         })
-        .catch((reason) => {
-          abortOPFSWritableQuietly(writable)
-          rejectTinyGoOPFSOp(go, opID, reason)
+        .catch(async (reason) => {
+          await rejectTinyGoOPFSWritableFailure(
+            go,
+            opID,
+            state.writable,
+            reason,
+          )
         })
+      trackTinyGoOPFSRuntimeTask(go, task)
     } catch (reason) {
-      abortOPFSWritableQuietly(writable)
-      rejectTinyGoOPFSOp(go, opID, reason)
+      abortOPFSWritableQuietly(state.writable)
+      if (!tinyGoExitedRuntimes.has(go)) {
+        rejectTinyGoOPFSOp(go, opID, reason)
+      }
     }
   }
   gojs['bldr.opfs.writeFileRef'] ??= (
@@ -1554,29 +1732,160 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     dataLen: number,
   ) => {
     const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
-    let writable: FileSystemWritableFileStream | undefined
+    const state: { writable?: FileSystemWritableFileStream } = {}
     try {
       const name = readTinyGoString(go, namePtr, nameLen)
       const writeData = copyUint8Array(tinyGoMemoryView(go, dataPtr, dataLen))
-      dir
+      const task = dir
         .getFileHandle(name, { create: true })
-        .then((handle) => handle.createWritable())
+        .then((handle) => createTinyGoOPFSWritable(go, handle))
         .then(async (next) => {
-          writable = next
-          if (writeData.byteLength !== 0) {
-            await writable.write(writeData)
+          if (!next) {
+            return
           }
-          await writable.close()
+          state.writable = next
+          if (writeData.byteLength !== 0) {
+            await next.write(writeData)
+          }
+          await next.close()
+          if (tinyGoExitedRuntimes.has(go)) {
+            return
+          }
+          resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
+        })
+        .catch(async (reason) => {
+          await rejectTinyGoOPFSWritableFailure(
+            go,
+            opID,
+            state.writable,
+            reason,
+          )
+        })
+      trackTinyGoOPFSRuntimeTask(go, task)
+    } catch (reason) {
+      abortOPFSWritableQuietly(state.writable)
+      if (!tinyGoExitedRuntimes.has(go)) {
+        rejectTinyGoOPFSOp(go, opID, reason)
+      }
+    }
+  }
+  gojs['bldr.opfs.openWriteStreamRef'] ??= (
+    opID: number,
+    dirRef: bigint,
+    namePtr: number,
+    nameLen: number,
+  ) => {
+    const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
+    const state: { writable?: FileSystemWritableFileStream } = {}
+    try {
+      const name = readTinyGoString(go, namePtr, nameLen)
+      const open = dir
+        .getFileHandle(name, { create: true })
+        .then((handle) => createTinyGoOPFSWritable(go, handle))
+        .then((next) => {
+          if (!next) {
+            return
+          }
+          state.writable = next
+          const streamID = tinyGoOPFSWriteStreamID++
+          tinyGoOPFSWriteStreams.set(streamID, {
+            go,
+            writable: next,
+            chain: Promise.resolve(),
+          })
+          resolveTinyGoOPFSHelper(go, opID, streamID)
+        })
+        .catch(async (reason) => {
+          await rejectTinyGoOPFSWritableFailure(
+            go,
+            opID,
+            state.writable,
+            reason,
+          )
+        })
+      trackTinyGoOPFSRuntimeTask(go, open)
+    } catch (reason) {
+      abortOPFSWritableQuietly(state.writable)
+      if (!tinyGoExitedRuntimes.has(go)) {
+        rejectTinyGoOPFSOp(go, opID, reason)
+      }
+    }
+  }
+  gojs['bldr.opfs.writeStreamRef'] ??= (
+    opID: number,
+    streamID: number,
+    dataPtr: number,
+    dataLen: number,
+  ) => {
+    const stream = tinyGoOPFSWriteStreams.get(streamID)
+    if (!stream) {
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorNotFound)
+      return
+    }
+    try {
+      const writeData = copyUint8Array(tinyGoMemoryView(go, dataPtr, dataLen))
+      stream.chain = stream.chain
+        .then(async () => {
+          if (writeData.byteLength !== 0) {
+            await stream.writable.write(writeData)
+          }
+          if (tinyGoOPFSWriteStreams.get(streamID) !== stream) {
+            return
+          }
           resolveTinyGoOPFSHelper(go, opID, writeData.byteLength)
         })
         .catch((reason) => {
-          abortOPFSWritableQuietly(writable)
-          rejectTinyGoOPFSOp(go, opID, reason)
+          if (tinyGoOPFSWriteStreams.get(streamID) !== stream) {
+            return
+          }
+          if (!tinyGoExitedRuntimes.has(go)) {
+            rejectTinyGoOPFSOp(go, opID, reason)
+          }
         })
     } catch (reason) {
-      abortOPFSWritableQuietly(writable)
-      rejectTinyGoOPFSOp(go, opID, reason)
+      if (!tinyGoExitedRuntimes.has(go)) {
+        rejectTinyGoOPFSOp(go, opID, reason)
+      }
     }
+  }
+  gojs['bldr.opfs.closeWriteStreamRef'] ??= (
+    opID: number,
+    streamID: number,
+  ) => {
+    const stream = tinyGoOPFSWriteStreams.get(streamID)
+    if (!stream) {
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorNotFound)
+      return
+    }
+    stream.chain = stream.chain
+      .then(async () => {
+        await stream.writable.close()
+        if (tinyGoOPFSWriteStreams.get(streamID) !== stream) {
+          return
+        }
+        tinyGoOPFSWriteStreams.delete(streamID)
+        resolveTinyGoOPFSHelper(go, opID, 1)
+      })
+      .catch((reason) => {
+        if (tinyGoOPFSWriteStreams.get(streamID) !== stream) {
+          return
+        }
+        if (!tinyGoExitedRuntimes.has(go)) {
+          rejectTinyGoOPFSOp(go, opID, reason)
+        }
+      })
+  }
+  gojs['bldr.opfs.abortWriteStreamRef'] ??= (
+    opID: number,
+    streamID: number,
+  ) => {
+    abortTinyGoOPFSWriteStream(streamID, true)
+      .then((aborted) => {
+        resolveTinyGoOPFSHelper(go, opID, aborted ? 1 : 0)
+      })
+      .catch((reason) => {
+        rejectTinyGoOPFSOp(go, opID, reason)
+      })
   }
   gojs['bldr.opfs.broadcastChannelNewRef'] ??= (
     namePtr: number,
@@ -1689,6 +1998,7 @@ export class GoWasmProcess {
     abortSignal: AbortSignal,
   ) {
     const go = new Go()
+    tinyGoExitedRuntimes.delete(go)
     const wasmModule = await loadWebAssemblyModule(this.wasmSource)
     patchWorkerBrowserGlobals(go)
     patchTinyGoRuntimeImports(go)
@@ -1703,7 +2013,13 @@ export class GoWasmProcess {
     const instance = await WebAssembly.instantiate(wasmModule, go.importObject)
     abortSignal.throwIfAborted()
 
-    await go.run(instance)
+    try {
+      await go.run(instance)
+    } finally {
+      tinyGoExitedRuntimes.add(go)
+      abortTinyGoOPFSWriteStreamsForGo(go)
+      await awaitTinyGoOPFSRuntimeTasks(go)
+    }
   }
 
   // stop stops the runtime, if running.

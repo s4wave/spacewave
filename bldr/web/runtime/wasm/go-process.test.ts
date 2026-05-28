@@ -414,8 +414,22 @@ describe('patchTinyGoRuntimeImports', () => {
       return bytes.byteLength
     }
     const writes: number[][] = []
+    const abortState: {
+      count: number
+      resolved: boolean
+      release?: () => void
+    } = {
+      count: 0,
+      resolved: false,
+    }
+    const abortWait = new Promise<void>((resolve) => {
+      abortState.release = resolve
+    })
     const writable = {
-      abort: async () => undefined,
+      abort: async () => {
+        abortState.count++
+        await abortWait
+      },
       close: async () => undefined,
       write: async (data: BufferSource | Blob | string) => {
         if (!(data instanceof Uint8Array)) {
@@ -439,6 +453,26 @@ describe('patchTinyGoRuntimeImports', () => {
         throw err
       },
     }
+    const cleanupFailWritable = {
+      abort: async () => {
+        const err = new Error('cleanup failure')
+        err.name = 'NoModificationAllowedError'
+        throw err
+      },
+      close: async () => undefined,
+      write: async () => {
+        throw new Error('primary write failure')
+      },
+    }
+    const abortFailWritable = {
+      abort: async () => {
+        const err = new Error('abort failure')
+        err.name = 'NoModificationAllowedError'
+        throw err
+      },
+      close: async () => undefined,
+      write: async () => undefined,
+    }
     const dir = {
       getFileHandle: async (name: string, opts?: { create?: boolean }) => {
         if (name === 'read.bin') {
@@ -453,9 +487,29 @@ describe('patchTinyGoRuntimeImports', () => {
             createWritable: async () => writable,
           }
         }
+        if (name === 'stream.bin' && opts?.create === true) {
+          return {
+            createWritable: async () => writable,
+          }
+        }
+        if (name === 'abort.bin' && opts?.create === true) {
+          return {
+            createWritable: async () => writable,
+          }
+        }
+        if (name === 'abort-fail.bin' && opts?.create === true) {
+          return {
+            createWritable: async () => abortFailWritable,
+          }
+        }
         if (name === 'fail.bin' && opts?.create === true) {
           return {
             createWritable: async () => failingWritable,
+          }
+        }
+        if (name === 'cleanup-fail.bin' && opts?.create === true) {
+          return {
+            createWritable: async () => cleanupFailWritable,
           }
         }
         throw new Error('unexpected file handle request')
@@ -486,7 +540,37 @@ describe('patchTinyGoRuntimeImports', () => {
           dataLen: number,
         ) => void)
       | undefined
-    if (!readFile || !takeStoredBytes || !writeFile) {
+    const openWriteStream = gojs['bldr.opfs.openWriteStreamRef'] as
+      | ((
+          opID: number,
+          dirRef: bigint,
+          namePtr: number,
+          nameLen: number,
+        ) => void)
+      | undefined
+    const writeStream = gojs['bldr.opfs.writeStreamRef'] as
+      | ((
+          opID: number,
+          streamID: number,
+          dataPtr: number,
+          dataLen: number,
+        ) => void)
+      | undefined
+    const closeWriteStream = gojs['bldr.opfs.closeWriteStreamRef'] as
+      | ((opID: number, streamID: number) => void)
+      | undefined
+    const abortWriteStream = gojs['bldr.opfs.abortWriteStreamRef'] as
+      | ((opID: number, streamID: number) => void)
+      | undefined
+    if (
+      !readFile ||
+      !takeStoredBytes ||
+      !writeFile ||
+      !openWriteStream ||
+      !writeStream ||
+      !closeWriteStream ||
+      !abortWriteStream
+    ) {
       throw new Error('OPFS import bridge was not installed')
     }
 
@@ -527,11 +611,106 @@ describe('patchTinyGoRuntimeImports', () => {
     expect(failureCode).toBe(2)
     expect(failedAborts).toBe(1)
     expect(failedCloses).toBe(0)
-    expect(writes).toEqual([[7, 8, 9]])
+
+    const cleanupFailNameLen = writeString(96, 'cleanup-fail.bin')
+    mem.set([14, 15, 16], 128)
+    const cleanupFailureCode = await waitOPFS(
+      304,
+      () => {
+        writeFile(304, tinyGoObjectRef(7), 96, cleanupFailNameLen, 128, 3)
+      },
+      ([code = 0]) => -code,
+    )
+    expect(cleanupFailureCode).toBe(2)
+
+    const streamNameLen = writeString(96, 'stream.bin')
+    const streamID = await waitOPFS(
+      305,
+      () => openWriteStream(305, tinyGoObjectRef(7), 96, streamNameLen),
+      ([id = 0]) => id,
+    )
+    mem.set([1, 2], 160)
+    const firstStreamWrite = await waitOPFS(
+      306,
+      () => {
+        writeStream(306, streamID, 160, 2)
+        mem[160] = 99
+      },
+      ([n = 0]) => n,
+    )
+    expect(firstStreamWrite).toBe(2)
+    mem.set([3, 4, 5], 168)
+    const secondStreamWrite = await waitOPFS(
+      307,
+      () => writeStream(307, streamID, 168, 3),
+      ([n = 0]) => n,
+    )
+    expect(secondStreamWrite).toBe(3)
+    const closed = await waitOPFS(
+      308,
+      () => closeWriteStream(308, streamID),
+      ([n = 0]) => n,
+    )
+    expect(closed).toBe(1)
+
+    const abortNameLen = writeString(96, 'abort.bin')
+    const abortStreamID = await waitOPFS(
+      309,
+      () => openWriteStream(309, tinyGoObjectRef(7), 96, abortNameLen),
+      ([id = 0]) => id,
+    )
+    const abortResult = waitOPFS(
+      310,
+      () => abortWriteStream(310, abortStreamID),
+      ([n = 0]) => n,
+    ).then((n) => {
+      abortState.resolved = true
+      return n
+    })
+    await Promise.resolve()
+    expect(abortState.count).toBe(1)
+    expect(abortState.resolved).toBe(false)
+    abortState.release?.()
+    expect(await abortResult).toBe(1)
+    expect(abortState.resolved).toBe(true)
+
+    const abortFailNameLen = writeString(96, 'abort-fail.bin')
+    const abortFailStreamID = await waitOPFS(
+      311,
+      () => openWriteStream(311, tinyGoObjectRef(7), 96, abortFailNameLen),
+      ([id = 0]) => id,
+    )
+    const abortFailureCode = await waitOPFS(
+      312,
+      () => abortWriteStream(312, abortFailStreamID),
+      ([code = 0]) => -code,
+    )
+    expect(abortFailureCode).toBe(2)
+    const abortFailureRetryCode = await waitOPFS(
+      313,
+      () => abortWriteStream(313, abortFailStreamID),
+      ([code = 0]) => -code,
+    )
+    expect(abortFailureRetryCode).toBe(2)
+
+    expect(writes).toEqual([[7, 8, 9], [1, 2], [3, 4, 5]])
   })
 })
 
 describe('installTinyGoJSHelpers', () => {
+  it('replaces OPFS globals that close over a TinyGo runtime', () => {
+    const g = globalThis as TinyGoHelperGlobal
+
+    installTinyGoJSHelpers(newTinyGoRuntime())
+    const firstWriteFile = g.BLDR_OPFS_WRITE_FILE
+    const firstWriteAt = g.BLDR_OPFS_WRITE_AT
+
+    installTinyGoJSHelpers(newTinyGoRuntime())
+
+    expect(g.BLDR_OPFS_WRITE_FILE).not.toBe(firstWriteFile)
+    expect(g.BLDR_OPFS_WRITE_AT).not.toBe(firstWriteAt)
+  })
+
   it('runs deferred TinyGo callbacks with a task boundary between callbacks', async () => {
     installTinyGoJSHelpers(newTinyGoRuntime())
 
@@ -1381,5 +1560,230 @@ describe('GoWasmProcess', () => {
 
     expect(consoleError).toHaveBeenCalledTimes(1)
     expect(consoleError).toHaveBeenCalledWith('other failure')
+  })
+
+  it('aborts TinyGo OPFS write streams when the runtime exits', async () => {
+    const opfsResolves = new Map<number, (values: number[]) => void>()
+    const opfsRejects = new Map<number, (code: number) => void>()
+    const waitOPFS = <T>(
+      opID: number,
+      invoke: () => void,
+      map: (values: number[]) => T,
+    ) =>
+      new Promise<T>((resolve) => {
+        opfsResolves.set(opID, (values) => resolve(map(values)))
+        opfsRejects.set(opID, (code) => resolve(map([-code])))
+        invoke()
+      })
+    const state: {
+      lateCallbacks: number
+      aborts: number
+      createWritableAfterExit: number
+      startRejected: boolean
+      resolveAbortCleanup?: () => void
+      rejectPendingWrite?: (reason?: unknown) => void
+      resolveLateAbort?: () => void
+      resolvePendingHandle?: (handle: FileSystemFileHandle) => void
+      resolvePendingOpen?: (writable: FileSystemWritableFileStream) => void
+      pendingOpenReady?: () => void
+    } = {
+      lateCallbacks: 0,
+      aborts: 0,
+      createWritableAfterExit: 0,
+      startRejected: false,
+    }
+    const opfsResolve = (
+      opID: number,
+      count: number,
+      value0: number,
+      value1: number,
+    ) => {
+      if (opID === 202 || opID === 203 || opID === 204) {
+        state.lateCallbacks++
+      }
+      const values = [value0, value1].slice(0, count)
+      opfsResolves.get(opID)?.(values)
+      opfsResolves.delete(opID)
+      opfsRejects.delete(opID)
+    }
+    const opfsReject = (opID: number, code: number) => {
+      if (opID === 202 || opID === 203 || opID === 204) {
+        state.lateCallbacks++
+      }
+      opfsRejects.get(opID)?.(code)
+      opfsResolves.delete(opID)
+      opfsRejects.delete(opID)
+    }
+    const pendingOpen = new Promise<void>((resolve) => {
+      state.pendingOpenReady = resolve
+    })
+    const lateAbort = new Promise<void>((resolve) => {
+      state.resolveLateAbort = resolve
+    })
+    const abortCleanup = new Promise<void>((resolve) => {
+      state.resolveAbortCleanup = resolve
+    })
+    const dir = {
+      getFileHandle: async (
+        name: string,
+        opts?: { create?: boolean },
+      ) => {
+        if (opts?.create !== true) {
+          throw new Error('unexpected file handle request')
+        }
+        if (name === 'late.bin') {
+          return {
+            createWritable: async () =>
+              new Promise<FileSystemWritableFileStream>((resolve) => {
+                state.resolvePendingOpen = resolve
+                state.pendingOpenReady?.()
+              }),
+          }
+        }
+        if (name === 'after.bin') {
+          return new Promise<FileSystemFileHandle>((resolve) => {
+            state.resolvePendingHandle = resolve
+          })
+        }
+        if (name !== 'stream.bin') {
+          throw new Error('unexpected file handle request')
+        }
+        return {
+          createWritable: async () => ({
+            abort: async () => {
+              state.aborts++
+              state.rejectPendingWrite?.(new Error('aborted'))
+              await abortCleanup
+            },
+            close: async () => undefined,
+            write: async () =>
+              new Promise<void>((_resolve, reject) => {
+                state.rejectPendingWrite = reject
+              }),
+          }),
+        }
+      },
+    } as unknown as FileSystemDirectoryHandle
+
+    class FakeGo {
+      public readonly importObject = { gojs: {} }
+      public env: Record<string, string> = {}
+      public argv: string[] = []
+      public _inst?: WebAssembly.Instance
+      public _resume = vi.fn()
+      public _values: unknown[] = [
+        NaN,
+        0,
+        null,
+        true,
+        false,
+        globalThis,
+        this,
+        dir,
+      ]
+
+      public async run() {
+        const memory = new WebAssembly.Memory({ initial: 1 })
+        this._inst = {
+          exports: {
+            memory,
+            BLDR_OPFS_HELPER_RESOLVE: opfsResolve,
+            BLDR_OPFS_HELPER_REJECT: opfsReject,
+          },
+        }
+        new TextEncoder().encodeInto(
+          'stream.bin',
+          new Uint8Array(memory.buffer, 32, 10),
+        )
+        new TextEncoder().encodeInto(
+          'late.bin',
+          new Uint8Array(memory.buffer, 64, 8),
+        )
+        new TextEncoder().encodeInto(
+          'after.bin',
+          new Uint8Array(memory.buffer, 80, 9),
+        )
+        const gojs = this.importObject.gojs as Record<string, unknown>
+        const openWriteStream = gojs['bldr.opfs.openWriteStreamRef'] as
+          | ((
+              opID: number,
+              dirRef: bigint,
+              namePtr: number,
+              nameLen: number,
+            ) => void)
+          | undefined
+        const writeStream = gojs['bldr.opfs.writeStreamRef'] as
+          | ((
+              opID: number,
+              streamID: number,
+              dataPtr: number,
+              dataLen: number,
+            ) => void)
+          | undefined
+        if (!openWriteStream || !writeStream) {
+          throw new Error('OPFS write stream import bridge was not installed')
+        }
+
+        const streamID = await waitOPFS(
+          201,
+          () => openWriteStream(201, tinyGoObjectRef(7), 32, 10),
+          ([id = 0]) => id,
+        )
+        expect(streamID).toBeGreaterThan(0)
+        new Uint8Array(memory.buffer).set([1, 2, 3], 48)
+        writeStream(202, streamID, 48, 3)
+        openWriteStream(203, tinyGoObjectRef(7), 64, 8)
+        openWriteStream(204, tinyGoObjectRef(7), 80, 9)
+        throw new Error('runtime trap')
+      }
+    }
+
+    vi.stubGlobal('Go', FakeGo)
+    vi.spyOn(WebAssembly, 'instantiate').mockResolvedValue({
+      exports: {},
+    })
+
+    const process = new GoWasmProcess(
+      {},
+      {
+        retry: false,
+      },
+    )
+
+    const started = process.start()
+    started.catch(() => {
+      state.startRejected = true
+    })
+    await pendingOpen
+    expect(state.aborts).toBe(1)
+    await Promise.resolve()
+    expect(state.startRejected).toBe(false)
+    state.resolvePendingOpen?.({
+      abort: async () => {
+        state.aborts++
+        state.resolveLateAbort?.()
+      },
+      close: async () => undefined,
+      write: async () => undefined,
+    } as unknown as FileSystemWritableFileStream)
+    state.resolvePendingHandle?.({
+      createWritable: async () => {
+        state.createWritableAfterExit++
+        return {
+          abort: async () => {
+            state.aborts++
+          },
+          close: async () => undefined,
+          write: async () => undefined,
+        } as unknown as FileSystemWritableFileStream
+      },
+    } as unknown as FileSystemFileHandle)
+    state.rejectPendingWrite?.(new Error('aborted'))
+    await lateAbort
+    state.resolveAbortCleanup?.()
+    await expect(started).rejects.toThrow('runtime trap')
+    expect(state.aborts).toBe(2)
+    expect(state.createWritableAfterExit).toBe(0)
+    expect(state.lateCallbacks).toBe(0)
   })
 })

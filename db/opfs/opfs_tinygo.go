@@ -58,6 +58,18 @@ func tinyGoOPFSWriteAtRef(opID uint32, handleRef uint64, dataPtr unsafe.Pointer,
 //go:wasmimport gojs bldr.opfs.writeFileRef
 func tinyGoOPFSWriteFileRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32, dataPtr unsafe.Pointer, dataLen uint32)
 
+//go:wasmimport gojs bldr.opfs.openWriteStreamRef
+func tinyGoOPFSOpenWriteStreamRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32)
+
+//go:wasmimport gojs bldr.opfs.writeStreamRef
+func tinyGoOPFSWriteStreamRef(opID uint32, streamID uint32, dataPtr unsafe.Pointer, dataLen uint32)
+
+//go:wasmimport gojs bldr.opfs.closeWriteStreamRef
+func tinyGoOPFSCloseWriteStreamRef(opID uint32, streamID uint32)
+
+//go:wasmimport gojs bldr.opfs.abortWriteStreamRef
+func tinyGoOPFSAbortWriteStreamRef(opID uint32, streamID uint32)
+
 type tinyGoJSValue struct {
 	_     [0]func()
 	ref   uint64
@@ -258,6 +270,74 @@ func writeFileWithTinyGoImport(dir js.Value, name string, data []byte) error {
 	if written != len(data) {
 		return errors.Errorf("short write file %s: wrote %d of %d", name, written, len(data))
 	}
+	return nil
+}
+
+func createWriteStreamWithTinyGoImport(dir js.Value, name string) (*WriteStream, error) {
+	nameBytes := []byte(name)
+	streamID, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSOpenWriteStreamRef(
+			uint32(opID),
+			tinyGoJSRef(dir),
+			tinyGoBytesPtr(nameBytes),
+			uint32(len(nameBytes)),
+		)
+		runtime.KeepAlive(nameBytes)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &WriteStream{name: name, tinyGoID: streamID}, nil
+}
+
+func (w *WriteStream) writeWithTinyGoImport(p []byte) (int, error) {
+	written, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSWriteStreamRef(
+			uint32(opID),
+			uint32(w.tinyGoID),
+			tinyGoBytesPtr(p),
+			uint32(len(p)),
+		)
+		runtime.KeepAlive(p)
+	})
+	if err != nil {
+		return 0, err
+	}
+	if written != len(p) {
+		return written, errors.Errorf("short write stream %s: wrote %d of %d", w.name, written, len(p))
+	}
+	w.pos += int64(written)
+	return written, nil
+}
+
+func (w *WriteStream) closeWithTinyGoImport() error {
+	closed, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSCloseWriteStreamRef(uint32(opID), uint32(w.tinyGoID))
+	})
+	if err != nil {
+		return err
+	}
+	if closed != 1 {
+		return errors.Errorf("close write stream %s: stream unavailable", w.name)
+	}
+	w.tinyGoID = 0
+	return nil
+}
+
+func (w *WriteStream) abortWithTinyGoImport() error {
+	if w.tinyGoID == 0 {
+		return nil
+	}
+	aborted, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSAbortWriteStreamRef(uint32(opID), uint32(w.tinyGoID))
+	})
+	if err != nil {
+		return err
+	}
+	if aborted != 1 {
+		return errors.Errorf("abort write stream %s: stream unavailable", w.name)
+	}
+	w.tinyGoID = 0
 	return nil
 }
 

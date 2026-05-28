@@ -68,6 +68,91 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
+func TestBuildWithMetaMatchesLoadedLookupMeta(t *testing.T) {
+	w := NewWriter()
+	w.SetIndexInterval(2)
+	w.Add([]byte("charlie"), []byte("value3"))
+	w.AddTombstone([]byte("bravo"))
+	w.Add([]byte("alpha"), []byte("value1"))
+
+	var buf bytes.Buffer
+	result, err := w.BuildWithMeta(&buf)
+	if err != nil {
+		t.Fatalf("BuildWithMeta: %v", err)
+	}
+	if result.Written != int64(buf.Len()) {
+		t.Fatalf("written=%d but buf.Len()=%d", result.Written, buf.Len())
+	}
+	if result.Lookup == nil {
+		t.Fatal("Lookup is nil")
+	}
+
+	loaded, err := LoadLookupMeta(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+	if result.Lookup.Header.EntryCount != loaded.Header.EntryCount {
+		t.Fatalf("EntryCount=%d, want %d", result.Lookup.Header.EntryCount, loaded.Header.EntryCount)
+	}
+	if string(result.Lookup.MinKey) != string(loaded.MinKey) {
+		t.Fatalf("MinKey=%q, want %q", result.Lookup.MinKey, loaded.MinKey)
+	}
+	if string(result.Lookup.MaxKey) != string(loaded.MaxKey) {
+		t.Fatalf("MaxKey=%q, want %q", result.Lookup.MaxKey, loaded.MaxKey)
+	}
+	if len(result.Lookup.Index) != len(loaded.Index) {
+		t.Fatalf("Index len=%d, want %d", len(result.Lookup.Index), len(loaded.Index))
+	}
+	for i := range loaded.Index {
+		if string(result.Lookup.Index[i].Key) != string(loaded.Index[i].Key) ||
+			result.Lookup.Index[i].DataOffset != loaded.Index[i].DataOffset {
+			t.Fatalf("Index[%d]=%+v, want %+v", i, result.Lookup.Index[i], loaded.Index[i])
+		}
+	}
+
+	val, found, err := result.Lookup.Get(bytes.NewReader(buf.Bytes()), []byte("charlie"))
+	if err != nil {
+		t.Fatalf("Lookup.Get: %v", err)
+	}
+	if !found || string(val) != "value3" {
+		t.Fatalf("Lookup.Get = %q, %v, want value3, true", val, found)
+	}
+}
+
+func TestBuildStreamsDataEntries(t *testing.T) {
+	w := NewWriter()
+	w.SetIndexInterval(8)
+	for i := range 4 {
+		w.Add([]byte("key-"+strconv.Itoa(i)), bytes.Repeat([]byte{byte('a' + i)}, 128))
+	}
+
+	var dst maxWriteRecorder
+	result, err := w.BuildWithMeta(&dst)
+	if err != nil {
+		t.Fatalf("BuildWithMeta: %v", err)
+	}
+	if result.Written != int64(dst.Len()) {
+		t.Fatalf("written=%d but dst.Len()=%d", result.Written, dst.Len())
+	}
+	if dst.maxWrite > 128 {
+		t.Fatalf("max write size=%d, want <= 128", dst.maxWrite)
+	}
+
+	if _, err := NewReader(bytes.NewReader(dst.Bytes()), int64(dst.Len())); err != nil {
+		t.Fatalf("NewReader: %v", err)
+	}
+}
+
+type maxWriteRecorder struct {
+	bytes.Buffer
+	maxWrite int
+}
+
+func (w *maxWriteRecorder) Write(p []byte) (int, error) {
+	w.maxWrite = max(w.maxWrite, len(p))
+	return w.Buffer.Write(p)
+}
+
 func TestEntryIterator(t *testing.T) {
 	w := NewWriter()
 	w.Add([]byte("charlie"), []byte("value3"))

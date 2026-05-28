@@ -302,6 +302,14 @@ type AsyncFile struct {
 	pos    int64
 }
 
+// WriteStream owns one overwrite writable session for streaming file output.
+type WriteStream struct {
+	name     string
+	writable js.Value
+	tinyGoID int
+	pos      int64
+}
+
 // Read reads up to len(p) bytes from the current position.
 func (f *AsyncFile) Read(p []byte) (int, error) {
 	n, err := f.ReadAt(p, f.pos)
@@ -590,6 +598,65 @@ func (BrowserDriver) WriteFile(dir js.Value, name string, data []byte) error {
 		return errors.Wrap(err, "close writable")
 	}
 	return nil
+}
+
+// CreateWriteStream creates or replaces a file and opens one streaming writer.
+func CreateWriteStream(dir js.Value, name string) (*WriteStream, error) {
+	return DefaultDriver.CreateWriteStream(dir, name)
+}
+
+// CreateWriteStream creates or replaces a file and opens one streaming writer.
+func (BrowserDriver) CreateWriteStream(dir js.Value, name string) (*WriteStream, error) {
+	if jsutil.UseTinyGoHelpers() {
+		return createWriteStreamWithTinyGoImport(dir, name)
+	}
+
+	opts := jsutil.NewObject()
+	opts.Set("create", true)
+	fileHandle, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name, opts))
+	if err != nil {
+		return nil, errors.Wrap(err, "getFileHandle")
+	}
+	writable, err := openWritable(fileHandle, false)
+	if err != nil {
+		return nil, err
+	}
+	return &WriteStream{name: name, writable: writable}, nil
+}
+
+// Write appends p to the stream's current offset.
+func (w *WriteStream) Write(p []byte) (int, error) {
+	if jsutil.UseTinyGoHelpers() {
+		return w.writeWithTinyGoImport(p)
+	}
+
+	arr := jsutil.NewUint8Array(len(p))
+	js.CopyBytesToJS(arr, p)
+	if _, err := AwaitPromise(jsutil.Call(w.writable, "write", arr)); err != nil {
+		return 0, errors.Wrap(err, "write")
+	}
+	w.pos += int64(len(p))
+	return len(p), nil
+}
+
+// Close commits the writable session.
+func (w *WriteStream) Close() error {
+	if jsutil.UseTinyGoHelpers() {
+		return w.closeWithTinyGoImport()
+	}
+	if _, err := AwaitPromise(jsutil.Call(w.writable, "close")); err != nil {
+		return errors.Wrap(err, "close writable")
+	}
+	return nil
+}
+
+// Abort discards the writable session.
+func (w *WriteStream) Abort() error {
+	if jsutil.UseTinyGoHelpers() {
+		return w.abortWithTinyGoImport()
+	}
+	_, err := AwaitPromise(jsutil.Call(w.writable, "abort"))
+	return err
 }
 
 // ReadFile reads the contents of a file in the given directory.

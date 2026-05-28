@@ -3,7 +3,6 @@
 package blockshard
 
 import (
-	"bytes"
 	"context"
 	"strconv"
 	"strings"
@@ -140,8 +139,6 @@ func (s *Shard) writeSegment(ctx context.Context, entries []segment.Entry, level
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-segment")
 	defer task.End()
 
-	// Build the SSTable in memory.
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/build-segment")
 	w := segment.NewWriter()
 	w.SetBloomFPR(s.bloomFPR)
 	for i := range entries {
@@ -152,17 +149,7 @@ func (s *Shard) writeSegment(ctx context.Context, entries []segment.Entry, level
 		}
 	}
 
-	var buf bytes.Buffer
-	if estimated := w.EstimatedSize(); estimated > 0 {
-		buf.Grow(estimated)
-	}
-	written, err := w.Build(&buf)
-	subtask.End()
-	if err != nil {
-		return writtenSegment{}, errors.Wrap(err, "build segment")
-	}
-
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/allocate-seqno")
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/allocate-seqno")
 	s.mu.Lock()
 	s.seqNum++
 	seq := s.seqNum
@@ -171,46 +158,100 @@ func (s *Shard) writeSegment(ctx context.Context, entries []segment.Entry, level
 
 	filename := "seg-" + zeroPad(seq, 6) + ".sst"
 
-	// Write the segment file to OPFS.
-	segData := buf.Bytes()
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-segment-file")
-
-	// Tag the publish with a few coarse buckets so trace output is easier to group.
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/build-segment-file")
 	_, shardTask := trace.NewTask(taskCtx, publishShardTaskName(s.id))
-	_, sizeTask := trace.NewTask(taskCtx, publishSegmentSizeTaskName(len(segData)))
 	_, entryTask := trace.NewTask(taskCtx, publishEntryCountTaskName(len(entries)))
-	if err := s.writeFileData(taskCtx, filename, segData); err != nil {
+	result, err := s.buildSegmentFile(taskCtx, filename, w)
+	_, sizeTask := trace.NewTask(taskCtx, publishSegmentSizeTaskName(int(result.Written)))
+	sizeTask.End()
+	if err != nil {
 		entryTask.End()
-		sizeTask.End()
 		shardTask.End()
 		subtask.End()
-		return writtenSegment{}, errors.Wrap(err, "write segment")
+		return writtenSegment{}, errors.Wrap(err, "build segment")
 	}
 	entryTask.End()
-	sizeTask.End()
 	shardTask.End()
 	subtask.End()
 
-	// Build sorted entries to get min/max keys.
-	// The writer sorts them, so re-read from the built SSTable.
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/build-metadata")
-	lookup, err := segment.LoadLookupMeta(bytes.NewReader(segData), written)
-	if err != nil {
-		subtask.End()
-		return writtenSegment{}, errors.Wrap(err, "load built segment metadata")
-	}
-
+	lookup := result.Lookup
 	meta := SegmentMeta{
 		Filename:   filename,
 		EntryCount: lookup.Header.EntryCount,
-		Size:       uint32(written),
+		Size:       uint32(result.Written),
 		Level:      level,
 		MinKey:     lookup.MinKey,
 		MaxKey:     lookup.MaxKey,
 	}
-	subtask.End()
 
 	return writtenSegment{Meta: meta, Lookup: lookup}, nil
+}
+
+func (s *Shard) buildSegmentFile(ctx context.Context, filename string, w *segment.Writer) (segment.BuildResult, error) {
+	if s.shouldUseAsyncWrite(filename) {
+		return s.buildSegmentAsyncFile(ctx, filename, w)
+	}
+	return s.buildSegmentSyncFile(ctx, filename, w)
+}
+
+func (s *Shard) buildSegmentSyncFile(ctx context.Context, filename string, w *segment.Writer) (segment.BuildResult, error) {
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/create-sync-segment-file")
+	f, err := opfs.CreateSyncFileContext(taskCtx, s.dir, filename)
+	subtask.End()
+	if err != nil {
+		return segment.BuildResult{}, err
+	}
+
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/truncate-sync-segment-file")
+	f.Truncate(0)
+	subtask.End()
+
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-sync-segment-file")
+	result, err := w.BuildWithMeta(f)
+	subtask.End()
+	if err != nil {
+		if closeErr := f.Close(); closeErr != nil {
+			return result, errors.Wrapf(err, "close partial segment: %v", closeErr)
+		}
+		if deleteErr := opfs.DeleteFile(s.dir, filename); deleteErr != nil && !opfs.IsNotFound(deleteErr) {
+			return result, errors.Wrapf(err, "delete partial segment: %v", deleteErr)
+		}
+		return result, err
+	}
+
+	_, subtask = trace.NewTask(taskCtx, "hydra/opfs-blockshard/shard/publish/flush-sync-segment-file")
+	f.Flush()
+	subtask.End()
+	if err := f.Close(); err != nil {
+		return result, err
+	}
+	return result, nil
+}
+
+func (s *Shard) buildSegmentAsyncFile(ctx context.Context, filename string, w *segment.Writer) (segment.BuildResult, error) {
+	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/create-async-segment-file")
+	f, err := opfs.CreateWriteStream(s.dir, filename)
+	subtask.End()
+	if err != nil {
+		return segment.BuildResult{}, err
+	}
+
+	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/write-async-segment-file")
+	result, err := w.BuildWithMeta(f)
+	subtask.End()
+	if err != nil {
+		if abortErr := f.Abort(); abortErr != nil {
+			return result, errors.Wrapf(err, "abort partial segment: %v", abortErr)
+		}
+		return result, err
+	}
+	if err := f.Close(); err != nil {
+		if abortErr := f.Abort(); abortErr != nil {
+			return result, errors.Wrapf(err, "abort failed close: %v", abortErr)
+		}
+		return result, err
+	}
+	return result, nil
 }
 
 // writeManifest writes a manifest to the alternate slot and commits in-memory.
