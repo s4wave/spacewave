@@ -17,6 +17,9 @@ import (
 // BldrTinyGoJSImportBuildTag selects Bldr's direct TinyGo JavaScript import ABI.
 const BldrTinyGoJSImportBuildTag = "bldr_tinygo_js_imports"
 
+// GoScriptBuildTag selects source meant for GoScript compilation.
+const GoScriptBuildTag = "goscript"
+
 // GetDefaultArgs are the set of args we usually pass to the compiler.
 func GetDefaultArgs() []string {
 	return []string{

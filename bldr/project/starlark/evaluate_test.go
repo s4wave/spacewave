@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aperturerobotics/util/enabled"
 	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -582,14 +581,14 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 
 	webConf := flattenGoConfigForPlatform(t, coreConf, "web/js/wasm")
 	assertGoConfigOmitsDesktopStatusProjector(t, "web spacewave-core", webConf)
-	if webConf.GetEnableTinygo() != enabled.Enabled_DEFAULT {
-		t.Fatalf("web spacewave-core enableTinygo: got %s, want DEFAULT", webConf.GetEnableTinygo())
+	if webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_DEFAULT {
+		t.Fatalf("web spacewave-core compilerMode: got %s, want COMPILER_MODE_DEFAULT", webConf.GetCompilerMode())
 	}
 
 	jsConf := flattenGoConfigForPlatform(t, coreConf, "js")
 	assertGoConfigOmitsDesktopStatusProjector(t, "js spacewave-core", jsConf)
-	if jsConf.GetEnableTinygo() != enabled.Enabled_DEFAULT {
-		t.Fatalf("js spacewave-core enableTinygo: got %s, want DEFAULT", jsConf.GetEnableTinygo())
+	if jsConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_DEFAULT {
+		t.Fatalf("js spacewave-core compilerMode: got %s, want COMPILER_MODE_DEFAULT", jsConf.GetCompilerMode())
 	}
 
 	tinygoBuild := result.Config.GetBuild()["plugin-release-browser-tinygo"]
@@ -603,8 +602,8 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	tinygoCoreConf := mustGoPluginConfig(t, tinygoOverride.GetConfig())
 	tinygoWebConf := flattenGoConfigForPlatform(t, tinygoCoreConf, "web/js/wasm")
 	assertGoConfigOmitsDesktopStatusProjector(t, "TinyGo web spacewave-core", tinygoWebConf)
-	if tinygoWebConf.GetEnableTinygo() != enabled.Enabled_ENABLE {
-		t.Fatalf("TinyGo web spacewave-core enableTinygo: got %s, want ENABLE", tinygoWebConf.GetEnableTinygo())
+	if tinygoWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
+		t.Fatalf("TinyGo web spacewave-core compilerMode: got %s, want COMPILER_MODE_TINYGO", tinygoWebConf.GetCompilerMode())
 	}
 
 	tinygoReleaseBuild := result.Config.GetBuild()["release-web-tinygo"]
@@ -617,8 +616,8 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	}
 	tinygoReleaseCoreConf := mustGoPluginConfig(t, tinygoReleaseOverride.GetConfig())
 	tinygoReleaseWebConf := flattenGoConfigForPlatform(t, tinygoReleaseCoreConf, "web/js/wasm")
-	if tinygoReleaseWebConf.GetEnableTinygo() != enabled.Enabled_ENABLE {
-		t.Fatalf("TinyGo release-web spacewave-core enableTinygo: got %s, want ENABLE", tinygoReleaseWebConf.GetEnableTinygo())
+	if tinygoReleaseWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
+		t.Fatalf("TinyGo release-web spacewave-core compilerMode: got %s, want COMPILER_MODE_TINYGO", tinygoReleaseWebConf.GetCompilerMode())
 	}
 
 	cli := result.Config.GetManifests()["spacewave"]

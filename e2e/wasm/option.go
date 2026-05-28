@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aperturerobotics/util/enabled"
 	"github.com/pkg/errors"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
@@ -207,7 +206,7 @@ func EnableTinyGoForManifest(manifestID string) func(*bldr_project.ProjectConfig
 		if webConf == nil {
 			webConf = &bldr_plugin_compiler_go.Config{}
 		}
-		webConf.EnableTinygo = enabled.Enabled_ENABLE
+		webConf.CompilerMode = bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO
 		goConf.PlatformTypes["web"] = webConf
 		return nil
 	})
@@ -268,7 +267,7 @@ func enableTinyGo(goConf *bldr_plugin_compiler_go.Config) {
 	if webConf == nil {
 		webConf = &bldr_plugin_compiler_go.Config{}
 	}
-	webConf.EnableTinygo = enabled.Enabled_ENABLE
+	webConf.CompilerMode = bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO
 	goConf.PlatformTypes["web"] = webConf
 }
 

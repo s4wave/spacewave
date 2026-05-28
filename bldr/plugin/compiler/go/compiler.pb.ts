@@ -20,6 +20,52 @@ import { ViteOutputMeta } from '../../../web/bundler/vite/vite.pb.js'
 export const protobufPackage = 'bldr.plugin.compiler.go'
 
 /**
+ * CompilerMode selects the compiler used for the Go plugin artifact.
+ *
+ * @generated from enum bldr.plugin.compiler.go.CompilerMode
+ */
+export enum CompilerMode {
+  /**
+   * COMPILER_MODE_DEFAULT preserves the current default policy.
+   *
+   * @generated from enum value: COMPILER_MODE_DEFAULT = 0;
+   */
+  DEFAULT = 0,
+
+  /**
+   * COMPILER_MODE_GO uses the standard Go compiler.
+   *
+   * @generated from enum value: COMPILER_MODE_GO = 1;
+   */
+  GO = 1,
+
+  /**
+   * COMPILER_MODE_TINYGO uses TinyGo.
+   *
+   * @generated from enum value: COMPILER_MODE_TINYGO = 2;
+   */
+  TINYGO = 2,
+
+  /**
+   * COMPILER_MODE_GOSCRIPT uses GoScript.
+   *
+   * @generated from enum value: COMPILER_MODE_GOSCRIPT = 3;
+   */
+  GOSCRIPT = 3,
+}
+
+// CompilerMode_Enum is the enum type for CompilerMode.
+export const CompilerMode_Enum = createEnumType(
+  'bldr.plugin.compiler.go.CompilerMode',
+  [
+    { no: 0, name: 'COMPILER_MODE_DEFAULT' },
+    { no: 1, name: 'COMPILER_MODE_GO' },
+    { no: 2, name: 'COMPILER_MODE_TINYGO' },
+    { no: 3, name: 'COMPILER_MODE_GOSCRIPT' },
+  ],
+)
+
+/**
  * InputFileKind is the kind of file this is.
  *
  * @generated from enum bldr.plugin.compiler.go.InputFileKind
@@ -45,6 +91,13 @@ export enum InputFileKind {
    * @generated from enum value: InputFileKind_GO = 2;
    */
   InputFileKind_GO = 2,
+
+  /**
+   * InputFileKind_GOSCRIPT_OVERRIDE is a project-local GoScript override file.
+   *
+   * @generated from enum value: InputFileKind_GOSCRIPT_OVERRIDE = 3;
+   */
+  InputFileKind_GOSCRIPT_OVERRIDE = 3,
 }
 
 // InputFileKind_Enum is the enum type for InputFileKind.
@@ -54,6 +107,7 @@ export const InputFileKind_Enum = createEnumType(
     { no: 0, name: 'InputFileKind_UNKNOWN' },
     { no: 1, name: 'InputFileKind_ASSET' },
     { no: 2, name: 'InputFileKind_GO' },
+    { no: 3, name: 'InputFileKind_GOSCRIPT_OVERRIDE' },
   ],
 )
 
@@ -230,14 +284,12 @@ export interface Config {
    */
   enableCgo?: Enabled
   /**
-   * EnableTinygo enables using TinyGo instead of the Go compiler.
-   * The default is ENABLE for release browser WebAssembly builds and DISABLE
-   * otherwise. Explicit ENABLE is only supported for TinyGo-compatible
-   * WebAssembly targets such as web/js/wasm.
+   * CompilerMode selects the Go plugin compiler. DEFAULT preserves the current
+   * release browser default policy.
    *
-   * @generated from field: enabled.Enabled enable_tinygo = 10;
+   * @generated from field: bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
    */
-  enableTinygo?: Enabled
+  compilerMode?: CompilerMode
   /**
    * EnableCompression can optionally force-enable or force-disable binary compression.
    * The default is ENABLE for release-mode only.
@@ -341,7 +393,7 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 6, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
-    { no: 10, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },
+    { no: 7, name: 'compiler_mode', kind: 'enum', T: CompilerMode_Enum },
     { no: 11, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },
     {
       no: 12,
@@ -700,6 +752,30 @@ export interface InputManifestMeta {
    * @generated from field: bool vite_disable_project_config = 10;
    */
   viteDisableProjectConfig?: boolean
+  /**
+   * CompilerMode is the resolved compiler used to produce this artifact.
+   *
+   * @generated from field: bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
+   */
+  compilerMode?: CompilerMode
+  /**
+   * GoScriptBuildFlags are the exact Go build flags forwarded to GoScript.
+   *
+   * @generated from field: repeated string goscript_build_flags = 12;
+   */
+  goscriptBuildFlags?: string[]
+  /**
+   * GoScriptOverrideDirs are source-relative project-local GoScript override roots.
+   *
+   * @generated from field: repeated string goscript_override_dirs = 13;
+   */
+  goscriptOverrideDirs?: string[]
+  /**
+   * GoScriptAllDependencies records whether GoScript compiled the full dependency graph.
+   *
+   * @generated from field: bool goscript_all_dependencies = 14;
+   */
+  goscriptAllDependencies?: boolean
 }
 
 // InputManifestMeta contains the message type declaration for InputManifestMeta.
@@ -767,6 +843,27 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
       {
         no: 10,
         name: 'vite_disable_project_config',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+      { no: 11, name: 'compiler_mode', kind: 'enum', T: CompilerMode_Enum },
+      {
+        no: 12,
+        name: 'goscript_build_flags',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 13,
+        name: 'goscript_override_dirs',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 14,
+        name: 'goscript_all_dependencies',
         kind: 'scalar',
         T: ScalarType.BOOL,
       },

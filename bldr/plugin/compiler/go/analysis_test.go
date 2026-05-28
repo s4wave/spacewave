@@ -327,7 +327,7 @@ type WebBundlerOutput struct{}
 }
 
 func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
-	tags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, true)
+	tags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, gocompiler.GoPluginCompilerModeTinyGo)
 	for _, want := range []string{
 		"build_type_release",
 		"purego",
@@ -339,9 +339,22 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 		}
 	}
 
-	standardTags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, false)
+	standardTags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, gocompiler.GoPluginCompilerModeGo)
 	if slices.Contains(standardTags, "tinygo") {
 		t.Fatalf("standard Go analysis tags unexpectedly include tinygo: %v", standardTags)
+	}
+}
+
+func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
+	tags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, gocompiler.GoPluginCompilerModeGoScript)
+	for _, want := range []string{
+		"build_type_release",
+		"purego",
+		gocompiler.GoScriptBuildTag,
+	} {
+		if !slices.Contains(tags, want) {
+			t.Fatalf("GoScript analysis tags missing %q: %v", want, tags)
+		}
 	}
 }
 

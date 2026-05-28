@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/aperturerobotics/util/enabled"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
@@ -45,8 +44,8 @@ func TestEnableTinyGoForManifest(t *testing.T) {
 	if webConf == nil {
 		t.Fatal("missing web platform override")
 	}
-	if webConf.GetEnableTinygo() != enabled.Enabled_ENABLE {
-		t.Fatalf("enableTinygo = %s, want ENABLE", webConf.GetEnableTinygo())
+	if webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
+		t.Fatalf("compilerMode = %s, want COMPILER_MODE_TINYGO", webConf.GetCompilerMode())
 	}
 }
 
@@ -104,7 +103,7 @@ func TestConfigureTinyGoForManifestRemovesDebugTrace(t *testing.T) {
 		t.Fatal("expected unrelated dev config to remain")
 	}
 	webConf := got.GetPlatformTypes()["web"]
-	if webConf == nil || webConf.GetEnableTinygo() != enabled.Enabled_ENABLE {
+	if webConf == nil || webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
 		t.Fatalf("web tinygo config missing: %#v", webConf)
 	}
 }

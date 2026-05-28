@@ -155,6 +155,31 @@ func (m *ModuleCompiler) CompilePlugin(
 	)
 }
 
+// CompilePluginGoScript compiles the generated plugin module to TypeScript.
+func (m *ModuleCompiler) CompilePluginGoScript(
+	ctx context.Context,
+	le *logrus.Entry,
+	outPath string,
+	buildFlags []string,
+	overrideDirs []string,
+) (string, error) {
+	mainPackagePath, err := gocompiler.GoListImportPath(ctx, m.pluginCodegenPath, buildFlags)
+	if err != nil {
+		return "", err
+	}
+	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
+		WorkDir:         m.pluginCodegenPath,
+		OutputPath:      outPath,
+		Packages:        []string{"."},
+		BuildFlags:      buildFlags,
+		OverrideDirs:    overrideDirs,
+		AllDependencies: true,
+	}); err != nil {
+		return "", err
+	}
+	return mainPackagePath, nil
+}
+
 // CompilePluginDevWrapper compiles a development wrapper for the plugin.
 // The module structure should have been built already.
 // If buildDevWrapper is set, build an entrypoint that runs the plugin.

@@ -75,12 +75,10 @@ pub struct Config {
     /// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
     #[prost(enumeration="super::super::super::super::enabled::Enabled", tag="9")]
     pub enable_cgo: i32,
-    /// EnableTinygo enables using TinyGo instead of the Go compiler.
-    /// The default is ENABLE for release browser WebAssembly builds and DISABLE
-    /// otherwise. Explicit ENABLE is only supported for TinyGo-compatible
-    /// WebAssembly targets such as web/js/wasm.
-    #[prost(enumeration="super::super::super::super::enabled::Enabled", tag="10")]
-    pub enable_tinygo: i32,
+    /// CompilerMode selects the Go plugin compiler. DEFAULT preserves the current
+    /// release browser default policy.
+    #[prost(enumeration="CompilerMode", tag="7")]
+    pub compiler_mode: i32,
     /// EnableCompression can optionally force-enable or force-disable binary compression.
     /// The default is ENABLE for release-mode only.
     /// Only applicable for the web platform (WebAssembly) (currently).
@@ -165,6 +163,18 @@ pub struct InputManifestMeta {
     /// Disables finding the root vite.conf.ts for the project.
     #[prost(bool, tag="10")]
     pub vite_disable_project_config: bool,
+    /// CompilerMode is the resolved compiler used to produce this artifact.
+    #[prost(enumeration="CompilerMode", tag="11")]
+    pub compiler_mode: i32,
+    /// GoScriptBuildFlags are the exact Go build flags forwarded to GoScript.
+    #[prost(string, repeated, tag="12")]
+    pub goscript_build_flags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// GoScriptOverrideDirs are source-relative project-local GoScript override roots.
+    #[prost(string, repeated, tag="13")]
+    pub goscript_override_dirs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// GoScriptAllDependencies records whether GoScript compiled the full dependency graph.
+    #[prost(bool, tag="14")]
+    pub goscript_all_dependencies: bool,
 }
 /// EsbuildBundleVarMeta is information about an esbuild bundle.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -231,6 +241,43 @@ pub struct ViteEntrypointVar {
     #[prost(bool, tag="7")]
     pub disable_project_config: bool,
 }
+/// CompilerMode selects the compiler used for the Go plugin artifact.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CompilerMode {
+    /// COMPILER_MODE_DEFAULT preserves the current default policy.
+    Default = 0,
+    /// COMPILER_MODE_GO uses the standard Go compiler.
+    Go = 1,
+    /// COMPILER_MODE_TINYGO uses TinyGo.
+    Tinygo = 2,
+    /// COMPILER_MODE_GOSCRIPT uses GoScript.
+    Goscript = 3,
+}
+impl CompilerMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Default => "COMPILER_MODE_DEFAULT",
+            Self::Go => "COMPILER_MODE_GO",
+            Self::Tinygo => "COMPILER_MODE_TINYGO",
+            Self::Goscript => "COMPILER_MODE_GOSCRIPT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COMPILER_MODE_DEFAULT" => Some(Self::Default),
+            "COMPILER_MODE_GO" => Some(Self::Go),
+            "COMPILER_MODE_TINYGO" => Some(Self::Tinygo),
+            "COMPILER_MODE_GOSCRIPT" => Some(Self::Goscript),
+            _ => None,
+        }
+    }
+}
 /// InputFileKind is the kind of file this is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -241,6 +288,8 @@ pub enum InputFileKind {
     Asset = 1,
     /// InputFileKind_GO is a file built by the Go compiler.
     Go = 2,
+    /// InputFileKind_GOSCRIPT_OVERRIDE is a project-local GoScript override file.
+    GoscriptOverride = 3,
 }
 impl InputFileKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -252,6 +301,7 @@ impl InputFileKind {
             Self::Unknown => "InputFileKind_UNKNOWN",
             Self::Asset => "InputFileKind_ASSET",
             Self::Go => "InputFileKind_GO",
+            Self::GoscriptOverride => "InputFileKind_GOSCRIPT_OVERRIDE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -260,6 +310,7 @@ impl InputFileKind {
             "InputFileKind_UNKNOWN" => Some(Self::Unknown),
             "InputFileKind_ASSET" => Some(Self::Asset),
             "InputFileKind_GO" => Some(Self::Go),
+            "InputFileKind_GOSCRIPT_OVERRIDE" => Some(Self::GoscriptOverride),
             _ => None,
         }
     }
