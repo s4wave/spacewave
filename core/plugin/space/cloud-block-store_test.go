@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package plugin_space
 
 import (
@@ -89,7 +87,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 	}
 	defer storeRef.Release()
 	body := []byte("forwarded block")
-	ref, _, err := store.PutBlock(ctx, body, &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3})
+	ref, _, err := store.PutBlock(ctx, body, &block.PutOpts{HashType: hash.HashType_HashType_SHA256})
 	if err != nil {
 		t.Fatal(err)
 	}
