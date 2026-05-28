@@ -285,15 +285,12 @@
     "react-window": "^2.2.7",
     "shiki": "^4.0.2",
     "sonner": "^2.0.7",
-    "starpc": "^0.49.14",
+    "starpc": "^0.49.16",
     "superjson": "^2.2.6",
     "tailwind-merge": "^3.5.0",
     "uint8arraylist": "^3.0.0",
     "ulid": "^3.0.2",
     "workbox-window": "^7.4.1",
     "yaml": "^2.8.4"
-  },
-  "patchedDependencies": {
-    "starpc@0.49.14": "patches/starpc@0.49.14.patch"
   }
 }
