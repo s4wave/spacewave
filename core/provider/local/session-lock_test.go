@@ -1,9 +1,8 @@
-//go:build !goscript
-
 package provider_local_test
 
 import (
 	"context"
+	"runtime"
 	"testing"
 	"time"
 
@@ -11,6 +10,10 @@ import (
 )
 
 func TestMountedPINUnlockRestoresLocalSessionState(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("full-cost scrypt PIN lock test is too slow under GoScript; low-cost provider session coverage runs in the provider_local package")
+	}
+
 	ctx := t.Context()
 	_, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
