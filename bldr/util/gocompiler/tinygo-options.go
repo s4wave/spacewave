@@ -202,10 +202,10 @@ func resolveTinyGoOpt(profile, rawOpt string) (string, error) {
 
 func resolveTinyGoPanicStrategy(panicStrategy string) (string, error) {
 	switch strings.TrimSpace(panicStrategy) {
-	case "", "trap":
-		return "trap", nil
-	case "print":
+	case "", "print":
 		return "print", nil
+	case "trap":
+		return "trap", nil
 	default:
 		return "", errors.Errorf("unsupported %s value %q, expected trap or print", TinyGoPanicStrategyEnv, panicStrategy)
 	}

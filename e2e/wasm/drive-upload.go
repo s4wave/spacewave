@@ -19,6 +19,18 @@ func UploadViaPicker(t testing.TB, page playwright.Page, files []playwright.Inpu
 	}
 }
 
+// UploadPathsViaPicker uploads existing local files through the hidden UnixFS
+// file picker input. Playwright transports path-backed files without the
+// 50 MiB in-memory buffer ceiling used for InputFile.Buffer.
+func UploadPathsViaPicker(t testing.TB, page playwright.Page, paths []string) {
+	t.Helper()
+
+	err := page.Locator("[data-testid='unixfs-upload-input']").First().SetInputFiles(paths)
+	if err != nil {
+		t.Fatalf("upload paths via picker: %v", err)
+	}
+}
+
 // UploadViaDnd uploads files by dispatching a native file drop onto UnixFS.
 func UploadViaDnd(t testing.TB, page playwright.Page, files []playwright.InputFile) {
 	t.Helper()

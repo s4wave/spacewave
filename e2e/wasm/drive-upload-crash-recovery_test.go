@@ -7,6 +7,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +18,9 @@ import (
 )
 
 const largeUploadSize = 8 * 1024 * 1024
+
+const driveUploadFixturePathEnv = "E2E_WASM_DRIVE_UPLOAD_FIXTURE"
+const driveUploadFixtureNameEnv = "E2E_WASM_DRIVE_UPLOAD_NAME"
 
 // TestQuickstartDriveUploadCrashRecovery exercises the Drive UploadTree path
 // under browser WASM and classifies the console stream for the original
@@ -28,10 +34,7 @@ func TestQuickstartDriveUploadCrashRecovery(t *testing.T) {
 	page := scenario.GetSession().Page()
 	WaitForDriveReady(t, testHarness, page)
 
-	files := driveUploadFixtureFiles()
-	UploadViaPicker(t, page, files)
-
-	verifyDriveUploadFixture(t, scenario, page, files)
+	uploadAndVerifyDriveFixture(t, scenario, page, true)
 
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
@@ -58,10 +61,8 @@ func TestQuickstartDriveUploadTrace(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
 	defer cancel()
 
-	files := driveUploadFixtureFiles()
 	data, err := sess.CaptureTrace(ctx, "quickstart-drive-upload", func(ctx context.Context) error {
-		UploadViaPicker(t, page, files)
-		verifyDriveUploadFixture(t, scenario, page, files)
+		uploadAndVerifyDriveFixture(t, scenario, page, false)
 		return nil
 	})
 	if err != nil {
@@ -81,6 +82,24 @@ func TestQuickstartDriveUploadTrace(t *testing.T) {
 	if report.HasExitedGoLoop() {
 		t.Fatalf("unexpected exited-Go loop after traced upload: %+v", report)
 	}
+}
+
+func uploadAndVerifyDriveFixture(t testing.TB, scenario *DriveScenario, page playwright.Page, includeExternal bool) {
+	t.Helper()
+
+	files := driveUploadFixtureFiles()
+	UploadViaPicker(t, page, files)
+	verifyDriveUploadFixture(t, scenario, page, files)
+
+	if !includeExternal {
+		return
+	}
+	path, name, ok := driveUploadExternalFixturePath(t)
+	if !ok {
+		return
+	}
+	UploadPathsViaPicker(t, page, []string{path})
+	verifyUploadedPath(t, scenario, page, name, path)
 }
 
 func driveUploadFixtureFiles() []playwright.InputFile {
@@ -108,6 +127,30 @@ func driveUploadFixtureFiles() []playwright.InputFile {
 	}
 }
 
+func driveUploadExternalFixturePath(t testing.TB) (string, string, bool) {
+	t.Helper()
+
+	path := strings.TrimSpace(os.Getenv(driveUploadFixturePathEnv))
+	if path == "" {
+		return "", "", false
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat %s=%q: %v", driveUploadFixturePathEnv, path, err)
+	}
+	if info.IsDir() {
+		t.Fatalf("%s=%q is a directory", driveUploadFixturePathEnv, path)
+	}
+	name := strings.TrimSpace(os.Getenv(driveUploadFixtureNameEnv))
+	if name == "" {
+		name = filepath.Base(path)
+	}
+	if name != filepath.Base(path) {
+		t.Fatalf("%s=%q requires %s to match path basename %q", driveUploadFixturePathEnv, path, driveUploadFixtureNameEnv, filepath.Base(path))
+	}
+	return path, name, true
+}
+
 func verifyDriveUploadFixture(t testing.TB, scenario *DriveScenario, page playwright.Page, files []playwright.InputFile) {
 	t.Helper()
 
@@ -115,6 +158,21 @@ func verifyDriveUploadFixture(t testing.TB, scenario *DriveScenario, page playwr
 		waitForDriveEntry(t, page, file.Name)
 		verifyUploadedFile(t, scenario, page, file)
 	}
+}
+
+func verifyUploadedPath(t testing.TB, scenario *DriveScenario, page playwright.Page, name, path string) {
+	t.Helper()
+
+	waitForDriveEntry(t, page, name)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read uploaded fixture %s=%q: %v", driveUploadFixturePathEnv, path, err)
+	}
+	verifyUploadedFile(t, scenario, page, playwright.InputFile{
+		Name:     name,
+		MimeType: "application/octet-stream",
+		Buffer:   data,
+	})
 }
 
 func verifyUploadedFile(t testing.TB, scenario *DriveScenario, page playwright.Page, file playwright.InputFile) {
@@ -172,7 +230,7 @@ func driveUploadFileURL(scenario *DriveScenario, name string) string {
 		"/p/spacewave-core/fs/u/%d/so/%s/-/files/-/%s?inline=1",
 		scenario.GetSessionIndex(),
 		scenario.GetSpaceID(),
-		name,
+		url.PathEscape(name),
 	)
 }
 

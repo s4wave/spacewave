@@ -21,15 +21,15 @@ func TestNewBuildTagsDoNotDependOnReleaseEnv(t *testing.T) {
 	}
 }
 
-func TestDefaultTinyGoArgsTrapOnPanic(t *testing.T) {
+func TestDefaultTinyGoArgsPrintPanic(t *testing.T) {
 	clearTinyGoOptionEnv(t)
 
 	args, err := GetDefaultTinygoArgs()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(args, "-panic=trap") {
-		t.Fatalf("tinygo args = %v, want -panic=trap", args)
+	if !slices.Contains(args, "-panic=print") {
+		t.Fatalf("tinygo args = %v, want -panic=print", args)
 	}
 	if !slices.Contains(args, "-stack-size="+TinyGoDefaultStackSize) {
 		t.Fatalf("tinygo args = %v, want default stack size", args)
@@ -241,6 +241,19 @@ func TestDefaultTinyGoArgsPrintsPanicWhenConfigured(t *testing.T) {
 	}
 	if !slices.Contains(args, "-panic=print") {
 		t.Fatalf("tinygo args = %v, want -panic=print", args)
+	}
+}
+
+func TestDefaultTinyGoArgsTrapPanicWhenConfigured(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoPanicStrategyEnv, "trap")
+
+	args, err := GetDefaultTinygoArgs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(args, "-panic=trap") {
+		t.Fatalf("tinygo args = %v, want -panic=trap", args)
 	}
 }
 
