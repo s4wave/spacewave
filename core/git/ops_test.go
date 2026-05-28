@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package s4wave_git_test
 
 import (
