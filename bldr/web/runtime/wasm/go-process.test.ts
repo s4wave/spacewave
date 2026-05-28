@@ -162,10 +162,7 @@ function tinyGoRefID(ref: bigint): number {
   return Number(ref & 0xffffffffn)
 }
 
-function installTinyGoValues(
-  go: TinyGoRuntime,
-  values: unknown[],
-): void {
+function installTinyGoValues(go: TinyGoRuntime, values: unknown[]): void {
   go._values = [NaN, 0, null, true, false, globalThis, go, ...values]
   go._goRefCounts = go._values.map(() => 0)
   go._ids = new Map<unknown, bigint>()
@@ -221,6 +218,27 @@ function callTinyGoBigIntImport(
     throw new Error(`${name} import did not return a bigint`)
   }
   return result
+}
+
+function readTinyGoStoredBytes(
+  go: TinyGoRuntime,
+  bytesID: number,
+  len: number,
+  ptr: number,
+): Uint8Array {
+  const take = callTinyGoImport(
+    go,
+    'bldr.tinygo.takeStoredBytes',
+    bytesID,
+    ptr,
+    len,
+  )
+  expect(take).toBe(1)
+  const memory = go._inst?.exports.memory
+  if (!(memory instanceof WebAssembly.Memory)) {
+    throw new Error('TinyGo runtime memory is not initialized')
+  }
+  return new Uint8Array(memory.buffer, ptr, len).slice()
 }
 
 describe('patchTinyGoRuntimeImports', () => {
@@ -732,6 +750,195 @@ describe('installTinyGoJSHelpers', () => {
       tinyGoFunctionRef(12),
     )
     await expect(promiseResult).resolves.toBe('ready')
+  })
+
+  it('installs direct TinyGo fetch imports with stored-byte handoff', async () => {
+    const memory = new WebAssembly.Memory({ initial: 1 })
+    type FetchResult = {
+      opID: number
+      meta: unknown
+      body: number[]
+    }
+    const resolveResult: { fn?: (value: FetchResult) => void } = {}
+    const result = new Promise<FetchResult>((resolve) => {
+      resolveResult.fn = resolve
+    })
+    const resolveExport = vi.fn(
+      (
+        opID: number,
+        metaID: number,
+        metaLen: number,
+        bodyID: number,
+        bodyLen: number,
+      ) => {
+        const metaBytes = readTinyGoStoredBytes(go, metaID, metaLen, 256)
+        const bodyBytes = readTinyGoStoredBytes(go, bodyID, bodyLen, 512)
+        resolveResult.fn?.({
+          opID,
+          meta: JSON.parse(new TextDecoder().decode(metaBytes)),
+          body: Array.from(bodyBytes),
+        })
+      },
+    )
+    const rejectExport = vi.fn()
+    const go: TinyGoRuntime = {
+      importObject: { gojs: {} },
+      _inst: {
+        exports: {
+          memory,
+          BLDR_TINYGO_FETCH_RESOLVE: resolveExport,
+          BLDR_TINYGO_FETCH_REJECT: rejectExport,
+          go_scheduler: vi.fn(),
+        },
+      },
+    }
+    const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toBe('/api/auth/config')
+      expect(init.method).toBe('POST')
+      expect(init.cache).toBe('no-store')
+      expect(init.signal).toBeInstanceOf(AbortSignal)
+      expect(init.headers).toBeInstanceOf(Headers)
+      if (!(init.headers instanceof Headers)) {
+        throw new Error('expected fetch headers')
+      }
+      expect(init.headers.get('x-test')).toBe('ok')
+      expect(init.body).toBeInstanceOf(ArrayBuffer)
+      if (!(init.body instanceof ArrayBuffer)) {
+        throw new Error('expected fetch body')
+      }
+      expect(Array.from(new Uint8Array(init.body))).toEqual([1, 2, 3])
+      return new Response(new Uint8Array([4, 5]), {
+        status: 201,
+        statusText: 'Created',
+        headers: { 'x-resp': 'yes' },
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    installTinyGoJSHelpers(go)
+
+    const [urlPtr, urlLen] = writeTinyGoString(go, '/api/auth/config', 16)
+    const [reqPtr, reqLen] = writeTinyGoString(
+      go,
+      JSON.stringify({
+        method: 'POST',
+        header: { 'X-Test': ['ok'] },
+        cache: 'no-store',
+        signal: true,
+      }),
+      64,
+    )
+    new Uint8Array(memory.buffer, 192, 3).set([1, 2, 3])
+    callTinyGoImport(
+      go,
+      'bldr.tinygo.fetch',
+      77,
+      urlPtr,
+      urlLen,
+      reqPtr,
+      reqLen,
+      192,
+      3,
+    )
+
+    await expect(result).resolves.toEqual({
+      opID: 77,
+      meta: expect.objectContaining({
+        ok: true,
+        statusCode: 201,
+        statusText: 'Created',
+      }),
+      body: [4, 5],
+    })
+    expect(resolveExport).toHaveBeenCalledTimes(1)
+    expect(rejectExport).not.toHaveBeenCalled()
+    expect(callTinyGoImport(go, 'bldr.tinygo.dropStoredBytes', 999)).toBe(0)
+  })
+
+  it('does not reserve TinyGo fetch bytes when resolve export is unavailable', async () => {
+    const memory = new WebAssembly.Memory({ initial: 1 })
+    const resolvedIDs: Array<{ metaID: number; bodyID: number }> = []
+    const resolved = new Map<number, () => void>()
+    const rejected = new Map<number, () => void>()
+    const resolveExport = vi.fn(
+      (
+        opID: number,
+        metaID: number,
+        metaLen: number,
+        bodyID: number,
+        bodyLen: number,
+      ) => {
+        resolvedIDs.push({ metaID, bodyID })
+        readTinyGoStoredBytes(go, metaID, metaLen, 4096 + opID * 128)
+        readTinyGoStoredBytes(go, bodyID, bodyLen, 8192 + opID * 128)
+        resolved.get(opID)?.()
+        resolved.delete(opID)
+      },
+    )
+    const rejectExport = vi.fn((opID: number) => {
+      rejected.get(opID)?.()
+      rejected.delete(opID)
+    })
+    const exportsObject = {
+      memory,
+      BLDR_TINYGO_FETCH_RESOLVE: resolveExport,
+      BLDR_TINYGO_FETCH_REJECT: rejectExport,
+      go_scheduler: vi.fn(),
+    }
+    const go: TinyGoRuntime = {
+      importObject: { gojs: {} },
+      _inst: { exports: exportsObject },
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(new Uint8Array([9]), { status: 200 })),
+    )
+    installTinyGoJSHelpers(go)
+
+    const invokeFetch = (opID: number, waitForReject: boolean) =>
+      new Promise<void>((resolve) => {
+        if (waitForReject) {
+          rejected.set(opID, resolve)
+        } else {
+          resolved.set(opID, resolve)
+        }
+        const [urlPtr, urlLen] = writeTinyGoString(
+          go,
+          `/fetch-${opID}`,
+          256 + opID * 128,
+        )
+        const [reqPtr, reqLen] = writeTinyGoString(go, '{}', 320 + opID * 128)
+        callTinyGoImport(
+          go,
+          'bldr.tinygo.fetch',
+          opID,
+          urlPtr,
+          urlLen,
+          reqPtr,
+          reqLen,
+          0,
+          0,
+        )
+      })
+
+    await invokeFetch(1, false)
+    const first = resolvedIDs[0]
+    if (!first) {
+      throw new Error('first fetch did not resolve')
+    }
+    Reflect.deleteProperty(exportsObject, 'BLDR_TINYGO_FETCH_RESOLVE')
+
+    await invokeFetch(2, true)
+    expect(rejectExport).toHaveBeenCalledWith(2, 0)
+
+    Reflect.set(exportsObject, 'BLDR_TINYGO_FETCH_RESOLVE', resolveExport)
+    await invokeFetch(3, false)
+    const third = resolvedIDs[1]
+    if (!third) {
+      throw new Error('third fetch did not resolve')
+    }
+
+    expect(third.metaID).toBe(first.bodyID + 1)
+    expect(third.bodyID).toBe(first.bodyID + 2)
   })
 
   it('rejects OPFS Web Locks requests when the runtime lacks Web Locks', async () => {

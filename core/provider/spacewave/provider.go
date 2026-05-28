@@ -121,7 +121,7 @@ func NewProvider(
 		handler:       handler,
 		sfs:           sfs,
 		httpCli: &http.Client{
-			Transport: NewCacheSeedRecordingTransport(nil, cacheSeedBuf),
+			Transport: newProviderHTTPTransport(cacheSeedBuf),
 		},
 		cacheSeedBuf: cacheSeedBuf,
 	}

@@ -47,6 +47,7 @@ const tinyGoWebLockRequests = new Map<
   number,
   { abort?: AbortController; canceled?: boolean; releaseID?: number }
 >()
+const tinyGoFetchRequests = new Map<number, AbortController>()
 const tinyGoCallbackQueue: (() => void)[] = []
 let tinyGoCallbackScheduled = false
 let tinyGoCallbackChannel: MessageChannel | undefined
@@ -152,6 +153,10 @@ function takeTinyGoBytes(id: number): Uint8Array | undefined {
   const bytes = tinyGoStoredBytes.get(id)
   tinyGoStoredBytes.delete(id)
   return bytes
+}
+
+function dropTinyGoBytes(id: number): boolean {
+  return takeTinyGoBytes(id) !== undefined
 }
 
 function storeOPFSWriteSession(writable: FileSystemWritableFileStream): number {
@@ -315,12 +320,232 @@ function readTinyGoString(go: TinyGoRuntime, ptr: number, len: number): string {
   return new TextDecoder().decode(tinyGoMemoryView(go, ptr, len))
 }
 
+type TinyGoFetchHeader = {
+  key: string
+  value: string
+}
+
+function stringField(obj: object, key: string): string | undefined {
+  const value = Reflect.get(obj, key)
+  return typeof value === 'string' ? value : undefined
+}
+
+function boolField(obj: object, key: string): boolean | undefined {
+  const value = Reflect.get(obj, key)
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function tinyGoFetchHeaders(value: unknown): Headers {
+  const headers = new Headers()
+  if (value === null || typeof value !== 'object') {
+    return headers
+  }
+  for (const key of Object.keys(value)) {
+    const values = Reflect.get(value, key)
+    if (!Array.isArray(values)) {
+      continue
+    }
+    for (const item of values) {
+      if (typeof item === 'string') {
+        headers.append(key, item)
+      }
+    }
+  }
+  return headers
+}
+
+function tinyGoRequestCache(value?: string): RequestCache | undefined {
+  switch (value) {
+    case 'default':
+    case 'force-cache':
+    case 'no-cache':
+    case 'no-store':
+    case 'only-if-cached':
+    case 'reload':
+      return value
+    default:
+      return undefined
+  }
+}
+
+function tinyGoRequestCredentials(
+  value?: string,
+): RequestCredentials | undefined {
+  switch (value) {
+    case 'include':
+    case 'omit':
+    case 'same-origin':
+      return value
+    default:
+      return undefined
+  }
+}
+
+function tinyGoRequestMode(value?: string): RequestMode | undefined {
+  switch (value) {
+    case 'cors':
+    case 'navigate':
+    case 'no-cors':
+    case 'same-origin':
+      return value
+    default:
+      return undefined
+  }
+}
+
+function tinyGoRequestRedirect(value?: string): RequestRedirect | undefined {
+  switch (value) {
+    case 'error':
+    case 'follow':
+    case 'manual':
+      return value
+    default:
+      return undefined
+  }
+}
+
+function tinyGoReferrerPolicy(value?: string): ReferrerPolicy | undefined {
+  switch (value) {
+    case '':
+    case 'no-referrer':
+    case 'no-referrer-when-downgrade':
+    case 'origin':
+    case 'origin-when-cross-origin':
+    case 'same-origin':
+    case 'strict-origin':
+    case 'strict-origin-when-cross-origin':
+    case 'unsafe-url':
+      return value
+    default:
+      return undefined
+  }
+}
+
+function tinyGoFetchInit(
+  opID: number,
+  request: unknown,
+  body: Uint8Array | undefined,
+): RequestInit {
+  if (request === null || typeof request !== 'object') {
+    throw new TypeError('TinyGo fetch request metadata is not an object')
+  }
+  const init: RequestInit = {}
+  const method = stringField(request, 'method')
+  if (method) {
+    init.method = method
+  }
+  init.headers = tinyGoFetchHeaders(Reflect.get(request, 'header'))
+  const mode = tinyGoRequestMode(stringField(request, 'mode'))
+  if (mode) {
+    init.mode = mode
+  }
+  const credentials = tinyGoRequestCredentials(
+    stringField(request, 'credentials'),
+  )
+  if (credentials) {
+    init.credentials = credentials
+  }
+  const cache = tinyGoRequestCache(stringField(request, 'cache'))
+  if (cache) {
+    init.cache = cache
+  }
+  const redirect = tinyGoRequestRedirect(stringField(request, 'redirect'))
+  if (redirect) {
+    init.redirect = redirect
+  }
+  const referrer = stringField(request, 'referrer')
+  if (referrer) {
+    init.referrer = referrer
+  }
+  const referrerPolicy = tinyGoReferrerPolicy(
+    stringField(request, 'referrerPolicy'),
+  )
+  if (referrerPolicy) {
+    init.referrerPolicy = referrerPolicy
+  }
+  const integrity = stringField(request, 'integrity')
+  if (integrity) {
+    init.integrity = integrity
+  }
+  const keepAlive = boolField(request, 'keepAlive')
+  if (keepAlive !== undefined) {
+    init.keepalive = keepAlive
+  }
+  if (boolField(request, 'signal')) {
+    const abort = new AbortController()
+    tinyGoFetchRequests.set(opID, abort)
+    init.signal = abort.signal
+  }
+  if (body && body.byteLength !== 0) {
+    const requestBody = new ArrayBuffer(body.byteLength)
+    new Uint8Array(requestBody).set(body)
+    init.body = requestBody
+  }
+  return init
+}
+
+function resolveTinyGoFetch(
+  go: TinyGoRuntime,
+  opID: number,
+  response: Response,
+  body: Uint8Array,
+): void {
+  const resolve = tinyGoExport(go, 'BLDR_TINYGO_FETCH_RESOLVE')
+  if (!resolve) {
+    throw new Error('TinyGo fetch resolve export is not initialized')
+  }
+  const headers: TinyGoFetchHeader[] = []
+  response.headers.forEach((value, key) => {
+    headers.push({ key, value })
+  })
+  const metadata = new TextEncoder().encode(
+    JSON.stringify({
+      ok: response.ok,
+      header: headers,
+      redirected: response.redirected,
+      statusCode: response.status,
+      statusText: response.statusText,
+      type: response.type,
+      url: response.url,
+    }),
+  )
+  const metaID = storeTinyGoBytes(metadata)
+  const bodyID = storeTinyGoBytes(body)
+  deferTinyGoCallback(() => {
+    try {
+      callTinyGoExport(
+        go,
+        resolve,
+        opID,
+        metaID,
+        metadata.byteLength,
+        bodyID,
+        body.byteLength,
+      )
+    } catch (err) {
+      dropTinyGoBytes(metaID)
+      dropTinyGoBytes(bodyID)
+      throw err
+    }
+  })
+}
+
+function rejectTinyGoFetch(
+  go: TinyGoRuntime,
+  opID: number,
+  reason: unknown,
+): void {
+  const reject = tinyGoExport(go, 'BLDR_TINYGO_FETCH_REJECT')
+  if (!reject) {
+    throw new Error('TinyGo fetch reject export is not initialized')
+  }
+  const code = tinyGoPromiseErrorCode(reason)
+  deferTinyGoCallback(() => callTinyGoExport(go, reject, opID, code))
+}
+
 type TinyGoCallable = (...args: unknown[]) => unknown
 
-function tinyGoCallableMethod(
-  target: unknown,
-  method: string,
-): TinyGoCallable {
+function tinyGoCallableMethod(target: unknown, method: string): TinyGoCallable {
   if (
     target === null ||
     (typeof target !== 'object' && typeof target !== 'function')
@@ -382,59 +607,133 @@ function installTinyGoJSImportHelpers(go: TinyGoRuntime): void {
   if (!gojs || typeof gojs !== 'object') {
     return
   }
-  setTinyGoJSImport(gojs, 'bldr.tinygo.jsCall0', (
-    targetRef: bigint,
-    methodPtr: number,
-    methodLen: number,
-  ) => tinyGoCallResult(go, targetRef, methodPtr, methodLen, []))
-  setTinyGoJSImport(gojs, 'bldr.tinygo.jsCall1Value', (
-    targetRef: bigint,
-    methodPtr: number,
-    methodLen: number,
-    arg0Ref: bigint,
-  ) =>
-    tinyGoCallResult(go, targetRef, methodPtr, methodLen, [
-      tinyGoUnboxValue(go, arg0Ref),
-    ]))
-  setTinyGoJSImport(gojs, 'bldr.tinygo.jsCall2StringValue', (
-    targetRef: bigint,
-    methodPtr: number,
-    methodLen: number,
-    arg0Ptr: number,
-    arg0Len: number,
-    arg1Ref: bigint,
-  ) =>
-    tinyGoCallResult(go, targetRef, methodPtr, methodLen, [
-      readTinyGoString(go, arg0Ptr, arg0Len),
-      tinyGoUnboxValue(go, arg1Ref),
-    ]))
+  setTinyGoJSImport(
+    gojs,
+    'bldr.tinygo.jsCall0',
+    (targetRef: bigint, methodPtr: number, methodLen: number) =>
+      tinyGoCallResult(go, targetRef, methodPtr, methodLen, []),
+  )
+  setTinyGoJSImport(
+    gojs,
+    'bldr.tinygo.jsCall1Value',
+    (
+      targetRef: bigint,
+      methodPtr: number,
+      methodLen: number,
+      arg0Ref: bigint,
+    ) =>
+      tinyGoCallResult(go, targetRef, methodPtr, methodLen, [
+        tinyGoUnboxValue(go, arg0Ref),
+      ]),
+  )
+  setTinyGoJSImport(
+    gojs,
+    'bldr.tinygo.jsCall2StringValue',
+    (
+      targetRef: bigint,
+      methodPtr: number,
+      methodLen: number,
+      arg0Ptr: number,
+      arg0Len: number,
+      arg1Ref: bigint,
+    ) =>
+      tinyGoCallResult(go, targetRef, methodPtr, methodLen, [
+        readTinyGoString(go, arg0Ptr, arg0Len),
+        tinyGoUnboxValue(go, arg1Ref),
+      ]),
+  )
   setTinyGoJSImport(gojs, 'bldr.tinygo.jsNew0', (ctorRef: bigint) =>
-    tinyGoConstructResult(go, ctorRef, []))
-  setTinyGoJSImport(gojs, 'bldr.tinygo.jsNew1Int', (
-    ctorRef: bigint,
-    arg0: number,
-  ) => tinyGoConstructResult(go, ctorRef, [arg0]))
-  setTinyGoJSImport(gojs, 'bldr.tinygo.promiseAwait', (
-    promiseRef: bigint,
-    resolveRef: bigint,
-    rejectRef: bigint,
-  ) => {
-    const promise = tinyGoUnboxValue(go, promiseRef)
-    const resolve = tinyGoFunctionRef(go, resolveRef, 'promise resolve')
-    const reject = tinyGoFunctionRef(go, rejectRef, 'promise reject')
-    Promise.resolve(promise)
-      .then((value) => {
-        deferTinyGoCallback(() => {
-          resolve(value)
+    tinyGoConstructResult(go, ctorRef, []),
+  )
+  setTinyGoJSImport(
+    gojs,
+    'bldr.tinygo.jsNew1Int',
+    (ctorRef: bigint, arg0: number) =>
+      tinyGoConstructResult(go, ctorRef, [arg0]),
+  )
+  setTinyGoJSImport(
+    gojs,
+    'bldr.tinygo.promiseAwait',
+    (promiseRef: bigint, resolveRef: bigint, rejectRef: bigint) => {
+      const promise = tinyGoUnboxValue(go, promiseRef)
+      const resolve = tinyGoFunctionRef(go, resolveRef, 'promise resolve')
+      const reject = tinyGoFunctionRef(go, rejectRef, 'promise reject')
+      Promise.resolve(promise)
+        .then((value) => {
+          deferTinyGoCallback(() => {
+            resolve(value)
+          })
         })
-      })
-      .catch((reason) => {
-        const code = tinyGoPromiseErrorCode(reason)
-        deferTinyGoCallback(() => {
-          reject(code)
+        .catch((reason) => {
+          const code = tinyGoPromiseErrorCode(reason)
+          deferTinyGoCallback(() => {
+            reject(code)
+          })
         })
-      })
+    },
+  )
+  setTinyGoJSImport(
+    gojs,
+    'bldr.tinygo.takeStoredBytes',
+    (bytesID: number, ptr: number, len: number) => {
+      const bytes = takeTinyGoBytes(bytesID)
+      if (!bytes || bytes.byteLength !== len) {
+        return 0
+      }
+      if (len !== 0) {
+        tinyGoMemoryView(go, ptr, len).set(bytes)
+      }
+      return 1
+    },
+  )
+  setTinyGoJSImport(gojs, 'bldr.tinygo.dropStoredBytes', (bytesID: number) =>
+    dropTinyGoBytes(bytesID) ? 1 : 0,
+  )
+  setTinyGoJSImport(gojs, 'bldr.tinygo.fetchAbort', (opID: number) => {
+    const abort = tinyGoFetchRequests.get(opID)
+    if (!abort) {
+      return 0
+    }
+    tinyGoFetchRequests.delete(opID)
+    abort.abort()
+    return 1
   })
+  setTinyGoJSImport(
+    gojs,
+    'bldr.tinygo.fetch',
+    (
+      opID: number,
+      urlPtr: number,
+      urlLen: number,
+      reqPtr: number,
+      reqLen: number,
+      bodyPtr: number,
+      bodyLen: number,
+    ) => {
+      try {
+        const url = readTinyGoString(go, urlPtr, urlLen)
+        const request = JSON.parse(readTinyGoString(go, reqPtr, reqLen))
+        const body =
+          bodyLen === 0
+            ? undefined
+            : copyUint8Array(tinyGoMemoryView(go, bodyPtr, bodyLen))
+        const init = tinyGoFetchInit(opID, request, body)
+        fetch(url, init)
+          .then(async (response) => {
+            const bytes = new Uint8Array(await response.arrayBuffer())
+            tinyGoFetchRequests.delete(opID)
+            resolveTinyGoFetch(go, opID, response, bytes)
+          })
+          .catch((reason) => {
+            tinyGoFetchRequests.delete(opID)
+            rejectTinyGoFetch(go, opID, reason)
+          })
+      } catch (reason) {
+        tinyGoFetchRequests.delete(opID)
+        rejectTinyGoFetch(go, opID, reason)
+      }
+    },
+  )
 }
 
 export function tinyGoExport(
