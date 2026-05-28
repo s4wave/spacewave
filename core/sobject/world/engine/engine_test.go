@@ -3,6 +3,7 @@ package sobject_world_engine_test
 import (
 	"context"
 	"errors"
+	"runtime"
 	"testing"
 	"time"
 
@@ -23,7 +24,11 @@ import (
 // TestWorldEngineController tests constructing the engine controller, looking up
 // the engine on the bus, & running some basic queries.
 func TestWorldEngineController(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	timeout := 10 * time.Second
+	if runtime.GOOS == "js" {
+		timeout = 30 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	tb, err := testbed.Default(ctx)
