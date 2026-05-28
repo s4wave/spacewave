@@ -113,6 +113,18 @@ func (o *bridgeOperation) GetOperationTypeId() string {
 	return o.opTypeID
 }
 
+func worldOpRegistryBridgeEnabled() bool {
+	return true
+}
+
+func bridgeOperationEngineID(op world.Operation) (string, bool) {
+	bridgeOp, ok := op.(*bridgeOperation)
+	if !ok {
+		return "", false
+	}
+	return bridgeOp.engineID, true
+}
+
 // Validate validates the operation by calling the TS plugin.
 func (o *bridgeOperation) Validate() error {
 	return nil

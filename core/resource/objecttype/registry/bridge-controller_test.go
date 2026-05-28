@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package resource_objecttype_registry
 
 import (
@@ -15,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
+	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,28 +37,73 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 		t.Fatalf("AddController: %v", err)
 	}
 	defer rel()
+	registry := NewObjectTypeRegistryResource()
+	registry.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		TypeId:         "test/type",
+		RegistrationId: 1,
+		PluginId:       "test-plugin",
+	}
+	ctrl := NewBridgeController(le, b, registry)
+	rel, err = b.AddController(ctx, ctrl, nil)
+	if err != nil {
+		t.Fatalf("AddController bridge: %v", err)
+	}
+	defer rel()
 
 	ownerCtx, ownerCancel := context.WithCancel(ctx)
 	defer ownerCancel()
 	requestCtx, requestCancel := context.WithCancel(resource_server.WithResourceClientContext(ctx, &testResourceClientContext{ctx: ownerCtx}))
 
-	resolver := newBridgeResolver(le, b, &s4wave_objecttype_registry.ObjectTypeRegistration{
-		TypeId:   "test/type",
-		PluginId: "test-plugin",
-	})
-	invoker, cleanup, err := resolver.invokePlugin(requestCtx, "test/object", nil)
+	ot, ref, err := objecttype.ExLookupObjectType(ctx, b, "test/type")
 	if err != nil {
-		t.Fatalf("invokePlugin: %v", err)
+		t.Fatalf("ExLookupObjectType: %v", err)
+	}
+	if ref != nil {
+		defer ref.Release()
+	}
+	if !objectTypeRegistryBridgeEnabled() {
+		if ot != nil {
+			t.Fatalf("expected disabled GoScript bridge to return no object type")
+		}
+		requestCancel()
+		return
+	}
+	if ot == nil {
+		t.Fatalf("expected object type")
+	}
+	invoker, cleanup, err := ot.GetFactory()(requestCtx, le, b, nil, nil, "test/object")
+	if err != nil {
+		t.Fatalf("object type factory: %v", err)
 	}
 	defer cleanup()
 
 	requestCancel()
 
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
-	if err := client.ExecCall(ctx, "test.Child", "Ping", &resource.ResourceRefReleaseRequest{}, &resource.ResourceRefReleaseResponse{}); err != nil {
+	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
 		t.Fatalf("child resource call after request context cancel: %v", err)
 	}
 }
+
+type testPingMessage struct{}
+
+func (m *testPingMessage) SizeVT() int {
+	return 0
+}
+
+func (m *testPingMessage) MarshalToSizedBufferVT([]byte) (int, error) {
+	return 0, nil
+}
+
+func (m *testPingMessage) MarshalVT() ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (m *testPingMessage) UnmarshalVT([]byte) error {
+	return nil
+}
+
+func (m *testPingMessage) Reset() {}
 
 type testObjectTypeHandler struct{}
 
@@ -72,10 +116,10 @@ func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, _ *s4wave_
 		if serviceID != "test.Child" || methodID != "Ping" {
 			return false, nil
 		}
-		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+		if err := strm.MsgRecv(&testPingMessage{}); err != nil {
 			return true, err
 		}
-		return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+		return true, strm.MsgSend(&testPingMessage{})
 	}), nil)
 	if err != nil {
 		return nil, err

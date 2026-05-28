@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,6 +53,14 @@ func (c *WorldOpRegistryBridgeController) HandleDirective(
 // Close releases any resources held by the controller.
 func (c *WorldOpRegistryBridgeController) Close() error {
 	return nil
+}
+
+func worldOpRegistryBridgeEnabled() bool {
+	return false
+}
+
+func bridgeOperationEngineID(world.Operation) (string, bool) {
+	return "", false
 }
 
 // _ is a type assertion

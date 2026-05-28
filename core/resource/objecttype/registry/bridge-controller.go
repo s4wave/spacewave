@@ -76,6 +76,10 @@ func (c *BridgeController) Close() error {
 	return nil
 }
 
+func objectTypeRegistryBridgeEnabled() bool {
+	return true
+}
+
 // bridgeResolver resolves a LookupObjectType directive by creating a proxy
 // ObjectType that connects to the TS plugin.
 type bridgeResolver struct {

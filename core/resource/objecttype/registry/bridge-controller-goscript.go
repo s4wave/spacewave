@@ -49,5 +49,9 @@ func (c *BridgeController) Close() error {
 	return nil
 }
 
+func objectTypeRegistryBridgeEnabled() bool {
+	return false
+}
+
 // _ is a type assertion
 var _ controller.Controller = (*BridgeController)(nil)

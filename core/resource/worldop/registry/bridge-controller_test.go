@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package resource_worldop_registry
 
 import (
@@ -42,6 +40,12 @@ func TestWorldOpRegistryBridgeControllerPreservesEngineID(t *testing.T) {
 		t.Fatalf("ExLookupWorldOp: %v", err)
 	}
 	defer ref.Release()
+	if !worldOpRegistryBridgeEnabled() {
+		if len(vs) != 0 {
+			t.Fatalf("expected disabled GoScript bridge to return no lookup ops")
+		}
+		return
+	}
 	if len(vs) != 1 {
 		t.Fatalf("expected 1 lookup op, got %d", len(vs))
 	}
@@ -50,11 +54,14 @@ func TestWorldOpRegistryBridgeControllerPreservesEngineID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lookup op: %v", err)
 	}
-	bridgeOp, ok := op.(*bridgeOperation)
+	engineID, ok := bridgeOperationEngineID(op)
 	if !ok {
-		t.Fatalf("expected *bridgeOperation, got %T", op)
+		if worldOpRegistryBridgeEnabled() {
+			t.Fatalf("expected native bridge operation, got %T", op)
+		}
+		return
 	}
-	if bridgeOp.engineID != "engine-123" {
-		t.Fatalf("expected engineID engine-123, got %q", bridgeOp.engineID)
+	if engineID != "engine-123" {
+		t.Fatalf("expected engineID engine-123, got %q", engineID)
 	}
 }
