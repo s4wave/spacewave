@@ -10,8 +10,14 @@ export interface ResourceRef {
   Release(): void
 }
 
+type attachedResource = {
+  mux: srpc.Invoker | null
+  releaseFn: (() => void) | null
+}
+
 export class Client implements resource_server.ResourceClientContext {
   private released = false
+  private attachedResources = new Map<number, attachedResource>()
 
   constructor(
     private ctx: context.Context,
@@ -27,6 +33,10 @@ export class Client implements resource_server.ResourceClientContext {
   }
 
   public Release(): void {
+    for (const res of this.attachedResources.values()) {
+      res.releaseFn?.()
+    }
+    this.attachedResources.clear()
     this.released = true
   }
 
@@ -46,10 +56,13 @@ export class Client implements resource_server.ResourceClientContext {
 
   public AddResourceValue(
     mux: srpc.Invoker | null,
-    _value: unknown,
+    value: unknown,
     releaseFn: (() => void) | null,
   ): [number, $.GoError] {
-    return this.AddResource(mux, releaseFn)
+    if (this.released) {
+      return [0, resource.ErrClientReleased]
+    }
+    return this.server.AddResourceValue(mux, value, releaseFn)
   }
 
   public AttachRawInvoker(
@@ -73,7 +86,22 @@ export class Client implements resource_server.ResourceClientContext {
     _label: string,
     mux: srpc.Invoker | null,
   ): [number, $.GoError] {
-    return this.AddResource(mux, null)
+    if (this.released) {
+      return [0, resource.ErrClientReleased]
+    }
+    const resourceID = this.server.AllocateResourceID()
+    this.attachedResources.set(resourceID, { mux, releaseFn: null })
+    return [resourceID, null]
+  }
+
+  public SetAttachedRelease(
+    resourceID: number,
+    releaseFn: (() => void) | null,
+  ): void {
+    const attached = this.attachedResources.get(resourceID)
+    if (attached != null) {
+      attached.releaseFn = releaseFn
+    }
   }
 
   public DetachResource(
@@ -84,6 +112,12 @@ export class Client implements resource_server.ResourceClientContext {
   }
 
   public ReleaseResource(resourceID: number): boolean {
+    const attached = this.attachedResources.get(resourceID)
+    if (attached != null) {
+      this.attachedResources.delete(resourceID)
+      attached.releaseFn?.()
+      return true
+    }
     return this.server.ReleaseResource(resourceID)
   }
 
@@ -91,8 +125,18 @@ export class Client implements resource_server.ResourceClientContext {
     return this.server.GetResourceValue(resourceID)
   }
 
-  public GetAttachedResource(_resourceID: number): [srpc.Client | null, $.GoError] {
-    return [null, resource.ErrResourceNotFound]
+  public GetAttachedResource(resourceID: number): [srpc.Client | null, $.GoError] {
+    const attached = this.attachedResources.get(resourceID)
+    if (attached?.mux == null) {
+      return [null, resource.ErrResourceNotFound]
+    }
+    const owner = new attachedResourceOwner(this)
+    return [
+      srpc.NewClientWithInvoker(attached.mux, (ctx) =>
+        resource_server.WithResourceClientContext(ctx, owner),
+      ),
+      null,
+    ]
   }
 
   public getResourceClient(resourceID: number): [srpc.Client | null, $.GoError] {
@@ -106,6 +150,50 @@ export class Client implements resource_server.ResourceClientContext {
       ),
       null,
     ]
+  }
+}
+
+class attachedResourceOwner implements resource_server.ResourceClientContext {
+  constructor(private client: Client) {}
+
+  public Context(): context.Context {
+    return this.client.Context()
+  }
+
+  public AddResource(
+    mux: srpc.Invoker | null,
+    releaseFn: (() => void) | null,
+  ): [number, $.GoError] {
+    return this.AddResourceValue(mux, null, releaseFn)
+  }
+
+  public AddResourceValue(
+    mux: srpc.Invoker | null,
+    _value: unknown,
+    releaseFn: (() => void) | null,
+  ): [number, $.GoError] {
+    const [resourceID, err] = this.client.AttachResource(
+      this.client.Context(),
+      'attached-child',
+      mux,
+    )
+    if (err != null) {
+      return [0, err]
+    }
+    this.client.SetAttachedRelease(resourceID, releaseFn)
+    return [resourceID, null]
+  }
+
+  public ReleaseResource(resourceID: number): boolean {
+    return this.client.ReleaseResource(resourceID)
+  }
+
+  public GetResourceValue(_resourceID: number): [unknown, $.GoError] {
+    return [null, resource.ErrResourceNotFound]
+  }
+
+  public GetAttachedResource(_resourceID: number): [srpc.Client | null, $.GoError] {
+    return [null, resource.ErrResourceNotFound]
   }
 }
 

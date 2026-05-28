@@ -3,7 +3,6 @@ package testbed
 import (
 	"context"
 
-	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	"github.com/pkg/errors"
@@ -11,18 +10,12 @@ import (
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	storage_inmem "github.com/s4wave/spacewave/bldr/storage/inmem"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/core"
 	"github.com/s4wave/spacewave/db/testbed"
-	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // Testbed is a constructed testbed.
@@ -92,19 +85,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	t.EngineBucketID = tb.BucketId
 	t.EngineObjectStoreID = t.EngineID + "-store"
 
-	// note: do not use this crypto key for anything else
-	key := make([]byte, 32)
-	blake3.DeriveKey("hydra/world/testbed "+t.EngineBucketID, []byte("testbed"), key)
-
-	// create a initial ref with a encryption config
-	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_chksum.Config{},
-		&transform_s2.Config{},
-		&transform_blockenc.Config{
-			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
-			Key:      key,
-		},
-	})
+	transformConf, err := newEngineTransformConfig(t.EngineBucketID)
 	if err != nil {
 		return nil, err
 	}

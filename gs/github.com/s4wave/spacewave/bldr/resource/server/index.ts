@@ -65,10 +65,14 @@ export class ResourceServer {
     value: unknown,
     releaseFn: (() => void) | null,
   ): [number, $.GoError] {
-    this.resourceIDCtr++
-    const resourceID = this.resourceIDCtr
+    const resourceID = this.AllocateResourceID()
     this.resources.set(resourceID, { mux, value, releaseFn })
     return [resourceID, null]
+  }
+
+  public AllocateResourceID(): number {
+    this.resourceIDCtr++
+    return this.resourceIDCtr
   }
 
   public ReleaseResource(resourceID: number): boolean {
