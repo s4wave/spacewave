@@ -54,6 +54,9 @@ func tinyGoPluginStreamRelease(streamID uint32)
 //go:wasmimport gojs bldr.plugin.streamTakeBytes
 func tinyGoPluginStreamTakeBytes(bytesID uint32, ptr unsafe.Pointer, len uint32) uint32
 
+//go:wasmimport gojs bldr.plugin.streamMessageHandled
+func tinyGoPluginStreamMessageHandled(bytesID uint32, delivered uint32)
+
 //go:wasmimport gojs bldr.plugin.setAcceptStreams
 func tinyGoPluginSetAcceptStreams(enabled uint32)
 
@@ -208,15 +211,18 @@ func (s *tinyGoPluginStream) Close() error {
 	return nil
 }
 
-func (s *tinyGoPluginStream) handleMessage(bytes []byte) {
+func (s *tinyGoPluginStream) handleMessage(bytes []byte, handled func(error)) {
 	s.mtx.Lock()
 	closed := s.closed
 	incoming := s.incoming
 	s.mtx.Unlock()
 	if closed || incoming == nil {
+		if handled != nil {
+			handled(io.ErrClosedPipe)
+		}
 		return
 	}
-	incoming.Handle(bytes)
+	incoming.HandleWithResult(bytes, handled)
 }
 
 func (s *tinyGoPluginStream) handleClose(err error) {
@@ -310,13 +316,21 @@ func tinyGoPluginStreamMessage(streamID uint32, bytesID uint32, length uint32) {
 		if stream != nil {
 			stream.handleClose(errors.New("tinygo plugin stream bytes unavailable"))
 		}
+		tinyGoPluginStreamMessageHandled(bytesID, 0)
 		return
 	}
 	stream := lookupTinyGoPluginStream(streamID)
 	if stream == nil {
+		tinyGoPluginStreamMessageHandled(bytesID, 0)
 		return
 	}
-	stream.handleMessage(bytes)
+	stream.handleMessage(bytes, func(err error) {
+		if err != nil {
+			tinyGoPluginStreamMessageHandled(bytesID, 0)
+			return
+		}
+		tinyGoPluginStreamMessageHandled(bytesID, 1)
+	})
 }
 
 //go:wasmexport BLDR_PLUGIN_STREAM_CLOSE

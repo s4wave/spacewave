@@ -166,6 +166,7 @@ class TinyGoPluginStreamBridge {
   private nextBytesID = 1
   private readonly streams = new Map<number, TinyGoPluginStream>()
   private readonly storedBytes = new Map<number, Uint8Array>()
+  private readonly pendingDeliveries = new Map<number, TinyGoPluginDelivery>()
   private readonly encoder = new TextEncoder()
 
   public constructor(
@@ -198,6 +199,12 @@ class TinyGoPluginStreamBridge {
       ptr: number,
       len: number,
     ) => this.takeBytes(bytesID, ptr, len)
+    gojs['bldr.plugin.streamMessageHandled'] ??= (
+      bytesID: number,
+      delivered: number,
+    ) => {
+      this.resolveDelivery(bytesID, delivered !== 0)
+    }
     gojs['bldr.plugin.setAcceptStreams'] ??= (enabled: number) => {
       this.setAcceptStreams(enabled !== 0)
     }
@@ -208,6 +215,7 @@ class TinyGoPluginStreamBridge {
       this.releaseStream(streamID)
     }
     this.storedBytes.clear()
+    this.resolveAllDeliveries(false)
     this.api.handleStreamCtr.set(undefined)
   }
 
@@ -268,7 +276,7 @@ class TinyGoPluginStreamBridge {
     void (async () => {
       try {
         for await (const message of packetStream.source) {
-          if (!this.deliverMessage(id, message)) {
+          if (!(await this.deliverMessage(id, message))) {
             return
           }
         }
@@ -281,25 +289,41 @@ class TinyGoPluginStreamBridge {
     return stream
   }
 
-  private deliverMessage(streamID: number, message: Uint8Array): boolean {
+  private async deliverMessage(
+    streamID: number,
+    message: Uint8Array,
+  ): Promise<boolean> {
     if (!this.streams.has(streamID)) {
       return false
     }
     try {
-      const bytes = copyUint8Array(message)
-      const bytesID = this.storeBytes(bytes)
+      return await this.deliverStoredMessage(streamID, message)
+    } catch (err) {
+      this.releaseStream(streamID)
+      this.reportFailure(err)
+      return false
+    }
+  }
+
+  private async deliverStoredMessage(
+    streamID: number,
+    message: Uint8Array,
+  ): Promise<boolean> {
+    const bytes = copyUint8Array(message)
+    const bytesID = this.storeBytes(bytes)
+    const delivered = this.awaitDelivery(streamID, bytesID)
+    try {
       this.callExport(
         'BLDR_PLUGIN_STREAM_MESSAGE',
         streamID,
         bytesID,
         bytes.byteLength,
       )
-      return true
     } catch (err) {
-      this.releaseStream(streamID)
-      this.reportFailure(err)
-      return false
+      this.resolveDelivery(bytesID, false)
+      throw err
     }
+    return await delivered
   }
 
   private closeFromJS(streamID: number, err?: unknown): void {
@@ -358,6 +382,7 @@ class TinyGoPluginStreamBridge {
     }
     stream.released = true
     this.streams.delete(streamID)
+    this.resolveStreamDeliveries(streamID, false)
     try {
       stream.outbound.end()
     } catch {
@@ -398,6 +423,37 @@ class TinyGoPluginStreamBridge {
     return id
   }
 
+  private awaitDelivery(streamID: number, bytesID: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.pendingDeliveries.set(bytesID, { streamID, resolve })
+    })
+  }
+
+  private resolveDelivery(bytesID: number, delivered: boolean): void {
+    const delivery = this.pendingDeliveries.get(bytesID)
+    if (!delivery) {
+      return
+    }
+    this.pendingDeliveries.delete(bytesID)
+    delivery.resolve(delivered)
+  }
+
+  private resolveStreamDeliveries(streamID: number, delivered: boolean): void {
+    for (const [bytesID, delivery] of this.pendingDeliveries) {
+      if (delivery.streamID === streamID) {
+        this.pendingDeliveries.delete(bytesID)
+        delivery.resolve(delivered)
+      }
+    }
+  }
+
+  private resolveAllDeliveries(delivered: boolean): void {
+    for (const [bytesID, delivery] of this.pendingDeliveries) {
+      this.pendingDeliveries.delete(bytesID)
+      delivery.resolve(delivered)
+    }
+  }
+
   private callExport(name: string, ...args: number[]): void {
     const go = this.mustGo()
     const fn = tinyGoExport(go, name)
@@ -419,6 +475,11 @@ type TinyGoPluginStream = {
   id: number
   outbound: ReturnType<typeof pushable<Uint8Array>>
   released: boolean
+}
+
+type TinyGoPluginDelivery = {
+  streamID: number
+  resolve: (delivered: boolean) => void
 }
 
 // Main function exported by this module.

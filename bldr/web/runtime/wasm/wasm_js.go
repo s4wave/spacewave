@@ -269,10 +269,15 @@ type serialPacketDataHandler struct {
 	mtx       sync.Mutex
 	notify    chan struct{}
 	finish    sync.Once
-	queue     [][]byte
+	queue     []serialPacketData
 	closed    bool
 	closeErr  error
 	scheduled bool
+}
+
+type serialPacketData struct {
+	data    []byte
+	handled func(error)
 }
 
 func newSerialPacketDataHandler(
@@ -291,12 +296,19 @@ func newSerialPacketDataHandler(
 }
 
 func (h *serialPacketDataHandler) Handle(data []byte) {
+	h.HandleWithResult(data, nil)
+}
+
+func (h *serialPacketDataHandler) HandleWithResult(data []byte, handled func(error)) {
 	h.mtx.Lock()
 	if h.closed {
 		h.mtx.Unlock()
+		if handled != nil {
+			handled(io.ErrClosedPipe)
+		}
 		return
 	}
-	h.queue = append(h.queue, data)
+	h.queue = append(h.queue, serialPacketData{data: data, handled: handled})
 	h.scheduleLocked()
 	h.mtx.Unlock()
 }
@@ -321,10 +333,16 @@ func (h *serialPacketDataHandler) Fail(err error) {
 	}
 	h.closed = true
 	h.closeErr = err
+	pending := h.queue
 	h.queue = nil
 	h.scheduleLocked()
 	h.mtx.Unlock()
 
+	for _, item := range pending {
+		if item.handled != nil {
+			item.handled(err)
+		}
+	}
 	h.finish.Do(func() {
 		h.closeHandler(err)
 		h.releaseFn()
@@ -340,14 +358,20 @@ func (h *serialPacketDataHandler) run() {
 			h.mtx.Lock()
 		}
 		if len(h.queue) != 0 {
-			data := h.queue[0]
+			item := h.queue[0]
 			copy(h.queue, h.queue[1:])
-			h.queue[len(h.queue)-1] = nil
+			h.queue[len(h.queue)-1] = serialPacketData{}
 			h.queue = h.queue[:len(h.queue)-1]
 			h.mtx.Unlock()
-			if err := h.msgHandler(data); err != nil {
+			if err := h.msgHandler(item.data); err != nil {
+				if item.handled != nil {
+					item.handled(err)
+				}
 				h.Fail(err)
 				return
+			}
+			if item.handled != nil {
+				item.handled(nil)
 			}
 			continue
 		}

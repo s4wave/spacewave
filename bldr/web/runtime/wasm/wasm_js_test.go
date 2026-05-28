@@ -166,6 +166,73 @@ func TestOpenPushableStreamSerializesMessageHandler(t *testing.T) {
 	waitForSignal(t, harness.ended, "pushable end")
 }
 
+func TestSerialPacketDataHandlerAcknowledgesAfterMessageHandler(t *testing.T) {
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	handled := make(chan error, 1)
+	handler := newSerialPacketDataHandler(
+		func(data []byte) error {
+			if !bytes.Equal(data, []byte{1}) {
+				t.Fatalf("handler data = %v want [1]", data)
+			}
+			signal(started)
+			<-release
+			return nil
+		},
+		func(closeErr error) {},
+		func() {},
+	)
+
+	handler.HandleWithResult([]byte{1}, func(err error) {
+		handled <- err
+	})
+	waitForSignal(t, started, "handler start")
+	if err, ok := receiveError(handled); ok {
+		t.Fatalf("packet acknowledged before handler returned: %v", err)
+	}
+
+	close(release)
+	if err := waitForError(t, handled, "packet handled"); err != nil {
+		t.Fatalf("packet handled error = %v", err)
+	}
+	handler.Close(nil)
+}
+
+func TestSerialPacketDataHandlerFailsQueuedAcknowledgements(t *testing.T) {
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	firstHandled := make(chan error, 1)
+	secondHandled := make(chan error, 1)
+	handler := newSerialPacketDataHandler(
+		func(data []byte) error {
+			signal(started)
+			<-release
+			if bytes.Equal(data, []byte{1}) {
+				return io.ErrUnexpectedEOF
+			}
+			return nil
+		},
+		func(closeErr error) {},
+		func() {},
+	)
+
+	handler.HandleWithResult([]byte{1}, func(err error) {
+		firstHandled <- err
+	})
+	waitForSignal(t, started, "first handler start")
+	handler.HandleWithResult([]byte{2}, func(err error) {
+		secondHandled <- err
+	})
+
+	close(release)
+	if err := waitForError(t, firstHandled, "first packet handled"); err != io.ErrUnexpectedEOF {
+		t.Fatalf("first packet error = %v want %v", err, io.ErrUnexpectedEOF)
+	}
+	if err := waitForError(t, secondHandled, "second packet handled"); err != io.ErrUnexpectedEOF {
+		t.Fatalf("second packet error = %v want %v", err, io.ErrUnexpectedEOF)
+	}
+}
+
 func TestSetAcceptStreamsWrapsProvidedMessagePort(t *testing.T) {
 	harness := newAcceptStreamHarness(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -253,6 +320,15 @@ func receiveMessage(ch <-chan []byte) ([]byte, bool) {
 	select {
 	case msg := <-ch:
 		return msg, true
+	default:
+		return nil, false
+	}
+}
+
+func receiveError(ch <-chan error) (error, bool) {
+	select {
+	case err := <-ch:
+		return err, true
 	default:
 		return nil, false
 	}

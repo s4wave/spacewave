@@ -388,9 +388,9 @@ describe('plugin-wasm generation lifecycle', () => {
     }
     opts.tinyGoRuntimeImports?.(go)
 
-    const openStream = go.importObject.gojs[
-      'bldr.plugin.openStream'
-    ] as (opID: number) => void
+    const openStream = go.importObject.gojs['bldr.plugin.openStream'] as (
+      opID: number,
+    ) => void
     openStream(41)
     await Promise.resolve()
 
@@ -403,20 +403,28 @@ describe('plugin-wasm generation lifecycle', () => {
       2,
     )
     const messageBytesID = exports.BLDR_PLUGIN_STREAM_MESSAGE.mock.calls[0][1]
-    const takeBytes = go.importObject.gojs[
-      'bldr.plugin.streamTakeBytes'
-    ] as (bytesID: number, ptr: number, len: number) => number
+    const takeBytes = go.importObject.gojs['bldr.plugin.streamTakeBytes'] as (
+      bytesID: number,
+      ptr: number,
+      len: number,
+    ) => number
     expect(takeBytes(messageBytesID, 16, 2)).toBe(1)
     expect(Array.from(new Uint8Array(memory.buffer, 16, 2))).toEqual([7, 8])
+    getGoImport(go.importObject.gojs, 'bldr.plugin.streamMessageHandled')(
+      messageBytesID,
+      1,
+    )
 
     new Uint8Array(memory.buffer, 32, 2).set([9, 10])
-    const writeStream = go.importObject.gojs[
-      'bldr.plugin.streamWrite'
-    ] as (streamID: number, ptr: number, len: number) => number
+    const writeStream = go.importObject.gojs['bldr.plugin.streamWrite'] as (
+      streamID: number,
+      ptr: number,
+      len: number,
+    ) => number
     expect(writeStream(1, 32, 2)).toBe(1)
-    const closeStream = go.importObject.gojs[
-      'bldr.plugin.streamClose'
-    ] as (streamID: number) => number
+    const closeStream = go.importObject.gojs['bldr.plugin.streamClose'] as (
+      streamID: number,
+    ) => number
     expect(closeStream(1)).toBe(1)
     await waitForGoCallbackQueue()
 
@@ -456,11 +464,95 @@ describe('plugin-wasm generation lifecycle', () => {
     await waitForGoCallbackQueue()
 
     expect(messageExport).toHaveBeenCalledWith(1, expect.any(Number), 2)
+    getGoImport(gojs, 'bldr.plugin.streamMessageHandled')(
+      messageExport.mock.calls[0][1],
+      1,
+    )
 
     source.end()
     await waitForGoCallbackQueue()
 
     expect(closeExport).toHaveBeenCalledWith(1, 0, 0)
+  })
+
+  it('waits for TinyGo packet handling before reading the next inbound message', async () => {
+    goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+
+    const api = buildBackendAPI()
+    const { default: main } = await import('./plugin-wasm.js')
+    await main(api)
+
+    const messageExport = vi.fn()
+    const gojs = installTinyGoStreamImports({
+      memory: new WebAssembly.Memory({ initial: 1 }),
+      go_scheduler: vi.fn(),
+      BLDR_PLUGIN_STREAM_ACCEPT: vi.fn(),
+      BLDR_PLUGIN_STREAM_MESSAGE: messageExport,
+      BLDR_PLUGIN_STREAM_CLOSE: vi.fn(),
+    })
+    getGoImport(gojs, 'bldr.plugin.setAcceptStreams')(1)
+
+    const source = pushable<Uint8Array>({ objectMode: true })
+    void api.handleStreamCtr.handleStreamFunc({
+      source,
+      sink: vi.fn(async () => {}),
+    })
+    await waitForGoCallbackQueue()
+
+    source.push(new Uint8Array([1]))
+    await waitForGoCallbackQueue()
+    expect(messageExport).toHaveBeenCalledTimes(1)
+    const firstBytesID = messageExport.mock.calls[0][1]
+
+    source.push(new Uint8Array([2]))
+    await waitForGoCallbackQueue()
+    expect(messageExport).toHaveBeenCalledTimes(1)
+
+    getGoImport(gojs, 'bldr.plugin.streamMessageHandled')(firstBytesID, 1)
+    await waitForGoCallbackQueue()
+    expect(messageExport).toHaveBeenCalledTimes(2)
+
+    getGoImport(gojs, 'bldr.plugin.streamMessageHandled')(
+      messageExport.mock.calls[1][1],
+      1,
+    )
+    source.end()
+  })
+
+  it('resolves pending TinyGo packet deliveries when a stream is released', async () => {
+    goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+
+    const api = buildBackendAPI()
+    const { default: main } = await import('./plugin-wasm.js')
+    await main(api)
+
+    const messageExport = vi.fn()
+    const gojs = installTinyGoStreamImports({
+      memory: new WebAssembly.Memory({ initial: 1 }),
+      go_scheduler: vi.fn(),
+      BLDR_PLUGIN_STREAM_ACCEPT: vi.fn(),
+      BLDR_PLUGIN_STREAM_MESSAGE: messageExport,
+      BLDR_PLUGIN_STREAM_CLOSE: vi.fn(),
+    })
+    getGoImport(gojs, 'bldr.plugin.setAcceptStreams')(1)
+
+    const source = pushable<Uint8Array>({ objectMode: true })
+    void api.handleStreamCtr.handleStreamFunc({
+      source,
+      sink: vi.fn(async () => {}),
+    })
+    await waitForGoCallbackQueue()
+
+    source.push(new Uint8Array([1]))
+    await waitForGoCallbackQueue()
+    expect(messageExport).toHaveBeenCalledTimes(1)
+
+    getGoImport(gojs, 'bldr.plugin.streamRelease')(1)
+    source.push(new Uint8Array([2]))
+    await waitForGoCallbackQueue()
+
+    expect(messageExport).toHaveBeenCalledTimes(1)
+    source.end()
   })
 
   it('does not globally filter Go released-callback logs inside the plugin worker', async () => {
