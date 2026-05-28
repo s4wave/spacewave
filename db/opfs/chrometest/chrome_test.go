@@ -20,6 +20,8 @@ const (
 	runEnv         = "RUN_OPFS_CHROME_TEST"
 	profileEnv     = "RUN_OPFS_CHROME_PROFILE"
 	tinyGoEnv      = "RUN_OPFS_CHROME_TINYGO"
+	tinyGoGCEnv    = "RUN_OPFS_CHROME_TINYGO_GC"
+	tinyGoPanicEnv = "RUN_OPFS_CHROME_TINYGO_PANIC"
 	tinyGoStackEnv = "RUN_OPFS_CHROME_TINYGO_STACK_SIZE"
 	chromeSmoke    = "smoke"
 	chromeStress   = "stress"
@@ -310,6 +312,66 @@ func TestOpfsChromeTinyGoLargeBlockShardBatch(t *testing.T) {
 		iterations: 68056093,
 		batch:      96,
 		shards:     1,
+	})
+}
+
+func TestOpfsChromeTinyGoLargeBlockShardMultiShardBatch(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo blockshard large-upload path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-large-block-multishard-batch-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "large-block-batch",
+		root:       root,
+		iterations: 68056093,
+		batch:      96,
+		shards:     defaultShards,
+	})
+}
+
+func TestOpfsChromeBlockShardCorruptCompactionInput(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-block-corrupt-compaction-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "block-corrupt-compaction",
+		root:     root,
+	})
+}
+
+func TestOpfsChromeBlockShardZeroSizeCompactionInput(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-block-zero-size-compaction-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "block-zero-size-compaction",
+		root:     root,
 	})
 }
 
@@ -903,6 +965,29 @@ func TestOpfsChromeWorldInitUnixFS(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeTinyGoWorldLargeUnixFSUpload(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo UnixFS large-upload path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-large-unixfs-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "world-large-unixfs-upload",
+		root:       root,
+		iterations: 68056093,
+		shards:     defaultShards,
+	})
+}
+
 func newChromeHarness(t testing.TB) *chromeHarness {
 	t.Helper()
 	if os.Getenv(runEnv) != "1" && !strings.EqualFold(os.Getenv(runEnv), "true") {
@@ -1179,6 +1264,14 @@ func buildWasm(out string) error {
 	}
 	if os.Getenv(tinyGoEnv) == "1" || strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
 		args := []string{"build", "-target", "wasm", "-scheduler=asyncify"}
+		panicStrategy := strings.TrimSpace(os.Getenv(tinyGoPanicEnv))
+		if panicStrategy == "" {
+			panicStrategy = "print"
+		}
+		args = append(args, "-panic="+panicStrategy)
+		if gc := strings.TrimSpace(os.Getenv(tinyGoGCEnv)); gc != "" {
+			args = append(args, "-gc="+gc)
+		}
 		if stackSize := strings.TrimSpace(os.Getenv(tinyGoStackEnv)); stackSize != "" {
 			args = append(args, "-stack-size="+stackSize)
 		}
@@ -1889,8 +1982,37 @@ self.BLDR_OPFS_WRITE_FILE ??= (dir, name, data, opID) => {
     })
 }
 
+let __opfsChrometestCurrentArgs = null
+function __opfsChrometestErrorText(reason) {
+  if (reason && typeof reason === 'object' && typeof reason.stack === 'string') {
+    return reason.stack
+  }
+  if (reason && typeof reason === 'object' && typeof reason.message === 'string') {
+    return reason.message
+  }
+  return String(reason)
+}
+function __opfsChrometestPostUnhandled(reason) {
+  const args = __opfsChrometestCurrentArgs ?? {}
+  self.postMessage({
+    kind: 'result',
+    scenario: args.scenario ?? '',
+    worker: args.worker ?? 0,
+    ok: false,
+    error: __opfsChrometestErrorText(reason),
+  })
+}
+self.onerror = (message, source, lineno, colno, error) => {
+  __opfsChrometestPostUnhandled(error || (String(message) + ' at ' + source + ':' + lineno + ':' + colno))
+  return true
+}
+self.onunhandledrejection = (event) => {
+  __opfsChrometestPostUnhandled(event.reason)
+}
+
 self.onmessage = async (event) => {
   const args = event.data
+  __opfsChrometestCurrentArgs = args
   const go = new Go()
   self.__BLDR_TINYGO_CURRENT_GO = go
   go.argv = [

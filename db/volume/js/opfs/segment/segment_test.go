@@ -2,6 +2,8 @@ package segment
 
 import (
 	"bytes"
+	"encoding/binary"
+	"io"
 	"strconv"
 	"testing"
 )
@@ -63,6 +65,96 @@ func TestRoundTrip(t *testing.T) {
 		if entries[i].Tombstone {
 			t.Errorf("entry %d: unexpected tombstone", i)
 		}
+	}
+}
+
+func TestEntryIterator(t *testing.T) {
+	w := NewWriter()
+	w.Add([]byte("charlie"), []byte("value3"))
+	w.AddTombstone([]byte("bravo"))
+	w.Add([]byte("alpha"), []byte("value1"))
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	data := buf.Bytes()
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+
+	it := NewEntryIterator(bytes.NewReader(data), meta)
+	var entries []Entry
+	for {
+		entry, ok, err := it.Next()
+		if err != nil {
+			t.Fatalf("Next: %v", err)
+		}
+		if !ok {
+			break
+		}
+		entries = append(entries, entry)
+	}
+
+	if len(entries) != 3 {
+		t.Fatalf("entries: got %d, want 3", len(entries))
+	}
+	if string(entries[0].Key) != "alpha" || string(entries[0].Value) != "value1" {
+		t.Fatalf("entry 0: %+v", entries[0])
+	}
+	if string(entries[1].Key) != "bravo" || !entries[1].Tombstone {
+		t.Fatalf("entry 1: %+v", entries[1])
+	}
+	if string(entries[2].Key) != "charlie" || string(entries[2].Value) != "value3" {
+		t.Fatalf("entry 2: %+v", entries[2])
+	}
+
+	if entry, ok, err := it.Next(); err != nil || ok || entry.Key != nil {
+		t.Fatalf("exhausted Next: entry=%+v ok=%v err=%v", entry, ok, err)
+	}
+}
+
+func TestEntryIteratorRejectsTruncatedValueBeforeAlloc(t *testing.T) {
+	w := NewWriter()
+	w.Add([]byte("key"), []byte("value"))
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	data := append([]byte(nil), buf.Bytes()...)
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+
+	valueLenOff := int(meta.Header.DataOffset) + 2 + len("key")
+	binary.BigEndian.PutUint32(data[valueLenOff:valueLenOff+4], 1<<30)
+
+	it := NewEntryIterator(bytes.NewReader(data), meta)
+	if entry, ok, err := it.Next(); err != io.ErrUnexpectedEOF || ok || entry.Key != nil {
+		t.Fatalf("Next: entry=%+v ok=%v err=%v, want unexpected EOF", entry, ok, err)
+	}
+}
+
+func TestVerifyChecksumRejectsCorruptContent(t *testing.T) {
+	w := NewWriter()
+	w.Add([]byte("key"), []byte("value"))
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	data := append([]byte(nil), buf.Bytes()...)
+	if err := VerifyChecksum(bytes.NewReader(data), int64(len(data))); err != nil {
+		t.Fatalf("VerifyChecksum clean: %v", err)
+	}
+
+	data[int(HeaderSize)+2] ^= 0xff
+	if err := VerifyChecksum(bytes.NewReader(data), int64(len(data))); err == nil {
+		t.Fatal("VerifyChecksum corrupt: expected error")
 	}
 }
 

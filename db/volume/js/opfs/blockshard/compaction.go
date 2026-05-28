@@ -3,7 +3,6 @@
 package blockshard
 
 import (
-	"bytes"
 	"context"
 	"time"
 
@@ -36,43 +35,49 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 		return err
 	}
 
-	// Read input segments into memory.
-	readers := make([]*segment.Reader, len(plan.InputSegs))
+	iters := make([]*segment.EntryIterator, len(plan.InputSegs))
 	for i, meta := range plan.InputSegs {
-		data := readFileBytes(shard.dir, meta.Filename)
-		if data == nil {
-			return errors.Errorf("read input segment %s: not found", meta.Filename)
+		f, err := shard.getSegmentFile(context.Background(), &meta)
+		if err != nil {
+			return errors.Errorf("open input segment %s: %v", meta.Filename, err)
 		}
-		rd, err := segment.NewReader(bytes.NewReader(data), int64(len(data)))
+		size := int64(meta.Size)
+		if size == 0 {
+			size, err = f.Size()
+			if err != nil {
+				return errors.Errorf("get input segment %s size: %v", meta.Filename, err)
+			}
+		}
+		if err := segment.VerifyChecksum(f, size); err != nil {
+			return errors.Errorf("verify input segment %s: %v", meta.Filename, err)
+		}
+		lookup, err := loadLookupMeta(context.Background(), f, &meta)
 		if err != nil {
 			return errors.Errorf("parse input segment %s: %v", meta.Filename, err)
 		}
-		readers[i] = rd
+		iters[i] = segment.NewEntryIterator(f, lookup)
 	}
 
-	// K-way merge.
-	merged, err := MergeSegments(readers)
-	if err != nil {
+	writer := compactionOutputWriter{
+		shard:        shard,
+		outputLevel:  plan.OutputLevel,
+		maxDataBytes: shard.maxSegmentDataBytes,
+	}
+	if err := mergeSegmentIterators(iters, func(entry segment.Entry) error {
+		if entry.Tombstone && !manifestMayContainKeyOutsideInputs(m, inputNames, entry.Key) {
+			return nil
+		}
+		if err := writer.Add(entry); err != nil {
+			return errors.Wrap(err, "write compacted segment")
+		}
+		return nil
+	}); err != nil {
 		return errors.Wrap(err, "merge segments")
 	}
-	if len(merged) == 0 {
-		return nil
+	if err := writer.Flush(); err != nil {
+		return errors.Wrap(err, "write compacted segment")
 	}
-	merged = pruneCompactedTombstones(merged, m, inputNames)
-
-	// Build output SSTables.
-	var outputs []writtenSegment
-	if len(merged) != 0 {
-		groups := splitSegmentEntries(merged, shard.maxSegmentDataBytes)
-		outputs = make([]writtenSegment, 0, len(groups))
-		for i := range groups {
-			output, err := shard.writeSegment(context.Background(), groups[i], plan.OutputLevel)
-			if err != nil {
-				return errors.Wrap(err, "write compacted segment")
-			}
-			outputs = append(outputs, output)
-		}
-	}
+	outputs := writer.Outputs()
 	outMetas := make([]SegmentMeta, len(outputs))
 	for i := range outputs {
 		outMetas[i] = outputs[i].Meta
@@ -102,6 +107,48 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 		shard.cacheLookup(outputs[i].Meta.Filename, outputs[i].Lookup)
 	}
 	return nil
+}
+
+type compactionOutputWriter struct {
+	shard        *Shard
+	outputLevel  uint8
+	maxDataBytes int
+	entries      []segment.Entry
+	dataBytes    int
+	outputs      []writtenSegment
+}
+
+func (w *compactionOutputWriter) Add(entry segment.Entry) error {
+	entrySize := estimateSegmentEntryDataBytes(entry)
+	if w.maxDataBytes > 0 && len(w.entries) != 0 && w.dataBytes+entrySize > w.maxDataBytes {
+		if err := w.Flush(); err != nil {
+			return err
+		}
+	}
+	w.entries = append(w.entries, entry)
+	w.dataBytes += entrySize
+	return nil
+}
+
+func (w *compactionOutputWriter) Flush() error {
+	if len(w.entries) == 0 {
+		return nil
+	}
+	output, err := w.shard.writeSegment(context.Background(), w.entries, w.outputLevel)
+	if err != nil {
+		return err
+	}
+	w.outputs = append(w.outputs, output)
+	for i := range w.entries {
+		w.entries[i] = segment.Entry{}
+	}
+	w.entries = w.entries[:0]
+	w.dataBytes = 0
+	return nil
+}
+
+func (w *compactionOutputWriter) Outputs() []writtenSegment {
+	return w.outputs
 }
 
 // DeleteOldSegments removes input segment files after compaction.

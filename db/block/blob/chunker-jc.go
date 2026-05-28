@@ -72,27 +72,11 @@ func buildChunkIndexJC(
 			return 0, err
 		}
 
-		var dataSlice []byte
-		if len(chunkBuf) >= nchk.Length && len(nchk.Data) == nchk.Length &&
-			&nchk.Data[0] == &chunkBuf[0] {
-			// We provided the buffer and chunker used it - safe to use directly
-			// Make a copy since we need to store it permanently
-			dataSlice = make([]byte, nchk.Length)
-			copy(dataSlice, nchk.Data)
-		} else {
-			// Chunker returned slice of its internal buffer - must copy
-			dataSlice = make([]byte, nchk.Length)
-			copy(dataSlice, nchk.Data)
-		}
-
-		totalSize += uint64(nchk.Length)                                      //nolint:gosec
-		ci.AppendChunk(chkSet, idx, uint64(nchk.Length), chkStart, dataSlice) //nolint:gosec
-		chkStart += uint64(nchk.Length)                                       //nolint:gosec
-
-		// flush chunk data to storage immediately to free memory
-		if err := flushChunkData(ctx, chkSet, idx); err != nil {
+		totalSize += uint64(nchk.Length) //nolint:gosec
+		if err := appendChunkData(ctx, ci, chkSet, idx, uint64(nchk.Length), chkStart, nchk.Data); err != nil {
 			return 0, err
 		}
+		chkStart += uint64(nchk.Length) //nolint:gosec
 		idx++
 
 		if err := ctx.Err(); err != nil {

@@ -256,27 +256,6 @@ func loadLookupMeta(ctx context.Context, f segmentReader, meta *SegmentMeta) (*s
 	return lookup, nil
 }
 
-func lookupFromReader(rd *segment.Reader) *segment.LookupMeta {
-	return &segment.LookupMeta{
-		Header: rd.Header(),
-		MinKey: append([]byte{}, rd.MinKey()...),
-		MaxKey: append([]byte{}, rd.MaxKey()...),
-		Index:  cloneIndex(rd.Index()),
-		Bloom:  rd.Bloom(),
-	}
-}
-
-func cloneIndex(idx []segment.IndexEntry) []segment.IndexEntry {
-	out := make([]segment.IndexEntry, len(idx))
-	for i := range idx {
-		out[i] = segment.IndexEntry{
-			Key:        append([]byte{}, idx[i].Key...),
-			DataOffset: idx[i].DataOffset,
-		}
-	}
-	return out
-}
-
 func alignSegmentOffset(off int64) int64 {
 	return (off / cachedSegmentBlockSize) * cachedSegmentBlockSize
 }

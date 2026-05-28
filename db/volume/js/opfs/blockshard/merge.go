@@ -2,7 +2,6 @@ package blockshard
 
 import (
 	"bytes"
-	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
@@ -12,47 +11,92 @@ import (
 // Input readers are ordered oldest-first (index 0 = oldest).
 // Newest entry wins per key. Tombstones suppress older values.
 func MergeSegments(readers []*segment.Reader) ([]segment.Entry, error) {
-	type indexedEntry struct {
-		entry    segment.Entry
-		segIndex int
+	iters := make([]*segment.EntryIterator, len(readers))
+	for i := range readers {
+		iters[i] = readers[i].Entries()
 	}
 
-	var all []indexedEntry
-	for i, rd := range readers {
-		entries, err := rd.ReadEntries()
-		if err != nil {
-			return nil, errors.Errorf("read segment %d: %v", i, err)
-		}
-		for _, e := range entries {
-			all = append(all, indexedEntry{entry: e, segIndex: i})
-		}
-	}
-
-	// Sort by key, then by segment index descending (newest first for dedup).
-	slices.SortStableFunc(all, func(a, b indexedEntry) int {
-		cmp := bytes.Compare(a.entry.Key, b.entry.Key)
-		if cmp != 0 {
-			return cmp
-		}
-		if a.segIndex > b.segIndex {
-			return -1
-		}
-		if a.segIndex < b.segIndex {
-			return 1
-		}
-		return 0
-	})
-
-	// Deduplicate: keep newest per key.
 	var result []segment.Entry
-	var prevKey []byte
-	for _, ie := range all {
-		if bytes.Equal(ie.entry.Key, prevKey) {
-			continue
+	err := mergeSegmentIterators(iters, func(entry segment.Entry) error {
+		result = append(result, entry)
+		return nil
+	})
+	return result, err
+}
+
+func mergeSegmentIterators(
+	iters []*segment.EntryIterator,
+	emit func(segment.Entry) error,
+) error {
+	sources := make([]mergeSegmentSource, len(iters))
+	active := 0
+	for i := range iters {
+		sources[i] = mergeSegmentSource{
+			iter:     iters[i],
+			segIndex: i,
 		}
-		prevKey = ie.entry.Key
-		result = append(result, ie.entry)
+		if err := sources[i].advance(); err != nil {
+			return errors.Errorf("read segment %d: %v", i, err)
+		}
+		if sources[i].ok {
+			active++
+		}
 	}
 
-	return result, nil
+	for active != 0 {
+		minIdx := -1
+		for i := range sources {
+			if !sources[i].ok {
+				continue
+			}
+			if minIdx < 0 || bytes.Compare(sources[i].entry.Key, sources[minIdx].entry.Key) < 0 {
+				minIdx = i
+			}
+		}
+		if minIdx < 0 {
+			break
+		}
+		key := sources[minIdx].entry.Key
+		best := segment.Entry{}
+		bestSeg := -1
+		for i := range sources {
+			for sources[i].ok && bytes.Equal(sources[i].entry.Key, key) {
+				if sources[i].segIndex >= bestSeg {
+					best = sources[i].entry
+					bestSeg = sources[i].segIndex
+				}
+				wasActive := sources[i].ok
+				if err := sources[i].advance(); err != nil {
+					return errors.Errorf("read segment %d: %v", i, err)
+				}
+				if wasActive && !sources[i].ok {
+					active--
+				}
+			}
+		}
+		if bestSeg < 0 {
+			return errors.New("merge did not select an entry")
+		}
+		if err := emit(best); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type mergeSegmentSource struct {
+	iter     *segment.EntryIterator
+	segIndex int
+	entry    segment.Entry
+	ok       bool
+}
+
+func (s *mergeSegmentSource) advance() error {
+	entry, ok, err := s.iter.Next()
+	if err != nil {
+		return err
+	}
+	s.entry = entry
+	s.ok = ok
+	return nil
 }

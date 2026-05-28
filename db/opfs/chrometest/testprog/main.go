@@ -157,6 +157,10 @@ func run(ctx context.Context, c *config) error {
 		return runLargeWriteReadList(c)
 	case "large-block-batch":
 		return runLargeBlockBatch(ctx, c)
+	case "block-corrupt-compaction":
+		return runBlockCorruptCompaction(ctx, c)
+	case "block-zero-size-compaction":
+		return runBlockZeroSizeCompaction(ctx, c)
 	case "read-at-helper-loop":
 		return runReadAtHelperLoop(c)
 	case "gc-wal-write-loop":
@@ -227,6 +231,8 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeRuntimeDeleteVerify(ctx, c)
 	case "world-init-unixfs":
 		return runWorldInitUnixFS(ctx, c)
+	case "world-large-unixfs-upload":
+		return runWorldLargeUnixFSUpload(ctx, c)
 	default:
 		return errors.Errorf("unknown scenario %q", c.scenario)
 	}
@@ -425,6 +431,200 @@ func verifyLargeBlockSamples(ctx context.Context, e *blockshard.Engine, totalSiz
 		}
 	}
 	return nil
+}
+
+func runBlockCorruptCompaction(ctx context.Context, c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"block-corrupt-compaction"})
+	if err != nil {
+		return err
+	}
+
+	shard, before, err := publishCompactionInputSegments(ctx, c, dir, "corrupt-compaction")
+	if err != nil {
+		return err
+	}
+	corruptName := before.Segments[0].Filename
+	data, err := opfs.ReadFile(dir, corruptName)
+	if err != nil {
+		return errors.Wrap(err, "read segment to corrupt")
+	}
+	if len(data) < segment.HeaderSize {
+		return errors.New("segment too small to corrupt")
+	}
+	hdr, err := segment.DecodeHeader(data[:segment.HeaderSize])
+	if err != nil {
+		return errors.Wrap(err, "decode corrupt target header")
+	}
+	if int(hdr.DataOffset) >= len(data)-4 {
+		return errors.New("segment has no data byte to corrupt")
+	}
+	data[hdr.DataOffset] ^= 0xff
+	if err := opfs.WriteFile(dir, corruptName, data); err != nil {
+		return errors.Wrap(err, "write corrupt segment")
+	}
+
+	plan := blockshard.PlanCompaction(shard, blockshard.DefaultL0Trigger)
+	if plan == nil {
+		return errors.New("expected compaction plan")
+	}
+	release, err := shard.AcquirePublishLock()
+	if err != nil {
+		return err
+	}
+	err = blockshard.ExecuteCompaction(shard, plan)
+	release()
+	if err == nil {
+		return errors.New("expected corrupt compaction input to fail")
+	}
+	if !strings.Contains(err.Error(), "CRC32 mismatch") {
+		return errors.Wrap(err, "expected CRC32 mismatch")
+	}
+
+	after := shard.Manifest()
+	if after.Generation != before.Generation {
+		return errors.Errorf("generation mutated after failed compaction: got %d want %d", after.Generation, before.Generation)
+	}
+	if len(after.Segments) != len(before.Segments) {
+		return errors.Errorf("segments mutated after failed compaction: got %d want %d", len(after.Segments), len(before.Segments))
+	}
+	if len(after.PendingDelete) != len(before.PendingDelete) {
+		return errors.Errorf("pending deletes mutated after failed compaction: got %d want %d", len(after.PendingDelete), len(before.PendingDelete))
+	}
+	return nil
+}
+
+func runBlockZeroSizeCompaction(ctx context.Context, c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"block-zero-size-compaction"})
+	if err != nil {
+		return err
+	}
+
+	_, before, err := publishCompactionInputSegments(ctx, c, dir, "zero-size-compaction")
+	if err != nil {
+		return err
+	}
+	zeroSizeManifest := before.Clone()
+	zeroSizeManifest.Generation = before.Generation + 1
+	for i := range zeroSizeManifest.Segments {
+		zeroSizeManifest.Segments[i].Size = 0
+	}
+	if err := writeTestBlockshardManifest(dir, zeroSizeManifest); err != nil {
+		return err
+	}
+
+	settings := blockshard.DefaultSettings()
+	settings.MaxSegmentDataBytes = 128
+	shard, err := blockshard.NewShard(0, dir, c.root+"/zero-size-compaction", settings)
+	if err != nil {
+		return err
+	}
+	plan := blockshard.PlanCompaction(shard, blockshard.DefaultL0Trigger)
+	if plan == nil {
+		return errors.New("expected compaction plan")
+	}
+	for i := range plan.InputSegs {
+		if plan.InputSegs[i].Size != 0 {
+			return errors.Errorf("plan input size=%d want zero", plan.InputSegs[i].Size)
+		}
+	}
+
+	release, err := shard.AcquirePublishLock()
+	if err != nil {
+		return err
+	}
+	err = blockshard.ExecuteCompaction(shard, plan)
+	release()
+	if err != nil {
+		return errors.Wrap(err, "execute compaction with zero-size inputs")
+	}
+	after := shard.Manifest()
+	if after.Generation <= zeroSizeManifest.Generation {
+		return errors.Errorf("generation after compaction=%d want > %d", after.Generation, zeroSizeManifest.Generation)
+	}
+	if len(after.Segments) == 0 {
+		return errors.New("compaction produced no output segments")
+	}
+	for i := range after.Segments {
+		if after.Segments[i].Size == 0 {
+			return errors.Errorf("output segment %s has zero size", after.Segments[i].Filename)
+		}
+	}
+	if err := verifyCompactionInputValues(dir, after, "zero-size-compaction"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func publishCompactionInputSegments(
+	ctx context.Context,
+	c *config,
+	dir js.Value,
+	lockSuffix string,
+) (*blockshard.Shard, *blockshard.Manifest, error) {
+	settings := blockshard.DefaultSettings()
+	settings.MaxSegmentDataBytes = 128
+	shard, err := blockshard.NewShard(0, dir, c.root+"/"+lockSuffix, settings)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	release, err := shard.AcquirePublishLock()
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := 0; i < blockshard.DefaultL0Trigger; i++ {
+		key := []byte(lockSuffix + "-key-" + strconv.Itoa(i))
+		value := bytes.Repeat([]byte{byte(i + 1)}, 48)
+		if err := shard.Publish(ctx, []segment.Entry{{Key: key, Value: value}}); err != nil {
+			release()
+			return nil, nil, err
+		}
+	}
+	release()
+
+	manifest := shard.Manifest()
+	if len(manifest.Segments) != blockshard.DefaultL0Trigger {
+		return nil, nil, errors.Errorf("segments before compaction=%d want=%d", len(manifest.Segments), blockshard.DefaultL0Trigger)
+	}
+	return shard, manifest, nil
+}
+
+func verifyCompactionInputValues(dir js.Value, m *blockshard.Manifest, keyPrefix string) error {
+	for i := 0; i < blockshard.DefaultL0Trigger; i++ {
+		key := []byte(keyPrefix + "-key-" + strconv.Itoa(i))
+		want := bytes.Repeat([]byte{byte(i + 1)}, 48)
+		found := false
+		for j := range m.Segments {
+			sr, err := blockshard.OpenSegment(dir, m.Segments[j].Filename)
+			if err != nil {
+				return err
+			}
+			got, ok, err := sr.Get(key)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				continue
+			}
+			found = true
+			if !bytes.Equal(got, want) {
+				return errors.Errorf("compacted value mismatch for %s", key)
+			}
+			break
+		}
+		if !found {
+			return errors.Errorf("compacted key %s not found", key)
+		}
+	}
+	return nil
+}
+
+func writeTestBlockshardManifest(dir js.Value, m *blockshard.Manifest) error {
+	slot := "manifest-a"
+	if m.Generation%2 == 0 {
+		slot = "manifest-b"
+	}
+	return opfs.WriteFile(dir, slot, m.Encode())
 }
 
 func runReadAtHelperLoop(c *config) error {
@@ -1288,6 +1488,138 @@ func runWorldInitUnixFS(ctx context.Context, c *config) error {
 	return nil
 }
 
+func runWorldLargeUnixFSUpload(ctx context.Context, c *config) error {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+
+	le := logrus.NewEntry(logrus.New())
+	bucketID := c.root + "/world"
+	ref := &bucket.ObjectRef{BucketId: bucketID}
+	cursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		le,
+		nil,
+		vol,
+		nil,
+		ref,
+		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: vol.GetID()},
+		nil,
+	)
+	defer cursor.Release()
+
+	ws, err := world_block.BuildWorldStateFromCursor(
+		ctx,
+		le,
+		true,
+		cursor,
+		world.NewWorldStorageFromCursor(cursor),
+		space_world_ops.LookupWorldOp,
+		false,
+	)
+	if err != nil {
+		return errors.Wrap(err, "build world state")
+	}
+	defer ws.Discard()
+
+	if _, _, err := space_world_ops.InitUnixFS(ctx, ws, vol.GetPeerID(), "files", time.Now()); err != nil {
+		return errors.Wrap(err, "init unixfs")
+	}
+	if err := ws.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit initial world state")
+	}
+
+	totalSize := c.iterations
+	if totalSize <= 0 {
+		totalSize = 64 * 1024 * 1024
+	}
+	b := unixfs_world.NewBatchFSWriter(
+		ws,
+		"files",
+		unixfs_world.FSType_FSType_FS_NODE,
+		vol.GetPeerID(),
+	)
+	defer b.Release()
+	if err := b.AddFile(
+		ctx,
+		nil,
+		"large-video.mp4",
+		unixfs_sdk.NewFSCursorNodeType_File(),
+		int64(totalSize),
+		newDeterministicLargeReader(totalSize, 0),
+		0o644,
+		time.Now(),
+	); err != nil {
+		return errors.Wrap(err, "add large unixfs file")
+	}
+	if err := b.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit large unixfs upload")
+	}
+
+	fsCursor, err := unixfs_world.FollowUnixfsRef(
+		ctx,
+		le,
+		ws,
+		&unixfs_world.UnixfsRef{
+			ObjectKey: "files",
+			FsType:    unixfs_world.FSType_FSType_FS_NODE,
+		},
+		vol.GetPeerID(),
+		true,
+	)
+	if err != nil {
+		return errors.Wrap(err, "follow unixfs")
+	}
+	defer fsCursor.Release()
+
+	handle, err := unixfs_sdk.NewFSHandle(fsCursor)
+	if err != nil {
+		return errors.Wrap(err, "open fs handle")
+	}
+	defer handle.Release()
+
+	largeFile, err := handle.Lookup(ctx, "large-video.mp4")
+	if err != nil {
+		return errors.Wrap(err, "lookup large file")
+	}
+	defer largeFile.Release()
+	return verifyDeterministicFSFile(ctx, largeFile, totalSize, 0)
+}
+
+func verifyDeterministicFSFile(
+	ctx context.Context,
+	handle *unixfs_sdk.FSHandle,
+	totalSize int,
+	salt int,
+) error {
+	size, err := handle.GetSize(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get large file size")
+	}
+	if size != uint64(totalSize) {
+		return errors.Errorf("large file size=%d want=%d", size, totalSize)
+	}
+	for _, offset := range []int{0, totalSize / 2, max(0, totalSize-4096)} {
+		wantLen := min(4096, totalSize-offset)
+		got := make([]byte, wantLen)
+		n, err := handle.ReadAt(ctx, int64(offset), got)
+		if err != nil && err != io.EOF {
+			return errors.Wrapf(err, "read large file offset=%d", offset)
+		}
+		if int(n) != wantLen {
+			return errors.Errorf("large file offset=%d read=%d want=%d", offset, n, wantLen)
+		}
+		want := deterministicLargeWindow(offset, wantLen, salt)
+		if !bytes.Equal(got, want) {
+			return errors.Errorf("large file offset=%d data mismatch", offset)
+		}
+	}
+	return nil
+}
+
 func readCurrentMetaSuperblock(dir js.Value) (*pagestore.Superblock, error) {
 	a, err := opfs.ReadFile(dir, "super-a")
 	if err != nil && !opfs.IsNotFound(err) {
@@ -1514,14 +1846,72 @@ func blockValue(key []byte) []byte {
 
 func deterministicLargeBytes(size int, salt int) []byte {
 	buf := make([]byte, size)
+	fillDeterministicLargeBytes(buf, 0, salt)
+	return buf
+}
+
+func deterministicLargeWindow(offset, size int, salt int) []byte {
+	r := newDeterministicLargeReader(offset+size, salt)
+	var scratch [32 * 1024]byte
+	for remaining := offset; remaining > 0; {
+		n := min(remaining, len(scratch))
+		if _, err := io.ReadFull(r, scratch[:n]); err != nil {
+			return nil
+		}
+		remaining -= n
+	}
+	buf := make([]byte, size)
+	if _, err := io.ReadFull(r, buf); err != nil {
+		return nil
+	}
+	return buf
+}
+
+func fillDeterministicLargeBytes(buf []byte, offset int, salt int) {
 	x := uint32(0x9e3779b9) ^ (uint32(salt) * uint32(0x85ebca6b))
+	for i := 0; i < offset; i++ {
+		x ^= x << 13
+		x ^= x >> 17
+		x ^= x << 5
+	}
 	for i := range buf {
 		x ^= x << 13
 		x ^= x >> 17
 		x ^= x << 5
-		buf[i] = byte(x) + byte(i)
+		buf[i] = byte(x) + byte(offset+i)
 	}
-	return buf
+}
+
+type deterministicLargeReader struct {
+	remaining int
+	offset    int
+	x         uint32
+}
+
+func newDeterministicLargeReader(size int, salt int) *deterministicLargeReader {
+	return &deterministicLargeReader{
+		remaining: size,
+		x:         uint32(0x9e3779b9) ^ (uint32(salt) * uint32(0x85ebca6b)),
+	}
+}
+
+func (r *deterministicLargeReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	if r.remaining == 0 {
+		return 0, io.EOF
+	}
+	n := min(len(p), r.remaining)
+	for i := range p[:n] {
+		r.x ^= r.x << 13
+		r.x ^= r.x >> 17
+		r.x ^= r.x << 5
+		p[i] = byte(r.x) + byte(r.offset)
+		r.offset++
+	}
+	r.remaining -= n
+	return n, nil
 }
 
 func metaKey(worker, iteration int) []byte {

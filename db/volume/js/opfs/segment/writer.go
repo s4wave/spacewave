@@ -59,6 +59,31 @@ func (w *Writer) Reset() {
 	w.entries = w.entries[:0]
 }
 
+// EstimatedSize returns a conservative byte-size hint for Build output.
+func (w *Writer) EstimatedSize() int {
+	if len(w.entries) == 0 {
+		return 0
+	}
+	dataSize := 0
+	indexSize := 0
+	maxKeyLen := 0
+	indexInterval := max(w.indexInterval, 1)
+	for i := range w.entries {
+		keyLen := len(w.entries[i].Key)
+		maxKeyLen = max(maxKeyLen, keyLen)
+		dataSize += EntryOverhead + keyLen
+		if !w.entries[i].Tombstone {
+			dataSize += len(w.entries[i].Value)
+		}
+		if i%indexInterval == 0 {
+			indexSize += 2 + keyLen + 4
+		}
+	}
+	bloomSize := len(NewBloomFilter(len(w.entries), w.bloomFPR).Encode())
+	keyBlockSize := 2 + maxKeyLen + 2 + maxKeyLen
+	return HeaderSize + keyBlockSize + dataSize + indexSize + bloomSize + 4
+}
+
 // Build sorts entries by key and writes the SSTable to dst.
 // Returns the total bytes written.
 func (w *Writer) Build(dst io.Writer) (int64, error) {

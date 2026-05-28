@@ -153,6 +153,9 @@ func (s *Shard) writeSegment(ctx context.Context, entries []segment.Entry, level
 	}
 
 	var buf bytes.Buffer
+	if estimated := w.EstimatedSize(); estimated > 0 {
+		buf.Grow(estimated)
+	}
 	written, err := w.Build(&buf)
 	subtask.End()
 	if err != nil {
@@ -191,21 +194,20 @@ func (s *Shard) writeSegment(ctx context.Context, entries []segment.Entry, level
 	// Build sorted entries to get min/max keys.
 	// The writer sorts them, so re-read from the built SSTable.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/build-metadata")
-	rd, err := segment.NewReader(bytes.NewReader(segData), written)
+	lookup, err := segment.LoadLookupMeta(bytes.NewReader(segData), written)
 	if err != nil {
 		subtask.End()
-		return writtenSegment{}, errors.Wrap(err, "read built segment for metadata")
+		return writtenSegment{}, errors.Wrap(err, "load built segment metadata")
 	}
 
 	meta := SegmentMeta{
 		Filename:   filename,
-		EntryCount: rd.EntryCount(),
+		EntryCount: lookup.Header.EntryCount,
 		Size:       uint32(written),
 		Level:      level,
-		MinKey:     rd.MinKey(),
-		MaxKey:     rd.MaxKey(),
+		MinKey:     lookup.MinKey,
+		MaxKey:     lookup.MaxKey,
 	}
-	lookup := lookupFromReader(rd)
 	subtask.End()
 
 	return writtenSegment{Meta: meta, Lookup: lookup}, nil
