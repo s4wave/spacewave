@@ -80,16 +80,16 @@ def desktop_status_projector_config_set():
         "desktop-status-projector": config_entry("resource/desktop/status-projector", 1),
     }
 
-def spacewave_core_config(enable_tinygo_web=False):
+def spacewave_core_config(web_compiler_mode=None):
     platform_types = {
         "desktop": {
             "goPkgs": ["./core/resource/desktop/statusprojector"],
             "configSet": desktop_status_projector_config_set(),
         },
     }
-    if enable_tinygo_web:
+    if web_compiler_mode:
         platform_types["web"] = {
-            "enableTinygo": "ENABLE",
+            "compilerMode": web_compiler_mode,
         }
     return {
         "goPkgs": CORE_GO_PKGS,
@@ -458,7 +458,7 @@ build("release-web-tinygo",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(enable_tinygo_web=True),
+        "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_TINYGO"),
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
@@ -469,7 +469,7 @@ build("release-web-e2e-tinygo",
     manifests=BROWSER_RELEASE_E2E_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(enable_tinygo_web=True),
+        "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_TINYGO"),
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
@@ -491,7 +491,7 @@ build("plugin-release-browser-tinygo",
     manifests=REMOTE_WORLD_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(enable_tinygo_web=True),
+        "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_TINYGO"),
     },
 )
 

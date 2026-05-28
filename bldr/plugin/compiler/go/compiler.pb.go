@@ -23,6 +23,50 @@ import (
 	pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
+// CompilerMode selects the compiler used for the Go plugin artifact.
+type CompilerMode int32
+
+const (
+	// COMPILER_MODE_DEFAULT preserves the current default policy.
+	CompilerMode_COMPILER_MODE_DEFAULT CompilerMode = 0
+	// COMPILER_MODE_GO uses the standard Go compiler.
+	CompilerMode_COMPILER_MODE_GO CompilerMode = 1
+	// COMPILER_MODE_TINYGO uses TinyGo.
+	CompilerMode_COMPILER_MODE_TINYGO CompilerMode = 2
+	// COMPILER_MODE_GOSCRIPT uses GoScript.
+	CompilerMode_COMPILER_MODE_GOSCRIPT CompilerMode = 3
+)
+
+// Enum value maps for CompilerMode.
+var (
+	CompilerMode_name = map[int32]string{
+		0: "COMPILER_MODE_DEFAULT",
+		1: "COMPILER_MODE_GO",
+		2: "COMPILER_MODE_TINYGO",
+		3: "COMPILER_MODE_GOSCRIPT",
+	}
+	CompilerMode_value = map[string]int32{
+		"COMPILER_MODE_DEFAULT":  0,
+		"COMPILER_MODE_GO":       1,
+		"COMPILER_MODE_TINYGO":   2,
+		"COMPILER_MODE_GOSCRIPT": 3,
+	}
+)
+
+func (x CompilerMode) Enum() *CompilerMode {
+	p := new(CompilerMode)
+	*p = x
+	return p
+}
+
+func (x CompilerMode) String() string {
+	name, valid := CompilerMode_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // InputFileKind is the kind of file this is.
 type InputFileKind int32
 
@@ -33,6 +77,8 @@ const (
 	InputFileKind_InputFileKind_ASSET InputFileKind = 1
 	// InputFileKind_GO is a file built by the Go compiler.
 	InputFileKind_InputFileKind_GO InputFileKind = 2
+	// InputFileKind_GOSCRIPT_OVERRIDE is a project-local GoScript override file.
+	InputFileKind_InputFileKind_GOSCRIPT_OVERRIDE InputFileKind = 3
 )
 
 // Enum value maps for InputFileKind.
@@ -41,11 +87,13 @@ var (
 		0: "InputFileKind_UNKNOWN",
 		1: "InputFileKind_ASSET",
 		2: "InputFileKind_GO",
+		3: "InputFileKind_GOSCRIPT_OVERRIDE",
 	}
 	InputFileKind_value = map[string]int32{
-		"InputFileKind_UNKNOWN": 0,
-		"InputFileKind_ASSET":   1,
-		"InputFileKind_GO":      2,
+		"InputFileKind_UNKNOWN":           0,
+		"InputFileKind_ASSET":             1,
+		"InputFileKind_GO":                2,
+		"InputFileKind_GOSCRIPT_OVERRIDE": 3,
 	}
 )
 
@@ -205,11 +253,9 @@ type Config struct {
 	//
 	// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
 	EnableCgo enabled.Enabled `protobuf:"varint,9,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
-	// EnableTinygo enables using TinyGo instead of the Go compiler.
-	// The default is ENABLE for release browser WebAssembly builds and DISABLE
-	// otherwise. Explicit ENABLE is only supported for TinyGo-compatible
-	// WebAssembly targets such as web/js/wasm.
-	EnableTinygo enabled.Enabled `protobuf:"varint,10,opt,name=enable_tinygo,json=enableTinygo,proto3" json:"enableTinygo,omitempty"`
+	// CompilerMode selects the Go plugin compiler. DEFAULT preserves the current
+	// release browser default policy.
+	CompilerMode CompilerMode `protobuf:"varint,7,opt,name=compiler_mode,json=compilerMode,proto3" json:"compilerMode,omitempty"`
 	// EnableCompression can optionally force-enable or force-disable binary compression.
 	// The default is ENABLE for release-mode only.
 	// Only applicable for the web platform (WebAssembly) (currently).
@@ -316,11 +362,11 @@ func (x *Config) GetEnableCgo() enabled.Enabled {
 	return enabled.Enabled(0)
 }
 
-func (x *Config) GetEnableTinygo() enabled.Enabled {
+func (x *Config) GetCompilerMode() CompilerMode {
 	if x != nil {
-		return x.EnableTinygo
+		return x.CompilerMode
 	}
-	return enabled.Enabled(0)
+	return CompilerMode_COMPILER_MODE_DEFAULT
 }
 
 func (x *Config) GetEnableCompression() enabled.Enabled {
@@ -430,6 +476,14 @@ type InputManifestMeta struct {
 	// ViteDisableProjectConfig indicates whether to disable automatic project config detection.
 	// Disables finding the root vite.conf.ts for the project.
 	ViteDisableProjectConfig bool `protobuf:"varint,10,opt,name=vite_disable_project_config,json=viteDisableProjectConfig,proto3" json:"viteDisableProjectConfig,omitempty"`
+	// CompilerMode is the resolved compiler used to produce this artifact.
+	CompilerMode CompilerMode `protobuf:"varint,11,opt,name=compiler_mode,json=compilerMode,proto3" json:"compilerMode,omitempty"`
+	// GoScriptBuildFlags are the exact Go build flags forwarded to GoScript.
+	GoscriptBuildFlags []string `protobuf:"bytes,12,rep,name=goscript_build_flags,json=goscriptBuildFlags,proto3" json:"goscriptBuildFlags,omitempty"`
+	// GoScriptOverrideDirs are source-relative project-local GoScript override roots.
+	GoscriptOverrideDirs []string `protobuf:"bytes,13,rep,name=goscript_override_dirs,json=goscriptOverrideDirs,proto3" json:"goscriptOverrideDirs,omitempty"`
+	// GoScriptAllDependencies records whether GoScript compiled the full dependency graph.
+	GoscriptAllDependencies bool `protobuf:"varint,14,opt,name=goscript_all_dependencies,json=goscriptAllDependencies,proto3" json:"goscriptAllDependencies,omitempty"`
 }
 
 func (x *InputManifestMeta) Reset() {
@@ -504,6 +558,34 @@ func (x *InputManifestMeta) GetViteOutputs() []*vite.ViteOutputMeta {
 func (x *InputManifestMeta) GetViteDisableProjectConfig() bool {
 	if x != nil {
 		return x.ViteDisableProjectConfig
+	}
+	return false
+}
+
+func (x *InputManifestMeta) GetCompilerMode() CompilerMode {
+	if x != nil {
+		return x.CompilerMode
+	}
+	return CompilerMode_COMPILER_MODE_DEFAULT
+}
+
+func (x *InputManifestMeta) GetGoscriptBuildFlags() []string {
+	if x != nil {
+		return x.GoscriptBuildFlags
+	}
+	return nil
+}
+
+func (x *InputManifestMeta) GetGoscriptOverrideDirs() []string {
+	if x != nil {
+		return x.GoscriptOverrideDirs
+	}
+	return nil
+}
+
+func (x *InputManifestMeta) GetGoscriptAllDependencies() bool {
+	if x != nil {
+		return x.GoscriptAllDependencies
 	}
 	return false
 }
@@ -811,7 +893,7 @@ func (m *Config) CloneVT() *Config {
 	r.DisableRpcFetch = m.DisableRpcFetch
 	r.DelveAddr = m.DelveAddr
 	r.EnableCgo = m.EnableCgo
-	r.EnableTinygo = m.EnableTinygo
+	r.CompilerMode = m.CompilerMode
 	r.EnableCompression = m.EnableCompression
 	r.WebPluginId = m.WebPluginId
 	r.EnableImportedFactoryDiscovery = m.EnableImportedFactoryDiscovery
@@ -901,8 +983,12 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		return (*InputManifestMeta)(nil)
 	}
 	r := new(InputManifestMeta)
-	r.DevInfo = m.DevInfo.CloneVT()
 	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
+	r.CompilerMode = m.CompilerMode
+	r.GoscriptAllDependencies = m.GoscriptAllDependencies
+	if rhs := m.DevInfo; rhs != nil {
+		r.DevInfo = rhs.CloneVT()
+	}
 	if rhs := m.WebPkgRefs; rhs != nil {
 		r.WebPkgRefs = make([]*pkg.WebPkgRef, len(rhs))
 		for k, v := range rhs {
@@ -944,6 +1030,12 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		for k, v := range rhs {
 			r.ViteOutputs[k] = v.CloneVT()
 		}
+	}
+	if rhs := m.GoscriptBuildFlags; rhs != nil {
+		r.GoscriptBuildFlags = slices.Clone(rhs)
+	}
+	if rhs := m.GoscriptOverrideDirs; rhs != nil {
+		r.GoscriptOverrideDirs = slices.Clone(rhs)
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1123,13 +1215,13 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DisableRpcFetch != that.DisableRpcFetch {
 		return false
 	}
+	if this.CompilerMode != that.CompilerMode {
+		return false
+	}
 	if this.DelveAddr != that.DelveAddr {
 		return false
 	}
 	if this.EnableCgo != that.EnableCgo {
-		return false
-	}
-	if this.EnableTinygo != that.EnableTinygo {
 		return false
 	}
 	if this.EnableCompression != that.EnableCompression {
@@ -1385,6 +1477,30 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 	if this.ViteDisableProjectConfig != that.ViteDisableProjectConfig {
 		return false
 	}
+	if this.CompilerMode != that.CompilerMode {
+		return false
+	}
+	if len(this.GoscriptBuildFlags) != len(that.GoscriptBuildFlags) {
+		return false
+	}
+	for i, vx := range this.GoscriptBuildFlags {
+		vy := that.GoscriptBuildFlags[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.GoscriptOverrideDirs) != len(that.GoscriptOverrideDirs) {
+		return false
+	}
+	for i, vx := range this.GoscriptOverrideDirs {
+		vy := that.GoscriptOverrideDirs[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.GoscriptAllDependencies != that.GoscriptAllDependencies {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1550,6 +1666,46 @@ func (this *ViteEntrypointVar) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the CompilerMode to JSON.
+func (x CompilerMode) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), CompilerMode_name)
+}
+
+// MarshalText marshals the CompilerMode to text.
+func (x CompilerMode) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), CompilerMode_name)), nil
+}
+
+// MarshalJSON marshals the CompilerMode to JSON.
+func (x CompilerMode) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CompilerMode from JSON.
+func (x *CompilerMode) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(CompilerMode_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read CompilerMode enum: %v", err)
+		return
+	}
+	*x = CompilerMode(v)
+}
+
+// UnmarshalText unmarshals the CompilerMode from text.
+func (x *CompilerMode) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), CompilerMode_value)
+	if err != nil {
+		return err
+	}
+	*x = CompilerMode(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the CompilerMode from JSON.
+func (x *CompilerMode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the InputFileKind to JSON.
@@ -1946,6 +2102,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableRpcFetch")
 		s.WriteBool(x.DisableRpcFetch)
 	}
+	if x.CompilerMode != 0 || s.HasField("compilerMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("compilerMode")
+		x.CompilerMode.MarshalProtoJSON(s)
+	}
 	if x.DelveAddr != "" || s.HasField("delveAddr") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("delveAddr")
@@ -1955,11 +2116,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("enableCgo")
 		x.EnableCgo.MarshalProtoJSON(s)
-	}
-	if x.EnableTinygo != 0 || s.HasField("enableTinygo") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("enableTinygo")
-		x.EnableTinygo.MarshalProtoJSON(s)
 	}
 	if x.EnableCompression != 0 || s.HasField("enableCompression") {
 		s.WriteMoreIf(&wroteField)
@@ -2087,15 +2243,15 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_rpc_fetch", "disableRpcFetch":
 			s.AddField("disable_rpc_fetch")
 			x.DisableRpcFetch = s.ReadBool()
+		case "compiler_mode", "compilerMode":
+			s.AddField("compiler_mode")
+			x.CompilerMode.UnmarshalProtoJSON(s)
 		case "delve_addr", "delveAddr":
 			s.AddField("delve_addr")
 			x.DelveAddr = s.ReadString()
 		case "enable_cgo", "enableCgo":
 			s.AddField("enable_cgo")
 			x.EnableCgo.UnmarshalProtoJSON(s)
-		case "enable_tinygo", "enableTinygo":
-			s.AddField("enable_tinygo")
-			x.EnableTinygo.UnmarshalProtoJSON(s)
 		case "enable_compression", "enableCompression":
 			s.AddField("enable_compression")
 			x.EnableCompression.UnmarshalProtoJSON(s)
@@ -2337,6 +2493,26 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("viteDisableProjectConfig")
 		s.WriteBool(x.ViteDisableProjectConfig)
 	}
+	if x.CompilerMode != 0 || s.HasField("compilerMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("compilerMode")
+		x.CompilerMode.MarshalProtoJSON(s)
+	}
+	if len(x.GoscriptBuildFlags) > 0 || s.HasField("goscriptBuildFlags") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("goscriptBuildFlags")
+		s.WriteStringArray(x.GoscriptBuildFlags)
+	}
+	if len(x.GoscriptOverrideDirs) > 0 || s.HasField("goscriptOverrideDirs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("goscriptOverrideDirs")
+		s.WriteStringArray(x.GoscriptOverrideDirs)
+	}
+	if x.GoscriptAllDependencies || s.HasField("goscriptAllDependencies") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("goscriptAllDependencies")
+		s.WriteBool(x.GoscriptAllDependencies)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2486,6 +2662,26 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "vite_disable_project_config", "viteDisableProjectConfig":
 			s.AddField("vite_disable_project_config")
 			x.ViteDisableProjectConfig = s.ReadBool()
+		case "compiler_mode", "compilerMode":
+			s.AddField("compiler_mode")
+			x.CompilerMode.UnmarshalProtoJSON(s)
+		case "goscript_build_flags", "goscriptBuildFlags":
+			s.AddField("goscript_build_flags")
+			if s.ReadNil() {
+				x.GoscriptBuildFlags = nil
+				return
+			}
+			x.GoscriptBuildFlags = s.ReadStringArray()
+		case "goscript_override_dirs", "goscriptOverrideDirs":
+			s.AddField("goscript_override_dirs")
+			if s.ReadNil() {
+				x.GoscriptOverrideDirs = nil
+				return
+			}
+			x.GoscriptOverrideDirs = s.ReadStringArray()
+		case "goscript_all_dependencies", "goscriptAllDependencies":
+			s.AddField("goscript_all_dependencies")
+			x.GoscriptAllDependencies = s.ReadBool()
 		}
 	})
 }
@@ -2934,11 +3130,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x58
 	}
-	if m.EnableTinygo != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableTinygo))
-		i--
-		dAtA[i] = 0x50
-	}
 	if m.EnableCgo != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableCgo))
 		i--
@@ -2950,6 +3141,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DelveAddr)))
 		i--
 		dAtA[i] = 0x42
+	}
+	if m.CompilerMode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CompilerMode))
+		i--
+		dAtA[i] = 0x38
 	}
 	if m.DisableRpcFetch {
 		i--
@@ -3146,6 +3342,39 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.GoscriptAllDependencies {
+		i--
+		if m.GoscriptAllDependencies {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x70
+	}
+	if len(m.GoscriptOverrideDirs) > 0 {
+		for iNdEx := len(m.GoscriptOverrideDirs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.GoscriptOverrideDirs[iNdEx])
+			copy(dAtA[i:], m.GoscriptOverrideDirs[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.GoscriptOverrideDirs[iNdEx])))
+			i--
+			dAtA[i] = 0x6a
+		}
+	}
+	if len(m.GoscriptBuildFlags) > 0 {
+		for iNdEx := len(m.GoscriptBuildFlags) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.GoscriptBuildFlags[iNdEx])
+			copy(dAtA[i:], m.GoscriptBuildFlags[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.GoscriptBuildFlags[iNdEx])))
+			i--
+			dAtA[i] = 0x62
+		}
+	}
+	if m.CompilerMode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CompilerMode))
+		i--
+		dAtA[i] = 0x58
 	}
 	if m.ViteDisableProjectConfig {
 		i--
@@ -3568,15 +3797,15 @@ func (m *Config) SizeVT() (n int) {
 	if m.DisableRpcFetch {
 		n += 2
 	}
+	if m.CompilerMode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CompilerMode))
+	}
 	l = len(m.DelveAddr)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	if m.EnableCgo != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCgo))
-	}
-	if m.EnableTinygo != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableTinygo))
 	}
 	if m.EnableCompression != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCompression))
@@ -3721,6 +3950,24 @@ func (m *InputManifestMeta) SizeVT() (n int) {
 	if m.ViteDisableProjectConfig {
 		n += 2
 	}
+	if m.CompilerMode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CompilerMode))
+	}
+	if len(m.GoscriptBuildFlags) > 0 {
+		for _, s := range m.GoscriptBuildFlags {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.GoscriptOverrideDirs) > 0 {
+		for _, s := range m.GoscriptOverrideDirs {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.GoscriptAllDependencies {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3832,6 +4079,10 @@ func (m *ViteEntrypointVar) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x CompilerMode) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x InputFileKind) MarshalProtoText() string {
@@ -4017,6 +4268,15 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("disable_rpc_fetch: ")
 		sb.WriteString(strconv.FormatBool(x.DisableRpcFetch))
 	}
+	if x.CompilerMode != 0 {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("compiler_mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(CompilerMode(x.CompilerMode).String())
+		sb.WriteString("\"")
+	}
 	if x.DelveAddr != "" {
 		if sb.Len() > 8 {
 			sb.WriteString(" ")
@@ -4031,15 +4291,6 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("enable_cgo: ")
 		sb.WriteString("\"")
 		sb.WriteString(enabled.Enabled(x.EnableCgo).String())
-		sb.WriteString("\"")
-	}
-	if x.EnableTinygo != 0 {
-		if sb.Len() > 8 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("enable_tinygo: ")
-		sb.WriteString("\"")
-		sb.WriteString(enabled.Enabled(x.EnableTinygo).String())
 		sb.WriteString("\"")
 	}
 	if x.EnableCompression != 0 {
@@ -4294,6 +4545,48 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 		}
 		sb.WriteString("vite_disable_project_config: ")
 		sb.WriteString(strconv.FormatBool(x.ViteDisableProjectConfig))
+	}
+	if x.CompilerMode != 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("compiler_mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(CompilerMode(x.CompilerMode).String())
+		sb.WriteString("\"")
+	}
+	if len(x.GoscriptBuildFlags) > 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("goscript_build_flags: [")
+		for i, v := range x.GoscriptBuildFlags {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.GoscriptOverrideDirs) > 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("goscript_override_dirs: [")
+		for i, v := range x.GoscriptOverrideDirs {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.GoscriptAllDependencies != false {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("goscript_all_dependencies: ")
+		sb.WriteString(strconv.FormatBool(x.GoscriptAllDependencies))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -4775,6 +5068,17 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableRpcFetch = bool(v != 0)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompilerMode", wireType)
+			}
+			m.CompilerMode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.CompilerMode = CompilerMode(_v)
+			if err != nil {
+				return err
+			}
 		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DelveAddr", wireType)
@@ -4805,17 +5109,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			m.EnableCgo = enabled.Enabled(_v)
-			if err != nil {
-				return err
-			}
-		case 10:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EnableTinygo", wireType)
-			}
-			m.EnableTinygo = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.EnableTinygo = enabled.Enabled(_v)
 			if err != nil {
 				return err
 			}
@@ -5513,6 +5806,73 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ViteDisableProjectConfig = bool(v != 0)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompilerMode", wireType)
+			}
+			m.CompilerMode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.CompilerMode = CompilerMode(_v)
+			if err != nil {
+				return err
+			}
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GoscriptBuildFlags", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.GoscriptBuildFlags = append(m.GoscriptBuildFlags, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GoscriptOverrideDirs", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.GoscriptOverrideDirs = append(m.GoscriptOverrideDirs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GoscriptAllDependencies", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.GoscriptAllDependencies = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

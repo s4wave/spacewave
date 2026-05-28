@@ -238,8 +238,8 @@ inline constexpr Config::Impl_::Impl_(
         web_plugin_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        compiler_mode_{static_cast< ::bldr::plugin::compiler::go::CompilerMode >(0)},
         enable_cgo_{static_cast< ::enabled::Enabled >(0)},
-        enable_tinygo_{static_cast< ::enabled::Enabled >(0)},
         enable_compression_{static_cast< ::enabled::Enabled >(0)},
         disable_rpc_fetch_{false},
         vite_disable_project_config_{false},
@@ -341,8 +341,12 @@ inline constexpr InputManifestMeta::Impl_::Impl_(
         vite_config_paths_{},
         vite_bundles_{},
         vite_outputs_{},
+        goscript_build_flags_{},
+        goscript_override_dirs_{},
         dev_info_{nullptr},
-        vite_disable_project_config_{false} {}
+        compiler_mode_{static_cast< ::bldr::plugin::compiler::go::CompilerMode >(0)},
+        vite_disable_project_config_{false},
+        goscript_all_dependencies_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR InputManifestMeta::InputManifestMeta(::_pbi::ConstantInitialized)
@@ -368,7 +372,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace plugin
 }  // namespace bldr
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto[3];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto[4];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto = nullptr;
 const ::uint32_t
@@ -415,7 +419,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.disable_rpc_fetch_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.delve_addr_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.enable_cgo_),
-        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.enable_tinygo_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.compiler_mode_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.enable_compression_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.esbuild_flags_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::Config, _impl_.web_plugin_id_),
@@ -431,8 +435,8 @@ const ::uint32_t
         11,
         10,
         5,
-        7,
         8,
+        7,
         9,
         2,
         6,
@@ -451,7 +455,7 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_._has_bits_),
-        13, // hasbit index offset
+        17, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.dev_info_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.web_pkg_refs_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.web_pkgs_),
@@ -462,7 +466,11 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.vite_bundles_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.vite_outputs_),
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.vite_disable_project_config_),
-        8,
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.compiler_mode_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.goscript_build_flags_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.goscript_override_dirs_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::InputManifestMeta, _impl_.goscript_all_dependencies_),
+        10,
         0,
         1,
         2,
@@ -471,7 +479,11 @@ const ::uint32_t
         5,
         6,
         7,
+        12,
+        11,
+        8,
         9,
+        13,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::compiler::go::EsbuildBundleVarMeta, _impl_._has_bits_),
         5, // hasbit index offset
@@ -528,10 +540,10 @@ static const ::_pbi::MigrationSchema
         {65, sizeof(::bldr::plugin::compiler::go::PreBuildHookResult)},
         {70, sizeof(::bldr::plugin::compiler::go::InputFileMeta)},
         {75, sizeof(::bldr::plugin::compiler::go::InputManifestMeta)},
-        {98, sizeof(::bldr::plugin::compiler::go::EsbuildBundleVarMeta)},
-        {105, sizeof(::bldr::plugin::compiler::go::EsbuildEntrypointVar)},
-        {118, sizeof(::bldr::plugin::compiler::go::ViteBundleVarMeta)},
-        {125, sizeof(::bldr::plugin::compiler::go::ViteEntrypointVar)},
+        {106, sizeof(::bldr::plugin::compiler::go::EsbuildBundleVarMeta)},
+        {113, sizeof(::bldr::plugin::compiler::go::EsbuildEntrypointVar)},
+        {126, sizeof(::bldr::plugin::compiler::go::ViteBundleVarMeta)},
+        {133, sizeof(::bldr::plugin::compiler::go::ViteEntrypointVar)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::compiler::go::_Config_ConfigSetEntry_DoNotUse_default_instance_._instance,
@@ -562,7 +574,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "ldr/web/pkg/pkg.proto\032;github.com/s4wave"
     "/spacewave/bldr/plugin/vardef/vardef.pro"
     "to\0326github.com/aperturerobotics/util/ena"
-    "bled/enabled.proto\"\265\010\n\006Config\022\022\n\nproject"
+    "bled/enabled.proto\"\320\010\n\006Config\022\022\n\nproject"
     "_id\030\001 \001(\t\022B\n\nconfig_set\030\002 \003(\0132..bldr.plu"
     "gin.compiler.go.Config.ConfigSetEntry\022K\n"
     "\017host_config_set\030\003 \003(\01322.bldr.plugin.com"
@@ -572,63 +584,72 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "paths\030\017 \003(\t\022#\n\033vite_disable_project_conf"
     "ig\030\020 \001(\010\022\031\n\021disable_rpc_fetch\030\006 \001(\010\022\022\n\nd"
     "elve_addr\030\010 \001(\t\022$\n\nenable_cgo\030\t \001(\0162\020.en"
-    "abled.Enabled\022\'\n\renable_tinygo\030\n \001(\0162\020.e"
-    "nabled.Enabled\022,\n\022enable_compression\030\013 \001"
-    "(\0162\020.enabled.Enabled\022\025\n\resbuild_flags\030\014 "
-    "\003(\t\022\025\n\rweb_plugin_id\030\r \001(\t\022D\n\013build_type"
-    "s\030\016 \003(\0132/.bldr.plugin.compiler.go.Config"
-    ".BuildTypesEntry\022J\n\016platform_types\030\021 \003(\013"
-    "22.bldr.plugin.compiler.go.Config.Platfo"
-    "rmTypesEntry\022;\n!enable_imported_factory_"
-    "discovery\030\022 \001(\0162\020.enabled.Enabled\032S\n\016Con"
-    "figSetEntry\022\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132"
-    "!.configset.proto.ControllerConfig:\0028\001\032W"
-    "\n\022HostConfigSetEntry\022\013\n\003key\030\001 \001(\t\0220\n\005val"
-    "ue\030\002 \001(\0132!.configset.proto.ControllerCon"
-    "fig:\0028\001\032R\n\017BuildTypesEntry\022\013\n\003key\030\001 \001(\t\022"
-    ".\n\005value\030\002 \001(\0132\037.bldr.plugin.compiler.go"
-    ".Config:\0028\001\032U\n\022PlatformTypesEntry\022\013\n\003key"
-    "\030\001 \001(\t\022.\n\005value\030\002 \001(\0132\037.bldr.plugin.comp"
-    "iler.go.Config:\0028\001\"E\n\022PreBuildHookResult"
-    "\022/\n\006config\030\001 \001(\0132\037.bldr.plugin.compiler."
-    "go.Config\"E\n\rInputFileMeta\0224\n\004kind\030\001 \001(\016"
-    "2&.bldr.plugin.compiler.go.InputFileKind"
-    "\"\213\004\n\021InputManifestMeta\0223\n\010dev_info\030\001 \001(\013"
-    "2!.bldr.plugin.vardef.PluginDevInfo\022(\n\014w"
-    "eb_pkg_refs\030\002 \003(\0132\022.web.pkg.WebPkgRef\0223\n"
-    "\010web_pkgs\030\003 \003(\0132!.bldr.web.bundler.WebPk"
-    "gRefConfig\022\025\n\resbuild_flags\030\004 \003(\t\022F\n\017esb"
-    "uild_bundles\030\005 \003(\0132-.bldr.plugin.compile"
-    "r.go.EsbuildBundleVarMeta\022D\n\017esbuild_out"
-    "puts\030\006 \003(\0132+.bldr.web.bundler.esbuild.Es"
-    "buildOutputMeta\022\031\n\021vite_config_paths\030\007 \003"
-    "(\t\022@\n\014vite_bundles\030\010 \003(\0132*.bldr.plugin.c"
-    "ompiler.go.ViteBundleVarMeta\022;\n\014vite_out"
-    "puts\030\t \003(\0132%.bldr.web.bundler.vite.ViteO"
-    "utputMeta\022#\n\033vite_disable_project_config"
-    "\030\n \001(\010\"j\n\024EsbuildBundleVarMeta\022\n\n\002id\030\001 \001"
-    "(\t\022F\n\017entrypoint_vars\030\002 \003(\0132-.bldr.plugi"
-    "n.compiler.go.EsbuildEntrypointVar\"\255\001\n\024E"
-    "sbuildEntrypointVar\022\027\n\017pkg_import_path\030\001"
-    " \001(\t\022\017\n\007pkg_var\030\002 \001(\t\022\025\n\rpkg_code_path\030\003"
-    " \001(\t\022=\n\014pkg_var_type\030\004 \001(\0162\'.bldr.plugin"
-    ".compiler.go.EsbuildVarType\022\025\n\resbuild_f"
-    "lags\030\005 \003(\t\"d\n\021ViteBundleVarMeta\022\n\n\002id\030\001 "
-    "\001(\t\022C\n\017entrypoint_vars\030\002 \003(\0132*.bldr.plug"
-    "in.compiler.go.ViteEntrypointVar\"\344\001\n\021Vit"
-    "eEntrypointVar\022\027\n\017pkg_import_path\030\001 \001(\t\022"
-    "\017\n\007pkg_var\030\002 \001(\t\022\025\n\rpkg_code_path\030\003 \001(\t\022"
-    ":\n\014pkg_var_type\030\004 \001(\0162$.bldr.plugin.comp"
-    "iler.go.ViteVarType\022\031\n\021vite_config_paths"
-    "\030\005 \003(\t\022\027\n\017entrypoint_path\030\006 \001(\t\022\036\n\026disab"
-    "le_project_config\030\007 \001(\010*Y\n\rInputFileKind"
-    "\022\031\n\025InputFileKind_UNKNOWN\020\000\022\027\n\023InputFile"
-    "Kind_ASSET\020\001\022\024\n\020InputFileKind_GO\020\002*[\n\016Es"
-    "buildVarType\022\"\n\036EsbuildVarType_ENTRYPOIN"
-    "T_PATH\020\000\022%\n!EsbuildVarType_WEB_BUNDLER_O"
-    "UTPUT\020\001*R\n\013ViteVarType\022\037\n\033ViteVarType_EN"
-    "TRYPOINT_PATH\020\000\022\"\n\036ViteVarType_WEB_BUNDL"
-    "ER_OUTPUT\020\001b\006proto3"
+    "abled.Enabled\022<\n\rcompiler_mode\030\007 \001(\0162%.b"
+    "ldr.plugin.compiler.go.CompilerMode\022,\n\022e"
+    "nable_compression\030\013 \001(\0162\020.enabled.Enable"
+    "d\022\025\n\resbuild_flags\030\014 \003(\t\022\025\n\rweb_plugin_i"
+    "d\030\r \001(\t\022D\n\013build_types\030\016 \003(\0132/.bldr.plug"
+    "in.compiler.go.Config.BuildTypesEntry\022J\n"
+    "\016platform_types\030\021 \003(\01322.bldr.plugin.comp"
+    "iler.go.Config.PlatformTypesEntry\022;\n!ena"
+    "ble_imported_factory_discovery\030\022 \001(\0162\020.e"
+    "nabled.Enabled\032S\n\016ConfigSetEntry\022\013\n\003key\030"
+    "\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configset.proto.C"
+    "ontrollerConfig:\0028\001\032W\n\022HostConfigSetEntr"
+    "y\022\013\n\003key\030\001 \001(\t\0220\n\005value\030\002 \001(\0132!.configse"
+    "t.proto.ControllerConfig:\0028\001\032R\n\017BuildTyp"
+    "esEntry\022\013\n\003key\030\001 \001(\t\022.\n\005value\030\002 \001(\0132\037.bl"
+    "dr.plugin.compiler.go.Config:\0028\001\032U\n\022Plat"
+    "formTypesEntry\022\013\n\003key\030\001 \001(\t\022.\n\005value\030\002 \001"
+    "(\0132\037.bldr.plugin.compiler.go.Config:\0028\001J"
+    "\004\010\n\020\013\"E\n\022PreBuildHookResult\022/\n\006config\030\001 "
+    "\001(\0132\037.bldr.plugin.compiler.go.Config\"E\n\r"
+    "InputFileMeta\0224\n\004kind\030\001 \001(\0162&.bldr.plugi"
+    "n.compiler.go.InputFileKind\"\252\005\n\021InputMan"
+    "ifestMeta\0223\n\010dev_info\030\001 \001(\0132!.bldr.plugi"
+    "n.vardef.PluginDevInfo\022(\n\014web_pkg_refs\030\002"
+    " \003(\0132\022.web.pkg.WebPkgRef\0223\n\010web_pkgs\030\003 \003"
+    "(\0132!.bldr.web.bundler.WebPkgRefConfig\022\025\n"
+    "\resbuild_flags\030\004 \003(\t\022F\n\017esbuild_bundles\030"
+    "\005 \003(\0132-.bldr.plugin.compiler.go.EsbuildB"
+    "undleVarMeta\022D\n\017esbuild_outputs\030\006 \003(\0132+."
+    "bldr.web.bundler.esbuild.EsbuildOutputMe"
+    "ta\022\031\n\021vite_config_paths\030\007 \003(\t\022@\n\014vite_bu"
+    "ndles\030\010 \003(\0132*.bldr.plugin.compiler.go.Vi"
+    "teBundleVarMeta\022;\n\014vite_outputs\030\t \003(\0132%."
+    "bldr.web.bundler.vite.ViteOutputMeta\022#\n\033"
+    "vite_disable_project_config\030\n \001(\010\022<\n\rcom"
+    "piler_mode\030\013 \001(\0162%.bldr.plugin.compiler."
+    "go.CompilerMode\022\034\n\024goscript_build_flags\030"
+    "\014 \003(\t\022\036\n\026goscript_override_dirs\030\r \003(\t\022!\n"
+    "\031goscript_all_dependencies\030\016 \001(\010\"j\n\024Esbu"
+    "ildBundleVarMeta\022\n\n\002id\030\001 \001(\t\022F\n\017entrypoi"
+    "nt_vars\030\002 \003(\0132-.bldr.plugin.compiler.go."
+    "EsbuildEntrypointVar\"\255\001\n\024EsbuildEntrypoi"
+    "ntVar\022\027\n\017pkg_import_path\030\001 \001(\t\022\017\n\007pkg_va"
+    "r\030\002 \001(\t\022\025\n\rpkg_code_path\030\003 \001(\t\022=\n\014pkg_va"
+    "r_type\030\004 \001(\0162\'.bldr.plugin.compiler.go.E"
+    "sbuildVarType\022\025\n\resbuild_flags\030\005 \003(\t\"d\n\021"
+    "ViteBundleVarMeta\022\n\n\002id\030\001 \001(\t\022C\n\017entrypo"
+    "int_vars\030\002 \003(\0132*.bldr.plugin.compiler.go"
+    ".ViteEntrypointVar\"\344\001\n\021ViteEntrypointVar"
+    "\022\027\n\017pkg_import_path\030\001 \001(\t\022\017\n\007pkg_var\030\002 \001"
+    "(\t\022\025\n\rpkg_code_path\030\003 \001(\t\022:\n\014pkg_var_typ"
+    "e\030\004 \001(\0162$.bldr.plugin.compiler.go.ViteVa"
+    "rType\022\031\n\021vite_config_paths\030\005 \003(\t\022\027\n\017entr"
+    "ypoint_path\030\006 \001(\t\022\036\n\026disable_project_con"
+    "fig\030\007 \001(\010*u\n\014CompilerMode\022\031\n\025COMPILER_MO"
+    "DE_DEFAULT\020\000\022\024\n\020COMPILER_MODE_GO\020\001\022\030\n\024CO"
+    "MPILER_MODE_TINYGO\020\002\022\032\n\026COMPILER_MODE_GO"
+    "SCRIPT\020\003*~\n\rInputFileKind\022\031\n\025InputFileKi"
+    "nd_UNKNOWN\020\000\022\027\n\023InputFileKind_ASSET\020\001\022\024\n"
+    "\020InputFileKind_GO\020\002\022#\n\037InputFileKind_GOS"
+    "CRIPT_OVERRIDE\020\003*[\n\016EsbuildVarType\022\"\n\036Es"
+    "buildVarType_ENTRYPOINT_PATH\020\000\022%\n!Esbuil"
+    "dVarType_WEB_BUNDLER_OUTPUT\020\001*R\n\013ViteVar"
+    "Type\022\037\n\033ViteVarType_ENTRYPOINT_PATH\020\000\022\"\n"
+    "\036ViteVarType_WEB_BUNDLER_OUTPUT\020\001b\006proto"
+    "3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto_deps[7] = {
@@ -644,7 +665,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto = {
     false,
     false,
-    3179,
+    3521,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto,
     "github.com/s4wave/spacewave/bldr/plugin/compiler/go/compiler.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto_once,
@@ -661,21 +682,27 @@ namespace bldr {
 namespace plugin {
 namespace compiler {
 namespace go {
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL InputFileKind_descriptor() {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CompilerMode_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto[0];
 }
-PROTOBUF_CONSTINIT const uint32_t InputFileKind_internal_data_[] = {
-    196608u, 0u, };
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL EsbuildVarType_descriptor() {
+PROTOBUF_CONSTINIT const uint32_t CompilerMode_internal_data_[] = {
+    262144u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL InputFileKind_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t InputFileKind_internal_data_[] = {
+    262144u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL EsbuildVarType_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto[2];
 }
 PROTOBUF_CONSTINIT const uint32_t EsbuildVarType_internal_data_[] = {
     131072u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL ViteVarType_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto[2];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto[3];
 }
 PROTOBUF_CONSTINIT const uint32_t ViteVarType_internal_data_[] = {
     131072u, 0u, };
@@ -1144,11 +1171,11 @@ Config::Config(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, enable_cgo_),
+               offsetof(Impl_, compiler_mode_),
            reinterpret_cast<const char*>(&from._impl_) +
-               offsetof(Impl_, enable_cgo_),
+               offsetof(Impl_, compiler_mode_),
            offsetof(Impl_, enable_imported_factory_discovery_) -
-               offsetof(Impl_, enable_cgo_) +
+               offsetof(Impl_, compiler_mode_) +
                sizeof(Impl_::enable_imported_factory_discovery_));
 
   // @@protoc_insertion_point(copy_constructor:bldr.plugin.compiler.go.Config)
@@ -1172,10 +1199,10 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, enable_cgo_),
+               offsetof(Impl_, compiler_mode_),
            0,
            offsetof(Impl_, enable_imported_factory_discovery_) -
-               offsetof(Impl_, enable_cgo_) +
+               offsetof(Impl_, compiler_mode_) +
                sizeof(Impl_::enable_imported_factory_discovery_));
 }
 Config::~Config() {
@@ -1285,7 +1312,7 @@ Config::_table_ = {
     0, // no _extensions_
     18, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294705216,  // skipmap
+    4294705664,  // skipmap
     offsetof(decltype(_table_), field_entries),
     17,  // num_field_entries
     9,  // num_aux_entries
@@ -1322,19 +1349,19 @@ Config::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_rpc_fetch_), 10>(),
      {48, 10, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_rpc_fetch_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.compiler_mode_), 7>(),
+     {56, 7, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.compiler_mode_)}},
     // string delve_addr = 8;
     {::_pbi::TcParser::FastUS1,
      {66, 5, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.delve_addr_)}},
     // .enabled.Enabled enable_cgo = 9;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.enable_cgo_), 7>(),
-     {72, 7, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.enable_cgo_), 8>(),
+     {72, 8, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_cgo_)}},
-    // .enabled.Enabled enable_tinygo = 10;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.enable_tinygo_), 8>(),
-     {80, 8, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_tinygo_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .enabled.Enabled enable_compression = 11;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.enable_compression_), 9>(),
      {88, 9, 0,
@@ -1367,12 +1394,12 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.web_pkgs_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool disable_rpc_fetch = 6;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_rpc_fetch_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.compiler_mode_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string delve_addr = 8;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.delve_addr_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .enabled.Enabled enable_cgo = 9;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_cgo_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
-    // .enabled.Enabled enable_tinygo = 10;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_tinygo_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_cgo_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .enabled.Enabled enable_compression = 11;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_compression_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // repeated string esbuild_flags = 12;
@@ -1406,7 +1433,7 @@ Config::_table_ = {
       {::_pbi::TcParser::GetTable<::bldr::plugin::compiler::go::Config>()},
   }},
   {{
-    "\36\12\12\17\7\0\0\12\0\0\0\15\15\13\21\0\16\0\0\0\0\0\0\0"
+    "\36\12\12\17\7\0\0\0\12\0\0\15\15\13\21\0\16\0\0\0\0\0\0\0"
     "bldr.plugin.compiler.go.Config"
     "project_id"
     "config_set"
@@ -1451,11 +1478,11 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.web_plugin_id_.ClearNonDefaultToEmpty();
     }
   }
-  _impl_.enable_cgo_ = 0;
+  _impl_.compiler_mode_ = 0;
   if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
-    ::memset(&_impl_.enable_tinygo_, 0, static_cast<::size_t>(
+    ::memset(&_impl_.enable_cgo_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.enable_imported_factory_discovery_) -
-        reinterpret_cast<char*>(&_impl_.enable_tinygo_)) + sizeof(_impl_.enable_imported_factory_discovery_));
+        reinterpret_cast<char*>(&_impl_.enable_cgo_)) + sizeof(_impl_.enable_imported_factory_discovery_));
     if (CheckHasBitForRepeated(cached_has_bits, 0x00002000U)) {
       _impl_.config_set_.Clear();
     }
@@ -1592,6 +1619,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_compiler_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          7, this_._internal_compiler_mode(), target);
+    }
+  }
+
   // string delve_addr = 8;
   if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (!this_._internal_delve_addr().empty()) {
@@ -1603,20 +1639,11 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // .enabled.Enabled enable_cgo = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_enable_cgo() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
           9, this_._internal_enable_cgo(), target);
-    }
-  }
-
-  // .enabled.Enabled enable_tinygo = 10;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (this_._internal_enable_tinygo() != 0) {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteEnumToArray(
-          10, this_._internal_enable_tinygo(), target);
     }
   }
 
@@ -1816,20 +1843,20 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_web_plugin_id());
       }
     }
-    // .enabled.Enabled enable_cgo = 9;
+    // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
     if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-      if (this_._internal_enable_cgo() != 0) {
+      if (this_._internal_compiler_mode() != 0) {
         total_size += 1 +
-                      ::_pbi::WireFormatLite::EnumSize(this_._internal_enable_cgo());
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_compiler_mode());
       }
     }
   }
   if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
-    // .enabled.Enabled enable_tinygo = 10;
+    // .enabled.Enabled enable_cgo = 9;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-      if (this_._internal_enable_tinygo() != 0) {
+      if (this_._internal_enable_cgo() != 0) {
         total_size += 1 +
-                      ::_pbi::WireFormatLite::EnumSize(this_._internal_enable_tinygo());
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_enable_cgo());
       }
     }
     // .enabled.Enabled enable_compression = 11;
@@ -1969,15 +1996,15 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-      if (from._internal_enable_cgo() != 0) {
-        _this->_impl_.enable_cgo_ = from._impl_.enable_cgo_;
+      if (from._internal_compiler_mode() != 0) {
+        _this->_impl_.compiler_mode_ = from._impl_.compiler_mode_;
       }
     }
   }
   if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-      if (from._internal_enable_tinygo() != 0) {
-        _this->_impl_.enable_tinygo_ = from._impl_.enable_tinygo_;
+      if (from._internal_enable_cgo() != 0) {
+        _this->_impl_.enable_cgo_ = from._impl_.enable_cgo_;
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
@@ -2042,9 +2069,9 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_imported_factory_discovery_)
       + sizeof(Config::_impl_.enable_imported_factory_discovery_)
-      - PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_cgo_)>(
-          reinterpret_cast<char*>(&_impl_.enable_cgo_),
-          reinterpret_cast<char*>(&other->_impl_.enable_cgo_));
+      - PROTOBUF_FIELD_OFFSET(Config, _impl_.compiler_mode_)>(
+          reinterpret_cast<char*>(&_impl_.compiler_mode_),
+          reinterpret_cast<char*>(&other->_impl_.compiler_mode_));
   _impl_.config_set_.InternalSwap(&other->_impl_.config_set_);
   _impl_.host_config_set_.InternalSwap(&other->_impl_.host_config_set_);
   _impl_.build_types_.InternalSwap(&other->_impl_.build_types_);
@@ -2587,7 +2614,7 @@ void InputManifestMeta::clear_dev_info() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.dev_info_ != nullptr) _impl_.dev_info_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000400U);
 }
 void InputManifestMeta::clear_web_pkg_refs() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
@@ -2635,7 +2662,9 @@ PROTOBUF_NDEBUG_INLINE InputManifestMeta::Impl_::Impl_(
         esbuild_outputs_{visibility, arena, from.esbuild_outputs_},
         vite_config_paths_{visibility, arena, from.vite_config_paths_},
         vite_bundles_{visibility, arena, from.vite_bundles_},
-        vite_outputs_{visibility, arena, from.vite_outputs_} {}
+        vite_outputs_{visibility, arena, from.vite_outputs_},
+        goscript_build_flags_{visibility, arena, from.goscript_build_flags_},
+        goscript_override_dirs_{visibility, arena, from.goscript_override_dirs_} {}
 
 InputManifestMeta::InputManifestMeta(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -2651,10 +2680,16 @@ InputManifestMeta::InputManifestMeta(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.dev_info_ = (CheckHasBit(cached_has_bits, 0x00000100U))
+  _impl_.dev_info_ = (CheckHasBit(cached_has_bits, 0x00000400U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.dev_info_)
                 : nullptr;
-  _impl_.vite_disable_project_config_ = from._impl_.vite_disable_project_config_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, compiler_mode_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, compiler_mode_),
+           offsetof(Impl_, goscript_all_dependencies_) -
+               offsetof(Impl_, compiler_mode_) +
+               sizeof(Impl_::goscript_all_dependencies_));
 
   // @@protoc_insertion_point(copy_constructor:bldr.plugin.compiler.go.InputManifestMeta)
 }
@@ -2669,16 +2704,18 @@ PROTOBUF_NDEBUG_INLINE InputManifestMeta::Impl_::Impl_(
         esbuild_outputs_{visibility, arena},
         vite_config_paths_{visibility, arena},
         vite_bundles_{visibility, arena},
-        vite_outputs_{visibility, arena} {}
+        vite_outputs_{visibility, arena},
+        goscript_build_flags_{visibility, arena},
+        goscript_override_dirs_{visibility, arena} {}
 
 inline void InputManifestMeta::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, dev_info_),
            0,
-           offsetof(Impl_, vite_disable_project_config_) -
+           offsetof(Impl_, goscript_all_dependencies_) -
                offsetof(Impl_, dev_info_) +
-               sizeof(Impl_::vite_disable_project_config_));
+               sizeof(Impl_::goscript_all_dependencies_));
 }
 InputManifestMeta::~InputManifestMeta() {
   // @@protoc_insertion_point(destructor:bldr.plugin.compiler.go.InputManifestMeta)
@@ -2734,6 +2771,14 @@ constexpr auto InputManifestMeta::InternalNewImpl_() {
           decltype(InputManifestMeta::_impl_.vite_outputs_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_build_flags_) +
+          decltype(InputManifestMeta::_impl_.goscript_build_flags_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_override_dirs_) +
+          decltype(InputManifestMeta::_impl_.goscript_override_dirs_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
     return ::google::protobuf::internal::MessageCreator::ZeroInit(
@@ -2778,16 +2823,16 @@ InputManifestMeta::GetClassData() const {
   return InputManifestMeta_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 7, 88, 2>
+const ::_pbi::TcParseTable<4, 14, 7, 130, 2>
 InputManifestMeta::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_._has_bits_),
     0, // no _extensions_
-    10, 120,  // max_field_number, fast_idx_mask
+    14, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294950912,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
+    14,  // num_field_entries
     7,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     InputManifestMeta_class_data_.base(),
@@ -2800,7 +2845,7 @@ InputManifestMeta::_table_ = {
     {::_pbi::TcParser::MiniParse, {}},
     // .bldr.plugin.vardef.PluginDevInfo dev_info = 1;
     {::_pbi::TcParser::FastMtS1,
-     {10, 8, 0,
+     {10, 10, 0,
       PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.dev_info_)}},
     // repeated .web.pkg.WebPkgRef web_pkg_refs = 2;
     {::_pbi::TcParser::FastMtR1,
@@ -2835,19 +2880,31 @@ InputManifestMeta::_table_ = {
      {74, 7, 6,
       PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.vite_outputs_)}},
     // bool vite_disable_project_config = 10;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(InputManifestMeta, _impl_.vite_disable_project_config_), 9>(),
-     {80, 9, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(InputManifestMeta, _impl_.vite_disable_project_config_), 12>(),
+     {80, 12, 0,
       PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.vite_disable_project_config_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(InputManifestMeta, _impl_.compiler_mode_), 11>(),
+     {88, 11, 0,
+      PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.compiler_mode_)}},
+    // repeated string goscript_build_flags = 12;
+    {::_pbi::TcParser::FastUR1,
+     {98, 8, 0,
+      PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_build_flags_)}},
+    // repeated string goscript_override_dirs = 13;
+    {::_pbi::TcParser::FastUR1,
+     {106, 9, 0,
+      PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_override_dirs_)}},
+    // bool goscript_all_dependencies = 14;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(InputManifestMeta, _impl_.goscript_all_dependencies_), 13>(),
+     {112, 13, 0,
+      PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_all_dependencies_)}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // .bldr.plugin.vardef.PluginDevInfo dev_info = 1;
-    {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.dev_info_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.dev_info_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated .web.pkg.WebPkgRef web_pkg_refs = 2;
     {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.web_pkg_refs_), _Internal::kHasBitsOffset + 0, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated .bldr.web.bundler.WebPkgRefConfig web_pkgs = 3;
@@ -2865,7 +2922,15 @@ InputManifestMeta::_table_ = {
     // repeated .bldr.web.bundler.vite.ViteOutputMeta vite_outputs = 9;
     {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.vite_outputs_), _Internal::kHasBitsOffset + 7, 6, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool vite_disable_project_config = 10;
-    {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.vite_disable_project_config_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.vite_disable_project_config_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
+    {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.compiler_mode_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // repeated string goscript_build_flags = 12;
+    {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_build_flags_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string goscript_override_dirs = 13;
+    {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_override_dirs_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // bool goscript_all_dependencies = 14;
+    {PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_all_dependencies_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bldr::plugin::vardef::PluginDevInfo>()},
@@ -2877,10 +2942,12 @@ InputManifestMeta::_table_ = {
       {::_pbi::TcParser::GetTable<::bldr::web::bundler::vite::ViteOutputMeta>()},
   }},
   {{
-    "\51\0\0\0\15\0\0\21\0\0\0\0\0\0\0\0"
+    "\51\0\0\0\15\0\0\21\0\0\0\0\24\26\0\0"
     "bldr.plugin.compiler.go.InputManifestMeta"
     "esbuild_flags"
     "vite_config_paths"
+    "goscript_build_flags"
+    "goscript_override_dirs"
   }},
 };
 PROTOBUF_NOINLINE void InputManifestMeta::Clear() {
@@ -2917,11 +2984,23 @@ PROTOBUF_NOINLINE void InputManifestMeta::Clear() {
       _impl_.vite_outputs_.Clear();
     }
   }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    ABSL_DCHECK(_impl_.dev_info_ != nullptr);
-    _impl_.dev_info_->Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000100U)) {
+      _impl_.goscript_build_flags_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000200U)) {
+      _impl_.goscript_override_dirs_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      ABSL_DCHECK(_impl_.dev_info_ != nullptr);
+      _impl_.dev_info_->Clear();
+    }
   }
-  _impl_.vite_disable_project_config_ = false;
+  if (BatchCheckHasBit(cached_has_bits, 0x00003800U)) {
+    ::memset(&_impl_.compiler_mode_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.goscript_all_dependencies_) -
+        reinterpret_cast<char*>(&_impl_.compiler_mode_)) + sizeof(_impl_.goscript_all_dependencies_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -2946,7 +3025,7 @@ PROTOBUF_NOINLINE void InputManifestMeta::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .bldr.plugin.vardef.PluginDevInfo dev_info = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.dev_info_, this_._impl_.dev_info_->GetCachedSize(), target,
         stream);
@@ -3051,11 +3130,49 @@ PROTOBUF_NOINLINE void InputManifestMeta::Clear() {
   }
 
   // bool vite_disable_project_config = 10;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
     if (this_._internal_vite_disable_project_config() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           10, this_._internal_vite_disable_project_config(), target);
+    }
+  }
+
+  // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_compiler_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          11, this_._internal_compiler_mode(), target);
+    }
+  }
+
+  // repeated string goscript_build_flags = 12;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000100U)) {
+    for (int i = 0, n = this_._internal_goscript_build_flags_size(); i < n; ++i) {
+      const auto& s = this_._internal_goscript_build_flags().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.compiler.go.InputManifestMeta.goscript_build_flags");
+      target = stream->WriteString(12, s, target);
+    }
+  }
+
+  // repeated string goscript_override_dirs = 13;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000200U)) {
+    for (int i = 0, n = this_._internal_goscript_override_dirs_size(); i < n; ++i) {
+      const auto& s = this_._internal_goscript_override_dirs().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.compiler.go.InputManifestMeta.goscript_override_dirs");
+      target = stream->WriteString(13, s, target);
+    }
+  }
+
+  // bool goscript_all_dependencies = 14;
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (this_._internal_goscript_all_dependencies() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          14, this_._internal_goscript_all_dependencies(), target);
     }
   }
 
@@ -3146,15 +3263,46 @@ PROTOBUF_NOINLINE void InputManifestMeta::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
+    // repeated string goscript_build_flags = 12;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000100U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_goscript_build_flags().size());
+      for (int i = 0, n = this_._internal_goscript_build_flags().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_goscript_build_flags().Get(i));
+      }
+    }
+    // repeated string goscript_override_dirs = 13;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000200U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_goscript_override_dirs().size());
+      for (int i = 0, n = this_._internal_goscript_override_dirs().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_goscript_override_dirs().Get(i));
+      }
+    }
     // .bldr.plugin.vardef.PluginDevInfo dev_info = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.dev_info_);
     }
+    // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_compiler_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_compiler_mode());
+      }
+    }
     // bool vite_disable_project_config = 10;
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (this_._internal_vite_disable_project_config() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool goscript_all_dependencies = 14;
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (this_._internal_goscript_all_dependencies() != 0) {
         total_size += 2;
       }
     }
@@ -3220,8 +3368,18 @@ void InputManifestMeta::MergeImpl(::google::protobuf::MessageLite& to_msg,
           from._internal_vite_outputs());
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000100U)) {
+      _this->_internal_mutable_goscript_build_flags()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_goscript_build_flags());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000200U)) {
+      _this->_internal_mutable_goscript_override_dirs()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_goscript_override_dirs());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       ABSL_DCHECK(from._impl_.dev_info_ != nullptr);
       if (_this->_impl_.dev_info_ == nullptr) {
         _this->_impl_.dev_info_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.dev_info_);
@@ -3229,9 +3387,19 @@ void InputManifestMeta::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.dev_info_->MergeFrom(*from._impl_.dev_info_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_compiler_mode() != 0) {
+        _this->_impl_.compiler_mode_ = from._impl_.compiler_mode_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (from._internal_vite_disable_project_config() != 0) {
         _this->_impl_.vite_disable_project_config_ = from._impl_.vite_disable_project_config_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (from._internal_goscript_all_dependencies() != 0) {
+        _this->_impl_.goscript_all_dependencies_ = from._impl_.goscript_all_dependencies_;
       }
     }
   }
@@ -3260,9 +3428,11 @@ void InputManifestMeta::InternalSwap(InputManifestMeta* PROTOBUF_RESTRICT PROTOB
   _impl_.vite_config_paths_.InternalSwap(&other->_impl_.vite_config_paths_);
   _impl_.vite_bundles_.InternalSwap(&other->_impl_.vite_bundles_);
   _impl_.vite_outputs_.InternalSwap(&other->_impl_.vite_outputs_);
+  _impl_.goscript_build_flags_.InternalSwap(&other->_impl_.goscript_build_flags_);
+  _impl_.goscript_override_dirs_.InternalSwap(&other->_impl_.goscript_override_dirs_);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.vite_disable_project_config_)
-      + sizeof(InputManifestMeta::_impl_.vite_disable_project_config_)
+      PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.goscript_all_dependencies_)
+      + sizeof(InputManifestMeta::_impl_.goscript_all_dependencies_)
       - PROTOBUF_FIELD_OFFSET(InputManifestMeta, _impl_.dev_info_)>(
           reinterpret_cast<char*>(&_impl_.dev_info_),
           reinterpret_cast<char*>(&other->_impl_.dev_info_));

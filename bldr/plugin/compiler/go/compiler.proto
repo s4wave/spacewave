@@ -9,6 +9,18 @@ import "github.com/s4wave/spacewave/bldr/web/pkg/pkg.proto";
 import "github.com/s4wave/spacewave/bldr/plugin/vardef/vardef.proto";
 import "github.com/aperturerobotics/util/enabled/enabled.proto";
 
+// CompilerMode selects the compiler used for the Go plugin artifact.
+enum CompilerMode {
+  // COMPILER_MODE_DEFAULT preserves the current default policy.
+  COMPILER_MODE_DEFAULT = 0;
+  // COMPILER_MODE_GO uses the standard Go compiler.
+  COMPILER_MODE_GO = 1;
+  // COMPILER_MODE_TINYGO uses TinyGo.
+  COMPILER_MODE_TINYGO = 2;
+  // COMPILER_MODE_GOSCRIPT uses GoScript.
+  COMPILER_MODE_GOSCRIPT = 3;
+}
+
 // Config configures the Go plugin compiler controller.
 message Config {
   // ProjectId overrides the project id set in the project config.
@@ -83,11 +95,11 @@ message Config {
   // Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
   .enabled.Enabled enable_cgo = 9;
 
-  // EnableTinygo enables using TinyGo instead of the Go compiler.
-  // The default is ENABLE for release browser WebAssembly builds and DISABLE
-  // otherwise. Explicit ENABLE is only supported for TinyGo-compatible
-  // WebAssembly targets such as web/js/wasm.
-  .enabled.Enabled enable_tinygo = 10;
+  reserved 10;
+
+  // CompilerMode selects the Go plugin compiler. DEFAULT preserves the current
+  // release browser default policy.
+  CompilerMode compiler_mode = 7;
 
   // EnableCompression can optionally force-enable or force-disable binary compression.
   // The default is ENABLE for release-mode only.
@@ -139,6 +151,8 @@ enum InputFileKind {
   InputFileKind_ASSET = 1;
   // InputFileKind_GO is a file built by the Go compiler.
   InputFileKind_GO = 2;
+  // InputFileKind_GOSCRIPT_OVERRIDE is a project-local GoScript override file.
+  InputFileKind_GOSCRIPT_OVERRIDE = 3;
 
   // NOTE: these will be picked up + watched by the esbuild compiler controller instead.
   // TODO: remove
@@ -180,6 +194,15 @@ message InputManifestMeta {
   // ViteDisableProjectConfig indicates whether to disable automatic project config detection.
   // Disables finding the root vite.conf.ts for the project.
   bool vite_disable_project_config = 10;
+
+  // CompilerMode is the resolved compiler used to produce this artifact.
+  CompilerMode compiler_mode = 11;
+  // GoScriptBuildFlags are the exact Go build flags forwarded to GoScript.
+  repeated string goscript_build_flags = 12;
+  // GoScriptOverrideDirs are source-relative project-local GoScript override roots.
+  repeated string goscript_override_dirs = 13;
+  // GoScriptAllDependencies records whether GoScript compiled the full dependency graph.
+  bool goscript_all_dependencies = 14;
 }
 
 // EsbuildBundleVarMeta is information about an esbuild bundle.

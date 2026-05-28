@@ -44,6 +44,24 @@ func TestAddTinyGoStartupCacheInputsIncludesProfileIdentity(t *testing.T) {
 	}
 }
 
+func TestAddGoScriptStartupCacheInputsIncludesCommandIdentity(t *testing.T) {
+	t.Setenv(gocompiler.GoScriptCommandEnv, "/opt/bin/goscript-dev")
+
+	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
+	addGoScriptStartupCacheInputs(inputManifest)
+
+	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
+	for _, input := range inputManifest.GetStartupInputs() {
+		if input.GetKind() != bldr_manifest_builder.InputManifest_StartupInputKind_ENV_VAR {
+			t.Fatalf("startup input kind = %v, want env var", input.GetKind())
+		}
+		got[input.GetKey()] = input.GetStringValue()
+	}
+	if got[gocompiler.GoScriptCommandEnv] != "/opt/bin/goscript-dev" {
+		t.Fatalf("startup input %s = %q, want command path", gocompiler.GoScriptCommandEnv, got[gocompiler.GoScriptCommandEnv])
+	}
+}
+
 func TestAppendInputManifestFilesKeepsGoInputsAppRootRelative(t *testing.T) {
 	sourcePath := filepath.Join(t.TempDir(), "app")
 	moduleCachePath := filepath.Join(t.TempDir(), "pkg", "mod", "github.com", "s4wave", "spacewave@v0.0.0")

@@ -70,6 +70,8 @@ namespace bldr {
 namespace plugin {
 namespace compiler {
 namespace go {
+enum CompilerMode : int;
+extern const uint32_t CompilerMode_internal_data_[];
 enum EsbuildVarType : int;
 extern const uint32_t EsbuildVarType_internal_data_[];
 enum InputFileKind : int;
@@ -131,6 +133,9 @@ extern const ::google::protobuf::internal::ClassDataFull ViteEntrypointVar_class
 namespace google {
 namespace protobuf {
 template <>
+internal::EnumTraitsT<::bldr::plugin::compiler::go::CompilerMode_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::plugin::compiler::go::CompilerMode>;
+template <>
 internal::EnumTraitsT<::bldr::plugin::compiler::go::EsbuildVarType_internal_data_>
     internal::EnumTraitsImpl::value<::bldr::plugin::compiler::go::EsbuildVarType>;
 template <>
@@ -146,10 +151,49 @@ namespace bldr {
 namespace plugin {
 namespace compiler {
 namespace go {
+enum CompilerMode : int {
+  COMPILER_MODE_DEFAULT = 0,
+  COMPILER_MODE_GO = 1,
+  COMPILER_MODE_TINYGO = 2,
+  COMPILER_MODE_GOSCRIPT = 3,
+  CompilerMode_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  CompilerMode_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t CompilerMode_internal_data_[];
+inline constexpr CompilerMode CompilerMode_MIN =
+    static_cast<CompilerMode>(0);
+inline constexpr CompilerMode CompilerMode_MAX =
+    static_cast<CompilerMode>(3);
+inline bool CompilerMode_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int CompilerMode_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CompilerMode_descriptor();
+template <typename T>
+const ::std::string& CompilerMode_Name(T value) {
+  static_assert(::std::is_same<T, CompilerMode>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to CompilerMode_Name().");
+  return CompilerMode_Name(static_cast<CompilerMode>(value));
+}
+template <>
+inline const ::std::string& CompilerMode_Name(CompilerMode value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<CompilerMode_descriptor, 0, 3>(
+      static_cast<int>(value));
+}
+inline bool CompilerMode_Parse(
+    ::absl::string_view name, CompilerMode* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<CompilerMode>(CompilerMode_descriptor(), name,
+                                           value);
+}
 enum InputFileKind : int {
   InputFileKind_UNKNOWN = 0,
   InputFileKind_ASSET = 1,
   InputFileKind_GO = 2,
+  InputFileKind_GOSCRIPT_OVERRIDE = 3,
   InputFileKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   InputFileKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -160,11 +204,11 @@ extern const uint32_t InputFileKind_internal_data_[];
 inline constexpr InputFileKind InputFileKind_MIN =
     static_cast<InputFileKind>(0);
 inline constexpr InputFileKind InputFileKind_MAX =
-    static_cast<InputFileKind>(2);
+    static_cast<InputFileKind>(3);
 inline bool InputFileKind_IsValid(int value) {
-  return 0 <= value && value <= 2;
+  return 0 <= value && value <= 3;
 }
-inline constexpr int InputFileKind_ARRAYSIZE = 2 + 1;
+inline constexpr int InputFileKind_ARRAYSIZE = 3 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL InputFileKind_descriptor();
 template <typename T>
 const ::std::string& InputFileKind_Name(T value) {
@@ -175,7 +219,7 @@ const ::std::string& InputFileKind_Name(T value) {
 }
 template <>
 inline const ::std::string& InputFileKind_Name(InputFileKind value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<InputFileKind_descriptor, 0, 2>(
+  return ::google::protobuf::internal::NameOfDenseEnum<InputFileKind_descriptor, 0, 3>(
       static_cast<int>(value));
 }
 inline bool InputFileKind_Parse(
@@ -1665,8 +1709,8 @@ class Config final : public ::google::protobuf::Message
     kProjectIdFieldNumber = 1,
     kDelveAddrFieldNumber = 8,
     kWebPluginIdFieldNumber = 13,
+    kCompilerModeFieldNumber = 7,
     kEnableCgoFieldNumber = 9,
-    kEnableTinygoFieldNumber = 10,
     kEnableCompressionFieldNumber = 11,
     kDisableRpcFetchFieldNumber = 6,
     kViteDisableProjectConfigFieldNumber = 16,
@@ -1804,6 +1848,16 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_web_plugin_id();
 
   public:
+  // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
+  void clear_compiler_mode() ;
+  ::bldr::plugin::compiler::go::CompilerMode compiler_mode() const;
+  void set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value);
+
+  private:
+  ::bldr::plugin::compiler::go::CompilerMode _internal_compiler_mode() const;
+  void _internal_set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value);
+
+  public:
   // .enabled.Enabled enable_cgo = 9;
   void clear_enable_cgo() ;
   ::enabled::Enabled enable_cgo() const;
@@ -1812,16 +1866,6 @@ class Config final : public ::google::protobuf::Message
   private:
   ::enabled::Enabled _internal_enable_cgo() const;
   void _internal_set_enable_cgo(::enabled::Enabled value);
-
-  public:
-  // .enabled.Enabled enable_tinygo = 10;
-  void clear_enable_tinygo() ;
-  ::enabled::Enabled enable_tinygo() const;
-  void set_enable_tinygo(::enabled::Enabled value);
-
-  private:
-  ::enabled::Enabled _internal_enable_tinygo() const;
-  void _internal_set_enable_tinygo(::enabled::Enabled value);
 
   public:
   // .enabled.Enabled enable_compression = 11;
@@ -1957,8 +2001,8 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr project_id_;
     ::google::protobuf::internal::ArenaStringPtr delve_addr_;
     ::google::protobuf::internal::ArenaStringPtr web_plugin_id_;
+    int compiler_mode_;
     int enable_cgo_;
-    int enable_tinygo_;
     int enable_compression_;
     bool disable_rpc_fetch_;
     bool vite_disable_project_config_;
@@ -2411,8 +2455,12 @@ class InputManifestMeta final : public ::google::protobuf::Message
     kViteConfigPathsFieldNumber = 7,
     kViteBundlesFieldNumber = 8,
     kViteOutputsFieldNumber = 9,
+    kGoscriptBuildFlagsFieldNumber = 12,
+    kGoscriptOverrideDirsFieldNumber = 13,
     kDevInfoFieldNumber = 1,
+    kCompilerModeFieldNumber = 11,
     kViteDisableProjectConfigFieldNumber = 10,
+    kGoscriptAllDependenciesFieldNumber = 14,
   };
   // repeated .web.pkg.WebPkgRef web_pkg_refs = 2;
   int web_pkg_refs_size() const;
@@ -2560,6 +2608,50 @@ class InputManifestMeta final : public ::google::protobuf::Message
   const ::bldr::web::bundler::vite::ViteOutputMeta& vite_outputs(int index) const;
   ::bldr::web::bundler::vite::ViteOutputMeta* PROTOBUF_NONNULL add_vite_outputs();
   const ::google::protobuf::RepeatedPtrField<::bldr::web::bundler::vite::ViteOutputMeta>& vite_outputs() const;
+  // repeated string goscript_build_flags = 12;
+  int goscript_build_flags_size() const;
+  private:
+  int _internal_goscript_build_flags_size() const;
+
+  public:
+  void clear_goscript_build_flags() ;
+  const ::std::string& goscript_build_flags(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_goscript_build_flags(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_goscript_build_flags(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_goscript_build_flags();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_goscript_build_flags(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& goscript_build_flags() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_goscript_build_flags();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_goscript_build_flags() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_goscript_build_flags();
+
+  public:
+  // repeated string goscript_override_dirs = 13;
+  int goscript_override_dirs_size() const;
+  private:
+  int _internal_goscript_override_dirs_size() const;
+
+  public:
+  void clear_goscript_override_dirs() ;
+  const ::std::string& goscript_override_dirs(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_goscript_override_dirs(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_goscript_override_dirs(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_goscript_override_dirs();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_goscript_override_dirs(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& goscript_override_dirs() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_goscript_override_dirs();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_goscript_override_dirs() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_goscript_override_dirs();
+
+  public:
   // .bldr.plugin.vardef.PluginDevInfo dev_info = 1;
   bool has_dev_info() const;
   void clear_dev_info() ;
@@ -2575,6 +2667,16 @@ class InputManifestMeta final : public ::google::protobuf::Message
   ::bldr::plugin::vardef::PluginDevInfo* PROTOBUF_NONNULL _internal_mutable_dev_info();
 
   public:
+  // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
+  void clear_compiler_mode() ;
+  ::bldr::plugin::compiler::go::CompilerMode compiler_mode() const;
+  void set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value);
+
+  private:
+  ::bldr::plugin::compiler::go::CompilerMode _internal_compiler_mode() const;
+  void _internal_set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value);
+
+  public:
   // bool vite_disable_project_config = 10;
   void clear_vite_disable_project_config() ;
   bool vite_disable_project_config() const;
@@ -2585,12 +2687,22 @@ class InputManifestMeta final : public ::google::protobuf::Message
   void _internal_set_vite_disable_project_config(bool value);
 
   public:
+  // bool goscript_all_dependencies = 14;
+  void clear_goscript_all_dependencies() ;
+  bool goscript_all_dependencies() const;
+  void set_goscript_all_dependencies(bool value);
+
+  private:
+  bool _internal_goscript_all_dependencies() const;
+  void _internal_set_goscript_all_dependencies(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.plugin.compiler.go.InputManifestMeta)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 10,
-                                   7, 88,
+  static const ::google::protobuf::internal::TcParseTable<4, 14,
+                                   7, 130,
                                    2>
       _table_;
 
@@ -2619,8 +2731,12 @@ class InputManifestMeta final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedPtrField<::std::string> vite_config_paths_;
     ::google::protobuf::RepeatedPtrField< ::bldr::plugin::compiler::go::ViteBundleVarMeta > vite_bundles_;
     ::google::protobuf::RepeatedPtrField< ::bldr::web::bundler::vite::ViteOutputMeta > vite_outputs_;
+    ::google::protobuf::RepeatedPtrField<::std::string> goscript_build_flags_;
+    ::google::protobuf::RepeatedPtrField<::std::string> goscript_override_dirs_;
     ::bldr::plugin::vardef::PluginDevInfo* PROTOBUF_NULLABLE dev_info_;
+    int compiler_mode_;
     bool vite_disable_project_config_;
+    bool goscript_all_dependencies_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3084,7 +3200,7 @@ inline void Config::clear_enable_cgo() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enable_cgo_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000100U);
 }
 inline ::enabled::Enabled Config::enable_cgo() const {
   // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.Config.enable_cgo)
@@ -3092,7 +3208,7 @@ inline ::enabled::Enabled Config::enable_cgo() const {
 }
 inline void Config::set_enable_cgo(::enabled::Enabled value) {
   _internal_set_enable_cgo(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.Config.enable_cgo)
 }
 inline ::enabled::Enabled Config::_internal_enable_cgo() const {
@@ -3104,29 +3220,29 @@ inline void Config::_internal_set_enable_cgo(::enabled::Enabled value) {
   _impl_.enable_cgo_ = value;
 }
 
-// .enabled.Enabled enable_tinygo = 10;
-inline void Config::clear_enable_tinygo() {
+// .bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
+inline void Config::clear_compiler_mode() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.enable_tinygo_ = 0;
+  _impl_.compiler_mode_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000080U);
 }
-inline ::enabled::Enabled Config::enable_tinygo() const {
-  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.Config.enable_tinygo)
-  return _internal_enable_tinygo();
+inline ::bldr::plugin::compiler::go::CompilerMode Config::compiler_mode() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.Config.compiler_mode)
+  return _internal_compiler_mode();
 }
-inline void Config::set_enable_tinygo(::enabled::Enabled value) {
-  _internal_set_enable_tinygo(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
-  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.Config.enable_tinygo)
+inline void Config::set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value) {
+  _internal_set_compiler_mode(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.Config.compiler_mode)
 }
-inline ::enabled::Enabled Config::_internal_enable_tinygo() const {
+inline ::bldr::plugin::compiler::go::CompilerMode Config::_internal_compiler_mode() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::enabled::Enabled>(_impl_.enable_tinygo_);
+  return static_cast<::bldr::plugin::compiler::go::CompilerMode>(_impl_.compiler_mode_);
 }
-inline void Config::_internal_set_enable_tinygo(::enabled::Enabled value) {
+inline void Config::_internal_set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.enable_tinygo_ = value;
+  _impl_.compiler_mode_ = value;
 }
 
 // .enabled.Enabled enable_compression = 11;
@@ -3518,7 +3634,7 @@ inline void InputFileMeta::_internal_set_kind(::bldr::plugin::compiler::go::Inpu
 
 // .bldr.plugin.vardef.PluginDevInfo dev_info = 1;
 inline bool InputManifestMeta::has_dev_info() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000400U);
   PROTOBUF_ASSUME(!value || _impl_.dev_info_ != nullptr);
   return value;
 }
@@ -3539,16 +3655,16 @@ inline void InputManifestMeta::unsafe_arena_set_allocated_dev_info(
   }
   _impl_.dev_info_ = reinterpret_cast<::bldr::plugin::vardef::PluginDevInfo*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.plugin.compiler.go.InputManifestMeta.dev_info)
 }
 inline ::bldr::plugin::vardef::PluginDevInfo* PROTOBUF_NULLABLE InputManifestMeta::release_dev_info() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
   ::bldr::plugin::vardef::PluginDevInfo* released = _impl_.dev_info_;
   _impl_.dev_info_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -3568,7 +3684,7 @@ inline ::bldr::plugin::vardef::PluginDevInfo* PROTOBUF_NULLABLE InputManifestMet
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.plugin.compiler.go.InputManifestMeta.dev_info)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
   ::bldr::plugin::vardef::PluginDevInfo* temp = _impl_.dev_info_;
   _impl_.dev_info_ = nullptr;
   return temp;
@@ -3583,7 +3699,7 @@ inline ::bldr::plugin::vardef::PluginDevInfo* PROTOBUF_NONNULL InputManifestMeta
 }
 inline ::bldr::plugin::vardef::PluginDevInfo* PROTOBUF_NONNULL InputManifestMeta::mutable_dev_info()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   ::bldr::plugin::vardef::PluginDevInfo* _msg = _internal_mutable_dev_info();
   // @@protoc_insertion_point(field_mutable:bldr.plugin.compiler.go.InputManifestMeta.dev_info)
   return _msg;
@@ -3600,9 +3716,9 @@ inline void InputManifestMeta::set_allocated_dev_info(::bldr::plugin::vardef::Pl
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
   }
 
   _impl_.dev_info_ = reinterpret_cast<::bldr::plugin::vardef::PluginDevInfo*>(value);
@@ -4070,7 +4186,7 @@ inline void InputManifestMeta::clear_vite_disable_project_config() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.vite_disable_project_config_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00001000U);
 }
 inline bool InputManifestMeta::vite_disable_project_config() const {
   // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.InputManifestMeta.vite_disable_project_config)
@@ -4078,7 +4194,7 @@ inline bool InputManifestMeta::vite_disable_project_config() const {
 }
 inline void InputManifestMeta::set_vite_disable_project_config(bool value) {
   _internal_set_vite_disable_project_config(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.InputManifestMeta.vite_disable_project_config)
 }
 inline bool InputManifestMeta::_internal_vite_disable_project_config() const {
@@ -4088,6 +4204,200 @@ inline bool InputManifestMeta::_internal_vite_disable_project_config() const {
 inline void InputManifestMeta::_internal_set_vite_disable_project_config(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.vite_disable_project_config_ = value;
+}
+
+// .bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
+inline void InputManifestMeta::clear_compiler_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.compiler_mode_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline ::bldr::plugin::compiler::go::CompilerMode InputManifestMeta::compiler_mode() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.InputManifestMeta.compiler_mode)
+  return _internal_compiler_mode();
+}
+inline void InputManifestMeta::set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value) {
+  _internal_set_compiler_mode(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.InputManifestMeta.compiler_mode)
+}
+inline ::bldr::plugin::compiler::go::CompilerMode InputManifestMeta::_internal_compiler_mode() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::bldr::plugin::compiler::go::CompilerMode>(_impl_.compiler_mode_);
+}
+inline void InputManifestMeta::_internal_set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.compiler_mode_ = value;
+}
+
+// repeated string goscript_build_flags = 12;
+inline int InputManifestMeta::_internal_goscript_build_flags_size() const {
+  return _internal_goscript_build_flags().size();
+}
+inline int InputManifestMeta::goscript_build_flags_size() const {
+  return _internal_goscript_build_flags_size();
+}
+inline void InputManifestMeta::clear_goscript_build_flags() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.goscript_build_flags_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifestMeta::add_goscript_build_flags()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_goscript_build_flags()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.plugin.compiler.go.InputManifestMeta.goscript_build_flags)
+  return _s;
+}
+inline const ::std::string& InputManifestMeta::goscript_build_flags(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.InputManifestMeta.goscript_build_flags)
+  return _internal_goscript_build_flags().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifestMeta::mutable_goscript_build_flags(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.plugin.compiler.go.InputManifestMeta.goscript_build_flags)
+  return _internal_mutable_goscript_build_flags()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void InputManifestMeta::set_goscript_build_flags(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_goscript_build_flags()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.InputManifestMeta.goscript_build_flags)
+}
+template <typename Arg_, typename... Args_>
+inline void InputManifestMeta::add_goscript_build_flags(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_goscript_build_flags(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_add:bldr.plugin.compiler.go.InputManifestMeta.goscript_build_flags)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& InputManifestMeta::goscript_build_flags()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.plugin.compiler.go.InputManifestMeta.goscript_build_flags)
+  return _internal_goscript_build_flags();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+InputManifestMeta::mutable_goscript_build_flags() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.plugin.compiler.go.InputManifestMeta.goscript_build_flags)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_goscript_build_flags();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+InputManifestMeta::_internal_goscript_build_flags() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.goscript_build_flags_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+InputManifestMeta::_internal_mutable_goscript_build_flags() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.goscript_build_flags_;
+}
+
+// repeated string goscript_override_dirs = 13;
+inline int InputManifestMeta::_internal_goscript_override_dirs_size() const {
+  return _internal_goscript_override_dirs().size();
+}
+inline int InputManifestMeta::goscript_override_dirs_size() const {
+  return _internal_goscript_override_dirs_size();
+}
+inline void InputManifestMeta::clear_goscript_override_dirs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.goscript_override_dirs_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifestMeta::add_goscript_override_dirs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_goscript_override_dirs()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.plugin.compiler.go.InputManifestMeta.goscript_override_dirs)
+  return _s;
+}
+inline const ::std::string& InputManifestMeta::goscript_override_dirs(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.InputManifestMeta.goscript_override_dirs)
+  return _internal_goscript_override_dirs().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL InputManifestMeta::mutable_goscript_override_dirs(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.plugin.compiler.go.InputManifestMeta.goscript_override_dirs)
+  return _internal_mutable_goscript_override_dirs()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void InputManifestMeta::set_goscript_override_dirs(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_goscript_override_dirs()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.InputManifestMeta.goscript_override_dirs)
+}
+template <typename Arg_, typename... Args_>
+inline void InputManifestMeta::add_goscript_override_dirs(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_goscript_override_dirs(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_add:bldr.plugin.compiler.go.InputManifestMeta.goscript_override_dirs)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& InputManifestMeta::goscript_override_dirs()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.plugin.compiler.go.InputManifestMeta.goscript_override_dirs)
+  return _internal_goscript_override_dirs();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+InputManifestMeta::mutable_goscript_override_dirs() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.plugin.compiler.go.InputManifestMeta.goscript_override_dirs)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_goscript_override_dirs();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+InputManifestMeta::_internal_goscript_override_dirs() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.goscript_override_dirs_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+InputManifestMeta::_internal_mutable_goscript_override_dirs() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.goscript_override_dirs_;
+}
+
+// bool goscript_all_dependencies = 14;
+inline void InputManifestMeta::clear_goscript_all_dependencies() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.goscript_all_dependencies_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00002000U);
+}
+inline bool InputManifestMeta::goscript_all_dependencies() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.InputManifestMeta.goscript_all_dependencies)
+  return _internal_goscript_all_dependencies();
+}
+inline void InputManifestMeta::set_goscript_all_dependencies(bool value) {
+  _internal_set_goscript_all_dependencies(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.InputManifestMeta.goscript_all_dependencies)
+}
+inline bool InputManifestMeta::_internal_goscript_all_dependencies() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.goscript_all_dependencies_;
+}
+inline void InputManifestMeta::_internal_set_goscript_all_dependencies(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.goscript_all_dependencies_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -5036,6 +5346,12 @@ inline void ViteEntrypointVar::_internal_set_disable_project_config(bool value) 
 namespace google {
 namespace protobuf {
 
+template <>
+struct is_proto_enum<::bldr::plugin::compiler::go::CompilerMode> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::plugin::compiler::go::CompilerMode>() {
+  return ::bldr::plugin::compiler::go::CompilerMode_descriptor();
+}
 template <>
 struct is_proto_enum<::bldr::plugin::compiler::go::InputFileKind> : std::true_type {};
 template <>

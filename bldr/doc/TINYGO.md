@@ -1,12 +1,11 @@
 # TinyGo
 
-TinyGo is an explicit experimental opt-in for compatible WebAssembly builds.
-The default remains the standard Go compiler until browser plugin product proof
-passes.
+TinyGo is available for compatible WebAssembly Go plugin builds.
 
-Enable it from Bldr Go plugin or dist compiler config with
-`enableTinygo: "ENABLE"` on a TinyGo-compatible WebAssembly platform such as
-`web/js/wasm`.
+Enable it from Bldr Go plugin config with
+`compilerMode: "COMPILER_MODE_TINYGO"` on a TinyGo-compatible WebAssembly
+platform such as `web/js/wasm`. Dist compiler config still uses
+`enableTinygo: "ENABLE"` for the browser host runtime Wasm compiler choice.
 
 ## Installation
 

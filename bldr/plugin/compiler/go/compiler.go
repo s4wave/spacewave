@@ -40,6 +40,7 @@ import (
 	bldr_web_plugin_handle_rpc "github.com/s4wave/spacewave/bldr/web/plugin/handle-rpc"
 	bldr_web_plugin_handle_web_pkg_assets "github.com/s4wave/spacewave/bldr/web/plugin/handle-web-pkg-assets"
 	bldr_web_plugin_handle_web_view_rpc "github.com/s4wave/spacewave/bldr/web/plugin/handle-web-view-rpc"
+	web_runtime_goscript_build "github.com/s4wave/spacewave/bldr/web/runtime/goscript/build"
 	web_runtime_wasm_build "github.com/s4wave/spacewave/bldr/web/runtime/wasm/build"
 	web_view_handler_server "github.com/s4wave/spacewave/bldr/web/view/handler/server"
 	bldr_web_view_observer "github.com/s4wave/spacewave/bldr/web/view/observer"
@@ -311,7 +312,7 @@ func (c *Controller) BuildManifest(
 			pluginBuildConf.GetConfigSet(),
 			pluginBuildConf.GetHostConfigSet(),
 			pluginBuildConf.GetEnableCgo(),
-			pluginBuildConf.GetEnableTinygo(),
+			pluginBuildConf.GetCompilerMode(),
 			pluginBuildConf.GetEnableImportedFactoryDiscovery(),
 			pluginBuildConf.GetEnableCompression(),
 			pluginBuildConf.GetEsbuildFlags(),
@@ -393,7 +394,7 @@ func (c *Controller) BuildPlugin(
 	configSet map[string]*configset_proto.ControllerConfig,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	enableCgoOpt enabled.Enabled,
-	enableTinygoOpt enabled.Enabled,
+	compilerModeOpt CompilerMode,
 	enableImportedFactoryDiscoveryOpt enabled.Enabled,
 	enableCompressionOpt enabled.Enabled,
 	baseEsbuildFlags []string,
@@ -415,14 +416,27 @@ func (c *Controller) BuildPlugin(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default (isRelease means default value depends on release mode)
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	enableTinygo, err := gocompiler.ResolveTinyGoEnabled(
+	resolvedModeOpt, err := compilerModeOpt.GoPluginCompilerMode()
+	if err != nil {
+		return nil, nil, err
+	}
+	compilerMode, err := gocompiler.ResolveGoPluginCompilerMode(
 		buildPlatform,
-		enableTinygoOpt,
+		resolvedModeOpt,
 		isWebBuildPlatform && gocompiler.DefaultTinyGoEnabled(buildPlatform, isRelease),
 	)
 	if err != nil {
 		return nil, nil, err
 	}
+	useGoScript := compilerMode == gocompiler.GoPluginCompilerModeGoScript
+	if useGoScript && !isWebBuildPlatform {
+		return nil, nil, errors.New("goscript Go plugin compiler mode currently requires a browser WebAssembly platform")
+	}
+	resolvedCompilerMode, err := CompilerModeFromGoPluginCompilerMode(compilerMode)
+	if err != nil {
+		return nil, nil, err
+	}
+	enableTinygo := compilerMode.IsTinyGo()
 	enableImportedFactoryDiscovery := enableImportedFactoryDiscoveryOpt.IsEnabled(false)
 
 	// build the config set based on configuration
@@ -532,7 +546,7 @@ func (c *Controller) BuildPlugin(
 
 	// analyze go packages
 	le.Info("analyzing go packages")
-	buildTagsForAnalyze := newBuildTagsForAnalyze(buildType, enableCgo, enableTinygo)
+	buildTagsForAnalyze := newBuildTagsForAnalyze(buildType, enableCgo, compilerMode)
 	// Match analysis GOOS/GOARCH to the target so factories gated on
 	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
 	// are excluded from the generated factory list when targeting js/wasm.
@@ -833,10 +847,49 @@ func (c *Controller) BuildPlugin(
 	// Files to copy from the generated module directory to the output dist directory.
 	var copyFiles []string
 	var webRuntimeSrcFiles []string
+	var goScriptBuildFlags []string
+	var goScriptOverrideDirs []string
+	var goScriptOverrideDirRels []string
 	outDistBinary := filepath.Join(outDistPath, outBinName)
 
-	// only use dev wrapper if not web platform
-	if isRelease || delveAddr == "" || isWebBuildPlatform {
+	compilePluginBinary := !useGoScript && (isRelease || delveAddr == "" || isWebBuildPlatform)
+	compileDevWrapper := !useGoScript && !compilePluginBinary
+
+	if useGoScript {
+		le.Info("compiling plugin TypeScript package tree")
+		goScriptBuildFlags = newGoScriptBuildFlags(buildType, enableCgo)
+		goScriptOverrideDirs, goScriptOverrideDirRels = existingSourceDirs(sourcePath, "gs")
+		mainPackagePath, err := mc.CompilePluginGoScript(
+			ctx,
+			le,
+			outDistPath,
+			goScriptBuildFlags,
+			goScriptOverrideDirs,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		outScriptPath := filepath.Join(outDistPath, pluginID+".mjs")
+		timeStart := time.Now()
+		webRuntimeSrcFiles, err = web_runtime_goscript_build.BuildWebGoScriptPluginScript(
+			ctx,
+			le,
+			distSourcePath,
+			mc.pluginCodegenPath,
+			outDistPath,
+			outScriptPath,
+			mainPackagePath,
+			jsMinification,
+			jsSourcemaps,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		le.
+			WithField("dur", time.Since(timeStart).String()).
+			Info("compiled GoScript web plugin entrypoint")
+	}
+	if compilePluginBinary {
 		le.Info("compiling plugin binary")
 		if err := mc.CompilePlugin(
 			ctx,
@@ -874,7 +927,8 @@ func (c *Controller) BuildPlugin(
 			outDistBinary = brPath //nolint
 			outBinName = filepath.Base(brPath)
 		}
-	} else {
+	}
+	if compileDevWrapper {
 		le.Info("compiling plugin dev wrapper binary")
 		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr, buildPlatform, buildType, enableCgo); err != nil {
 			return nil, nil, err
@@ -883,7 +937,7 @@ func (c *Controller) BuildPlugin(
 	}
 
 	// build the WebWorker / SharedWorker js entrypoint if applicable
-	if isWebBuildPlatform {
+	if isWebBuildPlatform && !useGoScript {
 		// override entrypoint path to point to .mjs instead (for web worker)
 		le.Info("compiling web plugin entrypoint")
 		outScriptPath := filepath.Join(
@@ -962,6 +1016,10 @@ func (c *Controller) BuildPlugin(
 		ViteConfigPaths:          conf.GetViteConfigPaths(),
 		ViteOutputs:              viteOutputMeta,
 		ViteDisableProjectConfig: conf.GetViteDisableProjectConfig(),
+		CompilerMode:             resolvedCompilerMode,
+		GoscriptBuildFlags:       goScriptBuildFlags,
+		GoscriptOverrideDirs:     goScriptOverrideDirRels,
+		GoscriptAllDependencies:  useGoScript,
 	}
 	inputManifestMetaBin, err := inputManifestMeta.MarshalVT()
 	if err != nil {
@@ -985,6 +1043,20 @@ func (c *Controller) BuildPlugin(
 		assetSrcFiles,
 	); err != nil {
 		return nil, nil, err
+	}
+	if useGoScript {
+		goScriptOverrideFiles, err := sourceFilesUnderDirs(sourcePath, goScriptOverrideDirRels)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := appendInputManifestFiles(
+			inputManifest,
+			sourcePath,
+			InputFileKind_InputFileKind_GOSCRIPT_OVERRIDE,
+			goScriptOverrideFiles,
+		); err != nil {
+			return nil, nil, err
+		}
 	}
 	webRuntimeSrcFiles = filterPathsUnderBase(sourcePath, webRuntimeSrcFiles)
 	if len(webRuntimeSrcFiles) != 0 {
@@ -1010,13 +1082,27 @@ func (c *Controller) BuildPlugin(
 	if enableTinygo {
 		addTinyGoStartupCacheInputs(inputManifest)
 	}
+	if useGoScript {
+		addGoScriptStartupCacheInputs(inputManifest)
+	}
 	inputManifest.SortFiles()
 
 	return an, inputManifest, nil
 }
 
+func newGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
+	return []string{"-tags=" + strings.Join(gocompiler.NewBuildTags(buildType, enableCgo), ",")}
+}
+
 func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.TinyGoStartupCacheEnvKeys() {
+		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
+	}
+	inputManifest.SortStartupInputs()
+}
+
+func addGoScriptStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
+	for _, envKey := range gocompiler.GoScriptStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
 	}
 	inputManifest.SortStartupInputs()
@@ -1075,12 +1161,15 @@ func filterPathsUnderBase(basePath string, paths []string) []string {
 func newBuildTagsForAnalyze(
 	buildType bldr_manifest.BuildType,
 	enableCgo bool,
-	enableTinygo bool,
+	compilerMode gocompiler.GoPluginCompilerMode,
 ) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
-	if enableTinygo {
+	if compilerMode.IsTinyGo() {
 		buildTags = append(buildTags, "tinygo")
 		buildTags = append(buildTags, gocompiler.BldrTinyGoJSImportBuildTag)
+	}
+	if compilerMode.IsGoScript() {
+		buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
 	}
 	return buildTags
 }
@@ -1501,6 +1590,50 @@ func existingSourceFiles(sourcePath string, relPaths ...string) []string {
 		existing = append(existing, relPath)
 	}
 	return existing
+}
+
+// existingSourceDirs filters source-relative directory paths to absolute paths that exist.
+func existingSourceDirs(sourcePath string, relPaths ...string) ([]string, []string) {
+	var existingAbs []string
+	var existingRel []string
+	for _, relPath := range relPaths {
+		if relPath == "" {
+			continue
+		}
+		absPath := filepath.Join(sourcePath, relPath)
+		fileInfo, err := os.Stat(absPath)
+		if err != nil || !fileInfo.IsDir() {
+			continue
+		}
+		existingAbs = append(existingAbs, absPath)
+		existingRel = append(existingRel, relPath)
+	}
+	return existingAbs, existingRel
+}
+
+func sourceFilesUnderDirs(sourcePath string, relDirs []string) ([]string, error) {
+	var files []string
+	for _, relDir := range relDirs {
+		absDir := filepath.Join(sourcePath, relDir)
+		if err := filepath.WalkDir(absDir, func(path string, entry os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() {
+				return nil
+			}
+			relPath, err := filepath.Rel(sourcePath, path)
+			if err != nil {
+				return err
+			}
+			files = append(files, relPath)
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+	}
+	slices.Sort(files)
+	return files, nil
 }
 
 // writeDevInfoFile writes the plugin development info file if the path is specified.

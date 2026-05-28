@@ -2,7 +2,6 @@ package gocompiler
 
 import (
 	"github.com/aperturerobotics/util/enabled"
-	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_platform_go "github.com/s4wave/spacewave/bldr/platform/go"
 )
@@ -22,12 +21,24 @@ func ResolveTinyGoEnabled(
 	enableTinygoOpt enabled.Enabled,
 	defaultEnabled bool,
 ) (bool, error) {
-	useTinygo := enableTinygoOpt.IsEnabled(defaultEnabled)
-	if !useTinygo {
-		return false, nil
+	mode, err := ResolveGoPluginCompilerMode(
+		buildPlatform,
+		resolveLegacyTinyGoMode(enableTinygoOpt),
+		defaultEnabled,
+	)
+	if err != nil {
+		return false, err
 	}
-	if _, err := bldr_platform_go.PlatformToTinyGoTarget(buildPlatform); err != nil {
-		return false, errors.Wrap(err, "tinygo enabled")
+	return mode.IsTinyGo(), nil
+}
+
+func resolveLegacyTinyGoMode(enableTinygoOpt enabled.Enabled) GoPluginCompilerMode {
+	switch enableTinygoOpt {
+	case enabled.Enabled_ENABLE:
+		return GoPluginCompilerModeTinyGo
+	case enabled.Enabled_DISABLE:
+		return GoPluginCompilerModeGo
+	default:
+		return GoPluginCompilerModeDefault
 	}
-	return true, nil
 }
