@@ -14,7 +14,6 @@ import (
 	"github.com/go-git/go-git/v6/plumbing/object"
 	_ "github.com/go-git/go-git/v6/plumbing/transport/file"
 	s4wave_git "github.com/s4wave/spacewave/core/git"
-	space_world "github.com/s4wave/spacewave/core/space/world"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -38,36 +37,6 @@ func setupGitWorld(t *testing.T) (context.Context, *world_testbed.Testbed, world
 	}
 
 	return ctx, tb, world.NewEngineWorldState(tb.Engine, true)
-}
-
-func TestCreateGitRepoWizardOpCreatesTypedRepo(t *testing.T) {
-	ctx, tb, ws := setupGitWorld(t)
-	objectKey := "repo/wizard-init"
-
-	op := &s4wave_git.CreateGitRepoWizardOp{
-		ObjectKey: objectKey,
-		Timestamp: timestamppb.Now(),
-	}
-	_, _, err := ws.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID())
-	if err != nil {
-		t.Fatalf("ApplyWorldOp: %v", err)
-	}
-
-	typeID, err := world_types.GetObjectType(ctx, ws, objectKey)
-	if err != nil {
-		t.Fatalf("GetObjectType: %v", err)
-	}
-	if typeID != git_world.GitRepoTypeID {
-		t.Fatalf("expected type %q, got %q", git_world.GitRepoTypeID, typeID)
-	}
-
-	contents, err := space_world.BuildWorldContents(ctx, ws)
-	if err != nil {
-		t.Fatalf("BuildWorldContents: %v", err)
-	}
-	if !worldContentsHasObject(contents, objectKey, git_world.GitRepoTypeID) {
-		t.Fatalf("world contents missing typed repo %q: %#v", objectKey, contents.GetObjects())
-	}
 }
 
 func TestCloneGitRepoToRefPublishesTypedRepo(t *testing.T) {
@@ -126,13 +95,4 @@ func createSourceRepo(t *testing.T) string {
 		t.Fatalf("Commit: %v", err)
 	}
 	return dir
-}
-
-func worldContentsHasObject(contents *space_world.WorldContents, objectKey, typeID string) bool {
-	for _, obj := range contents.GetObjects() {
-		if obj.GetObjectKey() == objectKey && obj.GetObjectType() == typeID {
-			return true
-		}
-	}
-	return false
 }

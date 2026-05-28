@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package resource_space
 
 import (
@@ -67,7 +65,7 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 	signature, err := peer.NewSignature(
 		s4wave_secret.ReadPayloadChallengeSignatureContext,
 		readerPriv,
-		hash.HashType_HashType_BLAKE3,
+		hash.HashType_HashType_SHA256,
 		begin.GetChallenge(),
 		true,
 	)

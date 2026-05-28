@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package resource_session_test
 
 import (
@@ -7,148 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
-	"github.com/s4wave/spacewave/core/session"
-	session_controller "github.com/s4wave/spacewave/core/session/controller"
-	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
-	"github.com/s4wave/spacewave/core/space"
-	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	"github.com/s4wave/spacewave/db/volume"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
-	"github.com/s4wave/spacewave/testbed"
-	"github.com/sirupsen/logrus"
 )
-
-// testEnv holds the shared test environment for session resource tests.
-type testEnv struct {
-	tb          *testbed.Testbed
-	prov        *provider_local.Provider
-	sessCtrl    session.SessionController
-	sessCtrlRel func()
-}
-
-// setupTestEnv creates a testbed with local provider and session controller.
-func setupTestEnv(ctx context.Context, t *testing.T) *testEnv {
-	t.Helper()
-
-	tb, err := testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
-
-	peerID := tb.Volume.GetPeerID()
-	providerID := "local"
-
-	// Start session controller.
-	_, sessCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
-		VolumeId: tb.EngineVolumeID,
-	}), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(sessCtrlRef.Release)
-
-	// Start local provider.
-	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
-		ProviderId: providerID,
-		PeerId:     peerID.String(),
-		StorageId:  tb.StorageID,
-	}), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(provCtrlRef.Release)
-
-	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, providerID, false, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(provRef.Release)
-
-	sessCtrl, sessCtrlLookupRef, err := session.ExLookupSessionController(ctx, tb.Bus, "", false, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(sessCtrlLookupRef.Release)
-
-	return &testEnv{
-		tb:       tb,
-		prov:     prov.(*provider_local.Provider),
-		sessCtrl: sessCtrl,
-	}
-}
-
-// createSession creates a local account+session and registers it.
-// Returns the session ref and session index.
-func (e *testEnv) createSession(ctx context.Context, t *testing.T) (*session.SessionRef, uint32) {
-	t.Helper()
-
-	sessRef, err := e.prov.CreateLocalAccountAndSession(ctx, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	entry, err := e.sessCtrl.RegisterSession(ctx, sessRef, &session.SessionMetadata{
-		ProviderDisplayName: "Local",
-		ProviderId:          "local",
-		ProviderAccountId:   sessRef.GetProviderResourceRef().GetProviderAccountId(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return sessRef, entry.GetSessionIndex()
-}
-
-// accessAccount gets the provider account for a session, registering a cleanup release.
-func (e *testEnv) accessAccount(ctx context.Context, t *testing.T, sessRef *session.SessionRef) *provider_local.ProviderAccount {
-	t.Helper()
-
-	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
-	accIface, accRel, err := e.prov.AccessProviderAccount(ctx, accountID, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(accRel)
-	return accIface.(*provider_local.ProviderAccount)
-}
-
-// createSpaceOnAccount creates a space with the given name on the provider account.
-func (e *testEnv) createSpaceOnAccount(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, spaceName string) {
-	t.Helper()
-
-	meta, err := space.NewSharedObjectMeta(spaceName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	soID := strings.ToLower(spaceName) + "-id"
-	if _, err := acc.CreateSharedObject(ctx, soID, meta, "", ""); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// buildSessionResource creates a SessionResource for the given session ref.
-func (e *testEnv) buildSessionResource(ctx context.Context, t *testing.T, sessRef *session.SessionRef) *resource_session.SessionResource {
-	t.Helper()
-
-	sess, sessRelRef, err := session.ExMountSession(ctx, e.tb.Bus, sessRef, false, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(sessRelRef.Release)
-
-	le := logrus.NewEntry(logrus.StandardLogger())
-	return resource_session.NewSessionResource(le, e.tb.Bus, sess)
-}
 
 // TestGetTransferInventory verifies that GetTransferInventory returns the space list
 // for a given session index.

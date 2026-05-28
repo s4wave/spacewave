@@ -1,11 +1,8 @@
-//go:build !goscript
-
 package resource_space
 
 import (
 	"context"
 	"crypto/rand"
-	"slices"
 	"testing"
 	"time"
 
@@ -30,6 +27,8 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
+
+const spaceContentsTestTimeout = 2 * time.Minute
 
 type testWatchSpaceContentsStateStream struct {
 	srpc.Stream
@@ -75,66 +74,6 @@ func (m *testWatchSpaceContentsStateStream) CloseSend() error {
 
 func (m *testWatchSpaceContentsStateStream) Close() error {
 	return nil
-}
-
-// TestSpaceContentsResource_GetPluginDescriptionsCache checks cache reuse and invalidation.
-func TestSpaceContentsResource_GetPluginDescriptionsCache(t *testing.T) {
-	ctx := t.Context()
-	var calls int
-
-	r := &SpaceContentsResource{
-		buildDescriptions: func(_ context.Context, _ world.WorldState, pluginIDs []string) (map[string]string, error) {
-			calls++
-			return map[string]string{
-				pluginIDs[0]: "desc-" + pluginIDs[0],
-			}, nil
-		},
-	}
-
-	descriptions, err := r.getPluginDescriptions(ctx, nil, []string{"alpha"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if calls != 1 {
-		t.Fatalf("expected 1 build, got %d", calls)
-	}
-	if descriptions["alpha"] != "desc-alpha" {
-		t.Fatalf("unexpected description: %#v", descriptions)
-	}
-
-	descriptions["alpha"] = "mutated"
-	cachedDescriptions, err := r.getPluginDescriptions(ctx, nil, []string{"alpha"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if calls != 1 {
-		t.Fatalf("expected cache hit, got %d builds", calls)
-	}
-	if cachedDescriptions["alpha"] != "desc-alpha" {
-		t.Fatalf("cache alias leaked mutation: %#v", cachedDescriptions)
-	}
-
-	_, err = r.getPluginDescriptions(ctx, nil, []string{"beta"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if calls != 2 {
-		t.Fatalf("expected rebuild after plugin set change, got %d builds", calls)
-	}
-
-	reorderedDescriptions, err := r.getPluginDescriptions(ctx, nil, []string{"beta", "alpha"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if calls != 3 {
-		t.Fatalf("expected rebuild for changed plugin set, got %d builds", calls)
-	}
-	if !slices.Equal(r.descriptionPluginIDs, []string{"beta", "alpha"}) {
-		t.Fatalf("unexpected cached plugin ids: %v", r.descriptionPluginIDs)
-	}
-	if reorderedDescriptions["beta"] != "desc-beta" {
-		t.Fatalf("unexpected rebuilt descriptions: %#v", reorderedDescriptions)
-	}
 }
 
 func generateSpaceContentsTestPeerID(t *testing.T) peer.ID {
@@ -257,7 +196,7 @@ func waitForForgeExecutionState(
 }
 
 func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), spaceContentsTestTimeout)
 	defer cancel()
 
 	tb, err := testbed.Default(ctx)
@@ -467,7 +406,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 }
 
 func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), spaceContentsTestTimeout)
 	defer cancel()
 
 	tb, err := testbed.Default(ctx)

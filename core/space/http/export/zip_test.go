@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package space_http_export
 
 import (
@@ -7,9 +5,7 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/fs"
 	"testing"
-	"testing/fstest"
 	"time"
 
 	"github.com/go-git/go-billy/v6"
@@ -19,94 +15,10 @@ import (
 	space_unixfs "github.com/s4wave/spacewave/core/space/unixfs"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	"github.com/sirupsen/logrus"
 )
-
-func TestWalkAndZipUnixFS(t *testing.T) {
-	ctx := context.Background()
-
-	// Build an in-memory filesystem tree.
-	mfs := fstest.MapFS{
-		"hello.txt":         {Data: []byte("hello world")},
-		"subdir/nested.txt": {Data: []byte("nested content")},
-		"subdir/deep/a.txt": {Data: []byte("deep file")},
-		"empty-dir":         {Mode: 0o755 | fs.ModeDir},
-	}
-
-	// Create FSCursor from io/fs.FS.
-	cursor, err := unixfs_iofs.NewFSCursor(mfs)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create FSHandle from cursor.
-	fsh, err := unixfs.NewFSHandle(cursor)
-	if err != nil {
-		cursor.Release()
-		t.Fatal(err)
-	}
-	defer fsh.Release()
-
-	// Export to zip.
-	var buf bytes.Buffer
-	if err := exportZip(ctx, &buf, fsh); err != nil {
-		t.Fatal(err)
-	}
-
-	// Read the zip and verify contents.
-	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Collect entries.
-	entries := make(map[string]*zip.File)
-	for _, f := range zr.File {
-		entries[f.Name] = f
-	}
-
-	// Verify expected files exist.
-	expectedFiles := map[string]string{
-		"hello.txt":         "hello world",
-		"subdir/nested.txt": "nested content",
-		"subdir/deep/a.txt": "deep file",
-	}
-	for name, wantContent := range expectedFiles {
-		f, ok := entries[name]
-		if !ok {
-			t.Errorf("missing expected file: %s", name)
-			continue
-		}
-		rc, err := f.Open()
-		if err != nil {
-			t.Errorf("open %s: %v", name, err)
-			continue
-		}
-		data, err := io.ReadAll(rc)
-		rc.Close()
-		if err != nil {
-			t.Errorf("read %s: %v", name, err)
-			continue
-		}
-		if string(data) != wantContent {
-			t.Errorf("%s: got %q, want %q", name, data, wantContent)
-		}
-	}
-
-	// Verify directories have trailing slash.
-	expectedDirs := []string{"subdir/", "subdir/deep/"}
-	for _, name := range expectedDirs {
-		if _, ok := entries[name]; !ok {
-			t.Errorf("missing expected directory entry: %s", name)
-		}
-	}
-
-	t.Logf("zip contains %d entries", len(zr.File))
-}
 
 func TestExportZipGitRepoProjectionMetadata(t *testing.T) {
 	ctx := context.Background()

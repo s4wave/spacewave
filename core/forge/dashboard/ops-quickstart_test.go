@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package forge_dashboard
 
 import (

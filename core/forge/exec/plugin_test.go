@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package space_exec
 
 import (
@@ -114,6 +112,7 @@ func (s *pluginExecStreamStub) RecvTo(resp *PluginExecResponse) error {
 
 type pluginExecHandleStub struct {
 	logs    []*PluginExecLog
+	logCh   chan *PluginExecLog
 	outputs forge_value.ValueSlice
 	cursor  *bucket_lookup.Cursor
 }
@@ -205,7 +204,11 @@ func TestPluginExecHandlerImportsOutputFiles(t *testing.T) {
 }
 
 func (h *pluginExecHandleStub) WriteLog(ctx context.Context, level, message string) error {
-	h.logs = append(h.logs, &PluginExecLog{Level: level, Message: message})
+	log := &PluginExecLog{Level: level, Message: message}
+	h.logs = append(h.logs, log)
+	if h.logCh != nil {
+		h.logCh <- log
+	}
 	return nil
 }
 
@@ -317,7 +320,8 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handle := &pluginExecHandleStub{}
+	logCh := make(chan *PluginExecLog, 2)
+	handle := &pluginExecHandleStub{logCh: logCh}
 	handler := &pluginExecHandler{
 		handle: handle,
 		conf:   conf,
@@ -340,6 +344,9 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 			Message: "transcript: /tmp/glados.log",
 		}},
 	}
+	if log := <-logCh; log.GetMessage() != "transcript: /tmp/glados.log" {
+		t.Fatalf("streamed log: %#v", log)
+	}
 	if len(handle.logs) != 1 || handle.logs[0].GetMessage() != "transcript: /tmp/glados.log" {
 		t.Fatalf("streamed logs before completion: %#v", handle.logs)
 	}
@@ -358,6 +365,9 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 		},
 	}
 	close(ch)
+	if log := <-logCh; log.GetMessage() != "complete" {
+		t.Fatalf("final streamed log: %#v", log)
+	}
 	if err := <-errs; err != nil {
 		t.Fatal(err)
 	}
