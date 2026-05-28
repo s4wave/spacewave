@@ -55,17 +55,8 @@ func tinyGoOPFSListDirectoryRef(opID uint32, dirRef uint64)
 //go:wasmimport gojs bldr.opfs.writeAtRef
 func tinyGoOPFSWriteAtRef(opID uint32, handleRef uint64, dataPtr unsafe.Pointer, dataLen uint32, off int64, keepExisting uint32)
 
-//go:wasmimport gojs bldr.opfs.writeFileBeginRef
-func tinyGoOPFSWriteFileBeginRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32)
-
-//go:wasmimport gojs bldr.opfs.writeFileChunkRef
-func tinyGoOPFSWriteFileChunkRef(opID uint32, sessionID uint32, dataPtr unsafe.Pointer, dataLen uint32)
-
-//go:wasmimport gojs bldr.opfs.writeFileCloseRef
-func tinyGoOPFSWriteFileCloseRef(opID uint32, sessionID uint32)
-
-//go:wasmimport gojs bldr.opfs.writeFileAbortRef
-func tinyGoOPFSWriteFileAbortRef(sessionID uint32) uint32
+//go:wasmimport gojs bldr.opfs.writeFileRef
+func tinyGoOPFSWriteFileRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32, dataPtr unsafe.Pointer, dataLen uint32)
 
 type tinyGoJSValue struct {
 	_     [0]func()
@@ -249,48 +240,23 @@ func (f *AsyncFile) writeAtWithTinyGoImport(p []byte, off int64, keepExisting bo
 
 func writeFileWithTinyGoImport(dir js.Value, name string, data []byte) error {
 	nameBytes := []byte(name)
-	sessionID, err := invokeOPFSIntHelper(func(opID int) {
-		tinyGoOPFSWriteFileBeginRef(uint32(opID), tinyGoJSRef(dir), tinyGoBytesPtr(nameBytes), uint32(len(nameBytes)))
+	written, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSWriteFileRef(
+			uint32(opID),
+			tinyGoJSRef(dir),
+			tinyGoBytesPtr(nameBytes),
+			uint32(len(nameBytes)),
+			tinyGoBytesPtr(data),
+			uint32(len(data)),
+		)
 		runtime.KeepAlive(nameBytes)
+		runtime.KeepAlive(data)
 	})
 	if err != nil {
 		return err
 	}
-	closed := false
-	defer func() {
-		if !closed {
-			tinyGoOPFSWriteFileAbortRef(uint32(sessionID))
-		}
-	}()
-
-	written := 0
-	for off := 0; off < len(data); off += browserDriverFileChunkSize {
-		end := off + browserDriverFileChunkSize
-		if end > len(data) {
-			end = len(data)
-		}
-		chunk := data[off:end]
-		n, err := invokeOPFSIntHelper(func(opID int) {
-			tinyGoOPFSWriteFileChunkRef(uint32(opID), uint32(sessionID), tinyGoBytesPtr(chunk), uint32(len(chunk)))
-		})
-		if err != nil {
-			return err
-		}
-		if n != len(chunk) {
-			return errors.Errorf("short write file %s: wrote chunk %d of %d", name, n, len(chunk))
-		}
-		written += n
-	}
-
-	closedWritten, err := invokeOPFSIntHelper(func(opID int) {
-		tinyGoOPFSWriteFileCloseRef(uint32(opID), uint32(sessionID))
-	})
-	if err != nil {
-		return err
-	}
-	closed = true
-	if closedWritten != written || written != len(data) {
-		return errors.Errorf("short write file %s: wrote %d of %d", name, closedWritten, len(data))
+	if written != len(data) {
+		return errors.Errorf("short write file %s: wrote %d of %d", name, written, len(data))
 	}
 	return nil
 }

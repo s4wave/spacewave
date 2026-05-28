@@ -1526,8 +1526,6 @@ const workerJS = `importScripts('/wasm_exec.js')
 
 self.__BLDR_TINYGO_STORED_BYTES = new Map()
 self.__BLDR_TINYGO_STORED_BYTES_NEXT_ID = 1
-self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS = new Map()
-self.__BLDR_TINYGO_OPFS_WRITE_SESSION_NEXT_ID = 1
 self.__BLDR_TINYGO_WEB_LOCK_RELEASES = new Map()
 self.__BLDR_TINYGO_WEB_LOCK_RELEASE_NEXT_ID = 1
 self.__BLDR_TINYGO_WEB_LOCK_RELEASE_OPS = new Map()
@@ -1545,22 +1543,12 @@ self.__BLDR_TINYGO_STORE_BYTES = (bytes) => {
   self.__BLDR_TINYGO_STORED_BYTES.set(id, bytes)
   return id
 }
-self.__BLDR_TINYGO_STORE_OPFS_WRITE_SESSION = (writable) => {
-  const id = self.__BLDR_TINYGO_OPFS_WRITE_SESSION_NEXT_ID++
-  self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.set(id, { writable, written: 0 })
-  return id
-}
-self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION = (id) => {
-  const session = self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.get(id)
-  self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.delete(id)
-  return session
-}
-self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY = (writable) => {
+self.__BLDR_TINYGO_ABORT_OPFS_WRITABLE_QUIETLY = (writable) => {
   if (!writable) {
     return
   }
   try {
-    void writable.close().catch(() => {})
+    void writable.abort().catch(() => {})
   } catch {
   }
 }
@@ -1879,9 +1867,7 @@ self.BLDR_OPFS_WRITE_AT ??= (handle, data, off, keepExisting, opID) => {
       self.__BLDR_TINYGO_OPFS_RESOLVE(opID, writeData.byteLength)
     })
     .catch((reason) => {
-      if (writable) {
-        void writable.close().catch(() => {})
-      }
+      self.__BLDR_TINYGO_ABORT_OPFS_WRITABLE_QUIETLY(writable)
       self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
     })
 }
@@ -1898,61 +1884,9 @@ self.BLDR_OPFS_WRITE_FILE ??= (dir, name, data, opID) => {
       self.__BLDR_TINYGO_OPFS_RESOLVE(opID, writeData.byteLength)
     })
     .catch((reason) => {
-      if (writable) {
-        void writable.close().catch(() => {})
-      }
+      self.__BLDR_TINYGO_ABORT_OPFS_WRITABLE_QUIETLY(writable)
       self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
     })
-}
-self.BLDR_OPFS_WRITE_FILE_BEGIN ??= (dir, name, opID) => {
-  dir.getFileHandle(name, { create: true })
-    .then((handle) => handle.createWritable())
-    .then((writable) => {
-      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, self.__BLDR_TINYGO_STORE_OPFS_WRITE_SESSION(writable))
-    })
-    .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
-}
-self.BLDR_OPFS_WRITE_FILE_CHUNK ??= (sessionID, data, opID) => {
-  const session = self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.get(sessionID)
-  if (!session) {
-    self.__BLDR_TINYGO_OPFS_REJECT(opID, 1)
-    return
-  }
-  let writeData
-  try {
-    writeData = self.__BLDR_TINYGO_COPY_BYTES(data)
-  } catch {
-    self.__BLDR_TINYGO_OPFS_REJECT(opID, 0)
-    return
-  }
-  session.writable.write(writeData)
-    .then(() => {
-      session.written += writeData.byteLength
-      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, writeData.byteLength)
-    })
-    .catch((reason) => {
-      self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.delete(sessionID)
-      void session.writable.close().catch(() => {})
-      self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
-    })
-}
-self.BLDR_OPFS_WRITE_FILE_CLOSE ??= (sessionID, opID) => {
-  const session = self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION(sessionID)
-  if (!session) {
-    self.__BLDR_TINYGO_OPFS_REJECT(opID, 1)
-    return
-  }
-  session.writable.close()
-    .then(() => self.__BLDR_TINYGO_OPFS_RESOLVE(opID, session.written))
-    .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
-}
-self.BLDR_OPFS_WRITE_FILE_ABORT ??= (sessionID) => {
-  const session = self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION(sessionID)
-  if (!session) {
-    return false
-  }
-  void session.writable.close().catch(() => {})
-  return true
 }
 
 self.onmessage = async (event) => {
@@ -2090,7 +2024,7 @@ self.onmessage = async (event) => {
           self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 1)
         })
         .catch((reason) => {
-          self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY(writable)
+          self.__BLDR_TINYGO_ABORT_OPFS_WRITABLE_QUIETLY(writable)
           self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
         })
     }
@@ -2167,77 +2101,38 @@ self.onmessage = async (event) => {
             self.__BLDR_TINYGO_OPFS_RESOLVE(opID, writeData.byteLength)
           })
           .catch((reason) => {
-            self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY(writable)
+            self.__BLDR_TINYGO_ABORT_OPFS_WRITABLE_QUIETLY(writable)
             self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
           })
       } catch (reason) {
-        self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY(writable)
+        self.__BLDR_TINYGO_ABORT_OPFS_WRITABLE_QUIETLY(writable)
         self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
       }
     }
-    go.importObject.gojs['bldr.opfs.writeFileBeginRef'] ??= (opID, dirRef, namePtr, nameLen) => {
+    go.importObject.gojs['bldr.opfs.writeFileRef'] ??= (opID, dirRef, namePtr, nameLen, dataPtr, dataLen) => {
       const dir = self.__BLDR_TINYGO_UNBOX_VALUE(go, dirRef)
-      const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      let writable
       try {
+        const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+        const writeData = self.__BLDR_TINYGO_COPY_BYTES(self.__BLDR_TINYGO_MEMORY_VIEW(go, dataPtr, dataLen))
         dir.getFileHandle(name, { create: true })
           .then((handle) => handle.createWritable())
-          .then((writable) => self.__BLDR_TINYGO_OPFS_RESOLVE(opID, self.__BLDR_TINYGO_STORE_OPFS_WRITE_SESSION(writable)))
-          .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
-      } catch (reason) {
-        self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
-      }
-    }
-    go.importObject.gojs['bldr.opfs.writeFileChunkRef'] ??= (opID, sessionID, dataPtr, dataLen) => {
-      const session = self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.get(sessionID)
-      if (!session) {
-        self.__BLDR_TINYGO_OPFS_REJECT(opID, 1)
-        return
-      }
-      let writeData
-      try {
-        writeData = self.__BLDR_TINYGO_COPY_BYTES(self.__BLDR_TINYGO_MEMORY_VIEW(go, dataPtr, dataLen))
-      } catch {
-        self.__BLDR_TINYGO_OPFS_REJECT(opID, 0)
-        return
-      }
-      try {
-        session.writable.write(writeData)
-          .then(() => {
-            session.written += writeData.byteLength
+          .then(async (next) => {
+            writable = next
+            if (writeData.byteLength !== 0) {
+              await writable.write(writeData)
+            }
+            await writable.close()
             self.__BLDR_TINYGO_OPFS_RESOLVE(opID, writeData.byteLength)
           })
           .catch((reason) => {
-            self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.delete(sessionID)
-            self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY(session.writable)
+            self.__BLDR_TINYGO_ABORT_OPFS_WRITABLE_QUIETLY(writable)
             self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
           })
       } catch (reason) {
-        self.__BLDR_TINYGO_OPFS_WRITE_SESSIONS.delete(sessionID)
-        self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY(session.writable)
+        self.__BLDR_TINYGO_ABORT_OPFS_WRITABLE_QUIETLY(writable)
         self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
       }
-    }
-    go.importObject.gojs['bldr.opfs.writeFileCloseRef'] ??= (opID, sessionID) => {
-      const session = self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION(sessionID)
-      if (!session) {
-        self.__BLDR_TINYGO_OPFS_REJECT(opID, 1)
-        return
-      }
-      try {
-        session.writable.close()
-          .then(() => self.__BLDR_TINYGO_OPFS_RESOLVE(opID, session.written))
-          .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
-      } catch (reason) {
-        self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
-      }
-    }
-    go.importObject.gojs['bldr.opfs.writeFileAbortRef'] ??= (sessionID) => {
-      const session = self.__BLDR_TINYGO_TAKE_OPFS_WRITE_SESSION(sessionID)
-      if (!session) {
-        return 0
-      }
-      self.__BLDR_TINYGO_CLOSE_OPFS_WRITABLE_QUIETLY(session.writable)
-      return 1
     }
     go.importObject.gojs['bldr.opfs.broadcastChannelNewRef'] ??= (namePtr, nameLen) => {
       const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)

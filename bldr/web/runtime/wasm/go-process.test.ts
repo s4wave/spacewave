@@ -68,18 +68,6 @@ type TinyGoHelperGlobal = typeof globalThis & {
     data: Uint8Array,
     opID: number,
   ) => void
-  BLDR_OPFS_WRITE_FILE_BEGIN?: (
-    dir: FileSystemDirectoryHandle,
-    name: string,
-    opID: number,
-  ) => void
-  BLDR_OPFS_WRITE_FILE_CHUNK?: (
-    sessionID: number,
-    data: Uint8Array,
-    opID: number,
-  ) => void
-  BLDR_OPFS_WRITE_FILE_CLOSE?: (sessionID: number, opID: number) => void
-  BLDR_OPFS_WRITE_FILE_ABORT?: (sessionID: number) => boolean
 }
 
 afterEach(() => {
@@ -105,10 +93,6 @@ afterEach(() => {
   delete g.BLDR_OPFS_LIST_DIRECTORY
   delete g.BLDR_OPFS_WRITE_AT
   delete g.BLDR_OPFS_WRITE_FILE
-  delete g.BLDR_OPFS_WRITE_FILE_BEGIN
-  delete g.BLDR_OPFS_WRITE_FILE_CHUNK
-  delete g.BLDR_OPFS_WRITE_FILE_CLOSE
-  delete g.BLDR_OPFS_WRITE_FILE_ABORT
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -431,12 +415,28 @@ describe('patchTinyGoRuntimeImports', () => {
     }
     const writes: number[][] = []
     const writable = {
+      abort: async () => undefined,
       close: async () => undefined,
       write: async (data: BufferSource | Blob | string) => {
         if (!(data instanceof Uint8Array)) {
           throw new Error('expected Uint8Array write')
         }
         writes.push(Array.from(data))
+      },
+    }
+    let failedAborts = 0
+    let failedCloses = 0
+    const failingWritable = {
+      abort: async () => {
+        failedAborts++
+      },
+      close: async () => {
+        failedCloses++
+      },
+      write: async () => {
+        const err = new Error('write failure')
+        err.name = 'NoModificationAllowedError'
+        throw err
       },
     }
     const dir = {
@@ -448,9 +448,14 @@ describe('patchTinyGoRuntimeImports', () => {
             }),
           }
         }
-        if (name === 'seg.bin' && opts?.create === true) {
+        if (name === 'single.bin' && opts?.create === true) {
           return {
             createWritable: async () => writable,
+          }
+        }
+        if (name === 'fail.bin' && opts?.create === true) {
+          return {
+            createWritable: async () => failingWritable,
           }
         }
         throw new Error('unexpected file handle request')
@@ -471,26 +476,17 @@ describe('patchTinyGoRuntimeImports', () => {
     const takeStoredBytes = gojs['bldr.opfs.takeStoredBytes'] as
       | ((bytesID: number, ptr: number, len: number) => number)
       | undefined
-    const begin = gojs['bldr.opfs.writeFileBeginRef'] as
+    const writeFile = gojs['bldr.opfs.writeFileRef'] as
       | ((
           opID: number,
           dirRef: bigint,
           namePtr: number,
           nameLen: number,
-        ) => void)
-      | undefined
-    const chunk = gojs['bldr.opfs.writeFileChunkRef'] as
-      | ((
-          opID: number,
-          sessionID: number,
           dataPtr: number,
           dataLen: number,
         ) => void)
       | undefined
-    const close = gojs['bldr.opfs.writeFileCloseRef'] as
-      | ((opID: number, sessionID: number) => void)
-      | undefined
-    if (!readFile || !takeStoredBytes || !begin || !chunk || !close) {
+    if (!readFile || !takeStoredBytes || !writeFile) {
       throw new Error('OPFS import bridge was not installed')
     }
 
@@ -505,30 +501,33 @@ describe('patchTinyGoRuntimeImports', () => {
     expect(Array.from(mem.subarray(80, 83))).toEqual([4, 5, 6])
     expect(takeStoredBytes(read.id, 80, read.len)).toBe(0)
 
-    const writeNameLen = writeString(96, 'seg.bin')
-    const sessionID = await waitOPFS(
+    const singleNameLen = writeString(96, 'single.bin')
+    mem.set([7, 8, 9], 128)
+    const singleWritten = await waitOPFS(
       302,
-      () => begin(302, tinyGoObjectRef(7), 96, writeNameLen),
-      ([id = 0]) => id,
-    )
-    mem.set([11, 12, 13], 128)
-    const written = await waitOPFS(
-      303,
       () => {
-        chunk(303, sessionID, 128, 3)
+        writeFile(302, tinyGoObjectRef(7), 96, singleNameLen, 128, 3)
         mem[128] = 99
       },
       ([n = 0]) => n,
     )
-    const total = await waitOPFS(
-      304,
-      () => close(304, sessionID),
-      ([n = 0]) => n,
+    expect(singleWritten).toBe(3)
+
+    const failNameLen = writeString(96, 'fail.bin')
+    mem.set([11, 12, 13], 128)
+    const failureCode = await waitOPFS(
+      303,
+      () => {
+        writeFile(303, tinyGoObjectRef(7), 96, failNameLen, 128, 3)
+        mem[128] = 99
+      },
+      ([code = 0]) => -code,
     )
 
-    expect(written).toBe(3)
-    expect(total).toBe(3)
-    expect(writes).toEqual([[11, 12, 13]])
+    expect(failureCode).toBe(2)
+    expect(failedAborts).toBe(1)
+    expect(failedCloses).toBe(0)
+    expect(writes).toEqual([[7, 8, 9]])
   })
 })
 
@@ -650,10 +649,6 @@ describe('installTinyGoJSHelpers', () => {
     expect(g.BLDR_OPFS_LIST_DIRECTORY).toBeTypeOf('function')
     expect(g.BLDR_OPFS_WRITE_AT).toBeTypeOf('function')
     expect(g.BLDR_OPFS_WRITE_FILE).toBeTypeOf('function')
-    expect(g.BLDR_OPFS_WRITE_FILE_BEGIN).toBeTypeOf('function')
-    expect(g.BLDR_OPFS_WRITE_FILE_CHUNK).toBeTypeOf('function')
-    expect(g.BLDR_OPFS_WRITE_FILE_CLOSE).toBeTypeOf('function')
-    expect(g.BLDR_OPFS_WRITE_FILE_ABORT).toBeTypeOf('function')
   })
 
   it('installs direct TinyGo gojs imports for Bldr helper calls', async () => {
@@ -1271,6 +1266,7 @@ describe('GoWasmProcess', () => {
                 }
                 return {
                   createWritable: async () => ({
+                    abort: async () => undefined,
                     close: async () => undefined,
                     write: async (data: BufferSource | Blob | string) => {
                       if (!(data instanceof Uint8Array)) {
@@ -1295,146 +1291,48 @@ describe('GoWasmProcess', () => {
         [21, 22, 23],
       ])
 
-      const sessionWrites: Uint8Array[] = []
-      const sessionID = await waitOPFS(
+      let wholeFileFailedAborts = 0
+      let wholeFileFailedCloses = 0
+      const wholeFileFailureCode = await waitOPFS(
         106,
         () => {
-          g.BLDR_OPFS_WRITE_FILE_BEGIN?.(
+          g.BLDR_OPFS_WRITE_FILE?.(
             {
               getFileHandle: async (
                 name: string,
                 opts?: { create?: boolean },
               ) => {
-                if (name !== 'seg-a' || opts?.create !== true) {
-                  throw new Error('unexpected session file handle request')
+                if (name !== 'wal-fail' || opts?.create !== true) {
+                  throw new Error('unexpected failing file handle request')
                 }
                 return {
                   createWritable: async () => ({
-                    close: async () => undefined,
-                    write: async (data: BufferSource | Blob | string) => {
-                      if (!(data instanceof Uint8Array)) {
-                        throw new Error('expected Uint8Array write')
-                      }
-                      sessionWrites.push(new Uint8Array(data))
+                    abort: async () => {
+                      wholeFileFailedAborts++
+                    },
+                    close: async () => {
+                      wholeFileFailedCloses++
+                    },
+                    write: async () => {
+                      const err = new Error('whole file write failure')
+                      err.name = 'NoModificationAllowedError'
+                      throw err
                     },
                   }),
                 }
               },
             } as unknown as FileSystemDirectoryHandle,
-            'seg-a',
+            'wal-fail',
+            new Uint8Array([24, 25]),
             106,
           )
         },
-        ([id = 0]) => id,
-      )
-      expect(sessionID).toBeGreaterThan(0)
-
-      const firstChunk = new Uint8Array([31, 32])
-      const firstChunkWritten = await waitOPFS(
-        107,
-        () => {
-          g.BLDR_OPFS_WRITE_FILE_CHUNK?.(sessionID, firstChunk, 107)
-        },
-        ([written = -1]) => written,
-      )
-      firstChunk[0] = 99
-      const secondChunkWritten = await waitOPFS(
-        108,
-        () => {
-          g.BLDR_OPFS_WRITE_FILE_CHUNK?.(
-            sessionID,
-            new Uint8Array([33, 34, 35]),
-            108,
-          )
-        },
-        ([written = -1]) => written,
-      )
-      const sessionTotal = await waitOPFS(
-        109,
-        () => {
-          g.BLDR_OPFS_WRITE_FILE_CLOSE?.(sessionID, 109)
-        },
-        ([written = -1]) => written,
-      )
-
-      expect(firstChunkWritten).toBe(2)
-      expect(secondChunkWritten).toBe(3)
-      expect(sessionTotal).toBe(5)
-      expect(sessionWrites.map((chunk) => Array.from(chunk))).toEqual([
-        [31, 32],
-        [33, 34, 35],
-      ])
-      expect(g.BLDR_OPFS_WRITE_FILE_ABORT?.(sessionID)).toBe(false)
-
-      const throwingChunkSessionID = await waitOPFS(
-        110,
-        () => {
-          g.BLDR_OPFS_WRITE_FILE_BEGIN?.(
-            {
-              getFileHandle: async () => ({
-                createWritable: async () => ({
-                  close: () => {
-                    throw new Error('close after chunk failure')
-                  },
-                  write: () => {
-                    const err = new Error('sync chunk failure')
-                    err.name = 'NoModificationAllowedError'
-                    throw err
-                  },
-                }),
-              }),
-            } as unknown as FileSystemDirectoryHandle,
-            'seg-sync-throw',
-            110,
-          )
-        },
-        ([id = 0]) => id,
-      )
-      const chunkRejectCode = await waitOPFS(
-        111,
-        () => {
-          g.BLDR_OPFS_WRITE_FILE_CHUNK?.(
-            throwingChunkSessionID,
-            new Uint8Array([41]),
-            111,
-          )
-        },
         ([code = 0]) => -code,
       )
-      expect(chunkRejectCode).toBe(2)
-      expect(g.BLDR_OPFS_WRITE_FILE_ABORT?.(throwingChunkSessionID)).toBe(false)
 
-      const throwingCloseSessionID = await waitOPFS(
-        112,
-        () => {
-          g.BLDR_OPFS_WRITE_FILE_BEGIN?.(
-            {
-              getFileHandle: async () => ({
-                createWritable: async () => ({
-                  close: () => {
-                    const err = new Error('sync close failure')
-                    err.name = 'NoModificationAllowedError'
-                    throw err
-                  },
-                  write: async () => undefined,
-                }),
-              }),
-            } as unknown as FileSystemDirectoryHandle,
-            'seg-close-sync-throw',
-            112,
-          )
-        },
-        ([id = 0]) => id,
-      )
-      const closeRejectCode = await waitOPFS(
-        113,
-        () => {
-          g.BLDR_OPFS_WRITE_FILE_CLOSE?.(throwingCloseSessionID, 113)
-        },
-        ([code = 0]) => -code,
-      )
-      expect(closeRejectCode).toBe(2)
-      expect(g.BLDR_OPFS_WRITE_FILE_ABORT?.(throwingCloseSessionID)).toBe(false)
+      expect(wholeFileFailureCode).toBe(2)
+      expect(wholeFileFailedAborts).toBe(1)
+      expect(wholeFileFailedCloses).toBe(0)
 
       await new Promise<void>((resolve) => {
         g.BLDR_TINYGO_PROMISE_AWAIT?.(

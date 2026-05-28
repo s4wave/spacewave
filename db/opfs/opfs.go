@@ -545,11 +545,16 @@ func (f *AsyncFile) Close() error {
 
 // WriteFile creates or overwrites a file in the given directory.
 //
-// Performs the truncate, write, and close in a single createWritable session
-// with keepExistingData=false: the draft starts empty, the write at offset 0
-// produces the new contents, and close() commits a file of exactly len(data)
-// bytes (any prior file content is replaced). One Promise round-trip per
-// stage instead of two (vs separate Truncate then Write calls).
+// Small non-TinyGo writes perform the truncate, write, and close in a single
+// createWritable session with keepExistingData=false: the draft starts empty,
+// the write at offset 0 produces the new contents, and close() commits a file
+// of exactly len(data) bytes (any prior file content is replaced). Large
+// non-TinyGo writes use chunked commits to avoid holding a large Blob.
+//
+// TinyGo uses one JS helper promise for the full overwrite. The helper copies
+// Go bytes before async work starts and owns the FileSystemWritableFileStream
+// through close, so Go does not carry a writable session across scheduler
+// resumptions while callers may be holding blockshard or GC Web Locks.
 func WriteFile(dir js.Value, name string, data []byte) error {
 	return DefaultDriver.WriteFile(dir, name, data)
 }
