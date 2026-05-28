@@ -17,12 +17,13 @@ import (
 )
 
 const (
-	runEnv        = "RUN_OPFS_CHROME_TEST"
-	profileEnv    = "RUN_OPFS_CHROME_PROFILE"
-	tinyGoEnv     = "RUN_OPFS_CHROME_TINYGO"
-	chromeSmoke   = "smoke"
-	chromeStress  = "stress"
-	defaultShards = 4
+	runEnv         = "RUN_OPFS_CHROME_TEST"
+	profileEnv     = "RUN_OPFS_CHROME_PROFILE"
+	tinyGoEnv      = "RUN_OPFS_CHROME_TINYGO"
+	tinyGoStackEnv = "RUN_OPFS_CHROME_TINYGO_STACK_SIZE"
+	chromeSmoke    = "smoke"
+	chromeStress   = "stress"
+	defaultShards  = 4
 )
 
 var sharedHarness *chromeHarness
@@ -1177,7 +1178,12 @@ func buildWasm(out string) error {
 		return err
 	}
 	if os.Getenv(tinyGoEnv) == "1" || strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
-		cmd := exec.CommandContext(ctx, "tinygo", "build", "-target", "wasm", "-scheduler=asyncify", "-o", out, "./db/opfs/chrometest/testprog")
+		args := []string{"build", "-target", "wasm", "-scheduler=asyncify"}
+		if stackSize := strings.TrimSpace(os.Getenv(tinyGoStackEnv)); stackSize != "" {
+			args = append(args, "-stack-size="+stackSize)
+		}
+		args = append(args, "-o", out, "./db/opfs/chrometest/testprog")
+		cmd := exec.CommandContext(ctx, "tinygo", args...)
 		cmd.Dir = root
 		data, err := cmd.CombinedOutput()
 		if err != nil {

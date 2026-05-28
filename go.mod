@@ -45,10 +45,10 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.13.0 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.14.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.16-0.20260527143541-1ea564686612 // latest
-	github.com/aperturerobotics/util v1.34.6-0.20260527110457-eb41483341f3 // latest
+	github.com/aperturerobotics/util v1.34.7-0.20260528022328-99828523f787 // latest
 )
 
 require (
