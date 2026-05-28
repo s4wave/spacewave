@@ -1,9 +1,8 @@
-//go:build !goscript
-
 package provider_local_test
 
 import (
 	"context"
+	"runtime"
 	"testing"
 	"time"
 
@@ -24,6 +23,8 @@ const p2pSyncTestTimeout = 2 * time.Minute
 // TestSOSyncSolicit verifies that two sessions connected via inproc
 // transport sync SO state through the SOSync solicit protocol.
 func TestSOSyncSolicit(t *testing.T) {
+	skipFullP2PSyncUnderGoScript(t)
+
 	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
@@ -77,6 +78,8 @@ func TestSOSyncSolicit(t *testing.T) {
 // connects first). This tests the "reconnect" path where sync is already
 // running when a peer appears.
 func TestAutoReconnectSync(t *testing.T) {
+	skipFullP2PSyncUnderGoScript(t)
+
 	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
@@ -244,6 +247,8 @@ func waitForSyncedRootSeqno(ctx context.Context, t *testing.T, acc *provider_loc
 // SO state (different seqnos), SOSync's snapshot exchange resolves by
 // adopting the higher seqno state.
 func TestP2PConflictResolution(t *testing.T) {
+	skipFullP2PSyncUnderGoScript(t)
+
 	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
@@ -298,6 +303,8 @@ func TestP2PConflictResolution(t *testing.T) {
 // for each block store bucket, and that the DEX solicit directives resolve
 // when peers are connected.
 func TestBlockSyncDEX(t *testing.T) {
+	skipFullP2PSyncUnderGoScript(t)
+
 	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
@@ -343,4 +350,41 @@ func TestBlockSyncDEX(t *testing.T) {
 	// Verify SO sync works between the two sides (proves the solicit
 	// infrastructure including DEX is operational on the connected link).
 	waitForSyncedRootSeqno(ctx, t, accB, account_settings.BindingPurpose, 0)
+}
+
+func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
+	ctx := t.Context()
+
+	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
+	defer release()
+
+	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
+	so, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
+	addPairedDeviceAndWait(ctx, t, so, sess.GetPeerId().String(), "GoScript DEX Test Device")
+	soRelease()
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopSessionTransport()
+
+	st := acc.GetSessionTransport()
+	if st == nil {
+		t.Fatal("expected non-nil session transport")
+	}
+	if err := acc.StartP2PSync(ctx, st); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopP2PSync()
+
+	if !acc.IsP2PSyncRunning() {
+		t.Fatal("expected P2P sync running after direct start")
+	}
+}
+
+func skipFullP2PSyncUnderGoScript(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "js" {
+		t.Skip("full two-peer P2P sync is too costly under GoScript; direct DEX startup coverage runs separately")
+	}
 }
