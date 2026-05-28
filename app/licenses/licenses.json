@@ -949,7 +949,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.49.16-0.20260527143541-1ea564686612",
+      "version": "v0.49.16-0.20260528143940-9eed94e2b09a",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
