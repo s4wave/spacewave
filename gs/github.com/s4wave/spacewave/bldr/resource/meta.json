@@ -1,5 +1,3 @@
 {
-  "dependencies": [
-    "github.com/aperturerobotics/starpc/srpc"
-  ]
+  "dependencies": ["github.com/aperturerobotics/starpc/srpc"]
 }

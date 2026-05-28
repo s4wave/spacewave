@@ -52,6 +52,13 @@ jobs:
             lint_js_script: ''
             test_go_script: ''
             test_js_script: ''
+          - name: goscript
+            build_script: ''
+            check_script: ''
+            lint_go_script: ''
+            lint_js_script: ''
+            test_go_script: test:go:goscript
+            test_js_script: ''
           - name: db
             build_script: ''
             check_script: ''
