@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import {
   Resource,
@@ -43,6 +42,36 @@ export interface TreeUploadFile {
 
 // TreeUploadEntry is one tree upload entry.
 export type TreeUploadEntry = TreeUploadDirectory | TreeUploadFile
+
+const uploadDataFrameMaxBytes = 64 * 1024
+
+function uploadDataFrameOffsets(byteLength: number): number[] {
+  const count = Math.ceil(byteLength / uploadDataFrameMaxBytes)
+  return Array.from(
+    { length: count },
+    (_value, index) => index * uploadDataFrameMaxBytes,
+  )
+}
+
+async function* uploadDataFrames(
+  stream: ReadableStream<Uint8Array>,
+): AsyncIterable<Uint8Array> {
+  const reader = stream.getReader()
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value.byteLength === 0) continue
+
+      for (const offset of uploadDataFrameOffsets(value.byteLength)) {
+        const end = Math.min(offset + uploadDataFrameMaxBytes, value.byteLength)
+        yield value.slice(offset, end)
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
 
 // IFSHandle contains the FSHandle interface.
 export interface IFSHandle {
@@ -430,30 +459,22 @@ export class FSHandle extends Resource implements IFSHandle {
     onProgress?: (bytesWritten: bigint) => void,
     abortSignal?: AbortSignal,
   ): Promise<bigint> {
-    const reader = stream.getReader()
     let bytesWritten = 0n
     let first = true
 
     async function* generateMessages(): AsyncIterable<HandleUploadFileRequest> {
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const msg: HandleUploadFileRequest = { data: value }
-          if (first) {
-            msg.name = name
-            msg.totalSize = totalSize
-            msg.mode = mode ?? 0
-            first = false
-          }
-          yield msg
-
-          bytesWritten += BigInt(value.byteLength)
-          onProgress?.(bytesWritten)
+      for await (const value of uploadDataFrames(stream)) {
+        const msg: HandleUploadFileRequest = { data: value }
+        if (first) {
+          msg.name = name
+          msg.totalSize = totalSize
+          msg.mode = mode ?? 0
+          first = false
         }
-      } finally {
-        reader.releaseLock()
+        yield msg
+
+        bytesWritten += BigInt(value.byteLength)
+        onProgress?.(bytesWritten)
       }
     }
 
@@ -502,20 +523,13 @@ export class FSHandle extends Resource implements IFSHandle {
           },
         }
 
-        const reader = entry.stream.getReader()
         let fileBytesWritten = 0n
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            yield { body: { case: 'data', value } }
-            fileBytesWritten += BigInt(value.byteLength)
-            totalBytesWritten += BigInt(value.byteLength)
-            entry.onProgress?.(fileBytesWritten)
-            onProgress?.(totalBytesWritten)
-          }
-        } finally {
-          reader.releaseLock()
+        for await (const value of uploadDataFrames(entry.stream)) {
+          yield { body: { case: 'data', value } }
+          fileBytesWritten += BigInt(value.byteLength)
+          totalBytesWritten += BigInt(value.byteLength)
+          entry.onProgress?.(fileBytesWritten)
+          onProgress?.(totalBytesWritten)
         }
       }
     }

@@ -108,7 +108,7 @@ func ReadFromChunks(
 		readStartPos := start - int(currChunkStart)
 		readEndPos := min(readStartPos+len(buf), int(currChunkSize))
 
-		data, err := currChunk.FetchData(ctx, currChunkBcs, false)
+		data, err := currChunk.FetchDataNoCache(ctx, currChunkBcs, false)
 		if err != nil {
 			return n, outChunkIdx, err
 		}

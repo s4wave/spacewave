@@ -3,6 +3,7 @@
 package wasm
 
 import (
+	stderrors "errors"
 	"os"
 	"strings"
 
@@ -170,7 +171,7 @@ func (h *Harness) newBrowserPage(s *TestSession) (playwright.Page, error) {
 	})
 
 	page.On("pageerror", func(err error) {
-		msg := "page error: " + err.Error()
+		msg := pageErrorMessage(err)
 		s.emitConsole(msg)
 		s.h.le.WithField("browser", true).Error(msg)
 	})
@@ -185,6 +186,18 @@ func (h *Harness) newBrowserPage(s *TestSession) (playwright.Page, error) {
 	})
 
 	return page, nil
+}
+
+func pageErrorMessage(err error) string {
+	msg := "page error: " + err.Error()
+	var pwErr *playwright.Error
+	if stderrors.As(err, &pwErr) {
+		stack := strings.TrimSpace(pwErr.Stack)
+		if stack != "" && stack != pwErr.Message {
+			msg += "\n" + stack
+		}
+	}
+	return msg
 }
 
 func shouldLogBrowserConsole(msgType, text string) bool {

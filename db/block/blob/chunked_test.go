@@ -11,6 +11,8 @@ import (
 	"github.com/aperturerobotics/util/prng"
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -263,4 +265,59 @@ func TestBlob_ChunkedJC(t *testing.T) {
 		ChunkerType: ChunkerType_ChunkerType_JC,
 	}
 	testBlobChunked(t, "JC", chunkerArgs)
+}
+
+func TestBlobReaderDoesNotCacheChunkData(t *testing.T) {
+	ctx := context.Background()
+
+	store := block_mock.NewMockStore(0)
+	btx, bcs := block.NewTransaction(store, nil, nil, nil)
+	body := bytes.Repeat([]byte("abcd"), 512)
+	chunkerArgs := &ChunkerArgs{
+		ChunkerType: ChunkerType_ChunkerType_JC,
+		JcArgs: &JcArgs{
+			ChunkingMinSize:    64,
+			ChunkingTargetSize: 128,
+			ChunkingMaxSize:    256,
+		},
+	}
+	if _, err := BuildBlob(
+		ctx,
+		int64(len(body)),
+		bytes.NewReader(body),
+		bcs,
+		&BuildBlobOpts{
+			RawHighWaterMark: 1,
+			ChunkerArgs:      chunkerArgs,
+		},
+	); err != nil {
+		t.Fatal(err.Error())
+	}
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	_, readCursor := block.NewTransaction(store, nil, rootRef, nil)
+	rdr, err := NewReader(ctx, readCursor)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	buf := make([]byte, 32)
+	if _, err := io.ReadFull(rdr, buf); err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(buf, body[:len(buf)]) {
+		t.Fatalf("read prefix %q, want %q", buf, body[:len(buf)])
+	}
+
+	chunkSet := rdr.root.GetChunkIndex().GetChunkSet(readCursor.FollowSubBlock(4))
+	_, firstChunkCursor := chunkSet.Get(0)
+	dataCursor := firstChunkCursor.GetExistingRef(1)
+	if dataCursor == nil {
+		return
+	}
+	if blk, _ := dataCursor.GetBlock(); blk != nil {
+		t.Fatalf("sequential blob read cached chunk data block of type %T", blk)
+	}
 }

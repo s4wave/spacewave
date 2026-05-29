@@ -105,11 +105,8 @@ func NewOpfs(
 		store = kvtx_vlogger.NewVLogger(le, store)
 	}
 
-	statsFn := func(ctx context.Context) (*volume.StorageStats, error) {
-		count, totalBytes, txErr := blkEngine.LiveStats()
-		if txErr != nil {
-			return nil, txErr
-		}
+	statsFn := func(context.Context) (*volume.StorageStats, error) {
+		count, totalBytes := blkEngine.StorageStats()
 		return &volume.StorageStats{
 			TotalBytes: totalBytes,
 			BlockCount: count,

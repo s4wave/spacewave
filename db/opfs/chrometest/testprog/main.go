@@ -1275,8 +1275,8 @@ func runVolumeRuntimeVerify(ctx context.Context, c *config) error {
 	if stats.GetBlockCount() != 1 {
 		return errors.Errorf("volume block count=%d want=1", stats.GetBlockCount())
 	}
-	if stats.GetTotalBytes() != uint64(len(data)) {
-		return errors.Errorf("volume total bytes=%d want=%d", stats.GetTotalBytes(), len(data))
+	if stats.GetTotalBytes() < uint64(len(data)) {
+		return errors.Errorf("volume total bytes=%d want at least %d", stats.GetTotalBytes(), len(data))
 	}
 	return nil
 }

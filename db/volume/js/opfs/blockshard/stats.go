@@ -23,19 +23,16 @@ type LevelStats struct {
 	PendingDeleteBytes        uint64
 }
 
-// LiveStats returns the current live block count and total live bytes.
-func (e *Engine) LiveStats() (uint64, uint64, error) {
+// StorageStats returns the current active segment entry count and byte size.
+func (e *Engine) StorageStats() (uint64, uint64) {
 	var count uint64
 	var totalBytes uint64
 	for i := range e.shards {
-		n, sz, err := e.shards[i].liveStats()
-		if err != nil {
-			return 0, 0, err
-		}
+		n, sz := e.shards[i].storageStats()
 		count += n
 		totalBytes += sz
 	}
-	return count, totalBytes, nil
+	return count, totalBytes
 }
 
 // LevelStats returns active segment, byte, entry, and tombstone counts grouped
@@ -76,40 +73,16 @@ func (e *Engine) LevelStats() ([]LevelStats, error) {
 	return out, nil
 }
 
-func (s *Shard) liveStats() (uint64, uint64, error) {
+func (s *Shard) storageStats() (uint64, uint64) {
 	m := s.Manifest()
-	if len(m.Segments) == 0 {
-		return 0, 0, nil
-	}
-
-	readers := make([]*segment.Reader, len(m.Segments))
-	for i := range m.Segments {
-		data := readFileBytes(s.dir, m.Segments[i].Filename)
-		if data == nil {
-			return 0, 0, errors.Errorf("read segment %s for stats: not found", m.Segments[i].Filename)
-		}
-		rd, err := segment.NewReader(bytes.NewReader(data), int64(len(data)))
-		if err != nil {
-			return 0, 0, errors.Errorf("parse segment %s for stats: %v", m.Segments[i].Filename, err)
-		}
-		readers[i] = rd
-	}
-
-	merged, err := MergeSegments(readers)
-	if err != nil {
-		return 0, 0, errors.Wrap(err, "merge segments for stats")
-	}
-
 	var count uint64
 	var totalBytes uint64
-	for i := range merged {
-		if merged[i].Tombstone {
-			continue
-		}
-		count++
-		totalBytes += uint64(len(merged[i].Value))
+	for i := range m.Segments {
+		seg := &m.Segments[i]
+		count += uint64(seg.EntryCount)
+		totalBytes += uint64(seg.Size)
 	}
-	return count, totalBytes, nil
+	return count, totalBytes
 }
 
 func (s *Shard) levelStats() ([]LevelStats, error) {

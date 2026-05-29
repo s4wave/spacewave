@@ -871,6 +871,35 @@ func TestCompactionIncludesOverlappingLowerLevelAndAgesTombstone(t *testing.T) {
 	}
 }
 
+func TestStorageStatsUsesManifestWithoutOpeningSegments(t *testing.T) {
+	e, cleanup := newTestEngine(t, "test-blockshard-storage-stats-manifest", "test-blockshard-storage-stats-manifest")
+	defer cleanup()
+
+	publishEntries(t, e.shards[0], []segment.Entry{
+		{Key: []byte("a"), Value: bytes.Repeat([]byte("n"), 1024*1024)},
+		{Key: []byte("b"), Value: []byte("keep")},
+	})
+
+	m := e.shards[0].Manifest()
+	if len(m.Segments) == 0 {
+		t.Fatal("expected published segment")
+	}
+	var wantCount uint64
+	var wantBytes uint64
+	for i := range m.Segments {
+		wantCount += uint64(m.Segments[i].EntryCount)
+		wantBytes += uint64(m.Segments[i].Size)
+	}
+	if err := opfs.DeleteFile(e.shards[0].dir, m.Segments[0].Filename); err != nil {
+		t.Fatal(err)
+	}
+
+	count, totalBytes := e.StorageStats()
+	if count != wantCount || totalBytes != wantBytes {
+		t.Fatalf("storage stats: got count=%d bytes=%d want count=%d bytes=%d", count, totalBytes, wantCount, wantBytes)
+	}
+}
+
 func TestCleanOrphansRemovesInterruptedCompactionOutput(t *testing.T) {
 	root, err := opfs.GetRoot()
 	if err != nil {

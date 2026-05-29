@@ -283,14 +283,14 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		return nil, errors.Wrap(err, "write browser release descriptor")
 	}
 
-	if err := h.assertStartupManifestFetches(); err != nil {
-		return nil, errors.Wrap(err, "assert startup manifest fetches")
+	if err := h.preflightStartupManifests(hctx); err != nil {
+		return nil, errors.Wrap(err, "preflight startup manifests")
 	}
-
-	// Wait for the asserted startup plugin manifests to be built before
-	// returning. TestMain launches Playwright only after Boot returns.
-	if err := h.waitForManifests(hctx); err != nil {
-		return nil, errors.Wrap(err, "wait for manifest builds")
+	// A slow TinyGo core build can invalidate dependent startup manifests after
+	// the first preflight pass. Re-run the same owner fetches once so the
+	// browser does not hot-rebuild web/app manifests on first load.
+	if err := h.preflightStartupManifests(hctx); err != nil {
+		return nil, errors.Wrap(err, "settle startup manifests")
 	}
 
 	return h, nil
@@ -505,11 +505,7 @@ func (h *Harness) Release() {
 	if h.projRef != nil {
 		h.projRef.Release()
 	}
-	for _, ref := range h.manifestRefs {
-		ref.Release()
-	}
-	h.manifestRefs = nil
-	h.manifestWaits = nil
+	h.releaseManifestFetches()
 	if h.devtool != nil {
 		h.devtool.Release()
 	}
@@ -607,39 +603,37 @@ func (h *Harness) assertStartupManifestFetches() error {
 			return errors.Errorf("startup manifest %q not found in project config", req.pluginID)
 		}
 
-		done := make(chan error, 1)
-		var signalOnce sync.Once
-		signal := func(err error) {
-			signalOnce.Do(func() {
-				done <- err
-				close(done)
-			})
-		}
-
-		handler := directive.NewTypedCallbackHandler(
-			func(v directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
-				if len(v.GetValue().GetManifestRefs()) == 0 {
-					signal(errors.Errorf("manifest %s resolved with no refs", req.pluginID))
-					return
-				}
-				signal(nil)
-			},
-			nil,
-			func() {
-				signal(errors.Errorf("manifest %s disposed before value", req.pluginID))
-			},
-			nil,
-		)
+		waitState := newManifestWaitState(req.pluginID)
 
 		le.WithFields(req.logFields()).Info("asserting manifest fetch")
-		_, ref, err := b.AddDirective(req.directive(), handler)
+		di, ref, err := b.AddDirective(req.directive(), waitState.handler())
 		if err != nil {
 			return errors.Wrapf(err, "assert manifest fetch for %s", req.pluginID)
 		}
+		di.AddIdleCallback(waitState.handleIdle)
 		h.manifestRefs = append(h.manifestRefs, ref)
-		h.manifestWaits = append(h.manifestWaits, manifestWait{req: req, done: done})
+		h.manifestWaits = append(h.manifestWaits, manifestWait{req: req, done: waitState.done})
 	}
 	return nil
+}
+
+func (h *Harness) preflightStartupManifests(ctx context.Context) error {
+	h.releaseManifestFetches()
+	if err := h.assertStartupManifestFetches(); err != nil {
+		return errors.Wrap(err, "assert startup manifest fetches")
+	}
+	if err := h.waitForManifests(ctx); err != nil {
+		return errors.Wrap(err, "wait for manifest builds")
+	}
+	return nil
+}
+
+func (h *Harness) releaseManifestFetches() {
+	for _, ref := range h.manifestRefs {
+		ref.Release()
+	}
+	h.manifestRefs = nil
+	h.manifestWaits = nil
 }
 
 // waitForManifests waits for all asserted startup plugin FetchManifest
@@ -679,6 +673,94 @@ func (h *Harness) waitForManifests(ctx context.Context) error {
 
 	le.Info("all plugin manifests built")
 	return nil
+}
+
+type manifestWaitState struct {
+	pluginID string
+	done     chan error
+	values   map[uint32]*bldr_manifest.FetchManifestValue
+	idle     bool
+	errs     []error
+	signaled bool
+	mtx      sync.Mutex
+}
+
+func newManifestWaitState(pluginID string) *manifestWaitState {
+	return &manifestWaitState{
+		pluginID: pluginID,
+		done:     make(chan error, 1),
+		values:   make(map[uint32]*bldr_manifest.FetchManifestValue),
+	}
+}
+
+func (s *manifestWaitState) handler() directive.ReferenceHandler {
+	return directive.NewTypedCallbackHandler(
+		s.handleValueAdded,
+		s.handleValueRemoved,
+		func() {
+			s.signal(errors.Errorf("manifest %s disposed before build settled", s.pluginID))
+		},
+		nil,
+	)
+}
+
+func (s *manifestWaitState) handleValueAdded(v directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	s.values[v.GetValueID()] = v.GetValue()
+	s.checkLocked()
+}
+
+func (s *manifestWaitState) handleValueRemoved(v directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	delete(s.values, v.GetValueID())
+}
+
+func (s *manifestWaitState) handleIdle(isIdle bool, errs []error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	s.idle = isIdle
+	s.errs = errs
+	s.checkLocked()
+}
+
+func (s *manifestWaitState) checkLocked() {
+	if s.signaled || !s.idle {
+		return
+	}
+	for _, err := range s.errs {
+		if err != nil {
+			s.signalLocked(err)
+			return
+		}
+	}
+	for _, val := range s.values {
+		if len(val.GetManifestRefs()) == 0 {
+			continue
+		}
+		s.signalLocked(nil)
+		return
+	}
+}
+
+func (s *manifestWaitState) signal(err error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	s.signalLocked(err)
+}
+
+func (s *manifestWaitState) signalLocked(err error) {
+	if s.signaled {
+		return
+	}
+	s.signaled = true
+	s.done <- err
+	close(s.done)
 }
 
 func (h *Harness) startupManifestSummary() string {

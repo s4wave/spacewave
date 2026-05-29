@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ const largeUploadSize = 8 * 1024 * 1024
 
 const driveUploadFixturePathEnv = "E2E_WASM_DRIVE_UPLOAD_FIXTURE"
 const driveUploadFixtureNameEnv = "E2E_WASM_DRIVE_UPLOAD_NAME"
+const driveUploadExternalWaitTimeoutEnv = "E2E_WASM_DRIVE_UPLOAD_WAIT_TIMEOUT_MS"
 
 // TestQuickstartDriveUploadCrashRecovery exercises the Drive UploadTree path
 // under browser WASM and classifies the console stream for the original
@@ -98,8 +100,11 @@ func uploadAndVerifyDriveFixture(t testing.TB, scenario *DriveScenario, page pla
 	if !ok {
 		return
 	}
+	started := time.Now()
 	UploadPathsViaPicker(t, page, []string{path})
+	t.Logf("external drive upload %s accepted by picker", name)
 	verifyUploadedPath(t, scenario, page, name, path)
+	t.Logf("external drive upload %s verified after %s", name, time.Since(started).Round(time.Millisecond))
 }
 
 func driveUploadFixtureFiles() []playwright.InputFile {
@@ -163,7 +168,7 @@ func verifyDriveUploadFixture(t testing.TB, scenario *DriveScenario, page playwr
 func verifyUploadedPath(t testing.TB, scenario *DriveScenario, page playwright.Page, name, path string) {
 	t.Helper()
 
-	waitForDriveEntry(t, page, name)
+	waitForExternalDriveEntry(t, page, name)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read uploaded fixture %s=%q: %v", driveUploadFixturePathEnv, path, err)
@@ -173,6 +178,57 @@ func verifyUploadedPath(t testing.TB, scenario *DriveScenario, page playwright.P
 		MimeType: "application/octet-stream",
 		Buffer:   data,
 	})
+}
+
+func waitForExternalDriveEntry(t testing.TB, page playwright.Page, name string) {
+	t.Helper()
+
+	timeout := externalUploadWaitTimeout(t)
+	err := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + name + "')").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: new(float64(timeout / time.Millisecond))},
+	)
+	if err != nil {
+		t.Logf("upload diagnostics for %s: %s", name, captureUploadDiagnostics(page))
+		failWithPageBody(t, page, "wait for drive entry "+name, err)
+	}
+	t.Logf("external drive upload %s row appeared within %s", name, timeout)
+}
+
+func externalUploadWaitTimeout(t testing.TB) time.Duration {
+	t.Helper()
+
+	raw := strings.TrimSpace(os.Getenv(driveUploadExternalWaitTimeoutEnv))
+	if raw == "" {
+		return 120 * time.Second
+	}
+	ms, err := strconv.Atoi(raw)
+	if err != nil || ms <= 0 {
+		t.Fatalf("invalid %s=%q: expected positive milliseconds", driveUploadExternalWaitTimeoutEnv, raw)
+	}
+	return time.Duration(ms) * time.Millisecond
+}
+
+func captureUploadDiagnostics(page playwright.Page) string {
+	_ = page.Locator("button:has-text('Uploading'), button:has-text('uploaded')").Last().Click(
+		playwright.LocatorClickOptions{Timeout: playwright.Float(1000)},
+	)
+	raw, err := page.Evaluate(`() => {
+		const read = (selector) => Array.from(document.querySelectorAll(selector), (el) => ({
+			selector,
+			text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 2000),
+		}))
+		return {
+			buttons: read('button').filter((entry) =>
+				/Uploading|uploaded|Cancel all|Clear done/.test(entry.text),
+			),
+			progress: read('[data-testid="upload-progress-overlay"], [data-testid="upload-progress-list"]'),
+			browserRows: read('[data-testid="unixfs-browser"] [role="row"]'),
+		}
+	}`)
+	if err != nil {
+		return "capture failed: " + err.Error()
+	}
+	return fmt.Sprintf("%#v", raw)
 }
 
 func verifyUploadedFile(t testing.TB, scenario *DriveScenario, page playwright.Page, file playwright.InputFile) {

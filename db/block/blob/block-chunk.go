@@ -40,6 +40,17 @@ func (r *Chunk) Validate() error {
 // FetchData fetches the data reference.
 // bcs should be located at chunk
 func (r *Chunk) FetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool) ([]byte, error) {
+	return r.fetchData(ctx, bcs, copyBuf, true)
+}
+
+// FetchDataNoCache fetches the data reference without retaining the chunk bytes
+// in the cursor. Use this for sequential read paths that only need the current
+// chunk as scratch data.
+func (r *Chunk) FetchDataNoCache(ctx context.Context, bcs *block.Cursor, copyBuf bool) ([]byte, error) {
+	return r.fetchData(ctx, bcs, copyBuf, false)
+}
+
+func (r *Chunk) fetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool, cacheData bool) ([]byte, error) {
 	var data []byte
 	var dataOk bool
 	var err error
@@ -76,7 +87,7 @@ func (r *Chunk) FetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool) 
 			len(data),
 		)
 	}
-	if len(data) != 0 {
+	if cacheData && len(data) != 0 {
 		// cache the data in the cursor
 		currChunkDataCs.SetBlock(byteslice.NewByteSlice(&data), false)
 	}
