@@ -52,14 +52,29 @@ vi.mock('./blog/BlogReadingView.js', () => ({
 }))
 
 vi.mock('./NoteContentView.js', () => ({
-  default: () => <div data-testid="note-content-view" />,
+  default: ({ onContentSaved }: { onContentSaved?: () => void }) => (
+    <button data-testid="note-content-view" onClick={onContentSaved}>
+      note content
+    </button>
+  ),
 }))
 
 vi.mock('./NoteList.js', () => ({
-  default: ({ onCreateNote }: { onCreateNote?: () => void }) => (
-    <button title="New note" onClick={onCreateNote}>
-      New note
-    </button>
+  default: ({
+    onCreateNote,
+    onSelectNote,
+  }: {
+    onCreateNote?: () => void
+    onSelectNote?: (path: string) => void
+  }) => (
+    <>
+      <button title="New note" onClick={onCreateNote}>
+        New note
+      </button>
+      <button title="Select post" onClick={() => onSelectNote?.('post.md')}>
+        Select post
+      </button>
+    </>
   ),
 }))
 
@@ -124,7 +139,7 @@ describe('BlogViewer', () => {
     expect(useUnixFSHandleEntries).toHaveBeenCalledWith(pathHandle, {
       enabled: true,
     })
-    expect(useBlogPosts).toHaveBeenCalledWith(pathHandle, entries)
+    expect(useBlogPosts).toHaveBeenCalledWith(pathHandle, entries, 0)
     expect(useAuthorRegistry).toHaveBeenCalledWith(pathHandle, 'authors.yaml')
   })
 
@@ -171,6 +186,30 @@ describe('BlogViewer', () => {
     const text = new TextDecoder().decode(encoded)
     expect(text).toContain('author: \n')
     expect(text).toContain('draft: true\n')
+  })
+
+  it('refreshes parsed posts when the editor saves content', () => {
+    const pathHandle = buildResource({ id: 'path-handle' })
+    const entries = buildResource([])
+
+    mockUseWorldObjectMessageState.mockReturnValue({
+      state: buildResource({ name: 'Blog', authorRegistryPath: '' }),
+      sources: [{ name: 'Posts', ref: 'blog-fs/-/' }],
+    })
+    mockParseObjectUri.mockReturnValue({ objectKey: 'blog-fs', path: '' })
+    mockUseUnixFSRootHandle.mockReturnValue(rootHandle)
+    mockUseUnixFSHandle.mockReturnValue(pathHandle)
+    mockUseUnixFSHandleEntries.mockReturnValue(entries)
+    mockUseBlogPosts.mockReturnValue(buildResource([]))
+    mockUseAuthorRegistry.mockReturnValue(buildResource({}))
+
+    renderViewer()
+
+    fireEvent.click(screen.getByTitle('Editing mode'))
+    fireEvent.click(screen.getByTitle('Select post'))
+    fireEvent.click(screen.getByTestId('note-content-view'))
+
+    expect(useBlogPosts).toHaveBeenLastCalledWith(pathHandle, entries, 1)
   })
 })
 

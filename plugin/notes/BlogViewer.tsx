@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import { LuBookOpen, LuPenLine } from 'react-icons/lu'
 
@@ -56,8 +56,14 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     enabled: !!sourceObjectKey,
   })
 
+  const [contentVersion, setContentVersion] = useState(0)
+
   // Parse all md files into blog post data for reading view.
-  const blogPostsResource = useBlogPosts(pathHandle, entriesResource)
+  const blogPostsResource = useBlogPosts(
+    pathHandle,
+    entriesResource,
+    contentVersion,
+  )
   const blogPosts = useMemo(
     () => blogPostsResource.value ?? [],
     [blogPostsResource.value],
@@ -182,6 +188,10 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     void handleCreateBlogPost()
   }, [handleCreateBlogPost])
 
+  const handleContentSaved = useCallback(() => {
+    setContentVersion((prev) => prev + 1)
+  }, [])
+
   return (
     <ViewerStatusShell
       resource={state}
@@ -260,6 +270,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
                     noteName={selectedPostName}
                     editing={editing}
                     onToggleEdit={handleToggleEdit}
+                    onContentSaved={handleContentSaved}
                   />
                 : <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
                     Select a post to edit

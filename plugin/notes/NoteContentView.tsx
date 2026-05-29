@@ -23,6 +23,7 @@ interface NoteContentViewProps {
   onToggleEdit: () => void
   onFilterTag?: (tag: string | undefined) => void
   onFilterStatus?: (status: string | undefined) => void
+  onContentSaved?: () => void
 }
 
 // NoteContentView displays a note with WYSIWYG (Lexical) or source (textarea) mode.
@@ -34,6 +35,7 @@ function NoteContentView({
   onToggleEdit,
   onFilterTag,
   onFilterStatus,
+  onContentSaved,
 }: NoteContentViewProps) {
   const parsed = useMemo(() => parseObjectUri(sourceRef), [sourceRef])
   const filePath = useMemo(() => {
@@ -45,19 +47,27 @@ function NoteContentView({
   const fileHandle = useUnixFSHandle(rootHandle, filePath)
   const textResource = useUnixFSHandleTextContent(fileHandle)
 
-  // Parse frontmatter from file content.
-  const parsedNote = useMemo(() => {
-    if (!textResource.value) return null
-    return parseNote(textResource.value)
-  }, [textResource.value])
-
-  const rawFrontmatter = parsedNote?.rawFrontmatter ?? ''
-
   // Source mode edit state.
   const [sourceContent, setSourceContent] = useState<string | null>(null)
   const [sourceSaving, setSourceSaving] = useState(false)
   const [writeError, setWriteError] = useState<Error | null>(null)
+  const [savedContent, setSavedContent] = useState<{
+    filePath: string
+    content: string
+  } | null>(null)
   const skipNextSourceBlurSave = useRef(false)
+  const content =
+    savedContent?.filePath === filePath ?
+      savedContent.content
+    : (textResource.value ?? '')
+
+  // Parse frontmatter from file content.
+  const parsedNote = useMemo(() => {
+    if (!content) return null
+    return parseNote(content)
+  }, [content])
+
+  const rawFrontmatter = parsedNote?.rawFrontmatter ?? ''
 
   const writeFile = useCallback(
     async (content: string) => {
@@ -71,14 +81,16 @@ function NoteContentView({
       try {
         await handle.writeAt(0n, encoded)
         await handle.truncate(BigInt(encoded.byteLength))
+        setSavedContent({ filePath, content })
         setWriteError(null)
+        onContentSaved?.()
       } catch (err) {
         const nextError = err instanceof Error ? err : new Error(String(err))
         setWriteError(nextError)
         throw nextError
       }
     },
-    [fileHandle.value],
+    [fileHandle.value, filePath, onContentSaved],
   )
 
   // WYSIWYG save: re-assemble frontmatter + exported body, then write.
@@ -125,10 +137,10 @@ function NoteContentView({
     } else {
       // Switching from WYSIWYG to source.
       skipNextSourceBlurSave.current = false
-      setSourceContent(textResource.value ?? '')
+      setSourceContent(content)
     }
     onToggleEdit()
-  }, [editing, sourceContent, textResource.value, onToggleEdit, writeFile])
+  }, [editing, sourceContent, content, onToggleEdit, writeFile])
 
   const handleTogglePointerDown = useCallback(() => {
     if (editing) {
@@ -204,7 +216,7 @@ function NoteContentView({
         <div className="flex-1 overflow-auto">
           <textarea
             className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
-            value={sourceContent ?? textResource.value ?? ''}
+            value={sourceContent ?? content}
             onChange={(e) => setSourceContent(e.target.value)}
             onBlur={handleSourceBlur}
           />

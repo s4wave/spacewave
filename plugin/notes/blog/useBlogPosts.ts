@@ -17,6 +17,7 @@ import type { BlogPostData } from './types.js'
 export function useBlogPosts(
   rootHandle: Resource<FSHandle>,
   entries: Resource<FileEntry[] | null>,
+  refreshKey?: unknown,
 ): Resource<BlogPostData[]> {
   const mdEntries = useMemo(() => {
     if (!entries.value) return []
@@ -78,6 +79,6 @@ export function useBlogPosts(
 
       return results
     },
-    [mdEntries],
+    [mdEntries, refreshKey],
   )
 }

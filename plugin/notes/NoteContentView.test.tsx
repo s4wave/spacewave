@@ -74,6 +74,18 @@ const mockWorldState = {
   retry: vi.fn(),
 }
 
+function mockWritableHandle() {
+  vi.mocked(useUnixFSHandle).mockReturnValue({
+    value: {
+      writeAt: vi.fn(() => Promise.resolve(0n)),
+      truncate: vi.fn(() => Promise.resolve()),
+    } as never,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  })
+}
+
 describe('NoteContentView', () => {
   afterEach(() => {
     cleanup()
@@ -209,6 +221,7 @@ describe('NoteContentView', () => {
   })
 
   it('calls onToggleEdit when Source button is clicked', () => {
+    mockWritableHandle()
     vi.mocked(useUnixFSHandleTextContent).mockReturnValue({
       value: 'content',
       loading: false,
@@ -231,6 +244,7 @@ describe('NoteContentView', () => {
   })
 
   it('calls onToggleEdit when WYSIWYG button is clicked in source mode', () => {
+    mockWritableHandle()
     vi.mocked(useUnixFSHandleTextContent).mockReturnValue({
       value: 'content',
       loading: false,
