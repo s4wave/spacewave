@@ -264,6 +264,9 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		if err := newPostBtn.Click(); err != nil {
 			t.Fatalf("click new post button: %v", err)
 		}
+		if err := page.Locator("[data-testid='notes-content-view']:has-text('New Post')").First().WaitFor(wait); err != nil {
+			t.Fatalf("wait for new post editor: %v\ndebug: %v", err, collectNotebookDebug(page))
+		}
 
 		writeSourceNote(t, page, strings.Join([]string{
 			"---",
@@ -280,6 +283,9 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 			"Created in the blog editor.",
 			"",
 		}, "\n"))
+		if err := page.Locator("[data-testid='notes-content-view']:has-text('Second Post')").First().WaitFor(wait); err != nil {
+			t.Fatalf("wait for edited post content: %v\ndebug: %v", err, collectNotebookDebug(page))
+		}
 
 		t.Log("wait for published post in blog reader")
 		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
