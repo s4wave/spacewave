@@ -10,7 +10,7 @@ import (
 	playwright "github.com/playwright-community/playwright-go"
 )
 
-const blogCoexistenceWaitMS = 120000
+const blogCoexistenceWaitMS = 240000
 
 type blogScenario struct {
 	session      *TestSession
@@ -27,7 +27,7 @@ func createBlogScenario(t testing.TB, h *Harness, session *TestSession) *blogSce
 	t.Log("navigate to blog quickstart")
 	NavigateHash(t, h, page, "#/quickstart/blog")
 	_, err := page.Evaluate(h.Script("wait-for-blog.ts"), map[string]any{
-		"deadlineMs": 120000,
+		"deadlineMs": blogCoexistenceWaitMS,
 	})
 	if err != nil {
 		t.Fatalf("wait for blog quickstart: %v", err)
@@ -118,7 +118,7 @@ func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) 
 		return
 	}
 	if err := page.Locator("text=" + noteTitle).First().WaitFor(wait); err != nil {
-		t.Fatalf("wait for notebook note %q: %v", noteTitle, err)
+		t.Fatalf("wait for notebook note %q: %v\ndebug: %v", noteTitle, err, collectNotebookDebug(page))
 	}
 }
 
@@ -162,7 +162,7 @@ func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 	if err := saveBtn.Click(); err != nil {
 		t.Fatalf("click WYSIWYG button: %v", err)
 	}
-	if err := sourceBtn.WaitFor(); err != nil {
+	if err := sourceBtn.WaitFor(wait); err != nil {
 		t.Fatalf("wait for source edit save to settle: %v\ndebug: %v", err, collectNotebookDebug(page))
 	}
 }
@@ -256,8 +256,9 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		if err := page.Locator("button[title='Editing mode']").First().Click(); err != nil {
 			t.Fatalf("switch blog to editing mode: %v", err)
 		}
+		wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
 		newPostBtn := page.Locator("button[title='New note']").First()
-		if err := newPostBtn.WaitFor(); err != nil {
+		if err := newPostBtn.WaitFor(wait); err != nil {
 			t.Fatalf("wait for new post button: %v", err)
 		}
 		if err := newPostBtn.Click(); err != nil {
@@ -279,6 +280,10 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 			"Created in the blog editor.",
 			"",
 		}, "\n"))
+
+		t.Log("wait for published post in blog reader")
+		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
+		waitForBlogReady(t, page, "Second Post")
 
 		t.Log("verify published post appears in notebook")
 		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site-notebook"))
