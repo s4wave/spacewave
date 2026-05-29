@@ -62,7 +62,11 @@ function NoteContentView({
   const writeFile = useCallback(
     async (content: string) => {
       const handle = fileHandle.value
-      if (!handle) return
+      if (!handle) {
+        const err = new Error('note file handle is not ready')
+        setWriteError(err)
+        throw err
+      }
       const encoded = new TextEncoder().encode(content)
       try {
         await handle.writeAt(0n, encoded)
@@ -174,7 +178,7 @@ function NoteContentView({
           )}
           onClick={handleToggle}
           onPointerDown={handleTogglePointerDown}
-          disabled={sourceSaving}
+          disabled={sourceSaving || !fileHandle.value}
           data-testid="notes-source-toggle"
           title={editing ? 'Switch to WYSIWYG' : 'Switch to source'}
         >
