@@ -23,6 +23,11 @@ type Reader struct {
 	// this speeds up seeking for idx for sequential reads.
 	chunkIdx int
 	chunkSet *sbset.SubBlockSet
+	// chunkCache keeps only the active chunk data. The cursor-level cache is
+	// intentionally bypassed for sequential reads so large HTTP readbacks do not
+	// retain every chunk, but repeated small reads inside one chunk must still
+	// avoid refetching the same block.
+	chunkCache chunkReadCache
 }
 
 // NewReader constructs a new reader.
@@ -100,7 +105,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 		}
 		copy(p, rawBuf[readStart:readEnd])
 	case BlobType_BlobType_CHUNKED:
-		chkRead, outChkIdx, err := ReadFromChunks(r.ctx, r.chunkSet, p, readStart, r.chunkIdx)
+		chkRead, outChkIdx, err := readFromChunks(r.ctx, r.chunkSet, p, readStart, r.chunkIdx, &r.chunkCache)
 		if err == io.EOF {
 			// readStart must be past the end of the chunks.
 			// respect totalSize and fill the remainder with zeros.
@@ -156,6 +161,7 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 // Close closes the reader, canceling the context.
 func (r *Reader) Close() error {
 	r.ctxCancel()
+	r.chunkCache = chunkReadCache{}
 	return nil
 }
 

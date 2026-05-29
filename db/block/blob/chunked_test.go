@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"math"
+	"sync"
 	"testing"
 	"time"
 
@@ -320,4 +321,101 @@ func TestBlobReaderDoesNotCacheChunkData(t *testing.T) {
 	if blk, _ := dataCursor.GetBlock(); blk != nil {
 		t.Fatalf("sequential blob read cached chunk data block of type %T", blk)
 	}
+}
+
+func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
+	ctx := context.Background()
+
+	baseStore := block_mock.NewMockStore(0)
+	btx, bcs := block.NewTransaction(baseStore, nil, nil, nil)
+	body := bytes.Repeat([]byte("abcd"), 512)
+	chunkerArgs := &ChunkerArgs{
+		ChunkerType: ChunkerType_ChunkerType_JC,
+		JcArgs: &JcArgs{
+			ChunkingMinSize:    64,
+			ChunkingTargetSize: 128,
+			ChunkingMaxSize:    256,
+		},
+	}
+	if _, err := BuildBlob(
+		ctx,
+		int64(len(body)),
+		bytes.NewReader(body),
+		bcs,
+		&BuildBlobOpts{
+			RawHighWaterMark: 1,
+			ChunkerArgs:      chunkerArgs,
+		},
+	); err != nil {
+		t.Fatal(err.Error())
+	}
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	countStore := &getBlockCountingStore{StoreOps: baseStore}
+	_, readCursor := block.NewTransaction(countStore, nil, rootRef, nil)
+	rdr, err := NewReader(ctx, readCursor)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	chunkSet := rdr.root.GetChunkIndex().GetChunkSet(readCursor.FollowSubBlock(4))
+	chunkBlock, _ := chunkSet.Get(0)
+	firstChunk, ok := chunkBlock.(*Chunk)
+	if !ok {
+		t.Fatalf("first chunk type %T, want *Chunk", chunkBlock)
+	}
+	firstChunkRef := firstChunk.GetDataRef().MarshalString()
+	countStore.reset()
+
+	buf := make([]byte, 32)
+	if _, err := io.ReadFull(rdr, buf); err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(buf, body[:len(buf)]) {
+		t.Fatalf("first read %q, want %q", buf, body[:len(buf)])
+	}
+	if _, err := io.ReadFull(rdr, buf); err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(buf, body[len(buf):len(buf)*2]) {
+		t.Fatalf("second read %q, want %q", buf, body[len(buf):len(buf)*2])
+	}
+	if got := countStore.get(firstChunkRef); got != 1 {
+		t.Fatalf("current chunk data fetched %d times, want 1", got)
+	}
+}
+
+type getBlockCountingStore struct {
+	block.StoreOps
+
+	mtx   sync.Mutex
+	reads map[string]int
+}
+
+func (s *getBlockCountingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	key := ref.MarshalString()
+	s.mtx.Lock()
+	if s.reads == nil {
+		s.reads = make(map[string]int)
+	}
+	s.reads[key]++
+	s.mtx.Unlock()
+
+	return s.StoreOps.GetBlock(ctx, ref)
+}
+
+func (s *getBlockCountingStore) reset() {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	s.reads = make(map[string]int)
+}
+
+func (s *getBlockCountingStore) get(ref string) int {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	return s.reads[ref]
 }

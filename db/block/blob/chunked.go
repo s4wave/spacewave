@@ -75,6 +75,21 @@ func ReadFromChunks(
 	buf []byte,
 	start, chunkIdx int,
 ) (n int, outChunkIdx int, err error) {
+	return readFromChunks(ctx, chunkSet, buf, start, chunkIdx, nil)
+}
+
+type chunkReadCache struct {
+	idx  int
+	data []byte
+}
+
+func readFromChunks(
+	ctx context.Context,
+	chunkSet *sbset.SubBlockSet,
+	buf []byte,
+	start, chunkIdx int,
+	cache *chunkReadCache,
+) (n int, outChunkIdx int, err error) {
 	chunkLen := chunkSet.Len()
 	if chunkIdx >= chunkLen {
 		chunkIdx = chunkLen - 1
@@ -108,7 +123,7 @@ func ReadFromChunks(
 		readStartPos := start - int(currChunkStart)
 		readEndPos := min(readStartPos+len(buf), int(currChunkSize))
 
-		data, err := currChunk.FetchDataNoCache(ctx, currChunkBcs, false)
+		data, err := fetchChunkDataNoCursorCache(ctx, currChunk, currChunkBcs, chunkIdx, cache)
 		if err != nil {
 			return n, outChunkIdx, err
 		}
@@ -117,4 +132,25 @@ func ReadFromChunks(
 		outChunkIdx = chunkIdx
 		return n, outChunkIdx, nil
 	}
+}
+
+func fetchChunkDataNoCursorCache(
+	ctx context.Context,
+	chunk *Chunk,
+	chunkCursor *block.Cursor,
+	chunkIdx int,
+	cache *chunkReadCache,
+) ([]byte, error) {
+	if cache != nil && cache.idx == chunkIdx && cache.data != nil {
+		return cache.data, nil
+	}
+	data, err := chunk.FetchDataNoCache(ctx, chunkCursor, false)
+	if err != nil {
+		return nil, err
+	}
+	if cache != nil {
+		cache.idx = chunkIdx
+		cache.data = data
+	}
+	return data, nil
 }
