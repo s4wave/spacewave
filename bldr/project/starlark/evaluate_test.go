@@ -620,6 +620,20 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		t.Fatalf("TinyGo release-web spacewave-core compilerMode: got %s, want COMPILER_MODE_TINYGO", tinygoReleaseWebConf.GetCompilerMode())
 	}
 
+	goscriptE2EReleaseBuild := result.Config.GetBuild()["release-web-e2e-goscript"]
+	if goscriptE2EReleaseBuild == nil {
+		t.Fatal("build target 'release-web-e2e-goscript' not found")
+	}
+	goscriptE2EReleaseOverride := goscriptE2EReleaseBuild.GetManifestOverrides()["spacewave-core"]
+	if goscriptE2EReleaseOverride == nil {
+		t.Fatal("spacewave-core GoScript release-web e2e override not found")
+	}
+	goscriptE2EReleaseCoreConf := mustGoPluginConfig(t, goscriptE2EReleaseOverride.GetConfig())
+	goscriptE2EReleaseWebConf := flattenGoConfigForPlatform(t, goscriptE2EReleaseCoreConf, "web/js/wasm")
+	if goscriptE2EReleaseWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+		t.Fatalf("GoScript release-web e2e spacewave-core compilerMode: got %s, want COMPILER_MODE_GOSCRIPT", goscriptE2EReleaseWebConf.GetCompilerMode())
+	}
+
 	cli := result.Config.GetManifests()["spacewave"]
 	if cli == nil {
 		t.Fatal("spacewave CLI manifest not found")

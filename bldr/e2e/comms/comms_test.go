@@ -1,6 +1,7 @@
 package comms
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,11 +13,16 @@ import (
 	"testing"
 
 	"github.com/playwright-community/playwright-go"
+	"github.com/s4wave/spacewave/bldr/util/gocompiler"
+	web_runtime_goscript_build "github.com/s4wave/spacewave/bldr/web/runtime/goscript/build"
+	"github.com/sirupsen/logrus"
 )
 
 var (
 	testServer *testServerState
 	pwInstance *playwright.Playwright
+	repoRoot   string
+	commsDir   string
 	distDir    string
 )
 
@@ -25,14 +31,32 @@ type testServerState struct {
 	close func()
 }
 
+type goScriptFixtureWorker struct {
+	mainPackagePath string
+	outputName      string
+	once            sync.Once
+	err             error
+}
+
+var (
+	resourceServiceGoScriptFixtureWorker = goScriptFixtureWorker{
+		mainPackagePath: "github.com/s4wave/spacewave/bldr/e2e/comms/fixtures/go/goscript-resource-service",
+		outputName:      "goscript-resource-service-plugin.js",
+	}
+	opfsStorageGoScriptFixtureWorker = goScriptFixtureWorker{
+		mainPackagePath: "github.com/s4wave/spacewave/bldr/e2e/comms/fixtures/go/goscript-opfs-storage",
+		outputName:      "goscript-opfs-storage-plugin.js",
+	}
+)
+
 // TIER: pr
 // TestMain builds the fixture bundles, starts playwright, and starts the
 // HTTP test server. All tests share the same server and playwright instance.
 func TestMain(m *testing.M) {
 	// Find the repo root (e2e/comms/ is two levels deep).
 	_, thisFile, _, _ := runtime.Caller(0)
-	commsDir := filepath.Dir(thisFile)
-	repoRoot := filepath.Join(commsDir, "..", "..")
+	commsDir = filepath.Dir(thisFile)
+	repoRoot = filepath.Join(commsDir, "..", "..")
 	distDir = filepath.Join(commsDir, "dist")
 
 	// Build fixtures with Vite.
@@ -85,6 +109,61 @@ func TestMain(m *testing.M) {
 	testServer.close()
 	pwInstance.Stop()
 	os.Exit(code)
+}
+
+func buildGoScriptFixtureWorker(ctx context.Context, repoRoot, commsDir, distDir, mainPackagePath, outputName string) error {
+	le := logrus.NewEntry(logrus.New())
+	le.Infof("building GoScript fixture worker %s", outputName)
+	name := strings.TrimSuffix(outputName, ".js")
+	outputRoot := filepath.Join(commsDir, ".tmp", name)
+	workDir := filepath.Join(commsDir, ".tmp", name+"-work")
+	if err := os.RemoveAll(outputRoot); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(workDir); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(workDir, 0o755); err != nil {
+		return err
+	}
+	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
+		WorkDir:         repoRoot,
+		OutputPath:      outputRoot,
+		Packages:        []string{mainPackagePath},
+		BuildFlags:      []string{"-tags=goscript,skip_e2e,purego"},
+		AllDependencies: true,
+	}); err != nil {
+		return err
+	}
+	_, err := web_runtime_goscript_build.BuildWebGoScriptPluginScript(
+		ctx,
+		le,
+		repoRoot,
+		workDir,
+		outputRoot,
+		filepath.Join(distDir, "workers", outputName),
+		mainPackagePath,
+		false,
+		false,
+	)
+	return err
+}
+
+func ensureGoScriptFixtureWorker(t *testing.T, worker *goScriptFixtureWorker) {
+	t.Helper()
+	worker.once.Do(func() {
+		worker.err = buildGoScriptFixtureWorker(
+			context.Background(),
+			repoRoot,
+			commsDir,
+			distDir,
+			worker.mainPackagePath,
+			worker.outputName,
+		)
+	})
+	if worker.err != nil {
+		t.Fatalf("goscript fixture worker build failed for %s: %v", worker.outputName, worker.err)
+	}
 }
 
 // browserType returns the playwright browser type by name.
@@ -325,6 +404,86 @@ func TestDedicatedWorker(t *testing.T) {
 			assertBoolResult(t, results, "manyWorkersStarted", true)
 
 			t.Logf("detail: %s", results["detail"])
+		})
+	}
+}
+
+// TestGoScriptPluginRuntime verifies that the GoScript plugin runtime wrapper
+// uses the same browser worker start-info and bidirectional stream contract as
+// the WebHost plugin worker path.
+func TestGoScriptPluginRuntime(t *testing.T) {
+	browsers := []string{"chromium", "firefox"}
+	for _, browser := range browsers {
+		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
+			results := runFixture(t, browser, "goscript-plugin-runtime")
+
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("GoScript plugin runtime fixture failed: %v", results["detail"])
+			}
+
+			assertBoolResult(t, results, "workerReady", true)
+			assertBoolResult(t, results, "startInfo", true)
+			assertBoolResult(t, results, "pluginToHostStream", true)
+			assertBoolResult(t, results, "hostToPluginStream", true)
+
+			if failureReason, _ := results["failureReason"].(string); failureReason != "" {
+				t.Fatalf("unexpected runtime failure: %s", failureReason)
+			}
+			t.Logf("detail: %s", results["detail"])
+		})
+	}
+}
+
+// TestGoScriptResourceService verifies that a GoScript-generated browser
+// worker can serve native ResourceService code without project-local gs
+// overrides, and that releasing a registry-backed resource reaches the Go
+// server release callback.
+func TestGoScriptResourceService(t *testing.T) {
+	browsers := []string{"chromium", "firefox"}
+	for _, browser := range browsers {
+		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
+			ensureGoScriptFixtureWorker(t, &resourceServiceGoScriptFixtureWorker)
+			results := runFixture(t, browser, "goscript-resource-service")
+
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("GoScript resource service fixture failed: %v", results["detail"])
+			}
+
+			assertBoolResult(t, results, "workerReady", true)
+			assertBoolResult(t, results, "startInfo", true)
+			assertBoolResult(t, results, "rootResource", true)
+			assertBoolResult(t, results, "registeredViewer", true)
+			assertBoolResult(t, results, "releaseRemovedViewer", true)
+
+			if failureReason, _ := results["failureReason"].(string); failureReason != "" {
+				t.Fatalf("unexpected runtime failure: %s", failureReason)
+			}
+			t.Logf("detail: %s", results["detail"])
+		})
+	}
+}
+
+// TestGoScriptOpfsStorage verifies that GoScript-generated browser worker code
+// can write OPFS data, restart the worker, read the persisted data, and clean
+// up the OPFS directory.
+func TestGoScriptOpfsStorage(t *testing.T) {
+	browsers := []string{"chromium", "firefox"}
+	for _, browser := range browsers {
+		t.Run(browser, func(t *testing.T) {
+			t.Parallel()
+			ensureGoScriptFixtureWorker(t, &opfsStorageGoScriptFixtureWorker)
+			results := runFixture(t, browser, "goscript-opfs-storage")
+
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("GoScript OPFS storage fixture failed: %v", results["detail"])
+			}
+
+			assertBoolResult(t, results, "workerReady", true)
+			assertBoolResult(t, results, "write", true)
+			assertBoolResult(t, results, "reloadRead", true)
+			assertBoolResult(t, results, "cleanup", true)
 		})
 	}
 }

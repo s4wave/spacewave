@@ -74,11 +74,32 @@ func BuildWebGoScriptPluginScript(
 	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
 		return nil, err
 	}
+	if err := buildResultUndefinedImportToErr(res.Warnings); err != nil {
+		return nil, err
+	}
 	inputPaths, err := buildInputPathsFromMetafile(workDir, res.Metafile)
 	if err != nil {
 		return nil, err
 	}
 	return inputPaths, nil
+}
+
+func buildResultUndefinedImportToErr(warnings []esbuild_api.Message) error {
+	for _, warning := range warnings {
+		if !isUndefinedImportWarning(warning) {
+			continue
+		}
+		if warning.Location != nil && warning.Location.File != "" {
+			return errors.Errorf("undefined GoScript import in %s: %s", warning.Location.File, warning.Text)
+		}
+		return errors.Errorf("undefined GoScript import: %s", warning.Text)
+	}
+	return nil
+}
+
+func isUndefinedImportWarning(warning esbuild_api.Message) bool {
+	return warning.ID == "import-is-undefined" ||
+		strings.Contains(warning.Text, "will always be undefined because there is no matching export")
 }
 
 func relativeImportPath(fromDir, toPath string) (string, error) {

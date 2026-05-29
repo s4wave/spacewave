@@ -7,6 +7,7 @@ import (
 
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 )
 
 // LookupWorldOp looks up the GoScript-supported world operation types.
@@ -22,5 +23,6 @@ func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error
 		space_world_ops.LookupCanvasSetNodeOp,
 		space_world_ops.LookupCanvasAddEdgeOp,
 		space_world_ops.LookupCanvasRemoveEdgeOp,
+		s4wave_wizard.LookupCreateWizardObjectOp,
 	}).LookupOp(ctx, opTypeID)
 }

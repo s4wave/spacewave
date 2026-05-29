@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 )
@@ -59,6 +60,37 @@ func TestAddGoScriptStartupCacheInputsIncludesCommandIdentity(t *testing.T) {
 	}
 	if got[gocompiler.GoScriptCommandEnv] != "/opt/bin/goscript-dev" {
 		t.Fatalf("startup input %s = %q, want command path", gocompiler.GoScriptCommandEnv, got[gocompiler.GoScriptCommandEnv])
+	}
+}
+
+func TestAddGoPluginCompilerModeStartupCacheInputsIncludesModeIdentity(t *testing.T) {
+	t.Setenv(gocompiler.GoPluginCompilerModeEnv, string(gocompiler.GoPluginCompilerModeGoScript))
+
+	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
+	addGoPluginCompilerModeStartupCacheInputs(inputManifest)
+
+	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
+	for _, input := range inputManifest.GetStartupInputs() {
+		if input.GetKind() != bldr_manifest_builder.InputManifest_StartupInputKind_ENV_VAR {
+			t.Fatalf("startup input kind = %v, want env var", input.GetKind())
+		}
+		got[input.GetKey()] = input.GetStringValue()
+	}
+	if got[gocompiler.GoPluginCompilerModeEnv] != string(gocompiler.GoPluginCompilerModeGoScript) {
+		t.Fatalf("startup input %s = %q, want %q", gocompiler.GoPluginCompilerModeEnv, got[gocompiler.GoPluginCompilerModeEnv], gocompiler.GoPluginCompilerModeGoScript)
+	}
+}
+
+func TestNewGoScriptBuildFlagsIncludesGoScriptTag(t *testing.T) {
+	flags := newGoScriptBuildFlags(bldr_manifest.BuildType_DEV, false)
+	if len(flags) != 1 || !strings.HasPrefix(flags[0], "-tags=") {
+		t.Fatalf("GoScript build flags = %v, want single -tags flag", flags)
+	}
+	tags := strings.Split(strings.TrimPrefix(flags[0], "-tags="), ",")
+	for _, want := range []string{"purego", gocompiler.GoScriptBuildTag} {
+		if !slices.Contains(tags, want) {
+			t.Fatalf("GoScript build tags missing %q: %v", want, tags)
+		}
 	}
 }
 

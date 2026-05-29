@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 )
 
 func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
@@ -16,6 +17,14 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 	}
 	if _, ok := op.(*space_world_ops.InitUnixFSOp); !ok {
 		t.Fatalf("expected InitUnixFSOp, got %T", op)
+	}
+
+	op, err = lookupOp(context.Background(), s4wave_wizard.CreateWizardObjectOpId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := op.(*s4wave_wizard.CreateWizardObjectOp); !ok {
+		t.Fatalf("expected CreateWizardObjectOp, got %T", op)
 	}
 }
 

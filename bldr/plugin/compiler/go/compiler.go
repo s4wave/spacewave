@@ -1082,6 +1082,9 @@ func (c *Controller) BuildPlugin(
 	if enableTinygo {
 		addTinyGoStartupCacheInputs(inputManifest)
 	}
+	if compilerModeOpt == CompilerMode_COMPILER_MODE_DEFAULT {
+		addGoPluginCompilerModeStartupCacheInputs(inputManifest)
+	}
 	if useGoScript {
 		addGoScriptStartupCacheInputs(inputManifest)
 	}
@@ -1091,11 +1094,20 @@ func (c *Controller) BuildPlugin(
 }
 
 func newGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
-	return []string{"-tags=" + strings.Join(gocompiler.NewBuildTags(buildType, enableCgo), ",")}
+	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
+	buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
+	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 
 func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.TinyGoStartupCacheEnvKeys() {
+		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
+	}
+	inputManifest.SortStartupInputs()
+}
+
+func addGoPluginCompilerModeStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
+	for _, envKey := range gocompiler.GoPluginCompilerModeStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
 	}
 	inputManifest.SortStartupInputs()

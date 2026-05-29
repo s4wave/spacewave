@@ -97,3 +97,35 @@ func TestResolveGoPluginCompilerMode(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveGoPluginCompilerModeUsesEnvForDefault(t *testing.T) {
+	t.Setenv(GoPluginCompilerModeEnv, string(GoPluginCompilerModeGoScript))
+	plat, err := bldr_platform.ParsePlatform("web/js/wasm")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := ResolveGoPluginCompilerMode(plat, GoPluginCompilerModeDefault, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actual != GoPluginCompilerModeGoScript {
+		t.Fatalf("compiler mode = %s, want %s", actual, GoPluginCompilerModeGoScript)
+	}
+}
+
+func TestResolveGoPluginCompilerModeExplicitOverridesEnv(t *testing.T) {
+	t.Setenv(GoPluginCompilerModeEnv, string(GoPluginCompilerModeGoScript))
+	plat, err := bldr_platform.ParsePlatform("web/js/wasm")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := ResolveGoPluginCompilerMode(plat, GoPluginCompilerModeGo, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actual != GoPluginCompilerModeGo {
+		t.Fatalf("compiler mode = %s, want %s", actual, GoPluginCompilerModeGo)
+	}
+}

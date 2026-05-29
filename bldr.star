@@ -477,6 +477,18 @@ build("release-web-e2e-tinygo",
         ),
     },
 )
+build("release-web-e2e-goscript",
+    manifests=BROWSER_RELEASE_E2E_MANIFESTS,
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_GOSCRIPT"),
+        "spacewave-launcher": e2e_release_wasm_launcher_config(),
+        "spacewave-dist": dist_release_config(
+            BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
+            BROWSER_RELEASE_E2E_LOAD_PLUGINS,
+        ),
+    },
+)
 build("cli",         manifests=["spacewave"])
 
 # plugin-release-browser builds the browser-side plugin channel surface: the

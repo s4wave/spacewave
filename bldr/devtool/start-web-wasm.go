@@ -31,6 +31,29 @@ import (
 	transport_websocket "github.com/s4wave/spacewave/net/transport/websocket"
 )
 
+// ExecuteWebGoScriptProject starts the browser-hosted devtool path with
+// GoScript as the default Go plugin compiler mode.
+func (a *DevtoolArgs) ExecuteWebGoScriptProject(ctx context.Context) error {
+	return withGoPluginCompilerMode(gocompiler.GoPluginCompilerModeGoScript, func() error {
+		return a.ExecuteWebWasmProject(ctx)
+	})
+}
+
+func withGoPluginCompilerMode(mode gocompiler.GoPluginCompilerMode, fn func() error) error {
+	prev, hadPrev := os.LookupEnv(gocompiler.GoPluginCompilerModeEnv)
+	if err := os.Setenv(gocompiler.GoPluginCompilerModeEnv, string(mode)); err != nil {
+		return err
+	}
+	defer func() {
+		if hadPrev {
+			_ = os.Setenv(gocompiler.GoPluginCompilerModeEnv, prev)
+			return
+		}
+		_ = os.Unsetenv(gocompiler.GoPluginCompilerModeEnv)
+	}()
+	return fn()
+}
+
 // ExecuteWebWasmProject starts the project as a web server in Wasm mode.
 func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 	// init repo root and storage directories

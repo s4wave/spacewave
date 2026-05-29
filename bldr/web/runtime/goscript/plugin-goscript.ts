@@ -203,7 +203,11 @@ class BrowserMessagePortDuplex {
   public constructor(private readonly port: MessagePort) {
     this.outbound = pushable<Uint8Array>({ objectMode: true })
     this.source = this.outbound
-    this.port.onmessage = (ev: MessageEvent<Uint8Array>) => {
+    this.port.onmessage = (ev: MessageEvent<Uint8Array | null>) => {
+      if (ev.data === null) {
+        this.close()
+        return
+      }
       this.outbound.push(copyUint8Array(ev.data))
     }
     this.port.onmessageerror = () => {

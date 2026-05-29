@@ -66,6 +66,8 @@ type DevtoolArgs struct {
 	WebListenAddr string
 	// WebUseWasm runs the entire runtime in the browser with wasm.
 	WebUseWasm bool
+	// WebUseGoScript compiles browser Go plugins with GoScript.
+	WebUseGoScript bool
 	// NoTUI disables the interactive devtool terminal UI.
 	NoTUI bool
 
@@ -406,9 +408,19 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 					Destination: &a.WebUseWasm,
 					Value:       a.WebUseWasm,
 				},
+				&cli.BoolFlag{
+					Name:        "goscript",
+					Usage:       "compile browser Go plugins with GoScript",
+					EnvVars:     []string{"BLDR_WEB_GOSCRIPT"},
+					Destination: &a.WebUseGoScript,
+					Value:       a.WebUseGoScript,
+				},
 			},
 			Action: func(c *cli.Context) error {
 				return a.runStatusCommand(c.Context, func(ctx context.Context) error {
+					if a.WebUseGoScript {
+						return a.ExecuteWebGoScriptProject(ctx)
+					}
 					if a.WebUseWasm {
 						return a.ExecuteWebWasmProject(ctx)
 					}
