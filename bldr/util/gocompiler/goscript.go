@@ -11,7 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const GoScriptCommandEnv = "BLDR_GOSCRIPT"
+const (
+	GoScriptCommandEnv = "BLDR_GOSCRIPT"
+	goScriptModule     = "github.com/aperturerobotics/goscript/cmd/goscript@4f9d376071c9c7576914346f842cdb60b5eabb88"
+	goScriptNoSumDB    = "github.com/aperturerobotics/goscript"
+)
 
 func GoScriptStartupCacheEnvKeys() []string {
 	return []string{GoScriptCommandEnv}
@@ -98,11 +102,7 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		args = append(args, "--all-dependencies")
 	}
 
-	cmdName := os.Getenv(GoScriptCommandEnv)
-	if strings.TrimSpace(cmdName) == "" {
-		cmdName = "goscript"
-	}
-	ecmd := NewGoCompilerCmd(ctx, cmdName, args...)
+	ecmd := newGoScriptCmd(ctx, args...)
 	ecmd.Dir = opts.WorkDir
 
 	timeStart := time.Now()
@@ -114,4 +114,16 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		WithField("dur", time.Since(timeStart).String()).
 		Info("compiled plugin TypeScript package tree")
 	return nil
+}
+
+func newGoScriptCmd(ctx context.Context, args ...string) *exec.Cmd {
+	cmdName := os.Getenv(GoScriptCommandEnv)
+	if strings.TrimSpace(cmdName) != "" {
+		return NewGoCompilerCmd(ctx, cmdName, args...)
+	}
+
+	goArgs := append([]string{"run", goScriptModule}, args...)
+	ecmd := NewGoCompilerCmd(ctx, "go", goArgs...)
+	ecmd.Env = append(ecmd.Env, "GONOSUMDB="+goScriptNoSumDB)
+	return ecmd
 }

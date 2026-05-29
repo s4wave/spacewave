@@ -88,7 +88,7 @@
     "test:go:e2e:release-wasm": "cross-env ENABLE_E2E_RELEASE_WASM=true go test -count=1 -timeout=30m -v ./e2e/releasewasm",
     "test:go:e2e:nightly": "bun run test:go:e2e:electron && bun run test:go:e2e:release-wasm",
     "test:go:e2e:trace": "cross-env RUN_TRACE_E2E=1 go test -timeout=30m -v ./core/trace/service -run 'TestTraceServiceDiscovery|TestTraceServiceAllPlugins'",
-    "test:go:goscript": "go test ./bldr/util/gocompiler ./bldr/plugin/compiler/go && GONOSUMDB=github.com/aperturerobotics/goscript go run github.com/aperturerobotics/goscript/cmd/goscript@v0.1.5-0.20260529001824-4bc888e6c85d test --dir . --gs-path ./gs --timeout 5m --tags skip_e2e,purego ./core/resource/root/controller ./core/space/world/optypes ./core/plugin/space",
+    "test:go:goscript": "go test ./bldr/util/gocompiler ./bldr/plugin/compiler/go && GONOSUMDB=github.com/aperturerobotics/goscript go run github.com/aperturerobotics/goscript/cmd/goscript@4f9d376071c9c7576914346f842cdb60b5eabb88 test --dir . --timeout 5m --tags skip_e2e,purego ./core/resource/root/controller ./core/space/world/optypes ./core/plugin/space",
     "format": "bun run format:js && bun run format:go && bun run format:config",
     "format:js": "oxfmt './{app,web,core,sdk,net}/**/*.{ts,tsx,js,html,css,scss}' && bun run format:config",
     "format:go": "bun run go:aptre -- format && cross-env GOFLAGS=-mod=mod -tags=purego go fix ./...",

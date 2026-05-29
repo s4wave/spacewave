@@ -54,3 +54,33 @@ func TestExecGoScriptCompilePreservesBuildFlags(t *testing.T) {
 		}
 	}
 }
+
+func TestNewGoScriptCmdDefaultsToPinnedModule(t *testing.T) {
+	t.Setenv(GoScriptCommandEnv, "")
+
+	cmd := newGoScriptCmd(context.Background(), "compile", "--dir", ".")
+	gotArgs := strings.Join(cmd.Args, "\n")
+	for _, want := range []string{
+		"go\n",
+		"run\n" + goScriptModule + "\n",
+		"compile\n--dir\n.\n",
+	} {
+		if !strings.Contains(gotArgs+"\n", want) {
+			t.Fatalf("argv missing %q:\n%s", want, gotArgs)
+		}
+	}
+	if got := envValue(cmd.Env, "GONOSUMDB"); got != goScriptNoSumDB {
+		t.Fatalf("GONOSUMDB = %q, want %q", got, goScriptNoSumDB)
+	}
+}
+
+func envValue(env []string, key string) string {
+	prefix := key + "="
+	var out string
+	for _, val := range env {
+		if after, ok := strings.CutPrefix(val, prefix); ok {
+			out = after
+		}
+	}
+	return out
+}
