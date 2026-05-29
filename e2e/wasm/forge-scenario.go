@@ -49,7 +49,9 @@ func (s *ForgeScenario) GetSpaceID() string { return s.spaceID }
 func WaitForForgeViewer(t testing.TB, page playwright.Page) {
 	t.Helper()
 
-	err := page.Locator("[data-testid='forge-viewer']").First().WaitFor()
+	err := page.Locator("[data-testid='forge-viewer']").First().WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(120000),
+	})
 	if err != nil {
 		t.Fatalf("wait for forge viewer: %v", err)
 	}

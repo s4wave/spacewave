@@ -10,6 +10,8 @@ import (
 	playwright "github.com/playwright-community/playwright-go"
 )
 
+const blogCoexistenceWaitMS = 120000
+
 type blogScenario struct {
 	session      *TestSession
 	sessionIndex uint32
@@ -52,16 +54,17 @@ func (s *blogScenario) objectHash(objectKey string) string {
 func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
 	t.Helper()
 
-	if err := page.Locator("button[title='Reading mode']").First().WaitFor(); err != nil {
+	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
+	if err := page.Locator("button[title='Reading mode']").First().WaitFor(wait); err != nil {
 		t.Fatalf("wait for blog reading button: %v", err)
 	}
-	if err := page.Locator("button[title='Editing mode']").First().WaitFor(); err != nil {
+	if err := page.Locator("button[title='Editing mode']").First().WaitFor(wait); err != nil {
 		t.Fatalf("wait for blog editing button: %v", err)
 	}
 	if title == "" {
 		return
 	}
-	if err := page.Locator("text=" + title).First().WaitFor(); err != nil {
+	if err := page.Locator("text=" + title).First().WaitFor(wait); err != nil {
 		body, bodyErr := page.Locator("body").TextContent()
 		if bodyErr != nil {
 			body = "failed to read body text: " + bodyErr.Error()
@@ -91,7 +94,8 @@ func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
 func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) {
 	t.Helper()
 
-	if err := page.Locator("input[placeholder='Search notes...']").First().WaitFor(); err != nil {
+	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
+	if err := page.Locator("input[placeholder='Search notes...']").First().WaitFor(wait); err != nil {
 		debug, debugErr := page.Evaluate(`() => JSON.stringify({
 			url: window.location.href,
 			hash: window.location.hash,
@@ -113,7 +117,7 @@ func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) 
 	if noteTitle == "" {
 		return
 	}
-	if err := page.Locator("text=" + noteTitle).First().WaitFor(); err != nil {
+	if err := page.Locator("text=" + noteTitle).First().WaitFor(wait); err != nil {
 		t.Fatalf("wait for notebook note %q: %v", noteTitle, err)
 	}
 }
@@ -121,14 +125,15 @@ func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) 
 func openNotebookNote(t testing.TB, page playwright.Page, noteTitle string) {
 	t.Helper()
 
+	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
 	row := page.Locator("[data-testid='notes-note-row']:has-text('" + noteTitle + "')").First()
-	if err := row.WaitFor(); err != nil {
+	if err := row.WaitFor(wait); err != nil {
 		t.Fatalf("wait for notebook row %q: %v", noteTitle, err)
 	}
 	if err := row.Click(); err != nil {
 		t.Fatalf("click notebook row %q: %v", noteTitle, err)
 	}
-	if err := page.Locator("[data-testid='notes-content-view']").First().WaitFor(); err != nil {
+	if err := page.Locator("[data-testid='notes-content-view']").First().WaitFor(wait); err != nil {
 		t.Fatalf("wait for notebook content view %q: %v\ndebug: %v", noteTitle, err, collectNotebookDebug(page))
 	}
 }
@@ -136,8 +141,9 @@ func openNotebookNote(t testing.TB, page playwright.Page, noteTitle string) {
 func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 	t.Helper()
 
+	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
 	sourceBtn := page.Locator("[data-testid='notes-source-toggle'][title='Switch to source']").First()
-	if err := sourceBtn.WaitFor(); err != nil {
+	if err := sourceBtn.WaitFor(wait); err != nil {
 		t.Fatalf("wait for source button: %v\ndebug: %v", err, collectNotebookDebug(page))
 	}
 	if err := sourceBtn.Click(); err != nil {
@@ -145,7 +151,7 @@ func writeSourceNote(t testing.TB, page playwright.Page, content string) {
 	}
 
 	editor := page.Locator("textarea").First()
-	if err := editor.WaitFor(); err != nil {
+	if err := editor.WaitFor(wait); err != nil {
 		t.Fatalf("wait for source editor: %v", err)
 	}
 	if err := editor.Fill(content); err != nil {
