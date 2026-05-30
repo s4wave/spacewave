@@ -1,5 +1,52 @@
 #+TITLE: Spacewave Changelog
 
+* v0.51.7
+<2026-05-29 Fri>
+
+Spacewave 0.51.7 improves the first-run Drive path, browser startup, local file
+storage, and app documentation. New Drive Spaces guide users into the file
+browser more clearly, returning browser sessions show better startup progress
+and recovery, and large file operations are more reliable across reloads,
+browser updates, and multi-tab use.
+
+** Features
+- Drive Quickstart now opens with a Drive intro step and starter guide, then
+  takes you into the file browser when you choose Open files.
+- The desktop app now includes standard Close Window and Quit commands.
+
+** Fixes
+- Fixed Drive Quickstart paths that could hang before the first file list
+  appeared, especially in browser sessions.
+- Fixed multi-tab browser startup so a second Spacewave tab can reach the app
+  instead of staying on the loading screen.
+- Fixed sign-in redirects so stale browser sign-in pages do not restart the
+  wrong SSO flow or loop back into sign-in.
+- Fixed large Drive uploads, directory reads, and file previews in browser
+  sessions so they are less likely to stall or fail after the page opens.
+- Fixed Git commit diffs so very large patches are bounded and still show the
+  available file changes.
+- Fixed Blog editing so saved posts refresh and source edits wait until the file
+  is ready.
+
+** Improvements
+- Returning browser sessions now show phase-by-phase startup progress with
+  clearer retry and back actions when startup fails.
+- Browser startup and browser updates load app files more efficiently, reducing
+  blank or slow first screens after reloads.
+- Browser file storage now does large upload and sync work with lower memory
+  pressure.
+- The setup banner waits until a local session contains meaningful stored data
+  before prompting users to finish account setup.
+- The in-app docs have been rewritten around Users, Self-Hosters, and
+  Developers, with clearer starting paths for Drive, Spaces, accounts, storage,
+  Command Line, plugins, and SDK work.
+- Session setup, link-device, local setup, and cloud setup flows now stay inside
+  the session frame with a consistent Back action.
+
+** Security
+- Public blog and static pages now handle embedded page data more safely when
+  opening in the browser.
+
 * v0.51.6
 <2026-05-11 Mon>
 
