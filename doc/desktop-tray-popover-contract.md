@@ -138,6 +138,20 @@ accepts macOS enablement:
 BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1 bun run start:desktop
 ```
 
+Renderer packaging decision as of 2026-05-30: the opt-in panel stays as inline
+data-URL HTML owned by Electron main. That keeps the current surface at the
+descriptor-view boundary: Electron main adapts `DesktopTrayState` plus its
+existing `DesktopRuntimeState` snapshot into static panel HTML/CSS/JS, and the
+panel sends only action URLs back to the shared dispatcher. It does not import
+the app entrypoint, open a `WebRuntime` connection, subscribe to
+`WatchDesktopState`, poll cloud state, or read filesystem state.
+
+A future bundled panel surface is a promotion decision, not a prerequisite for
+this opt-in layer. If the panel moves into a bundled renderer, the bundle must
+keep the same contract: one descriptor input from Electron main, action events
+back to Electron main, and no independent runtime/resource polling inside the
+panel.
+
 Dynamic macOS icon rendering, quiet native notifications, and a global tray
 toggle shortcut are also opt-in. `BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON=1`
 enables generated template icon variants,

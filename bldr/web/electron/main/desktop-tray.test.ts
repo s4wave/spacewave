@@ -1261,6 +1261,7 @@ describe('DesktopTrayController', () => {
     await flushPromises()
 
     expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+    expect(latestPopoverUrl()).toMatch(/^data:text\/html;charset=utf-8,/)
     const html = latestPopoverHtml()
     expect(html).toContain('data-tab="overview"')
     expect(html).toContain('data-tab="sessions"')
@@ -1448,8 +1449,12 @@ function templateLabels(
   })
 }
 
+function latestPopoverUrl(): string {
+  return String(browserWindows.at(-1)?.loadURL.mock.calls.at(-1)?.[0] ?? '')
+}
+
 function latestPopoverHtml(): string {
-  const url = browserWindows.at(-1)?.loadURL.mock.calls.at(-1)?.[0]
+  const url = latestPopoverUrl()
   if (!url) {
     return ''
   }
