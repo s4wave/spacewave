@@ -194,6 +194,48 @@ func TestTinyGoDebugInfoRejectsUnknownValue(t *testing.T) {
 	}
 }
 
+func TestTinyGoTraceWorkArgsAreExplicit(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoTraceEnv, "true")
+	t.Setenv(TinyGoWorkEnv, "true")
+
+	args, err := GetDefaultTinygoArgs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"-x", "-work"} {
+		if !slices.Contains(args, want) {
+			t.Fatalf("tinygo args = %v, want %s", args, want)
+		}
+	}
+}
+
+func TestTinyGoTraceRejectsUnknownValue(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoTraceEnv, "sometimes")
+
+	_, err := GetDefaultTinygoArgs()
+	if err == nil {
+		t.Fatal("expected invalid TinyGo trace env to fail")
+	}
+	if !strings.Contains(err.Error(), TinyGoTraceEnv) {
+		t.Fatalf("error = %q, want %s", err.Error(), TinyGoTraceEnv)
+	}
+}
+
+func TestTinyGoWorkRejectsUnknownValue(t *testing.T) {
+	clearTinyGoOptionEnv(t)
+	t.Setenv(TinyGoWorkEnv, "sometimes")
+
+	_, err := GetDefaultTinygoArgs()
+	if err == nil {
+		t.Fatal("expected invalid TinyGo work env to fail")
+	}
+	if !strings.Contains(err.Error(), TinyGoWorkEnv) {
+		t.Fatalf("error = %q, want %s", err.Error(), TinyGoWorkEnv)
+	}
+}
+
 func TestTinyGoBrowserDevArgsDoNotUseInternalNoDWARF(t *testing.T) {
 	clearTinyGoOptionEnv(t)
 	t.Setenv(TinyGoProfileEnv, TinyGoProfileFast)

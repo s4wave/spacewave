@@ -362,8 +362,13 @@ jobs:
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
         timeout-minutes: 60
         shell: bash
+        env:
+          BLDR_TINYGO_TRACE: 'true'
+          BLDR_TINYGO_WORK: 'true'
+          TMPDIR: ${{ github.workspace }}/.tmp/tinygo-tmp
         run: |
           set -euo pipefail
+          mkdir -p "${BLDR_WASM_OPT_DIAGNOSTICS_DIR}" "${TMPDIR}"
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --browser-only \
@@ -377,6 +382,15 @@ jobs:
         with:
           name: wasm-opt-diagnostics-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.run_id }}
           path: .tmp/wasm-opt-diagnostics
+          include-hidden-files: true
+          if-no-files-found: warn
+
+      - name: Upload TinyGo work diagnostics
+        if: failure() && steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tinygo-work-diagnostics-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.run_id }}
+          path: .tmp/tinygo-tmp
           include-hidden-files: true
           if-no-files-found: warn
 

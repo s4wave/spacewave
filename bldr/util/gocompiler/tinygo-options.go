@@ -28,6 +28,10 @@ const (
 	TinyGoInterpTimeoutEnv = "BLDR_TINYGO_INTERP_TIMEOUT"
 	// TinyGoDebugInfoEnv retains TinyGo debug information in browser wasm.
 	TinyGoDebugInfoEnv = "BLDR_TINYGO_DEBUG"
+	// TinyGoTraceEnv prints TinyGo's internal build commands.
+	TinyGoTraceEnv = "BLDR_TINYGO_TRACE"
+	// TinyGoWorkEnv keeps TinyGo's temporary work directory for diagnostics.
+	TinyGoWorkEnv = "BLDR_TINYGO_WORK"
 
 	// TinyGoProfileDefault uses the optimized TinyGo defaults.
 	TinyGoProfileDefault = "default"
@@ -51,6 +55,8 @@ var tinyGoStartupCacheEnvKeys = []string{
 	TinyGoLLVMFeaturesEnv,
 	TinyGoInterpTimeoutEnv,
 	TinyGoDebugInfoEnv,
+	TinyGoTraceEnv,
+	TinyGoWorkEnv,
 }
 
 // TinyGoOptions configures TinyGo compiler arguments.
@@ -71,6 +77,10 @@ type TinyGoOptions struct {
 	LLVMFeatures string
 	// InterpTimeout overrides the TinyGo interp optimization timeout.
 	InterpTimeout string
+	// Trace prints TinyGo's internal build commands.
+	Trace string
+	// Work keeps TinyGo's temporary work directory.
+	Work string
 }
 
 // TinyGoStartupCacheEnvKeys returns env keys that affect TinyGo artifact identity.
@@ -89,6 +99,8 @@ func TinyGoOptionsFromEnv() TinyGoOptions {
 		StackSize:     os.Getenv(TinyGoStackSizeEnv),
 		LLVMFeatures:  os.Getenv(TinyGoLLVMFeaturesEnv),
 		InterpTimeout: os.Getenv(TinyGoInterpTimeoutEnv),
+		Trace:         os.Getenv(TinyGoTraceEnv),
+		Work:          os.Getenv(TinyGoWorkEnv),
 	}
 }
 
@@ -152,6 +164,20 @@ func TinyGoArgs(opts TinyGoOptions) ([]string, error) {
 	if interpTimeout != "" {
 		args = append(args, "-interp-timeout="+interpTimeout)
 	}
+	trace, err := tinyGoBoolEnabled(TinyGoTraceEnv, opts.Trace)
+	if err != nil {
+		return nil, err
+	}
+	if trace {
+		args = append(args, "-x")
+	}
+	work, err := tinyGoBoolEnabled(TinyGoWorkEnv, opts.Work)
+	if err != nil {
+		return nil, err
+	}
+	if work {
+		args = append(args, "-work")
+	}
 	return args, nil
 }
 
@@ -162,13 +188,17 @@ func ResolveTinyGoPanicStrategy() (string, error) {
 
 // TinyGoDebugInfoEnabled reports whether TinyGo should retain debug info.
 func TinyGoDebugInfoEnabled() (bool, error) {
-	switch strings.TrimSpace(os.Getenv(TinyGoDebugInfoEnv)) {
+	return tinyGoBoolEnabled(TinyGoDebugInfoEnv, os.Getenv(TinyGoDebugInfoEnv))
+}
+
+func tinyGoBoolEnabled(envKey, raw string) (bool, error) {
+	switch strings.TrimSpace(raw) {
 	case "", "0", "false", "no", "off":
 		return false, nil
 	case "1", "true", "yes", "on":
 		return true, nil
 	default:
-		return false, errors.Errorf("unsupported %s value %q, expected true or false", TinyGoDebugInfoEnv, os.Getenv(TinyGoDebugInfoEnv))
+		return false, errors.Errorf("unsupported %s value %q, expected true or false", envKey, raw)
 	}
 }
 
