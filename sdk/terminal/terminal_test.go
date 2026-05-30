@@ -5,12 +5,14 @@ import (
 	stderrors "errors"
 	"io"
 	"net"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/world"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 )
 
@@ -105,7 +107,7 @@ func TestLookupCreateTerminalOp(t *testing.T) {
 	}
 }
 
-func TestForwardClientFramesReportsClosed(t *testing.T) {
+func TestForwardClientFramesSendsCloseWithoutCompleting(t *testing.T) {
 	serverConn, clientConn := net.Pipe()
 	defer serverConn.Close()
 	defer clientConn.Close()
@@ -119,7 +121,8 @@ func TestForwardClientFramesReportsClosed(t *testing.T) {
 		}},
 	}
 	errCh := make(chan terminalConnectResult, 1)
-	go (&TerminalResource{}).forwardClientFrames(context.Background(), strm, frameSession, errCh)
+	var clientClosed atomic.Bool
+	go (&TerminalResource{}).forwardClientFrames(context.Background(), strm, frameSession, &clientClosed, errCh)
 
 	gotRemote := &TerminalFrame{}
 	if err := clientSession.RecvMsg(gotRemote); err != nil {
@@ -128,23 +131,93 @@ func TestForwardClientFramesReportsClosed(t *testing.T) {
 	if gotRemote.GetKind() != TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE {
 		t.Fatalf("remote frame kind = %s", gotRemote.GetKind().String())
 	}
+	if !clientClosed.Load() {
+		t.Fatal("client close flag was not set")
+	}
 
 	select {
 	case result := <-errCh:
+		t.Fatalf("client close completed terminal before remote result: %#v", result)
+	case <-time.After(25 * time.Millisecond):
+	}
+}
+
+func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	objectKey := "terminal/close-exit"
+	op := NewCreateTerminalOp(
+		objectKey,
+		"Build Host Terminal",
+		"devices/build-host",
+		"12D3KooWDevice",
+		time.Unix(10, 0),
+	)
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID()); err != nil {
+		t.Fatal(err)
+	}
+	objState, found, err := tb.WorldState.GetObject(ctx, objectKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("terminal object was not created")
+	}
+	state, err := readTerminalObject(ctx, objState)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	serverConn, clientConn := net.Pipe()
+	defer serverConn.Close()
+	defer clientConn.Close()
+
+	frameSession := stream_packet.NewSession(serverConn, terminalFrameMaxBytes)
+	remoteSession := stream_packet.NewSession(clientConn, terminalFrameMaxBytes)
+	strm := &testTerminalConnectStream{ctx: ctx}
+	errCh := make(chan terminalConnectResult, 1)
+	var clientClosed atomic.Bool
+	clientClosed.Store(true)
+	go NewTerminalResource(nil, tb.WorldState, tb.Engine, objectKey, state).forwardRemoteFrames(
+		ctx,
+		strm,
+		frameSession,
+		&clientClosed,
+		errCh,
+	)
+
+	if err := remoteSession.SendMsg(&TerminalFrame{
+		Kind:     TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT,
+		ExitCode: 0,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case result := <-errCh:
 		if result.err != nil {
-			t.Fatalf("client forward result error = %v", result.err)
-		}
-		if !result.updateState {
-			t.Fatal("client close did not request terminal state update")
-		}
-		if result.finalState != TerminalSessionState_TERMINAL_SESSION_STATE_CLOSED {
-			t.Fatalf("final state = %s", result.finalState.String())
-		}
-		if result.status != "closed" {
-			t.Fatalf("status = %q", result.status)
+			t.Fatalf("remote forward result error = %v", result.err)
 		}
 	case <-time.After(time.Second):
-		t.Fatal("client frame forwarder did not stop")
+		t.Fatal("remote frame forwarder did not stop")
+	}
+	if len(strm.sent) != 1 || strm.sent[0].GetKind() != TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT {
+		t.Fatalf("sent frames = %#v", strm.sent)
+	}
+
+	updated, err := readTerminalObject(ctx, objState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.GetState() != TerminalSessionState_TERMINAL_SESSION_STATE_CLOSED {
+		t.Fatalf("state = %s", updated.GetState().String())
+	}
+	if updated.GetStatus() != "closed" {
+		t.Fatalf("status = %q", updated.GetStatus())
 	}
 }
 

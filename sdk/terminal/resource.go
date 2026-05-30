@@ -4,6 +4,7 @@ import (
 	"context"
 	stderrors "errors"
 	"io"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -174,8 +175,9 @@ func (r *TerminalResource) ConnectTerminal(strm SRPCTerminalResourceService_Conn
 	}
 
 	errCh := make(chan terminalConnectResult, 2)
-	go r.forwardClientFrames(ctx, strm, frameSession, errCh)
-	go r.forwardRemoteFrames(ctx, strm, frameSession, errCh)
+	var clientClosed atomic.Bool
+	go r.forwardClientFrames(ctx, strm, frameSession, &clientClosed, errCh)
+	go r.forwardRemoteFrames(ctx, strm, frameSession, &clientClosed, errCh)
 
 	result := <-errCh
 	cancel()
@@ -200,6 +202,7 @@ func (r *TerminalResource) forwardClientFrames(
 	ctx context.Context,
 	strm SRPCTerminalResourceService_ConnectTerminalStream,
 	frameSession *stream_packet.Session,
+	clientClosed *atomic.Bool,
 	errCh chan<- terminalConnectResult,
 ) {
 	for {
@@ -221,16 +224,14 @@ func (r *TerminalResource) forwardClientFrames(
 		case TerminalFrameKind_TERMINAL_FRAME_KIND_INPUT,
 			TerminalFrameKind_TERMINAL_FRAME_KIND_RESIZE,
 			TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE:
+			if frame.GetKind() == TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE {
+				clientClosed.Store(true)
+			}
 			if err := frameSession.SendMsg(frame); err != nil {
 				errCh <- terminalConnectResult{err: err}
 				return
 			}
 			if frame.GetKind() == TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE {
-				errCh <- terminalConnectResult{
-					updateState: true,
-					finalState:  TerminalSessionState_TERMINAL_SESSION_STATE_CLOSED,
-					status:      "closed",
-				}
 				return
 			}
 		default:
@@ -253,16 +254,19 @@ func (r *TerminalResource) forwardRemoteFrames(
 	ctx context.Context,
 	strm SRPCTerminalResourceService_ConnectTerminalStream,
 	frameSession *stream_packet.Session,
+	clientClosed *atomic.Bool,
 	errCh chan<- terminalConnectResult,
 ) {
 	for {
 		frame := &TerminalFrame{}
 		if err := frameSession.RecvMsg(frame); err != nil {
+			finalState, status, errMessage := terminalConnectDisconnectState(clientClosed.Load())
 			errCh <- terminalConnectResult{
-				err:         err,
-				updateState: true,
-				finalState:  TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
-				status:      "disconnected",
+				err:          err,
+				updateState:  true,
+				finalState:   finalState,
+				status:       status,
+				errorMessage: errMessage,
 			}
 			return
 		}
@@ -285,7 +289,8 @@ func (r *TerminalResource) forwardRemoteFrames(
 			errCh <- terminalConnectResult{err: errors.New(errMessage)}
 			return
 		case TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT:
-			if err := r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED, "exited", ""); err != nil {
+			finalState, status, errMessage := terminalConnectExitState(clientClosed.Load())
+			if err := r.updateState(ctx, finalState, status, errMessage); err != nil {
 				errCh <- terminalConnectResult{err: err}
 				return
 			}
@@ -309,6 +314,20 @@ func (r *TerminalResource) forwardRemoteFrames(
 			return
 		}
 	}
+}
+
+func terminalConnectDisconnectState(clientClosed bool) (TerminalSessionState, string, string) {
+	if clientClosed {
+		return TerminalSessionState_TERMINAL_SESSION_STATE_CLOSED, "closed", ""
+	}
+	return TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED, "disconnected", ""
+}
+
+func terminalConnectExitState(clientClosed bool) (TerminalSessionState, string, string) {
+	if clientClosed {
+		return TerminalSessionState_TERMINAL_SESSION_STATE_CLOSED, "closed", ""
+	}
+	return TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED, "exited", ""
 }
 
 func (r *TerminalResource) currentState() *Terminal {
