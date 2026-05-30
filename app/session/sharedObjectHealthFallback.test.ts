@@ -6,6 +6,7 @@ import {
   SharedObjectHealthStatus,
   type SharedObjectHealth,
 } from '@s4wave/core/sobject/sobject.pb.js'
+import { SharedObjectHealthError } from '@s4wave/sdk/sobject/sobject.js'
 
 import {
   buildSharedObjectFallbackHealth,
@@ -57,18 +58,6 @@ describe('buildSharedObjectFallbackHealth', () => {
       hint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
     },
     {
-      name: 'empty body type',
-      error: 'empty shared object body type',
-      reason: SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED,
-      hint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    },
-    {
-      name: 'unsupported body type',
-      error: 'unsupported shared object type: example/body',
-      reason: SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED,
-      hint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    },
-    {
       name: 'unknown',
       error: 'local mount failed: disk offline',
       reason: SharedObjectHealthCommonReason.UNKNOWN,
@@ -117,6 +106,37 @@ describe('buildSharedObjectFallbackHealth', () => {
       error: 'access denied',
     })
   })
+
+  it('leaves untyped body configuration strings as unknown after typed body responses own them', () => {
+    const health = buildSharedObjectFallbackHealth(
+      new Error('unsupported shared object type: example/body'),
+      SharedObjectHealthLayer.BODY,
+    )
+
+    expect(health).toMatchObject({
+      status: SharedObjectHealthStatus.CLOSED,
+      layer: SharedObjectHealthLayer.BODY,
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
+      error: 'unsupported shared object type: example/body',
+    })
+  })
+
+  it('preserves typed SDK SharedObject health before string fallback classification', () => {
+    const typedHealth: SharedObjectHealth = {
+      status: SharedObjectHealthStatus.CLOSED,
+      layer: SharedObjectHealthLayer.BODY,
+      commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
+      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+      error: 'opaque transport message',
+    }
+    const health = buildSharedObjectFallbackHealth(
+      new SharedObjectHealthError(typedHealth),
+      SharedObjectHealthLayer.SHARED_OBJECT,
+    )
+
+    expect(health).toBe(typedHealth)
+  })
 })
 
 describe('getSharedObjectRouteHealth', () => {
@@ -146,15 +166,51 @@ describe('getSharedObjectRouteHealth', () => {
       bodyLoading: false,
       watchedHealth,
       mountError: null,
-      bodyError: new Error('unsupported shared object type: example/body'),
+      bodyError: new Error('build cdn world engine: block not found'),
     })
 
     expect(health).toMatchObject({
       status: SharedObjectHealthStatus.CLOSED,
       layer: SharedObjectHealthLayer.BODY,
-      commonReason: SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED,
+      commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
       remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
     })
+  })
+
+  it('keeps body access fallback ahead of body loading health', () => {
+    const health = getSharedObjectRouteHealth({
+      mounted: true,
+      bodyLoading: true,
+      watchedHealth: null,
+      mountError: null,
+      bodyError: new Error('build cdn world engine: block not found'),
+    })
+
+    expect(health).toMatchObject({
+      status: SharedObjectHealthStatus.CLOSED,
+      layer: SharedObjectHealthLayer.BODY,
+      commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
+      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+    })
+  })
+
+  it('preserves typed CDN pointer loading health from body response outcomes', () => {
+    const typedHealth: SharedObjectHealth = {
+      status: SharedObjectHealthStatus.LOADING,
+      layer: SharedObjectHealthLayer.SHARED_OBJECT,
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
+      error: '',
+    }
+    const health = getSharedObjectRouteHealth({
+      mounted: true,
+      bodyLoading: true,
+      watchedHealth: null,
+      mountError: null,
+      bodyError: new SharedObjectHealthError(typedHealth),
+    })
+
+    expect(health).toBe(typedHealth)
   })
 
   it('returns body loading health while the mounted SharedObject body loads', () => {
@@ -172,6 +228,41 @@ describe('getSharedObjectRouteHealth', () => {
       commonReason: SharedObjectHealthCommonReason.UNKNOWN,
       remediationHint: SharedObjectHealthRemediationHint.NONE,
       error: '',
+    })
+  })
+
+  it('keeps body loading ahead of watched health and mount-error fallback', () => {
+    const health = getSharedObjectRouteHealth({
+      mounted: true,
+      bodyLoading: true,
+      watchedHealth,
+      mountError: new Error('shared object not found'),
+      bodyError: null,
+    })
+
+    expect(health).toMatchObject({
+      status: SharedObjectHealthStatus.LOADING,
+      layer: SharedObjectHealthLayer.BODY,
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
+      error: '',
+    })
+  })
+
+  it('uses mount-error fallback after body and watched health are absent', () => {
+    const health = getSharedObjectRouteHealth({
+      mounted: false,
+      bodyLoading: false,
+      watchedHealth: null,
+      mountError: new Error('shared object not found'),
+      bodyError: null,
+    })
+
+    expect(health).toMatchObject({
+      status: SharedObjectHealthStatus.CLOSED,
+      layer: SharedObjectHealthLayer.SHARED_OBJECT,
+      commonReason: SharedObjectHealthCommonReason.NOT_FOUND,
+      remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
     })
   })
 })

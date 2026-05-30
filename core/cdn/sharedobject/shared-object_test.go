@@ -179,6 +179,57 @@ func TestEmptyInitializedPointerHasNoHead(t *testing.T) {
 	}
 }
 
+func TestWorldEngineMissingPublishedHeadReturnsSharedObjectLoadingHealth(t *testing.T) {
+	ctx := context.Background()
+	ptr := &alpha_cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Root:    &sobject.SORoot{},
+	}
+	ptrBytes, err := ptr.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded := []byte(packedmsg.EncodePackedMessage(ptrBytes))
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/"+testSpaceID+"/root.packedmsg", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(encoded)
+	})
+	hs := httptest.NewServer(mux)
+	defer hs.Close()
+
+	bs, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	so, err := NewCdnSharedObject(CdnSharedObjectOptions{
+		SpaceID:    testSpaceID,
+		BlockStore: bs,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = NewWorldEngine(ctx, logrus.NewEntry(logrus.New()), nil, so, nil)
+	if err == nil {
+		t.Fatal("expected missing published head to block world engine construction")
+	}
+	health, ok := sobject.GetSharedObjectHealthFromError(err)
+	if !ok {
+		t.Fatalf("expected typed SharedObject health, got %v", err)
+	}
+	if health.GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_LOADING {
+		t.Fatalf("expected loading health, got %v", health.GetStatus())
+	}
+	if health.GetLayer() != sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT {
+		t.Fatalf("expected shared-object layer, got %v", health.GetLayer())
+	}
+}
+
 func TestWorldEnginesBorrowBlockStoreDecodedCache(t *testing.T) {
 	ctx := context.Background()
 	head := &bucket.ObjectRef{}
@@ -334,9 +385,36 @@ func TestHealthSurfaceTracksPointerLifecycle(t *testing.T) {
 	})
 	so.setHealth(nil)
 
+	loadingCtx, loadingCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer loadingCancel()
+	next, err := healthCtr.WaitValueChange(loadingCtx, initial, nil)
+	if err != nil {
+		t.Fatalf("WaitValueChange() = %v", err)
+	}
+	if next.GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_LOADING {
+		t.Fatalf("expected loading health for missing head, got %v", next.GetStatus())
+	}
+
+	head := &bucket.ObjectRef{}
+	innerState := &sobject_world_engine.InnerState{HeadRef: head}
+	innerStateBytes, err := innerState.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sori := &sobject.SORootInner{Seqno: 1, StateData: innerStateBytes}
+	soriBytes, err := sori.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	so.bs.SetPointer(&alpha_cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Root:    &sobject.SORoot{Inner: soriBytes, InnerSeqno: 1},
+	})
+	so.setHealth(nil)
+
 	readyCtx, readyCancel := context.WithTimeout(ctx, 2*time.Second)
 	defer readyCancel()
-	next, err := healthCtr.WaitValueChange(readyCtx, initial, nil)
+	next, err = healthCtr.WaitValueChange(readyCtx, next, nil)
 	if err != nil {
 		t.Fatalf("WaitValueChange() = %v", err)
 	}

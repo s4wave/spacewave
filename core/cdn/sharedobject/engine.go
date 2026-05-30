@@ -100,7 +100,12 @@ func NewWorldEngine(
 			return nil, errors.Wrap(err, "load cdn head inner state")
 		}
 		if inner == nil || inner.GetHeadRef() == nil {
-			return nil, errors.New("cdn shared object has no published head")
+			return nil, sobject.NewSharedObjectHealthError(
+				sobject.NewSharedObjectLoadingHealth(
+					sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
+				),
+				errors.New("cdn shared object has no published head"),
+			)
 		}
 	}
 	headRef := inner.GetHeadRef().CloneVT()

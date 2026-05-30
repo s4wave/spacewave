@@ -69,11 +69,33 @@ export const MountSharedObjectBodyRequest: MessageType<MountSharedObjectBodyRequ
  */
 export interface MountSharedObjectBodyResponse {
   /**
-   * ResourceId is the ID of the mounted shared object body resource.
+   * Result is either the mounted body resource or typed body health.
    *
-   * @generated from field: uint32 resource_id = 1;
+   * @generated from oneof s4wave.sobject.MountSharedObjectBodyResponse.result
    */
-  resourceId?: number
+  result?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * ResourceId is the ID of the mounted shared object body resource.
+         *
+         * @generated from field: uint32 resource_id = 1;
+         */
+        value: number
+        case: 'resourceId'
+      }
+    | {
+        /**
+         * Health is returned when body construction failed with typed SharedObject health.
+         *
+         * @generated from field: sobject.SharedObjectHealth health = 2;
+         */
+        value: SharedObjectHealth
+        case: 'health'
+      }
 }
 
 // MountSharedObjectBodyResponse contains the message type declaration for MountSharedObjectBodyResponse.
@@ -81,7 +103,20 @@ export const MountSharedObjectBodyResponse: MessageType<MountSharedObjectBodyRes
   createMessageType({
     typeName: 's4wave.sobject.MountSharedObjectBodyResponse',
     fields: [
-      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 1,
+        name: 'resource_id',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+        oneof: 'result',
+      },
+      {
+        no: 2,
+        name: 'health',
+        kind: 'message',
+        T: () => SharedObjectHealth,
+        oneof: 'result',
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

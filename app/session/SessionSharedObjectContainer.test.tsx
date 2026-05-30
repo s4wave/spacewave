@@ -13,6 +13,7 @@ import {
   SharedObjectHealthRemediationHint,
   SharedObjectHealthStatus,
 } from '@s4wave/core/sobject/sobject.pb.js'
+import { SharedObjectHealthError } from '@s4wave/sdk/sobject/sobject.js'
 
 const SPACE_ID = '01kpm6m5mg9ncme4ve3jraxv5n'
 
@@ -429,6 +430,46 @@ describe('SessionSharedObjectContainer', () => {
     ).toBeTruthy()
   })
 
+  it('renders CDN pointer loading from a typed body response as shared-object loading', () => {
+    setWatchMocks(
+      { spacesList: [buildSpaceListEntry('created')] },
+      {
+        health: {
+          status: SharedObjectHealthStatus.READY,
+          layer: SharedObjectHealthLayer.SHARED_OBJECT,
+          commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+          remediationHint: SharedObjectHealthRemediationHint.NONE,
+          error: '',
+        },
+      },
+    )
+    setResourceMocks(
+      {
+        value: { meta: { sharedObjectId: SPACE_ID } },
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+      {
+        value: null,
+        loading: false,
+        error: new SharedObjectHealthError({
+          status: SharedObjectHealthStatus.LOADING,
+          layer: SharedObjectHealthLayer.SHARED_OBJECT,
+          commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+          remediationHint: SharedObjectHealthRemediationHint.NONE,
+          error: '',
+        }),
+        retry: vi.fn(),
+      },
+    )
+
+    render(<SessionSharedObjectContainer />)
+
+    expect(screen.getByText('Mounting your space')).toBeTruthy()
+    expect(screen.getByText('Mounting the space.')).toBeTruthy()
+  })
+
   it('renders a body-layer health card for body mount errors', () => {
     setWatchMocks(
       { spacesList: [buildSpaceListEntry('created')] },
@@ -463,6 +504,48 @@ describe('SessionSharedObjectContainer', () => {
     expect(screen.getByText(/source data needs repair/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Repair' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reinitialize' })).toBeTruthy()
+  })
+
+  it('renders typed SDK body health from a body mount response outcome', () => {
+    setWatchMocks(
+      { spacesList: [buildSpaceListEntry('created')] },
+      {
+        health: {
+          status: SharedObjectHealthStatus.READY,
+          layer: SharedObjectHealthLayer.SHARED_OBJECT,
+          commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+          remediationHint: SharedObjectHealthRemediationHint.NONE,
+          error: '',
+        },
+      },
+    )
+    setResourceMocks(
+      {
+        value: { meta: { sharedObjectId: SPACE_ID } },
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+      {
+        value: null,
+        loading: false,
+        error: new SharedObjectHealthError({
+          status: SharedObjectHealthStatus.CLOSED,
+          layer: SharedObjectHealthLayer.BODY,
+          commonReason:
+            SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED,
+          remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+          error: 'typed body response',
+        }),
+        retry: vi.fn(),
+      },
+    )
+
+    render(<SessionSharedObjectContainer />)
+
+    expect(screen.getByText('Closed - Body')).toBeTruthy()
+    expect(screen.getByText('Body configuration invalid')).toBeTruthy()
+    expect(screen.getByText('typed body response')).toBeTruthy()
   })
 
   it('renders typed backend body health snapshots in the mount-health UI', () => {
@@ -538,6 +621,44 @@ describe('SessionSharedObjectContainer', () => {
     expect(
       screen.getByText(`shared object not found: ${SPACE_ID}`),
     ).toBeTruthy()
+  })
+
+  it('retries SharedObject and body mounts from route health cards', () => {
+    const sharedRetry = vi.fn()
+    const bodyRetry = vi.fn()
+    setWatchMocks(
+      { spacesList: [buildSpaceListEntry('created')] },
+      {
+        health: {
+          status: SharedObjectHealthStatus.CLOSED,
+          layer: SharedObjectHealthLayer.SHARED_OBJECT,
+          commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
+          remediationHint: SharedObjectHealthRemediationHint.RETRY,
+          error: 'temporary shared object mount failure',
+        },
+      },
+    )
+    setResourceMocks(
+      {
+        value: null,
+        loading: false,
+        error: null,
+        retry: sharedRetry,
+      },
+      {
+        value: null,
+        loading: false,
+        error: null,
+        retry: bodyRetry,
+      },
+    )
+
+    render(<SessionSharedObjectContainer />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(sharedRetry).toHaveBeenCalledTimes(1)
+    expect(bodyRetry).toHaveBeenCalledTimes(1)
   })
 
   it('renders remediation guidance for revoked access', () => {

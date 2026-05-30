@@ -14,8 +14,23 @@ var errMountSharedObjectBodyUnavailable = errors.New("shared object body mountin
 
 // MountSharedObjectBody reports that body mounting is unavailable in GoScript.
 func (r *SharedObjectResource) MountSharedObjectBody(_ context.Context, _ *s4wave_sobject.MountSharedObjectBodyRequest) (*s4wave_sobject.MountSharedObjectBodyResponse, error) {
-	return nil, sobject.WrapSharedObjectHealthError(
+	return mountSharedObjectBodyHealthResponse(sobject.WrapSharedObjectHealthError(
 		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
 		errMountSharedObjectBodyUnavailable,
-	)
+	)), nil
+}
+
+func mountSharedObjectBodyHealthResponse(err error) *s4wave_sobject.MountSharedObjectBodyResponse {
+	health, ok := sobject.GetSharedObjectHealthFromError(err)
+	if !ok {
+		health = sobject.BuildSharedObjectHealthFromError(
+			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
+			err,
+		)
+	}
+	return &s4wave_sobject.MountSharedObjectBodyResponse{
+		Result: &s4wave_sobject.MountSharedObjectBodyResponse_Health{
+			Health: health,
+		},
+	}
 }

@@ -84,6 +84,17 @@ func GetSharedObjectHealthFromError(err error) (*SharedObjectHealth, bool) {
 	return healthErr.GetSharedObjectHealth(), true
 }
 
+// NewSharedObjectHealthError wraps an explicit SharedObjectHealth snapshot in an error.
+func NewSharedObjectHealthError(health *SharedObjectHealth, cause error) error {
+	if health == nil && cause == nil {
+		return nil
+	}
+	return &sharedObjectHealthError{
+		health: health,
+		cause:  cause,
+	}
+}
+
 // WrapSharedObjectHealthError wraps err with an attached SharedObjectHealth snapshot.
 func WrapSharedObjectHealthError(
 	layer SharedObjectHealthLayer,
@@ -91,6 +102,9 @@ func WrapSharedObjectHealthError(
 ) error {
 	if err == nil {
 		return nil
+	}
+	if health, ok := GetSharedObjectHealthFromError(err); ok {
+		return NewSharedObjectHealthError(health, err)
 	}
 	return &sharedObjectHealthError{
 		health: BuildSharedObjectHealthFromError(layer, err),

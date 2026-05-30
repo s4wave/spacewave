@@ -256,7 +256,15 @@ func (s *CdnSharedObject) setHealth(err error) {
 		))
 		return
 	}
-	if s.bs.Pointer() == nil {
+	inner, err := s.GetHeadInnerState()
+	if err != nil {
+		s.health.SetValue(sobject.BuildSharedObjectHealthFromError(
+			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
+			err,
+		))
+		return
+	}
+	if inner == nil || inner.GetHeadRef() == nil {
 		s.health.SetValue(sobject.NewSharedObjectLoadingHealth(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
 		))

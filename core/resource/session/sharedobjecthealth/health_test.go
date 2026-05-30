@@ -89,5 +89,52 @@ func TestStreamWatchableSendsLoadingThenLifecycle(t *testing.T) {
 	}
 }
 
+func TestStreamWatchableSendsLoadingBeforeCurrentTypedHealth(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	typedHealth := sobject.NewSharedObjectClosedHealth(
+		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
+		sobject.SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED,
+		sobject.SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA,
+		"unsupported shared object type: weird.body",
+	)
+	healthCtr := ccontainer.NewCContainer[*sobject.SharedObjectHealth](typedHealth)
+	strm := newTestStream()
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- StreamWatchable(ctx, strm, healthCtr)
+	}()
+
+	initial := recvHealth(t, strm.msgs)
+	if initial.GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_LOADING {
+		t.Fatalf("expected initial loading status, got %v", initial.GetStatus())
+	}
+
+	current := recvHealth(t, strm.msgs)
+	if current.GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_CLOSED {
+		t.Fatalf("expected closed status, got %v", current.GetStatus())
+	}
+	if current.GetLayer() != sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY {
+		t.Fatalf("expected body layer, got %v", current.GetLayer())
+	}
+	if current.GetCommonReason() != sobject.SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED {
+		t.Fatalf("expected body-config reason, got %v", current.GetCommonReason())
+	}
+	if current.GetRemediationHint() != sobject.SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA {
+		t.Fatalf("expected repair-source-data remediation hint, got %v", current.GetRemediationHint())
+	}
+	if current.GetError() != "unsupported shared object type: weird.body" {
+		t.Fatalf("expected typed health detail to survive, got %q", current.GetError())
+	}
+
+	cancel()
+	if err := <-errCh; err != context.Canceled {
+		t.Fatalf("StreamWatchable() = %v, want context canceled", err)
+	}
+}
+
 // _ is a type assertion
 var _ Sender = (*testStream)(nil)

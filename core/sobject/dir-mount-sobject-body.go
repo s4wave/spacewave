@@ -18,6 +18,8 @@ type MountSharedObjectBody interface {
 	MountSharedObjectBodyRef() *SharedObjectRef
 	// MountSharedObjectBodyType returns the shared object body type.
 	MountSharedObjectBodyType() string
+	// MountSharedObjectBodySource returns an already-mounted source object, if one exists.
+	MountSharedObjectBodySource() SharedObject
 }
 
 // MountSharedObjectBodyValue is the result type for MountSharedObjectBody.
@@ -91,10 +93,32 @@ func ExMountSharedObjectBody[T comparable](
 	returnIfIdle bool,
 	valDisposeCb func(),
 ) (MountSharedObjectBodyValue[T], directive.Reference, error) {
+	return ExMountSharedObjectBodyWithSource[T](
+		ctx,
+		b,
+		ref,
+		bodyType,
+		nil,
+		returnIfIdle,
+		valDisposeCb,
+	)
+}
+
+// ExMountSharedObjectBodyWithSource executes a mount directive with an already-mounted
+// source object available to body-specific resolvers.
+func ExMountSharedObjectBodyWithSource[T comparable](
+	ctx context.Context,
+	b bus.Bus,
+	ref *SharedObjectRef,
+	bodyType string,
+	source SharedObject,
+	returnIfIdle bool,
+	valDisposeCb func(),
+) (MountSharedObjectBodyValue[T], directive.Reference, error) {
 	av, _, avRef, err := bus.ExecOneOffTyped[MountSharedObjectBodyValue[T]](
 		ctx,
 		b,
-		NewMountSharedObjectBody(ref, bodyType),
+		NewMountSharedObjectBodyWithSource(ref, bodyType, source),
 		bus.ReturnIfIdle(returnIfIdle),
 		valDisposeCb,
 	)
@@ -112,13 +136,21 @@ func ExMountSharedObjectBody[T comparable](
 type mountSharedObjectBody struct {
 	ref      *SharedObjectRef
 	bodyType string
+	source   SharedObject
 }
 
 // NewMountSharedObjectBody constructs a new MountSharedObjectBody directive.
 func NewMountSharedObjectBody(ref *SharedObjectRef, bodyType string) MountSharedObjectBody {
+	return NewMountSharedObjectBodyWithSource(ref, bodyType, nil)
+}
+
+// NewMountSharedObjectBodyWithSource constructs a MountSharedObjectBody directive
+// with an already-mounted source object available to body-specific resolvers.
+func NewMountSharedObjectBodyWithSource(ref *SharedObjectRef, bodyType string, source SharedObject) MountSharedObjectBody {
 	return &mountSharedObjectBody{
 		ref:      ref,
 		bodyType: bodyType,
+		source:   source,
 	}
 }
 
@@ -151,6 +183,11 @@ func (d *mountSharedObjectBody) MountSharedObjectBodyType() string {
 	return d.bodyType
 }
 
+// MountSharedObjectBodySource returns an already-mounted source object, if one exists.
+func (d *mountSharedObjectBody) MountSharedObjectBodySource() SharedObject {
+	return d.source
+}
+
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
@@ -160,6 +197,8 @@ func (d *mountSharedObjectBody) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
+	// The optional source is a resolver hint for synthetic mounted objects; the
+	// directive's lifecycle identity remains the shared object ref plus body type.
 	return d.ref.EqualVT(od.MountSharedObjectBodyRef()) && d.bodyType == od.MountSharedObjectBodyType()
 }
 

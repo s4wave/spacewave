@@ -3,6 +3,7 @@ import {
   Resource,
   type ResourceDebugInfo,
 } from '@aptre/bldr-sdk/resource/resource.js'
+import type { SharedObjectHealth } from '@s4wave/core/sobject/sobject.pb.js'
 import {
   SharedObjectResourceService,
   SharedObjectResourceServiceClient,
@@ -13,6 +14,27 @@ import {
   WatchSharedObjectHealthResponse,
 } from './sobject.pb.js'
 import { MountSharedObjectResponse } from '../session/session.pb.js'
+
+// SharedObjectHealthError carries backend-owned SharedObject health through SDK
+// call sites that already model failed resource mounts as thrown errors.
+export class SharedObjectHealthError extends Error {
+  public readonly health: SharedObjectHealth
+
+  constructor(health: SharedObjectHealth) {
+    super(health.error || 'shared object health closed')
+    this.name = 'SharedObjectHealthError'
+    this.health = health
+  }
+}
+
+export function getSharedObjectHealthFromError(
+  err: unknown,
+): SharedObjectHealth | null {
+  if (err instanceof SharedObjectHealthError) {
+    return err.health
+  }
+  return null
+}
 
 // SharedObject contains state for an object managed by a Session or other parent resource.
 //
@@ -37,10 +59,14 @@ export class SharedObject extends Resource {
       req ?? {},
       abortSignal,
     )
-    return this.resourceRef.createResource(
-      resp.resourceId ?? 0,
-      SharedObjectBody,
-    )
+    const result = resp.result
+    if (result?.case === 'health') {
+      throw new SharedObjectHealthError(result.value)
+    }
+    if (result?.case !== 'resourceId') {
+      throw new Error('mount shared object body response missing result')
+    }
+    return this.resourceRef.createResource(result.value, SharedObjectBody)
   }
 
   // watchSharedObjectHealth streams health for the mounted shared object.

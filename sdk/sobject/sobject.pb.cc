@@ -46,31 +46,6 @@ struct WatchSharedObjectHealthRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSharedObjectHealthRequestDefaultTypeInternal _WatchSharedObjectHealthRequest_default_instance_;
-
-inline constexpr MountSharedObjectBodyResponse::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        resource_id_{0u} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR MountSharedObjectBodyResponse::MountSharedObjectBodyResponse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(MountSharedObjectBodyResponse_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct MountSharedObjectBodyResponseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR MountSharedObjectBodyResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~MountSharedObjectBodyResponseDefaultTypeInternal() {}
-  union {
-    MountSharedObjectBodyResponse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MountSharedObjectBodyResponseDefaultTypeInternal _MountSharedObjectBodyResponse_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR MountSharedObjectBodyRequest::MountSharedObjectBodyRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -114,6 +89,32 @@ struct WatchSharedObjectHealthResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchSharedObjectHealthResponseDefaultTypeInternal _WatchSharedObjectHealthResponse_default_instance_;
+
+inline constexpr MountSharedObjectBodyResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : result_{},
+        _cached_size_{0},
+        _oneof_case_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR MountSharedObjectBodyResponse::MountSharedObjectBodyResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(MountSharedObjectBodyResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct MountSharedObjectBodyResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR MountSharedObjectBodyResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~MountSharedObjectBodyResponseDefaultTypeInternal() {}
+  union {
+    MountSharedObjectBodyResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MountSharedObjectBodyResponseDefaultTypeInternal _MountSharedObjectBodyResponse_default_instance_;
 }  // namespace sobject
 }  // namespace s4wave
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
@@ -130,11 +131,11 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::sobject::WatchSharedObjectHealthResponse, _impl_.health_),
         0,
         0x000, // bitmap
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::s4wave::sobject::MountSharedObjectBodyResponse, _impl_._has_bits_),
-        4, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::s4wave::sobject::MountSharedObjectBodyResponse, _impl_.resource_id_),
-        0,
+        0x004, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::sobject::MountSharedObjectBodyResponse, _impl_._oneof_case_[0]),
+        PROTOBUF_FIELD_OFFSET(::s4wave::sobject::MountSharedObjectBodyResponse, _impl_.result_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::sobject::MountSharedObjectBodyResponse, _impl_.result_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::sobject::MountSharedObjectBodyResponse, _impl_.result_),
 };
 
 static const ::_pbi::MigrationSchema
@@ -158,16 +159,17 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "t.proto\" \n\036WatchSharedObjectHealthReques"
     "t\"N\n\037WatchSharedObjectHealthResponse\022+\n\006"
     "health\030\001 \001(\0132\033.sobject.SharedObjectHealt"
-    "h\"\036\n\034MountSharedObjectBodyRequest\"4\n\035Mou"
-    "ntSharedObjectBodyResponse\022\023\n\013resource_i"
-    "d\030\001 \001(\r2\221\002\n\033SharedObjectResourceService\022"
-    "|\n\027WatchSharedObjectHealth\022..s4wave.sobj"
-    "ect.WatchSharedObjectHealthRequest\032/.s4w"
-    "ave.sobject.WatchSharedObjectHealthRespo"
-    "nse0\001\022t\n\025MountSharedObjectBody\022,.s4wave."
-    "sobject.MountSharedObjectBodyRequest\032-.s"
-    "4wave.sobject.MountSharedObjectBodyRespo"
-    "nseb\006proto3"
+    "h\"\036\n\034MountSharedObjectBodyRequest\"o\n\035Mou"
+    "ntSharedObjectBodyResponse\022\025\n\013resource_i"
+    "d\030\001 \001(\rH\000\022-\n\006health\030\002 \001(\0132\033.sobject.Shar"
+    "edObjectHealthH\000B\010\n\006result2\221\002\n\033SharedObj"
+    "ectResourceService\022|\n\027WatchSharedObjectH"
+    "ealth\022..s4wave.sobject.WatchSharedObject"
+    "HealthRequest\032/.s4wave.sobject.WatchShar"
+    "edObjectHealthResponse0\001\022t\n\025MountSharedO"
+    "bjectBody\022,.s4wave.sobject.MountSharedOb"
+    "jectBodyRequest\032-.s4wave.sobject.MountSh"
+    "aredObjectBodyResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsobject_2fsobject_2eproto_deps[1] = {
@@ -177,7 +179,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsobject_2fsobject_2eproto = {
     false,
     false,
-    611,
+    670,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsobject_2fsobject_2eproto,
     "github.com/s4wave/spacewave/sdk/sobject/sobject.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsobject_2fsobject_2eproto_once,
@@ -691,12 +693,34 @@ MountSharedObjectBodyRequest::_table_ = {
 
 class MountSharedObjectBodyResponse::_Internal {
  public:
-  using HasBits =
-      decltype(::std::declval<MountSharedObjectBodyResponse>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(MountSharedObjectBodyResponse, _impl_._has_bits_);
+  static constexpr ::int32_t kOneofCaseOffset =
+      PROTOBUF_FIELD_OFFSET(::s4wave::sobject::MountSharedObjectBodyResponse, _impl_._oneof_case_);
 };
 
+void MountSharedObjectBodyResponse::set_allocated_health(::sobject::SharedObjectHealth* PROTOBUF_NULLABLE health) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_result();
+  if (health) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(health)->GetArena();
+    if (message_arena != submessage_arena) {
+      health = ::google::protobuf::internal::GetOwnedMessage(message_arena, health, submessage_arena);
+    }
+    set_has_health();
+    _impl_.result_.health_ = health;
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.sobject.MountSharedObjectBodyResponse.health)
+}
+void MountSharedObjectBodyResponse::clear_health() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (result_case() == kHealth) {
+    if (GetArena() == nullptr) {
+      delete _impl_.result_.health_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.result_.health_);
+    }
+    clear_has_result();
+  }
+}
 MountSharedObjectBodyResponse::MountSharedObjectBodyResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, MountSharedObjectBodyResponse_class_data_.base()) {
@@ -706,25 +730,49 @@ MountSharedObjectBodyResponse::MountSharedObjectBodyResponse(::google::protobuf:
   SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:s4wave.sobject.MountSharedObjectBodyResponse)
 }
+PROTOBUF_NDEBUG_INLINE MountSharedObjectBodyResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::sobject::MountSharedObjectBodyResponse& from_msg)
+      : result_{},
+        _cached_size_{0},
+        _oneof_case_{from._oneof_case_[0]} {}
+
 MountSharedObjectBodyResponse::MountSharedObjectBodyResponse(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const MountSharedObjectBodyResponse& from)
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const MountSharedObjectBodyResponse& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, MountSharedObjectBodyResponse_class_data_.base()),
+    : ::google::protobuf::Message(arena, MountSharedObjectBodyResponse_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena),
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(from._impl_) {
+  MountSharedObjectBodyResponse* const _this = this;
+  (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  switch (result_case()) {
+    case RESULT_NOT_SET:
+      break;
+      case kResourceId:
+        _impl_.result_.resource_id_ = from._impl_.result_.resource_id_;
+        break;
+      case kHealth:
+        _impl_.result_.health_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_.health_);
+        break;
+  }
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.sobject.MountSharedObjectBodyResponse)
 }
 PROTOBUF_NDEBUG_INLINE MountSharedObjectBodyResponse::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : result_{},
+        _cached_size_{0},
+        _oneof_case_{} {}
 
 inline void MountSharedObjectBodyResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.resource_id_ = {};
 }
 MountSharedObjectBodyResponse::~MountSharedObjectBodyResponse() {
   // @@protoc_insertion_point(destructor:s4wave.sobject.MountSharedObjectBodyResponse)
@@ -737,8 +785,35 @@ inline void MountSharedObjectBodyResponse::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  if (this_.has_result()) {
+    this_.clear_result();
+  }
   this_._impl_.~Impl_();
 }
+
+void MountSharedObjectBodyResponse::clear_result() {
+// @@protoc_insertion_point(one_of_clear_start:s4wave.sobject.MountSharedObjectBodyResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  switch (result_case()) {
+    case kResourceId: {
+      // No need to clear
+      break;
+    }
+    case kHealth: {
+      if (GetArena() == nullptr) {
+        delete _impl_.result_.health_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.result_.health_);
+      }
+      break;
+    }
+    case RESULT_NOT_SET: {
+      break;
+    }
+  }
+  _impl_._oneof_case_[0] = RESULT_NOT_SET;
+}
+
 
 inline void* PROTOBUF_NONNULL MountSharedObjectBodyResponse::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
@@ -783,18 +858,18 @@ MountSharedObjectBodyResponse::GetClassData() const {
   return MountSharedObjectBodyResponse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+const ::_pbi::TcParseTable<0, 2, 1, 0, 2>
 MountSharedObjectBodyResponse::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(MountSharedObjectBodyResponse, _impl_._has_bits_),
+    0,  // no _has_bits_
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     MountSharedObjectBodyResponse_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -802,17 +877,18 @@ MountSharedObjectBodyResponse::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::sobject::MountSharedObjectBodyResponse>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // uint32 resource_id = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(MountSharedObjectBodyResponse, _impl_.resource_id_), 0>(),
-     {8, 0, 0,
-      PROTOBUF_FIELD_OFFSET(MountSharedObjectBodyResponse, _impl_.resource_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // uint32 resource_id = 1;
-    {PROTOBUF_FIELD_OFFSET(MountSharedObjectBodyResponse, _impl_.resource_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(MountSharedObjectBodyResponse, _impl_.result_.resource_id_), _Internal::kOneofCaseOffset + 0, 0, (0 | ::_fl::kFcOneof | ::_fl::kUInt32)},
+    // .sobject.SharedObjectHealth health = 2;
+    {PROTOBUF_FIELD_OFFSET(MountSharedObjectBodyResponse, _impl_.result_.health_), _Internal::kOneofCaseOffset + 0, 0, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SharedObjectHealth>()},
+  }},
   {{
   }},
 };
@@ -823,8 +899,7 @@ PROTOBUF_NOINLINE void MountSharedObjectBodyResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  _impl_.resource_id_ = 0u;
-  _impl_._has_bits_.Clear();
+  clear_result();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
@@ -846,16 +921,22 @@ PROTOBUF_NOINLINE void MountSharedObjectBodyResponse::Clear() {
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // uint32 resource_id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (this_._internal_resource_id() != 0) {
+  switch (this_.result_case()) {
+    case kResourceId: {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
           1, this_._internal_resource_id(), target);
+      break;
     }
+    case kHealth: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          2, *this_._impl_.result_.health_, this_._impl_.result_.health_->GetCachedSize(), target,
+          stream);
+      break;
+    }
+    default:
+      break;
   }
-
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -879,14 +960,21 @@ PROTOBUF_NOINLINE void MountSharedObjectBodyResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  switch (this_.result_case()) {
     // uint32 resource_id = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (this_._internal_resource_id() != 0) {
-        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
-            this_._internal_resource_id());
-      }
+    case kResourceId: {
+      total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+          this_._internal_resource_id());
+      break;
+    }
+    // .sobject.SharedObjectHealth health = 2;
+    case kHealth: {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.result_.health_);
+      break;
+    }
+    case RESULT_NOT_SET: {
+      break;
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -901,18 +989,40 @@ void MountSharedObjectBodyResponse::MergeImpl(::google::protobuf::MessageLite& t
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
+  ::google::protobuf::Arena* arena = _this->GetArena();
   // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.sobject.MountSharedObjectBodyResponse)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (from._internal_resource_id() != 0) {
-      _this->_impl_.resource_id_ = from._impl_.resource_id_;
+  if (const uint32_t oneof_from_case =
+          from._impl_._oneof_case_[0]) {
+    const uint32_t oneof_to_case = _this->_impl_._oneof_case_[0];
+    const bool oneof_needs_init = oneof_to_case != oneof_from_case;
+    if (oneof_needs_init) {
+      if (oneof_to_case != 0) {
+        _this->clear_result();
+      }
+      _this->_impl_._oneof_case_[0] = oneof_from_case;
+    }
+
+    switch (oneof_from_case) {
+      case kResourceId: {
+        _this->_impl_.result_.resource_id_ = from._impl_.result_.resource_id_;
+        break;
+      }
+      case kHealth: {
+        if (oneof_needs_init) {
+          _this->_impl_.result_.health_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_.health_);
+        } else {
+          _this->_impl_.result_.health_->MergeFrom(*from._impl_.result_.health_);
+        }
+        break;
+      }
+      case RESULT_NOT_SET:
+        break;
     }
   }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
@@ -928,8 +1038,8 @@ void MountSharedObjectBodyResponse::CopyFrom(const MountSharedObjectBodyResponse
 void MountSharedObjectBodyResponse::InternalSwap(MountSharedObjectBodyResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  swap(_impl_.resource_id_, other->_impl_.resource_id_);
+  swap(_impl_.result_, other->_impl_.result_);
+  swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
 }
 
 ::google::protobuf::Metadata MountSharedObjectBodyResponse::GetMetadata() const {

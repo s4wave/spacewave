@@ -61,8 +61,13 @@ func (*MountSharedObjectBodyRequest) ProtoMessage() {}
 // MountSharedObjectBodyResponse is the response type for MountSharedObjectBody.
 type MountSharedObjectBodyResponse struct {
 	unknownFields []byte
-	// ResourceId is the ID of the mounted shared object body resource.
-	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+	// Result is either the mounted body resource or typed body health.
+	//
+	// Types that are assignable to Result:
+	//
+	//	*MountSharedObjectBodyResponse_ResourceId
+	//	*MountSharedObjectBodyResponse_Health
+	Result isMountSharedObjectBodyResponse_Result `protobuf_oneof:"result"`
 }
 
 func (x *MountSharedObjectBodyResponse) Reset() {
@@ -71,12 +76,44 @@ func (x *MountSharedObjectBodyResponse) Reset() {
 
 func (*MountSharedObjectBodyResponse) ProtoMessage() {}
 
+func (m *MountSharedObjectBodyResponse) GetResult() isMountSharedObjectBodyResponse_Result {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
 func (x *MountSharedObjectBodyResponse) GetResourceId() uint32 {
-	if x != nil {
+	if x, ok := x.GetResult().(*MountSharedObjectBodyResponse_ResourceId); ok {
 		return x.ResourceId
 	}
 	return 0
 }
+
+func (x *MountSharedObjectBodyResponse) GetHealth() *sobject.SharedObjectHealth {
+	if x, ok := x.GetResult().(*MountSharedObjectBodyResponse_Health); ok {
+		return x.Health
+	}
+	return nil
+}
+
+type isMountSharedObjectBodyResponse_Result interface {
+	isMountSharedObjectBodyResponse_Result()
+}
+
+type MountSharedObjectBodyResponse_ResourceId struct {
+	// ResourceId is the ID of the mounted shared object body resource.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3,oneof"`
+}
+
+type MountSharedObjectBodyResponse_Health struct {
+	// Health is returned when body construction failed with typed SharedObject health.
+	Health *sobject.SharedObjectHealth `protobuf:"bytes,2,opt,name=health,proto3,oneof"`
+}
+
+func (*MountSharedObjectBodyResponse_ResourceId) isMountSharedObjectBodyResponse_Result() {}
+
+func (*MountSharedObjectBodyResponse_Health) isMountSharedObjectBodyResponse_Result() {}
 
 func (m *WatchSharedObjectHealthRequest) CloneVT() *WatchSharedObjectHealthRequest {
 	if m == nil {
@@ -98,7 +135,9 @@ func (m *WatchSharedObjectHealthResponse) CloneVT() *WatchSharedObjectHealthResp
 		return (*WatchSharedObjectHealthResponse)(nil)
 	}
 	r := new(WatchSharedObjectHealthResponse)
-	r.Health = m.Health.CloneVT()
+	if rhs := m.Health; rhs != nil {
+		r.Health = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -129,7 +168,11 @@ func (m *MountSharedObjectBodyResponse) CloneVT() *MountSharedObjectBodyResponse
 		return (*MountSharedObjectBodyResponse)(nil)
 	}
 	r := new(MountSharedObjectBodyResponse)
-	r.ResourceId = m.ResourceId
+	if m.Result != nil {
+		r.Result = m.Result.(interface {
+			CloneOneofVT() isMountSharedObjectBodyResponse_Result
+		}).CloneOneofVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -137,6 +180,32 @@ func (m *MountSharedObjectBodyResponse) CloneVT() *MountSharedObjectBodyResponse
 }
 
 func (m *MountSharedObjectBodyResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MountSharedObjectBodyResponse_ResourceId) CloneVT() *MountSharedObjectBodyResponse_ResourceId {
+	if m == nil {
+		return (*MountSharedObjectBodyResponse_ResourceId)(nil)
+	}
+	r := new(MountSharedObjectBodyResponse_ResourceId)
+	r.ResourceId = m.ResourceId
+	return r
+}
+
+func (m *MountSharedObjectBodyResponse_ResourceId) CloneOneofVT() isMountSharedObjectBodyResponse_Result {
+	return m.CloneVT()
+}
+
+func (m *MountSharedObjectBodyResponse_Health) CloneVT() *MountSharedObjectBodyResponse_Health {
+	if m == nil {
+		return (*MountSharedObjectBodyResponse_Health)(nil)
+	}
+	r := new(MountSharedObjectBodyResponse_Health)
+	r.Health = m.Health.CloneVT()
+	return r
+}
+
+func (m *MountSharedObjectBodyResponse_Health) CloneOneofVT() isMountSharedObjectBodyResponse_Result {
 	return m.CloneVT()
 }
 
@@ -200,8 +269,17 @@ func (this *MountSharedObjectBodyResponse) EqualVT(that *MountSharedObjectBodyRe
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.ResourceId != that.ResourceId {
+	if this.Result == nil && that.Result != nil {
 		return false
+	} else if this.Result != nil {
+		if that.Result == nil {
+			return false
+		}
+		if !this.Result.(interface {
+			EqualVT(isMountSharedObjectBodyResponse_Result) bool
+		}).EqualVT(that.Result) {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -212,6 +290,48 @@ func (this *MountSharedObjectBodyResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+func (this *MountSharedObjectBodyResponse_ResourceId) EqualVT(thatIface isMountSharedObjectBodyResponse_Result) bool {
+	that, ok := thatIface.(*MountSharedObjectBodyResponse_ResourceId)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	return true
+}
+
+func (this *MountSharedObjectBodyResponse_Health) EqualVT(thatIface isMountSharedObjectBodyResponse_Result) bool {
+	that, ok := thatIface.(*MountSharedObjectBodyResponse_Health)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Health, that.Health; p != q {
+		if p == nil {
+			p = &sobject.SharedObjectHealth{}
+		}
+		if q == nil {
+			q = &sobject.SharedObjectHealth{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
 }
 
 // MarshalProtoJSON marshals the WatchSharedObjectHealthRequest message to JSON.
@@ -328,10 +448,17 @@ func (x *MountSharedObjectBodyResponse) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.ResourceId != 0 || s.HasField("resourceId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("resourceId")
-		s.WriteUint32(x.ResourceId)
+	if x.Result != nil {
+		switch ov := x.Result.(type) {
+		case *MountSharedObjectBodyResponse_ResourceId:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("resourceId")
+			s.WriteUint32(ov.ResourceId)
+		case *MountSharedObjectBodyResponse_Health:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("health")
+			ov.Health.MarshalProtoJSON(s.WithField("health"))
+		}
 	}
 	s.WriteObjectEnd()
 }
@@ -352,7 +479,18 @@ func (x *MountSharedObjectBodyResponse) UnmarshalProtoJSON(s *json.UnmarshalStat
 			s.Skip() // ignore unknown field
 		case "resource_id", "resourceId":
 			s.AddField("resource_id")
-			x.ResourceId = s.ReadUint32()
+			ov := &MountSharedObjectBodyResponse_ResourceId{}
+			x.Result = ov
+			ov.ResourceId = s.ReadUint32()
+		case "health":
+			ov := &MountSharedObjectBodyResponse_Health{}
+			x.Result = ov
+			if s.ReadNil() {
+				ov.Health = nil
+				return
+			}
+			ov.Health = &sobject.SharedObjectHealth{}
+			ov.Health.UnmarshalProtoJSON(s.WithField("health", true))
 		}
 	})
 }
@@ -501,10 +639,51 @@ func (m *MountSharedObjectBodyResponse) MarshalToSizedBufferVT(dAtA []byte) (int
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.ResourceId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+	if vtmsg, ok := m.Result.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MountSharedObjectBodyResponse_ResourceId) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MountSharedObjectBodyResponse_ResourceId) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+	i--
+	dAtA[i] = 0x8
+	return len(dAtA) - i, nil
+}
+
+func (m *MountSharedObjectBodyResponse_Health) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MountSharedObjectBodyResponse_Health) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Health != nil {
+		size, err := m.Health.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x8
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
 	}
 	return len(dAtA) - i, nil
 }
@@ -549,10 +728,35 @@ func (m *MountSharedObjectBodyResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.ResourceId != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ResourceId))
+	if vtmsg, ok := m.Result.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
 	}
 	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MountSharedObjectBodyResponse_ResourceId) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ResourceId))
+	return n
+}
+
+func (m *MountSharedObjectBodyResponse_Health) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Health != nil {
+		l = m.Health.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	} else {
+		n += 2
+	}
 	return n
 }
 
@@ -599,12 +803,23 @@ func (x *MountSharedObjectBodyRequest) String() string {
 func (x *MountSharedObjectBodyResponse) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("MountSharedObjectBodyResponse {")
-	if x.ResourceId != 0 {
-		if sb.Len() > 31 {
-			sb.WriteString(" ")
+	switch body := x.Result.(type) {
+	case *MountSharedObjectBodyResponse_ResourceId:
+		if body.ResourceId != 0 {
+			if sb.Len() > 31 {
+				sb.WriteString(" ")
+			}
+			sb.WriteString("resource_id: ")
+			sb.WriteString(strconv.FormatUint(uint64(body.ResourceId), 10))
 		}
-		sb.WriteString("resource_id: ")
-		sb.WriteString(strconv.FormatUint(uint64(x.ResourceId), 10))
+	case *MountSharedObjectBodyResponse_Health:
+		if body.Health != nil {
+			if sb.Len() > 31 {
+				sb.WriteString(" ")
+			}
+			sb.WriteString("health: ")
+			sb.WriteString(body.Health.MarshalProtoText())
+		}
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -795,11 +1010,45 @@ func (m *MountSharedObjectBodyResponse) UnmarshalVT(dAtA []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
 			}
-			m.ResourceId = 0
-			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			var v uint32
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
+			m.Result = &MountSharedObjectBodyResponse_ResourceId{ResourceId: v}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Health", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Result.(*MountSharedObjectBodyResponse_Health); ok {
+				if err := oneof.Health.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &sobject.SharedObjectHealth{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Result = &MountSharedObjectBodyResponse_Health{Health: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

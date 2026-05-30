@@ -8,11 +8,9 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
-	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	s4wave_sobject "github.com/s4wave/spacewave/sdk/sobject"
 )
 
@@ -23,69 +21,89 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		return nil, err
 	}
 
-	// TODO: we switch over shared object body types here. add a directive to look up the factory?
 	var resource srpc.Invoker
 	var resourceValue any
 	var relResource func()
 	bodyType := r.meta.GetBodyType()
-	switch bodyType {
-	case space.SpaceBodyType:
-		// TODO: pass release here?
-		mountedSpace, mountedSpaceRef, err := space.ExMountSpaceSoBody(ctx, r.sharedObject.GetBus(), r.ref, false, nil)
-		if err != nil {
-			return nil, sobject.WrapSharedObjectHealthError(
-				sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
-				err,
-			)
-		}
-
-		spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
-			r.le,
-			r.b,
-			mountedSpace.GetSharedObjectBody(),
-			r.sessionPeerID,
-			r.hostPluginID,
-		)
-		resource, relResource = spaceResource.GetMux(), mountedSpaceRef.Release
-		resourceValue = spaceResource
-	case cdn_sharedobject.CdnBodyType:
-		cdnSO, ok := r.sharedObject.(*cdn_sharedobject.CdnSharedObject)
-		if !ok {
-			return nil, errors.Errorf("cdn body type on non-cdn shared object: %T", r.sharedObject)
-		}
-		we, err := cdn_sharedobject.NewWorldEngine(ctx, r.le, r.b, cdnSO, space_world_optypes.LookupWorldOp)
-		if err != nil {
-			return nil, sobject.WrapSharedObjectHealthError(
-				sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
-				errors.Wrap(err, "build cdn world engine"),
-			)
-		}
-		body := cdn_sharedobject.NewCdnSpaceBody(cdnSO, we)
-		spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
-			r.le,
-			r.b,
-			body,
-			"",
-			r.hostPluginID,
-		)
-		resource, relResource = spaceResource.GetMux(), we.Release
-		resourceValue = spaceResource
-	case "":
-		return nil, sobject.WrapSharedObjectHealthError(
+	if bodyType == "" {
+		return mountSharedObjectBodyHealthResponse(sobject.WrapSharedObjectHealthError(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
 			sobject.ErrEmptyBodyType,
-		)
-	default:
-		return nil, sobject.WrapSharedObjectHealthError(
+		)), nil
+	}
+	if r.sharedObject == nil || r.sharedObject.GetBus() == nil {
+		return mountSharedObjectBodyHealthResponse(sobject.WrapSharedObjectHealthError(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
 			errors.Errorf("unsupported shared object type: %v", bodyType),
-		)
+		)), nil
 	}
+
+	mountedSpace, mountedSpaceRef, err := sobject.ExMountSharedObjectBodyWithSource[space.SpaceSharedObjectBody](
+		ctx,
+		r.sharedObject.GetBus(),
+		r.ref,
+		bodyType,
+		r.sharedObject,
+		true,
+		nil,
+	)
+	if err != nil {
+		return mountSharedObjectBodyHealthResponse(sobject.WrapSharedObjectHealthError(
+			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
+			err,
+		)), nil
+	}
+	if mountedSpace == nil {
+		return mountSharedObjectBodyHealthResponse(sobject.WrapSharedObjectHealthError(
+			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
+			errors.Errorf("unsupported shared object type: %v", bodyType),
+		)), nil
+	}
+
+	body := mountedSpace.GetSharedObjectBody()
+	spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
+		r.le,
+		r.b,
+		body,
+		mountedBodySessionPeerID(body, r.sessionPeerID),
+		r.hostPluginID,
+	)
+	resource, relResource = spaceResource.GetMux(), mountedSpaceRef.Release
+	resourceValue = spaceResource
 
 	id, err := resourceCtx.AddResourceValue(resource, resourceValue, relResource)
 	if err != nil {
 		relResource()
 		return nil, err
 	}
-	return &s4wave_sobject.MountSharedObjectBodyResponse{ResourceId: id}, nil
+	return &s4wave_sobject.MountSharedObjectBodyResponse{
+		Result: &s4wave_sobject.MountSharedObjectBodyResponse_ResourceId{
+			ResourceId: id,
+		},
+	}, nil
+}
+
+func mountedBodySessionPeerID(body space.SpaceSharedObjectBody, sessionPeerID string) string {
+	if body == nil {
+		return sessionPeerID
+	}
+	if so := body.GetSharedObject(); so != nil && so.GetPeerID() == "" {
+		return ""
+	}
+	return sessionPeerID
+}
+
+func mountSharedObjectBodyHealthResponse(err error) *s4wave_sobject.MountSharedObjectBodyResponse {
+	health, ok := sobject.GetSharedObjectHealthFromError(err)
+	if !ok {
+		health = sobject.BuildSharedObjectHealthFromError(
+			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
+			err,
+		)
+	}
+	return &s4wave_sobject.MountSharedObjectBodyResponse{
+		Result: &s4wave_sobject.MountSharedObjectBodyResponse_Health{
+			Health: health,
+		},
+	}
 }

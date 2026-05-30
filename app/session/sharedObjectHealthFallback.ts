@@ -5,6 +5,7 @@ import {
   SharedObjectHealthStatus,
   type SharedObjectHealth,
 } from '@s4wave/core/sobject/sobject.pb.js'
+import { getSharedObjectHealthFromError } from '@s4wave/sdk/sobject/sobject.js'
 
 export interface SharedObjectRouteHealthInput {
   mounted: boolean
@@ -46,6 +47,11 @@ export function buildSharedObjectFallbackHealth(
   err: Error,
   layer: SharedObjectHealthLayer,
 ): SharedObjectHealth {
+  const typedHealth = getSharedObjectHealthFromError(err)
+  if (typedHealth) {
+    return typedHealth
+  }
+
   const msg = err.message || 'unknown shared object error'
   const classification = classifySharedObjectFallbackError(msg)
 
@@ -109,15 +115,6 @@ function classifySharedObjectFallbackError(message: string): {
     return {
       commonReason:
         SharedObjectHealthCommonReason.TRANSFORM_CONFIG_DECODE_FAILED,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    }
-  }
-  if (
-    lower.includes('empty shared object body type') ||
-    lower.includes('unsupported shared object type')
-  ) {
-    return {
-      commonReason: SharedObjectHealthCommonReason.BODY_CONFIG_DECODE_FAILED,
       remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
     }
   }

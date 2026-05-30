@@ -16,10 +16,23 @@ pub struct WatchSharedObjectHealthResponse {
 pub struct MountSharedObjectBodyRequest {
 }
 /// MountSharedObjectBodyResponse is the response type for MountSharedObjectBody.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MountSharedObjectBodyResponse {
-    /// ResourceId is the ID of the mounted shared object body resource.
-    #[prost(uint32, tag="1")]
-    pub resource_id: u32,
+    /// Result is either the mounted body resource or typed body health.
+    #[prost(oneof="mount_shared_object_body_response::Result", tags="1, 2")]
+    pub result: ::core::option::Option<mount_shared_object_body_response::Result>,
+}
+/// Nested message and enum types in `MountSharedObjectBodyResponse`.
+pub mod mount_shared_object_body_response {
+    /// Result is either the mounted body resource or typed body health.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Result {
+        /// ResourceId is the ID of the mounted shared object body resource.
+        #[prost(uint32, tag="1")]
+        ResourceId(u32),
+        /// Health is returned when body construction failed with typed SharedObject health.
+        #[prost(message, tag="2")]
+        Health(super::super::super::sobject::SharedObjectHealth),
+    }
 }
 // @@protoc_insertion_point(module)

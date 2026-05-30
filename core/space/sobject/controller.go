@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
@@ -46,8 +47,11 @@ func NewFactory(b bus.Bus) controller.Factory {
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	switch dir := di.GetDirective().(type) {
 	case sobject.MountSharedObjectBody:
-		if dir.MountSharedObjectBodyType() == space.SpaceBodyType {
+		switch dir.MountSharedObjectBodyType() {
+		case space.SpaceBodyType:
 			return c.resolveMountSharedObjectBody(dir)
+		case cdn_sharedobject.CdnBodyType:
+			return cdn_sharedobject.ResolveMountSharedObjectBody(c.GetLogger(), c.GetBus(), dir)
 		}
 	}
 	return nil, nil

@@ -23,6 +23,11 @@ message MountSharedObjectBodyRequest {}
 
 // MountSharedObjectBodyResponse is the response type for MountSharedObjectBody.
 message MountSharedObjectBodyResponse {
-  // ResourceId is the ID of the mounted shared object body resource.
-  uint32 resource_id = 1;
+  // Result is either the mounted body resource or typed body health.
+  oneof result {
+    // ResourceId is the ID of the mounted shared object body resource.
+    uint32 resource_id = 1;
+    // Health is returned when body construction failed with typed SharedObject health.
+    .sobject.SharedObjectHealth health = 2;
+  }
 }
