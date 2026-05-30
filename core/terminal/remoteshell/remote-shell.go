@@ -3,6 +3,7 @@
 package remoteshell
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -234,7 +235,7 @@ func pumpRemoteShellOutput(
 		if n > 0 {
 			frame := &s4wave_terminal.TerminalFrame{
 				Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT,
-				Data: append([]byte(nil), buf[:n]...),
+				Data: bytes.Clone(buf[:n]),
 			}
 			if serr := session.SendMsg(frame); serr != nil {
 				errCh <- serr

@@ -71,7 +71,9 @@ const currentState: Terminal = {
   rows: 24,
 }
 
-async function* terminalFrames(): AsyncIterable<TerminalFrame> {
+async function* terminalFrames(
+  signal?: AbortSignal,
+): AsyncIterable<TerminalFrame> {
   await Promise.resolve()
   yield { kind: TerminalFrameKind.READY }
   yield {
@@ -79,7 +81,8 @@ async function* terminalFrames(): AsyncIterable<TerminalFrame> {
     data: new TextEncoder().encode('ready\n'),
   }
   await h.closeSeen
-  h.abortObservedBeforeExit = false
+  h.abortObservedBeforeExit =
+    signal instanceof AbortSignal ? signal.aborted : true
   yield { kind: TerminalFrameKind.EXIT, exitCode: 0 }
 }
 
@@ -100,7 +103,7 @@ vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
               }
             }
           })()
-          return terminalFrames()
+          return terminalFrames(signal)
         },
       ),
     },

@@ -4,6 +4,7 @@ import (
 	"context"
 	stderrors "errors"
 	"io"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -167,7 +168,7 @@ func (r *TerminalResource) ConnectTerminal(strm SRPCTerminalResourceService_Conn
 		Cols:        cols,
 		Rows:        rows,
 		Command:     current.GetCommand(),
-		Environment: append([]string(nil), current.GetEnvironment()...),
+		Environment: slices.Clone(current.GetEnvironment()),
 	}); err != nil {
 		state, status, errMessage := terminalConnectOpenFailureState(ctx, err, "failed to open")
 		_ = r.updateState(context.Background(), state, status, errMessage)

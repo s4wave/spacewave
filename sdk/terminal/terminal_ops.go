@@ -2,6 +2,7 @@ package s4wave_terminal
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -79,7 +80,7 @@ func (o *CreateTerminalOp) ApplyWorldOp(
 		DeviceObjectKey: o.GetDeviceObjectKey(),
 		DevicePeerId:    o.GetDevicePeerId(),
 		Command:         o.GetCommand(),
-		Environment:     append([]string(nil), o.GetEnvironment()...),
+		Environment:     slices.Clone(o.GetEnvironment()),
 		Cols:            cols,
 		Rows:            rows,
 		State:           TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
@@ -131,5 +132,5 @@ func LookupCreateTerminalOp(ctx context.Context, operationTypeID string) (world.
 	return nil, nil
 }
 
-// _ is a type assertion.
+// _ is a type assertion
 var _ world.Operation = ((*CreateTerminalOp)(nil))
