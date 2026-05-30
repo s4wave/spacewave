@@ -3,10 +3,10 @@ package statusprojector
 import (
 	"context"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/cdn"
@@ -260,47 +260,7 @@ func watchWatchableChange[T comparable](
 }
 
 func waitAnyStatusChange(ctx context.Context, waitChs []<-chan struct{}) bool {
-	switch len(waitChs) {
-	case 0:
-		<-ctx.Done()
-		return true
-	case 1:
-		select {
-		case <-ctx.Done():
-			return true
-		case <-waitChs[0]:
-			return false
-		}
-	}
-
-	waitCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	done := make(chan bool, 1)
-	var once sync.Once
-	for _, ch := range waitChs {
-		go func(ch <-chan struct{}) {
-			select {
-			case <-waitCtx.Done():
-			case <-ch:
-				once.Do(func() {
-					done <- false
-					cancel()
-				})
-			}
-		}(ch)
-	}
-
-	select {
-	case <-ctx.Done():
-		once.Do(func() {
-			done <- true
-			cancel()
-		})
-		return true
-	case ctxDone := <-done:
-		return ctxDone
-	}
+	return broadcast.WaitAny(ctx, waitChs...) != nil
 }
 
 func releaseAll(releases []func()) {
