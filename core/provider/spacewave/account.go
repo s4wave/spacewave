@@ -145,6 +145,8 @@ type ProviderAccount struct {
 	accountBcast broadcast.Broadcast
 	// transportBcast guards sessionTransport.
 	transportBcast broadcast.Broadcast
+	// transportReplaceMtx serializes session transport create/replace/stop.
+	transportReplaceMtx sync.Mutex
 	// syncTelemetry stores sync activity snapshots keyed by block store id.
 	syncTelemetry synctelemetry.Store
 	// gcCleanupCollect overrides cleanup collection in tests.
