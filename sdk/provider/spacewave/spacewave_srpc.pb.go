@@ -40,6 +40,8 @@ type SRPCSpacewaveProviderResourceServiceClient interface {
 	LoginWithEntityKey(ctx context.Context, in *LoginWithEntityKeyRequest) (*LoginWithEntityKeyResponse, error)
 	// ReauthenticateSession reauthenticates a mounted session with fresh auth material.
 	ReauthenticateSession(ctx context.Context, in *ReauthenticateSessionRequest) (*ReauthenticateSessionResponse, error)
+	// MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+	MountLinkedDeviceSession(ctx context.Context, in *MountLinkedDeviceSessionRequest) (*MountLinkedDeviceSessionResponse, error)
 	// StartBrowserHandoff starts the external browser auth handoff flow.
 	StartBrowserHandoff(ctx context.Context, in *StartBrowserHandoffRequest) (*StartBrowserHandoffResponse, error)
 	// SSOCodeExchange exchanges an OAuth provider code for SSO account data.
@@ -203,6 +205,15 @@ func (c *srpcSpacewaveProviderResourceServiceClient) LoginWithEntityKey(ctx cont
 func (c *srpcSpacewaveProviderResourceServiceClient) ReauthenticateSession(ctx context.Context, in *ReauthenticateSessionRequest) (*ReauthenticateSessionResponse, error) {
 	out := new(ReauthenticateSessionResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ReauthenticateSession", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpacewaveProviderResourceServiceClient) MountLinkedDeviceSession(ctx context.Context, in *MountLinkedDeviceSessionRequest) (*MountLinkedDeviceSessionResponse, error) {
+	out := new(MountLinkedDeviceSessionResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "MountLinkedDeviceSession", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -380,6 +391,8 @@ type SRPCSpacewaveProviderResourceServiceServer interface {
 	LoginWithEntityKey(context.Context, *LoginWithEntityKeyRequest) (*LoginWithEntityKeyResponse, error)
 	// ReauthenticateSession reauthenticates a mounted session with fresh auth material.
 	ReauthenticateSession(context.Context, *ReauthenticateSessionRequest) (*ReauthenticateSessionResponse, error)
+	// MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+	MountLinkedDeviceSession(context.Context, *MountLinkedDeviceSessionRequest) (*MountLinkedDeviceSessionResponse, error)
 	// StartBrowserHandoff starts the external browser auth handoff flow.
 	StartBrowserHandoff(context.Context, *StartBrowserHandoffRequest) (*StartBrowserHandoffResponse, error)
 	// SSOCodeExchange exchanges an OAuth provider code for SSO account data.
@@ -453,6 +466,7 @@ func (SRPCSpacewaveProviderResourceServiceHandler) GetMethodIDs() []string {
 		"LoginOrCreateAccount",
 		"LoginWithEntityKey",
 		"ReauthenticateSession",
+		"MountLinkedDeviceSession",
 		"StartBrowserHandoff",
 		"SSOCodeExchange",
 		"SSONonceExchange",
@@ -507,6 +521,8 @@ func (d *SRPCSpacewaveProviderResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_LoginWithEntityKey(d.impl, strm)
 	case "ReauthenticateSession":
 		return true, d.InvokeMethod_ReauthenticateSession(d.impl, strm)
+	case "MountLinkedDeviceSession":
+		return true, d.InvokeMethod_MountLinkedDeviceSession(d.impl, strm)
 	case "StartBrowserHandoff":
 		return true, d.InvokeMethod_StartBrowserHandoff(d.impl, strm)
 	case "SSOCodeExchange":
@@ -694,6 +710,18 @@ func (SRPCSpacewaveProviderResourceServiceHandler) InvokeMethod_ReauthenticateSe
 		return err
 	}
 	out, err := impl.ReauthenticateSession(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpacewaveProviderResourceServiceHandler) InvokeMethod_MountLinkedDeviceSession(impl SRPCSpacewaveProviderResourceServiceServer, strm srpc.Stream) error {
+	req := new(MountLinkedDeviceSessionRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.MountLinkedDeviceSession(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -993,6 +1021,14 @@ type SRPCSpacewaveProviderResourceService_ReauthenticateSessionStream interface 
 }
 
 type srpcSpacewaveProviderResourceService_ReauthenticateSessionStream struct {
+	srpc.Stream
+}
+
+type SRPCSpacewaveProviderResourceService_MountLinkedDeviceSessionStream interface {
+	srpc.Stream
+}
+
+type srpcSpacewaveProviderResourceService_MountLinkedDeviceSessionStream struct {
 	srpc.Stream
 }
 

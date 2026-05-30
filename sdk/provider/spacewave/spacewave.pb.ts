@@ -973,6 +973,92 @@ export const LoginWithEntityKeyResponse: MessageType<LoginWithEntityKeyResponse>
   })
 
 /**
+ * MountLinkedDeviceSessionRequest mounts a SpaceLink-approved DEVICE session.
+ *
+ * @generated from message s4wave.provider.spacewave.MountLinkedDeviceSessionRequest
+ */
+export interface MountLinkedDeviceSessionRequest {
+  /**
+   * AccountId is the Spacewave Cloud account ID returned by approval.
+   *
+   * @generated from field: string account_id = 1;
+   */
+  accountId?: string
+  /**
+   * SessionId is the stable local provider resource ID for this Device session.
+   *
+   * @generated from field: string session_id = 2;
+   */
+  sessionId?: string
+  /**
+   * Label is the operator-visible Device label.
+   *
+   * @generated from field: string label = 3;
+   */
+  label?: string
+  /**
+   * SessionPemPrivateKey is the approved Device session private key in PEM form.
+   *
+   * @generated from field: bytes session_pem_private_key = 4;
+   */
+  sessionPemPrivateKey?: Uint8Array
+  /**
+   * SessionPeerId is the expected peer ID derived from SessionPemPrivateKey.
+   *
+   * @generated from field: string session_peer_id = 5;
+   */
+  sessionPeerId?: string
+}
+
+// MountLinkedDeviceSessionRequest contains the message type declaration for MountLinkedDeviceSessionRequest.
+export const MountLinkedDeviceSessionRequest: MessageType<MountLinkedDeviceSessionRequest> =
+  createMessageType({
+    typeName: 's4wave.provider.spacewave.MountLinkedDeviceSessionRequest',
+    fields: [
+      { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'session_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'session_pem_private_key',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * MountLinkedDeviceSessionResponse returns the mounted Device session entry.
+ *
+ * @generated from message s4wave.provider.spacewave.MountLinkedDeviceSessionResponse
+ */
+export interface MountLinkedDeviceSessionResponse {
+  /**
+   * SessionListEntry is the created or existing Device session entry.
+   *
+   * @generated from field: session.SessionListEntry session_list_entry = 1;
+   */
+  sessionListEntry?: SessionListEntry
+}
+
+// MountLinkedDeviceSessionResponse contains the message type declaration for MountLinkedDeviceSessionResponse.
+export const MountLinkedDeviceSessionResponse: MessageType<MountLinkedDeviceSessionResponse> =
+  createMessageType({
+    typeName: 's4wave.provider.spacewave.MountLinkedDeviceSessionResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'session_list_entry',
+        kind: 'message',
+        T: () => SessionListEntry,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * GenerateAuthKeypairsRequest requests new auth key material.
  *
  * @generated from message s4wave.provider.spacewave.GenerateAuthKeypairsRequest

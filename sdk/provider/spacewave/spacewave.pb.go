@@ -884,6 +884,82 @@ func (x *LoginWithEntityKeyResponse) GetSessionListEntry() *session.SessionListE
 	return nil
 }
 
+// MountLinkedDeviceSessionRequest mounts a SpaceLink-approved DEVICE session.
+type MountLinkedDeviceSessionRequest struct {
+	unknownFields []byte
+	// AccountId is the Spacewave Cloud account ID returned by approval.
+	AccountId string `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"accountId,omitempty"`
+	// SessionId is the stable local provider resource ID for this Device session.
+	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"sessionId,omitempty"`
+	// Label is the operator-visible Device label.
+	Label string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	// SessionPemPrivateKey is the approved Device session private key in PEM form.
+	SessionPemPrivateKey []byte `protobuf:"bytes,4,opt,name=session_pem_private_key,json=sessionPemPrivateKey,proto3" json:"sessionPemPrivateKey,omitempty"`
+	// SessionPeerId is the expected peer ID derived from SessionPemPrivateKey.
+	SessionPeerId string `protobuf:"bytes,5,opt,name=session_peer_id,json=sessionPeerId,proto3" json:"sessionPeerId,omitempty"`
+}
+
+func (x *MountLinkedDeviceSessionRequest) Reset() {
+	*x = MountLinkedDeviceSessionRequest{}
+}
+
+func (*MountLinkedDeviceSessionRequest) ProtoMessage() {}
+
+func (x *MountLinkedDeviceSessionRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *MountLinkedDeviceSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *MountLinkedDeviceSessionRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *MountLinkedDeviceSessionRequest) GetSessionPemPrivateKey() []byte {
+	if x != nil {
+		return x.SessionPemPrivateKey
+	}
+	return nil
+}
+
+func (x *MountLinkedDeviceSessionRequest) GetSessionPeerId() string {
+	if x != nil {
+		return x.SessionPeerId
+	}
+	return ""
+}
+
+// MountLinkedDeviceSessionResponse returns the mounted Device session entry.
+type MountLinkedDeviceSessionResponse struct {
+	unknownFields []byte
+	// SessionListEntry is the created or existing Device session entry.
+	SessionListEntry *session.SessionListEntry `protobuf:"bytes,1,opt,name=session_list_entry,json=sessionListEntry,proto3" json:"sessionListEntry,omitempty"`
+}
+
+func (x *MountLinkedDeviceSessionResponse) Reset() {
+	*x = MountLinkedDeviceSessionResponse{}
+}
+
+func (*MountLinkedDeviceSessionResponse) ProtoMessage() {}
+
+func (x *MountLinkedDeviceSessionResponse) GetSessionListEntry() *session.SessionListEntry {
+	if x != nil {
+		return x.SessionListEntry
+	}
+	return nil
+}
+
 // GenerateAuthKeypairsRequest requests new auth key material.
 type GenerateAuthKeypairsRequest struct {
 	unknownFields []byte
@@ -8407,6 +8483,46 @@ func (m *LoginWithEntityKeyResponse) CloneMessageVT() protobuf_go_lite.CloneMess
 	return m.CloneVT()
 }
 
+func (m *MountLinkedDeviceSessionRequest) CloneVT() *MountLinkedDeviceSessionRequest {
+	if m == nil {
+		return (*MountLinkedDeviceSessionRequest)(nil)
+	}
+	r := new(MountLinkedDeviceSessionRequest)
+	r.AccountId = m.AccountId
+	r.SessionId = m.SessionId
+	r.Label = m.Label
+	r.SessionPeerId = m.SessionPeerId
+	if rhs := m.SessionPemPrivateKey; rhs != nil {
+		r.SessionPemPrivateKey = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MountLinkedDeviceSessionRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MountLinkedDeviceSessionResponse) CloneVT() *MountLinkedDeviceSessionResponse {
+	if m == nil {
+		return (*MountLinkedDeviceSessionResponse)(nil)
+	}
+	r := new(MountLinkedDeviceSessionResponse)
+	if rhs := m.SessionListEntry; rhs != nil {
+		r.SessionListEntry = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MountLinkedDeviceSessionResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *GenerateAuthKeypairsRequest) CloneVT() *GenerateAuthKeypairsRequest {
 	if m == nil {
 		return (*GenerateAuthKeypairsRequest)(nil)
@@ -12938,6 +13054,58 @@ func (this *LoginWithEntityKeyResponse) EqualVT(that *LoginWithEntityKeyResponse
 
 func (this *LoginWithEntityKeyResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*LoginWithEntityKeyResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MountLinkedDeviceSessionRequest) EqualVT(that *MountLinkedDeviceSessionRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AccountId != that.AccountId {
+		return false
+	}
+	if this.SessionId != that.SessionId {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if string(this.SessionPemPrivateKey) != string(that.SessionPemPrivateKey) {
+		return false
+	}
+	if this.SessionPeerId != that.SessionPeerId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MountLinkedDeviceSessionRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MountLinkedDeviceSessionRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MountLinkedDeviceSessionResponse) EqualVT(that *MountLinkedDeviceSessionResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.SessionListEntry.EqualVT(that.SessionListEntry) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MountLinkedDeviceSessionResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MountLinkedDeviceSessionResponse)
 	if !ok {
 		return false
 	}
@@ -19633,6 +19801,126 @@ func (x *LoginWithEntityKeyResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 
 // UnmarshalJSON unmarshals the LoginWithEntityKeyResponse from JSON.
 func (x *LoginWithEntityKeyResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MountLinkedDeviceSessionRequest message to JSON.
+func (x *MountLinkedDeviceSessionRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AccountId != "" || s.HasField("accountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accountId")
+		s.WriteString(x.AccountId)
+	}
+	if x.SessionId != "" || s.HasField("sessionId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionId")
+		s.WriteString(x.SessionId)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if len(x.SessionPemPrivateKey) > 0 || s.HasField("sessionPemPrivateKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionPemPrivateKey")
+		s.WriteBytes(x.SessionPemPrivateKey)
+	}
+	if x.SessionPeerId != "" || s.HasField("sessionPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionPeerId")
+		s.WriteString(x.SessionPeerId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MountLinkedDeviceSessionRequest to JSON.
+func (x *MountLinkedDeviceSessionRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MountLinkedDeviceSessionRequest message from JSON.
+func (x *MountLinkedDeviceSessionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "account_id", "accountId":
+			s.AddField("account_id")
+			x.AccountId = s.ReadString()
+		case "session_id", "sessionId":
+			s.AddField("session_id")
+			x.SessionId = s.ReadString()
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "session_pem_private_key", "sessionPemPrivateKey":
+			s.AddField("session_pem_private_key")
+			x.SessionPemPrivateKey = s.ReadBytes()
+		case "session_peer_id", "sessionPeerId":
+			s.AddField("session_peer_id")
+			x.SessionPeerId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MountLinkedDeviceSessionRequest from JSON.
+func (x *MountLinkedDeviceSessionRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MountLinkedDeviceSessionResponse message to JSON.
+func (x *MountLinkedDeviceSessionResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SessionListEntry != nil || s.HasField("sessionListEntry") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionListEntry")
+		x.SessionListEntry.MarshalProtoJSON(s.WithField("sessionListEntry"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MountLinkedDeviceSessionResponse to JSON.
+func (x *MountLinkedDeviceSessionResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MountLinkedDeviceSessionResponse message from JSON.
+func (x *MountLinkedDeviceSessionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "session_list_entry", "sessionListEntry":
+			if s.ReadNil() {
+				x.SessionListEntry = nil
+				return
+			}
+			x.SessionListEntry = &session.SessionListEntry{}
+			x.SessionListEntry.UnmarshalProtoJSON(s.WithField("session_list_entry", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MountLinkedDeviceSessionResponse from JSON.
+func (x *MountLinkedDeviceSessionResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -32235,6 +32523,117 @@ func (m *LoginWithEntityKeyResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *MountLinkedDeviceSessionRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MountLinkedDeviceSessionRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MountLinkedDeviceSessionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.SessionPeerId) > 0 {
+		i -= len(m.SessionPeerId)
+		copy(dAtA[i:], m.SessionPeerId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SessionPeerId)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.SessionPemPrivateKey) > 0 {
+		i -= len(m.SessionPemPrivateKey)
+		copy(dAtA[i:], m.SessionPemPrivateKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SessionPemPrivateKey)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SessionId) > 0 {
+		i -= len(m.SessionId)
+		copy(dAtA[i:], m.SessionId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SessionId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.AccountId) > 0 {
+		i -= len(m.AccountId)
+		copy(dAtA[i:], m.AccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AccountId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MountLinkedDeviceSessionResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MountLinkedDeviceSessionResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MountLinkedDeviceSessionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.SessionListEntry != nil {
+		size, err := m.SessionListEntry.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GenerateAuthKeypairsRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -43674,6 +44073,50 @@ func (m *LoginWithEntityKeyResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *MountLinkedDeviceSessionRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.AccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SessionId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SessionPemPrivateKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SessionPeerId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MountLinkedDeviceSessionResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SessionListEntry != nil {
+		l = m.SessionListEntry.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *GenerateAuthKeypairsRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -48231,6 +48674,72 @@ func (x *LoginWithEntityKeyResponse) MarshalProtoText() string {
 }
 
 func (x *LoginWithEntityKeyResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MountLinkedDeviceSessionRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("MountLinkedDeviceSessionRequest {")
+	if x.AccountId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("account_id: ")
+		sb.WriteString(strconv.Quote(x.AccountId))
+	}
+	if x.SessionId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_id: ")
+		sb.WriteString(strconv.Quote(x.SessionId))
+	}
+	if x.Label != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.SessionPemPrivateKey != nil {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_pem_private_key: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.SessionPemPrivateKey))
+		sb.WriteString("\"")
+	}
+	if x.SessionPeerId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_peer_id: ")
+		sb.WriteString(strconv.Quote(x.SessionPeerId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *MountLinkedDeviceSessionRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MountLinkedDeviceSessionResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("MountLinkedDeviceSessionResponse {")
+	if x.SessionListEntry != nil {
+		if sb.Len() > 34 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_list_entry: ")
+		sb.WriteString(x.SessionListEntry.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *MountLinkedDeviceSessionResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -55475,6 +55984,234 @@ func (m *LoginWithEntityKeyResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: LoginWithEntityKeyResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionListEntry", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.SessionListEntry == nil {
+				m.SessionListEntry = &session.SessionListEntry{}
+			}
+			if err := m.SessionListEntry.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MountLinkedDeviceSessionRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MountLinkedDeviceSessionRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MountLinkedDeviceSessionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SessionId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionPemPrivateKey", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SessionPemPrivateKey = append(m.SessionPemPrivateKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.SessionPemPrivateKey == nil {
+				m.SessionPemPrivateKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionPeerId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SessionPeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MountLinkedDeviceSessionResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MountLinkedDeviceSessionResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MountLinkedDeviceSessionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

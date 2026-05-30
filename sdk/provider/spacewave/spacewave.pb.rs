@@ -138,6 +138,32 @@ pub struct LoginWithEntityKeyResponse {
     #[prost(message, optional, tag="1")]
     pub session_list_entry: ::core::option::Option<super::super::super::session::SessionListEntry>,
 }
+/// MountLinkedDeviceSessionRequest mounts a SpaceLink-approved DEVICE session.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MountLinkedDeviceSessionRequest {
+    /// AccountId is the Spacewave Cloud account ID returned by approval.
+    #[prost(string, tag="1")]
+    pub account_id: ::prost::alloc::string::String,
+    /// SessionId is the stable local provider resource ID for this Device session.
+    #[prost(string, tag="2")]
+    pub session_id: ::prost::alloc::string::String,
+    /// Label is the operator-visible Device label.
+    #[prost(string, tag="3")]
+    pub label: ::prost::alloc::string::String,
+    /// SessionPemPrivateKey is the approved Device session private key in PEM form.
+    #[prost(bytes="vec", tag="4")]
+    pub session_pem_private_key: ::prost::alloc::vec::Vec<u8>,
+    /// SessionPeerId is the expected peer ID derived from SessionPemPrivateKey.
+    #[prost(string, tag="5")]
+    pub session_peer_id: ::prost::alloc::string::String,
+}
+/// MountLinkedDeviceSessionResponse returns the mounted Device session entry.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MountLinkedDeviceSessionResponse {
+    /// SessionListEntry is the created or existing Device session entry.
+    #[prost(message, optional, tag="1")]
+    pub session_list_entry: ::core::option::Option<super::super::super::session::SessionListEntry>,
+}
 /// GenerateAuthKeypairsRequest requests new auth key material.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GenerateAuthKeypairsRequest {

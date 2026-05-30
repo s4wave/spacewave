@@ -30,6 +30,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 		// Tier 3: data operations
 		newBillingCommand(getBus),
 		newSpaceCommand(getBus),
+		newDeviceCommand(getBus),
 		newFsCommand(getBus),
 		newGitCommand(getBus),
 		newCanvasCommand(getBus),

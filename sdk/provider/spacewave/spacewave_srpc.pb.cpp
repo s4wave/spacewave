@@ -60,6 +60,10 @@ starpc::Error SRPCSpacewaveProviderResourceServiceClientImpl::ReauthenticateSess
   return cc_->ExecCall(service_id_, "ReauthenticateSession", in, out);
 }
 
+starpc::Error SRPCSpacewaveProviderResourceServiceClientImpl::MountLinkedDeviceSession(const s4wave::provider::spacewave::MountLinkedDeviceSessionRequest& in, s4wave::provider::spacewave::MountLinkedDeviceSessionResponse* out) {
+  return cc_->ExecCall(service_id_, "MountLinkedDeviceSession", in, out);
+}
+
 starpc::Error SRPCSpacewaveProviderResourceServiceClientImpl::StartBrowserHandoff(const s4wave::provider::spacewave::StartBrowserHandoffRequest& in, s4wave::provider::spacewave::StartBrowserHandoffResponse* out) {
   return cc_->ExecCall(service_id_, "StartBrowserHandoff", in, out);
 }
@@ -139,6 +143,7 @@ std::vector<std::string> SRPCSpacewaveProviderResourceServiceHandler::GetMethodI
     "LoginOrCreateAccount",
     "LoginWithEntityKey",
     "ReauthenticateSession",
+    "MountLinkedDeviceSession",
     "StartBrowserHandoff",
     "SSOCodeExchange",
     "SSONonceExchange",
@@ -268,6 +273,14 @@ std::pair<bool, starpc::Error> SRPCSpacewaveProviderResourceServiceHandler::Invo
     if (err != starpc::Error::OK) return {true, err};
     s4wave::provider::spacewave::ReauthenticateSessionResponse resp;
     err = impl_->ReauthenticateSession(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "MountLinkedDeviceSession") {
+    s4wave::provider::spacewave::MountLinkedDeviceSessionRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::provider::spacewave::MountLinkedDeviceSessionResponse resp;
+    err = impl_->MountLinkedDeviceSession(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "StartBrowserHandoff") {

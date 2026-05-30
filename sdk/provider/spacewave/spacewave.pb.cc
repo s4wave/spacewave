@@ -2939,6 +2939,45 @@ struct OrgInviteInfoDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 OrgInviteInfoDefaultTypeInternal _OrgInviteInfo_default_instance_;
 
+inline constexpr MountLinkedDeviceSessionRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        session_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        session_pem_private_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        session_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR MountLinkedDeviceSessionRequest::MountLinkedDeviceSessionRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(MountLinkedDeviceSessionRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct MountLinkedDeviceSessionRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR MountLinkedDeviceSessionRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~MountLinkedDeviceSessionRequestDefaultTypeInternal() {}
+  union {
+    MountLinkedDeviceSessionRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MountLinkedDeviceSessionRequestDefaultTypeInternal _MountLinkedDeviceSessionRequest_default_instance_;
+
 inline constexpr MailboxEntryInfo::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -6335,6 +6374,31 @@ struct StartBrowserHandoffResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StartBrowserHandoffResponseDefaultTypeInternal _StartBrowserHandoffResponse_default_instance_;
 
+inline constexpr MountLinkedDeviceSessionResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        session_list_entry_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR MountLinkedDeviceSessionResponse::MountLinkedDeviceSessionResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(MountLinkedDeviceSessionResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct MountLinkedDeviceSessionResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR MountLinkedDeviceSessionResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~MountLinkedDeviceSessionResponseDefaultTypeInternal() {}
+  union {
+    MountLinkedDeviceSessionResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MountLinkedDeviceSessionResponseDefaultTypeInternal _MountLinkedDeviceSessionResponse_default_instance_;
+
 inline constexpr LoginWithEntityKeyResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -6550,6 +6614,24 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::LoginWithEntityKeyResponse, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::LoginWithEntityKeyResponse, _impl_.session_list_entry_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest, _impl_.account_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest, _impl_.session_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest, _impl_.session_pem_private_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest, _impl_.session_peer_id_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::MountLinkedDeviceSessionResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::MountLinkedDeviceSessionResponse, _impl_.session_list_entry_),
         0,
         0x000, // bitmap
         0x081, // bitmap
@@ -8163,225 +8245,227 @@ static const ::_pbi::MigrationSchema
         {63, sizeof(::s4wave::provider::spacewave::LoginOrCreateAccountResponse)},
         {70, sizeof(::s4wave::provider::spacewave::LoginWithEntityKeyRequest)},
         {75, sizeof(::s4wave::provider::spacewave::LoginWithEntityKeyResponse)},
-        {80, sizeof(::s4wave::provider::spacewave::GenerateAuthKeypairsRequest)},
-        {81, sizeof(::s4wave::provider::spacewave::GeneratedEntityKeypair)},
-        {90, sizeof(::s4wave::provider::spacewave::GeneratedSessionKeypair)},
-        {95, sizeof(::s4wave::provider::spacewave::GenerateAuthKeypairsResponse)},
-        {102, sizeof(::s4wave::provider::spacewave::WrapPemWithPinRequest)},
-        {109, sizeof(::s4wave::provider::spacewave::WrapPemWithPinResponse)},
-        {114, sizeof(::s4wave::provider::spacewave::UnwrapPemWithPinRequest)},
-        {121, sizeof(::s4wave::provider::spacewave::UnwrapPemWithPinResponse)},
-        {126, sizeof(::s4wave::provider::spacewave::GeneratePasskeyPrfSaltRequest)},
-        {127, sizeof(::s4wave::provider::spacewave::GeneratePasskeyPrfSaltResponse)},
-        {132, sizeof(::s4wave::provider::spacewave::WrapWithPasskeyPrfRequest)},
-        {141, sizeof(::s4wave::provider::spacewave::WrapWithPasskeyPrfResponse)},
-        {148, sizeof(::s4wave::provider::spacewave::UnwrapWithPasskeyPrfRequest)},
-        {157, sizeof(::s4wave::provider::spacewave::UnwrapWithPasskeyPrfResponse)},
-        {164, sizeof(::s4wave::provider::spacewave::PasskeyAuthOptionsRequest)},
-        {169, sizeof(::s4wave::provider::spacewave::PasskeyAuthOptionsResponse)},
-        {174, sizeof(::s4wave::provider::spacewave::PasskeyAuthVerifyRequest)},
-        {179, sizeof(::s4wave::provider::spacewave::PasskeyAuthVerifyResponse)},
-        {196, sizeof(::s4wave::provider::spacewave::PasskeyPrfAuthParams)},
-        {205, sizeof(::s4wave::provider::spacewave::PasskeyCheckUsernameRequest)},
-        {210, sizeof(::s4wave::provider::spacewave::PasskeyCheckUsernameResponse)},
-        {215, sizeof(::s4wave::provider::spacewave::PasskeyRegisterChallengeRequest)},
-        {220, sizeof(::s4wave::provider::spacewave::PasskeyRegisterChallengeResponse)},
-        {225, sizeof(::s4wave::provider::spacewave::StartDesktopPasskeyRequest)},
-        {226, sizeof(::s4wave::provider::spacewave::DesktopPasskeyLinkedResult)},
-        {243, sizeof(::s4wave::provider::spacewave::DesktopPasskeyNewAccountResult)},
-        {258, sizeof(::s4wave::provider::spacewave::StartDesktopPasskeyResponse)},
-        {263, sizeof(::s4wave::provider::spacewave::ConfirmDesktopPasskeyRequest)},
-        {286, sizeof(::s4wave::provider::spacewave::ConfirmDesktopPasskeyResponse)},
-        {293, sizeof(::s4wave::provider::spacewave::PasskeyConfirmSignupRequest)},
-        {314, sizeof(::s4wave::provider::spacewave::PasskeyConfirmSignupResponse)},
-        {321, sizeof(::s4wave::provider::spacewave::RelayDesktopPasskeyRequest)},
-        {332, sizeof(::s4wave::provider::spacewave::RelayDesktopPasskeyResponse)},
-        {333, sizeof(::s4wave::provider::spacewave::SSOCodeExchangeRequest)},
-        {342, sizeof(::s4wave::provider::spacewave::SSONonceExchangeRequest)},
-        {347, sizeof(::s4wave::provider::spacewave::SSOCodeExchangeResponse)},
-        {368, sizeof(::s4wave::provider::spacewave::GetCloudProviderConfigRequest)},
-        {369, sizeof(::s4wave::provider::spacewave::StartBrowserHandoffRequest)},
-        {378, sizeof(::s4wave::provider::spacewave::StartBrowserHandoffResponse)},
-        {383, sizeof(::s4wave::provider::spacewave::StartDesktopSSORequest)},
-        {388, sizeof(::s4wave::provider::spacewave::DesktopSSOLinkedResult)},
-        {403, sizeof(::s4wave::provider::spacewave::DesktopSSONewAccountResult)},
-        {412, sizeof(::s4wave::provider::spacewave::StartDesktopSSOResponse)},
-        {417, sizeof(::s4wave::provider::spacewave::StartDesktopSSOLinkRequest)},
-        {422, sizeof(::s4wave::provider::spacewave::StartDesktopSSOLinkResponse)},
-        {429, sizeof(::s4wave::provider::spacewave::StartDesktopPasskeyReauthRequest)},
-        {434, sizeof(::s4wave::provider::spacewave::StartDesktopPasskeyReauthResponse)},
-        {449, sizeof(::s4wave::provider::spacewave::ConfirmDesktopSSORequest)},
-        {464, sizeof(::s4wave::provider::spacewave::ConfirmDesktopSSOResponse)},
-        {471, sizeof(::s4wave::provider::spacewave::CloudProviderConfig)},
-        {490, sizeof(::s4wave::provider::spacewave::RequestRecoveryEmailRequest)},
-        {497, sizeof(::s4wave::provider::spacewave::RequestRecoveryEmailResponse)},
-        {502, sizeof(::s4wave::provider::spacewave::RecoverVerifyRequest)},
-        {507, sizeof(::s4wave::provider::spacewave::RecoverVerifyResponse)},
-        {514, sizeof(::s4wave::provider::spacewave::RecoverExecuteRequest)},
-        {527, sizeof(::s4wave::provider::spacewave::RecoverExecuteResponse)},
-        {532, sizeof(::s4wave::provider::spacewave::ReauthenticateSessionRequest)},
-        {547, sizeof(::s4wave::provider::spacewave::ReauthenticateSessionResponse)},
-        {552, sizeof(::s4wave::provider::spacewave::ResetSessionRequest)},
-        {559, sizeof(::s4wave::provider::spacewave::ResetSessionResponse)},
-        {560, sizeof(::s4wave::provider::spacewave::CreateLinkedLocalSessionRequest)},
-        {561, sizeof(::s4wave::provider::spacewave::CreateLinkedLocalSessionResponse)},
-        {566, sizeof(::s4wave::provider::spacewave::GetLinkedLocalSessionRequest)},
-        {567, sizeof(::s4wave::provider::spacewave::GetLinkedLocalSessionResponse)},
-        {574, sizeof(::s4wave::provider::spacewave::GetLinkedCloudSessionRequest)},
-        {575, sizeof(::s4wave::provider::spacewave::GetLinkedCloudSessionResponse)},
-        {584, sizeof(::s4wave::provider::spacewave::EncryptForHandoffRequest)},
-        {591, sizeof(::s4wave::provider::spacewave::EncryptForHandoffResponse)},
-        {600, sizeof(::s4wave::provider::spacewave::BillingAccountInfo)},
-        {625, sizeof(::s4wave::provider::spacewave::BillingUsageInfo)},
-        {654, sizeof(::s4wave::provider::spacewave::CreateCheckoutSessionRequest)},
-        {665, sizeof(::s4wave::provider::spacewave::CreateCheckoutSessionResponse)},
-        {674, sizeof(::s4wave::provider::spacewave::CancelCheckoutSessionRequest)},
-        {675, sizeof(::s4wave::provider::spacewave::CancelCheckoutSessionResponse)},
-        {680, sizeof(::s4wave::provider::spacewave::GetSubscriptionStatusRequest)},
-        {681, sizeof(::s4wave::provider::spacewave::GetSubscriptionStatusResponse)},
-        {688, sizeof(::s4wave::provider::spacewave::WatchSubscriptionStatusRequest)},
-        {689, sizeof(::s4wave::provider::spacewave::WatchSubscriptionStatusResponse)},
-        {694, sizeof(::s4wave::provider::spacewave::WatchBillingStateRequest)},
-        {699, sizeof(::s4wave::provider::spacewave::WatchBillingStateResponse)},
-        {706, sizeof(::s4wave::provider::spacewave::WatchCheckoutStatusRequest)},
-        {707, sizeof(::s4wave::provider::spacewave::WatchCheckoutStatusResponse)},
-        {712, sizeof(::s4wave::provider::spacewave::WatchOnboardingStatusRequest)},
-        {713, sizeof(::s4wave::provider::spacewave::WatchOnboardingStatusResponse)},
-        {760, sizeof(::s4wave::provider::spacewave::UnlinkLocalSessionRequest)},
-        {761, sizeof(::s4wave::provider::spacewave::UnlinkLocalSessionResponse)},
-        {762, sizeof(::s4wave::provider::spacewave::OrganizationInfo)},
-        {775, sizeof(::s4wave::provider::spacewave::WatchOrganizationsRequest)},
-        {776, sizeof(::s4wave::provider::spacewave::WatchOrganizationsResponse)},
-        {781, sizeof(::s4wave::provider::spacewave::ListOrganizationsRequest)},
-        {782, sizeof(::s4wave::provider::spacewave::ListOrganizationsResponse)},
-        {787, sizeof(::s4wave::provider::spacewave::GetSpaceMetadataRequest)},
-        {792, sizeof(::s4wave::provider::spacewave::GetSpaceMetadataResponse)},
-        {803, sizeof(::s4wave::provider::spacewave::CreateOrganizationRequest)},
-        {808, sizeof(::s4wave::provider::spacewave::CreateOrganizationResponse)},
-        {813, sizeof(::s4wave::provider::spacewave::OrgInviteInfo)},
-        {828, sizeof(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest)},
-        {843, sizeof(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse)},
-        {848, sizeof(::s4wave::provider::spacewave::ResolveUsernameRequest)},
-        {859, sizeof(::s4wave::provider::spacewave::ResolveUsernameResponse)},
-        {878, sizeof(::s4wave::provider::spacewave::TargetedInvitationEnvelope)},
-        {913, sizeof(::s4wave::provider::spacewave::TargetedInvitationInfo)},
-        {948, sizeof(::s4wave::provider::spacewave::CreateTargetedInvitationRequest)},
-        {967, sizeof(::s4wave::provider::spacewave::CreateTargetedInvitationResponse)},
-        {972, sizeof(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest)},
-        {983, sizeof(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse)},
-        {988, sizeof(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest)},
-        {993, sizeof(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse)},
-        {1002, sizeof(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest)},
-        {1013, sizeof(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse)},
-        {1018, sizeof(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest)},
-        {1023, sizeof(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse)},
-        {1030, sizeof(::s4wave::provider::spacewave::ListTargetedInvitationsRequest)},
-        {1031, sizeof(::s4wave::provider::spacewave::ListTargetedInvitationsResponse)},
-        {1036, sizeof(::s4wave::provider::spacewave::GetTargetedInvitationRequest)},
-        {1041, sizeof(::s4wave::provider::spacewave::GetTargetedInvitationResponse)},
-        {1046, sizeof(::s4wave::provider::spacewave::RevokeTargetedInvitationRequest)},
-        {1051, sizeof(::s4wave::provider::spacewave::RevokeTargetedInvitationResponse)},
-        {1056, sizeof(::s4wave::provider::spacewave::ProcessTargetedInvitationRequest)},
-        {1063, sizeof(::s4wave::provider::spacewave::ProcessTargetedInvitationResponse)},
-        {1068, sizeof(::s4wave::provider::spacewave::CreateOrgInviteRequest)},
-        {1081, sizeof(::s4wave::provider::spacewave::CreateOrgInviteResponse)},
-        {1086, sizeof(::s4wave::provider::spacewave::JoinOrganizationRequest)},
-        {1091, sizeof(::s4wave::provider::spacewave::JoinOrganizationResponse)},
-        {1096, sizeof(::s4wave::provider::spacewave::UpdateOrganizationRequest)},
-        {1103, sizeof(::s4wave::provider::spacewave::UpdateOrganizationResponse)},
-        {1104, sizeof(::s4wave::provider::spacewave::DeleteOrganizationRequest)},
-        {1109, sizeof(::s4wave::provider::spacewave::DeleteOrganizationResponse)},
-        {1110, sizeof(::s4wave::provider::spacewave::GetOrganizationRequest)},
-        {1115, sizeof(::s4wave::provider::spacewave::WatchOrganizationStateRequest)},
-        {1120, sizeof(::s4wave::provider::spacewave::OrgMemberInfo)},
-        {1133, sizeof(::s4wave::provider::spacewave::OrgSpaceInfo)},
-        {1142, sizeof(::s4wave::provider::spacewave::SharedObjectMutationPermission)},
-        {1151, sizeof(::s4wave::provider::spacewave::OrganizationRootStateInfo)},
-        {1160, sizeof(::s4wave::provider::spacewave::GetOrganizationResponse)},
-        {1171, sizeof(::s4wave::provider::spacewave::WatchOrganizationStateResponse)},
-        {1184, sizeof(::s4wave::provider::spacewave::RepairSharedObjectRequest)},
-        {1189, sizeof(::s4wave::provider::spacewave::RepairSharedObjectResponse)},
-        {1190, sizeof(::s4wave::provider::spacewave::ReinitializeSharedObjectRequest)},
-        {1195, sizeof(::s4wave::provider::spacewave::ReinitializeSharedObjectResponse)},
-        {1196, sizeof(::s4wave::provider::spacewave::ListOrgInvitesRequest)},
-        {1201, sizeof(::s4wave::provider::spacewave::ListOrgInvitesResponse)},
-        {1206, sizeof(::s4wave::provider::spacewave::RevokeOrgInviteRequest)},
-        {1213, sizeof(::s4wave::provider::spacewave::RevokeOrgInviteResponse)},
-        {1214, sizeof(::s4wave::provider::spacewave::LeaveOrganizationRequest)},
-        {1219, sizeof(::s4wave::provider::spacewave::LeaveOrganizationResponse)},
-        {1220, sizeof(::s4wave::provider::spacewave::RemoveOrgMemberRequest)},
-        {1227, sizeof(::s4wave::provider::spacewave::RemoveOrgMemberResponse)},
-        {1228, sizeof(::s4wave::provider::spacewave::TransferResourceRequest)},
-        {1237, sizeof(::s4wave::provider::spacewave::TransferResourceResponse)},
-        {1238, sizeof(::s4wave::provider::spacewave::AssignBillingAccountRequest)},
-        {1247, sizeof(::s4wave::provider::spacewave::AssignBillingAccountResponse)},
-        {1248, sizeof(::s4wave::provider::spacewave::DetachBillingAccountRequest)},
-        {1255, sizeof(::s4wave::provider::spacewave::DetachBillingAccountResponse)},
-        {1256, sizeof(::s4wave::provider::spacewave::ManagedBillingAccount)},
-        {1275, sizeof(::s4wave::provider::spacewave::PrincipalAssignment)},
-        {1284, sizeof(::s4wave::provider::spacewave::CreateBillingAccountRequest)},
-        {1289, sizeof(::s4wave::provider::spacewave::RenameBillingAccountRequest)},
-        {1296, sizeof(::s4wave::provider::spacewave::RenameBillingAccountResponse)},
-        {1297, sizeof(::s4wave::provider::spacewave::DeleteBillingAccountRequest)},
-        {1302, sizeof(::s4wave::provider::spacewave::DeleteBillingAccountResponse)},
-        {1303, sizeof(::s4wave::provider::spacewave::CreateBillingAccountResponse)},
-        {1308, sizeof(::s4wave::provider::spacewave::ListManagedBillingAccountsRequest)},
-        {1309, sizeof(::s4wave::provider::spacewave::ListManagedBillingAccountsResponse)},
-        {1314, sizeof(::s4wave::provider::spacewave::GetBillingAccountRequest)},
-        {1319, sizeof(::s4wave::provider::spacewave::GetBillingAccountResponse)},
-        {1324, sizeof(::s4wave::provider::spacewave::GetBillingUsageRequest)},
-        {1329, sizeof(::s4wave::provider::spacewave::GetBillingUsageResponse)},
-        {1334, sizeof(::s4wave::provider::spacewave::RefreshBillingStateRequest)},
-        {1339, sizeof(::s4wave::provider::spacewave::RefreshBillingStateResponse)},
-        {1340, sizeof(::s4wave::provider::spacewave::CancelSubscriptionRequest)},
-        {1345, sizeof(::s4wave::provider::spacewave::CancelSubscriptionResponse)},
-        {1346, sizeof(::s4wave::provider::spacewave::ReactivateSubscriptionRequest)},
-        {1351, sizeof(::s4wave::provider::spacewave::ReactivateSubscriptionResponse)},
-        {1356, sizeof(::s4wave::provider::spacewave::SwitchBillingIntervalRequest)},
-        {1363, sizeof(::s4wave::provider::spacewave::SwitchBillingIntervalResponse)},
-        {1364, sizeof(::s4wave::provider::spacewave::CreateBillingPortalRequest)},
-        {1369, sizeof(::s4wave::provider::spacewave::CreateBillingPortalResponse)},
-        {1374, sizeof(::s4wave::provider::spacewave::RequestDeleteNowEmailRequest)},
-        {1375, sizeof(::s4wave::provider::spacewave::RequestDeleteNowEmailResponse)},
-        {1384, sizeof(::s4wave::provider::spacewave::ConfirmDeleteNowCodeRequest)},
-        {1389, sizeof(::s4wave::provider::spacewave::ConfirmDeleteNowCodeResponse)},
-        {1408, sizeof(::s4wave::provider::spacewave::UndoDeleteNowRequest)},
-        {1409, sizeof(::s4wave::provider::spacewave::UndoDeleteNowResponse)},
-        {1410, sizeof(::s4wave::provider::spacewave::EmailInfo)},
-        {1421, sizeof(::s4wave::provider::spacewave::ListEmailsRequest)},
-        {1422, sizeof(::s4wave::provider::spacewave::ListEmailsResponse)},
-        {1427, sizeof(::s4wave::provider::spacewave::WatchEmailsRequest)},
-        {1428, sizeof(::s4wave::provider::spacewave::WatchEmailsResponse)},
-        {1433, sizeof(::s4wave::provider::spacewave::SendVerificationEmailRequest)},
-        {1438, sizeof(::s4wave::provider::spacewave::SendVerificationEmailResponse)},
-        {1445, sizeof(::s4wave::provider::spacewave::VerifyEmailCodeRequest)},
-        {1452, sizeof(::s4wave::provider::spacewave::VerifyEmailCodeResponse)},
-        {1457, sizeof(::s4wave::provider::spacewave::AddEmailRequest)},
-        {1462, sizeof(::s4wave::provider::spacewave::AddEmailResponse)},
-        {1469, sizeof(::s4wave::provider::spacewave::RemoveEmailRequest)},
-        {1474, sizeof(::s4wave::provider::spacewave::RemoveEmailResponse)},
-        {1475, sizeof(::s4wave::provider::spacewave::SetPrimaryEmailRequest)},
-        {1480, sizeof(::s4wave::provider::spacewave::SetPrimaryEmailResponse)},
-        {1485, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberRequest)},
-        {1494, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberResult)},
-        {1505, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberResponse)},
-        {1510, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberRequest)},
-        {1517, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberResult)},
-        {1528, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberResponse)},
-        {1533, sizeof(::s4wave::provider::spacewave::LookupInviteCodeRequest)},
-        {1538, sizeof(::s4wave::provider::spacewave::LookupInviteCodeResponse)},
-        {1545, sizeof(::s4wave::provider::spacewave::GetMailboxEntriesRequest)},
-        {1550, sizeof(::s4wave::provider::spacewave::GetMailboxEntriesResponse)},
-        {1555, sizeof(::s4wave::provider::spacewave::MailboxEntryInfo)},
-        {1572, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryRequest)},
-        {1581, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryResponse)},
-        {1582, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthRequest)},
-        {1605, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthTicket)},
-        {1612, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkRequest)},
-        {1617, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkResponse)},
-        {1638, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkRequest)},
-        {1645, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkResponse)},
-        {1662, sizeof(::s4wave::provider::spacewave::SpaceLinkCallback)},
+        {80, sizeof(::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest)},
+        {93, sizeof(::s4wave::provider::spacewave::MountLinkedDeviceSessionResponse)},
+        {98, sizeof(::s4wave::provider::spacewave::GenerateAuthKeypairsRequest)},
+        {99, sizeof(::s4wave::provider::spacewave::GeneratedEntityKeypair)},
+        {108, sizeof(::s4wave::provider::spacewave::GeneratedSessionKeypair)},
+        {113, sizeof(::s4wave::provider::spacewave::GenerateAuthKeypairsResponse)},
+        {120, sizeof(::s4wave::provider::spacewave::WrapPemWithPinRequest)},
+        {127, sizeof(::s4wave::provider::spacewave::WrapPemWithPinResponse)},
+        {132, sizeof(::s4wave::provider::spacewave::UnwrapPemWithPinRequest)},
+        {139, sizeof(::s4wave::provider::spacewave::UnwrapPemWithPinResponse)},
+        {144, sizeof(::s4wave::provider::spacewave::GeneratePasskeyPrfSaltRequest)},
+        {145, sizeof(::s4wave::provider::spacewave::GeneratePasskeyPrfSaltResponse)},
+        {150, sizeof(::s4wave::provider::spacewave::WrapWithPasskeyPrfRequest)},
+        {159, sizeof(::s4wave::provider::spacewave::WrapWithPasskeyPrfResponse)},
+        {166, sizeof(::s4wave::provider::spacewave::UnwrapWithPasskeyPrfRequest)},
+        {175, sizeof(::s4wave::provider::spacewave::UnwrapWithPasskeyPrfResponse)},
+        {182, sizeof(::s4wave::provider::spacewave::PasskeyAuthOptionsRequest)},
+        {187, sizeof(::s4wave::provider::spacewave::PasskeyAuthOptionsResponse)},
+        {192, sizeof(::s4wave::provider::spacewave::PasskeyAuthVerifyRequest)},
+        {197, sizeof(::s4wave::provider::spacewave::PasskeyAuthVerifyResponse)},
+        {214, sizeof(::s4wave::provider::spacewave::PasskeyPrfAuthParams)},
+        {223, sizeof(::s4wave::provider::spacewave::PasskeyCheckUsernameRequest)},
+        {228, sizeof(::s4wave::provider::spacewave::PasskeyCheckUsernameResponse)},
+        {233, sizeof(::s4wave::provider::spacewave::PasskeyRegisterChallengeRequest)},
+        {238, sizeof(::s4wave::provider::spacewave::PasskeyRegisterChallengeResponse)},
+        {243, sizeof(::s4wave::provider::spacewave::StartDesktopPasskeyRequest)},
+        {244, sizeof(::s4wave::provider::spacewave::DesktopPasskeyLinkedResult)},
+        {261, sizeof(::s4wave::provider::spacewave::DesktopPasskeyNewAccountResult)},
+        {276, sizeof(::s4wave::provider::spacewave::StartDesktopPasskeyResponse)},
+        {281, sizeof(::s4wave::provider::spacewave::ConfirmDesktopPasskeyRequest)},
+        {304, sizeof(::s4wave::provider::spacewave::ConfirmDesktopPasskeyResponse)},
+        {311, sizeof(::s4wave::provider::spacewave::PasskeyConfirmSignupRequest)},
+        {332, sizeof(::s4wave::provider::spacewave::PasskeyConfirmSignupResponse)},
+        {339, sizeof(::s4wave::provider::spacewave::RelayDesktopPasskeyRequest)},
+        {350, sizeof(::s4wave::provider::spacewave::RelayDesktopPasskeyResponse)},
+        {351, sizeof(::s4wave::provider::spacewave::SSOCodeExchangeRequest)},
+        {360, sizeof(::s4wave::provider::spacewave::SSONonceExchangeRequest)},
+        {365, sizeof(::s4wave::provider::spacewave::SSOCodeExchangeResponse)},
+        {386, sizeof(::s4wave::provider::spacewave::GetCloudProviderConfigRequest)},
+        {387, sizeof(::s4wave::provider::spacewave::StartBrowserHandoffRequest)},
+        {396, sizeof(::s4wave::provider::spacewave::StartBrowserHandoffResponse)},
+        {401, sizeof(::s4wave::provider::spacewave::StartDesktopSSORequest)},
+        {406, sizeof(::s4wave::provider::spacewave::DesktopSSOLinkedResult)},
+        {421, sizeof(::s4wave::provider::spacewave::DesktopSSONewAccountResult)},
+        {430, sizeof(::s4wave::provider::spacewave::StartDesktopSSOResponse)},
+        {435, sizeof(::s4wave::provider::spacewave::StartDesktopSSOLinkRequest)},
+        {440, sizeof(::s4wave::provider::spacewave::StartDesktopSSOLinkResponse)},
+        {447, sizeof(::s4wave::provider::spacewave::StartDesktopPasskeyReauthRequest)},
+        {452, sizeof(::s4wave::provider::spacewave::StartDesktopPasskeyReauthResponse)},
+        {467, sizeof(::s4wave::provider::spacewave::ConfirmDesktopSSORequest)},
+        {482, sizeof(::s4wave::provider::spacewave::ConfirmDesktopSSOResponse)},
+        {489, sizeof(::s4wave::provider::spacewave::CloudProviderConfig)},
+        {508, sizeof(::s4wave::provider::spacewave::RequestRecoveryEmailRequest)},
+        {515, sizeof(::s4wave::provider::spacewave::RequestRecoveryEmailResponse)},
+        {520, sizeof(::s4wave::provider::spacewave::RecoverVerifyRequest)},
+        {525, sizeof(::s4wave::provider::spacewave::RecoverVerifyResponse)},
+        {532, sizeof(::s4wave::provider::spacewave::RecoverExecuteRequest)},
+        {545, sizeof(::s4wave::provider::spacewave::RecoverExecuteResponse)},
+        {550, sizeof(::s4wave::provider::spacewave::ReauthenticateSessionRequest)},
+        {565, sizeof(::s4wave::provider::spacewave::ReauthenticateSessionResponse)},
+        {570, sizeof(::s4wave::provider::spacewave::ResetSessionRequest)},
+        {577, sizeof(::s4wave::provider::spacewave::ResetSessionResponse)},
+        {578, sizeof(::s4wave::provider::spacewave::CreateLinkedLocalSessionRequest)},
+        {579, sizeof(::s4wave::provider::spacewave::CreateLinkedLocalSessionResponse)},
+        {584, sizeof(::s4wave::provider::spacewave::GetLinkedLocalSessionRequest)},
+        {585, sizeof(::s4wave::provider::spacewave::GetLinkedLocalSessionResponse)},
+        {592, sizeof(::s4wave::provider::spacewave::GetLinkedCloudSessionRequest)},
+        {593, sizeof(::s4wave::provider::spacewave::GetLinkedCloudSessionResponse)},
+        {602, sizeof(::s4wave::provider::spacewave::EncryptForHandoffRequest)},
+        {609, sizeof(::s4wave::provider::spacewave::EncryptForHandoffResponse)},
+        {618, sizeof(::s4wave::provider::spacewave::BillingAccountInfo)},
+        {643, sizeof(::s4wave::provider::spacewave::BillingUsageInfo)},
+        {672, sizeof(::s4wave::provider::spacewave::CreateCheckoutSessionRequest)},
+        {683, sizeof(::s4wave::provider::spacewave::CreateCheckoutSessionResponse)},
+        {692, sizeof(::s4wave::provider::spacewave::CancelCheckoutSessionRequest)},
+        {693, sizeof(::s4wave::provider::spacewave::CancelCheckoutSessionResponse)},
+        {698, sizeof(::s4wave::provider::spacewave::GetSubscriptionStatusRequest)},
+        {699, sizeof(::s4wave::provider::spacewave::GetSubscriptionStatusResponse)},
+        {706, sizeof(::s4wave::provider::spacewave::WatchSubscriptionStatusRequest)},
+        {707, sizeof(::s4wave::provider::spacewave::WatchSubscriptionStatusResponse)},
+        {712, sizeof(::s4wave::provider::spacewave::WatchBillingStateRequest)},
+        {717, sizeof(::s4wave::provider::spacewave::WatchBillingStateResponse)},
+        {724, sizeof(::s4wave::provider::spacewave::WatchCheckoutStatusRequest)},
+        {725, sizeof(::s4wave::provider::spacewave::WatchCheckoutStatusResponse)},
+        {730, sizeof(::s4wave::provider::spacewave::WatchOnboardingStatusRequest)},
+        {731, sizeof(::s4wave::provider::spacewave::WatchOnboardingStatusResponse)},
+        {778, sizeof(::s4wave::provider::spacewave::UnlinkLocalSessionRequest)},
+        {779, sizeof(::s4wave::provider::spacewave::UnlinkLocalSessionResponse)},
+        {780, sizeof(::s4wave::provider::spacewave::OrganizationInfo)},
+        {793, sizeof(::s4wave::provider::spacewave::WatchOrganizationsRequest)},
+        {794, sizeof(::s4wave::provider::spacewave::WatchOrganizationsResponse)},
+        {799, sizeof(::s4wave::provider::spacewave::ListOrganizationsRequest)},
+        {800, sizeof(::s4wave::provider::spacewave::ListOrganizationsResponse)},
+        {805, sizeof(::s4wave::provider::spacewave::GetSpaceMetadataRequest)},
+        {810, sizeof(::s4wave::provider::spacewave::GetSpaceMetadataResponse)},
+        {821, sizeof(::s4wave::provider::spacewave::CreateOrganizationRequest)},
+        {826, sizeof(::s4wave::provider::spacewave::CreateOrganizationResponse)},
+        {831, sizeof(::s4wave::provider::spacewave::OrgInviteInfo)},
+        {846, sizeof(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameRequest)},
+        {861, sizeof(::s4wave::provider::spacewave::CreateTargetedInviteDraftByUsernameResponse)},
+        {866, sizeof(::s4wave::provider::spacewave::ResolveUsernameRequest)},
+        {877, sizeof(::s4wave::provider::spacewave::ResolveUsernameResponse)},
+        {896, sizeof(::s4wave::provider::spacewave::TargetedInvitationEnvelope)},
+        {931, sizeof(::s4wave::provider::spacewave::TargetedInvitationInfo)},
+        {966, sizeof(::s4wave::provider::spacewave::CreateTargetedInvitationRequest)},
+        {985, sizeof(::s4wave::provider::spacewave::CreateTargetedInvitationResponse)},
+        {990, sizeof(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameRequest)},
+        {1001, sizeof(::s4wave::provider::spacewave::CreateSpaceTargetedInvitationByUsernameResponse)},
+        {1006, sizeof(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationRequest)},
+        {1011, sizeof(::s4wave::provider::spacewave::AcceptSpaceTargetedInvitationResponse)},
+        {1020, sizeof(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameRequest)},
+        {1031, sizeof(::s4wave::provider::spacewave::CreateOrganizationTargetedInvitationByUsernameResponse)},
+        {1036, sizeof(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationRequest)},
+        {1041, sizeof(::s4wave::provider::spacewave::AcceptOrganizationTargetedInvitationResponse)},
+        {1048, sizeof(::s4wave::provider::spacewave::ListTargetedInvitationsRequest)},
+        {1049, sizeof(::s4wave::provider::spacewave::ListTargetedInvitationsResponse)},
+        {1054, sizeof(::s4wave::provider::spacewave::GetTargetedInvitationRequest)},
+        {1059, sizeof(::s4wave::provider::spacewave::GetTargetedInvitationResponse)},
+        {1064, sizeof(::s4wave::provider::spacewave::RevokeTargetedInvitationRequest)},
+        {1069, sizeof(::s4wave::provider::spacewave::RevokeTargetedInvitationResponse)},
+        {1074, sizeof(::s4wave::provider::spacewave::ProcessTargetedInvitationRequest)},
+        {1081, sizeof(::s4wave::provider::spacewave::ProcessTargetedInvitationResponse)},
+        {1086, sizeof(::s4wave::provider::spacewave::CreateOrgInviteRequest)},
+        {1099, sizeof(::s4wave::provider::spacewave::CreateOrgInviteResponse)},
+        {1104, sizeof(::s4wave::provider::spacewave::JoinOrganizationRequest)},
+        {1109, sizeof(::s4wave::provider::spacewave::JoinOrganizationResponse)},
+        {1114, sizeof(::s4wave::provider::spacewave::UpdateOrganizationRequest)},
+        {1121, sizeof(::s4wave::provider::spacewave::UpdateOrganizationResponse)},
+        {1122, sizeof(::s4wave::provider::spacewave::DeleteOrganizationRequest)},
+        {1127, sizeof(::s4wave::provider::spacewave::DeleteOrganizationResponse)},
+        {1128, sizeof(::s4wave::provider::spacewave::GetOrganizationRequest)},
+        {1133, sizeof(::s4wave::provider::spacewave::WatchOrganizationStateRequest)},
+        {1138, sizeof(::s4wave::provider::spacewave::OrgMemberInfo)},
+        {1151, sizeof(::s4wave::provider::spacewave::OrgSpaceInfo)},
+        {1160, sizeof(::s4wave::provider::spacewave::SharedObjectMutationPermission)},
+        {1169, sizeof(::s4wave::provider::spacewave::OrganizationRootStateInfo)},
+        {1178, sizeof(::s4wave::provider::spacewave::GetOrganizationResponse)},
+        {1189, sizeof(::s4wave::provider::spacewave::WatchOrganizationStateResponse)},
+        {1202, sizeof(::s4wave::provider::spacewave::RepairSharedObjectRequest)},
+        {1207, sizeof(::s4wave::provider::spacewave::RepairSharedObjectResponse)},
+        {1208, sizeof(::s4wave::provider::spacewave::ReinitializeSharedObjectRequest)},
+        {1213, sizeof(::s4wave::provider::spacewave::ReinitializeSharedObjectResponse)},
+        {1214, sizeof(::s4wave::provider::spacewave::ListOrgInvitesRequest)},
+        {1219, sizeof(::s4wave::provider::spacewave::ListOrgInvitesResponse)},
+        {1224, sizeof(::s4wave::provider::spacewave::RevokeOrgInviteRequest)},
+        {1231, sizeof(::s4wave::provider::spacewave::RevokeOrgInviteResponse)},
+        {1232, sizeof(::s4wave::provider::spacewave::LeaveOrganizationRequest)},
+        {1237, sizeof(::s4wave::provider::spacewave::LeaveOrganizationResponse)},
+        {1238, sizeof(::s4wave::provider::spacewave::RemoveOrgMemberRequest)},
+        {1245, sizeof(::s4wave::provider::spacewave::RemoveOrgMemberResponse)},
+        {1246, sizeof(::s4wave::provider::spacewave::TransferResourceRequest)},
+        {1255, sizeof(::s4wave::provider::spacewave::TransferResourceResponse)},
+        {1256, sizeof(::s4wave::provider::spacewave::AssignBillingAccountRequest)},
+        {1265, sizeof(::s4wave::provider::spacewave::AssignBillingAccountResponse)},
+        {1266, sizeof(::s4wave::provider::spacewave::DetachBillingAccountRequest)},
+        {1273, sizeof(::s4wave::provider::spacewave::DetachBillingAccountResponse)},
+        {1274, sizeof(::s4wave::provider::spacewave::ManagedBillingAccount)},
+        {1293, sizeof(::s4wave::provider::spacewave::PrincipalAssignment)},
+        {1302, sizeof(::s4wave::provider::spacewave::CreateBillingAccountRequest)},
+        {1307, sizeof(::s4wave::provider::spacewave::RenameBillingAccountRequest)},
+        {1314, sizeof(::s4wave::provider::spacewave::RenameBillingAccountResponse)},
+        {1315, sizeof(::s4wave::provider::spacewave::DeleteBillingAccountRequest)},
+        {1320, sizeof(::s4wave::provider::spacewave::DeleteBillingAccountResponse)},
+        {1321, sizeof(::s4wave::provider::spacewave::CreateBillingAccountResponse)},
+        {1326, sizeof(::s4wave::provider::spacewave::ListManagedBillingAccountsRequest)},
+        {1327, sizeof(::s4wave::provider::spacewave::ListManagedBillingAccountsResponse)},
+        {1332, sizeof(::s4wave::provider::spacewave::GetBillingAccountRequest)},
+        {1337, sizeof(::s4wave::provider::spacewave::GetBillingAccountResponse)},
+        {1342, sizeof(::s4wave::provider::spacewave::GetBillingUsageRequest)},
+        {1347, sizeof(::s4wave::provider::spacewave::GetBillingUsageResponse)},
+        {1352, sizeof(::s4wave::provider::spacewave::RefreshBillingStateRequest)},
+        {1357, sizeof(::s4wave::provider::spacewave::RefreshBillingStateResponse)},
+        {1358, sizeof(::s4wave::provider::spacewave::CancelSubscriptionRequest)},
+        {1363, sizeof(::s4wave::provider::spacewave::CancelSubscriptionResponse)},
+        {1364, sizeof(::s4wave::provider::spacewave::ReactivateSubscriptionRequest)},
+        {1369, sizeof(::s4wave::provider::spacewave::ReactivateSubscriptionResponse)},
+        {1374, sizeof(::s4wave::provider::spacewave::SwitchBillingIntervalRequest)},
+        {1381, sizeof(::s4wave::provider::spacewave::SwitchBillingIntervalResponse)},
+        {1382, sizeof(::s4wave::provider::spacewave::CreateBillingPortalRequest)},
+        {1387, sizeof(::s4wave::provider::spacewave::CreateBillingPortalResponse)},
+        {1392, sizeof(::s4wave::provider::spacewave::RequestDeleteNowEmailRequest)},
+        {1393, sizeof(::s4wave::provider::spacewave::RequestDeleteNowEmailResponse)},
+        {1402, sizeof(::s4wave::provider::spacewave::ConfirmDeleteNowCodeRequest)},
+        {1407, sizeof(::s4wave::provider::spacewave::ConfirmDeleteNowCodeResponse)},
+        {1426, sizeof(::s4wave::provider::spacewave::UndoDeleteNowRequest)},
+        {1427, sizeof(::s4wave::provider::spacewave::UndoDeleteNowResponse)},
+        {1428, sizeof(::s4wave::provider::spacewave::EmailInfo)},
+        {1439, sizeof(::s4wave::provider::spacewave::ListEmailsRequest)},
+        {1440, sizeof(::s4wave::provider::spacewave::ListEmailsResponse)},
+        {1445, sizeof(::s4wave::provider::spacewave::WatchEmailsRequest)},
+        {1446, sizeof(::s4wave::provider::spacewave::WatchEmailsResponse)},
+        {1451, sizeof(::s4wave::provider::spacewave::SendVerificationEmailRequest)},
+        {1456, sizeof(::s4wave::provider::spacewave::SendVerificationEmailResponse)},
+        {1463, sizeof(::s4wave::provider::spacewave::VerifyEmailCodeRequest)},
+        {1470, sizeof(::s4wave::provider::spacewave::VerifyEmailCodeResponse)},
+        {1475, sizeof(::s4wave::provider::spacewave::AddEmailRequest)},
+        {1480, sizeof(::s4wave::provider::spacewave::AddEmailResponse)},
+        {1487, sizeof(::s4wave::provider::spacewave::RemoveEmailRequest)},
+        {1492, sizeof(::s4wave::provider::spacewave::RemoveEmailResponse)},
+        {1493, sizeof(::s4wave::provider::spacewave::SetPrimaryEmailRequest)},
+        {1498, sizeof(::s4wave::provider::spacewave::SetPrimaryEmailResponse)},
+        {1503, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberRequest)},
+        {1512, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberResult)},
+        {1523, sizeof(::s4wave::provider::spacewave::EnrollSpaceMemberResponse)},
+        {1528, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberRequest)},
+        {1535, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberResult)},
+        {1546, sizeof(::s4wave::provider::spacewave::RemoveSpaceMemberResponse)},
+        {1551, sizeof(::s4wave::provider::spacewave::LookupInviteCodeRequest)},
+        {1556, sizeof(::s4wave::provider::spacewave::LookupInviteCodeResponse)},
+        {1563, sizeof(::s4wave::provider::spacewave::GetMailboxEntriesRequest)},
+        {1568, sizeof(::s4wave::provider::spacewave::GetMailboxEntriesResponse)},
+        {1573, sizeof(::s4wave::provider::spacewave::MailboxEntryInfo)},
+        {1590, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryRequest)},
+        {1599, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryResponse)},
+        {1600, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthRequest)},
+        {1623, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthTicket)},
+        {1630, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkRequest)},
+        {1635, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkResponse)},
+        {1656, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkRequest)},
+        {1663, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkResponse)},
+        {1680, sizeof(::s4wave::provider::spacewave::SpaceLinkCallback)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::provider::spacewave::_PasswordCredential_default_instance_._instance,
@@ -8395,6 +8479,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::provider::spacewave::_LoginOrCreateAccountResponse_default_instance_._instance,
     &::s4wave::provider::spacewave::_LoginWithEntityKeyRequest_default_instance_._instance,
     &::s4wave::provider::spacewave::_LoginWithEntityKeyResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_MountLinkedDeviceSessionRequest_default_instance_._instance,
+    &::s4wave::provider::spacewave::_MountLinkedDeviceSessionResponse_default_instance_._instance,
     &::s4wave::provider::spacewave::_GenerateAuthKeypairsRequest_default_instance_._instance,
     &::s4wave::provider::spacewave::_GeneratedEntityKeypair_default_instance_._instance,
     &::s4wave::provider::spacewave::_GeneratedSessionKeypair_default_instance_._instance,
@@ -8652,6 +8738,12 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fp
     "ionListEntry\022\026\n\016is_new_account\030\002 \001(\010\"4\n\031"
     "LoginWithEntityKeyRequest\022\027\n\017pem_private"
     "_key\030\001 \001(\014\"S\n\032LoginWithEntityKeyResponse"
+    "\0225\n\022session_list_entry\030\001 \001(\0132\031.session.S"
+    "essionListEntry\"\222\001\n\037MountLinkedDeviceSes"
+    "sionRequest\022\022\n\naccount_id\030\001 \001(\t\022\022\n\nsessi"
+    "on_id\030\002 \001(\t\022\r\n\005label\030\003 \001(\t\022\037\n\027session_pe"
+    "m_private_key\030\004 \001(\014\022\027\n\017session_peer_id\030\005"
+    " \001(\t\"Y\n MountLinkedDeviceSessionResponse"
     "\0225\n\022session_list_entry\030\001 \001(\0132\031.session.S"
     "essionListEntry\"\035\n\033GenerateAuthKeypairsR"
     "equest\"`\n\026GeneratedEntityKeypair\022\027\n\017pem_"
@@ -9233,7 +9325,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fp
     "kCallbackStatus_OK\020\001\022\"\n\036SpaceLinkCallbac"
     "kStatus_DENIED\020\002\022#\n\037SpaceLinkCallbackSta"
     "tus_EXPIRED\020\003\022!\n\035SpaceLinkCallbackStatus"
-    "_ERROR\020\0042\205\036\n SpacewaveProviderResourceSe"
+    "_ERROR\020\0042\233\037\n SpacewaveProviderResourceSe"
     "rvice\022\202\001\n\026GetCloudProviderConfig\0228.s4wav"
     "e.provider.spacewave.GetCloudProviderCon"
     "figRequest\032..s4wave.provider.spacewave.C"
@@ -9276,60 +9368,64 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fp
     "ityKeyResponse\022\212\001\n\025ReauthenticateSession"
     "\0227.s4wave.provider.spacewave.Reauthentic"
     "ateSessionRequest\0328.s4wave.provider.spac"
-    "ewave.ReauthenticateSessionResponse\022\204\001\n\023"
-    "StartBrowserHandoff\0225.s4wave.provider.sp"
-    "acewave.StartBrowserHandoffRequest\0326.s4w"
-    "ave.provider.spacewave.StartBrowserHando"
-    "ffResponse\022x\n\017SSOCodeExchange\0221.s4wave.p"
-    "rovider.spacewave.SSOCodeExchangeRequest"
-    "\0322.s4wave.provider.spacewave.SSOCodeExch"
-    "angeResponse\022z\n\020SSONonceExchange\0222.s4wav"
-    "e.provider.spacewave.SSONonceExchangeReq"
-    "uest\0322.s4wave.provider.spacewave.SSOCode"
-    "ExchangeResponse\022x\n\017StartDesktopSSO\0221.s4"
-    "wave.provider.spacewave.StartDesktopSSOR"
-    "equest\0322.s4wave.provider.spacewave.Start"
-    "DesktopSSOResponse\022~\n\021ConfirmDesktopSSO\022"
-    "3.s4wave.provider.spacewave.ConfirmDeskt"
-    "opSSORequest\0324.s4wave.provider.spacewave"
-    ".ConfirmDesktopSSOResponse\022\207\001\n\024PasskeyCh"
-    "eckUsername\0226.s4wave.provider.spacewave."
-    "PasskeyCheckUsernameRequest\0327.s4wave.pro"
-    "vider.spacewave.PasskeyCheckUsernameResp"
-    "onse\022\223\001\n\030PasskeyRegisterChallenge\022:.s4wa"
-    "ve.provider.spacewave.PasskeyRegisterCha"
-    "llengeRequest\032;.s4wave.provider.spacewav"
-    "e.PasskeyRegisterChallengeResponse\022\207\001\n\024P"
-    "asskeyConfirmSignup\0226.s4wave.provider.sp"
-    "acewave.PasskeyConfirmSignupRequest\0327.s4"
-    "wave.provider.spacewave.PasskeyConfirmSi"
-    "gnupResponse\022\201\001\n\022PasskeyAuthOptions\0224.s4"
-    "wave.provider.spacewave.PasskeyAuthOptio"
-    "nsRequest\0325.s4wave.provider.spacewave.Pa"
-    "sskeyAuthOptionsResponse\022~\n\021PasskeyAuthV"
-    "erify\0223.s4wave.provider.spacewave.Passke"
-    "yAuthVerifyRequest\0324.s4wave.provider.spa"
-    "cewave.PasskeyAuthVerifyResponse\022\204\001\n\023Sta"
-    "rtDesktopPasskey\0225.s4wave.provider.space"
-    "wave.StartDesktopPasskeyRequest\0326.s4wave"
-    ".provider.spacewave.StartDesktopPasskeyR"
-    "esponse\022\212\001\n\025ConfirmDesktopPasskey\0227.s4wa"
-    "ve.provider.spacewave.ConfirmDesktopPass"
-    "keyRequest\0328.s4wave.provider.spacewave.C"
-    "onfirmDesktopPasskeyResponse\022\204\001\n\023RelayDe"
-    "sktopPasskey\0225.s4wave.provider.spacewave"
-    ".RelayDesktopPasskeyRequest\0326.s4wave.pro"
-    "vider.spacewave.RelayDesktopPasskeyRespo"
-    "nse\022\207\001\n\024RequestRecoveryEmail\0226.s4wave.pr"
-    "ovider.spacewave.RequestRecoveryEmailReq"
-    "uest\0327.s4wave.provider.spacewave.Request"
-    "RecoveryEmailResponse\022r\n\rRecoverVerify\022/"
-    ".s4wave.provider.spacewave.RecoverVerify"
-    "Request\0320.s4wave.provider.spacewave.Reco"
-    "verVerifyResponse\022u\n\016RecoverExecute\0220.s4"
+    "ewave.ReauthenticateSessionResponse\022\223\001\n\030"
+    "MountLinkedDeviceSession\022:.s4wave.provid"
+    "er.spacewave.MountLinkedDeviceSessionReq"
+    "uest\032;.s4wave.provider.spacewave.MountLi"
+    "nkedDeviceSessionResponse\022\204\001\n\023StartBrows"
+    "erHandoff\0225.s4wave.provider.spacewave.St"
+    "artBrowserHandoffRequest\0326.s4wave.provid"
+    "er.spacewave.StartBrowserHandoffResponse"
+    "\022x\n\017SSOCodeExchange\0221.s4wave.provider.sp"
+    "acewave.SSOCodeExchangeRequest\0322.s4wave."
+    "provider.spacewave.SSOCodeExchangeRespon"
+    "se\022z\n\020SSONonceExchange\0222.s4wave.provider"
+    ".spacewave.SSONonceExchangeRequest\0322.s4w"
+    "ave.provider.spacewave.SSOCodeExchangeRe"
+    "sponse\022x\n\017StartDesktopSSO\0221.s4wave.provi"
+    "der.spacewave.StartDesktopSSORequest\0322.s"
+    "4wave.provider.spacewave.StartDesktopSSO"
+    "Response\022~\n\021ConfirmDesktopSSO\0223.s4wave.p"
+    "rovider.spacewave.ConfirmDesktopSSOReque"
+    "st\0324.s4wave.provider.spacewave.ConfirmDe"
+    "sktopSSOResponse\022\207\001\n\024PasskeyCheckUsernam"
+    "e\0226.s4wave.provider.spacewave.PasskeyChe"
+    "ckUsernameRequest\0327.s4wave.provider.spac"
+    "ewave.PasskeyCheckUsernameResponse\022\223\001\n\030P"
+    "asskeyRegisterChallenge\022:.s4wave.provide"
+    "r.spacewave.PasskeyRegisterChallengeRequ"
+    "est\032;.s4wave.provider.spacewave.PasskeyR"
+    "egisterChallengeResponse\022\207\001\n\024PasskeyConf"
+    "irmSignup\0226.s4wave.provider.spacewave.Pa"
+    "sskeyConfirmSignupRequest\0327.s4wave.provi"
+    "der.spacewave.PasskeyConfirmSignupRespon"
+    "se\022\201\001\n\022PasskeyAuthOptions\0224.s4wave.provi"
+    "der.spacewave.PasskeyAuthOptionsRequest\032"
+    "5.s4wave.provider.spacewave.PasskeyAuthO"
+    "ptionsResponse\022~\n\021PasskeyAuthVerify\0223.s4"
+    "wave.provider.spacewave.PasskeyAuthVerif"
+    "yRequest\0324.s4wave.provider.spacewave.Pas"
+    "skeyAuthVerifyResponse\022\204\001\n\023StartDesktopP"
+    "asskey\0225.s4wave.provider.spacewave.Start"
+    "DesktopPasskeyRequest\0326.s4wave.provider."
+    "spacewave.StartDesktopPasskeyResponse\022\212\001"
+    "\n\025ConfirmDesktopPasskey\0227.s4wave.provide"
+    "r.spacewave.ConfirmDesktopPasskeyRequest"
+    "\0328.s4wave.provider.spacewave.ConfirmDesk"
+    "topPasskeyResponse\022\204\001\n\023RelayDesktopPassk"
+    "ey\0225.s4wave.provider.spacewave.RelayDesk"
+    "topPasskeyRequest\0326.s4wave.provider.spac"
+    "ewave.RelayDesktopPasskeyResponse\022\207\001\n\024Re"
+    "questRecoveryEmail\0226.s4wave.provider.spa"
+    "cewave.RequestRecoveryEmailRequest\0327.s4w"
+    "ave.provider.spacewave.RequestRecoveryEm"
+    "ailResponse\022r\n\rRecoverVerify\022/.s4wave.pr"
+    "ovider.spacewave.RecoverVerifyRequest\0320."
+    "s4wave.provider.spacewave.RecoverVerifyR"
+    "esponse\022u\n\016RecoverExecute\0220.s4wave.provi"
+    "der.spacewave.RecoverExecuteRequest\0321.s4"
     "wave.provider.spacewave.RecoverExecuteRe"
-    "quest\0321.s4wave.provider.spacewave.Recove"
-    "rExecuteResponseb\006proto3"
+    "sponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto_deps[3] = {
@@ -9341,13 +9437,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto = {
     false,
     false,
-    28504,
+    28894,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
     "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto_deps,
     3,
-    230,
+    232,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto::offsets,
@@ -13110,6 +13206,723 @@ void LoginWithEntityKeyResponse::InternalSwap(LoginWithEntityKeyResponse* PROTOB
 }
 
 ::google::protobuf::Metadata LoginWithEntityKeyResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class MountLinkedDeviceSessionRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<MountLinkedDeviceSessionRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_._has_bits_);
+};
+
+MountLinkedDeviceSessionRequest::MountLinkedDeviceSessionRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, MountLinkedDeviceSessionRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+}
+PROTOBUF_NDEBUG_INLINE MountLinkedDeviceSessionRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        account_id_(arena, from.account_id_),
+        session_id_(arena, from.session_id_),
+        label_(arena, from.label_),
+        session_pem_private_key_(arena, from.session_pem_private_key_),
+        session_peer_id_(arena, from.session_peer_id_) {}
+
+MountLinkedDeviceSessionRequest::MountLinkedDeviceSessionRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const MountLinkedDeviceSessionRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, MountLinkedDeviceSessionRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  MountLinkedDeviceSessionRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+}
+PROTOBUF_NDEBUG_INLINE MountLinkedDeviceSessionRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        account_id_(arena),
+        session_id_(arena),
+        label_(arena),
+        session_pem_private_key_(arena),
+        session_peer_id_(arena) {}
+
+inline void MountLinkedDeviceSessionRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+MountLinkedDeviceSessionRequest::~MountLinkedDeviceSessionRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+  SharedDtor(*this);
+}
+inline void MountLinkedDeviceSessionRequest::SharedDtor(MessageLite& self) {
+  MountLinkedDeviceSessionRequest& this_ = static_cast<MountLinkedDeviceSessionRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.account_id_.Destroy();
+  this_._impl_.session_id_.Destroy();
+  this_._impl_.label_.Destroy();
+  this_._impl_.session_pem_private_key_.Destroy();
+  this_._impl_.session_peer_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL MountLinkedDeviceSessionRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) MountLinkedDeviceSessionRequest(arena);
+}
+constexpr auto MountLinkedDeviceSessionRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(MountLinkedDeviceSessionRequest),
+                                            alignof(MountLinkedDeviceSessionRequest));
+}
+constexpr auto MountLinkedDeviceSessionRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_MountLinkedDeviceSessionRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &MountLinkedDeviceSessionRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<MountLinkedDeviceSessionRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &MountLinkedDeviceSessionRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<MountLinkedDeviceSessionRequest>(), &MountLinkedDeviceSessionRequest::ByteSizeLong,
+              &MountLinkedDeviceSessionRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_._cached_size_),
+          false,
+      },
+      &MountLinkedDeviceSessionRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull MountLinkedDeviceSessionRequest_class_data_ =
+        MountLinkedDeviceSessionRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+MountLinkedDeviceSessionRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&MountLinkedDeviceSessionRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(MountLinkedDeviceSessionRequest_class_data_.tc_table);
+  return MountLinkedDeviceSessionRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 106, 2>
+MountLinkedDeviceSessionRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    MountLinkedDeviceSessionRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::MountLinkedDeviceSessionRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string account_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.account_id_)}},
+    // string session_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.session_id_)}},
+    // string label = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.label_)}},
+    // bytes session_pem_private_key = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.session_pem_private_key_)}},
+    // string session_peer_id = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 4, 0,
+      PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.session_peer_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string account_id = 1;
+    {PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.account_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string session_id = 2;
+    {PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.session_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string label = 3;
+    {PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.label_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bytes session_pem_private_key = 4;
+    {PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.session_pem_private_key_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // string session_peer_id = 5;
+    {PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionRequest, _impl_.session_peer_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\71\12\12\5\0\17\0\0"
+    "s4wave.provider.spacewave.MountLinkedDeviceSessionRequest"
+    "account_id"
+    "session_id"
+    "label"
+    "session_peer_id"
+  }},
+};
+PROTOBUF_NOINLINE void MountLinkedDeviceSessionRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.session_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.session_pem_private_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.session_peer_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL MountLinkedDeviceSessionRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const MountLinkedDeviceSessionRequest& this_ = static_cast<const MountLinkedDeviceSessionRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL MountLinkedDeviceSessionRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const MountLinkedDeviceSessionRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string account_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_account_id().empty()) {
+      const ::std::string& _s = this_._internal_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.MountLinkedDeviceSessionRequest.account_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string session_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_session_id().empty()) {
+      const ::std::string& _s = this_._internal_session_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.MountLinkedDeviceSessionRequest.session_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string label = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.MountLinkedDeviceSessionRequest.label");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // bytes session_pem_private_key = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_session_pem_private_key().empty()) {
+      const ::std::string& _s = this_._internal_session_pem_private_key();
+      target = stream->WriteBytesMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string session_peer_id = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_session_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_session_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.MountLinkedDeviceSessionRequest.session_peer_id");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t MountLinkedDeviceSessionRequest::ByteSizeLong(const MessageLite& base) {
+  const MountLinkedDeviceSessionRequest& this_ = static_cast<const MountLinkedDeviceSessionRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t MountLinkedDeviceSessionRequest::ByteSizeLong() const {
+  const MountLinkedDeviceSessionRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // string account_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_account_id());
+      }
+    }
+    // string session_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_session_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_session_id());
+      }
+    }
+    // string label = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // bytes session_pem_private_key = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_session_pem_private_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_session_pem_private_key());
+      }
+    }
+    // string session_peer_id = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_session_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_session_peer_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void MountLinkedDeviceSessionRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<MountLinkedDeviceSessionRequest*>(&to_msg);
+  auto& from = static_cast<const MountLinkedDeviceSessionRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_account_id().empty()) {
+        _this->_internal_set_account_id(from._internal_account_id());
+      } else {
+        if (_this->_impl_.account_id_.IsDefault()) {
+          _this->_internal_set_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_session_id().empty()) {
+        _this->_internal_set_session_id(from._internal_session_id());
+      } else {
+        if (_this->_impl_.session_id_.IsDefault()) {
+          _this->_internal_set_session_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_session_pem_private_key().empty()) {
+        _this->_internal_set_session_pem_private_key(from._internal_session_pem_private_key());
+      } else {
+        if (_this->_impl_.session_pem_private_key_.IsDefault()) {
+          _this->_internal_set_session_pem_private_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_session_peer_id().empty()) {
+        _this->_internal_set_session_peer_id(from._internal_session_peer_id());
+      } else {
+        if (_this->_impl_.session_peer_id_.IsDefault()) {
+          _this->_internal_set_session_peer_id("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void MountLinkedDeviceSessionRequest::CopyFrom(const MountLinkedDeviceSessionRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.MountLinkedDeviceSessionRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void MountLinkedDeviceSessionRequest::InternalSwap(MountLinkedDeviceSessionRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.account_id_, &other->_impl_.account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.session_id_, &other->_impl_.session_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.session_pem_private_key_, &other->_impl_.session_pem_private_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.session_peer_id_, &other->_impl_.session_peer_id_, arena);
+}
+
+::google::protobuf::Metadata MountLinkedDeviceSessionRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class MountLinkedDeviceSessionResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<MountLinkedDeviceSessionResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionResponse, _impl_._has_bits_);
+};
+
+void MountLinkedDeviceSessionResponse::clear_session_list_entry() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.session_list_entry_ != nullptr) _impl_.session_list_entry_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+MountLinkedDeviceSessionResponse::MountLinkedDeviceSessionResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, MountLinkedDeviceSessionResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+}
+PROTOBUF_NDEBUG_INLINE MountLinkedDeviceSessionResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::MountLinkedDeviceSessionResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+MountLinkedDeviceSessionResponse::MountLinkedDeviceSessionResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const MountLinkedDeviceSessionResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, MountLinkedDeviceSessionResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  MountLinkedDeviceSessionResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.session_list_entry_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.session_list_entry_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+}
+PROTOBUF_NDEBUG_INLINE MountLinkedDeviceSessionResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void MountLinkedDeviceSessionResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.session_list_entry_ = {};
+}
+MountLinkedDeviceSessionResponse::~MountLinkedDeviceSessionResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+  SharedDtor(*this);
+}
+inline void MountLinkedDeviceSessionResponse::SharedDtor(MessageLite& self) {
+  MountLinkedDeviceSessionResponse& this_ = static_cast<MountLinkedDeviceSessionResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.session_list_entry_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL MountLinkedDeviceSessionResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) MountLinkedDeviceSessionResponse(arena);
+}
+constexpr auto MountLinkedDeviceSessionResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(MountLinkedDeviceSessionResponse),
+                                            alignof(MountLinkedDeviceSessionResponse));
+}
+constexpr auto MountLinkedDeviceSessionResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_MountLinkedDeviceSessionResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &MountLinkedDeviceSessionResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<MountLinkedDeviceSessionResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &MountLinkedDeviceSessionResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<MountLinkedDeviceSessionResponse>(), &MountLinkedDeviceSessionResponse::ByteSizeLong,
+              &MountLinkedDeviceSessionResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionResponse, _impl_._cached_size_),
+          false,
+      },
+      &MountLinkedDeviceSessionResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull MountLinkedDeviceSessionResponse_class_data_ =
+        MountLinkedDeviceSessionResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+MountLinkedDeviceSessionResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&MountLinkedDeviceSessionResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(MountLinkedDeviceSessionResponse_class_data_.tc_table);
+  return MountLinkedDeviceSessionResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+MountLinkedDeviceSessionResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    MountLinkedDeviceSessionResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::MountLinkedDeviceSessionResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .session.SessionListEntry session_list_entry = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionResponse, _impl_.session_list_entry_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .session.SessionListEntry session_list_entry = 1;
+    {PROTOBUF_FIELD_OFFSET(MountLinkedDeviceSessionResponse, _impl_.session_list_entry_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::session::SessionListEntry>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void MountLinkedDeviceSessionResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.session_list_entry_ != nullptr);
+    _impl_.session_list_entry_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL MountLinkedDeviceSessionResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const MountLinkedDeviceSessionResponse& this_ = static_cast<const MountLinkedDeviceSessionResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL MountLinkedDeviceSessionResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const MountLinkedDeviceSessionResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .session.SessionListEntry session_list_entry = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.session_list_entry_, this_._impl_.session_list_entry_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t MountLinkedDeviceSessionResponse::ByteSizeLong(const MessageLite& base) {
+  const MountLinkedDeviceSessionResponse& this_ = static_cast<const MountLinkedDeviceSessionResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t MountLinkedDeviceSessionResponse::ByteSizeLong() const {
+  const MountLinkedDeviceSessionResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .session.SessionListEntry session_list_entry = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.session_list_entry_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void MountLinkedDeviceSessionResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<MountLinkedDeviceSessionResponse*>(&to_msg);
+  auto& from = static_cast<const MountLinkedDeviceSessionResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.session_list_entry_ != nullptr);
+    if (_this->_impl_.session_list_entry_ == nullptr) {
+      _this->_impl_.session_list_entry_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.session_list_entry_);
+    } else {
+      _this->_impl_.session_list_entry_->MergeFrom(*from._impl_.session_list_entry_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void MountLinkedDeviceSessionResponse::CopyFrom(const MountLinkedDeviceSessionResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.MountLinkedDeviceSessionResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void MountLinkedDeviceSessionResponse::InternalSwap(MountLinkedDeviceSessionResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.session_list_entry_, other->_impl_.session_list_entry_);
+}
+
+::google::protobuf::Metadata MountLinkedDeviceSessionResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

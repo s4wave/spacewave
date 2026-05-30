@@ -360,9 +360,15 @@ func (c *sdkClient) accessWorldEngineWithRef(ctx context.Context, spaceSvc s4wav
 
 // close releases all resources and closes the connection.
 func (c *sdkClient) close() {
-	c.root.Release()
-	c.resClient.Release()
-	c.conn.Close()
+	if c.root != nil {
+		c.root.Release()
+	}
+	if c.resClient != nil {
+		c.resClient.Release()
+	}
+	if c.conn != nil {
+		c.conn.Close()
+	}
 }
 
 // resolveStatePath resolves the state path, making it absolute if needed.

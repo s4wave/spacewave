@@ -55,6 +55,8 @@ class SRPCSpacewaveProviderResourceServiceClient {
   virtual starpc::Error LoginWithEntityKey(const s4wave::provider::spacewave::LoginWithEntityKeyRequest& in, s4wave::provider::spacewave::LoginWithEntityKeyResponse* out) = 0;
   // ReauthenticateSession
   virtual starpc::Error ReauthenticateSession(const s4wave::provider::spacewave::ReauthenticateSessionRequest& in, s4wave::provider::spacewave::ReauthenticateSessionResponse* out) = 0;
+  // MountLinkedDeviceSession
+  virtual starpc::Error MountLinkedDeviceSession(const s4wave::provider::spacewave::MountLinkedDeviceSessionRequest& in, s4wave::provider::spacewave::MountLinkedDeviceSessionResponse* out) = 0;
   // StartBrowserHandoff
   virtual starpc::Error StartBrowserHandoff(const s4wave::provider::spacewave::StartBrowserHandoffRequest& in, s4wave::provider::spacewave::StartBrowserHandoffResponse* out) = 0;
   // SSOCodeExchange
@@ -123,6 +125,8 @@ class SRPCSpacewaveProviderResourceServiceClientImpl : public SRPCSpacewaveProvi
   virtual starpc::Error LoginWithEntityKey(const s4wave::provider::spacewave::LoginWithEntityKeyRequest& in, s4wave::provider::spacewave::LoginWithEntityKeyResponse* out) override;
   // ReauthenticateSession
   virtual starpc::Error ReauthenticateSession(const s4wave::provider::spacewave::ReauthenticateSessionRequest& in, s4wave::provider::spacewave::ReauthenticateSessionResponse* out) override;
+  // MountLinkedDeviceSession
+  virtual starpc::Error MountLinkedDeviceSession(const s4wave::provider::spacewave::MountLinkedDeviceSessionRequest& in, s4wave::provider::spacewave::MountLinkedDeviceSessionResponse* out) override;
   // StartBrowserHandoff
   virtual starpc::Error StartBrowserHandoff(const s4wave::provider::spacewave::StartBrowserHandoffRequest& in, s4wave::provider::spacewave::StartBrowserHandoffResponse* out) override;
   // SSOCodeExchange
@@ -197,6 +201,8 @@ class SRPCSpacewaveProviderResourceServiceServer {
   virtual starpc::Error LoginWithEntityKey(const s4wave::provider::spacewave::LoginWithEntityKeyRequest& req, s4wave::provider::spacewave::LoginWithEntityKeyResponse* resp) = 0;
   // ReauthenticateSession
   virtual starpc::Error ReauthenticateSession(const s4wave::provider::spacewave::ReauthenticateSessionRequest& req, s4wave::provider::spacewave::ReauthenticateSessionResponse* resp) = 0;
+  // MountLinkedDeviceSession
+  virtual starpc::Error MountLinkedDeviceSession(const s4wave::provider::spacewave::MountLinkedDeviceSessionRequest& req, s4wave::provider::spacewave::MountLinkedDeviceSessionResponse* resp) = 0;
   // StartBrowserHandoff
   virtual starpc::Error StartBrowserHandoff(const s4wave::provider::spacewave::StartBrowserHandoffRequest& req, s4wave::provider::spacewave::StartBrowserHandoffResponse* resp) = 0;
   // SSOCodeExchange

@@ -34,6 +34,8 @@ service SpacewaveProviderResourceService {
   rpc LoginWithEntityKey(LoginWithEntityKeyRequest) returns (LoginWithEntityKeyResponse);
   // ReauthenticateSession reauthenticates a mounted session with fresh auth material.
   rpc ReauthenticateSession(ReauthenticateSessionRequest) returns (ReauthenticateSessionResponse);
+  // MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+  rpc MountLinkedDeviceSession(MountLinkedDeviceSessionRequest) returns (MountLinkedDeviceSessionResponse);
 
   // StartBrowserHandoff starts the external browser auth handoff flow.
   rpc StartBrowserHandoff(StartBrowserHandoffRequest) returns (StartBrowserHandoffResponse);
@@ -163,6 +165,26 @@ message LoginWithEntityKeyRequest {
 // LoginWithEntityKeyResponse is the response for LoginWithEntityKey.
 message LoginWithEntityKeyResponse {
   // SessionListEntry is the created session entry.
+  .session.SessionListEntry session_list_entry = 1;
+}
+
+// MountLinkedDeviceSessionRequest mounts a SpaceLink-approved DEVICE session.
+message MountLinkedDeviceSessionRequest {
+  // AccountId is the Spacewave Cloud account ID returned by approval.
+  string account_id = 1;
+  // SessionId is the stable local provider resource ID for this Device session.
+  string session_id = 2;
+  // Label is the operator-visible Device label.
+  string label = 3;
+  // SessionPemPrivateKey is the approved Device session private key in PEM form.
+  bytes session_pem_private_key = 4;
+  // SessionPeerId is the expected peer ID derived from SessionPemPrivateKey.
+  string session_peer_id = 5;
+}
+
+// MountLinkedDeviceSessionResponse returns the mounted Device session entry.
+message MountLinkedDeviceSessionResponse {
+  // SessionListEntry is the created or existing Device session entry.
   .session.SessionListEntry session_list_entry = 1;
 }
 

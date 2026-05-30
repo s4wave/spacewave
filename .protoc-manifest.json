@@ -4048,7 +4048,7 @@
       "protoFiles": ["sdk/provider/local/local.proto"]
     },
     "github.com/s4wave/spacewave/sdk/provider/spacewave": {
-      "hash": "3c5dd7b3eb41b0107038040c4e9513fd33c38054b396a3f8001abb5cf94e9201",
+      "hash": "787b168151e9ea1684afe35e689a13db5623433615806c9c80a025799f399e2b",
       "generatedFiles": [
         "sdk/provider/spacewave/spacewave.pb.cc",
         "sdk/provider/spacewave/spacewave.pb.go",

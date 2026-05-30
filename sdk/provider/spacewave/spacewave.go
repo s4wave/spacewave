@@ -62,6 +62,11 @@ func (s *SpacewaveProvider) LoginWithEntityKey(ctx context.Context, pemPrivateKe
 	})
 }
 
+// MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+func (s *SpacewaveProvider) MountLinkedDeviceSession(ctx context.Context, req *MountLinkedDeviceSessionRequest) (*MountLinkedDeviceSessionResponse, error) {
+	return s.service.MountLinkedDeviceSession(ctx, req)
+}
+
 // PasskeyCheckUsername acknowledges the opaque first passkey step.
 func (s *SpacewaveProvider) PasskeyCheckUsername(ctx context.Context, username string) (*PasskeyCheckUsernameResponse, error) {
 	return s.service.PasskeyCheckUsername(ctx, &PasskeyCheckUsernameRequest{

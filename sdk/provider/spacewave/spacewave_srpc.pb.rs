@@ -37,6 +37,8 @@ pub trait SpacewaveProviderResourceServiceClient: Send + Sync {
     async fn login_with_entity_key(&self, request: &LoginWithEntityKeyRequest) -> starpc::Result<LoginWithEntityKeyResponse>;
     /// ReauthenticateSession.
     async fn reauthenticate_session(&self, request: &ReauthenticateSessionRequest) -> starpc::Result<ReauthenticateSessionResponse>;
+    /// MountLinkedDeviceSession.
+    async fn mount_linked_device_session(&self, request: &MountLinkedDeviceSessionRequest) -> starpc::Result<MountLinkedDeviceSessionResponse>;
     /// StartBrowserHandoff.
     async fn start_browser_handoff(&self, request: &StartBrowserHandoffRequest) -> starpc::Result<StartBrowserHandoffResponse>;
     /// SSOCodeExchange.
@@ -124,6 +126,9 @@ impl<C: starpc::Client + 'static> SpacewaveProviderResourceServiceClient for Spa
     async fn reauthenticate_session(&self, request: &ReauthenticateSessionRequest) -> starpc::Result<ReauthenticateSessionResponse> {
         self.client.exec_call("s4wave.provider.spacewave.SpacewaveProviderResourceService", "ReauthenticateSession", request).await
     }
+    async fn mount_linked_device_session(&self, request: &MountLinkedDeviceSessionRequest) -> starpc::Result<MountLinkedDeviceSessionResponse> {
+        self.client.exec_call("s4wave.provider.spacewave.SpacewaveProviderResourceService", "MountLinkedDeviceSession", request).await
+    }
     async fn start_browser_handoff(&self, request: &StartBrowserHandoffRequest) -> starpc::Result<StartBrowserHandoffResponse> {
         self.client.exec_call("s4wave.provider.spacewave.SpacewaveProviderResourceService", "StartBrowserHandoff", request).await
     }
@@ -203,6 +208,8 @@ pub trait SpacewaveProviderResourceServiceServer: Send + Sync {
     async fn login_with_entity_key(&self, request: LoginWithEntityKeyRequest) -> starpc::Result<LoginWithEntityKeyResponse>;
     /// ReauthenticateSession.
     async fn reauthenticate_session(&self, request: ReauthenticateSessionRequest) -> starpc::Result<ReauthenticateSessionResponse>;
+    /// MountLinkedDeviceSession.
+    async fn mount_linked_device_session(&self, request: MountLinkedDeviceSessionRequest) -> starpc::Result<MountLinkedDeviceSessionResponse>;
     /// StartBrowserHandoff.
     async fn start_browser_handoff(&self, request: StartBrowserHandoffRequest) -> starpc::Result<StartBrowserHandoffResponse>;
     /// SSOCodeExchange.
@@ -251,6 +258,7 @@ const SPACEWAVE_PROVIDER_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "LoginOrCreateAccount",
     "LoginWithEntityKey",
     "ReauthenticateSession",
+    "MountLinkedDeviceSession",
     "StartBrowserHandoff",
     "SSOCodeExchange",
     "SSONonceExchange",
@@ -481,6 +489,21 @@ impl<S: SpacewaveProviderResourceServiceServer + 'static> starpc::Invoker for Sp
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.reauthenticate_session(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "MountLinkedDeviceSession" => {
+                let request: MountLinkedDeviceSessionRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.mount_linked_device_session(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

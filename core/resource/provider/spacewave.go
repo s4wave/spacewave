@@ -243,6 +243,57 @@ func (s *SpacewaveProviderResource) LoginWithEntityKey(
 	}, nil
 }
 
+// MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+func (s *SpacewaveProviderResource) MountLinkedDeviceSession(
+	ctx context.Context,
+	req *s4wave_provider_spacewave.MountLinkedDeviceSessionRequest,
+) (*s4wave_provider_spacewave.MountLinkedDeviceSessionResponse, error) {
+	if req.GetAccountId() == "" {
+		return nil, errors.New("account_id is required")
+	}
+	if err := provider.ValidateResourceID(req.GetSessionId()); err != nil {
+		return nil, errors.Wrap(err, "session_id")
+	}
+	if len(req.GetSessionPemPrivateKey()) == 0 {
+		return nil, errors.New("session_pem_private_key is required")
+	}
+	privKey, err := keypem.ParsePrivKeyPem(req.GetSessionPemPrivateKey())
+	if err != nil {
+		return nil, errors.Wrap(err, "parse session private key")
+	}
+	if privKey == nil {
+		return nil, errors.New("session_pem_private_key must contain a private key")
+	}
+	peerID, err := peer.IDFromPrivateKey(privKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "derive session peer id")
+	}
+	if req.GetSessionPeerId() != "" && req.GetSessionPeerId() != peerID.String() {
+		return nil, errors.New("session_peer_id does not match session private key")
+	}
+
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "lookup session controller")
+	}
+	defer sessionCtrlRef.Release()
+
+	listEntry, err := s.provider.MountLinkedDeviceSession(
+		ctx,
+		req.GetAccountId(),
+		req.GetSessionId(),
+		req.GetLabel(),
+		privKey,
+		sessionCtrl,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_provider_spacewave.MountLinkedDeviceSessionResponse{
+		SessionListEntry: listEntry,
+	}, nil
+}
+
 // GenerateAuthKeypairs generates account and session auth key material.
 func (s *SpacewaveProviderResource) GenerateAuthKeypairs(
 	context.Context,
