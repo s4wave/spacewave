@@ -16,6 +16,13 @@ interface DesktopTrayPopoverControllerOpts {
   runtimeState?: () => DesktopRuntimeState
 }
 
+type DesktopTrayPanelAppearance = 'dark' | 'light' | 'system'
+
+interface DesktopTrayPopoverInspection {
+  text: string
+  theme: DesktopTrayPanelAppearance
+}
+
 const popoverWidth = 390
 const popoverHeight = 560
 const popoverMargin = 8
@@ -27,6 +34,8 @@ const commandScheme = 'spacewave-tray-command:'
 export class DesktopTrayPopoverController {
   private window?: Electron.BrowserWindow
   private disabled = false
+  private renderGeneration = 0
+  private appearance: DesktopTrayPanelAppearance = 'system'
 
   constructor(private readonly opts: DesktopTrayPopoverControllerOpts) {}
 
@@ -81,8 +90,29 @@ export class DesktopTrayPopoverController {
     if (!this.window || this.window.isDestroyed()) {
       return undefined
     }
+    await waitForPopoverPaint(this.window)
     const image = await this.window.capturePage()
     return image.toPNG()
+  }
+
+  public async inspectForE2E(): Promise<
+    DesktopTrayPopoverInspection | undefined
+  > {
+    if (!this.window || this.window.isDestroyed()) {
+      return undefined
+    }
+    await waitForPopoverPaint(this.window)
+    const value: unknown = await this.window.webContents.executeJavaScript(
+      `({
+        text: document.body.innerText,
+        theme: document.documentElement.dataset.theme || 'system'
+      })`,
+      true,
+    )
+    if (!isPopoverInspection(value)) {
+      throw new Error('invalid tray popover inspection payload')
+    }
+    return value
   }
 
   public close(): void {
@@ -92,6 +122,10 @@ export class DesktopTrayPopoverController {
     }
     this.window.close()
     this.window = undefined
+  }
+
+  public setAppearanceForE2E(appearance: DesktopTrayPanelAppearance): void {
+    this.appearance = appearance
   }
 
   private createWindow(tray: Electron.Tray): Electron.BrowserWindow {
@@ -172,9 +206,8 @@ export class DesktopTrayPopoverController {
     )
     const opensDown =
       trayBounds.y < workArea.y + Math.floor(workArea.height / 2)
-    const y =
-      opensDown ?
-        trayBounds.y + trayBounds.height + popoverMargin
+    const y = opensDown
+      ? trayBounds.y + trayBounds.height + popoverMargin
       : trayBounds.y - popoverHeight - popoverMargin
     return {
       x,
@@ -188,16 +221,29 @@ export class DesktopTrayPopoverController {
     win: Electron.BrowserWindow,
     state: DesktopTrayState,
   ): Promise<void> {
+    const generation = ++this.renderGeneration
     const descriptor = buildDesktopTrayPanelDescriptor({
       appName: this.opts.appName || 'Spacewave',
       state,
       runtimeState: this.opts.runtimeState?.(),
     })
-    await win.loadURL(
-      `data:text/html;charset=utf-8,${encodeURIComponent(
-        renderDesktopTrayPanelHtml(descriptor),
-      )}`,
-    )
+    try {
+      await win.loadURL(
+        `data:text/html;charset=utf-8,${encodeURIComponent(
+          renderDesktopTrayPanelHtml(descriptor, {
+            appearance: this.appearance,
+          }),
+        )}`,
+      )
+    } catch (err) {
+      if (
+        generation !== this.renderGeneration &&
+        isSupersededNavigationAbort(err)
+      ) {
+        return
+      }
+      throw err
+    }
   }
 
   private disable(err: unknown): void {
@@ -212,10 +258,11 @@ export class DesktopTrayPopoverController {
 
 export function renderDesktopTrayPanelHtml(
   descriptor: DesktopTrayPanelDescriptor,
+  opts: { appearance?: DesktopTrayPanelAppearance } = {},
 ): string {
   const tabs = renderableTabs(descriptor)
   return `<!doctype html>
-<html>
+<html${opts.appearance && opts.appearance !== 'system' ? ` data-theme="${opts.appearance}"` : ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -658,6 +705,85 @@ body {
     background: #402222;
   }
 }
+:root[data-theme="dark"] {
+  background: #17191d;
+  color: #f1f3f6;
+}
+:root[data-theme="dark"] .surface {
+  background: #17191d;
+  color: #f1f3f6;
+}
+:root[data-theme="dark"] .subtitle,
+:root[data-theme="dark"] .card-label,
+:root[data-theme="dark"] .section-title,
+:root[data-theme="dark"] .detail,
+:root[data-theme="dark"] .status {
+  color: #a5afbd;
+}
+:root[data-theme="dark"] .status-pill,
+:root[data-theme="dark"] .tab[aria-selected="true"],
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .nav-card,
+:root[data-theme="dark"] .empty,
+:root[data-theme="dark"] .section {
+  border-color: #333944;
+  background: #20242b;
+  color: #f1f3f6;
+}
+:root[data-theme="dark"] .tabs {
+  border-color: #333944;
+  background: #1d2026;
+}
+:root[data-theme="dark"] .tab {
+  color: #a5afbd;
+}
+:root[data-theme="dark"] .section-title {
+  border-color: #2a3039;
+  background: #242932;
+}
+:root[data-theme="dark"] .row {
+  border-color: #2a3039;
+}
+:root[data-theme="dark"] .row.action:hover,
+:root[data-theme="dark"] .row.action:focus,
+:root[data-theme="dark"] .row.action:focus-visible,
+:root[data-theme="dark"] .nav-card.action:hover,
+:root[data-theme="dark"] .nav-card.action:focus,
+:root[data-theme="dark"] .nav-card.action:focus-visible {
+  background: #26354a;
+}
+:root[data-theme="dark"] .row[aria-current="page"] {
+  background: #1f342b;
+}
+:root[data-theme="dark"] .nav-card.active {
+  border-color: #3b7458;
+  background: #1f342b;
+}
+:root[data-theme="dark"] .row.action .status,
+:root[data-theme="dark"] .nav-card.action .status {
+  border-color: #3a424e;
+  background: #171b21;
+  color: #c3ccd8;
+}
+:root[data-theme="dark"] .card-value,
+:root[data-theme="dark"] .title {
+  color: #f1f3f6;
+}
+:root[data-theme="dark"] .card-detail {
+  color: #b2bbc8;
+}
+:root[data-theme="dark"] .severity-info .status-pill {
+  border-color: #356b91;
+  background: #1d3447;
+}
+:root[data-theme="dark"] .severity-warning .status-pill {
+  border-color: #8b6c20;
+  background: #3d3118;
+}
+:root[data-theme="dark"] .severity-critical .status-pill {
+  border-color: #8b4548;
+  background: #402222;
+}
 </style>
 </head>
 <body class="${severityClass(descriptor.severity)}">
@@ -714,18 +840,18 @@ function renderPanels(
         ${renderSections(descriptor)}
       </div>
       ${
-        enabled.has('sessions') ?
-          `<div class="panel" data-panel="sessions">
+        enabled.has('sessions')
+          ? `<div class="panel" data-panel="sessions">
         ${renderRowsPanel('Sessions', descriptor.sessionRows, 'No sessions')}
       </div>`
-        : ''
+          : ''
       }
       ${
-        enabled.has('spaces') ?
-          `<div class="panel" data-panel="spaces">
+        enabled.has('spaces')
+          ? `<div class="panel" data-panel="spaces">
         ${renderRowsPanel('Spaces', descriptor.spaceRows, 'No spaces')}
       </div>`
-        : ''
+          : ''
       }
     </section>`
 }
@@ -769,9 +895,9 @@ function renderSections(descriptor: DesktopTrayPanelDescriptor): string {
     )
     .map((section) => {
       const rows =
-        section.title === 'Overview' ?
-          section.rows.filter((row) => !primaryIDs.has(row.id))
-        : section.rows
+        section.title === 'Overview'
+          ? section.rows.filter((row) => !primaryIDs.has(row.id))
+          : section.rows
       return rows.length ? renderSection({ ...section, rows }) : ''
     })
     .join('')
@@ -835,9 +961,7 @@ function renderNavigationCard(row: DesktopTrayPanelRow): string {
 
 function renderNavigationOverflow(title: string, count: number): string {
   const noun =
-    title === 'Sessions' ? 'session'
-    : title === 'Spaces' ? 'space'
-    : 'item'
+    title === 'Sessions' ? 'session' : title === 'Spaces' ? 'space' : 'item'
   return `<div class="nav-card-overflow">+${count} more ${noun}${
     count === 1 ? '' : 's'
   }</div>`
@@ -982,4 +1106,41 @@ function escapeHtml(value: string): string {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
+}
+
+function isSupersededNavigationAbort(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    String(err.code) === 'ERR_ABORTED'
+  )
+}
+
+function isPopoverInspection(
+  value: unknown,
+): value is DesktopTrayPopoverInspection {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  const text = Reflect.get(value, 'text')
+  const theme = Reflect.get(value, 'theme')
+  return (
+    typeof text === 'string' &&
+    (theme === 'system' || theme === 'light' || theme === 'dark')
+  )
+}
+
+async function waitForPopoverPaint(win: Electron.BrowserWindow): Promise<void> {
+  await win.webContents.executeJavaScript(
+    `new Promise((resolve) => {
+      const settle = () => requestAnimationFrame(() => requestAnimationFrame(resolve))
+      if (document.fonts?.ready) {
+        document.fonts.ready.then(settle, settle)
+      } else {
+        settle()
+      }
+    })`,
+    true,
+  )
 }

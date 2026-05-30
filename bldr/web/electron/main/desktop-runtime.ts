@@ -105,6 +105,10 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     this.pushState()
   }
 
+  public resetProjectedDesktopStateForE2E(): void {
+    this.setProjectedDesktopState(buildInitialDesktopRuntimeState())
+  }
+
   public setQuitting(quitting: boolean): void {
     if (this.state.quitting === quitting) return
     let health = DesktopRuntimeHealth.HEALTHY

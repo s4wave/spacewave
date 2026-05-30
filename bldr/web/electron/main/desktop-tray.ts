@@ -172,13 +172,22 @@ export class DesktopTrayController {
     }
     return this.popover.show(
       this.tray,
-      this.currentTrayState ??
-        this.opts.resource.desktopTrayResource.getState(),
+      this.opts.resource.desktopTrayResource.getState(),
     )
   }
 
   public async capturePopoverPNGForE2E(): Promise<Buffer | undefined> {
     return this.popover?.capturePNG()
+  }
+
+  public async inspectPopoverForE2E(): Promise<unknown> {
+    return this.popover?.inspectForE2E()
+  }
+
+  public setPopoverAppearanceForE2E(
+    appearance: 'dark' | 'light' | 'system',
+  ): void {
+    this.popover?.setAppearanceForE2E(appearance)
   }
 
   private buildMenu(state: DesktopTrayState): Electron.Menu {

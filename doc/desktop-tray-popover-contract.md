@@ -131,12 +131,17 @@ The native menu remains valid and complete when the popover is disabled, hidden,
 or fails to attach. Electron main always rebuilds the native context menu from
 `WatchDesktopTray`; the popover is optional UI layered on top of that resource.
 
-The current rich panel remains opt-in until screenshot and interaction proof
-accepts macOS enablement:
+The current rich panel remains opt-in:
 
 ```bash
 BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1 bun run start:desktop
 ```
+
+Rollout decision as of 2026-05-30: this scope does not promote the rich panel
+to default-on behavior. The proof matrix keeps the panel opt-in behind
+`BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1`, keeps Windows and Linux on the complete
+native menu path, and leaves default-on macOS enablement to a later
+desktop-shell product/settings/accessibility decision.
 
 Renderer packaging decision as of 2026-05-30: the opt-in panel stays as inline
 data-URL HTML owned by Electron main. That keeps the current surface at the
