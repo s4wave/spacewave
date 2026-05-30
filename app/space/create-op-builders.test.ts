@@ -33,6 +33,10 @@ describe('buildObjectKey', () => {
 })
 
 describe('lookupCreateOpBuilder', () => {
+  it('builds the Computers dashboard create op', () => {
+    expect(lookupCreateOpBuilder('spacewave/computers/create')).toBeDefined()
+  })
+
   it('does not own plugin-provided notes creation ops', () => {
     expect(lookupCreateOpBuilder('notes/notebook/init')).toBeUndefined()
     expect(lookupCreateOpBuilder('notes/docs/create')).toBeUndefined()

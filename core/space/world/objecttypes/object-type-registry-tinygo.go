@@ -66,6 +66,8 @@ func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType
 		return s4wave_org_world.OrganizationType, nil
 	case s4wave_device.DeviceTypeID:
 		return s4wave_device_world.DeviceType, nil
+	case s4wave_device.ComputersDashboardTypeID:
+		return s4wave_device_world.ComputersDashboardType, nil
 	case s4wave_secret_world.SecretTypeID:
 		return s4wave_secret_world.SecretType, nil
 	case bldr_manifest_world.ManifestTypeID:

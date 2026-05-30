@@ -19,3 +19,16 @@ func TestLookupDeviceObjectType(t *testing.T) {
 		t.Fatalf("object type id = %q, want %q", got.GetObjectTypeID(), s4wave_device.DeviceTypeID)
 	}
 }
+
+func TestLookupComputersDashboardObjectType(t *testing.T) {
+	got, err := LookupObjectType(context.Background(), s4wave_device.ComputersDashboardTypeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil {
+		t.Fatal("expected Computers dashboard ObjectType")
+	}
+	if got.GetObjectTypeID() != s4wave_device.ComputersDashboardTypeID {
+		t.Fatalf("object type id = %q, want %q", got.GetObjectTypeID(), s4wave_device.ComputersDashboardTypeID)
+	}
+}

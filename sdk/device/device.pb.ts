@@ -651,6 +651,76 @@ export const Device: MessageType<Device> = createMessageType({
 })
 
 /**
+ * ComputersDashboard is the Space-local dashboard for managed Devices and
+ * future host entries.
+ *
+ * @generated from message s4wave.device.ComputersDashboard
+ */
+export interface ComputersDashboard {
+  /**
+   * Name is the display name of this dashboard.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * CreatedAt is the time this dashboard was created.
+   *
+   * @generated from field: google.protobuf.Timestamp created_at = 2;
+   */
+  createdAt?: Date
+}
+
+// ComputersDashboard contains the message type declaration for ComputersDashboard.
+export const ComputersDashboard: MessageType<ComputersDashboard> =
+  createMessageType({
+    typeName: 's4wave.device.ComputersDashboard',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateComputersDashboardOp creates a ComputersDashboard world object.
+ *
+ * @generated from message s4wave.device.CreateComputersDashboardOp
+ */
+export interface CreateComputersDashboardOp {
+  /**
+   * ObjectKey is the key to create the dashboard at.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * Name is the display name of the dashboard.
+   *
+   * @generated from field: string name = 2;
+   */
+  name?: string
+  /**
+   * Timestamp is the creation timestamp.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 3;
+   */
+  timestamp?: Date
+}
+
+// CreateComputersDashboardOp contains the message type declaration for CreateComputersDashboardOp.
+export const CreateComputersDashboardOp: MessageType<CreateComputersDashboardOp> =
+  createMessageType({
+    typeName: 's4wave.device.CreateComputersDashboardOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WatchDeviceStateRequest is a request to watch Device state.
  *
  * @generated from message s4wave.device.WatchDeviceStateRequest

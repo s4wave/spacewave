@@ -3899,7 +3899,7 @@
       "protoFiles": ["sdk/deploy/deploy.proto"]
     },
     "github.com/s4wave/spacewave/sdk/device": {
-      "hash": "276f4df5899979f1d75fdacb87d8e9c4f463e333f5ee9200106b8fa5e1d2fe2e",
+      "hash": "0b425bc22cf9a72fc4eee6efecab4684a8d25653e731fdb82456187f3c808c55",
       "generatedFiles": [
         "sdk/device/device.pb.cc",
         "sdk/device/device.pb.go",

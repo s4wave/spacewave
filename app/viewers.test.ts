@@ -67,6 +67,26 @@ describe('getObjectViewersForType', () => {
     ])
   })
 
+  it('registers Computers and Add Device as typed Device setup surfaces', () => {
+    expect(
+      getObjectViewersForType('spacewave/computers').map((viewer) => [
+        viewer.name,
+        viewer.category,
+      ]),
+    ).toEqual([
+      ['Computers', 'Devices'],
+      ['Debug Viewer', 'Developer'],
+    ])
+    expect(
+      getObjectViewersForType('wizard/device/add')
+        .filter((viewer) => viewer.typeID.startsWith('wizard/'))
+        .map((viewer) => [viewer.name, viewer.requiresObjectState]),
+    ).toEqual([
+      ['Add Device', false],
+      ['Wizard', false],
+    ])
+  })
+
   it('lets wizard viewers open through their typed resource handle', () => {
     expect(
       getObjectViewersForType('wizard/drive/intro')

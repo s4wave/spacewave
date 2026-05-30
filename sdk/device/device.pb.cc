@@ -213,6 +213,65 @@ struct DeviceCapabilityDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeviceCapabilityDefaultTypeInternal _DeviceCapability_default_instance_;
 
+inline constexpr CreateComputersDashboardOp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        timestamp_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateComputersDashboardOp::CreateComputersDashboardOp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateComputersDashboardOp_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateComputersDashboardOpDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateComputersDashboardOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateComputersDashboardOpDefaultTypeInternal() {}
+  union {
+    CreateComputersDashboardOp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateComputersDashboardOpDefaultTypeInternal _CreateComputersDashboardOp_default_instance_;
+
+inline constexpr ComputersDashboard::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        created_at_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ComputersDashboard::ComputersDashboard(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ComputersDashboard_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ComputersDashboardDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ComputersDashboardDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ComputersDashboardDefaultTypeInternal() {}
+  union {
+    ComputersDashboard _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ComputersDashboardDefaultTypeInternal _ComputersDashboard_default_instance_;
+
 inline constexpr ReportDeviceStatusRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -421,6 +480,22 @@ const ::uint32_t
         0,
         6,
         7,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::ComputersDashboard, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::ComputersDashboard, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::ComputersDashboard, _impl_.created_at_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::CreateComputersDashboardOp, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::CreateComputersDashboardOp, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::CreateComputersDashboardOp, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::CreateComputersDashboardOp, _impl_.timestamp_),
+        0,
+        1,
+        2,
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::device::WatchDeviceStateResponse, _impl_._has_bits_),
@@ -457,10 +532,12 @@ static const ::_pbi::MigrationSchema
         {35, sizeof(::s4wave::device::DeviceCapabilityLink)},
         {44, sizeof(::s4wave::device::DeviceCapabilityPolicy)},
         {55, sizeof(::s4wave::device::Device)},
-        {78, sizeof(::s4wave::device::WatchDeviceStateRequest)},
-        {79, sizeof(::s4wave::device::WatchDeviceStateResponse)},
-        {84, sizeof(::s4wave::device::ReportDeviceStatusRequest)},
-        {99, sizeof(::s4wave::device::ReportDeviceStatusResponse)},
+        {78, sizeof(::s4wave::device::ComputersDashboard)},
+        {85, sizeof(::s4wave::device::CreateComputersDashboardOp)},
+        {94, sizeof(::s4wave::device::WatchDeviceStateRequest)},
+        {95, sizeof(::s4wave::device::WatchDeviceStateResponse)},
+        {100, sizeof(::s4wave::device::ReportDeviceStatusRequest)},
+        {115, sizeof(::s4wave::device::ReportDeviceStatusResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::device::_DevicePlatform_default_instance_._instance,
@@ -469,6 +546,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::device::_DeviceCapabilityLink_default_instance_._instance,
     &::s4wave::device::_DeviceCapabilityPolicy_default_instance_._instance,
     &::s4wave::device::_Device_default_instance_._instance,
+    &::s4wave::device::_ComputersDashboard_default_instance_._instance,
+    &::s4wave::device::_CreateComputersDashboardOp_default_instance_._instance,
     &::s4wave::device::_WatchDeviceStateRequest_default_instance_._instance,
     &::s4wave::device::_WatchDeviceStateResponse_default_instance_._instance,
     &::s4wave::device::_ReportDeviceStatusRequest_default_instance_._instance,
@@ -507,55 +586,60 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fd
     "4wave.device.DeviceCapability\022.\n\ncreated"
     "_at\030\t \001(\0132\032.google.protobuf.Timestamp\022.\n"
     "\nupdated_at\030\n \001(\0132\032.google.protobuf.Time"
-    "stamp\"\031\n\027WatchDeviceStateRequest\"@\n\030Watc"
-    "hDeviceStateResponse\022$\n\005state\030\001 \001(\0132\025.s4"
-    "wave.device.Device\"\241\002\n\031ReportDeviceStatu"
-    "sRequest\022\017\n\007peer_id\030\001 \001(\t\0224\n\013setup_state"
-    "\030\002 \001(\0162\037.s4wave.device.DeviceSetupState\022"
-    "6\n\014update_state\030\003 \001(\0162 .s4wave.device.De"
-    "viceUpdateState\0220\n\013last_status\030\004 \001(\0132\033.s"
-    "4wave.device.DeviceStatus\0225\n\014capabilitie"
-    "s\030\005 \003(\0132\037.s4wave.device.DeviceCapability"
-    "\022\034\n\024replace_capabilities\030\006 \001(\010\"B\n\032Report"
-    "DeviceStatusResponse\022$\n\005state\030\001 \001(\0132\025.s4"
-    "wave.device.Device*\331\001\n\020DeviceSetupState\022"
-    "\036\n\032DEVICE_SETUP_STATE_UNKNOWN\020\000\022-\n)DEVIC"
-    "E_SETUP_STATE_WAITING_FOR_COMPLETION\020\001\022*"
-    "\n&DEVICE_SETUP_STATE_COMPLETION_IMPORTED"
-    "\020\002\022+\n\'DEVICE_SETUP_STATE_DEVICE_SESSION_"
-    "READY\020\003\022\035\n\031DEVICE_SETUP_STATE_FAILED\020\004*\365"
-    "\001\n\021DeviceUpdateState\022\037\n\033DEVICE_UPDATE_ST"
-    "ATE_UNKNOWN\020\000\022\034\n\030DEVICE_UPDATE_STATE_IDL"
-    "E\020\001\022\035\n\031DEVICE_UPDATE_STATE_READY\020\002\022\037\n\033DE"
-    "VICE_UPDATE_STATE_STAGING\020\003\022 \n\034DEVICE_UP"
-    "DATE_STATE_APPLYING\020\004\022\037\n\033DEVICE_UPDATE_S"
-    "TATE_UPDATED\020\005\022\036\n\032DEVICE_UPDATE_STATE_FA"
-    "ILED\020\006*\204\001\n\016DeviceLiveness\022\033\n\027DEVICE_LIVE"
-    "NESS_UNKNOWN\020\000\022\032\n\026DEVICE_LIVENESS_ONLINE"
-    "\020\001\022\034\n\030DEVICE_LIVENESS_DEGRADED\020\002\022\033\n\027DEVI"
-    "CE_LIVENESS_OFFLINE\020\003*\376\001\n\025DeviceCapabili"
-    "tyState\022#\n\037DEVICE_CAPABILITY_STATE_UNKNO"
-    "WN\020\000\022$\n DEVICE_CAPABILITY_STATE_DECLARED"
-    "\020\001\022$\n DEVICE_CAPABILITY_STATE_DISABLED\020\002"
-    "\022)\n%DEVICE_CAPABILITY_STATE_GRANT_BLOCKE"
-    "D\020\003\022%\n!DEVICE_CAPABILITY_STATE_AVAILABLE"
-    "\020\004\022\"\n\036DEVICE_CAPABILITY_STATE_ACTIVE\020\005*\236"
-    "\001\n\032DeviceCapabilityLocalState\022)\n%DEVICE_"
-    "CAPABILITY_LOCAL_STATE_UNKNOWN\020\000\022)\n%DEVI"
-    "CE_CAPABILITY_LOCAL_STATE_ENABLED\020\001\022*\n&D"
-    "EVICE_CAPABILITY_LOCAL_STATE_DISABLED\020\002*"
-    "\235\001\n\032DeviceCapabilityGrantState\022)\n%DEVICE"
-    "_CAPABILITY_GRANT_STATE_UNKNOWN\020\000\022)\n%DEV"
-    "ICE_CAPABILITY_GRANT_STATE_ALLOWED\020\001\022)\n%"
-    "DEVICE_CAPABILITY_GRANT_STATE_BLOCKED\020\0022"
-    "\351\001\n\025DeviceResourceService\022e\n\020WatchDevice"
-    "State\022&.s4wave.device.WatchDeviceStateRe"
-    "quest\032\'.s4wave.device.WatchDeviceStateRe"
-    "sponse0\001\022i\n\022ReportDeviceStatus\022(.s4wave."
-    "device.ReportDeviceStatusRequest\032).s4wav"
-    "e.device.ReportDeviceStatusResponseB6Z4g"
-    "ithub.com/s4wave/spacewave/sdk/device;s4"
-    "wave_deviceb\006proto3"
+    "stamp\"R\n\022ComputersDashboard\022\014\n\004name\030\001 \001("
+    "\t\022.\n\ncreated_at\030\002 \001(\0132\032.google.protobuf."
+    "Timestamp\"m\n\032CreateComputersDashboardOp\022"
+    "\022\n\nobject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022-\n\ttim"
+    "estamp\030\003 \001(\0132\032.google.protobuf.Timestamp"
+    "\"\031\n\027WatchDeviceStateRequest\"@\n\030WatchDevi"
+    "ceStateResponse\022$\n\005state\030\001 \001(\0132\025.s4wave."
+    "device.Device\"\241\002\n\031ReportDeviceStatusRequ"
+    "est\022\017\n\007peer_id\030\001 \001(\t\0224\n\013setup_state\030\002 \001("
+    "\0162\037.s4wave.device.DeviceSetupState\0226\n\014up"
+    "date_state\030\003 \001(\0162 .s4wave.device.DeviceU"
+    "pdateState\0220\n\013last_status\030\004 \001(\0132\033.s4wave"
+    ".device.DeviceStatus\0225\n\014capabilities\030\005 \003"
+    "(\0132\037.s4wave.device.DeviceCapability\022\034\n\024r"
+    "eplace_capabilities\030\006 \001(\010\"B\n\032ReportDevic"
+    "eStatusResponse\022$\n\005state\030\001 \001(\0132\025.s4wave."
+    "device.Device*\331\001\n\020DeviceSetupState\022\036\n\032DE"
+    "VICE_SETUP_STATE_UNKNOWN\020\000\022-\n)DEVICE_SET"
+    "UP_STATE_WAITING_FOR_COMPLETION\020\001\022*\n&DEV"
+    "ICE_SETUP_STATE_COMPLETION_IMPORTED\020\002\022+\n"
+    "\'DEVICE_SETUP_STATE_DEVICE_SESSION_READY"
+    "\020\003\022\035\n\031DEVICE_SETUP_STATE_FAILED\020\004*\365\001\n\021De"
+    "viceUpdateState\022\037\n\033DEVICE_UPDATE_STATE_U"
+    "NKNOWN\020\000\022\034\n\030DEVICE_UPDATE_STATE_IDLE\020\001\022\035"
+    "\n\031DEVICE_UPDATE_STATE_READY\020\002\022\037\n\033DEVICE_"
+    "UPDATE_STATE_STAGING\020\003\022 \n\034DEVICE_UPDATE_"
+    "STATE_APPLYING\020\004\022\037\n\033DEVICE_UPDATE_STATE_"
+    "UPDATED\020\005\022\036\n\032DEVICE_UPDATE_STATE_FAILED\020"
+    "\006*\204\001\n\016DeviceLiveness\022\033\n\027DEVICE_LIVENESS_"
+    "UNKNOWN\020\000\022\032\n\026DEVICE_LIVENESS_ONLINE\020\001\022\034\n"
+    "\030DEVICE_LIVENESS_DEGRADED\020\002\022\033\n\027DEVICE_LI"
+    "VENESS_OFFLINE\020\003*\376\001\n\025DeviceCapabilitySta"
+    "te\022#\n\037DEVICE_CAPABILITY_STATE_UNKNOWN\020\000\022"
+    "$\n DEVICE_CAPABILITY_STATE_DECLARED\020\001\022$\n"
+    " DEVICE_CAPABILITY_STATE_DISABLED\020\002\022)\n%D"
+    "EVICE_CAPABILITY_STATE_GRANT_BLOCKED\020\003\022%"
+    "\n!DEVICE_CAPABILITY_STATE_AVAILABLE\020\004\022\"\n"
+    "\036DEVICE_CAPABILITY_STATE_ACTIVE\020\005*\236\001\n\032De"
+    "viceCapabilityLocalState\022)\n%DEVICE_CAPAB"
+    "ILITY_LOCAL_STATE_UNKNOWN\020\000\022)\n%DEVICE_CA"
+    "PABILITY_LOCAL_STATE_ENABLED\020\001\022*\n&DEVICE"
+    "_CAPABILITY_LOCAL_STATE_DISABLED\020\002*\235\001\n\032D"
+    "eviceCapabilityGrantState\022)\n%DEVICE_CAPA"
+    "BILITY_GRANT_STATE_UNKNOWN\020\000\022)\n%DEVICE_C"
+    "APABILITY_GRANT_STATE_ALLOWED\020\001\022)\n%DEVIC"
+    "E_CAPABILITY_GRANT_STATE_BLOCKED\020\0022\351\001\n\025D"
+    "eviceResourceService\022e\n\020WatchDeviceState"
+    "\022&.s4wave.device.WatchDeviceStateRequest"
+    "\032\'.s4wave.device.WatchDeviceStateRespons"
+    "e0\001\022i\n\022ReportDeviceStatus\022(.s4wave.devic"
+    "e.ReportDeviceStatusRequest\032).s4wave.dev"
+    "ice.ReportDeviceStatusResponseB6Z4github"
+    ".com/s4wave/spacewave/sdk/device;s4wave_"
+    "deviceb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto_deps[1] = {
@@ -565,13 +649,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto = {
     false,
     false,
-    3179,
+    3374,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto,
     "github.com/s4wave/spacewave/sdk/device/device.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto_deps,
     1,
-    10,
+    12,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto::offsets,
@@ -3266,6 +3350,699 @@ void Device::InternalSwap(Device* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
 }
 
 ::google::protobuf::Metadata Device::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ComputersDashboard::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ComputersDashboard>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ComputersDashboard, _impl_._has_bits_);
+};
+
+void ComputersDashboard::clear_created_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.created_at_ != nullptr) _impl_.created_at_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+ComputersDashboard::ComputersDashboard(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ComputersDashboard_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.device.ComputersDashboard)
+}
+PROTOBUF_NDEBUG_INLINE ComputersDashboard::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::device::ComputersDashboard& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        name_(arena, from.name_) {}
+
+ComputersDashboard::ComputersDashboard(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ComputersDashboard& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ComputersDashboard_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ComputersDashboard* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.created_at_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.created_at_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.device.ComputersDashboard)
+}
+PROTOBUF_NDEBUG_INLINE ComputersDashboard::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        name_(arena) {}
+
+inline void ComputersDashboard::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.created_at_ = {};
+}
+ComputersDashboard::~ComputersDashboard() {
+  // @@protoc_insertion_point(destructor:s4wave.device.ComputersDashboard)
+  SharedDtor(*this);
+}
+inline void ComputersDashboard::SharedDtor(MessageLite& self) {
+  ComputersDashboard& this_ = static_cast<ComputersDashboard&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.name_.Destroy();
+  delete this_._impl_.created_at_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ComputersDashboard::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ComputersDashboard(arena);
+}
+constexpr auto ComputersDashboard::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ComputersDashboard),
+                                            alignof(ComputersDashboard));
+}
+constexpr auto ComputersDashboard::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ComputersDashboard_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ComputersDashboard::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ComputersDashboard>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ComputersDashboard::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ComputersDashboard>(), &ComputersDashboard::ByteSizeLong,
+              &ComputersDashboard::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ComputersDashboard, _impl_._cached_size_),
+          false,
+      },
+      &ComputersDashboard::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ComputersDashboard_class_data_ =
+        ComputersDashboard::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ComputersDashboard::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ComputersDashboard_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ComputersDashboard_class_data_.tc_table);
+  return ComputersDashboard_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 45, 2>
+ComputersDashboard::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ComputersDashboard, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ComputersDashboard_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::device::ComputersDashboard>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .google.protobuf.Timestamp created_at = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ComputersDashboard, _impl_.created_at_)}},
+    // string name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ComputersDashboard, _impl_.name_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string name = 1;
+    {PROTOBUF_FIELD_OFFSET(ComputersDashboard, _impl_.name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .google.protobuf.Timestamp created_at = 2;
+    {PROTOBUF_FIELD_OFFSET(ComputersDashboard, _impl_.created_at_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
+  }},
+  {{
+    "\40\4\0\0\0\0\0\0"
+    "s4wave.device.ComputersDashboard"
+    "name"
+  }},
+};
+PROTOBUF_NOINLINE void ComputersDashboard::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.device.ComputersDashboard)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.created_at_ != nullptr);
+      _impl_.created_at_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ComputersDashboard::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ComputersDashboard& this_ = static_cast<const ComputersDashboard&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ComputersDashboard::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ComputersDashboard& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.device.ComputersDashboard)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string name = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.ComputersDashboard.name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .google.protobuf.Timestamp created_at = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.created_at_, this_._impl_.created_at_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.device.ComputersDashboard)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ComputersDashboard::ByteSizeLong(const MessageLite& base) {
+  const ComputersDashboard& this_ = static_cast<const ComputersDashboard&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ComputersDashboard::ByteSizeLong() const {
+  const ComputersDashboard& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.device.ComputersDashboard)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string name = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // .google.protobuf.Timestamp created_at = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.created_at_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ComputersDashboard::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ComputersDashboard*>(&to_msg);
+  auto& from = static_cast<const ComputersDashboard&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.device.ComputersDashboard)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.created_at_ != nullptr);
+      if (_this->_impl_.created_at_ == nullptr) {
+        _this->_impl_.created_at_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.created_at_);
+      } else {
+        _this->_impl_.created_at_->MergeFrom(*from._impl_.created_at_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ComputersDashboard::CopyFrom(const ComputersDashboard& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.device.ComputersDashboard)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ComputersDashboard::InternalSwap(ComputersDashboard* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  swap(_impl_.created_at_, other->_impl_.created_at_);
+}
+
+::google::protobuf::Metadata ComputersDashboard::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateComputersDashboardOp::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateComputersDashboardOp>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_._has_bits_);
+};
+
+void CreateComputersDashboardOp::clear_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.timestamp_ != nullptr) _impl_.timestamp_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+CreateComputersDashboardOp::CreateComputersDashboardOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateComputersDashboardOp_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.device.CreateComputersDashboardOp)
+}
+PROTOBUF_NDEBUG_INLINE CreateComputersDashboardOp::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::device::CreateComputersDashboardOp& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_key_(arena, from.object_key_),
+        name_(arena, from.name_) {}
+
+CreateComputersDashboardOp::CreateComputersDashboardOp(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateComputersDashboardOp& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateComputersDashboardOp_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateComputersDashboardOp* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.device.CreateComputersDashboardOp)
+}
+PROTOBUF_NDEBUG_INLINE CreateComputersDashboardOp::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_key_(arena),
+        name_(arena) {}
+
+inline void CreateComputersDashboardOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.timestamp_ = {};
+}
+CreateComputersDashboardOp::~CreateComputersDashboardOp() {
+  // @@protoc_insertion_point(destructor:s4wave.device.CreateComputersDashboardOp)
+  SharedDtor(*this);
+}
+inline void CreateComputersDashboardOp::SharedDtor(MessageLite& self) {
+  CreateComputersDashboardOp& this_ = static_cast<CreateComputersDashboardOp&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.object_key_.Destroy();
+  this_._impl_.name_.Destroy();
+  delete this_._impl_.timestamp_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateComputersDashboardOp::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateComputersDashboardOp(arena);
+}
+constexpr auto CreateComputersDashboardOp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateComputersDashboardOp),
+                                            alignof(CreateComputersDashboardOp));
+}
+constexpr auto CreateComputersDashboardOp::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateComputersDashboardOp_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateComputersDashboardOp::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateComputersDashboardOp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateComputersDashboardOp::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateComputersDashboardOp>(), &CreateComputersDashboardOp::ByteSizeLong,
+              &CreateComputersDashboardOp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_._cached_size_),
+          false,
+      },
+      &CreateComputersDashboardOp::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateComputersDashboardOp_class_data_ =
+        CreateComputersDashboardOp::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateComputersDashboardOp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateComputersDashboardOp_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateComputersDashboardOp_class_data_.tc_table);
+  return CreateComputersDashboardOp_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 63, 2>
+CreateComputersDashboardOp::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    CreateComputersDashboardOp_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::device::CreateComputersDashboardOp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_.object_key_)}},
+    // string name = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_.name_)}},
+    // .google.protobuf.Timestamp timestamp = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_.timestamp_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string name = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_.name_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .google.protobuf.Timestamp timestamp = 3;
+    {PROTOBUF_FIELD_OFFSET(CreateComputersDashboardOp, _impl_.timestamp_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
+  }},
+  {{
+    "\50\12\4\0\0\0\0\0"
+    "s4wave.device.CreateComputersDashboardOp"
+    "object_key"
+    "name"
+  }},
+};
+PROTOBUF_NOINLINE void CreateComputersDashboardOp::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.device.CreateComputersDashboardOp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.timestamp_ != nullptr);
+      _impl_.timestamp_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateComputersDashboardOp::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateComputersDashboardOp& this_ = static_cast<const CreateComputersDashboardOp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateComputersDashboardOp::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateComputersDashboardOp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.device.CreateComputersDashboardOp)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.CreateComputersDashboardOp.object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string name = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.CreateComputersDashboardOp.name");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // .google.protobuf.Timestamp timestamp = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.timestamp_, this_._impl_.timestamp_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.device.CreateComputersDashboardOp)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateComputersDashboardOp::ByteSizeLong(const MessageLite& base) {
+  const CreateComputersDashboardOp& this_ = static_cast<const CreateComputersDashboardOp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateComputersDashboardOp::ByteSizeLong() const {
+  const CreateComputersDashboardOp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.device.CreateComputersDashboardOp)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // string name = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // .google.protobuf.Timestamp timestamp = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.timestamp_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateComputersDashboardOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CreateComputersDashboardOp*>(&to_msg);
+  auto& from = static_cast<const CreateComputersDashboardOp&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.device.CreateComputersDashboardOp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.timestamp_ != nullptr);
+      if (_this->_impl_.timestamp_ == nullptr) {
+        _this->_impl_.timestamp_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_);
+      } else {
+        _this->_impl_.timestamp_->MergeFrom(*from._impl_.timestamp_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CreateComputersDashboardOp::CopyFrom(const CreateComputersDashboardOp& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.device.CreateComputersDashboardOp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateComputersDashboardOp::InternalSwap(CreateComputersDashboardOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  swap(_impl_.timestamp_, other->_impl_.timestamp_);
+}
+
+::google::protobuf::Metadata CreateComputersDashboardOp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

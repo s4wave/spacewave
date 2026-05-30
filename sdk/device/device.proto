@@ -169,6 +169,25 @@ message Device {
   .google.protobuf.Timestamp updated_at = 10;
 }
 
+// ComputersDashboard is the Space-local dashboard for managed Devices and
+// future host entries.
+message ComputersDashboard {
+  // Name is the display name of this dashboard.
+  string name = 1;
+  // CreatedAt is the time this dashboard was created.
+  .google.protobuf.Timestamp created_at = 2;
+}
+
+// CreateComputersDashboardOp creates a ComputersDashboard world object.
+message CreateComputersDashboardOp {
+  // ObjectKey is the key to create the dashboard at.
+  string object_key = 1;
+  // Name is the display name of the dashboard.
+  string name = 2;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 3;
+}
+
 service DeviceResourceService {
   rpc WatchDeviceState(WatchDeviceStateRequest) returns (stream WatchDeviceStateResponse);
   rpc ReportDeviceStatus(ReportDeviceStatusRequest) returns (ReportDeviceStatusResponse);

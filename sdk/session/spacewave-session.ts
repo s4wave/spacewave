@@ -49,6 +49,8 @@ import type {
   LeaveOrganizationResponse,
   ProcessTargetedInvitationResponse,
   ProcessMailboxEntryResponse,
+  PreviewSpaceLinkRequest,
+  PreviewSpaceLinkResponse,
   RequestDeleteNowEmailResponse,
   WatchOrganizationsResponse,
   ReactivateSubscriptionResponse,
@@ -72,6 +74,8 @@ import type {
   StartDesktopPasskeyReauthRequest,
   StartDesktopPasskeyReauthResponse,
   StartDesktopSSOLinkResponse,
+  ApproveSpaceLinkRequest,
+  ApproveSpaceLinkResponse,
   UnlinkLocalSessionResponse,
   UpdateOrganizationResponse,
   UndoDeleteNowResponse,
@@ -169,6 +173,22 @@ export class SpacewaveSession extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<EncryptForHandoffResponse> {
     return await this.service.EncryptForHandoff(request, abortSignal)
+  }
+
+  // previewSpaceLink verifies a SpaceLink ticket for trusted UI display.
+  public async previewSpaceLink(
+    request: PreviewSpaceLinkRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PreviewSpaceLinkResponse> {
+    return await this.service.PreviewSpaceLink(request, abortSignal)
+  }
+
+  // approveSpaceLink approves a SpaceLink ticket for a target Space.
+  public async approveSpaceLink(
+    request: ApproveSpaceLinkRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApproveSpaceLinkResponse> {
+    return await this.service.ApproveSpaceLink(request, abortSignal)
   }
 
   // refreshBillingState invalidates the cached billing snapshot so watches reload.

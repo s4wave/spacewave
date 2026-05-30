@@ -6,8 +6,10 @@ import {
 import { INIT_OBJECT_LAYOUT_OP_ID } from '@s4wave/core/space/world/ops/init-object-layout.js'
 import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { CREATE_CHAT_CHANNEL_OP_ID } from '@s4wave/sdk/chat/create-channel.js'
+import { CREATE_COMPUTERS_DASHBOARD_OP_ID } from '@s4wave/sdk/device/computers/create-computers-dashboard.js'
 import { CREATE_FORGE_DASHBOARD_OP_ID } from '@s4wave/sdk/forge/dashboard/create-forge-dashboard.js'
 import { CreateChatChannelOp } from '@s4wave/sdk/chat/chat.pb.js'
+import { CreateComputersDashboardOp } from '@s4wave/sdk/device/device.pb.js'
 import { CreateForgeDashboardOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { ClusterCreateOp } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster.pb.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
@@ -50,6 +52,15 @@ const createOpBuilders = new Map<string, BuildCreateOpFn>([
     CREATE_FORGE_DASHBOARD_OP_ID,
     (objectKey, name) =>
       CreateForgeDashboardOp.toBinary({
+        objectKey,
+        name,
+        timestamp: new Date(),
+      }),
+  ],
+  [
+    CREATE_COMPUTERS_DASHBOARD_OP_ID,
+    (objectKey, name) =>
+      CreateComputersDashboardOp.toBinary({
         objectKey,
         name,
         timestamp: new Date(),

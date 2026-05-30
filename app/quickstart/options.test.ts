@@ -31,6 +31,12 @@ describe('quickstart options', () => {
     expect(isQuickstartOptionVisible(getQuickstartOption('v86'), false)).toBe(
       false,
     )
+    expect(
+      isQuickstartOptionVisible(getQuickstartOption('device'), false),
+    ).toBe(false)
+    expect(isQuickstartOptionVisible(getQuickstartOption('device'), true)).toBe(
+      true,
+    )
     expect(isQuickstartOptionVisible(getQuickstartOption('forge'), true)).toBe(
       true,
     )
@@ -68,5 +74,8 @@ describe('quickstart options', () => {
     expect(
       getPublicQuickstartOptions(false).map((option) => option.id),
     ).toEqual(['space', 'drive', 'git', 'canvas'])
+    expect(
+      getVisibleQuickstartOptions(true).map((option) => option.id),
+    ).toContain('device')
   })
 })

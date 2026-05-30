@@ -22,11 +22,19 @@ import {
 } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
+import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
+import { CreateComputersDashboardOp } from '@s4wave/sdk/device/device.pb.js'
+import { CREATE_COMPUTERS_DASHBOARD_OP_ID } from '@s4wave/sdk/device/computers/create-computers-dashboard.js'
 import {
   DriveIntroTargetObjectKey,
   DriveIntroTargetTypeID,
   DriveIntroWizardTypeID,
 } from '@s4wave/app/wizard/drive-intro.js'
+import {
+  AddDeviceDefaultName,
+  AddDeviceWizardTargetKeyPrefix,
+  AddDeviceWizardTypeID,
+} from '@s4wave/app/device/add-device-wizard.js'
 import { InitChatDemoOp } from '@s4wave/sdk/chat/chat.pb.js'
 import {
   CHAT_DEMO_CHANNEL_KEY,
@@ -440,6 +448,7 @@ describe('quickstart create', () => {
       ['docs', 'My Docs'],
       ['blog', 'My Blog'],
       ['v86', 'My V86 VM'],
+      ['device', 'My Computers'],
       ['forge', 'My Forge Dashboard'],
     ]
 
@@ -1213,6 +1222,51 @@ describe('quickstart create', () => {
       throw new Error('expected settings')
     }
     expect(settings.indexPath).toBe(op.objectKey)
+  })
+
+  it('seeds the Device quickstart with Computers and the Add Device wizard', async () => {
+    const { world, applyWorldOp } = buildQuickstartWorld()
+
+    await populateSpace(
+      'device',
+      {
+        spaceWorld: world,
+      } as never,
+      undefined,
+    )
+
+    expect(applyWorldOp).toHaveBeenCalledTimes(3)
+    const dashboardCall = applyWorldOp.mock.calls[0]
+    if (!dashboardCall) {
+      throw new Error('expected dashboard op call')
+    }
+    expect(dashboardCall[0]).toBe(CREATE_COMPUTERS_DASHBOARD_OP_ID)
+    const dashboardOp = CreateComputersDashboardOp.fromBinary(dashboardCall[1])
+    expect(dashboardOp.objectKey).toBe('computers')
+    expect(dashboardOp.name).toBe('Computers')
+
+    const wizardCall = applyWorldOp.mock.calls[1]
+    if (!wizardCall) {
+      throw new Error('expected wizard op call')
+    }
+    expect(wizardCall[0]).toBe(CREATE_WIZARD_OBJECT_OP_ID)
+    const wizardOp = CreateWizardObjectOp.fromBinary(wizardCall[1])
+    expect(wizardOp.objectKey).toMatch(/^wizard\/add-device-[a-z0-9]+-\d+$/)
+    expect(wizardOp.wizardTypeId).toBe(AddDeviceWizardTypeID)
+    expect(wizardOp.targetTypeId).toBe(DeviceTypeID)
+    expect(wizardOp.targetKeyPrefix).toBe(AddDeviceWizardTargetKeyPrefix)
+    expect(wizardOp.name).toBe(AddDeviceDefaultName)
+
+    const settingsCall = applyWorldOp.mock.calls[2]
+    if (!settingsCall) {
+      throw new Error('expected settings op call')
+    }
+    expect(settingsCall[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
+    const settings = SetSpaceSettingsOp.fromBinary(settingsCall[1]).settings
+    if (!settings) {
+      throw new Error('expected settings')
+    }
+    expect(settings.indexPath).toBe(wizardOp.objectKey)
   })
 
   it('seeds the git quickstart as a persistent create/clone wizard', async () => {

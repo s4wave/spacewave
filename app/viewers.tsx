@@ -56,6 +56,14 @@ import {
   ChatMessageTypeID,
 } from '@s4wave/app/chat/ChatMessageViewer.js'
 import { DeviceViewer, DeviceTypeID } from '@s4wave/app/device/DeviceViewer.js'
+import {
+  ComputersDashboardViewer,
+  ComputersDashboardTypeID,
+} from '@s4wave/app/device/ComputersDashboardViewer.js'
+import {
+  AddDeviceWizardViewer,
+  AddDeviceWizardTypeID,
+} from '@s4wave/app/device/AddDeviceWizardViewer.js'
 import { OrgViewer, OrganizationTypeID } from '@s4wave/app/org/OrgViewer.js'
 import {
   WizardViewer,
@@ -210,6 +218,21 @@ const staticViewers: ObjectViewerComponent[] = [
     name: 'Device',
     category: 'Devices',
     component: DeviceViewer,
+  },
+  {
+    componentID: 'spacewave.computers.viewer',
+    typeID: ComputersDashboardTypeID,
+    name: 'Computers',
+    category: 'Devices',
+    component: ComputersDashboardViewer,
+  },
+  {
+    componentID: 'spacewave.wizard.add-device',
+    typeID: AddDeviceWizardTypeID,
+    name: 'Add Device',
+    category: 'Devices',
+    requiresObjectState: false,
+    component: AddDeviceWizardViewer,
   },
   {
     componentID: 'spacewave.wizard.forge-job',

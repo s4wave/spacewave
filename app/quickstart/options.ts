@@ -150,6 +150,16 @@ export const QUICKSTART_OPTIONS = [
     experimental: true,
   },
   {
+    id: 'device',
+    name: 'Add a Device',
+    description: 'Experimental managed Device setup',
+    seoDescription:
+      'Create an experimental Spacewave Devices workspace for SpaceLink-backed managed Device setup.',
+    category: 'compute',
+    icon: LuMonitor,
+    experimental: true,
+  },
+  {
     id: 'forge',
     name: 'Create Forge Dashboard',
     description: 'Task orchestration dashboard',

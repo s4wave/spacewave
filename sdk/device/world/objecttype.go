@@ -18,6 +18,26 @@ const DeviceTypeID = s4wave_device.DeviceTypeID
 // DeviceType is the ObjectType for Spacewave-managed Device objects.
 var DeviceType = objecttype.NewObjectType(DeviceTypeID, deviceFactory)
 
+// ComputersDashboardTypeID is the type identifier for Computers dashboard objects.
+const ComputersDashboardTypeID = s4wave_device.ComputersDashboardTypeID
+
+// ComputersDashboardType is the ObjectType for Computers dashboard objects.
+var ComputersDashboardType = objecttype.NewObjectType(ComputersDashboardTypeID, deviceReadOnlyFactory)
+
+func deviceReadOnlyFactory(
+	ctx context.Context,
+	le *logrus.Entry,
+	b bus.Bus,
+	engine world.Engine,
+	ws world.WorldState,
+	objectKey string,
+) (srpc.Invoker, func(), error) {
+	if ws == nil {
+		return nil, nil, objecttype.ErrWorldStateRequired
+	}
+	return nil, func() {}, nil
+}
+
 func deviceFactory(
 	ctx context.Context,
 	le *logrus.Entry,

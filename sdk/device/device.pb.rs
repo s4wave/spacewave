@@ -114,6 +114,30 @@ pub struct Device {
     #[prost(message, optional, tag="10")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
+/// ComputersDashboard is the Space-local dashboard for managed Devices and
+/// future host entries.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ComputersDashboard {
+    /// Name is the display name of this dashboard.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// CreatedAt is the time this dashboard was created.
+    #[prost(message, optional, tag="2")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// CreateComputersDashboardOp creates a ComputersDashboard world object.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateComputersDashboardOp {
+    /// ObjectKey is the key to create the dashboard at.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// Name is the display name of the dashboard.
+    #[prost(string, tag="2")]
+    pub name: ::prost::alloc::string::String,
+    /// Timestamp is the creation timestamp.
+    #[prost(message, optional, tag="3")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+}
 /// WatchDeviceStateRequest is a request to watch Device state.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchDeviceStateRequest {
