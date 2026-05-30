@@ -203,6 +203,7 @@ func NewOpfs(
 		AcquireSTW: func() (func(), error) {
 			return filelock.AcquireWebLock(stwLockName, true)
 		},
+		Maintenance: blkEngine.CompactOnce,
 	})
 
 	return vol, nil

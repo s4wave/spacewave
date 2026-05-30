@@ -22,8 +22,14 @@ const DefaultShardCount = 4
 
 // writeReq is an internal request to the shard write actor.
 type writeReq struct {
-	entries []segment.Entry
-	err     chan error
+	entries    []segment.Entry
+	background bool
+	err        chan error
+}
+
+type compactReq struct {
+	ctx context.Context
+	err chan error
 }
 
 // Engine is the multi-shard block store engine.
@@ -31,6 +37,8 @@ type Engine struct {
 	shards      []*Shard
 	actors      []chan writeReq
 	bgActors    []chan writeReq
+	compactors  []chan compactReq
+	ctx         context.Context
 	cancel      context.CancelFunc
 	wg          sync.WaitGroup
 	compactionN int
@@ -59,6 +67,8 @@ func NewEngineWithSettings(
 		shards:      make([]*Shard, settings.ShardCount),
 		actors:      make([]chan writeReq, settings.ShardCount),
 		bgActors:    make([]chan writeReq, settings.ShardCount),
+		compactors:  make([]chan compactReq, settings.ShardCount),
+		ctx:         ctx,
 		cancel:      cancel,
 		compactionN: settings.CompactionTrigger,
 		broadcaster: NewBroadcaster(lockPrefix),
@@ -77,12 +87,12 @@ func NewEngineWithSettings(
 			cancel()
 			return nil, errors.Errorf("open shard %d: %v", i, err)
 		}
-		release, err := shard.AcquirePublishLock()
+		release, err := shard.AcquirePublishLockContext(ctx)
 		if err != nil {
 			cancel()
 			return nil, errors.Errorf("lock shard %d recovery: %v", i, err)
 		}
-		if _, err := shard.ReclaimPendingDelete(); err != nil {
+		if _, err := shard.ReclaimPendingDelete(ctx); err != nil {
 			release()
 			cancel()
 			return nil, errors.Errorf("reclaim shard %d pending delete: %v", i, err)
@@ -96,6 +106,7 @@ func NewEngineWithSettings(
 		e.shards[i] = shard
 		e.actors[i] = make(chan writeReq, 64)
 		e.bgActors[i] = make(chan writeReq, 64)
+		e.compactors[i] = make(chan compactReq, 1)
 
 		e.wg.Add(1)
 		go e.runActor(ctx, i)
@@ -126,14 +137,74 @@ func (e *Engine) ShardForKey(key []byte) int {
 // Put enqueues entries to the appropriate shard write actor.
 // Blocks until the entries are flushed to OPFS.
 func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
-	return e.putToActors(ctx, e.actors, "hydra/opfs-blockshard/put", entries)
+	return e.putToActors(ctx, e.actors, "hydra/opfs-blockshard/put", entries, false)
 }
 
 // PutBackground enqueues entries to the low-priority background channel.
 // Background requests are processed only when no foreground work is pending.
 // Used for GC block writes and other non-latency-sensitive operations.
 func (e *Engine) PutBackground(ctx context.Context, entries []segment.Entry) error {
-	return e.putToActors(ctx, e.bgActors, "hydra/opfs-blockshard/put-background", entries)
+	return e.putToActors(ctx, e.bgActors, "hydra/opfs-blockshard/put-background", entries, true)
+}
+
+// CompactOnce runs at most one compaction plan per shard.
+//
+// Compaction is storage maintenance, so foreground writes do not run it
+// inline. Maintenance owners can call CompactOnce when they have a lifecycle
+// slot for background OPFS work.
+func (e *Engine) CompactOnce(ctx context.Context) error {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/compact-once")
+	defer task.End()
+
+	for shardIdx := range e.shards {
+		ch := make(chan error, 1)
+		req := compactReq{ctx: ctx, err: ch}
+		select {
+		case e.compactors[shardIdx] <- req:
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-e.ctx.Done():
+			return context.Canceled
+		}
+		select {
+		case err := <-ch:
+			if err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-e.ctx.Done():
+			return context.Canceled
+		}
+	}
+	return nil
+}
+
+func (e *Engine) compactShardOnce(ctx context.Context, shardIdx int, shard *Shard) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	plan := PlanCompaction(shard, e.compactionN)
+	if plan == nil {
+		return false, nil
+	}
+
+	release, err := shard.AcquirePublishLockContext(ctx)
+	if err != nil {
+		return false, errors.Wrapf(err, "acquire shard %d publish lock", shardIdx)
+	}
+	compErr := ExecuteCompaction(ctx, shard, plan)
+	if compErr == nil {
+		_, compErr = shard.ReclaimPendingDelete(ctx)
+	}
+	gen := shard.Manifest().Generation
+	shard.observeGeneration(gen)
+	release()
+	if compErr != nil {
+		return false, errors.Wrapf(compErr, "compact shard %d", shardIdx)
+	}
+	e.broadcaster.Send(shardIdx, gen)
+	return true, nil
 }
 
 // putToActors partitions entries by shard, dispatches them to dest, and waits
@@ -145,6 +216,7 @@ func (e *Engine) putToActors(
 	dest []chan writeReq,
 	tracePrefix string,
 	entries []segment.Entry,
+	background bool,
 ) error {
 	ctx, task := trace.NewTask(ctx, tracePrefix)
 	defer task.End()
@@ -173,7 +245,7 @@ func (e *Engine) putToActors(
 			ch := make(chan error, 1)
 			reqCtx, reqTask := trace.NewTask(taskCtx, tracePrefix+"/queue-request")
 			select {
-			case dest[idx] <- writeReq{entries: b, err: ch}:
+			case dest[idx] <- writeReq{entries: b, background: background, err: ch}:
 				reqTask.End()
 			case <-ctx.Done():
 				reqTask.End()
@@ -561,6 +633,7 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 	defer e.wg.Done()
 	fgCh := e.actors[shardIdx]
 	bgCh := e.bgActors[shardIdx]
+	compactCh := e.compactors[shardIdx]
 	shard := e.shards[shardIdx]
 
 	var reqs []writeReq
@@ -581,6 +654,9 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 					reqs = append(reqs, req)
 				case req := <-bgCh:
 					reqs = append(reqs, req)
+				case req := <-compactCh:
+					req.err <- e.runCompactReq(req.ctx, shardIdx, shard)
+					continue
 				case <-ctx.Done():
 					return
 				}
@@ -622,7 +698,11 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 
 		// Merge all entries.
 		var merged []segment.Entry
+		hasForegroundReq := false
 		for i := range reqs {
+			if !reqs[i].background {
+				hasForegroundReq = true
+			}
 			merged = append(merged, reqs[i].entries...)
 		}
 
@@ -630,7 +710,7 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		publishCtx, publishTask := trace.NewTask(ctx, "hydra/opfs-blockshard/run-actor/publish")
 		trace.Log(publishCtx, "coalesce", "reqs="+strconv.Itoa(len(reqs))+" entries="+strconv.Itoa(len(merged)))
 		_, lockTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/acquire-lock")
-		release, err := shard.AcquirePublishLock()
+		release, err := shard.AcquirePublishLockContext(publishCtx)
 		lockTask.End()
 		if err != nil {
 			publishTask.End()
@@ -646,7 +726,7 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 		writeTask.End()
 		if err == nil {
 			_, reclaimTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/reclaim-pending-delete")
-			_, err = shard.ReclaimPendingDelete()
+			_, err = shard.ReclaimPendingDelete(publishCtx)
 			reclaimTask.End()
 		}
 		gen := shard.Manifest().Generation
@@ -659,37 +739,40 @@ func (e *Engine) runActor(ctx context.Context, shardIdx int) {
 			e.broadcaster.Send(shardIdx, gen)
 		}
 
-		// Reply to all waiters.
-		for _, r := range reqs {
-			r.err <- err
-		}
-		reqs = reqs[:0]
+		currentReqs := reqs
+		reqs = nil
 
 		// Pipeline overlap: drain foreground entries that arrived during
 		// publish. Background entries are picked up at the top of the
-		// next iteration after foreground is serviced.
+		// next iteration after foreground is serviced. The drain happens
+		// before background-only compaction so a queued foreground write can
+		// preempt maintenance before any current-cycle waiters are released.
 		e.drainCh(fgCh, &reqs)
 
-		// Run compaction only when no foreground entries are waiting.
-		if err == nil && len(reqs) == 0 {
-			plan := PlanCompaction(shard, e.compactionN)
-			if plan != nil {
-				release, lockErr := shard.AcquirePublishLock()
-				if lockErr == nil {
-					compErr := ExecuteCompaction(shard, plan)
-					if compErr == nil {
-						_, compErr = shard.ReclaimPendingDelete()
-					}
-					compGen := shard.Manifest().Generation
-					shard.observeGeneration(compGen)
-					release()
-					if compErr == nil {
-						e.broadcaster.Send(shardIdx, compGen)
-					}
-				}
+		// Compaction is maintenance, not part of the foreground write
+		// completion path. Large browser uploads can create enough segments for
+		// compaction immediately after the upload promise resolves; running it
+		// here keeps the shard publish Web Lock held while user readback and
+		// debug requests are waiting on the same TinyGo worker. Only
+		// background-only cycles may opportunistically compact here.
+		if err == nil && !hasForegroundReq && len(reqs) == 0 {
+			if _, compErr := e.compactShardOnce(ctx, shardIdx, shard); compErr != nil && ctx.Err() == nil {
+				trace.Logf(ctx, "blockshard", "background compaction failed: shard=%d err=%v", shardIdx, compErr)
 			}
 		}
+
+		// Reply to the published waiters. Background-only waiters observe
+		// opportunistic maintenance completion; foreground waiters never wait
+		// on inline compaction because hasForegroundReq disables it.
+		for _, r := range currentReqs {
+			r.err <- err
+		}
 	}
+}
+
+func (e *Engine) runCompactReq(ctx context.Context, shardIdx int, shard *Shard) error {
+	_, err := e.compactShardOnce(ctx, shardIdx, shard)
+	return err
 }
 
 // drainCh non-blocking drains all available requests from ch into reqs.

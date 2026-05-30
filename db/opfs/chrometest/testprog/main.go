@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/starpc/echo"
+	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource "github.com/s4wave/spacewave/bldr/resource"
@@ -91,6 +93,8 @@ var manifestSeedEntries = []manifestSeedEntry{
 	{sub: "pack_bloom/zz/pfv1_seed_right", size: 1700},
 }
 
+const largeScenarioProgressEvery = 8 * 1024 * 1024
+
 var manifestBloomCases = []manifestBloomCase{
 	{shard: "mm", pack: "pfv1_manifest_middle_split", size: 2500},
 	{shard: "2B", pack: "pfv1_manifest_2B", size: 1892},
@@ -162,6 +166,14 @@ func parseConfig(args []string) (*config, error) {
 
 func run(ctx context.Context, c *config) error {
 	switch c.scenario {
+	case "pipe-write-loop":
+		return runPipeWriteLoop(c)
+	case "srpc-echo-loop":
+		return runSRPCEchoLoop(ctx, c)
+	case "srpc-rpcstream-echo-loop":
+		return runSRPCRpcStreamEchoLoop(ctx, c)
+	case "resource-echo-loop":
+		return runResourceEchoLoop(ctx, c)
 	case "clear":
 		return clearRoot(c.root)
 	case "missing-delete-classify":
@@ -250,6 +262,8 @@ func run(ctx context.Context, c *config) error {
 		return runWorldLargeUnixFSUpload(ctx, c)
 	case "world-resource-large-unixfs-upload":
 		return runWorldResourceLargeUnixFSUpload(ctx, c)
+	case "world-resource-direct-upload-tree-large-unixfs-upload":
+		return runWorldResourceDirectUploadTreeLargeUnixFSUpload(ctx, c)
 	case "world-controller-resource-large-unixfs-upload":
 		return runWorldControllerResourceLargeUnixFSUpload(ctx, c)
 	case "world-cloud-overlay-resource-large-unixfs-upload":
@@ -259,6 +273,227 @@ func run(ctx context.Context, c *config) error {
 	default:
 		return errors.Errorf("unknown scenario %q", c.scenario)
 	}
+}
+
+type pipeReadResult struct {
+	n   int
+	err error
+}
+
+func runPipeWriteLoop(c *config) error {
+	totalSize := c.iterations
+	if totalSize <= 0 {
+		totalSize = 4 * 1024 * 1024
+	}
+	pr, pw := io.Pipe()
+	done := make(chan pipeReadResult, 1)
+	go func() {
+		buf := make([]byte, 32*1024)
+		var total int
+		for {
+			n, err := pr.Read(buf)
+			total += n
+			if err == io.EOF {
+				done <- pipeReadResult{n: total}
+				return
+			}
+			if err != nil {
+				done <- pipeReadResult{n: total, err: err}
+				return
+			}
+		}
+	}()
+
+	postProgress(c, "pipe-write-start", 0, totalSize)
+	const chunkSize = 64 * 1024
+	const progressEvery = 1024 * 1024
+	for offset := 0; offset < totalSize; offset += chunkSize {
+		n := min(chunkSize, totalSize-offset)
+		written, err := pw.Write(deterministicLargeWindow(offset, n, 0))
+		if err != nil {
+			return errors.Wrapf(err, "pipe write offset=%d", offset)
+		}
+		if written != n {
+			return errors.Errorf("pipe write offset=%d wrote=%d want=%d", offset, written, n)
+		}
+		next := offset + n
+		if next == totalSize || next%progressEvery == 0 {
+			postProgress(c, "pipe-write-stream", next, totalSize)
+		}
+	}
+	postProgress(c, "pipe-close-start", totalSize, totalSize)
+	if err := pw.Close(); err != nil {
+		return errors.Wrap(err, "pipe close")
+	}
+	res := <-done
+	if res.err != nil {
+		return errors.Wrap(res.err, "pipe read")
+	}
+	if res.n != totalSize {
+		return errors.Errorf("pipe read=%d want=%d", res.n, totalSize)
+	}
+	postProgress(c, "pipe-close-complete", totalSize, totalSize)
+	return nil
+}
+
+func runSRPCEchoLoop(ctx context.Context, c *config) error {
+	clientPipe, serverPipe := net.Pipe()
+	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
+	if err != nil {
+		clientPipe.Close()
+		serverPipe.Close()
+		return errors.Wrap(err, "open client muxed conn")
+	}
+	serverMp, err := srpc.NewMuxedConn(serverPipe, false, nil)
+	if err != nil {
+		clientMp.Close()
+		clientPipe.Close()
+		serverPipe.Close()
+		return errors.Wrap(err, "open server muxed conn")
+	}
+
+	serverMux := srpc.NewMux()
+	if err := echo.NewEchoServer(nil).Register(serverMux); err != nil {
+		clientMp.Close()
+		serverMp.Close()
+		clientPipe.Close()
+		serverPipe.Close()
+		return errors.Wrap(err, "register echo server")
+	}
+
+	serverCtx, cancelServer := context.WithCancel(ctx)
+	serverErrCh := make(chan error, 1)
+	server := srpc.NewServer(serverMux)
+	go func() {
+		serverErrCh <- server.AcceptMuxedConn(serverCtx, serverMp)
+	}()
+	defer func() {
+		cancelServer()
+		_ = clientMp.Close()
+		_ = serverMp.Close()
+		_ = clientPipe.Close()
+		_ = serverPipe.Close()
+		<-serverErrCh
+	}()
+
+	client := echo.NewSRPCEchoerClient(srpc.NewClientWithMuxedConn(clientMp))
+	return runEchoClientLoop(ctx, c, client, "srpc-echo-loop")
+}
+
+func runSRPCRpcStreamEchoLoop(ctx context.Context, c *config) error {
+	clientPipe, serverPipe := net.Pipe()
+	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
+	if err != nil {
+		clientPipe.Close()
+		serverPipe.Close()
+		return errors.Wrap(err, "open client muxed conn")
+	}
+	serverMp, err := srpc.NewMuxedConn(serverPipe, false, nil)
+	if err != nil {
+		clientMp.Close()
+		clientPipe.Close()
+		serverPipe.Close()
+		return errors.Wrap(err, "open server muxed conn")
+	}
+
+	innerMux := srpc.NewMux()
+	if err := echo.NewEchoServer(nil).Register(innerMux); err != nil {
+		clientMp.Close()
+		serverMp.Close()
+		clientPipe.Close()
+		serverPipe.Close()
+		return errors.Wrap(err, "register inner echo server")
+	}
+	serverMux := srpc.NewMux()
+	if err := echo.NewEchoServer(innerMux).Register(serverMux); err != nil {
+		clientMp.Close()
+		serverMp.Close()
+		clientPipe.Close()
+		serverPipe.Close()
+		return errors.Wrap(err, "register outer echo server")
+	}
+
+	serverCtx, cancelServer := context.WithCancel(ctx)
+	serverErrCh := make(chan error, 1)
+	server := srpc.NewServer(serverMux)
+	go func() {
+		serverErrCh <- server.AcceptMuxedConn(serverCtx, serverMp)
+	}()
+	defer func() {
+		cancelServer()
+		_ = clientMp.Close()
+		_ = serverMp.Close()
+		_ = clientPipe.Close()
+		_ = serverPipe.Close()
+		<-serverErrCh
+	}()
+
+	outerClient := echo.NewSRPCEchoerClient(srpc.NewClientWithMuxedConn(clientMp))
+	nestedClient := rpcstream.NewRpcStreamClient(
+		func(ctx context.Context) (echo.SRPCEchoer_RpcStreamClient, error) {
+			return outerClient.RpcStream(ctx)
+		},
+		"echo",
+		true,
+	)
+	client := echo.NewSRPCEchoerClient(nestedClient)
+	return runEchoClientLoop(ctx, c, client, "srpc-rpcstream-echo-loop")
+}
+
+func runEchoClientLoop(
+	ctx context.Context,
+	c *config,
+	client echo.SRPCEchoerClient,
+	phase string,
+) error {
+	iterations := c.iterations
+	if iterations <= 0 {
+		iterations = 128
+	}
+	payloadSize := c.batch
+	if payloadSize <= 0 {
+		payloadSize = 4096
+	}
+
+	body := strings.Repeat("x", payloadSize)
+	postProgress(c, phase+"-start", 0, iterations)
+	for i := range iterations {
+		resp, err := client.Echo(ctx, &echo.EchoMsg{Body: body})
+		if err != nil {
+			return errors.Wrapf(err, "echo call %d", i)
+		}
+		if resp.GetBody() != body {
+			return errors.Errorf("echo call %d body len=%d want=%d", i, len(resp.GetBody()), len(body))
+		}
+		next := i + 1
+		if next == 1 || next == iterations || next%16 == 0 {
+			postProgress(c, phase+"-stream", next, iterations)
+		}
+	}
+	postProgress(c, phase+"-complete", iterations, iterations)
+	return nil
+}
+
+func runResourceEchoLoop(ctx context.Context, c *config) error {
+	rootMux := srpc.NewMux()
+	if err := echo.NewEchoServer(nil).Register(rootMux); err != nil {
+		return errors.Wrap(err, "register root echo server")
+	}
+	resClient, cleanup, err := openResourceClient(ctx, rootMux)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		return errors.Wrap(err, "get root resource client")
+	}
+	client := echo.NewSRPCEchoerClient(rootClient)
+	return runEchoClientLoop(ctx, c, client, "resource-echo-loop")
 }
 
 func clearRoot(rootName string) error {
@@ -494,7 +729,7 @@ func runBlockCorruptCompaction(ctx context.Context, c *config) error {
 	if err != nil {
 		return err
 	}
-	err = blockshard.ExecuteCompaction(shard, plan)
+	err = blockshard.ExecuteCompaction(ctx, shard, plan)
 	release()
 	if err == nil {
 		return errors.New("expected corrupt compaction input to fail")
@@ -555,7 +790,7 @@ func runBlockZeroSizeCompaction(ctx context.Context, c *config) error {
 	if err != nil {
 		return err
 	}
-	err = blockshard.ExecuteCompaction(shard, plan)
+	err = blockshard.ExecuteCompaction(ctx, shard, plan)
 	release()
 	if err != nil {
 		return errors.Wrap(err, "execute compaction with zero-size inputs")
@@ -1609,7 +1844,7 @@ func runWorldLargeUnixFSUpload(ctx context.Context, c *config) error {
 		return errors.Wrap(err, "lookup large file")
 	}
 	defer largeFile.Release()
-	return verifyDeterministicFSFile(ctx, largeFile, totalSize, 0)
+	return verifyDeterministicFSFile(ctx, largeFile, totalSize, 0, c)
 }
 
 func runWorldResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr error) {
@@ -1620,6 +1855,105 @@ func runWorldResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr e
 	defer vol.Close()
 
 	return runWorldResourceLargeUnixFSUploadOnBucket(ctx, c, vol, vol)
+}
+
+func runWorldResourceDirectUploadTreeLargeUnixFSUpload(ctx context.Context, c *config) (retErr error) {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+
+	le := logrus.NewEntry(logrus.New())
+	bucketID := c.root + "/world"
+	ref := &bucket.ObjectRef{BucketId: bucketID}
+	cursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		le,
+		nil,
+		vol,
+		nil,
+		ref,
+		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: vol.GetID()},
+		nil,
+	)
+	defer cursor.Release()
+
+	ws, err := world_block.BuildWorldStateFromCursor(
+		ctx,
+		le,
+		true,
+		cursor,
+		world.NewWorldStorageFromCursor(cursor),
+		space_world_ops.LookupWorldOp,
+		false,
+	)
+	if err != nil {
+		return errors.Wrap(err, "build world state")
+	}
+	defer ws.Discard()
+
+	if _, _, err := space_world_ops.InitUnixFS(ctx, ws, vol.GetPeerID(), "files", time.Now()); err != nil {
+		return errors.Wrap(err, "init unixfs")
+	}
+	if err := ws.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit initial world state")
+	}
+
+	fsCursor, err := unixfs_world.FollowUnixfsRef(
+		ctx,
+		le,
+		ws,
+		&unixfs_world.UnixfsRef{
+			ObjectKey: "files",
+			FsType:    unixfs_world.FSType_FSType_FS_NODE,
+		},
+		vol.GetPeerID(),
+		true,
+	)
+	if err != nil {
+		return errors.Wrap(err, "follow unixfs")
+	}
+	defer fsCursor.Release()
+
+	handle, err := unixfs_sdk.NewFSHandle(fsCursor)
+	if err != nil {
+		return errors.Wrap(err, "open fs handle")
+	}
+	defer handle.Release()
+
+	rootResource := resource_unixfs.NewFSHandleObjectResource(
+		handle,
+		nil,
+		ws,
+		"files",
+		unixfs_world.FSType_FSType_FS_NODE,
+		nil,
+	)
+	totalSize := c.iterations
+	if totalSize <= 0 {
+		totalSize = 64 * 1024 * 1024
+	}
+	postProgress(c, "direct-upload-tree-start", 0, totalSize)
+	resp, err := rootResource.UploadTree(newGeneratedUploadTreeStream(ctx, c, "large-video.mp4", totalSize, 0))
+	if err != nil {
+		return errors.Wrap(err, "direct UploadTree")
+	}
+	postProgress(c, "direct-upload-tree-complete", int(resp.GetBytesWritten()), totalSize)
+	if resp.GetBytesWritten() != int64(totalSize) {
+		return errors.Errorf("UploadTree bytes_written=%d want=%d", resp.GetBytesWritten(), totalSize)
+	}
+	if resp.GetFilesWritten() != 1 {
+		return errors.Errorf("UploadTree files_written=%d want=1", resp.GetFilesWritten())
+	}
+
+	largeFile, err := rootResource.GetHandle().Lookup(ctx, "large-video.mp4")
+	if err != nil {
+		return errors.Wrap(err, "lookup direct uploaded file")
+	}
+	defer largeFile.Release()
+	return verifyDeterministicFSFile(ctx, largeFile, totalSize, 0, c)
 }
 
 func runWorldControllerResourceLargeUnixFSUpload(ctx context.Context, c *config) (retErr error) {
@@ -1729,7 +2063,15 @@ func runWorldResourceLargeUnixFSUploadOnBucket(
 	}
 	defer handle.Release()
 
-	resClient, cleanup, err := openFSHandleResourceClient(ctx, handle, ws, "files")
+	rootResource := resource_unixfs.NewFSHandleObjectResource(
+		handle,
+		nil,
+		ws,
+		"files",
+		unixfs_world.FSType_FSType_FS_NODE,
+		nil,
+	)
+	resClient, cleanup, err := openResourceClient(ctx, rootResource.GetMux())
 	if err != nil {
 		return err
 	}
@@ -1752,25 +2094,36 @@ func runWorldResourceLargeUnixFSUploadOnBucket(
 	if totalSize <= 0 {
 		totalSize = 64 * 1024 * 1024
 	}
-	if err := uploadDeterministicResourceFile(ctx, rootSvc, "large-video.mp4", totalSize, 0); err != nil {
+	postProgress(c, "resource-upload-start", 0, totalSize)
+	if err := uploadDeterministicResourceFile(ctx, rootSvc, "large-video.mp4", totalSize, 0, c); err != nil {
 		return err
 	}
+	postProgress(c, "resource-upload-complete", totalSize, totalSize)
 
+	postProgress(c, "resource-lookup-start")
 	fileResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
 		Path: "large-video.mp4",
 	})
 	if err != nil {
 		return errors.Wrap(err, "lookup uploaded resource file")
 	}
+	postProgress(c, "resource-lookup-complete")
 	fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
 	defer fileRef.Release()
 
+	postProgress(c, "resource-client-start")
 	fileClient, err := fileRef.GetClient()
 	if err != nil {
 		return errors.Wrap(err, "get uploaded resource file client")
 	}
+	postProgress(c, "resource-client-complete")
 	fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
-	return verifyDeterministicResourceFile(ctx, fileSvc, totalSize, 0)
+	postProgress(c, "resource-readback-start", 0, totalSize)
+	if err := verifyDeterministicResourceFile(ctx, fileSvc, totalSize, 0, c); err != nil {
+		return err
+	}
+	postProgress(c, "resource-readback-complete", totalSize, totalSize)
+	return nil
 }
 
 func openControllerBucket(
@@ -2172,11 +2525,9 @@ func packProbeDirtyBlocks(blocks []probeDirtyBlock) error {
 	return errors.Wrap(err, "pack dirty blocks")
 }
 
-func openFSHandleResourceClient(
+func openResourceClient(
 	ctx context.Context,
-	handle *unixfs_sdk.FSHandle,
-	ws world.WorldState,
-	objKey string,
+	rootMux srpc.Mux,
 ) (*resource_client.Client, func() error, error) {
 	clientPipe, serverPipe := net.Pipe()
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
@@ -2194,15 +2545,7 @@ func openFSHandleResourceClient(
 		return nil, nil, errors.Wrap(err, "open server muxed conn")
 	}
 
-	rootResource := resource_unixfs.NewFSHandleObjectResource(
-		handle,
-		nil,
-		ws,
-		objKey,
-		unixfs_world.FSType_FSType_FS_NODE,
-		nil,
-	)
-	resourceSrv := resource_server.NewResourceServer(rootResource.GetMux())
+	resourceSrv := resource_server.NewResourceServer(rootMux)
 	serverMux := srpc.NewMux()
 	if err := resourceSrv.Register(serverMux); err != nil {
 		clientMp.Close()
@@ -2259,6 +2602,7 @@ func uploadDeterministicResourceFile(
 	name string,
 	totalSize int,
 	salt int,
+	c *config,
 ) error {
 	strm, err := rootSvc.UploadTree(ctx)
 	if err != nil {
@@ -2285,11 +2629,17 @@ func uploadDeterministicResourceFile(
 		}); err != nil {
 			return errors.Wrapf(err, "send UploadTree data offset=%d", offset)
 		}
+		next := offset + n
+		if next == totalSize || next%largeScenarioProgressEvery == 0 {
+			postProgress(c, "resource-upload-stream", next, totalSize)
+		}
 	}
+	postProgress(c, "resource-upload-close-start", totalSize, totalSize)
 	resp, err := strm.CloseAndRecv()
 	if err != nil {
 		return errors.Wrap(err, "close UploadTree stream")
 	}
+	postProgress(c, "resource-upload-close-complete", totalSize, totalSize)
 	if resp.GetBytesWritten() != int64(totalSize) {
 		return errors.Errorf("UploadTree bytes_written=%d want=%d", resp.GetBytesWritten(), totalSize)
 	}
@@ -2304,16 +2654,20 @@ func verifyDeterministicResourceFile(
 	fileSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
 	totalSize int,
 	salt int,
+	c *config,
 ) error {
+	postProgress(c, "resource-readback-size-start", 0, totalSize)
 	sizeResp, err := fileSvc.GetSize(ctx, &s4wave_unixfs.HandleGetSizeRequest{})
 	if err != nil {
 		return errors.Wrap(err, "get uploaded resource file size")
 	}
+	postProgress(c, "resource-readback-size-complete", int(sizeResp.GetSize()), totalSize)
 	if sizeResp.GetSize() != uint64(totalSize) {
 		return errors.Errorf("resource file size=%d want=%d", sizeResp.GetSize(), totalSize)
 	}
-	for _, offset := range []int{0, totalSize / 2, max(0, totalSize-4096)} {
+	for _, offset := range []int{0, 4096, totalSize / 2, max(0, totalSize-4096)} {
 		wantLen := min(4096, totalSize-offset)
+		postProgress(c, "resource-readback-read-start", offset, totalSize)
 		resp, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
 			Offset: int64(offset),
 			Length: int64(wantLen),
@@ -2321,6 +2675,7 @@ func verifyDeterministicResourceFile(
 		if err != nil {
 			return errors.Wrapf(err, "read uploaded resource file offset=%d", offset)
 		}
+		postProgress(c, "resource-readback-read-complete", offset+len(resp.GetData()), totalSize)
 		if len(resp.GetData()) != wantLen {
 			return errors.Errorf("resource file offset=%d read=%d want=%d", offset, len(resp.GetData()), wantLen)
 		}
@@ -2329,7 +2684,43 @@ func verifyDeterministicResourceFile(
 			return errors.Errorf("resource file offset=%d data mismatch", offset)
 		}
 	}
+	postProgress(c, "resource-readback-full-start", 0, totalSize)
+	fullReadChunkSize := resourceFullReadChunkSize(c)
+	fullReadProgressEvery := max(largeScenarioProgressEvery, fullReadChunkSize)
+	for offset := 0; offset < totalSize; {
+		wantLen := min(fullReadChunkSize, totalSize-offset)
+		resp, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
+			Offset: int64(offset),
+			Length: int64(wantLen),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "full read uploaded resource file offset=%d", offset)
+		}
+		got := resp.GetData()
+		if len(got) == 0 {
+			return errors.Errorf("full read resource file offset=%d read=0 want progress", offset)
+		}
+		if len(got) > wantLen {
+			return errors.Errorf("full read resource file offset=%d read=%d max=%d", offset, len(got), wantLen)
+		}
+		want := deterministicLargeWindow(offset, len(got), salt)
+		if !bytes.Equal(got, want) {
+			return errors.Errorf("full read resource file offset=%d data mismatch", offset)
+		}
+		offset += len(got)
+		if offset == totalSize || offset%fullReadProgressEvery == 0 {
+			postProgress(c, "resource-readback-full-stream", offset, totalSize)
+		}
+	}
+	postProgress(c, "resource-readback-full-complete", totalSize, totalSize)
 	return nil
+}
+
+func resourceFullReadChunkSize(c *config) int {
+	if c != nil && c.batch > 0 {
+		return c.batch
+	}
+	return 256 * 1024
 }
 
 func verifyDeterministicFSFile(
@@ -2337,21 +2728,26 @@ func verifyDeterministicFSFile(
 	handle *unixfs_sdk.FSHandle,
 	totalSize int,
 	salt int,
+	c *config,
 ) error {
+	postProgress(c, "fs-readback-size-start", 0, totalSize)
 	size, err := handle.GetSize(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get large file size")
 	}
+	postProgress(c, "fs-readback-size-complete", int(size), totalSize)
 	if size != uint64(totalSize) {
 		return errors.Errorf("large file size=%d want=%d", size, totalSize)
 	}
-	for _, offset := range []int{0, totalSize / 2, max(0, totalSize-4096)} {
+	for _, offset := range []int{0, 4096, totalSize / 2, max(0, totalSize-4096)} {
 		wantLen := min(4096, totalSize-offset)
 		got := make([]byte, wantLen)
+		postProgress(c, "fs-readback-read-start", offset, totalSize)
 		n, err := handle.ReadAt(ctx, int64(offset), got)
 		if err != nil && err != io.EOF {
 			return errors.Wrapf(err, "read large file offset=%d", offset)
 		}
+		postProgress(c, "fs-readback-read-complete", offset+int(n), totalSize)
 		if int(n) != wantLen {
 			return errors.Errorf("large file offset=%d read=%d want=%d", offset, n, wantLen)
 		}
@@ -2360,6 +2756,127 @@ func verifyDeterministicFSFile(
 			return errors.Errorf("large file offset=%d data mismatch", offset)
 		}
 	}
+	postProgress(c, "fs-readback-full-start", 0, totalSize)
+	fullReadChunkSize := resourceFullReadChunkSize(c)
+	fullReadProgressEvery := max(largeScenarioProgressEvery, fullReadChunkSize)
+	for offset := 0; offset < totalSize; {
+		wantLen := min(fullReadChunkSize, totalSize-offset)
+		got := make([]byte, wantLen)
+		n, err := handle.ReadAt(ctx, int64(offset), got)
+		if err != nil && err != io.EOF {
+			return errors.Wrapf(err, "full read large file offset=%d", offset)
+		}
+		if n <= 0 {
+			return errors.Errorf("full read large file offset=%d read=0 want progress", offset)
+		}
+		got = got[:int(n)]
+		want := deterministicLargeWindow(offset, len(got), salt)
+		if !bytes.Equal(got, want) {
+			return errors.Errorf("full read large file offset=%d data mismatch", offset)
+		}
+		offset += len(got)
+		if offset == totalSize || offset%fullReadProgressEvery == 0 {
+			postProgress(c, "fs-readback-full-stream", offset, totalSize)
+		}
+	}
+	postProgress(c, "fs-readback-full-complete", totalSize, totalSize)
+	return nil
+}
+
+type generatedUploadTreeStream struct {
+	ctx       context.Context
+	c         *config
+	name      string
+	totalSize int
+	salt      int
+	offset    int
+	startSent bool
+}
+
+func newGeneratedUploadTreeStream(
+	ctx context.Context,
+	c *config,
+	name string,
+	totalSize int,
+	salt int,
+) *generatedUploadTreeStream {
+	return &generatedUploadTreeStream{
+		ctx:       ctx,
+		c:         c,
+		name:      name,
+		totalSize: totalSize,
+		salt:      salt,
+	}
+}
+
+func (s *generatedUploadTreeStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *generatedUploadTreeStream) MsgSend(srpc.Message) error {
+	return nil
+}
+
+func (s *generatedUploadTreeStream) MsgRecv(msg srpc.Message) error {
+	req, ok := msg.(*s4wave_unixfs.HandleUploadTreeRequest)
+	if !ok {
+		return errors.Errorf("unexpected UploadTree stream recv target %T", msg)
+	}
+	next, err := s.Recv()
+	if err != nil {
+		return err
+	}
+	*req = *next
+	return nil
+}
+
+func (s *generatedUploadTreeStream) CloseSend() error {
+	return nil
+}
+
+func (s *generatedUploadTreeStream) Close() error {
+	return nil
+}
+
+func (s *generatedUploadTreeStream) Recv() (*s4wave_unixfs.HandleUploadTreeRequest, error) {
+	if !s.startSent {
+		s.startSent = true
+		postProgress(s.c, "direct-upload-tree-file-start", 0, s.totalSize)
+		return &s4wave_unixfs.HandleUploadTreeRequest{
+			Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+				FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+					Path:      s.name,
+					TotalSize: int64(s.totalSize),
+					Mode:      0o644,
+				},
+			},
+		}, nil
+	}
+	if s.offset >= s.totalSize {
+		postProgress(s.c, "direct-upload-tree-eof", s.totalSize, s.totalSize)
+		return nil, io.EOF
+	}
+	const chunkSize = 64 * 1024
+	const progressEvery = 8 * 1024 * 1024
+	n := min(chunkSize, s.totalSize-s.offset)
+	offset := s.offset
+	s.offset += n
+	if s.offset == s.totalSize || s.offset%progressEvery == 0 {
+		postProgress(s.c, "direct-upload-tree-stream", s.offset, s.totalSize)
+	}
+	return &s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{
+			Data: deterministicLargeWindow(offset, n, s.salt),
+		},
+	}, nil
+}
+
+func (s *generatedUploadTreeStream) RecvTo(req *s4wave_unixfs.HandleUploadTreeRequest) error {
+	next, err := s.Recv()
+	if err != nil {
+		return err
+	}
+	*req = *next
 	return nil
 }
 
@@ -2598,47 +3115,38 @@ func deterministicLargeBytes(size int, salt int) []byte {
 }
 
 func deterministicLargeWindow(offset, size int, salt int) []byte {
-	r := newDeterministicLargeReader(offset+size, salt)
-	var scratch [32 * 1024]byte
-	for remaining := offset; remaining > 0; {
-		n := min(remaining, len(scratch))
-		if _, err := io.ReadFull(r, scratch[:n]); err != nil {
-			return nil
-		}
-		remaining -= n
-	}
 	buf := make([]byte, size)
-	if _, err := io.ReadFull(r, buf); err != nil {
-		return nil
-	}
+	fillDeterministicLargeBytes(buf, offset, salt)
 	return buf
 }
 
 func fillDeterministicLargeBytes(buf []byte, offset int, salt int) {
-	x := uint32(0x9e3779b9) ^ (uint32(salt) * uint32(0x85ebca6b))
-	for i := 0; i < offset; i++ {
-		x ^= x << 13
-		x ^= x >> 17
-		x ^= x << 5
-	}
 	for i := range buf {
-		x ^= x << 13
-		x ^= x >> 17
-		x ^= x << 5
-		buf[i] = byte(x) + byte(offset+i)
+		buf[i] = deterministicLargeByte(offset+i, salt)
 	}
+}
+
+func deterministicLargeByte(offset int, salt int) byte {
+	x := uint32(offset) + uint32(0x9e3779b9)
+	x ^= uint32(salt) * uint32(0x85ebca6b)
+	x ^= x >> 16
+	x *= uint32(0x7feb352d)
+	x ^= x >> 15
+	x *= uint32(0x846ca68b)
+	x ^= x >> 16
+	return byte(x) + byte(offset)
 }
 
 type deterministicLargeReader struct {
 	remaining int
 	offset    int
-	x         uint32
+	salt      int
 }
 
 func newDeterministicLargeReader(size int, salt int) *deterministicLargeReader {
 	return &deterministicLargeReader{
 		remaining: size,
-		x:         uint32(0x9e3779b9) ^ (uint32(salt) * uint32(0x85ebca6b)),
+		salt:      salt,
 	}
 }
 
@@ -2651,10 +3159,7 @@ func (r *deterministicLargeReader) Read(p []byte) (int, error) {
 	}
 	n := min(len(p), r.remaining)
 	for i := range p[:n] {
-		r.x ^= r.x << 13
-		r.x ^= r.x >> 17
-		r.x ^= r.x << 5
-		p[i] = byte(r.x) + byte(r.offset)
+		p[i] = deterministicLargeByte(r.offset, r.salt)
 		r.offset++
 	}
 	r.remaining -= n
@@ -2795,6 +3300,23 @@ func postReady(c *config) {
 	obj.Set("kind", "ready")
 	obj.Set("scenario", c.scenario)
 	obj.Set("worker", c.worker)
+	js.Global().Call("postMessage", obj)
+}
+
+func postProgress(c *config, phase string, values ...int) {
+	obj := js.Global().Get("Object").New()
+	obj.Set("kind", "progress")
+	if c != nil {
+		obj.Set("scenario", c.scenario)
+		obj.Set("worker", c.worker)
+	}
+	obj.Set("phase", phase)
+	if len(values) > 0 {
+		obj.Set("offset", values[0])
+	}
+	if len(values) > 1 {
+		obj.Set("total", values[1])
+	}
 	js.Global().Call("postMessage", obj)
 }
 

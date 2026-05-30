@@ -327,7 +327,10 @@ type HandleReadAtRequest struct {
 	unknownFields []byte
 	// Offset is the byte offset to start reading from.
 	Offset int64 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
-	// Length is the number of bytes to read.
+	// Length is the number of bytes to read. A positive length may be capped by
+	// the resource response limit. A length <= 0 reads the remaining file only if
+	// it fits in one response; large callers should GetSize and issue chunked
+	// positive-length ReadAt calls.
 	Length int64 `protobuf:"varint,2,opt,name=length,proto3" json:"length,omitempty"`
 }
 

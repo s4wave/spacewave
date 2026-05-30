@@ -100,7 +100,8 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 	}
 	defer vol.Close()
 
-	replayed := make(chan struct{}, 1)
+	replayed := make(chan struct{}, 3)
+	maintained := make(chan struct{}, 1)
 	vol.SetGCManagerHooks(block_gc.ManagerHooks{
 		Graph: stubCollectorGraph{},
 		ReplayWAL: func(context.Context, block_gc.CollectorGraph) (int, error) {
@@ -108,11 +109,18 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 			case replayed <- struct{}{}:
 			default:
 			}
-			cancel()
 			return 0, nil
 		},
 		AcquireSTW: func() (func(), error) {
 			return func() {}, nil
+		},
+		Maintenance: func(context.Context) error {
+			select {
+			case maintained <- struct{}{}:
+			default:
+			}
+			cancel()
+			return nil
 		},
 	})
 
@@ -132,6 +140,11 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 	case <-replayed:
 	default:
 		t.Fatal("expected manager startup replay to run")
+	}
+	select {
+	case <-maintained:
+	default:
+		t.Fatal("expected manager maintenance to run")
 	}
 }
 

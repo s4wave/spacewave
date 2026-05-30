@@ -3,16 +3,22 @@ import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Client as SRPCClient } from 'starpc'
 import { FSHandle } from './handle.js'
 import type {
+  HandleReadAtRequest,
   HandleUploadFileRequest,
   HandleUploadTreeRequest,
 } from './handle.pb.js'
 
+const getSizeMock = vi.hoisted(() => vi.fn())
+const readAtMock = vi.hoisted(() => vi.fn())
 const uploadFileMock = vi.hoisted(() => vi.fn())
 const uploadTreeMock = vi.hoisted(() => vi.fn())
+const readChunkMaxBytes = 64 * 1024
 const uploadDataFrameMaxBytes = 64 * 1024
 
 vi.mock('./handle_srpc.pb.js', () => ({
   FSHandleResourceServiceClient: class {
+    GetSize = getSizeMock
+    ReadAt = readAtMock
     UploadFile = uploadFileMock
     UploadTree = uploadTreeMock
   },
@@ -66,6 +72,24 @@ function resetUploadTreeMock(sent: HandleUploadTreeRequest[]): void {
   )
 }
 
+function resetReadAtMock(
+  chunks: Uint8Array[],
+  sent: HandleReadAtRequest[],
+): void {
+  const state = { next: 0 }
+  readAtMock.mockReset()
+  readAtMock.mockImplementation((request: HandleReadAtRequest) => {
+    sent.push(request)
+    const data = chunks[state.next] ?? new Uint8Array()
+    state.next++
+    return Promise.resolve({
+      data,
+      bytesRead: BigInt(data.byteLength),
+      eof: state.next >= chunks.length,
+    })
+  })
+}
+
 function chunkStream(chunks: Uint8Array[]): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     start(controller) {
@@ -82,6 +106,54 @@ function dataMessageFrames(sent: HandleUploadTreeRequest[]): Uint8Array[] {
     request.body?.case === 'data' ? [request.body.value] : [],
   )
 }
+
+describe('FSHandle readAt', () => {
+  it('joins capped resource reads for an explicit large length', async () => {
+    const first = new Uint8Array(readChunkMaxBytes)
+    first.fill(1)
+    const second = new Uint8Array([2, 3, 4])
+    const requests: HandleReadAtRequest[] = []
+    resetReadAtMock([first, second], requests)
+    getSizeMock.mockReset()
+
+    const handle = new FSHandle(buildResourceRef())
+    const result = await handle.readAt(
+      5n,
+      BigInt(first.byteLength + second.byteLength),
+    )
+
+    expect(result.bytesRead).toBe(BigInt(first.byteLength + second.byteLength))
+    expect(result.eof).toBe(true)
+    expect(result.data.byteLength).toBe(first.byteLength + second.byteLength)
+    expect(result.data[0]).toBe(1)
+    expect(Array.from(result.data.slice(first.byteLength))).toEqual([2, 3, 4])
+    expect(requests).toEqual([
+      { offset: 5n, length: BigInt(readChunkMaxBytes) },
+      { offset: 5n + BigInt(readChunkMaxBytes), length: 3n },
+    ])
+    expect(getSizeMock).not.toHaveBeenCalled()
+  })
+
+  it('preserves length zero as read remaining file', async () => {
+    const first = new Uint8Array([5, 6])
+    const second = new Uint8Array([7])
+    const requests: HandleReadAtRequest[] = []
+    resetReadAtMock([first, second], requests)
+    getSizeMock.mockReset()
+    getSizeMock.mockResolvedValue({ size: 13n })
+
+    const handle = new FSHandle(buildResourceRef())
+    const result = await handle.readAt(10n, 0n)
+
+    expect(result.bytesRead).toBe(3n)
+    expect(Array.from(result.data)).toEqual([5, 6, 7])
+    expect(getSizeMock).toHaveBeenCalledTimes(1)
+    expect(requests).toEqual([
+      { offset: 10n, length: 3n },
+      { offset: 12n, length: 1n },
+    ])
+  })
+})
 
 describe('FSHandle uploadFile', () => {
   it('splits oversized stream chunks into bounded data messages', async () => {

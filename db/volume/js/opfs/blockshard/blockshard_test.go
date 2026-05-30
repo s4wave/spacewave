@@ -5,6 +5,7 @@ package blockshard
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"slices"
 	"strconv"
@@ -55,7 +56,7 @@ func publishEntries(t testing.TB, s *Shard, entries []segment.Entry) {
 	if err := s.Publish(context.Background(), entries); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.ReclaimPendingDelete(); err != nil {
+	if _, err := s.ReclaimPendingDelete(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -71,10 +72,10 @@ func compactShard(t testing.TB, s *Shard) {
 		t.Fatal(err)
 	}
 	defer release()
-	if err := ExecuteCompaction(s, plan); err != nil {
+	if err := ExecuteCompaction(context.Background(), s, plan); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.ReclaimPendingDelete(); err != nil {
+	if _, err := s.ReclaimPendingDelete(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -430,6 +431,219 @@ func TestPublishSplitsLargeBatchBySegmentDataLimit(t *testing.T) {
 	}
 }
 
+func TestForegroundPutDoesNotRunInlineCompaction(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	settings.CompactionTrigger = 2
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-foreground-no-inline-compaction",
+		"test-blockshard-foreground-no-inline-compaction",
+		settings,
+	)
+	defer cleanup()
+
+	for _, entry := range []segment.Entry{
+		{Key: []byte("key-a"), Value: []byte("value-a")},
+		{Key: []byte("key-b"), Value: []byte("value-b")},
+	} {
+		if err := e.Put(context.Background(), []segment.Entry{entry}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	m := e.shards[0].Manifest()
+	if len(m.Segments) != 2 {
+		t.Fatalf("segments after foreground puts: got %d want 2 uncompacted foreground publishes", len(m.Segments))
+	}
+	if len(m.PendingDelete) != 0 {
+		t.Fatalf("pending deletes after foreground puts: got %d want 0", len(m.PendingDelete))
+	}
+	for _, seg := range m.Segments {
+		if seg.Level != 0 {
+			t.Fatalf("segment %s level=%d want level 0", seg.Filename, seg.Level)
+		}
+	}
+}
+
+func TestCompactOnceCompactsForegroundSegments(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	settings.CompactionTrigger = 2
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-compact-once",
+		"test-blockshard-compact-once",
+		settings,
+	)
+	defer cleanup()
+
+	wantValues := map[string][]byte{
+		"key-a": []byte("value-a"),
+		"key-b": []byte("value-b"),
+	}
+	for key, value := range wantValues {
+		if err := e.Put(context.Background(), []segment.Entry{{
+			Key:   []byte(key),
+			Value: value,
+		}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := e.CompactOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	m := e.shards[0].Manifest()
+	if len(m.Segments) != 1 {
+		t.Fatalf("segments after CompactOnce: got %d want 1", len(m.Segments))
+	}
+	if m.Segments[0].Level != 1 {
+		t.Fatalf("compacted segment level=%d want 1", m.Segments[0].Level)
+	}
+	if len(m.PendingDelete) != 2 {
+		t.Fatalf("pending deletes after CompactOnce: got %d want 2", len(m.PendingDelete))
+	}
+	for key, want := range wantValues {
+		got, found, err := e.GetContext(context.Background(), []byte(key))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found {
+			t.Fatalf("key %q not found after CompactOnce", key)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("key %q value=%q want %q", key, got, want)
+		}
+	}
+}
+
+func TestCompactOnceHonorsCanceledContext(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	settings.CompactionTrigger = 2
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-compact-once-canceled",
+		"test-blockshard-compact-once-canceled",
+		settings,
+	)
+	defer cleanup()
+
+	for _, entry := range []segment.Entry{
+		{Key: []byte("key-a"), Value: []byte("value-a")},
+		{Key: []byte("key-b"), Value: []byte("value-b")},
+	} {
+		if err := e.Put(context.Background(), []segment.Entry{entry}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := e.CompactOnce(ctx); err != context.Canceled {
+		t.Fatalf("CompactOnce error = %v, want context.Canceled", err)
+	}
+
+	m := e.shards[0].Manifest()
+	if len(m.Segments) != 2 {
+		t.Fatalf("segments after canceled CompactOnce: got %d want 2", len(m.Segments))
+	}
+}
+
+func TestAcquirePublishLockContextCancelsWhileWaiting(t *testing.T) {
+	e, cleanup := newTestEngine(t, "test-blockshard-publish-lock-cancel", "test-blockshard-publish-lock-cancel")
+	defer cleanup()
+
+	release, err := e.shards[0].AcquirePublishLock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	blockedRelease, err := e.shards[0].AcquirePublishLockContext(ctx)
+	if blockedRelease != nil {
+		blockedRelease()
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("AcquirePublishLockContext error = %v, want context deadline", err)
+	}
+}
+
+func TestBlockStoreFlushDoesNotCompactForegroundSegments(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	settings.CompactionTrigger = 2
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-flush-no-compaction",
+		"test-blockshard-flush-no-compaction",
+		settings,
+	)
+	defer cleanup()
+
+	store := NewBlockStore(e, block.DefaultHashType)
+	for _, data := range [][]byte{
+		[]byte("value-a"),
+		[]byte("value-b"),
+	} {
+		if _, _, err := store.PutBlock(context.Background(), data, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := store.Flush(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	m := e.shards[0].Manifest()
+	if len(m.Segments) != 2 {
+		t.Fatalf("segments after Flush: got %d want 2 uncompacted foreground publishes", len(m.Segments))
+	}
+	if len(m.PendingDelete) != 0 {
+		t.Fatalf("pending deletes after Flush: got %d want 0", len(m.PendingDelete))
+	}
+}
+
+func TestBackgroundPutCanRunInlineCompaction(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	settings.CompactionTrigger = 2
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-background-inline-compaction",
+		"test-blockshard-background-inline-compaction",
+		settings,
+	)
+	defer cleanup()
+
+	for _, entry := range []segment.Entry{
+		{Key: []byte("key-a"), Value: []byte("value-a")},
+		{Key: []byte("key-b"), Value: []byte("value-b")},
+	} {
+		if err := e.PutBackground(context.Background(), []segment.Entry{entry}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	m := e.shards[0].Manifest()
+	if len(m.Segments) != 1 {
+		t.Fatalf("segments after background puts: got %d want 1 compacted segment", len(m.Segments))
+	}
+	if m.Segments[0].Level != 1 {
+		t.Fatalf("background compacted segment level=%d want 1", m.Segments[0].Level)
+	}
+	if len(m.PendingDelete) != 2 {
+		t.Fatalf("pending deletes after background compaction: got %d want 2", len(m.PendingDelete))
+	}
+}
+
 func TestCompactionSplitsLargeOutputBySegmentDataLimit(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
@@ -456,11 +670,11 @@ func TestCompactionSplitsLargeOutputBySegmentDataLimit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ExecuteCompaction(e.shards[0], plan); err != nil {
+	if err := ExecuteCompaction(context.Background(), e.shards[0], plan); err != nil {
 		release()
 		t.Fatal(err)
 	}
-	if _, err := e.shards[0].ReclaimPendingDelete(); err != nil {
+	if _, err := e.shards[0].ReclaimPendingDelete(context.Background()); err != nil {
 		release()
 		t.Fatal(err)
 	}

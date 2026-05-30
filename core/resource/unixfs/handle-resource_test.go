@@ -456,6 +456,107 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 	}
 }
 
+func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	data := make([]byte, fsHandleMaxReadSize+32*1024)
+	for i := range data {
+		data[i] = byte(i % 251)
+	}
+
+	strm, err := rootSvc.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+				Path:      "large.bin",
+				TotalSize: int64(len(data)),
+				Mode:      0o644,
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for offset := 0; offset < len(data); offset += 32 * 1024 {
+		end := min(offset+32*1024, len(data))
+		if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+			Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{
+				Data: data[offset:end],
+			},
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := strm.CloseAndRecv(); err != nil {
+		t.Fatal(err)
+	}
+
+	fileResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+		Path: "large.bin",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
+	defer fileRef.Release()
+
+	fileClient, err := fileRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+
+	if _, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{}); err == nil {
+		t.Fatal("expected large length=0 read to fail instead of returning a capped partial response")
+	}
+
+	first, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
+		Length: int64(len(data)),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.GetBytesRead() != fsHandleMaxReadSize {
+		t.Fatalf("first bytes_read = %d, want %d", first.GetBytesRead(), fsHandleMaxReadSize)
+	}
+	if len(first.GetData()) != fsHandleMaxReadSize {
+		t.Fatalf("first data len = %d, want %d", len(first.GetData()), fsHandleMaxReadSize)
+	}
+	if !slices.Equal(first.GetData(), data[:fsHandleMaxReadSize]) {
+		t.Fatal("first read data mismatch")
+	}
+	if first.GetEof() {
+		t.Fatal("first capped read unexpectedly reported EOF")
+	}
+
+	second, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
+		Offset: fsHandleMaxReadSize,
+		Length: int64(len(data)),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantTail := data[fsHandleMaxReadSize:]
+	if second.GetBytesRead() != int64(len(wantTail)) {
+		t.Fatalf("second bytes_read = %d, want %d", second.GetBytesRead(), len(wantTail))
+	}
+	if !slices.Equal(second.GetData(), wantTail) {
+		t.Fatal("second read data mismatch")
+	}
+}
+
 func TestFSHandleResourceUploadTreeRejectsAbsolutePath(t *testing.T) {
 	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()

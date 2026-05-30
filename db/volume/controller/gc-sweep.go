@@ -46,6 +46,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 					AcquireSTW: hooks.AcquireSTW,
 				},
 				SweepInterval: interval,
+				Maintenance:   hooks.Maintenance,
 			})
 			c.le.WithField("interval", interval.String()).Debug("gc manager routine started")
 			return manager.Run(ctx)

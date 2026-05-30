@@ -328,7 +328,10 @@ export interface HandleReadAtRequest {
    */
   offset?: bigint
   /**
-   * Length is the number of bytes to read.
+   * Length is the number of bytes to read. A positive length may be capped by
+   * the resource response limit. A length <= 0 reads the remaining file only if
+   * it fits in one response; large callers should GetSize and issue chunked
+   * positive-length ReadAt calls.
    *
    * @generated from field: int64 length = 2;
    */

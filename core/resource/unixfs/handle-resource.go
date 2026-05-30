@@ -17,6 +17,8 @@ import (
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 )
 
+const fsHandleMaxReadSize = 64 * 1024
+
 // FSHandleResource implements FSHandleResourceService for a single FSHandle.
 // Each instance wraps exactly one hydra/unixfs.FSHandle with 1:1 mapping.
 type FSHandleResource struct {
@@ -300,7 +302,9 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 	offset := req.GetOffset()
 	length := req.GetLength()
 
-	// length=0 means "read entire file from offset"
+	// length<=0 requests the remaining file from offset, but only when that
+	// fits in one bounded resource response. Larger reads must use GetSize and
+	// issue chunked positive-length ReadAt calls.
 	if length <= 0 {
 		size, err := r.handle.GetSize(ctx)
 		if err != nil {
@@ -312,12 +316,19 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 				Eof: true,
 			}, nil
 		}
+		if length > fsHandleMaxReadSize {
+			return nil, errors.Errorf(
+				"unixfs ReadAt length=0 would exceed max response size %d; use GetSize and chunked ReadAt",
+				fsHandleMaxReadSize,
+			)
+		}
 	}
 
-	// Cap at 64 MiB to prevent excessive allocation.
-	const maxReadSize = 64 * 1024 * 1024
-	if length > maxReadSize {
-		length = maxReadSize
+	// Bound resource read responses to the same chunk scale used by UploadTree.
+	// TinyGo browser workers can stall or trap when a single SRPC response tries
+	// to carry multi-hundred-KiB UnixFS payloads through the wasm bridge.
+	if length > fsHandleMaxReadSize {
+		length = fsHandleMaxReadSize
 	}
 
 	data := make([]byte, length)

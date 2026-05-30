@@ -31,7 +31,12 @@ type WebLockResult struct {
 
 // AcquireWebLock requests a Web Lock and waits until it is acquired.
 func AcquireWebLock(name string, exclusive bool) (func(), error) {
-	result, err := DefaultDriver.AcquireWebLock(context.Background(), name, exclusive)
+	return AcquireWebLockContext(context.Background(), name, exclusive)
+}
+
+// AcquireWebLockContext requests a Web Lock and waits until it is acquired.
+func AcquireWebLockContext(ctx context.Context, name string, exclusive bool) (func(), error) {
+	result, err := DefaultDriver.AcquireWebLock(ctx, name, exclusive)
 	if err != nil {
 		return nil, err
 	}

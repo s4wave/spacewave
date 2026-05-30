@@ -14,14 +14,18 @@ type ManagerConfig struct {
 	SweepConfig
 	// SweepInterval is the periodic sweep interval. Default 30s.
 	SweepInterval time.Duration
+	// Maintenance runs after a successful sweep cycle, inside the same
+	// maintenance lifecycle.
+	Maintenance func(context.Context) error
 }
 
 // ManagerHooks are the GC manager dependencies supplied by a storage backend.
 // The controller/runtime provides the sweep target and interval.
 type ManagerHooks struct {
-	Graph      CollectorGraph
-	ReplayWAL  WALReplayFunc
-	AcquireSTW STWLockFunc
+	Graph       CollectorGraph
+	ReplayWAL   WALReplayFunc
+	AcquireSTW  STWLockFunc
+	Maintenance func(context.Context) error
 }
 
 // Manager owns the GC graph store and sweep executor lifecycle.
@@ -75,6 +79,16 @@ func (m *Manager) Run(ctx context.Context) error {
 				return ctx.Err()
 			}
 			trace.Logf(ctx, "gc-manager", "sweep failed: %v", err)
+		} else if m.cfg.Maintenance != nil {
+			_, maintenanceTask := trace.NewTask(ctx, "hydra/block-gc/manager/maintenance")
+			err = m.cfg.Maintenance(ctx)
+			maintenanceTask.End()
+			if err != nil {
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				trace.Logf(ctx, "gc-manager", "maintenance failed: %v", err)
+			}
 		}
 		timer.Reset(m.cfg.SweepInterval)
 	}

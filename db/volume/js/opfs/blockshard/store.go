@@ -242,7 +242,7 @@ func (s *BlockStore) BeginReadOperation(context.Context) (block.StoreOps, func()
 }
 
 // Flush publishes buffered writes; the shard engine has no durability boundary.
-func (s *BlockStore) Flush(ctx context.Context) error {
+func (s *BlockStore) Flush(context.Context) error {
 	return nil
 }
 

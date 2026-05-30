@@ -22,8 +22,11 @@ func PlanCompaction(shard *Shard, trigger int) *CompactionPlan {
 }
 
 // ExecuteCompaction runs compaction for a plan. Caller must hold the publish lock.
-func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
-	if err := shard.reloadManifestFromDisk(context.Background()); err != nil {
+func ExecuteCompaction(ctx context.Context, shard *Shard, plan *CompactionPlan) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := shard.reloadManifestFromDisk(ctx); err != nil {
 		return errors.Wrap(err, "reload manifest")
 	}
 	m := shard.Manifest()
@@ -37,7 +40,10 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 
 	iters := make([]*segment.EntryIterator, len(plan.InputSegs))
 	for i, meta := range plan.InputSegs {
-		f, err := shard.getSegmentFile(context.Background(), &meta)
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		f, err := shard.getSegmentFile(ctx, &meta)
 		if err != nil {
 			return errors.Errorf("open input segment %s: %v", meta.Filename, err)
 		}
@@ -51,7 +57,7 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 		if err := segment.VerifyChecksum(f, size); err != nil {
 			return errors.Errorf("verify input segment %s: %v", meta.Filename, err)
 		}
-		lookup, err := loadLookupMeta(context.Background(), f, &meta)
+		lookup, err := loadLookupMeta(ctx, f, &meta)
 		if err != nil {
 			return errors.Errorf("parse input segment %s: %v", meta.Filename, err)
 		}
@@ -59,11 +65,15 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 	}
 
 	writer := compactionOutputWriter{
+		ctx:          ctx,
 		shard:        shard,
 		outputLevel:  plan.OutputLevel,
 		maxDataBytes: shard.maxSegmentDataBytes,
 	}
 	if err := mergeSegmentIterators(iters, func(entry segment.Entry) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if entry.Tombstone && !manifestMayContainKeyOutsideInputs(m, inputNames, entry.Key) {
 			return nil
 		}
@@ -100,7 +110,7 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 		return err
 	}
 
-	if err := shard.writeManifest(newManifest); err != nil {
+	if err := shard.writeManifest(ctx, newManifest); err != nil {
 		return errors.Wrap(err, "write compaction manifest")
 	}
 	for i := range outputs {
@@ -110,6 +120,7 @@ func ExecuteCompaction(shard *Shard, plan *CompactionPlan) error {
 }
 
 type compactionOutputWriter struct {
+	ctx          context.Context
 	shard        *Shard
 	outputLevel  uint8
 	maxDataBytes int
@@ -134,7 +145,10 @@ func (w *compactionOutputWriter) Flush() error {
 	if len(w.entries) == 0 {
 		return nil
 	}
-	output, err := w.shard.writeSegment(context.Background(), w.entries, w.outputLevel)
+	if err := w.ctx.Err(); err != nil {
+		return err
+	}
+	output, err := w.shard.writeSegment(w.ctx, w.entries, w.outputLevel)
 	if err != nil {
 		return err
 	}

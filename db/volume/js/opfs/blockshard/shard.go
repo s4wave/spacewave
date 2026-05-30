@@ -124,7 +124,7 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 	}
 	s.mu.Unlock()
 
-	if err := s.writeManifest(newManifest); err != nil {
+	if err := s.writeManifest(ctx, newManifest); err != nil {
 		subtask.End()
 		return err
 	}
@@ -255,13 +255,13 @@ func (s *Shard) buildSegmentAsyncFile(ctx context.Context, filename string, w *s
 }
 
 // writeManifest writes a manifest to the alternate slot and commits in-memory.
-func (s *Shard) writeManifest(m *Manifest) error {
+func (s *Shard) writeManifest(ctx context.Context, m *Manifest) error {
 	slot := manifestSlotA
 	if m.Generation%2 == 0 {
 		slot = manifestSlotB
 	}
 	mdata := m.Encode()
-	if err := s.writeFileData(context.Background(), slot, mdata); err != nil {
+	if err := s.writeFileData(ctx, slot, mdata); err != nil {
 		return errors.Wrap(err, "write manifest")
 	}
 
@@ -344,8 +344,14 @@ func isSegmentFilename(name string) bool {
 // AcquirePublishLock acquires the exclusive per-shard publish WebLock.
 // Returns a release function.
 func (s *Shard) AcquirePublishLock() (func(), error) {
+	return s.AcquirePublishLockContext(context.Background())
+}
+
+// AcquirePublishLockContext acquires the exclusive per-shard publish WebLock.
+// Returns a release function.
+func (s *Shard) AcquirePublishLockContext(ctx context.Context) (func(), error) {
 	name := s.lockPrefix + "/shard-" + zeroPad(uint64(s.id), 2) + "/publish"
-	return filelock.AcquireWebLock(name, true)
+	return filelock.AcquireWebLockContext(ctx, name, true)
 }
 
 func (s *Shard) reloadManifestFromDisk(ctx context.Context) error {
@@ -436,8 +442,8 @@ func (s *Shard) CleanOrphans() error {
 // ReclaimPendingDelete removes manifest-retired segment files once both the
 // generation gate and grace-period gate say they are safe to reclaim. Caller
 // must hold the shard publish lock.
-func (s *Shard) ReclaimPendingDelete() (bool, error) {
-	if err := s.reloadManifestFromDisk(context.Background()); err != nil {
+func (s *Shard) ReclaimPendingDelete(ctx context.Context) (bool, error) {
+	if err := s.reloadManifestFromDisk(ctx); err != nil {
 		return false, errors.Wrap(err, "reload manifest")
 	}
 	s.mu.Lock()
@@ -451,7 +457,7 @@ func (s *Shard) ReclaimPendingDelete() (bool, error) {
 	next := buildReclaimManifest(current, keep)
 	s.mu.Unlock()
 
-	if err := s.writeManifest(next); err != nil {
+	if err := s.writeManifest(ctx, next); err != nil {
 		return false, errors.Wrap(err, "write reclaim manifest")
 	}
 

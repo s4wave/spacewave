@@ -14,19 +14,17 @@ import (
 )
 
 type uploadTreeFile struct {
-	parentPath []string
-	name       string
-	totalSize  int64
-	written    int64
-	pw         *io.PipeWriter
-	done       chan error
+	strm      s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeStream
+	state     *uploadTreeState
+	name      string
+	remaining int64
+	buf       []byte
 }
 
 type uploadTreeState struct {
-	b       *unixfs_world.BatchFSWriter
-	dirs    map[string]struct{}
-	current *uploadTreeFile
-	resp    s4wave_unixfs.HandleUploadTreeResponse
+	b    *unixfs_world.BatchFSWriter
+	dirs map[string]struct{}
+	resp s4wave_unixfs.HandleUploadTreeResponse
 }
 
 // UploadTree uploads a directory tree relative to this handle in one batch.
@@ -51,14 +49,6 @@ func (r *FSHandleResource) UploadTree(
 		dirs: make(map[string]struct{}),
 	}
 	defer state.b.Release()
-	defer func() {
-		if rerr == nil {
-			return
-		}
-		if err := abortUploadTreeFile(state, rerr); err != nil {
-			rerr = errors.Wrap(rerr, err.Error())
-		}
-	}()
 
 	for {
 		msg, err := strm.Recv()
@@ -68,12 +58,9 @@ func (r *FSHandleResource) UploadTree(
 		if err != nil {
 			return nil, err
 		}
-		if err := r.handleUploadTreeMessage(ctx, state, msg); err != nil {
+		if err := r.handleUploadTreeMessage(ctx, strm, state, msg); err != nil {
 			return nil, err
 		}
-	}
-	if err := finishUploadTreeFile(state); err != nil {
-		return nil, err
 	}
 	if err := state.b.Commit(ctx); err != nil {
 		return nil, err
@@ -89,13 +76,11 @@ func (r *FSHandleResource) UploadTree(
 // handleUploadTreeMessage handles one UploadTree stream message.
 func (r *FSHandleResource) handleUploadTreeMessage(
 	ctx context.Context,
+	strm s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeStream,
 	state *uploadTreeState,
 	msg *s4wave_unixfs.HandleUploadTreeRequest,
 ) error {
 	if dir := msg.GetDirectory(); dir != nil {
-		if err := finishUploadTreeFile(state); err != nil {
-			return err
-		}
 		parts, err := parseUploadTreePath(dir.GetPath())
 		if err != nil {
 			return err
@@ -119,9 +104,6 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 	}
 
 	if fileStart := msg.GetFileStart(); fileStart != nil {
-		if err := finishUploadTreeFile(state); err != nil {
-			return err
-		}
 		parts, err := parseUploadTreePath(fileStart.GetPath())
 		if err != nil {
 			return err
@@ -137,48 +119,37 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 		if err := r.ensureUploadTreeParents(ctx, state, parts[:len(parts)-1]); err != nil {
 			return err
 		}
-		pr, pw := io.Pipe()
-		done := make(chan error, 1)
-		go func() {
-			done <- state.b.AddFile(
-				ctx,
-				parentPath,
-				parts[len(parts)-1],
-				unixfs.NewFSCursorNodeType_File(),
+		rdr := &uploadTreeFile{
+			strm:      strm,
+			state:     state,
+			name:      parts[len(parts)-1],
+			remaining: fileStart.GetTotalSize(),
+		}
+		if err := state.b.AddFile(
+			ctx,
+			parentPath,
+			parts[len(parts)-1],
+			unixfs.NewFSCursorNodeType_File(),
+			fileStart.GetTotalSize(),
+			rdr,
+			fs.FileMode(fileStart.GetMode()),
+			time.Now(),
+		); err != nil {
+			return err
+		}
+		if rdr.remaining != 0 {
+			return errors.Errorf(
+				"tree upload file %q wrote %d bytes, expected %d",
+				rdr.name,
+				fileStart.GetTotalSize()-rdr.remaining,
 				fileStart.GetTotalSize(),
-				pr,
-				fs.FileMode(fileStart.GetMode()),
-				time.Now(),
 			)
-		}()
-		state.current = &uploadTreeFile{
-			parentPath: parentPath,
-			name:       parts[len(parts)-1],
-			totalSize:  fileStart.GetTotalSize(),
-			pw:         pw,
-			done:       done,
 		}
 		state.resp.FilesWritten++
 		return nil
 	}
 
-	data := msg.GetData()
-	if len(data) == 0 {
-		return errors.New("tree upload message missing body")
-	}
-	if state.current == nil {
-		return errors.New("tree upload data received before file_start")
-	}
-	if int64(len(data)) > state.current.totalSize-state.current.written {
-		return errors.Errorf("tree upload data exceeds declared size for %q", state.current.name)
-	}
-	n, err := state.current.pw.Write(data)
-	state.resp.BytesWritten += int64(n)
-	state.current.written += int64(n)
-	if err != nil {
-		return err
-	}
-	return nil
+	return errors.New("tree upload data received before file_start")
 }
 
 // ensureUploadTreeParents creates any missing parent directories for relParts.
@@ -223,49 +194,6 @@ func (r *FSHandleResource) addUploadTreeDir(
 	)
 }
 
-// finishUploadTreeFile closes and waits for the current file upload, if any.
-func finishUploadTreeFile(state *uploadTreeState) error {
-	if state.current == nil {
-		return nil
-	}
-	curr := state.current
-	state.current = nil
-	if curr.written != curr.totalSize {
-		sizeErr := errors.Errorf(
-			"tree upload file %q wrote %d bytes, expected %d",
-			curr.name,
-			curr.written,
-			curr.totalSize,
-		)
-		if err := curr.pw.CloseWithError(sizeErr); err != nil {
-			return err
-		}
-		<-curr.done
-		return sizeErr
-	}
-	if err := curr.pw.Close(); err != nil {
-		return err
-	}
-	return <-curr.done
-}
-
-// abortUploadTreeFile aborts and waits for the current file upload, if any.
-func abortUploadTreeFile(state *uploadTreeState, cause error) error {
-	if state.current == nil {
-		return nil
-	}
-	curr := state.current
-	state.current = nil
-	var ret error
-	if err := curr.pw.CloseWithError(cause); err != nil {
-		ret = err
-	}
-	if err := <-curr.done; err != nil && ret == nil {
-		ret = err
-	}
-	return ret
-}
-
 // parseUploadTreePath validates a slash-separated relative upload path.
 func parseUploadTreePath(path string) ([]string, error) {
 	if path == "" {
@@ -289,4 +217,43 @@ func parseUploadTreePath(path string) ([]string, error) {
 		return nil, errors.New("empty upload path")
 	}
 	return out, nil
+}
+
+func (f *uploadTreeFile) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	if len(f.buf) != 0 {
+		n := copy(p, f.buf)
+		f.buf = f.buf[n:]
+		return n, nil
+	}
+	if f.remaining == 0 {
+		return 0, io.EOF
+	}
+	msg, err := f.strm.Recv()
+	if err == io.EOF {
+		return 0, errors.Errorf(
+			"tree upload file %q ended with %d bytes remaining",
+			f.name,
+			f.remaining,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	data := msg.GetData()
+	if len(data) == 0 {
+		return 0, errors.Errorf("tree upload file %q expected data before declared size", f.name)
+	}
+	if int64(len(data)) > f.remaining {
+		return 0, errors.Errorf("tree upload data exceeds declared size for %q", f.name)
+	}
+	f.state.resp.BytesWritten += int64(len(data))
+	f.remaining -= int64(len(data))
+	n := copy(p, data)
+	if n < len(data) {
+		f.buf = data[n:]
+	}
+	return n, nil
 }

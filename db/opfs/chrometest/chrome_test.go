@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,15 +18,18 @@ import (
 )
 
 const (
-	runEnv         = "RUN_OPFS_CHROME_TEST"
-	profileEnv     = "RUN_OPFS_CHROME_PROFILE"
-	tinyGoEnv      = "RUN_OPFS_CHROME_TINYGO"
-	tinyGoGCEnv    = "RUN_OPFS_CHROME_TINYGO_GC"
-	tinyGoPanicEnv = "RUN_OPFS_CHROME_TINYGO_PANIC"
-	tinyGoStackEnv = "RUN_OPFS_CHROME_TINYGO_STACK_SIZE"
-	chromeSmoke    = "smoke"
-	chromeStress   = "stress"
-	defaultShards  = 4
+	runEnv               = "RUN_OPFS_CHROME_TEST"
+	profileEnv           = "RUN_OPFS_CHROME_PROFILE"
+	tinyGoEnv            = "RUN_OPFS_CHROME_TINYGO"
+	tinyGoGCEnv          = "RUN_OPFS_CHROME_TINYGO_GC"
+	tinyGoLLVMEnv        = "RUN_OPFS_CHROME_TINYGO_LLVM_FEATURES"
+	tinyGoPanicEnv       = "RUN_OPFS_CHROME_TINYGO_PANIC"
+	tinyGoStackEnv       = "RUN_OPFS_CHROME_TINYGO_STACK_SIZE"
+	resourceReadChunkEnv = "RUN_OPFS_CHROME_RESOURCE_READ_CHUNK"
+	largeSizeEnv         = "RUN_OPFS_CHROME_LARGE_SIZE"
+	chromeSmoke          = "smoke"
+	chromeStress         = "stress"
+	defaultShards        = 4
 )
 
 var sharedHarness *chromeHarness
@@ -268,6 +272,81 @@ func TestOpfsChromeLargeWriteReadList(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeTinyGoPipeWriteLoop(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo io.Pipe scheduling path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-pipe-write-loop-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario:   "pipe-write-loop",
+		root:       root,
+		iterations: 4 * 1024 * 1024,
+	})
+}
+
+func TestOpfsChromeTinyGoSRPCEchoLoop(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise TinyGo SRPC unary call liveness", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-srpc-echo-loop-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario:   "srpc-echo-loop",
+		root:       root,
+		iterations: envIntDefault(t, largeSizeEnv, 128),
+		batch:      envIntDefault(t, resourceReadChunkEnv, 4096),
+	})
+}
+
+func TestOpfsChromeTinyGoSRPCRpcStreamEchoLoop(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise TinyGo SRPC-over-rpcstream liveness", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-srpc-rpcstream-echo-loop-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario:   "srpc-rpcstream-echo-loop",
+		root:       root,
+		iterations: envIntDefault(t, largeSizeEnv, 128),
+		batch:      envIntDefault(t, resourceReadChunkEnv, 4096),
+	})
+}
+
+func TestOpfsChromeTinyGoResourceEchoLoop(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise TinyGo resource-routed SRPC liveness", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-resource-echo-loop-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario:   "resource-echo-loop",
+		root:       root,
+		iterations: envIntDefault(t, largeSizeEnv, 128),
+		batch:      envIntDefault(t, resourceReadChunkEnv, 4096),
+	})
+}
+
 func TestOpfsChromeTinyGoLargeWriteReadList(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
@@ -286,7 +365,7 @@ func TestOpfsChromeTinyGoLargeWriteReadList(t *testing.T) {
 	s.runWorker(t, workerArgs{
 		scenario:   "large-write-read-list",
 		root:       root,
-		iterations: 68056093,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
 		batch:      1,
 	})
 }
@@ -309,7 +388,7 @@ func TestOpfsChromeTinyGoLargeBlockShardBatch(t *testing.T) {
 	s.runWorker(t, workerArgs{
 		scenario:   "large-block-batch",
 		root:       root,
-		iterations: 68056093,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
 		batch:      96,
 		shards:     1,
 	})
@@ -333,7 +412,7 @@ func TestOpfsChromeTinyGoLargeBlockShardMultiShardBatch(t *testing.T) {
 	s.runWorker(t, workerArgs{
 		scenario:   "large-block-batch",
 		root:       root,
-		iterations: 68056093,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
 		batch:      96,
 		shards:     defaultShards,
 	})
@@ -983,7 +1062,7 @@ func TestOpfsChromeTinyGoWorldLargeUnixFSUpload(t *testing.T) {
 	s.runWorker(t, workerArgs{
 		scenario:   "world-large-unixfs-upload",
 		root:       root,
-		iterations: 68056093,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
 		shards:     defaultShards,
 	})
 }
@@ -1006,7 +1085,32 @@ func TestOpfsChromeTinyGoWorldResourceLargeUnixFSUpload(t *testing.T) {
 	s.runWorker(t, workerArgs{
 		scenario:   "world-resource-large-unixfs-upload",
 		root:       root,
-		iterations: 68056093,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
+		batch:      envInt(t, resourceReadChunkEnv),
+		shards:     defaultShards,
+	})
+}
+
+func TestOpfsChromeTinyGoWorldResourceDirectUploadTreeLargeUnixFSUpload(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise the TinyGo direct UploadTree path", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-resource-direct-upload-tree-large-unixfs-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "world-resource-direct-upload-tree-large-unixfs-upload",
+		root:       root,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
+		batch:      envInt(t, resourceReadChunkEnv),
 		shards:     defaultShards,
 	})
 }
@@ -1029,7 +1133,8 @@ func TestOpfsChromeTinyGoWorldControllerResourceLargeUnixFSUpload(t *testing.T) 
 	s.runWorker(t, workerArgs{
 		scenario:   "world-controller-resource-large-unixfs-upload",
 		root:       root,
-		iterations: 68056093,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
+		batch:      envInt(t, resourceReadChunkEnv),
 		shards:     defaultShards,
 	})
 }
@@ -1052,7 +1157,8 @@ func TestOpfsChromeTinyGoWorldCloudOverlayResourceLargeUnixFSUpload(t *testing.T
 	s.runWorker(t, workerArgs{
 		scenario:   "world-cloud-overlay-resource-large-unixfs-upload",
 		root:       root,
-		iterations: 68056093,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
+		batch:      envInt(t, resourceReadChunkEnv),
 		shards:     defaultShards,
 	})
 }
@@ -1075,7 +1181,8 @@ func TestOpfsChromeTinyGoWorldCloudSyncResourceLargeUnixFSUpload(t *testing.T) {
 	s.runWorker(t, workerArgs{
 		scenario:   "world-cloud-sync-resource-large-unixfs-upload",
 		root:       root,
-		iterations: 68056093,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
+		batch:      envInt(t, resourceReadChunkEnv),
 		shards:     defaultShards,
 	})
 }
@@ -1101,6 +1208,31 @@ func requireChromeProfile(t testing.TB, profiles ...string) {
 		return
 	}
 	t.Skipf("set %s=%s to run this Chrome OPFS test", profileEnv, strings.Join(profiles, " or "))
+}
+
+func envInt(t testing.TB, key string) int {
+	t.Helper()
+	val := strings.TrimSpace(os.Getenv(key))
+	if val == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil {
+		t.Fatalf("invalid %s=%q: %v", key, val, err)
+	}
+	if n < 0 {
+		t.Fatalf("invalid %s=%d: must be non-negative", key, n)
+	}
+	return n
+}
+
+func envIntDefault(t testing.TB, key string, def int) int {
+	t.Helper()
+	val := envInt(t, key)
+	if val == 0 {
+		return def
+	}
+	return val
 }
 
 func startChromeHarness() (*chromeHarness, error) {
@@ -1366,6 +1498,9 @@ func buildWasm(out string) error {
 		}
 		if stackSize := strings.TrimSpace(os.Getenv(tinyGoStackEnv)); stackSize != "" {
 			args = append(args, "-stack-size="+stackSize)
+		}
+		if features := strings.TrimSpace(os.Getenv(tinyGoLLVMEnv)); features != "" {
+			args = append(args, "-llvm-features="+features)
 		}
 		args = append(args, "-o", out, "./db/opfs/chrometest/testprog")
 		cmd := exec.CommandContext(ctx, "tinygo", args...)
@@ -1676,6 +1811,10 @@ const indexHTML = `<!doctype html>
               readyResolve(data)
               return
             }
+            if (data.kind === 'progress') {
+              console.log(formatProgress(data))
+              return
+            }
             if (data.kind === 'result') {
               worker.terminate()
               readyResolve(data)
@@ -1701,6 +1840,16 @@ const indexHTML = `<!doctype html>
           done,
           stop: () => worker.terminate(),
         }
+      }
+
+      function formatProgress(data) {
+        let msg = 'opfs worker progress scenario=' + (data.scenario ?? '') +
+          ' worker=' + (data.worker ?? 0) +
+          ' phase=' + (data.phase ?? '')
+        if (data.offset !== undefined || data.total !== undefined) {
+          msg += ' offset=' + (data.offset ?? 0) + ' total=' + (data.total ?? 0)
+        }
+        return msg
       }
     </script>
   </body>

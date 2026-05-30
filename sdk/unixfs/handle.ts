@@ -43,7 +43,28 @@ export interface TreeUploadFile {
 // TreeUploadEntry is one tree upload entry.
 export type TreeUploadEntry = TreeUploadDirectory | TreeUploadFile
 
+const fsHandleReadChunkSize = 64 * 1024
 const uploadDataFrameMaxBytes = 64 * 1024
+
+function concatReadChunks(chunks: Uint8Array[], bytesRead: bigint): Uint8Array {
+  if (chunks.length === 0) {
+    return new Uint8Array()
+  }
+  if (chunks.length === 1) {
+    return chunks[0]
+  }
+  if (bytesRead > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error('unixfs read is too large to materialize')
+  }
+
+  const out = new Uint8Array(Number(bytesRead))
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return out
+}
 
 function uploadDataFrameOffsets(byteLength: number): number[] {
   const count = Math.ceil(byteLength / uploadDataFrameMaxBytes)
@@ -313,12 +334,59 @@ export class FSHandle extends Resource implements IFSHandle {
     length: bigint,
     abortSignal?: AbortSignal,
   ): Promise<{ data: Uint8Array; bytesRead: bigint; eof: boolean }> {
-    const resp = await this.service.ReadAt({ offset, length }, abortSignal)
-    return {
-      data: resp.data ?? new Uint8Array(),
-      bytesRead: resp.bytesRead ?? 0n,
-      eof: resp.eof ?? false,
+    const targetLength =
+      length > 0n ? length : await this.readRemainingLength(offset, abortSignal)
+    if (targetLength <= 0n) {
+      return {
+        data: new Uint8Array(),
+        bytesRead: 0n,
+        eof: true,
+      }
     }
+
+    const chunks: Uint8Array[] = []
+    let nextOffset = offset
+    let remaining = targetLength
+    let bytesRead = 0n
+    let eof = false
+    while (remaining > 0n) {
+      const requestLength =
+        remaining > BigInt(fsHandleReadChunkSize)
+          ? BigInt(fsHandleReadChunkSize)
+          : remaining
+      const resp = await this.service.ReadAt(
+        { offset: nextOffset, length: requestLength },
+        abortSignal,
+      )
+      const data = resp.data ?? new Uint8Array()
+      if (data.byteLength === 0) {
+        eof = resp.eof ?? false
+        break
+      }
+      chunks.push(data)
+      const n = BigInt(data.byteLength)
+      bytesRead += n
+      nextOffset += n
+      remaining -= n
+      eof = resp.eof ?? false
+      if (eof) {
+        break
+      }
+    }
+
+    return {
+      data: concatReadChunks(chunks, bytesRead),
+      bytesRead,
+      eof,
+    }
+  }
+
+  private async readRemainingLength(
+    offset: bigint,
+    abortSignal?: AbortSignal,
+  ): Promise<bigint> {
+    const size = await this.getSize(abortSignal)
+    return size > offset ? size - offset : 0n
   }
 
   // writeAt writes bytes at the given offset.
