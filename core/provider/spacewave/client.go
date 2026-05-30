@@ -762,6 +762,17 @@ func (c *EntityClient) RegisterSessionDirectWithResponse(ctx context.Context, se
 		DeviceInfo:    deviceInfo,
 		EntityId:      entityID,
 	}
+	return c.RegisterSessionWithRequest(ctx, req, turnstileToken)
+}
+
+// RegisterSessionWithRequest registers a session using the generated Cloud
+// request shape. Existing callers should leave Type unset for USER defaults;
+// SpaceLink approval can set APP/DEVICE type, label, and future request fields
+// without adding another positional helper.
+func (c *EntityClient) RegisterSessionWithRequest(ctx context.Context, req *api.RegisterSessionRequest, turnstileToken string) (*api.RegisterSessionResponse, error) {
+	if req == nil {
+		return nil, errors.New("session registration request is required")
+	}
 	body, err := req.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal session request")
@@ -794,6 +805,17 @@ func (c *EntityClient) RegisterSessionDirectWithResponse(ctx context.Context, se
 		return nil, errors.Wrap(err, "unmarshal session response")
 	}
 	return &resp, nil
+}
+
+// RollbackSessionRegistration removes a just-created APP/DEVICE registration
+// row through the Cloud registration rollback owner. Reused rows and USER
+// sessions are preserved by the Cloud endpoint.
+func (c *EntityClient) RollbackSessionRegistration(ctx context.Context, sessionPeerID string) error {
+	_, err := c.doDelete(ctx, "/api/account/session/"+url.PathEscape(sessionPeerID)+"/registration", SeedReasonMutation)
+	if err != nil {
+		return errors.Wrap(err, "rollback session registration")
+	}
+	return nil
 }
 
 // signMultiSig signs envelope bytes with each entity key using the multi-sig

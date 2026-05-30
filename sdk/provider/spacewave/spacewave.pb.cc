@@ -1017,6 +1017,46 @@ struct StartBrowserHandoffRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StartBrowserHandoffRequestDefaultTypeInternal _StartBrowserHandoffRequest_default_instance_;
 
+inline constexpr SpaceLinkCallback::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        nonce_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        resource_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        session_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_message_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        status_{static_cast< ::s4wave::provider::spacewave::SpaceLinkCallbackStatus >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SpaceLinkCallback::SpaceLinkCallback(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SpaceLinkCallback_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SpaceLinkCallbackDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SpaceLinkCallbackDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SpaceLinkCallbackDefaultTypeInternal() {}
+  union {
+    SpaceLinkCallback _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceLinkCallbackDefaultTypeInternal _SpaceLinkCallback_default_instance_;
+
 inline constexpr SpaceLinkAuthTicket::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1068,7 +1108,8 @@ inline constexpr SpaceLinkAuthRequest::Impl_::Impl_(
         version_{0u},
         session_type_{static_cast< ::session::SessionType >(0)},
         expires_at_{::int64_t{0}},
-        requested_role_{static_cast< ::sobject::SOParticipantRole >(0)} {}
+        requested_role_{static_cast< ::sobject::SOParticipantRole >(0)},
+        completion_mode_{static_cast< ::s4wave::provider::spacewave::SpaceLinkCompletionMode >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR SpaceLinkAuthRequest::SpaceLinkAuthRequest(::_pbi::ConstantInitialized)
@@ -2290,7 +2331,8 @@ inline constexpr PreviewSpaceLinkResponse::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         session_type_{static_cast< ::session::SessionType >(0)},
         requested_role_{static_cast< ::sobject::SOParticipantRole >(0)},
-        expires_at_{::int64_t{0}} {}
+        expires_at_{::int64_t{0}},
+        completion_mode_{static_cast< ::s4wave::provider::spacewave::SpaceLinkCompletionMode >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR PreviewSpaceLinkResponse::PreviewSpaceLinkResponse(::_pbi::ConstantInitialized)
@@ -4973,45 +5015,6 @@ struct AssignBillingAccountRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AssignBillingAccountRequestDefaultTypeInternal _AssignBillingAccountRequest_default_instance_;
 
-inline constexpr ApproveSpaceLinkResponse::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        account_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        resource_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        session_peer_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        nonce_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        callback_url_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
-
-template <typename>
-PROTOBUF_CONSTEXPR ApproveSpaceLinkResponse::ApproveSpaceLinkResponse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(ApproveSpaceLinkResponse_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct ApproveSpaceLinkResponseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ApproveSpaceLinkResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ApproveSpaceLinkResponseDefaultTypeInternal() {}
-  union {
-    ApproveSpaceLinkResponse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ApproveSpaceLinkResponseDefaultTypeInternal _ApproveSpaceLinkResponse_default_instance_;
-
 inline constexpr ApproveSpaceLinkRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -5924,6 +5927,47 @@ struct CreateAccountRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateAccountRequestDefaultTypeInternal _CreateAccountRequest_default_instance_;
 
+inline constexpr ApproveSpaceLinkResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        resource_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        session_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        nonce_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        callback_url_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        completion_{nullptr},
+        completion_mode_{static_cast< ::s4wave::provider::spacewave::SpaceLinkCompletionMode >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ApproveSpaceLinkResponse::ApproveSpaceLinkResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ApproveSpaceLinkResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ApproveSpaceLinkResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ApproveSpaceLinkResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ApproveSpaceLinkResponseDefaultTypeInternal() {}
+  union {
+    ApproveSpaceLinkResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ApproveSpaceLinkResponseDefaultTypeInternal _ApproveSpaceLinkResponse_default_instance_;
+
 inline constexpr WatchOrganizationStateResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -6421,7 +6465,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace provider
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto[7];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto[9];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto = nullptr;
 const ::uint32_t
@@ -8011,7 +8055,7 @@ const ::uint32_t
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthRequest, _impl_._has_bits_),
-        12, // hasbit index offset
+        13, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthRequest, _impl_.version_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthRequest, _impl_.session_type_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthRequest, _impl_.agent_peer_id_),
@@ -8021,6 +8065,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthRequest, _impl_.nonce_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthRequest, _impl_.expires_at_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthRequest, _impl_.target_hint_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthRequest, _impl_.completion_mode_),
         5,
         6,
         0,
@@ -8030,6 +8075,7 @@ const ::uint32_t
         3,
         7,
         4,
+        9,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkAuthTicket, _impl_._has_bits_),
         5, // hasbit index offset
@@ -8044,7 +8090,7 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::PreviewSpaceLinkResponse, _impl_._has_bits_),
-        11, // hasbit index offset
+        12, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::PreviewSpaceLinkResponse, _impl_.label_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::PreviewSpaceLinkResponse, _impl_.session_type_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::PreviewSpaceLinkResponse, _impl_.agent_peer_id_),
@@ -8053,6 +8099,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::PreviewSpaceLinkResponse, _impl_.nonce_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::PreviewSpaceLinkResponse, _impl_.expires_at_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::PreviewSpaceLinkResponse, _impl_.callback_url_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::PreviewSpaceLinkResponse, _impl_.completion_mode_),
         0,
         5,
         1,
@@ -8061,6 +8108,7 @@ const ::uint32_t
         3,
         7,
         4,
+        8,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkRequest, _impl_._has_bits_),
         5, // hasbit index offset
@@ -8070,12 +8118,31 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkResponse, _impl_._has_bits_),
-        8, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkResponse, _impl_.account_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkResponse, _impl_.resource_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkResponse, _impl_.session_peer_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkResponse, _impl_.nonce_),
         PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkResponse, _impl_.callback_url_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkResponse, _impl_.completion_mode_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::ApproveSpaceLinkResponse, _impl_.completion_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        6,
+        5,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkCallback, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkCallback, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkCallback, _impl_.nonce_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkCallback, _impl_.account_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkCallback, _impl_.resource_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkCallback, _impl_.session_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::provider::spacewave::SpaceLinkCallback, _impl_.error_message_),
+        5,
         0,
         1,
         2,
@@ -8309,11 +8376,12 @@ static const ::_pbi::MigrationSchema
         {1572, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryRequest)},
         {1581, sizeof(::s4wave::provider::spacewave::ProcessMailboxEntryResponse)},
         {1582, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthRequest)},
-        {1603, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthTicket)},
-        {1610, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkRequest)},
-        {1615, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkResponse)},
-        {1634, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkRequest)},
-        {1641, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkResponse)},
+        {1605, sizeof(::s4wave::provider::spacewave::SpaceLinkAuthTicket)},
+        {1612, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkRequest)},
+        {1617, sizeof(::s4wave::provider::spacewave::PreviewSpaceLinkResponse)},
+        {1638, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkRequest)},
+        {1645, sizeof(::s4wave::provider::spacewave::ApproveSpaceLinkResponse)},
+        {1662, sizeof(::s4wave::provider::spacewave::SpaceLinkCallback)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::provider::spacewave::_PasswordCredential_default_instance_._instance,
@@ -8545,6 +8613,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::provider::spacewave::_PreviewSpaceLinkResponse_default_instance_._instance,
     &::s4wave::provider::spacewave::_ApproveSpaceLinkRequest_default_instance_._instance,
     &::s4wave::provider::spacewave::_ApproveSpaceLinkResponse_default_instance_._instance,
+    &::s4wave::provider::spacewave::_SpaceLinkCallback_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -9086,64 +9155,85 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fp
     "d\030\006 \001(\t\022\021\n\tentity_id\030\007 \001(\t\"P\n\032ProcessMai"
     "lboxEntryRequest\022\020\n\010space_id\030\001 \001(\t\022\020\n\010en"
     "try_id\030\002 \001(\003\022\016\n\006accept\030\003 \001(\010\"\035\n\033ProcessM"
-    "ailboxEntryResponse\"\373\001\n\024SpaceLinkAuthReq"
+    "ailboxEntryResponse\"\310\002\n\024SpaceLinkAuthReq"
     "uest\022\017\n\007version\030\001 \001(\r\022*\n\014session_type\030\002 "
     "\001(\0162\024.session.SessionType\022\025\n\ragent_peer_"
     "id\030\003 \001(\014\022\r\n\005label\030\004 \001(\t\022\024\n\014callback_url\030"
     "\005 \001(\t\0222\n\016requested_role\030\006 \001(\0162\032.sobject."
     "SOParticipantRole\022\r\n\005nonce\030\007 \001(\014\022\022\n\nexpi"
-    "res_at\030\010 \001(\003\022\023\n\013target_hint\030\t \001(\014\"\?\n\023Spa"
-    "ceLinkAuthTicket\022\017\n\007payload\030\001 \001(\014\022\027\n\017age"
-    "nt_signature\030\002 \001(\014\")\n\027PreviewSpaceLinkRe"
-    "quest\022\016\n\006ticket\030\001 \001(\014\"\356\001\n\030PreviewSpaceLi"
-    "nkResponse\022\r\n\005label\030\001 \001(\t\022*\n\014session_typ"
-    "e\030\002 \001(\0162\024.session.SessionType\022\025\n\ragent_p"
-    "eer_id\030\003 \001(\014\0222\n\016requested_role\030\004 \001(\0162\032.s"
-    "object.SOParticipantRole\022\023\n\013target_hint\030"
-    "\005 \001(\014\022\r\n\005nonce\030\006 \001(\014\022\022\n\nexpires_at\030\007 \001(\003"
-    "\022\024\n\014callback_url\030\010 \001(\t\">\n\027ApproveSpaceLi"
-    "nkRequest\022\016\n\006ticket\030\001 \001(\014\022\023\n\013resource_id"
-    "\030\002 \001(\014\"\201\001\n\030ApproveSpaceLinkResponse\022\022\n\na"
-    "ccount_id\030\001 \001(\t\022\023\n\013resource_id\030\002 \001(\014\022\027\n\017"
-    "session_peer_id\030\003 \001(\014\022\r\n\005nonce\030\004 \001(\014\022\024\n\014"
-    "callback_url\030\005 \001(\t*t\n\027PasskeyPrfWrapAlgo"
-    "rithm\022*\n&PASSKEY_PRF_WRAP_ALGORITHM_UNSP"
-    "ECIFIED\020\000\022-\n)PASSKEY_PRF_WRAP_ALGORITHM_"
-    "AES_256_GCM_V1\020\001*\212\002\n\rBillingStatus\022\031\n\025Bi"
-    "llingStatus_UNKNOWN\020\000\022\026\n\022BillingStatus_N"
-    "ONE\020\001\022\030\n\024BillingStatus_ACTIVE\020\002\022\032\n\026Billi"
-    "ngStatus_PAST_DUE\020\003\022#\n\037BillingStatus_PAS"
-    "T_DUE_READONLY\020\004\022\032\n\026BillingStatus_CANCEL"
-    "ED\020\005\022\031\n\025BillingStatus_DELETED\020\006\022\032\n\026Billi"
-    "ngStatus_TRIALING\020\007\022\030\n\024BillingStatus_LAP"
-    "SED\020\010*\256\003\n\025AccountLifecycleState\022!\n\035Accou"
-    "ntLifecycleState_UNKNOWN\020\000\022 \n\034AccountLif"
-    "ecycleState_ACTIVE\020\001\022:\n6AccountLifecycle"
-    "State_ACTIVE_WITH_CANCEL_AT_PERIOD_END\020\002"
-    "\0221\n-AccountLifecycleState_CANCELED_GRACE"
-    "_READONLY\020\003\0221\n-AccountLifecycleState_PEN"
-    "DING_DELETE_READONLY\020\004\022)\n%AccountLifecyc"
-    "leState_LAPSED_READONLY\020\005\022/\n+AccountLife"
-    "cycleState_DELETED_PENDING_PURGE\020\006\022!\n\035Ac"
-    "countLifecycleState_DELETED\020\007\022/\n+Account"
-    "LifecycleState_DISPUTED_HARD_SUSPEND\020\010*c"
-    "\n\017BillingInterval\022\033\n\027BillingInterval_UNK"
-    "NOWN\020\000\022\031\n\025BillingInterval_MONTH\020\001\022\030\n\024Bil"
-    "lingInterval_YEAR\020\002*\237\001\n\016CheckoutStatus\022\032"
-    "\n\026CheckoutStatus_UNKNOWN\020\000\022\032\n\026CheckoutSt"
-    "atus_PENDING\020\001\022\034\n\030CheckoutStatus_COMPLET"
-    "ED\020\002\022\032\n\026CheckoutStatus_EXPIRED\020\003\022\033\n\027Chec"
-    "koutStatus_CANCELED\020\004*\360\001\n\027SelfEnrollment"
-    "GateState\022&\n\"SELF_ENROLLMENT_GATE_STATE_"
-    "UNKNOWN\020\000\022\'\n#SELF_ENROLLMENT_GATE_STATE_"
-    "CHECKING\020\001\022.\n*SELF_ENROLLMENT_GATE_STATE"
-    "_AUTO_CONNECTING\020\002\022.\n*SELF_ENROLLMENT_GA"
-    "TE_STATE_ACTION_REQUIRED\020\003\022$\n SELF_ENROL"
-    "LMENT_GATE_STATE_READY\020\004*\215\001\n\025TargetedInv"
-    "itePurpose\022\'\n#TARGETED_INVITE_PURPOSE_UN"
-    "SPECIFIED\020\000\022!\n\035TARGETED_INVITE_PURPOSE_S"
-    "PACE\020\001\022(\n$TARGETED_INVITE_PURPOSE_ORGANI"
-    "ZATION\020\0022\205\036\n SpacewaveProviderResourceSe"
+    "res_at\030\010 \001(\003\022\023\n\013target_hint\030\t \001(\014\022K\n\017com"
+    "pletion_mode\030\n \001(\01622.s4wave.provider.spa"
+    "cewave.SpaceLinkCompletionMode\"\?\n\023SpaceL"
+    "inkAuthTicket\022\017\n\007payload\030\001 \001(\014\022\027\n\017agent_"
+    "signature\030\002 \001(\014\")\n\027PreviewSpaceLinkReque"
+    "st\022\016\n\006ticket\030\001 \001(\014\"\273\002\n\030PreviewSpaceLinkR"
+    "esponse\022\r\n\005label\030\001 \001(\t\022*\n\014session_type\030\002"
+    " \001(\0162\024.session.SessionType\022\025\n\ragent_peer"
+    "_id\030\003 \001(\014\0222\n\016requested_role\030\004 \001(\0162\032.sobj"
+    "ect.SOParticipantRole\022\023\n\013target_hint\030\005 \001"
+    "(\014\022\r\n\005nonce\030\006 \001(\014\022\022\n\nexpires_at\030\007 \001(\003\022\024\n"
+    "\014callback_url\030\010 \001(\t\022K\n\017completion_mode\030\t"
+    " \001(\01622.s4wave.provider.spacewave.SpaceLi"
+    "nkCompletionMode\">\n\027ApproveSpaceLinkRequ"
+    "est\022\016\n\006ticket\030\001 \001(\014\022\023\n\013resource_id\030\002 \001(\014"
+    "\"\220\002\n\030ApproveSpaceLinkResponse\022\022\n\naccount"
+    "_id\030\001 \001(\t\022\023\n\013resource_id\030\002 \001(\014\022\027\n\017sessio"
+    "n_peer_id\030\003 \001(\014\022\r\n\005nonce\030\004 \001(\014\022\024\n\014callba"
+    "ck_url\030\005 \001(\t\022K\n\017completion_mode\030\006 \001(\01622."
+    "s4wave.provider.spacewave.SpaceLinkCompl"
+    "etionMode\022@\n\ncompletion\030\007 \001(\0132,.s4wave.p"
+    "rovider.spacewave.SpaceLinkCallback\"\277\001\n\021"
+    "SpaceLinkCallback\022B\n\006status\030\001 \001(\01622.s4wa"
+    "ve.provider.spacewave.SpaceLinkCallbackS"
+    "tatus\022\r\n\005nonce\030\002 \001(\014\022\022\n\naccount_id\030\003 \001(\t"
+    "\022\023\n\013resource_id\030\004 \001(\014\022\027\n\017session_peer_id"
+    "\030\005 \001(\014\022\025\n\rerror_message\030\006 \001(\t*t\n\027Passkey"
+    "PrfWrapAlgorithm\022*\n&PASSKEY_PRF_WRAP_ALG"
+    "ORITHM_UNSPECIFIED\020\000\022-\n)PASSKEY_PRF_WRAP"
+    "_ALGORITHM_AES_256_GCM_V1\020\001*\212\002\n\rBillingS"
+    "tatus\022\031\n\025BillingStatus_UNKNOWN\020\000\022\026\n\022Bill"
+    "ingStatus_NONE\020\001\022\030\n\024BillingStatus_ACTIVE"
+    "\020\002\022\032\n\026BillingStatus_PAST_DUE\020\003\022#\n\037Billin"
+    "gStatus_PAST_DUE_READONLY\020\004\022\032\n\026BillingSt"
+    "atus_CANCELED\020\005\022\031\n\025BillingStatus_DELETED"
+    "\020\006\022\032\n\026BillingStatus_TRIALING\020\007\022\030\n\024Billin"
+    "gStatus_LAPSED\020\010*\256\003\n\025AccountLifecycleSta"
+    "te\022!\n\035AccountLifecycleState_UNKNOWN\020\000\022 \n"
+    "\034AccountLifecycleState_ACTIVE\020\001\022:\n6Accou"
+    "ntLifecycleState_ACTIVE_WITH_CANCEL_AT_P"
+    "ERIOD_END\020\002\0221\n-AccountLifecycleState_CAN"
+    "CELED_GRACE_READONLY\020\003\0221\n-AccountLifecyc"
+    "leState_PENDING_DELETE_READONLY\020\004\022)\n%Acc"
+    "ountLifecycleState_LAPSED_READONLY\020\005\022/\n+"
+    "AccountLifecycleState_DELETED_PENDING_PU"
+    "RGE\020\006\022!\n\035AccountLifecycleState_DELETED\020\007"
+    "\022/\n+AccountLifecycleState_DISPUTED_HARD_"
+    "SUSPEND\020\010*c\n\017BillingInterval\022\033\n\027BillingI"
+    "nterval_UNKNOWN\020\000\022\031\n\025BillingInterval_MON"
+    "TH\020\001\022\030\n\024BillingInterval_YEAR\020\002*\237\001\n\016Check"
+    "outStatus\022\032\n\026CheckoutStatus_UNKNOWN\020\000\022\032\n"
+    "\026CheckoutStatus_PENDING\020\001\022\034\n\030CheckoutSta"
+    "tus_COMPLETED\020\002\022\032\n\026CheckoutStatus_EXPIRE"
+    "D\020\003\022\033\n\027CheckoutStatus_CANCELED\020\004*\360\001\n\027Sel"
+    "fEnrollmentGateState\022&\n\"SELF_ENROLLMENT_"
+    "GATE_STATE_UNKNOWN\020\000\022\'\n#SELF_ENROLLMENT_"
+    "GATE_STATE_CHECKING\020\001\022.\n*SELF_ENROLLMENT"
+    "_GATE_STATE_AUTO_CONNECTING\020\002\022.\n*SELF_EN"
+    "ROLLMENT_GATE_STATE_ACTION_REQUIRED\020\003\022$\n"
+    " SELF_ENROLLMENT_GATE_STATE_READY\020\004*\215\001\n\025"
+    "TargetedInvitePurpose\022\'\n#TARGETED_INVITE"
+    "_PURPOSE_UNSPECIFIED\020\000\022!\n\035TARGETED_INVIT"
+    "E_PURPOSE_SPACE\020\001\022(\n$TARGETED_INVITE_PUR"
+    "POSE_ORGANIZATION\020\002*\215\001\n\027SpaceLinkComplet"
+    "ionMode\022#\n\037SpaceLinkCompletionMode_UNKNO"
+    "WN\020\000\022,\n(SpaceLinkCompletionMode_BROWSER_"
+    "CALLBACK\020\001\022\037\n\033SpaceLinkCompletionMode_CL"
+    "I\020\002*\312\001\n\027SpaceLinkCallbackStatus\022#\n\037Space"
+    "LinkCallbackStatus_UNKNOWN\020\000\022\036\n\032SpaceLin"
+    "kCallbackStatus_OK\020\001\022\"\n\036SpaceLinkCallbac"
+    "kStatus_DENIED\020\002\022#\n\037SpaceLinkCallbackSta"
+    "tus_EXPIRED\020\003\022!\n\035SpaceLinkCallbackStatus"
+    "_ERROR\020\0042\205\036\n SpacewaveProviderResourceSe"
     "rvice\022\202\001\n\026GetCloudProviderConfig\0228.s4wav"
     "e.provider.spacewave.GetCloudProviderCon"
     "figRequest\032..s4wave.provider.spacewave.C"
@@ -9251,13 +9341,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto = {
     false,
     false,
-    27664,
+    28504,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
     "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto_deps,
     3,
-    229,
+    230,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto::offsets,
@@ -9309,6 +9399,18 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TargetedInvitePurpose
 }
 PROTOBUF_CONSTINIT const uint32_t TargetedInvitePurpose_internal_data_[] = {
     196608u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceLinkCompletionMode_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto[7];
+}
+PROTOBUF_CONSTINIT const uint32_t SpaceLinkCompletionMode_internal_data_[] = {
+    196608u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceLinkCallbackStatus_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto[8];
+}
+PROTOBUF_CONSTINIT const uint32_t SpaceLinkCallbackStatus_internal_data_[] = {
+    327680u, 0u, };
 // ===================================================================
 
 class PasswordCredential::_Internal {
@@ -76163,9 +76265,9 @@ SpaceLinkAuthRequest::SpaceLinkAuthRequest(
                offsetof(Impl_, version_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, version_),
-           offsetof(Impl_, requested_role_) -
+           offsetof(Impl_, completion_mode_) -
                offsetof(Impl_, version_) +
-               sizeof(Impl_::requested_role_));
+               sizeof(Impl_::completion_mode_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.SpaceLinkAuthRequest)
 }
@@ -76184,9 +76286,9 @@ inline void SpaceLinkAuthRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE are
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, version_),
            0,
-           offsetof(Impl_, requested_role_) -
+           offsetof(Impl_, completion_mode_) -
                offsetof(Impl_, version_) +
-               sizeof(Impl_::requested_role_));
+               sizeof(Impl_::completion_mode_));
 }
 SpaceLinkAuthRequest::~SpaceLinkAuthRequest() {
   // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.SpaceLinkAuthRequest)
@@ -76250,16 +76352,16 @@ SpaceLinkAuthRequest::GetClassData() const {
   return SpaceLinkAuthRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 0, 80, 2>
+const ::_pbi::TcParseTable<4, 10, 0, 80, 2>
 SpaceLinkAuthRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    10, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294966272,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
+    10,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     SpaceLinkAuthRequest_class_data_.base(),
@@ -76306,7 +76408,10 @@ SpaceLinkAuthRequest::_table_ = {
     {::_pbi::TcParser::FastBS1,
      {74, 4, 0,
       PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_.target_hint_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpaceLinkAuthRequest, _impl_.completion_mode_), 9>(),
+     {80, 9, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_.completion_mode_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -76333,6 +76438,8 @@ SpaceLinkAuthRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_.expires_at_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
     // bytes target_hint = 9;
     {PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_.target_hint_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 10;
+    {PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_.completion_mode_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -76372,7 +76479,11 @@ PROTOBUF_NOINLINE void SpaceLinkAuthRequest::Clear() {
         reinterpret_cast<char*>(&_impl_.expires_at_) -
         reinterpret_cast<char*>(&_impl_.version_)) + sizeof(_impl_.expires_at_));
   }
-  _impl_.requested_role_ = 0;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    ::memset(&_impl_.requested_role_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.completion_mode_) -
+        reinterpret_cast<char*>(&_impl_.requested_role_)) + sizeof(_impl_.completion_mode_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -76476,6 +76587,15 @@ PROTOBUF_NOINLINE void SpaceLinkAuthRequest::Clear() {
     }
   }
 
+  // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_completion_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          10, this_._internal_completion_mode(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -76559,12 +76679,19 @@ PROTOBUF_NOINLINE void SpaceLinkAuthRequest::Clear() {
       }
     }
   }
-   {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
     // .sobject.SOParticipantRole requested_role = 6;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_requested_role() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_requested_role());
+      }
+    }
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_completion_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_completion_mode());
       }
     }
   }
@@ -76648,9 +76775,16 @@ void SpaceLinkAuthRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (from._internal_requested_role() != 0) {
-      _this->_impl_.requested_role_ = from._impl_.requested_role_;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_requested_role() != 0) {
+        _this->_impl_.requested_role_ = from._impl_.requested_role_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_completion_mode() != 0) {
+        _this->_impl_.completion_mode_ = from._impl_.completion_mode_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -76678,8 +76812,8 @@ void SpaceLinkAuthRequest::InternalSwap(SpaceLinkAuthRequest* PROTOBUF_RESTRICT 
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nonce_, &other->_impl_.nonce_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_hint_, &other->_impl_.target_hint_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_.requested_role_)
-      + sizeof(SpaceLinkAuthRequest::_impl_.requested_role_)
+      PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_.completion_mode_)
+      + sizeof(SpaceLinkAuthRequest::_impl_.completion_mode_)
       - PROTOBUF_FIELD_OFFSET(SpaceLinkAuthRequest, _impl_.version_)>(
           reinterpret_cast<char*>(&_impl_.version_),
           reinterpret_cast<char*>(&other->_impl_.version_));
@@ -77318,9 +77452,9 @@ PreviewSpaceLinkResponse::PreviewSpaceLinkResponse(
                offsetof(Impl_, session_type_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, session_type_),
-           offsetof(Impl_, expires_at_) -
+           offsetof(Impl_, completion_mode_) -
                offsetof(Impl_, session_type_) +
-               sizeof(Impl_::expires_at_));
+               sizeof(Impl_::completion_mode_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.PreviewSpaceLinkResponse)
 }
@@ -77339,9 +77473,9 @@ inline void PreviewSpaceLinkResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, session_type_),
            0,
-           offsetof(Impl_, expires_at_) -
+           offsetof(Impl_, completion_mode_) -
                offsetof(Impl_, session_type_) +
-               sizeof(Impl_::expires_at_));
+               sizeof(Impl_::completion_mode_));
 }
 PreviewSpaceLinkResponse::~PreviewSpaceLinkResponse() {
   // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.PreviewSpaceLinkResponse)
@@ -77405,16 +77539,16 @@ PreviewSpaceLinkResponse::GetClassData() const {
   return PreviewSpaceLinkResponse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 8, 0, 84, 2>
+const ::_pbi::TcParseTable<4, 9, 0, 84, 2>
 PreviewSpaceLinkResponse::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_._has_bits_),
     0, // no _extensions_
-    8, 56,  // max_field_number, fast_idx_mask
+    9, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967040,  // skipmap
+    4294966784,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    8,  // num_field_entries
+    9,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     PreviewSpaceLinkResponse_class_data_.base(),
@@ -77424,10 +77558,7 @@ PreviewSpaceLinkResponse::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::PreviewSpaceLinkResponse>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // string callback_url = 8;
-    {::_pbi::TcParser::FastUS1,
-     {66, 4, 0,
-      PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.callback_url_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string label = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -77456,6 +77587,20 @@ PreviewSpaceLinkResponse::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(PreviewSpaceLinkResponse, _impl_.expires_at_), 7>(),
      {56, 7, 0,
       PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.expires_at_)}},
+    // string callback_url = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 4, 0,
+      PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.callback_url_)}},
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(PreviewSpaceLinkResponse, _impl_.completion_mode_), 8>(),
+     {72, 8, 0,
+      PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.completion_mode_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -77475,6 +77620,8 @@ PreviewSpaceLinkResponse::_table_ = {
     {PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.expires_at_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
     // string callback_url = 8;
     {PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.callback_url_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 9;
+    {PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.completion_mode_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -77514,6 +77661,7 @@ PROTOBUF_NOINLINE void PreviewSpaceLinkResponse::Clear() {
         reinterpret_cast<char*>(&_impl_.expires_at_) -
         reinterpret_cast<char*>(&_impl_.session_type_)) + sizeof(_impl_.expires_at_));
   }
+  _impl_.completion_mode_ = 0;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -77608,6 +77756,15 @@ PROTOBUF_NOINLINE void PreviewSpaceLinkResponse::Clear() {
     }
   }
 
+  // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_completion_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          9, this_._internal_completion_mode(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -77691,6 +77848,15 @@ PROTOBUF_NOINLINE void PreviewSpaceLinkResponse::Clear() {
       }
     }
   }
+   {
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_completion_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_completion_mode());
+      }
+    }
+  }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
 }
@@ -77771,6 +77937,11 @@ void PreviewSpaceLinkResponse::MergeImpl(::google::protobuf::MessageLite& to_msg
       }
     }
   }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (from._internal_completion_mode() != 0) {
+      _this->_impl_.completion_mode_ = from._impl_.completion_mode_;
+    }
+  }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
@@ -77796,8 +77967,8 @@ void PreviewSpaceLinkResponse::InternalSwap(PreviewSpaceLinkResponse* PROTOBUF_R
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nonce_, &other->_impl_.nonce_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.callback_url_, &other->_impl_.callback_url_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.expires_at_)
-      + sizeof(PreviewSpaceLinkResponse::_impl_.expires_at_)
+      PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.completion_mode_)
+      + sizeof(PreviewSpaceLinkResponse::_impl_.completion_mode_)
       - PROTOBUF_FIELD_OFFSET(PreviewSpaceLinkResponse, _impl_.session_type_)>(
           reinterpret_cast<char*>(&_impl_.session_type_),
           reinterpret_cast<char*>(&other->_impl_.session_type_));
@@ -78162,6 +78333,11 @@ ApproveSpaceLinkResponse::ApproveSpaceLinkResponse(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.completion_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.completion_)
+                : nullptr;
+  _impl_.completion_mode_ = from._impl_.completion_mode_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.ApproveSpaceLinkResponse)
 }
@@ -78177,6 +78353,12 @@ PROTOBUF_NDEBUG_INLINE ApproveSpaceLinkResponse::Impl_::Impl_(
 
 inline void ApproveSpaceLinkResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, completion_),
+           0,
+           offsetof(Impl_, completion_mode_) -
+               offsetof(Impl_, completion_) +
+               sizeof(Impl_::completion_mode_));
 }
 ApproveSpaceLinkResponse::~ApproveSpaceLinkResponse() {
   // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.ApproveSpaceLinkResponse)
@@ -78194,6 +78376,7 @@ inline void ApproveSpaceLinkResponse::SharedDtor(MessageLite& self) {
   this_._impl_.session_peer_id_.Destroy();
   this_._impl_.nonce_.Destroy();
   this_._impl_.callback_url_.Destroy();
+  delete this_._impl_.completion_;
   this_._impl_.~Impl_();
 }
 
@@ -78240,18 +78423,18 @@ ApproveSpaceLinkResponse::GetClassData() const {
   return ApproveSpaceLinkResponse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 0, 81, 2>
+const ::_pbi::TcParseTable<3, 7, 1, 81, 2>
 ApproveSpaceLinkResponse::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_._has_bits_),
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    7,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     ApproveSpaceLinkResponse_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -78280,8 +78463,14 @@ ApproveSpaceLinkResponse::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {42, 4, 0,
       PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.callback_url_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ApproveSpaceLinkResponse, _impl_.completion_mode_), 6>(),
+     {48, 6, 0,
+      PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.completion_mode_)}},
+    // .s4wave.provider.spacewave.SpaceLinkCallback completion = 7;
+    {::_pbi::TcParser::FastMtS1,
+     {58, 5, 0,
+      PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.completion_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -78295,8 +78484,14 @@ ApproveSpaceLinkResponse::_table_ = {
     {PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.nonce_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // string callback_url = 5;
     {PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.callback_url_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 6;
+    {PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.completion_mode_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .s4wave.provider.spacewave.SpaceLinkCallback completion = 7;
+    {PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.completion_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::SpaceLinkCallback>()},
+  }},
   {{
     "\62\12\0\0\0\14\0\0"
     "s4wave.provider.spacewave.ApproveSpaceLinkResponse"
@@ -78312,7 +78507,7 @@ PROTOBUF_NOINLINE void ApproveSpaceLinkResponse::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.account_id_.ClearNonDefaultToEmpty();
     }
@@ -78328,7 +78523,12 @@ PROTOBUF_NOINLINE void ApproveSpaceLinkResponse::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       _impl_.callback_url_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.completion_ != nullptr);
+      _impl_.completion_->Clear();
+    }
   }
+  _impl_.completion_mode_ = 0;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -78396,6 +78596,22 @@ PROTOBUF_NOINLINE void ApproveSpaceLinkResponse::Clear() {
     }
   }
 
+  // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_completion_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          6, this_._internal_completion_mode(), target);
+    }
+  }
+
+  // .s4wave.provider.spacewave.SpaceLinkCallback completion = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        7, *this_._impl_.completion_, this_._impl_.completion_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -78421,7 +78637,7 @@ PROTOBUF_NOINLINE void ApproveSpaceLinkResponse::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // string account_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_account_id().empty()) {
@@ -78457,6 +78673,18 @@ PROTOBUF_NOINLINE void ApproveSpaceLinkResponse::Clear() {
                                         this_._internal_callback_url());
       }
     }
+    // .s4wave.provider.spacewave.SpaceLinkCallback completion = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.completion_);
+    }
+    // .s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_completion_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_completion_mode());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -78470,13 +78698,14 @@ void ApproveSpaceLinkResponse::MergeImpl(::google::protobuf::MessageLite& to_msg
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
+  ::google::protobuf::Arena* arena = _this->GetArena();
   // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.ApproveSpaceLinkResponse)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_account_id().empty()) {
         _this->_internal_set_account_id(from._internal_account_id());
@@ -78522,6 +78751,19 @@ void ApproveSpaceLinkResponse::MergeImpl(::google::protobuf::MessageLite& to_msg
         }
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.completion_ != nullptr);
+      if (_this->_impl_.completion_ == nullptr) {
+        _this->_impl_.completion_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.completion_);
+      } else {
+        _this->_impl_.completion_->MergeFrom(*from._impl_.completion_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_completion_mode() != 0) {
+        _this->_impl_.completion_mode_ = from._impl_.completion_mode_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -78547,9 +78789,479 @@ void ApproveSpaceLinkResponse::InternalSwap(ApproveSpaceLinkResponse* PROTOBUF_R
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.session_peer_id_, &other->_impl_.session_peer_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nonce_, &other->_impl_.nonce_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.callback_url_, &other->_impl_.callback_url_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.completion_mode_)
+      + sizeof(ApproveSpaceLinkResponse::_impl_.completion_mode_)
+      - PROTOBUF_FIELD_OFFSET(ApproveSpaceLinkResponse, _impl_.completion_)>(
+          reinterpret_cast<char*>(&_impl_.completion_),
+          reinterpret_cast<char*>(&other->_impl_.completion_));
 }
 
 ::google::protobuf::Metadata ApproveSpaceLinkResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SpaceLinkCallback::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SpaceLinkCallback>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_._has_bits_);
+};
+
+SpaceLinkCallback::SpaceLinkCallback(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceLinkCallback_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.provider.spacewave.SpaceLinkCallback)
+}
+PROTOBUF_NDEBUG_INLINE SpaceLinkCallback::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::provider::spacewave::SpaceLinkCallback& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        nonce_(arena, from.nonce_),
+        account_id_(arena, from.account_id_),
+        resource_id_(arena, from.resource_id_),
+        session_peer_id_(arena, from.session_peer_id_),
+        error_message_(arena, from.error_message_) {}
+
+SpaceLinkCallback::SpaceLinkCallback(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SpaceLinkCallback& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceLinkCallback_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SpaceLinkCallback* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.status_ = from._impl_.status_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.provider.spacewave.SpaceLinkCallback)
+}
+PROTOBUF_NDEBUG_INLINE SpaceLinkCallback::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        nonce_(arena),
+        account_id_(arena),
+        resource_id_(arena),
+        session_peer_id_(arena),
+        error_message_(arena) {}
+
+inline void SpaceLinkCallback::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+SpaceLinkCallback::~SpaceLinkCallback() {
+  // @@protoc_insertion_point(destructor:s4wave.provider.spacewave.SpaceLinkCallback)
+  SharedDtor(*this);
+}
+inline void SpaceLinkCallback::SharedDtor(MessageLite& self) {
+  SpaceLinkCallback& this_ = static_cast<SpaceLinkCallback&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.nonce_.Destroy();
+  this_._impl_.account_id_.Destroy();
+  this_._impl_.resource_id_.Destroy();
+  this_._impl_.session_peer_id_.Destroy();
+  this_._impl_.error_message_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SpaceLinkCallback::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SpaceLinkCallback(arena);
+}
+constexpr auto SpaceLinkCallback::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SpaceLinkCallback),
+                                            alignof(SpaceLinkCallback));
+}
+constexpr auto SpaceLinkCallback::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SpaceLinkCallback_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SpaceLinkCallback::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SpaceLinkCallback>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SpaceLinkCallback::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SpaceLinkCallback>(), &SpaceLinkCallback::ByteSizeLong,
+              &SpaceLinkCallback::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_._cached_size_),
+          false,
+      },
+      &SpaceLinkCallback::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fprovider_2fspacewave_2fspacewave_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SpaceLinkCallback_class_data_ =
+        SpaceLinkCallback::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SpaceLinkCallback::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SpaceLinkCallback_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SpaceLinkCallback_class_data_.tc_table);
+  return SpaceLinkCallback_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 0, 75, 2>
+SpaceLinkCallback::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SpaceLinkCallback_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::provider::spacewave::SpaceLinkCallback>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.provider.spacewave.SpaceLinkCallbackStatus status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpaceLinkCallback, _impl_.status_), 5>(),
+     {8, 5, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.status_)}},
+    // bytes nonce = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.nonce_)}},
+    // string account_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.account_id_)}},
+    // bytes resource_id = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.resource_id_)}},
+    // bytes session_peer_id = 5;
+    {::_pbi::TcParser::FastBS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.session_peer_id_)}},
+    // string error_message = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 4, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.error_message_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.provider.spacewave.SpaceLinkCallbackStatus status = 1;
+    {PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.status_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bytes nonce = 2;
+    {PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.nonce_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // string account_id = 3;
+    {PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.account_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bytes resource_id = 4;
+    {PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.resource_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes session_peer_id = 5;
+    {PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.session_peer_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // string error_message = 6;
+    {PROTOBUF_FIELD_OFFSET(SpaceLinkCallback, _impl_.error_message_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\53\0\0\12\0\0\15\0"
+    "s4wave.provider.spacewave.SpaceLinkCallback"
+    "account_id"
+    "error_message"
+  }},
+};
+PROTOBUF_NOINLINE void SpaceLinkCallback::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.provider.spacewave.SpaceLinkCallback)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.nonce_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.resource_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.session_peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.error_message_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SpaceLinkCallback::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SpaceLinkCallback& this_ = static_cast<const SpaceLinkCallback&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SpaceLinkCallback::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SpaceLinkCallback& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.provider.spacewave.SpaceLinkCallback)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.provider.spacewave.SpaceLinkCallbackStatus status = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  // bytes nonce = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_nonce().empty()) {
+      const ::std::string& _s = this_._internal_nonce();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string account_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_account_id().empty()) {
+      const ::std::string& _s = this_._internal_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.SpaceLinkCallback.account_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // bytes resource_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_resource_id().empty()) {
+      const ::std::string& _s = this_._internal_resource_id();
+      target = stream->WriteBytesMaybeAliased(4, _s, target);
+    }
+  }
+
+  // bytes session_peer_id = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_session_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_session_peer_id();
+      target = stream->WriteBytesMaybeAliased(5, _s, target);
+    }
+  }
+
+  // string error_message = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_error_message().empty()) {
+      const ::std::string& _s = this_._internal_error_message();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.provider.spacewave.SpaceLinkCallback.error_message");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.provider.spacewave.SpaceLinkCallback)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SpaceLinkCallback::ByteSizeLong(const MessageLite& base) {
+  const SpaceLinkCallback& this_ = static_cast<const SpaceLinkCallback&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SpaceLinkCallback::ByteSizeLong() const {
+  const SpaceLinkCallback& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.provider.spacewave.SpaceLinkCallback)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // bytes nonce = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_nonce().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_nonce());
+      }
+    }
+    // string account_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_account_id());
+      }
+    }
+    // bytes resource_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_resource_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_resource_id());
+      }
+    }
+    // bytes session_peer_id = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_session_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_session_peer_id());
+      }
+    }
+    // string error_message = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_error_message().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error_message());
+      }
+    }
+    // .s4wave.provider.spacewave.SpaceLinkCallbackStatus status = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SpaceLinkCallback::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SpaceLinkCallback*>(&to_msg);
+  auto& from = static_cast<const SpaceLinkCallback&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.provider.spacewave.SpaceLinkCallback)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_nonce().empty()) {
+        _this->_internal_set_nonce(from._internal_nonce());
+      } else {
+        if (_this->_impl_.nonce_.IsDefault()) {
+          _this->_internal_set_nonce("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_account_id().empty()) {
+        _this->_internal_set_account_id(from._internal_account_id());
+      } else {
+        if (_this->_impl_.account_id_.IsDefault()) {
+          _this->_internal_set_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_resource_id().empty()) {
+        _this->_internal_set_resource_id(from._internal_resource_id());
+      } else {
+        if (_this->_impl_.resource_id_.IsDefault()) {
+          _this->_internal_set_resource_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_session_peer_id().empty()) {
+        _this->_internal_set_session_peer_id(from._internal_session_peer_id());
+      } else {
+        if (_this->_impl_.session_peer_id_.IsDefault()) {
+          _this->_internal_set_session_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_error_message().empty()) {
+        _this->_internal_set_error_message(from._internal_error_message());
+      } else {
+        if (_this->_impl_.error_message_.IsDefault()) {
+          _this->_internal_set_error_message("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SpaceLinkCallback::CopyFrom(const SpaceLinkCallback& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.provider.spacewave.SpaceLinkCallback)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SpaceLinkCallback::InternalSwap(SpaceLinkCallback* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nonce_, &other->_impl_.nonce_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.account_id_, &other->_impl_.account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.resource_id_, &other->_impl_.resource_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.session_peer_id_, &other->_impl_.session_peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_message_, &other->_impl_.error_message_, arena);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata SpaceLinkCallback::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

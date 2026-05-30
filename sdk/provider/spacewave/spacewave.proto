@@ -2114,6 +2114,33 @@ message ProcessMailboxEntryRequest {
 // ProcessMailboxEntryResponse is the response for ProcessMailboxEntry.
 message ProcessMailboxEntryResponse {}
 
+// SpaceLinkCompletionMode describes how the external actor receives approval
+// completion data after consent.
+enum SpaceLinkCompletionMode {
+  // SpaceLinkCompletionMode_UNKNOWN means completion mode was not specified.
+  SpaceLinkCompletionMode_UNKNOWN = 0;
+  // SpaceLinkCompletionMode_BROWSER_CALLBACK returns completion through the
+  // verified callback URL.
+  SpaceLinkCompletionMode_BROWSER_CALLBACK = 1;
+  // SpaceLinkCompletionMode_CLI returns completion for CLI-mediated import.
+  SpaceLinkCompletionMode_CLI = 2;
+}
+
+// SpaceLinkCallbackStatus describes the result carried by a SpaceLink callback
+// or CLI-mediated completion payload.
+enum SpaceLinkCallbackStatus {
+  // SpaceLinkCallbackStatus_UNKNOWN means the result is not specified.
+  SpaceLinkCallbackStatus_UNKNOWN = 0;
+  // SpaceLinkCallbackStatus_OK means approval completed successfully.
+  SpaceLinkCallbackStatus_OK = 1;
+  // SpaceLinkCallbackStatus_DENIED means the user denied approval.
+  SpaceLinkCallbackStatus_DENIED = 2;
+  // SpaceLinkCallbackStatus_EXPIRED means the ticket expired before approval.
+  SpaceLinkCallbackStatus_EXPIRED = 3;
+  // SpaceLinkCallbackStatus_ERROR means approval failed for another reason.
+  SpaceLinkCallbackStatus_ERROR = 4;
+}
+
 // SpaceLinkAuthRequest is the unsigned SpaceLink consent payload.
 message SpaceLinkAuthRequest {
   // Version is the SpaceLink wire version.
@@ -2134,6 +2161,8 @@ message SpaceLinkAuthRequest {
   int64 expires_at = 8;
   // TargetHint is an optional suggested target Space resource ID.
   bytes target_hint = 9;
+  // CompletionMode is how the external actor expects approval completion.
+  SpaceLinkCompletionMode completion_mode = 10;
 }
 
 // SpaceLinkAuthTicket is the signed SpaceLink ticket envelope.
@@ -2168,6 +2197,8 @@ message PreviewSpaceLinkResponse {
   int64 expires_at = 7;
   // CallbackUrl is the verified callback target.
   string callback_url = 8;
+  // CompletionMode is the verified completion mode.
+  SpaceLinkCompletionMode completion_mode = 9;
 }
 
 // ApproveSpaceLinkRequest is the request for ApproveSpaceLink.
@@ -2190,4 +2221,29 @@ message ApproveSpaceLinkResponse {
   bytes nonce = 4;
   // CallbackUrl is the re-verified callback target.
   string callback_url = 5;
+  // CompletionMode is the re-verified completion mode.
+  SpaceLinkCompletionMode completion_mode = 6;
+  // Completion is the generic callback/completion payload.
+  SpaceLinkCallback completion = 7;
+}
+
+// SpaceLinkCallback is the generic approval result payload. Browser callback
+// mode can encode it into the verified callback URL; CLI mode can transport the
+// same binary payload directly for import.
+message SpaceLinkCallback {
+  // Status is the approval result.
+  SpaceLinkCallbackStatus status = 1;
+  // Nonce is echoed from the verified ticket.
+  bytes nonce = 2;
+  // AccountId is the linked external actor cloud account ID for successful
+  // approval.
+  string account_id = 3;
+  // ResourceId is the target Space shared object ID for successful approval.
+  bytes resource_id = 4;
+  // SessionPeerId is the linked external actor session peer ID for successful
+  // approval.
+  bytes session_peer_id = 5;
+  // ErrorMessage describes deny, expiry, or approval failure details when
+  // status is not OK.
+  string error_message = 6;
 }

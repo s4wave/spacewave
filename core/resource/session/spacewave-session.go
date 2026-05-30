@@ -2670,10 +2670,30 @@ func (r *SpacewaveSessionResource) PreviewSpaceLink(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.PreviewSpaceLinkRequest,
 ) (*s4wave_provider_spacewave.PreviewSpaceLinkResponse, error) {
-	if _, err := unmarshalSpaceLinkAuthTicket(req.GetTicket()); err != nil {
+	verified, err := verifySpaceLinkTicketData(req.GetTicket(), time.Now())
+	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New("spacelink preview is not implemented")
+	payload := verified.payload
+	if err := r.swAcc.CheckSpaceLinkNonceFresh(
+		ctx,
+		payload.GetAgentPeerId(),
+		payload.GetNonce(),
+		verified.ticket.GetPayload(),
+	); err != nil {
+		return nil, err
+	}
+	return &s4wave_provider_spacewave.PreviewSpaceLinkResponse{
+		Label:          payload.GetLabel(),
+		SessionType:    payload.GetSessionType(),
+		AgentPeerId:    payload.GetAgentPeerId(),
+		RequestedRole:  payload.GetRequestedRole(),
+		TargetHint:     payload.GetTargetHint(),
+		Nonce:          payload.GetNonce(),
+		ExpiresAt:      payload.GetExpiresAt(),
+		CallbackUrl:    payload.GetCallbackUrl(),
+		CompletionMode: payload.GetCompletionMode(),
+	}, nil
 }
 
 // ApproveSpaceLink approves a SpaceLink ticket for a target Space.
@@ -2681,10 +2701,31 @@ func (r *SpacewaveSessionResource) ApproveSpaceLink(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ApproveSpaceLinkRequest,
 ) (*s4wave_provider_spacewave.ApproveSpaceLinkResponse, error) {
-	if _, err := unmarshalSpaceLinkAuthTicket(req.GetTicket()); err != nil {
+	verified, err := verifySpaceLinkTicketData(req.GetTicket(), time.Now())
+	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New("spacelink approval is not implemented")
+	resourceID := string(req.GetResourceId())
+	if resourceID == "" {
+		return nil, errors.New("resource_id is required")
+	}
+
+	swSO, relSO, err := r.mountSpaceSO(ctx, resourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer relSO()
+
+	entityCli := r.swAcc.GetEntityClient()
+	return approveVerifiedSpaceLink(
+		ctx,
+		verified,
+		req.GetResourceId(),
+		r.session.GetPeerId().String(),
+		r.swAcc,
+		entityCli,
+		mountedSpaceLinkTargetSpace{swSO: swSO},
+	)
 }
 
 func unmarshalSpaceLinkAuthTicket(data []byte) (*s4wave_provider_spacewave.SpaceLinkAuthTicket, error) {
