@@ -154,6 +154,33 @@ func requireCanvasNode(t *testing.T, state *CanvasState, id string) {
 	}
 }
 
+func requireCanvasNodeEventually(
+	t *testing.T,
+	ch <-chan *WatchCanvasStateResponse,
+	done <-chan error,
+	name string,
+	id string,
+) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	var last map[string]*CanvasNode
+	for {
+		select {
+		case resp := <-ch:
+			last = resp.GetState().GetNodes()
+			if last[id] != nil {
+				return
+			}
+		case err := <-done:
+			t.Fatalf("%s watch exited before node %q: %v", name, id, err)
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting for %s node %q, last nodes %#v", name, id, last)
+		}
+	}
+}
+
 func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 	ctx := t.Context()
 	objKey := "canvas/watch-shared"
@@ -193,6 +220,21 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 	setCanvasWatchWorldState(t, ctx, ws, objKey, updated)
 	requireCanvasNode(t, recvCanvasTestValue(t, strmA.sent, "stream A update").GetState(), "updated")
 	requireCanvasNode(t, recvCanvasTestValue(t, strmB.sent, "stream B update").GetState(), "updated")
+
+	burstA := &CanvasState{
+		Nodes: map[string]*CanvasNode{
+			"burst-a": &CanvasNode{Id: "burst-a", TextContent: "burst-a"},
+		},
+	}
+	burstB := &CanvasState{
+		Nodes: map[string]*CanvasNode{
+			"burst-b": &CanvasNode{Id: "burst-b", TextContent: "burst-b"},
+		},
+	}
+	setCanvasWatchWorldState(t, ctx, ws, objKey, burstA)
+	setCanvasWatchWorldState(t, ctx, ws, objKey, burstB)
+	requireCanvasNodeEventually(t, strmA.sent, doneA, "stream A burst update", "burst-b")
+	requireCanvasNodeEventually(t, strmB.sent, doneB, "stream B burst update", "burst-b")
 
 	resource.Close()
 	if err := recvCanvasTestValue(t, doneA, "stream A close"); !errors.Is(err, context.Canceled) {

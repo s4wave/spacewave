@@ -219,6 +219,33 @@ func requireWizardStateName(t *testing.T, state *s4wave_wizard.WizardState, name
 	}
 }
 
+func requireWizardStateNameEventually(
+	t *testing.T,
+	ch <-chan *s4wave_wizard.WatchWizardStateResponse,
+	done <-chan error,
+	stream string,
+	name string,
+) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	var last string
+	for {
+		select {
+		case resp := <-ch:
+			last = resp.GetState().GetName()
+			if last == name {
+				return
+			}
+		case err := <-done:
+			t.Fatalf("%s watch exited before wizard state %q: %v", stream, name, err)
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting for %s wizard state %q, last state %q", stream, name, last)
+		}
+	}
+}
+
 // accessWizardResource opens a wizard object through the typed-object service.
 func accessWizardResource(
 	ctx context.Context,
@@ -869,6 +896,17 @@ func TestWizardResourceWatchSharesWorldUpdates(t *testing.T) {
 	setWizardWatchWorldState(t, ctx, ws, objKey, updated)
 	requireWizardStateName(t, recvWizardTestValue(t, strmA.sent, "stream A update").GetState(), "Configured Canvas")
 	requireWizardStateName(t, recvWizardTestValue(t, strmB.sent, "stream B update").GetState(), "Configured Canvas")
+
+	burstA := updated.CloneVT()
+	burstA.Name = "Burst Canvas A"
+	burstA.Step = 3
+	burstB := updated.CloneVT()
+	burstB.Name = "Burst Canvas B"
+	burstB.Step = 4
+	setWizardWatchWorldState(t, ctx, ws, objKey, burstA)
+	setWizardWatchWorldState(t, ctx, ws, objKey, burstB)
+	requireWizardStateNameEventually(t, strmA.sent, doneA, "stream A burst update", "Burst Canvas B")
+	requireWizardStateNameEventually(t, strmB.sent, doneB, "stream B burst update", "Burst Canvas B")
 
 	resource.Close()
 	if err := recvWizardTestValue(t, doneA, "stream A close"); !errors.Is(err, context.Canceled) {

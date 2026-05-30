@@ -46,6 +46,10 @@ type wizardStateWatchSnapshot struct {
 	err   error
 }
 
+type wizardReleasableObjectState interface {
+	Release()
+}
+
 // NewWizardResource creates a new WizardResource.
 func NewWizardResource(ws world.WorldState, engine world.Engine, objKey string, state *WizardState) *WizardResource {
 	if state == nil {
@@ -112,36 +116,46 @@ func (r *WizardResource) WatchWizardState(_ *WatchWizardStateRequest, strm SRPCW
 }
 
 func (r *WizardResource) watchWizardWorld(ctx context.Context) error {
-	objState, found, err := r.ws.GetObject(ctx, r.objKey)
-	if err != nil {
-		r.setWizardStateWatchError(err)
-		return err
-	}
-	if !found {
-		r.setWizardStateWatchError(world.ErrObjectNotFound)
-		return world.ErrObjectNotFound
-	}
-
 	for {
 		if err := ctx.Err(); err != nil {
 			r.setWizardStateWatchError(err)
 			return err
 		}
 
-		_, rev, err := objState.GetRootRef(ctx)
+		seqno, err := r.ws.GetSeqno(ctx)
 		if err != nil {
 			r.setWizardStateWatchError(err)
 			return err
 		}
 
-		state, err := r.readWizardWorldState(ctx, objState)
+		objState, found, err := r.ws.GetObject(ctx, r.objKey)
+		if err != nil {
+			r.setWizardStateWatchError(err)
+			return err
+		}
+		if !found {
+			r.setWizardStateWatchError(world.ErrObjectNotFound)
+			return world.ErrObjectNotFound
+		}
+
+		state, rev, err := func() (*WizardState, uint64, error) {
+			if rel, ok := objState.(wizardReleasableObjectState); ok {
+				defer rel.Release()
+			}
+			_, rev, err := objState.GetRootRef(ctx)
+			if err != nil {
+				return nil, 0, err
+			}
+			state, err := r.readWizardWorldState(ctx, objState)
+			return state, rev, err
+		}()
 		if err != nil {
 			r.setWizardStateWatchError(err)
 			return err
 		}
 		r.setWizardStateWatchState(state, rev)
 
-		_, err = objState.WaitRev(ctx, rev+1, false)
+		_, err = r.ws.WaitSeqno(ctx, seqno+1)
 		if err != nil {
 			r.setWizardStateWatchError(err)
 			return err

@@ -31,6 +31,10 @@ type canvasWatchSnapshot struct {
 	err   error
 }
 
+type canvasReleasableObjectState interface {
+	Release()
+}
+
 // NewCanvasResource creates a new CanvasResource.
 func NewCanvasResource(ws world.WorldState, engine world.Engine, objKey string, state *CanvasState) *CanvasResource {
 	if state == nil {
@@ -185,35 +189,40 @@ func (r *CanvasResource) WatchCanvasState(_ *WatchCanvasStateRequest, strm SRPCC
 }
 
 func (r *CanvasResource) watchCanvasWorld(ctx context.Context) error {
-	objState, found, err := r.ws.GetObject(ctx, r.objKey)
-	if err != nil {
-		r.setCanvasWatchError(err)
-		return err
-	}
-	if !found {
-		r.setCanvasWatchError(world.ErrObjectNotFound)
-		return world.ErrObjectNotFound
-	}
-
 	for {
 		if err := ctx.Err(); err != nil {
 			r.setCanvasWatchError(err)
 			return err
 		}
-		_, rev, err := objState.GetRootRef(ctx)
+
+		seqno, err := r.ws.GetSeqno(ctx)
 		if err != nil {
 			r.setCanvasWatchError(err)
 			return err
 		}
 
-		state, err := r.readCanvasWorldState(ctx, objState)
+		objState, found, err := r.ws.GetObject(ctx, r.objKey)
+		if err != nil {
+			r.setCanvasWatchError(err)
+			return err
+		}
+		if !found {
+			r.setCanvasWatchError(world.ErrObjectNotFound)
+			return world.ErrObjectNotFound
+		}
+		state, err := func() (*CanvasState, error) {
+			if rel, ok := objState.(canvasReleasableObjectState); ok {
+				defer rel.Release()
+			}
+			return r.readCanvasWorldState(ctx, objState)
+		}()
 		if err != nil {
 			r.setCanvasWatchError(err)
 			return err
 		}
 		r.setCanvasWatchState(state)
 
-		_, err = objState.WaitRev(ctx, rev+1, false)
+		_, err = r.ws.WaitSeqno(ctx, seqno+1)
 		if err != nil {
 			r.setCanvasWatchError(err)
 			return err
