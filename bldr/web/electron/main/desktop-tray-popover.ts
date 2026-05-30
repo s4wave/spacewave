@@ -70,9 +70,14 @@ export class DesktopTrayPopoverController {
       return false
     }
     if (this.window && !this.window.isDestroyed()) {
-      await this.render(this.window, state)
-      this.window.show()
-      return true
+      try {
+        await this.render(this.window, state)
+        this.window.show()
+        return true
+      } catch (err) {
+        this.disable(err)
+        return false
+      }
     }
     try {
       const win = this.createWindow(tray)

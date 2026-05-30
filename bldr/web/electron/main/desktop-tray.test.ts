@@ -1177,12 +1177,14 @@ describe('DesktopTrayController', () => {
     const shown = await controller.showPopoverForE2E()
 
     const png = await controller.capturePopoverPNGForE2E()
+    controller.closePopoverForE2E()
 
     expect(shown).toBe(true)
     expect(browserWindows).toHaveLength(1)
     expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
     expect(browserWindows[0]?.webContents.executeJavaScript).toHaveBeenCalled()
     expect(browserWindows[0]?.capturePage).toHaveBeenCalledTimes(1)
+    expect(browserWindows[0]?.close).toHaveBeenCalledTimes(1)
     expect(png?.toString()).toBe('popover-png')
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
   })
@@ -1262,6 +1264,32 @@ describe('DesktopTrayController', () => {
 
     trayInstances[0]?.emit('click')
     await Promise.resolve()
+
+    expect(browserWindows).toHaveLength(1)
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the native menu fallback when an e2e popover reuse render fails', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    expect(await controller.showPopoverForE2E()).toBe(true)
+    expect(browserWindows).toHaveLength(1)
+
+    browserWindows[0]?.loadURL.mockRejectedValueOnce(
+      new Error('popover reuse render unavailable'),
+    )
+
+    await expect(controller.showPopoverForE2E()).resolves.toBe(false)
+    expect(browserWindows[0]?.close).toHaveBeenCalledTimes(1)
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
 
     expect(browserWindows).toHaveLength(1)
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)

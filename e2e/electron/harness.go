@@ -476,9 +476,33 @@ func (h *Harness) OpenTrayPopover(ctx context.Context) error {
 		return err
 	}
 	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("open tray popover returned HTTP %d", resp.StatusCode)
+		return errors.Errorf("open tray popover returned HTTP %d: %s", resp.StatusCode, body)
+	}
+	return nil
+}
+
+// CloseTrayPopover closes any opt-in tray popover left open by the previous
+// e2e screenshot case.
+func (h *Harness) CloseTrayPopover(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.ControlEndpoint()+"/tray-popover/close",
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("close tray popover returned HTTP %d: %s", resp.StatusCode, body)
 	}
 	return nil
 }

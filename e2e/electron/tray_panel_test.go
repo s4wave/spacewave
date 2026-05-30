@@ -144,6 +144,7 @@ func captureTrayPanelScreenshotCase(
 	if err := h.OpenTrayPopover(ctx); err != nil {
 		t.Fatal(err)
 	}
+	defer closeTrayPanelPopover(t, h)
 	inspection, err := h.InspectTrayPopover(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -176,6 +177,15 @@ func captureTrayPanelScreenshotCase(
 		t.Fatalf("empty tray panel screenshot: %s", path)
 	}
 	t.Logf("tray panel screenshot: %s", path)
+}
+
+func closeTrayPanelPopover(t *testing.T, h *Harness) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := h.CloseTrayPopover(ctx); err != nil {
+		t.Errorf("close tray popover: %v", err)
+	}
 }
 
 func resetTrayPanelFixtures(t *testing.T, h *Harness) {

@@ -346,6 +346,11 @@ export class BldrElectronApp {
         sendE2EJSON(res, 200, { shown })
         return
       }
+      if (req.method === 'POST' && url.pathname === '/tray-popover/close') {
+        this.desktopTrayController?.closePopoverForE2E()
+        sendE2EJSON(res, 200, { ok: true })
+        return
+      }
       if (req.method === 'GET' && url.pathname === '/tray-popover/inspection') {
         const inspection =
           await this.desktopTrayController?.inspectPopoverForE2E()

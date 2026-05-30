@@ -184,6 +184,10 @@ export class DesktopTrayController {
     return this.popover?.inspectForE2E()
   }
 
+  public closePopoverForE2E(): void {
+    this.popover?.close()
+  }
+
   public setPopoverAppearanceForE2E(
     appearance: 'dark' | 'light' | 'system',
   ): void {
