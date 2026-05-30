@@ -42,6 +42,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  TINYGO_VERSION: 0.41.1
+
 jobs:
   prep:
     runs-on: ubuntu-latest
@@ -309,6 +312,16 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 25.x
+
+      - name: Install TinyGo
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          tinygo_deb="tinygo_${TINYGO_VERSION}_amd64.deb"
+          wget "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/${tinygo_deb}"
+          sudo dpkg -i "${tinygo_deb}"
+          tinygo version
 
       - name: Install Bun dependencies
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
