@@ -26,6 +26,7 @@ import (
 
 const (
 	defaultCDPReadyTimeout = 10 * time.Minute
+	defaultCDPConnectRetry = 45 * time.Second
 	cdpReadyTimeoutEnv     = "E2E_ELECTRON_CDP_READY_TIMEOUT"
 	cdpShutdownTimeout     = 15 * time.Second
 )
@@ -131,6 +132,40 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 // ConnectDriver attaches Playwright to Electron through the Chrome DevTools
 // Protocol endpoint exposed by the Electron main process.
 func (h *Harness) ConnectDriver() error {
+	ctx, cancel := context.WithTimeout(h.ctx, defaultCDPConnectRetry)
+	defer cancel()
+	return h.connectDriver(ctx)
+}
+
+func (h *Harness) connectDriver(ctx context.Context) error {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	var lastErr error
+	for {
+		// Electron can answer /json/version before the CDP websocket is ready to
+		// survive a full Playwright attach, especially immediately after relaunch.
+		if err := h.connectDriverOnce(); err != nil {
+			lastErr = err
+			h.disconnectDriver()
+			h.le.WithError(err).Debug("playwright CDP connect failed; retrying")
+		} else {
+			return nil
+		}
+
+		select {
+		case <-ctx.Done():
+			if lastErr != nil {
+				return errors.Wrap(lastErr, "connect playwright over CDP before timeout")
+			}
+			return errors.Wrap(ctx.Err(), "connect playwright over CDP")
+		case <-h.done:
+			return h.desktopRuntimeErr("desktop runtime exited before playwright CDP driver connected")
+		case <-ticker.C:
+		}
+	}
+}
+
+func (h *Harness) connectDriverOnce() error {
 	pw, err := playwright.Run()
 	if err != nil {
 		return errors.Wrap(err, "start playwright")
@@ -159,7 +194,7 @@ func (h *Harness) Relaunch(ctx context.Context) error {
 	if err := h.startDesktopRuntime(ctx, hctx, cancel); err != nil {
 		return err
 	}
-	if err := h.ConnectDriver(); err != nil {
+	if err := h.connectDriver(ctx); err != nil {
 		return err
 	}
 	return nil
