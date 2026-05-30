@@ -5,6 +5,7 @@ package s4wave_wizard_test
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"net"
 	"testing"
 	"time"
@@ -213,6 +214,75 @@ func recvWizardState(
 	}
 
 	return msg.GetState()
+}
+
+func recvWizardTestValue[T any](t *testing.T, ch <-chan T, name string) T {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+
+	select {
+	case val, ok := <-ch:
+		if !ok {
+			t.Fatalf("%s channel closed", name)
+		}
+		return val
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for %s", name)
+	}
+	var zero T
+	return zero
+}
+
+type wizardRegistryStream struct {
+	ctx  context.Context
+	sent chan *s4wave_wizard.WatchWizardsResponse
+}
+
+func newWizardRegistryStream(ctx context.Context) *wizardRegistryStream {
+	return &wizardRegistryStream{
+		ctx:  ctx,
+		sent: make(chan *s4wave_wizard.WatchWizardsResponse),
+	}
+}
+
+func (s *wizardRegistryStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *wizardRegistryStream) MsgSend(srpc.Message) error {
+	panic("MsgSend should not be called")
+}
+
+func (s *wizardRegistryStream) MsgRecv(srpc.Message) error {
+	panic("MsgRecv should not be called")
+}
+
+func (s *wizardRegistryStream) CloseSend() error {
+	return nil
+}
+
+func (s *wizardRegistryStream) Close() error {
+	return nil
+}
+
+func (s *wizardRegistryStream) Send(resp *s4wave_wizard.WatchWizardsResponse) error {
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	case s.sent <- resp.CloneVT():
+		return nil
+	}
+}
+
+func (s *wizardRegistryStream) SendAndClose(resp *s4wave_wizard.WatchWizardsResponse) error {
+	if resp != nil {
+		if err := s.Send(resp); err != nil {
+			return err
+		}
+	}
+	return s.CloseSend()
 }
 
 type gitCloneProgressStream struct {
@@ -546,6 +616,26 @@ func TestWizardRegistryWatchPreservesDuplicateSnapshotBroadcast(t *testing.T) {
 	}
 }
 
+func TestWizardRegistryWatchCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	r := s4wave_wizard.NewWizardRegistryResource()
+	strm := newWizardRegistryStream(ctx)
+	done := make(chan error, 1)
+	go func() {
+		done <- r.WatchWizards(&s4wave_wizard.WatchWizardsRequest{}, strm)
+	}()
+
+	initial := recvWizardTestValue(t, strm.sent, "initial wizard snapshot")
+	if len(initial.GetWizards()) == 0 {
+		t.Fatal("expected initial static object wizards")
+	}
+
+	cancel()
+	if err := recvWizardTestValue(t, done, "wizard watch cancellation"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+}
+
 func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -592,6 +682,28 @@ func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
 		case <-ctx.Done():
 			t.Fatalf("timed out waiting for terminal clone progress: states %v", states)
 		}
+	}
+}
+
+func TestWizardGitCloneProgressWatchCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	r := s4wave_wizard.NewWizardResource(nil, nil, "wizard/git/cancel", &s4wave_wizard.WizardState{})
+	defer r.Close()
+
+	strm := newGitCloneProgressStream(ctx)
+	done := make(chan error, 1)
+	go func() {
+		done <- r.WatchGitCloneProgress(&s4wave_wizard.WatchGitCloneProgressRequest{}, strm)
+	}()
+
+	initial := recvWizardTestValue(t, strm.sent, "initial clone progress")
+	if initial.GetProgress().GetState() != s4wave_wizard.GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_IDLE {
+		t.Fatalf("expected idle initial progress, got %v", initial.GetProgress().GetState())
+	}
+
+	cancel()
+	if err := recvWizardTestValue(t, done, "clone progress watch cancellation"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 
