@@ -157,19 +157,24 @@ func (p *splitDriveProbe) waitForShellGrid() {
 
 	_, err := p.page.WaitForFunction(`() => {
 		if (!window.location.hash.startsWith('#/g/')) return false
-		const panes = Array.from(
+		const tabsets = Array.from(
 			document.querySelectorAll('.shell-flexlayout .flexlayout__tabset'),
-		)
-		const visiblePanes = panes
-			.map((pane) => {
-				const rect = pane.getBoundingClientRect()
-				return { pane, rect, browser: pane.querySelector('[data-testid="unixfs-browser"]') }
-			})
-			.filter(({ rect, browser }) => browser && rect.width > 0 && rect.height > 0)
+		).filter((pane) => {
+			const rect = pane.getBoundingClientRect()
+			return rect.width > 0 && rect.height > 0
+		})
+		const visibleBrowsers = splitDriveVisibleBrowsers()
 		return (
-			visiblePanes.length >= 2 &&
-			visiblePanes[0].rect.left < visiblePanes[1].rect.left
+			tabsets.length >= 2 &&
+			visibleBrowsers.length >= 2 &&
+			visibleBrowsers[0].rect.left < visibleBrowsers[1].rect.left
 		)
+		function splitDriveVisibleBrowsers() {
+			return Array.from(document.querySelectorAll('[data-testid="unixfs-browser"]'))
+				.map((browser) => ({ browser, rect: browser.getBoundingClientRect() }))
+				.filter(({ rect }) => rect.width > 0 && rect.height > 0)
+				.sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top)
+		}
 	}`, nil, playwright.PageWaitForFunctionOptions{
 		Timeout: splitDriveTimeoutMS(),
 	})
@@ -184,19 +189,23 @@ func (p *splitDriveProbe) waitForPaneText(pane int, label, want string) {
 	p.t.Helper()
 
 	_, err := p.page.WaitForFunction(`({ pane, want }) => {
-		const paneNode = document.querySelectorAll(
-			'.shell-flexlayout .flexlayout__tabset',
-		)[pane]
-		const browser = paneNode?.querySelector('[data-testid="unixfs-browser"]')
+		const browser = splitDriveVisibleBrowser(pane)
 		const pre = browser?.querySelector('pre')
 		return Boolean(pre?.textContent?.includes(want))
+		function splitDriveVisibleBrowser(index) {
+			return Array.from(document.querySelectorAll('[data-testid="unixfs-browser"]'))
+				.map((browser) => ({ browser, rect: browser.getBoundingClientRect() }))
+				.filter(({ rect }) => rect.width > 0 && rect.height > 0)
+				.sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top)
+				[index]?.browser ?? null
+		}
 	}`, map[string]any{"pane": pane, "want": want}, playwright.PageWaitForFunctionOptions{
 		Timeout: splitDriveTimeoutMS(),
 	})
 	if err != nil {
 		p.fail("wait for "+label, err)
 	}
-	text, err := p.paneBrowser(pane).Locator("pre").First().TextContent()
+	text, err := p.panePreText(pane)
 	if err != nil {
 		p.fail("read "+label, err)
 	}
@@ -212,10 +221,23 @@ func (p *splitDriveProbe) waitForPaneText(pane int, label, want string) {
 func (p *splitDriveProbe) waitForPaneEntry(pane int, name string) {
 	p.t.Helper()
 
-	row := p.paneBrowser(pane).Locator("[role='row']").Locator("text=" + name).First()
-	if err := row.WaitFor(playwright.LocatorWaitForOptions{
+	_, err := p.page.WaitForFunction(`({ pane, name }) => {
+		const browser = splitDriveVisibleBrowser(pane)
+		if (!browser) return false
+		return Array.from(browser.querySelectorAll('[role="row"]')).some((row) =>
+			(row.textContent || '').includes(name),
+		)
+		function splitDriveVisibleBrowser(index) {
+			return Array.from(document.querySelectorAll('[data-testid="unixfs-browser"]'))
+				.map((browser) => ({ browser, rect: browser.getBoundingClientRect() }))
+				.filter(({ rect }) => rect.width > 0 && rect.height > 0)
+				.sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top)
+				[index]?.browser ?? null
+		}
+	}`, map[string]any{"pane": pane, "name": name}, playwright.PageWaitForFunctionOptions{
 		Timeout: splitDriveTimeoutMS(),
-	}); err != nil {
+	})
+	if err != nil {
 		p.fail(fmt.Sprintf("wait for pane %d drive entry %s", pane, name), err)
 	}
 	p.waitForPaneSettled(pane, "pane entry "+name)
@@ -225,8 +247,27 @@ func (p *splitDriveProbe) openPaneEntry(pane int, name string) {
 	p.t.Helper()
 
 	p.waitForPaneEntry(pane, name)
-	row := p.paneBrowser(pane).Locator("[role='row']").Locator("text=" + name).First()
-	if err := row.Dblclick(); err != nil {
+	_, err := p.page.Evaluate(`({ pane, name }) => {
+		const browser = splitDriveVisibleBrowser(pane)
+		if (!browser) throw new Error('pane browser not found: ' + pane)
+		const row = Array.from(browser.querySelectorAll('[role="row"]')).find((candidate) =>
+			(candidate.textContent || '').includes(name),
+		)
+		if (!row) throw new Error('row not found: ' + name)
+		row.dispatchEvent(new MouseEvent('dblclick', {
+			bubbles: true,
+			cancelable: true,
+			view: window,
+		}))
+		function splitDriveVisibleBrowser(index) {
+			return Array.from(document.querySelectorAll('[data-testid="unixfs-browser"]'))
+				.map((browser) => ({ browser, rect: browser.getBoundingClientRect() }))
+				.filter(({ rect }) => rect.width > 0 && rect.height > 0)
+				.sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top)
+				[index]?.browser ?? null
+		}
+	}`, map[string]any{"pane": pane, "name": name})
+	if err != nil {
 		p.fail(fmt.Sprintf("open pane %d drive entry %s", pane, name), err)
 	}
 }
@@ -234,13 +275,43 @@ func (p *splitDriveProbe) openPaneEntry(pane int, name string) {
 func (p *splitDriveProbe) clickPaneButton(pane int, title string) {
 	p.t.Helper()
 
-	button := p.paneBrowser(pane).Locator("button[title='" + title + "']:not([disabled])").First()
-	if err := button.WaitFor(playwright.LocatorWaitForOptions{
+	_, err := p.page.WaitForFunction(`({ pane, title }) => {
+		const browser = splitDriveVisibleBrowser(pane)
+		if (!browser) return false
+		const button = Array.from(browser.querySelectorAll('button')).find((candidate) =>
+			candidate.getAttribute('title') === title && !candidate.disabled,
+		)
+		return Boolean(button)
+		function splitDriveVisibleBrowser(index) {
+			return Array.from(document.querySelectorAll('[data-testid="unixfs-browser"]'))
+				.map((browser) => ({ browser, rect: browser.getBoundingClientRect() }))
+				.filter(({ rect }) => rect.width > 0 && rect.height > 0)
+				.sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top)
+				[index]?.browser ?? null
+		}
+	}`, map[string]any{"pane": pane, "title": title}, playwright.PageWaitForFunctionOptions{
 		Timeout: splitDriveTimeoutMS(),
-	}); err != nil {
+	})
+	if err != nil {
 		p.fail(fmt.Sprintf("wait for pane %d %s button", pane, title), err)
 	}
-	if err := button.Click(); err != nil {
+	_, err = p.page.Evaluate(`({ pane, title }) => {
+		const browser = splitDriveVisibleBrowser(pane)
+		if (!browser) throw new Error('pane browser not found: ' + pane)
+		const button = Array.from(browser.querySelectorAll('button')).find((candidate) =>
+			candidate.getAttribute('title') === title && !candidate.disabled,
+		)
+		if (!button) throw new Error('enabled button not found: ' + title)
+		button.click()
+		function splitDriveVisibleBrowser(index) {
+			return Array.from(document.querySelectorAll('[data-testid="unixfs-browser"]'))
+				.map((browser) => ({ browser, rect: browser.getBoundingClientRect() }))
+				.filter(({ rect }) => rect.width > 0 && rect.height > 0)
+				.sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top)
+				[index]?.browser ?? null
+		}
+	}`, map[string]any{"pane": pane, "title": title})
+	if err != nil {
 		p.fail(fmt.Sprintf("click pane %d %s button", pane, title), err)
 	}
 	p.waitForPaneSettled(pane, fmt.Sprintf("pane %d after %s", pane, title))
@@ -249,19 +320,58 @@ func (p *splitDriveProbe) clickPaneButton(pane int, title string) {
 func (p *splitDriveProbe) waitForPaneSettled(pane int, label string) {
 	p.t.Helper()
 
-	diagnostics := p.paneBrowser(pane).Locator("[data-testid='unixfs-loading-diagnostics']")
-	if err := diagnostics.WaitFor(playwright.LocatorWaitForOptions{
-		State:   playwright.WaitForSelectorStateHidden,
+	_, err := p.page.WaitForFunction(`(pane) => {
+		const browser = splitDriveVisibleBrowser(pane)
+		if (!browser) return false
+		const diagnostics = Array.from(
+			browser.querySelectorAll('[data-testid="unixfs-loading-diagnostics"]'),
+		)
+		return diagnostics.every((el) => {
+			const style = getComputedStyle(el)
+			const rect = el.getBoundingClientRect()
+			return (
+				style.display === 'none' ||
+				style.visibility === 'hidden' ||
+				(rect.width === 0 && rect.height === 0)
+			)
+		})
+		function splitDriveVisibleBrowser(index) {
+			return Array.from(document.querySelectorAll('[data-testid="unixfs-browser"]'))
+				.map((browser) => ({ browser, rect: browser.getBoundingClientRect() }))
+				.filter(({ rect }) => rect.width > 0 && rect.height > 0)
+				.sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top)
+				[index]?.browser ?? null
+		}
+	}`, pane, playwright.PageWaitForFunctionOptions{
 		Timeout: splitDriveTimeoutMS(),
-	}); err != nil {
+	})
+	if err != nil {
 		p.fail("wait for "+label+" loading diagnostics to clear", err)
 	}
 }
 
-func (p *splitDriveProbe) paneBrowser(pane int) playwright.Locator {
+func (p *splitDriveProbe) panePreText(pane int) (string, error) {
 	p.t.Helper()
 
-	return p.page.Locator(".shell-flexlayout .flexlayout__tabset").Nth(pane).Locator("[data-testid='unixfs-browser']").First()
+	raw, err := p.page.Evaluate(`(pane) => {
+		const browser = splitDriveVisibleBrowser(pane)
+		return browser?.querySelector('pre')?.textContent ?? ''
+		function splitDriveVisibleBrowser(index) {
+			return Array.from(document.querySelectorAll('[data-testid="unixfs-browser"]'))
+				.map((browser) => ({ browser, rect: browser.getBoundingClientRect() }))
+				.filter(({ rect }) => rect.width > 0 && rect.height > 0)
+				.sort((a, b) => a.rect.left - b.rect.left || a.rect.top - b.rect.top)
+				[index]?.browser ?? null
+		}
+	}`, pane)
+	if err != nil {
+		return "", err
+	}
+	text, ok := raw.(string)
+	if !ok {
+		return "", fmt.Errorf("pane %d pre text returned %#v", pane, raw)
+	}
+	return text, nil
 }
 
 func (p *splitDriveProbe) fail(label string, err error) {
