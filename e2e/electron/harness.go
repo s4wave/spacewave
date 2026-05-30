@@ -5,11 +5,14 @@
 package electron
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -215,6 +218,88 @@ func (h *Harness) ControlEndpoint() string {
 	return h.E2EControlEndpoint()
 }
 
+// SetDesktopState projects a desktop runtime fixture through the Electron-main
+// e2e control surface.
+func (h *Harness) SetDesktopState(ctx context.Context, state any) error {
+	body, err := json.Marshal(state)
+	if err != nil {
+		return errors.Wrap(err, "marshal desktop runtime state")
+	}
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.ControlEndpoint()+"/desktop-state",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("content-type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("set desktop state returned HTTP %d: %s", resp.StatusCode, respBody)
+	}
+	return nil
+}
+
+// ResetDesktopState clears desktop runtime and tray fixtures installed through
+// the Electron-main e2e control surface.
+func (h *Harness) ResetDesktopState(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodDelete,
+		h.ControlEndpoint()+"/desktop-state",
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("reset desktop state returned HTTP %d: %s", resp.StatusCode, body)
+	}
+	return nil
+}
+
+// SetNativeThemeSource forces Electron's native theme source for deterministic
+// light/dark tray panel screenshots.
+func (h *Harness) SetNativeThemeSource(ctx context.Context, source string) error {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.ControlEndpoint()+"/native-theme?source="+url.QueryEscape(source),
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("set native theme source returned HTTP %d: %s", resp.StatusCode, body)
+	}
+	return nil
+}
+
+type trayPopoverInspection struct {
+	Text  string `json:"text"`
+	Theme string `json:"theme"`
+}
+
 // StateRoot returns the isolated Bldr state root used by the harness.
 func (h *Harness) StateRoot() string { return h.stateRoot }
 
@@ -391,9 +476,33 @@ func (h *Harness) OpenTrayPopover(ctx context.Context) error {
 		return err
 	}
 	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("open tray popover returned HTTP %d", resp.StatusCode)
+		return errors.Errorf("open tray popover returned HTTP %d: %s", resp.StatusCode, body)
+	}
+	return nil
+}
+
+// CloseTrayPopover closes any opt-in tray popover left open by the previous
+// e2e screenshot case.
+func (h *Harness) CloseTrayPopover(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.ControlEndpoint()+"/tray-popover/close",
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("close tray popover returned HTTP %d: %s", resp.StatusCode, body)
 	}
 	return nil
 }
@@ -433,6 +542,37 @@ func (h *Harness) CaptureTrayPopoverScreenshot(
 		return "", err
 	}
 	return path, nil
+}
+
+// InspectTrayPopover returns deterministic text/theme evidence from the current
+// opt-in popover DOM after its paint barrier has settled.
+func (h *Harness) InspectTrayPopover(ctx context.Context) (*trayPopoverInspection, error) {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		h.ControlEndpoint()+"/tray-popover/inspection",
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("inspect tray popover returned HTTP %d: %s", resp.StatusCode, body)
+	}
+	var inspection trayPopoverInspection
+	if err := json.Unmarshal(body, &inspection); err != nil {
+		return nil, err
+	}
+	return &inspection, nil
 }
 
 // Release stops Playwright, cancels the Bldr desktop runtime, and restores env.

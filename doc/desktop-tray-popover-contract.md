@@ -4,9 +4,11 @@ The desktop tray surface is a watched `DesktopTrayState`. The native tray menu
 and any rich popover render the same ordered `DesktopTrayEntry` tree from
 `bldr/desktop/tray/tray.proto`.
 
-The rich popover is a renderer for this contract. It does not own separate
-runtime state, invent separate actions, or bypass the tray resource. The native
-menu remains a complete fallback renderer for the same tree.
+The rich popover is the current opt-in rich panel implementation. It renders
+this contract, may use Electron-owned `DesktopRuntimeState` only for
+presentation counts, and does not own separate runtime state, invent separate
+actions, or bypass the tray resource. The native menu remains a complete
+fallback renderer for the same tree.
 
 ## State Owner
 
@@ -26,6 +28,11 @@ removes the entry. Callers that need custom action handling attach a
 The desktop runtime status projector is one producer of this tree. It projects
 runtime health, listener state, sessions, Spaces, activity, updates, and app
 commands into tray entries.
+
+Electron main already owns the current `DesktopRuntimeState` snapshot for
+desktop-shell lifecycle. Rich panel descriptors can read that snapshot to enrich
+headers, counts, and cards, but command identity, visibility, ordering,
+enablement, and invocation semantics still come from `DesktopTrayState.entries`.
 
 ## Tree Shape
 
@@ -123,6 +130,55 @@ renders the `DesktopTrayState` contract:
 The native menu remains valid and complete when the popover is disabled, hidden,
 or fails to attach. Electron main always rebuilds the native context menu from
 `WatchDesktopTray`; the popover is optional UI layered on top of that resource.
+
+The current rich panel remains opt-in:
+
+```bash
+BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1 bun run start:desktop
+```
+
+Rollout decision as of 2026-05-30: this scope does not promote the rich panel
+to default-on behavior. The proof matrix keeps the panel opt-in behind
+`BLDR_ELECTRON_DESKTOP_TRAY_POPOVER=1`, keeps Windows and Linux on the complete
+native menu path, and leaves default-on macOS enablement to a later
+desktop-shell product/settings/accessibility decision.
+
+Renderer packaging decision as of 2026-05-30: the opt-in panel stays as inline
+data-URL HTML owned by Electron main. That keeps the current surface at the
+descriptor-view boundary: Electron main adapts `DesktopTrayState` plus its
+existing `DesktopRuntimeState` snapshot into static panel HTML/CSS/JS, and the
+panel sends only action URLs back to the shared dispatcher. It does not import
+the app entrypoint, open a `WebRuntime` connection, subscribe to
+`WatchDesktopState`, poll cloud state, or read filesystem state.
+
+A future bundled panel surface is a promotion decision, not a prerequisite for
+this opt-in layer. If the panel moves into a bundled renderer, the bundle must
+keep the same contract: one descriptor input from Electron main, action events
+back to Electron main, and no independent runtime/resource polling inside the
+panel.
+
+Dynamic macOS icon rendering, quiet native notifications, and a global tray
+toggle shortcut are also opt-in. `BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON=1`
+enables generated template icon variants,
+`BLDR_ELECTRON_DESKTOP_TRAY_NOTIFICATIONS=1` enables quiet update-ready and
+critical-attention notifications, and
+`BLDR_ELECTRON_DESKTOP_TRAY_TOGGLE_SHORTCUT=<accelerator>` registers a
+process-owned toggle shortcut. All three default off and are cleaned up by
+Electron main on quit.
+
+Icon animation decision as of 2026-05-30: the dynamic macOS tray icon remains
+deterministic and non-animated. Attention continues to use the `!` title
+fallback, and active/attention/disconnected/quitting states render as stable SVG
+template icon variants. Any future animation needs a separate owner proof for
+timer lifetime, flicker behavior, screenshot/pixel output, and fallback title
+semantics.
+
+Shortcut policy decision as of 2026-05-30: the global tray toggle shortcut
+remains a dev-only environment-gated feature. A user-facing shortcut needs a
+desktop-shell settings owner for default-off policy, conflict copy, persistence,
+and cleanup. Until that owner exists, startup without
+`BLDR_ELECTRON_DESKTOP_TRAY_TOGGLE_SHORTCUT` must not register a global
+accelerator.
 
 ## Native Menu Fallback Boundary
 

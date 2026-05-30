@@ -19,7 +19,10 @@ import {
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
 import { WebRuntimeHostClient } from '../../runtime/runtime_srpc.pb.js'
-import type { OpenOrFocusMainWindowRequest } from '../desktop-runtime/desktop-runtime.pb.js'
+import type {
+  DesktopRuntimeState,
+  OpenOrFocusMainWindowRequest,
+} from '../desktop-runtime/desktop-runtime.pb.js'
 import { APP_SCHEME, appRequestHandler } from './protocol.js'
 import { ServiceWorkerHostClient } from '../../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../../fetch/fetch.js'
@@ -34,6 +37,10 @@ import {
   type ElectronInit,
 } from '../../plugin/electron/electron.pb.js'
 import { DesktopRuntimeResource } from './desktop-runtime.js'
+import {
+  buildDesktopTrayEntriesFromRuntimeState,
+  iconStateForRuntimeHealth,
+} from './desktop-tray-runtime-projection.js'
 import { DesktopTrayController } from './desktop-tray.js'
 
 export const isMac = os.platform() === 'darwin'
@@ -152,6 +159,7 @@ export class BldrElectronApp {
       void this.desktopRuntimeResource.OpenOrFocusMainWindow({})
     })
     app.on('before-quit', () => {
+      this.desktopTrayController?.dispose()
       this.desktopRuntimeResource.setQuitting(true)
     })
     app.on('window-all-closed', this.onWindowAllClosed.bind(this))
@@ -294,6 +302,25 @@ export class BldrElectronApp {
         sendE2EJSON(res, 200, this.desktopRuntimeResource.getState())
         return
       }
+      if (req.method === 'POST' && url.pathname === '/desktop-state') {
+        const state = await readE2EJSON<DesktopRuntimeState>(req)
+        await this.desktopRuntimeResource.SetDesktopState({ state })
+        this.desktopRuntimeResource.desktopTrayResource.replaceStateForE2E({
+          entries: buildDesktopTrayEntriesFromRuntimeState(state),
+          iconState: iconStateForRuntimeHealth(state.health),
+          statusText: state.statusText || 'Running',
+        })
+        sendE2EJSON(res, 200, { ok: true })
+        return
+      }
+      if (req.method === 'DELETE' && url.pathname === '/desktop-state') {
+        this.desktopRuntimeResource.resetProjectedDesktopStateForE2E()
+        this.desktopRuntimeResource.desktopTrayResource.replaceStateForE2E(
+          undefined,
+        )
+        sendE2EJSON(res, 200, { ok: true })
+        return
+      }
       if (req.method === 'GET' && url.pathname === '/tray-state') {
         sendE2EJSON(
           res,
@@ -302,10 +329,36 @@ export class BldrElectronApp {
         )
         return
       }
+      if (req.method === 'POST' && url.pathname === '/native-theme') {
+        const source = url.searchParams.get('source') ?? 'system'
+        if (!isNativeThemeSource(source)) {
+          sendE2EJSON(res, 400, { error: 'invalid native theme source' })
+          return
+        }
+        nativeTheme.themeSource = source
+        this.desktopTrayController?.setPopoverAppearanceForE2E(source)
+        sendE2EJSON(res, 200, { ok: true, source })
+        return
+      }
       if (req.method === 'POST' && url.pathname === '/tray-popover/open') {
         const shown =
           (await this.desktopTrayController?.showPopoverForE2E()) ?? false
         sendE2EJSON(res, 200, { shown })
+        return
+      }
+      if (req.method === 'POST' && url.pathname === '/tray-popover/close') {
+        this.desktopTrayController?.closePopoverForE2E()
+        sendE2EJSON(res, 200, { ok: true })
+        return
+      }
+      if (req.method === 'GET' && url.pathname === '/tray-popover/inspection') {
+        const inspection =
+          await this.desktopTrayController?.inspectPopoverForE2E()
+        if (!inspection) {
+          sendE2EJSON(res, 404, { error: 'tray popover is not open' })
+          return
+        }
+        sendE2EJSON(res, 200, inspection)
         return
       }
       if (req.method === 'GET' && url.pathname === '/tray-popover/screenshot') {
@@ -671,6 +724,21 @@ function sendE2EJSON(res: ServerResponse, statusCode: number, value: unknown) {
       typeof val === 'bigint' ? val.toString() : val,
     ),
   )
+}
+
+async function readE2EJSON<T>(req: IncomingMessage): Promise<T> {
+  const chunks: Buffer[] = []
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  const raw = Buffer.concat(chunks).toString('utf8').trim()
+  return raw ? (JSON.parse(raw) as T) : ({} as T)
+}
+
+function isNativeThemeSource(
+  source: string,
+): source is Electron.NativeTheme['themeSource'] {
+  return source === 'system' || source === 'light' || source === 'dark'
 }
 
 function sendE2EBinary(

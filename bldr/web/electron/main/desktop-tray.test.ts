@@ -38,6 +38,11 @@ const platformState = { value: 'linux' }
 const menuTemplates: Electron.MenuItemConstructorOptions[][] = []
 const trayInstances: MockTray[] = []
 const browserWindows: MockBrowserWindow[] = []
+const notifications: MockNotification[] = []
+const mockGlobalShortcut = {
+  register: vi.fn((_shortcut: string, _handler: () => void) => true),
+  unregister: vi.fn(),
+}
 const mockClipboard = {
   writeText: vi.fn(),
 }
@@ -65,6 +70,7 @@ const browserWindowState = {
 }
 let emitState: (state: DesktopRuntimeState) => void = () => {}
 let emitTrayState: (state: DesktopTrayState) => void = () => {}
+let emitTrayWatchResponse: (state: DesktopTrayState) => void = () => {}
 
 class MockNativeImage {
   public readonly setTemplateImage = vi.fn()
@@ -73,7 +79,9 @@ class MockNativeImage {
 class MockTray extends EventEmitter {
   public readonly setToolTip = vi.fn()
   public readonly setContextMenu = vi.fn()
+  public readonly setImage = vi.fn()
   public readonly setTitle = vi.fn()
+  public readonly destroy = vi.fn()
   public readonly getBounds = vi.fn(() => ({
     x: 100,
     y: 24,
@@ -87,8 +95,19 @@ class MockTray extends EventEmitter {
   }
 }
 
+class MockNotification {
+  public static readonly isSupported = vi.fn(() => true)
+  public readonly show = vi.fn()
+
+  constructor(public readonly opts: Electron.NotificationConstructorOptions) {
+    notifications.push(this)
+  }
+}
+
 class MockBrowserWindow extends EventEmitter {
-  public readonly webContents = new EventEmitter()
+  public readonly webContents = Object.assign(new EventEmitter(), {
+    executeJavaScript: vi.fn(() => Promise.resolve()),
+  })
   public readonly loadURL = vi.fn((_url: string) => Promise.resolve())
   public readonly capturePage = vi.fn(() =>
     Promise.resolve({ toPNG: () => Buffer.from('popover-png') }),
@@ -120,6 +139,7 @@ vi.mock('os', () => ({
 vi.mock('electron', () => {
   const nativeImage = {
     createEmpty: vi.fn(() => new MockNativeImage()),
+    createFromDataURL: vi.fn(() => new MockNativeImage()),
     createFromPath: vi.fn(() => new MockNativeImage()),
   }
   const Menu = {
@@ -135,7 +155,9 @@ vi.mock('electron', () => {
       Tray: MockTray,
       BrowserWindow: MockBrowserWindow,
       Menu,
+      Notification: MockNotification,
       clipboard: mockClipboard,
+      globalShortcut: mockGlobalShortcut,
       nativeImage,
       screen: mockScreen,
       shell: mockShell,
@@ -143,7 +165,9 @@ vi.mock('electron', () => {
     Tray: MockTray,
     BrowserWindow: MockBrowserWindow,
     Menu,
+    Notification: MockNotification,
     clipboard: mockClipboard,
+    globalShortcut: mockGlobalShortcut,
     nativeImage,
     screen: mockScreen,
     shell: mockShell,
@@ -156,8 +180,12 @@ describe('DesktopTrayController', () => {
     menuTemplates.length = 0
     trayInstances.length = 0
     browserWindows.length = 0
+    notifications.length = 0
     browserWindowState.shouldThrow = false
     delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER
+    delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON
+    delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_NOTIFICATIONS
+    delete process.env.BLDR_ELECTRON_DESKTOP_TRAY_TOGGLE_SHORTCUT
     vi.clearAllMocks()
     const state = defaultRuntimeState()
     setMockRuntimeState(state)
@@ -171,6 +199,9 @@ describe('DesktopTrayController', () => {
     }
     emitTrayState = (state: DesktopTrayState) => {
       mockResource.desktopTrayResource.getState.mockReturnValue(state)
+      trayStream.emit({ state })
+    }
+    emitTrayWatchResponse = (state: DesktopTrayState) => {
       trayStream.emit({ state })
     }
     mockResource.WatchDesktopState.mockReturnValue(stream)
@@ -263,6 +294,77 @@ describe('DesktopTrayController', () => {
     expect(trayInstances[0]?.setToolTip).toHaveBeenLastCalledWith(
       'Spacewave: Tray Source',
     )
+  })
+
+  it('renders watched tray payloads even when the resource snapshot advances', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_NOTIFICATIONS = '1'
+    const initial: DesktopTrayState = {
+      statusText: 'Initial',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'initial',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Initial tray row',
+        },
+      ],
+    }
+    const watched: DesktopTrayState = {
+      statusText: 'Update ready',
+      iconState: DesktopTrayIconState.ATTENTION,
+      entries: [
+        {
+          id: 'apply-update',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Install Update',
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+            value: '1.2.3',
+          },
+        },
+      ],
+    }
+    const advanced: DesktopTrayState = {
+      statusText: 'Advanced',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'advanced',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Advanced resource row',
+        },
+      ],
+    }
+    mockResource.desktopTrayResource.getState.mockReturnValue(initial)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+    expect(latestPopoverHtml()).toContain('Initial tray row')
+
+    mockResource.desktopTrayResource.getState.mockReturnValue(advanced)
+    emitTrayWatchResponse(watched)
+    await flushPromises()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+    expect(templateLabels(menuTemplates[1])).toContain('Install Update')
+    expect(templateLabels(menuTemplates[1])).not.toContain(
+      'Advanced resource row',
+    )
+    expect(latestPopoverHtml()).toContain('Install Update')
+    expect(latestPopoverHtml()).not.toContain('Advanced resource row')
+    expect(notifications).toHaveLength(1)
+    expect(notifications[0]?.opts).toMatchObject({
+      title: 'Spacewave update ready',
+      body: 'Version 1.2.3',
+    })
   })
 
   it('does not rebuild the native menu for duplicate tray snapshots', async () => {
@@ -686,7 +788,7 @@ describe('DesktopTrayController', () => {
     await clickMenuItem('Open Spacewave')
     await clickMenuItem('Quit')
     trayInstances[0]?.emit('click')
-    await Promise.resolve()
+    await flushAsyncEvents()
 
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(2)
     expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
@@ -953,7 +1055,7 @@ describe('DesktopTrayController', () => {
     controller.init()
 
     trayInstances[0]?.emit('click')
-    await Promise.resolve()
+    await flushAsyncEvents()
     await Promise.resolve()
 
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
@@ -992,9 +1094,22 @@ describe('DesktopTrayController', () => {
       iconState: DesktopTrayIconState.NORMAL,
       entries: [
         {
+          id: 'active-route',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Current Space',
+          statusText: 'Cmd+1',
+          active: true,
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.OPEN_ROUTE,
+            route: '/spaces/current',
+          },
+        },
+        {
           id: 'diagnostics',
           kind: DesktopTrayEntryKind.ACTION,
           label: 'Copy Diagnostics',
+          statusText: 'Cmd+C',
           enabled: true,
           action: {
             kind: DesktopTrayActionKind.COPY_TEXT,
@@ -1005,6 +1120,7 @@ describe('DesktopTrayController', () => {
           id: 'disabled',
           kind: DesktopTrayEntryKind.ACTION,
           label: 'Disabled Action',
+          statusText: 'Cmd+D',
           enabled: false,
           action: {
             kind: DesktopTrayActionKind.OPEN_ROUTE,
@@ -1022,11 +1138,20 @@ describe('DesktopTrayController', () => {
     controller.init()
 
     trayInstances[0]?.emit('click')
-    await Promise.resolve()
+    await flushPromises()
     await Promise.resolve()
 
-    expect(latestPopoverHtml()).toContain('spacewave-tray-action:diagnostics')
-    expect(latestPopoverHtml()).not.toContain('spacewave-tray-action:disabled')
+    const html = latestPopoverHtml()
+    expect(html).toContain('spacewave-tray-action:diagnostics')
+    expect(html).toContain('aria-current="page"')
+    expect(html).toContain('Cmd+1')
+    expect(html).toContain('Cmd+C')
+    expect(html).toContain('class="row disabled-action" aria-disabled="true"')
+    expect(html).toContain('Cmd+D')
+    expect(html).toContain('.row.action:hover,')
+    expect(html).toContain('.row.action:focus-visible')
+    expect(html).toContain('.row.action .status,')
+    expect(html).not.toContain('spacewave-tray-action:disabled')
 
     const event = { preventDefault: vi.fn() }
     browserWindows[0]?.webContents.emit(
@@ -1052,11 +1177,14 @@ describe('DesktopTrayController', () => {
     const shown = await controller.showPopoverForE2E()
 
     const png = await controller.capturePopoverPNGForE2E()
+    controller.closePopoverForE2E()
 
     expect(shown).toBe(true)
     expect(browserWindows).toHaveLength(1)
     expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
+    expect(browserWindows[0]?.webContents.executeJavaScript).toHaveBeenCalled()
     expect(browserWindows[0]?.capturePage).toHaveBeenCalledTimes(1)
+    expect(browserWindows[0]?.close).toHaveBeenCalledTimes(1)
     expect(png?.toString()).toBe('popover-png')
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
   })
@@ -1072,7 +1200,7 @@ describe('DesktopTrayController', () => {
     controller.init()
 
     trayInstances[0]?.emit('click')
-    await Promise.resolve()
+    await flushAsyncEvents()
 
     expect(browserWindows).toHaveLength(0)
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
@@ -1093,7 +1221,7 @@ describe('DesktopTrayController', () => {
       controller.init()
 
       trayInstances[0]?.emit('click')
-      await Promise.resolve()
+      await flushPromises()
 
       expect(browserWindows).toHaveLength(0)
       expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(1)
@@ -1139,6 +1267,88 @@ describe('DesktopTrayController', () => {
 
     expect(browserWindows).toHaveLength(1)
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the native menu fallback when an e2e popover reuse render fails', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    expect(await controller.showPopoverForE2E()).toBe(true)
+    expect(browserWindows).toHaveLength(1)
+
+    browserWindows[0]?.loadURL.mockRejectedValueOnce(
+      new Error('popover reuse render unavailable'),
+    )
+
+    await expect(controller.showPopoverForE2E()).resolves.toBe(false)
+    expect(browserWindows[0]?.close).toHaveBeenCalledTimes(1)
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    expect(browserWindows).toHaveLength(1)
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the panel alive when a stale render navigation is superseded', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+    expect(browserWindows).toHaveLength(1)
+
+    let rejectStaleRender: ((reason?: unknown) => void) | undefined
+    browserWindows[0]?.loadURL.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectStaleRender = reject
+        }),
+    )
+    emitTrayState({
+      statusText: 'Needs attention',
+      iconState: DesktopTrayIconState.ATTENTION,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Needs attention',
+        },
+      ],
+    })
+    await flushPromises()
+
+    emitTrayState({
+      statusText: 'Recovered',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Recovered',
+        },
+      ],
+    })
+    rejectStaleRender?.(
+      Object.assign(new Error('navigation superseded'), {
+        code: 'ERR_ABORTED',
+      }),
+    )
+    await flushAsyncEvents()
+
+    expect(browserWindows[0]?.close).not.toHaveBeenCalled()
+    expect(latestPopoverHtml()).toContain('Recovered')
+    expect(mockResource.OpenOrFocusMainWindow).not.toHaveBeenCalled()
   })
 
   it('keeps the native menu fallback when a dev popover action dispatch fails', async () => {
@@ -1187,6 +1397,473 @@ describe('DesktopTrayController', () => {
 
     expect(browserWindows).toHaveLength(1)
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps native menu and popover parity for every user-critical action', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    emitTrayState({
+      statusText: 'Running',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: userCriticalActionEntries(),
+    })
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    await clickLatestMenuItem('Open Current Space')
+    await clickLatestMenuItem('Open New Space Window')
+    await clickLatestMenuItem('Copy Diagnostics')
+    await clickLatestMenuItem('Reveal Logs')
+    await clickLatestMenuItem('Restart Listener')
+    await clickLatestMenuItem('Quit')
+    await flushPromises()
+
+    expect(mockResource.OpenOrFocusMainWindow.mock.calls).toEqual([
+      [{ route: '/spaces/current' }],
+      [{ route: '/spaces/new' }],
+    ])
+    expect(mockClipboard.writeText).toHaveBeenCalledWith('diagnostics text')
+    expect(mockShell.showItemInFolder).toHaveBeenCalledWith(
+      '/tmp/spacewave.log',
+    )
+    expect(
+      mockResource.desktopTrayResource.InvokeDesktopTrayEntry,
+    ).toHaveBeenCalledWith({ entryId: 'restart-listener' })
+    expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
+
+    mockResource.OpenOrFocusMainWindow.mockClear()
+    mockClipboard.writeText.mockClear()
+    mockShell.showItemInFolder.mockClear()
+    mockResource.desktopTrayResource.InvokeDesktopTrayEntry.mockClear()
+    mockResource.QuitDesktopRuntime.mockClear()
+
+    await invokeLatestPopoverAction('open-current-space')
+    await invokeLatestPopoverAction('open-new-space-window')
+    await invokeLatestPopoverAction('copy-diagnostics')
+    await invokeLatestPopoverAction('reveal-logs')
+    await invokeLatestPopoverAction('restart-listener')
+    await invokeLatestPopoverAction('quit')
+
+    expect(mockResource.OpenOrFocusMainWindow.mock.calls).toEqual([
+      [{ route: '/spaces/current' }],
+      [{ route: '/spaces/new' }],
+    ])
+    expect(mockClipboard.writeText).toHaveBeenCalledWith('diagnostics text')
+    expect(mockShell.showItemInFolder).toHaveBeenCalledWith(
+      '/tmp/spacewave.log',
+    )
+    expect(
+      mockResource.desktopTrayResource.InvokeDesktopTrayEntry,
+    ).toHaveBeenCalledWith({ entryId: 'restart-listener' })
+    expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
+  })
+
+  it('clamps the popover inside a narrow menu-bar work area', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    mockScreen.getDisplayMatching.mockReturnValueOnce({
+      workArea: { x: 0, y: 0, width: 410, height: 900 },
+    })
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+    trayInstances[0]?.getBounds.mockReturnValueOnce({
+      x: 400,
+      y: 24,
+      width: 24,
+      height: 24,
+    })
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    expect(browserWindows[0]?.setBounds).toHaveBeenCalledWith({
+      x: 20,
+      y: 56,
+      width: 390,
+      height: 560,
+    })
+    expect(browserWindows[0]?.show).toHaveBeenCalledTimes(1)
+    expect(mockResource.OpenOrFocusMainWindow).not.toHaveBeenCalled()
+  })
+
+  it('renders the rich panel descriptor without subscribing to runtime state', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const state = {
+      ...defaultRuntimeState(),
+      statusText: 'Syncing',
+      health: DesktopRuntimeHealth.ACTIVE,
+      sessions: [
+        {
+          label: 'coolguy@spacewave.app',
+          detail: 'Cloud',
+          statusText: 'Ready',
+          route: '/u/1/',
+          active: true,
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      spaces: [
+        {
+          label: 'Project Alpha With A Very Long Label',
+          detail: 'Shared',
+          route: '/u/1/so/project-alpha',
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+      activity: [
+        {
+          label: 'Uploading changes',
+          detail: '2 sync items',
+        },
+      ] satisfies DesktopRuntimeActivityItem[],
+      update: {
+        ready: true,
+        version: '1.2.3',
+        label: 'Ready',
+        detail: 'Version 1.2.3',
+      },
+    }
+    setMockRuntimeState(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+    expect(latestPopoverUrl()).toMatch(/^data:text\/html;charset=utf-8,/)
+    const html = latestPopoverHtml()
+    expect(html).toContain('data-tab="overview"')
+    expect(html).toContain('data-tab="sessions"')
+    expect(html).toContain('data-tabs="visible"')
+    expect(html).toContain('data-panel="sessions"')
+    expect(html).toContain('data-panel="spaces"')
+    expect(html).toContain('Project Alpha With A Very Long Label')
+    expect(html).toContain('.status {\n  min-width: 0;\n  max-width: 96px;')
+    expect(html).toContain('spacewave-tray-action:navigation-')
+    expect(html).toContain('spacewave-tray-action:apply-update')
+    expect(html).toContain(
+      'class="row action severity-info" href="spacewave-tray-action:apply-update"',
+    )
+    expect(html).toContain('ArrowDown')
+    expect(html).toContain('lastFocusByPanel')
+    expect(html).toContain('const actions = (scope = activePanel())')
+    expect(html).toContain('focusPanelAction(id)')
+  })
+
+  it('collapses sparse popover tabs without changing native fallback rows', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    const html = latestPopoverHtml()
+    expect(html).toContain('data-tabs="collapsed"')
+    expect(html).not.toContain('class="tabs"')
+    expect(html).not.toContain('data-tab="sessions"')
+    expect(html).not.toContain('data-tab="spaces"')
+    expect(html).not.toContain('data-panel="sessions"')
+    expect(html).not.toContain('data-panel="spaces"')
+    expect(html).toContain('No active sessions')
+    expect(templateLabels(menuTemplates[0])).toContain('Sessions')
+    expect(templateLabels(menuTemplates[0])).toContain('No sessions')
+    expect(templateLabels(menuTemplates[0])).toContain('Spaces')
+    expect(templateLabels(menuTemplates[0])).toContain('No spaces')
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+  })
+
+  it('renders bounded session and space cards with route actions and long labels', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const longSpaceLabel =
+      'Space One With An Extremely Long Name That Should Truncate In The Card'
+    const sessionRows: DesktopTrayEntry[] = Array.from(
+      { length: 7 },
+      (_, index) => ({
+        id: `session-${index + 1}`,
+        kind: DesktopTrayEntryKind.ACTION,
+        label:
+          index === 6 ? 'Session 7 Hidden By Bound' : `Session ${index + 1}`,
+        detail: index === 0 ? 'Cloud' : 'Local',
+        statusText: index === 0 ? 'Ready' : 'Idle',
+        active: index === 0,
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.OPEN_ROUTE,
+          route: `/u/${index + 1}/`,
+        },
+      }),
+    )
+    const spaceRows: DesktopTrayEntry[] = Array.from(
+      { length: 7 },
+      (_, index) => ({
+        id: `space-${index + 1}`,
+        kind: DesktopTrayEntryKind.ACTION,
+        label:
+          index === 0
+            ? longSpaceLabel
+            : index === 6
+              ? 'Space 7 Hidden By Bound'
+              : `Space ${index + 1}`,
+        detail: 'Shared',
+        statusText: index === 0 ? 'Active' : 'Ready',
+        active: index === 0,
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.OPEN_ROUTE,
+          route: `/u/1/so/space-${index + 1}`,
+        },
+      }),
+    )
+    mockResource.desktopTrayResource.getState.mockReturnValue({
+      statusText: 'Running',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Running',
+        },
+        {
+          id: 'Sessions-section',
+          kind: DesktopTrayEntryKind.SECTION,
+          label: 'Sessions',
+        },
+        ...sessionRows,
+        {
+          id: 'Spaces-section',
+          kind: DesktopTrayEntryKind.SECTION,
+          label: 'Spaces',
+        },
+        ...spaceRows,
+      ],
+    })
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    const html = latestPopoverHtml()
+    expect(html).toContain('data-card-panel="sessions"')
+    expect(html).toContain('data-card-panel="spaces"')
+    expect(html).toContain(
+      'class="nav-card action active" href="spacewave-tray-action:session-1"',
+    )
+    expect(html).toContain('data-action-id="space-1"')
+    expect(html).toContain(longSpaceLabel)
+    expect(html).toContain('Ready')
+    expect(html).toContain('+1 more session')
+    expect(html).toContain('+1 more space')
+    expect(html).not.toContain('Session 7 Hidden By Bound')
+    expect(html).not.toContain('Space 7 Hidden By Bound')
+    expect(templateLabels(menuTemplates[0])).toContain(longSpaceLabel)
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+  })
+
+  it('keeps the panel host independent of renderer window lifetime and runtime polling', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const initialState: DesktopTrayState = {
+      statusText: 'Initial host status',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Initial host status',
+        },
+        {
+          id: 'host-row',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Initial renderer window row',
+        },
+      ],
+    }
+    const updatedState: DesktopTrayState = {
+      statusText: 'Recovered host status',
+      iconState: DesktopTrayIconState.ACTIVE,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Recovered host status',
+        },
+        {
+          id: 'host-row',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Recovered watched tray row',
+        },
+      ],
+    }
+    mockResource.desktopTrayResource.getState.mockReturnValue(initialState)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    expect(browserWindows).toHaveLength(1)
+    expect(latestPopoverHtml()).toContain('Initial renderer window row')
+    expect(mockResource.getState).toHaveBeenCalledTimes(1)
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+
+    const firstWindow = browserWindows[0]
+    firstWindow?.close()
+    emitTrayState(updatedState)
+    await flushPromises()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+    expect(firstWindow?.loadURL).toHaveBeenCalledTimes(1)
+    expect(mockResource.getState).toHaveBeenCalledTimes(1)
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    expect(browserWindows).toHaveLength(2)
+    expect(latestPopoverHtml()).toContain('Recovered watched tray row')
+    expect(mockResource.getState).toHaveBeenCalledTimes(2)
+    expect(
+      mockResource.desktopTrayResource.WatchDesktopTray,
+    ).toHaveBeenCalledTimes(1)
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+  })
+
+  it('uses opt-in dynamic macOS tray icon variants with title fallback', async () => {
+    platformState.value = 'darwin'
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON = '1'
+    const [electron, { DesktopTrayController }] = await Promise.all([
+      import('electron'),
+      import('./desktop-tray.js'),
+    ])
+    const controller = new DesktopTrayController({
+      init: {
+        appName: 'Spacewave',
+        macosTemplateTrayIconPath: '/icons/tray-template.png',
+      },
+      resource: mockResource,
+    })
+    controller.init()
+
+    emitState({
+      ...defaultRuntimeState(),
+      statusText: 'Syncing',
+      health: DesktopRuntimeHealth.ACTIVE,
+    })
+    await flushPromises()
+    emitState({
+      ...defaultRuntimeState(),
+      statusText: 'Needs attention',
+      health: DesktopRuntimeHealth.NEEDS_ATTENTION,
+    })
+    await flushPromises()
+
+    expect(electron.nativeImage.createFromDataURL).toHaveBeenCalled()
+    expect(trayInstances[0]?.setImage).toHaveBeenCalledTimes(3)
+    expect(trayInstances[0]?.setTitle).toHaveBeenLastCalledWith('!')
+    expect(trayInstances[0]?.setToolTip).toHaveBeenLastCalledWith(
+      'Spacewave: Needs attention',
+    )
+  })
+
+  it('keeps shortcut and notification policies opt-in and Electron-owned', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_TOGGLE_SHORTCUT =
+      'CommandOrControl+Shift+S'
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_NOTIFICATIONS = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+      'CommandOrControl+Shift+S',
+      expect.any(Function),
+    )
+
+    emitTrayState({
+      statusText: 'Update ready',
+      iconState: DesktopTrayIconState.ATTENTION,
+      entries: [
+        {
+          id: 'apply-update',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Install Update',
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+            value: '1.2.3',
+          },
+        },
+      ],
+    })
+    await flushPromises()
+    emitTrayState({
+      statusText: 'Update ready',
+      iconState: DesktopTrayIconState.ATTENTION,
+      entries: [
+        {
+          id: 'apply-update',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Install Update',
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+            value: '1.2.3',
+          },
+        },
+      ],
+    })
+    await flushPromises()
+
+    expect(notifications).toHaveLength(1)
+    expect(notifications[0]?.opts).toMatchObject({
+      title: 'Spacewave update ready',
+      body: 'Version 1.2.3',
+      silent: true,
+    })
+
+    controller.dispose()
+
+    expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(
+      'CommandOrControl+Shift+S',
+    )
+    expect(trayInstances[0]?.destroy).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the tray toggle shortcut dev-only by default', async () => {
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    controller.dispose()
+
+    expect(mockGlobalShortcut.register).not.toHaveBeenCalled()
+    expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled()
   })
 
   it('uses the macOS template icon when configured', async () => {
@@ -1238,6 +1915,30 @@ async function clickMenuItem(label: string): Promise<void> {
   await Promise.resolve()
 }
 
+async function clickLatestMenuItem(label: string): Promise<void> {
+  const item = menuTemplates.at(-1)?.find((entry) => entry.label === label)
+  if (!item?.click) {
+    throw new Error(`${label} menu item not found`)
+  }
+  Reflect.apply(item.click, undefined, [])
+  await flushPromises()
+}
+
+async function invokeLatestPopoverAction(entryId: string): Promise<void> {
+  trayInstances[0]?.emit('click')
+  await flushPromises()
+  const event = { preventDefault: vi.fn() }
+  browserWindows
+    .at(-1)
+    ?.webContents.emit(
+      'will-navigate',
+      event,
+      `spacewave-tray-action:${entryId}`,
+    )
+  await flushAsyncEvents()
+  expect(event.preventDefault).toHaveBeenCalledTimes(1)
+}
+
 async function flushPromises(): Promise<void> {
   await Promise.resolve()
   await Promise.resolve()
@@ -1260,8 +1961,12 @@ function templateLabels(
   })
 }
 
+function latestPopoverUrl(): string {
+  return String(browserWindows.at(-1)?.loadURL.mock.calls.at(-1)?.[0] ?? '')
+}
+
 function latestPopoverHtml(): string {
-  const url = browserWindows.at(-1)?.loadURL.mock.calls.at(-1)?.[0]
+  const url = latestPopoverUrl()
   if (!url) {
     return ''
   }
@@ -1280,6 +1985,69 @@ function defaultRuntimeState(): DesktopRuntimeState {
 
 function defaultTrayState(): DesktopTrayState {
   return trayStateFromRuntimeState(defaultRuntimeState())
+}
+
+function userCriticalActionEntries(): DesktopTrayEntry[] {
+  return [
+    {
+      id: 'open-current-space',
+      kind: DesktopTrayEntryKind.ACTION,
+      label: 'Open Current Space',
+      enabled: true,
+      action: {
+        kind: DesktopTrayActionKind.OPEN_ROUTE,
+        route: '/spaces/current',
+      },
+    },
+    {
+      id: 'open-new-space-window',
+      kind: DesktopTrayEntryKind.ACTION,
+      label: 'Open New Space Window',
+      enabled: true,
+      action: {
+        kind: DesktopTrayActionKind.NEW_WINDOW,
+        route: '/spaces/new',
+      },
+    },
+    {
+      id: 'copy-diagnostics',
+      kind: DesktopTrayEntryKind.ACTION,
+      label: 'Copy Diagnostics',
+      enabled: true,
+      action: {
+        kind: DesktopTrayActionKind.COPY_TEXT,
+        value: 'diagnostics text',
+      },
+    },
+    {
+      id: 'reveal-logs',
+      kind: DesktopTrayEntryKind.ACTION,
+      label: 'Reveal Logs',
+      enabled: true,
+      action: {
+        kind: DesktopTrayActionKind.REVEAL_PATH,
+        value: '/tmp/spacewave.log',
+      },
+    },
+    {
+      id: 'restart-listener',
+      kind: DesktopTrayEntryKind.ACTION,
+      label: 'Restart Listener',
+      enabled: true,
+      action: {
+        kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+      },
+    },
+    {
+      id: 'quit',
+      kind: DesktopTrayEntryKind.ACTION,
+      label: 'Quit',
+      enabled: true,
+      action: {
+        kind: DesktopTrayActionKind.QUIT,
+      },
+    },
+  ]
 }
 
 function setMockRuntimeState(state: DesktopRuntimeState): void {
