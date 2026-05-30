@@ -3,7 +3,11 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
+import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useCallback } from 'react'
+import { LuTerminal } from 'react-icons/lu'
 
 import {
   DeviceCapabilityState,
@@ -13,6 +17,12 @@ import {
   type Device,
 } from '@s4wave/sdk/device/device.pb.js'
 import { DeviceHandle, DeviceTypeID } from '@s4wave/sdk/device/device.js'
+import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
+
+import {
+  buildCreateTerminalOpData,
+  findOpenableTerminalCapability,
+} from './terminal-action.js'
 
 export { DeviceTypeID }
 
@@ -20,11 +30,13 @@ export function DeviceViewer({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
-  const objectKey = getObjectKey(objectInfo)
+  const deviceObjectKey = getObjectKey(objectInfo)
+  const { navigateToObjects, spaceState, spaceWorld } =
+    SpaceContainerContext.useContext()
 
   const handle = useAccessTypedHandle(
     worldState,
-    objectKey,
+    deviceObjectKey,
     DeviceHandle,
     DeviceTypeID,
   )
@@ -37,13 +49,47 @@ export function DeviceViewer({
   const stateResource = useStreamingResource(handle, streamFactory, [])
   const state: Device | undefined = stateResource.value ?? undefined
   const capabilities = state?.capabilities ?? []
+  const terminalCapability = findOpenableTerminalCapability(state)
+  const existingObjectKeys = spaceState.worldContents?.objects?.map(
+    (obj) => obj.objectKey ?? '',
+  )
+
+  const handleOpenTerminal = async () => {
+    if (!state || !terminalCapability) return
+    const terminalOp = buildCreateTerminalOpData({
+      device: state,
+      deviceObjectKey,
+      existingObjectKeys,
+    })
+    if (!terminalOp) return
+    try {
+      await spaceWorld.applyWorldOp(
+        CREATE_TERMINAL_OP_ID,
+        terminalOp.opData,
+        '',
+      )
+      navigateToObjects([terminalOp.objectKey])
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to open terminal',
+      )
+    }
+  }
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
+      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <span className="text-foreground text-sm font-semibold select-none">
           Device
         </span>
+        {terminalCapability && (
+          <DashboardButton
+            icon={<LuTerminal className="size-3.5" />}
+            onClick={() => void handleOpenTerminal()}
+          >
+            Open Terminal
+          </DashboardButton>
+        )}
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {stateResource.loading && !state && (

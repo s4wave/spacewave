@@ -64,6 +64,10 @@ import {
   AddDeviceWizardViewer,
   AddDeviceWizardTypeID,
 } from '@s4wave/app/device/AddDeviceWizardViewer.js'
+import {
+  TerminalViewer,
+  TerminalTypeID,
+} from '@s4wave/app/terminal/TerminalViewer.js'
 import { OrgViewer, OrganizationTypeID } from '@s4wave/app/org/OrgViewer.js'
 import {
   WizardViewer,
@@ -225,6 +229,13 @@ const staticViewers: ObjectViewerComponent[] = [
     name: 'Computers',
     category: 'Devices',
     component: ComputersDashboardViewer,
+  },
+  {
+    componentID: 'spacewave.terminal.viewer',
+    typeID: TerminalTypeID,
+    name: 'Terminal',
+    category: 'Devices',
+    component: TerminalViewer,
   },
   {
     componentID: 'spacewave.wizard.add-device',

@@ -15,6 +15,7 @@ import (
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
+	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 )
@@ -34,6 +35,7 @@ func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error
 		space_world_ops.LookupCanvasAddEdgeOp,
 		space_world_ops.LookupCanvasRemoveEdgeOp,
 		s4wave_device.LookupCreateComputersDashboardOp,
+		s4wave_terminal.LookupCreateTerminalOp,
 		spacewave_chat.LookupInitChatDemoOp,
 		spacewave_chat.LookupCreateChatChannelOp,
 		forge_world.LookupWorldOp,

@@ -67,7 +67,7 @@ describe('getObjectViewersForType', () => {
     ])
   })
 
-  it('registers Computers and Add Device as typed Device setup surfaces', () => {
+  it('registers Computers, Terminal, and Add Device as typed Device setup surfaces', () => {
     expect(
       getObjectViewersForType('spacewave/computers').map((viewer) => [
         viewer.name,
@@ -75,6 +75,15 @@ describe('getObjectViewersForType', () => {
       ]),
     ).toEqual([
       ['Computers', 'Devices'],
+      ['Debug Viewer', 'Developer'],
+    ])
+    expect(
+      getObjectViewersForType('spacewave/terminal').map((viewer) => [
+        viewer.name,
+        viewer.category,
+      ]),
+    ).toEqual([
+      ['Terminal', 'Devices'],
       ['Debug Viewer', 'Developer'],
     ])
     expect(

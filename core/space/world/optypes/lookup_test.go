@@ -6,6 +6,7 @@ import (
 
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 )
 
@@ -34,6 +35,14 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 	}
 	if _, ok := op.(*s4wave_device.CreateComputersDashboardOp); !ok {
 		t.Fatalf("expected CreateComputersDashboardOp, got %T", op)
+	}
+
+	op, err = lookupOp(context.Background(), s4wave_terminal.CreateTerminalOpId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := op.(*s4wave_terminal.CreateTerminalOp); !ok {
+		t.Fatalf("expected CreateTerminalOp, got %T", op)
 	}
 }
 

@@ -128,6 +128,8 @@ func runServeCommand(
 	}
 	defer invokerRef.Release()
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
+	releaseDeviceRemoteShell := startDeviceRemoteShellHandler(serveCtx, le, cliBus.GetBus())
+	defer releaseDeviceRemoteShell()
 
 	if takeover {
 		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {

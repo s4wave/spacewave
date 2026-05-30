@@ -4225,6 +4225,22 @@
       ],
       "protoFiles": ["sdk/status/status.proto"]
     },
+    "github.com/s4wave/spacewave/sdk/terminal": {
+      "hash": "22c87de63f5b8ad0ddb4380302b16a0168949f1e112d350fd5c147b848d68f4d",
+      "generatedFiles": [
+        "sdk/terminal/terminal.pb.cc",
+        "sdk/terminal/terminal.pb.go",
+        "sdk/terminal/terminal.pb.h",
+        "sdk/terminal/terminal.pb.rs",
+        "sdk/terminal/terminal.pb.ts",
+        "sdk/terminal/terminal_srpc.pb.cpp",
+        "sdk/terminal/terminal_srpc.pb.go",
+        "sdk/terminal/terminal_srpc.pb.hpp",
+        "sdk/terminal/terminal_srpc.pb.rs",
+        "sdk/terminal/terminal_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/terminal/terminal.proto"]
+    },
     "github.com/s4wave/spacewave/sdk/testbed": {
       "hash": "6fdb236d08f006ec029563383861b6a7cdd1c0ba79030f3cc544e10365264c56",
       "generatedFiles": [
