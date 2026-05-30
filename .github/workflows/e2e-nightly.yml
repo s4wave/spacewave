@@ -8,10 +8,18 @@ on:
 permissions:
   contents: read
 
+env:
+  TINYGO_VERSION: 0.41.1
+  BINARYEN_VERSION: 129
+
 jobs:
   e2e-go-nightly:
     name: Nightly E2E (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    env:
+      BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
+      BLDR_ELECTRON_NO_SANDBOX: ${{ matrix.suite.electron_no_sandbox }}
+      E2E_ELECTRON_CDP_READY_TIMEOUT: ${{ matrix.suite.electron_cdp_ready_timeout }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,11 +31,17 @@ jobs:
             needs_playwright: true
             playwright_browsers: chromium
             use_xvfb: true
+            electron_no_sandbox: true
+            needs_tinygo: false
+            electron_cdp_ready_timeout: 20m
           - name: release-wasm
             script: test:go:e2e:release-wasm
             needs_playwright: true
             playwright_browsers: chromium
             use_xvfb: false
+            electron_no_sandbox: false
+            needs_tinygo: true
+            electron_cdp_ready_timeout: ''
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -52,6 +66,33 @@ jobs:
         if: ${{ matrix.suite.needs_playwright }}
         run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
 
+      - name: Install Binaryen
+        if: ${{ matrix.suite.needs_tinygo }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          binaryen_tar="binaryen-version_${BINARYEN_VERSION}-x86_64-linux.tar.gz"
+          binaryen_url="https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}"
+          wget --quiet "${binaryen_url}/${binaryen_tar}"
+          wget --quiet "${binaryen_url}/${binaryen_tar}.sha256"
+          sha256sum --check "${binaryen_tar}.sha256"
+          mkdir -p "${RUNNER_TEMP}/binaryen"
+          tar -xzf "${binaryen_tar}" -C "${RUNNER_TEMP}/binaryen" --strip-components=1
+          echo "${RUNNER_TEMP}/binaryen/bin" >> "${GITHUB_PATH}"
+          "${RUNNER_TEMP}/binaryen/bin/wasm-opt" --version
+
+      - name: Install TinyGo
+        if: ${{ matrix.suite.needs_tinygo }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tinygo_deb="tinygo_${TINYGO_VERSION}_amd64.deb"
+          wget --quiet "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/${tinygo_deb}"
+          sudo dpkg -i "${tinygo_deb}"
+          sudo sed -i 's/return t[.]roundTrip(req)/return roundTrip(req)/' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
+          grep -q 'return roundTrip(req)' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
+          tinygo version
+
       - name: Cache aptre tools
         uses: actions/cache@v5
         with:
@@ -68,3 +109,12 @@ jobs:
       - name: Run Nightly E2E suite with xvfb
         if: ${{ matrix.suite.use_xvfb }}
         run: xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' bun run ${{ matrix.suite.script }}
+
+      - name: Upload wasm-opt diagnostics
+        if: failure() && matrix.suite.needs_tinygo
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-wasm-opt-diagnostics-${{ github.run_id }}
+          path: .tmp/wasm-opt-diagnostics
+          include-hidden-files: true
+          if-no-files-found: warn

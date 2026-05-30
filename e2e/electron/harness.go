@@ -24,7 +24,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const cdpReadyTimeout = 10 * time.Minute
+const (
+	defaultCDPReadyTimeout = 10 * time.Minute
+	cdpReadyTimeoutEnv     = "E2E_ELECTRON_CDP_READY_TIMEOUT"
+)
 
 // Harness owns a Bldr desktop runtime plus a Playwright CDP attachment to the
 // Electron renderer.
@@ -436,6 +439,10 @@ func (h *Harness) startDesktopRuntime(
 		close(h.done)
 	}()
 
+	cdpReadyTimeout, err := resolveCDPReadyTimeout()
+	if err != nil {
+		return err
+	}
 	waitCtx, waitCancel := context.WithTimeout(ctx, cdpReadyTimeout)
 	defer waitCancel()
 	if err := h.waitForCDP(waitCtx); err != nil {
@@ -515,6 +522,21 @@ func (h *Harness) desktopRuntimeErr(msg string) error {
 		return errors.Wrap(h.doneErr, msg)
 	}
 	return errors.New(msg)
+}
+
+func resolveCDPReadyTimeout() (time.Duration, error) {
+	raw := strings.TrimSpace(os.Getenv(cdpReadyTimeoutEnv))
+	if raw == "" {
+		return defaultCDPReadyTimeout, nil
+	}
+	timeout, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, errors.Wrapf(err, "unsupported %s value %q", cdpReadyTimeoutEnv, raw)
+	}
+	if timeout <= 0 {
+		return 0, errors.Errorf("%s must be a positive duration, got %q", cdpReadyTimeoutEnv, raw)
+	}
+	return timeout, nil
 }
 
 func findFreePort() (int, error) {

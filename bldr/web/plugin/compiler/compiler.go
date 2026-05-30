@@ -44,9 +44,18 @@ var Version = controller.MustParseVersion("0.0.1")
 // dev mode, where the browser shell is served by the devtool itself.
 const SkipNativeWebRendererEnvVar = "BLDR_PLUGIN_WEB_SKIP_ELECTRON"
 
+// ElectronNoSandboxEnvVar adds Electron's --no-sandbox flag to generated
+// desktop launches for CI environments where chrome-sandbox cannot be setuid.
+const ElectronNoSandboxEnvVar = "BLDR_ELECTRON_NO_SANDBOX"
+
 func shouldBundleNativeWebRenderer() bool {
 	skip, err := strconv.ParseBool(os.Getenv(SkipNativeWebRendererEnvVar))
 	return err != nil || !skip
+}
+
+func electronNoSandboxEnabled() bool {
+	enabled, err := strconv.ParseBool(os.Getenv(ElectronNoSandboxEnvVar))
+	return err == nil && enabled
 }
 
 func getElectronQuitPolicy(
@@ -310,6 +319,9 @@ func (c *Controller) BundleElectronHook(
 			extraElectronFlags,
 			"--inspect=5858",
 		)
+	}
+	if electronNoSandboxEnabled() {
+		extraElectronFlags = append(extraElectronFlags, "--no-sandbox")
 	}
 
 	// build config set to start the electron entrypoint on startup
@@ -600,6 +612,12 @@ func addWebPluginStartupInputs(
 		bldr_manifest_builder.NewEnvStartupInput(
 			SkipNativeWebRendererEnvVar,
 			os.Getenv(SkipNativeWebRendererEnvVar),
+		),
+	)
+	inputManifest.AddStartupInput(
+		bldr_manifest_builder.NewEnvStartupInput(
+			ElectronNoSandboxEnvVar,
+			os.Getenv(ElectronNoSandboxEnvVar),
 		),
 	)
 	inputManifest.AddStartupInput(

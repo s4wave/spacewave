@@ -69,8 +69,26 @@ func TestShouldBundleNativeWebRendererHonorsSkipEnv(t *testing.T) {
 	}
 }
 
+func TestElectronNoSandboxEnabledHonorsEnv(t *testing.T) {
+	t.Setenv(ElectronNoSandboxEnvVar, "")
+	if electronNoSandboxEnabled() {
+		t.Fatal("empty no-sandbox env should not add Electron no-sandbox flag")
+	}
+
+	t.Setenv(ElectronNoSandboxEnvVar, "true")
+	if !electronNoSandboxEnabled() {
+		t.Fatal("true no-sandbox env should add Electron no-sandbox flag")
+	}
+
+	t.Setenv(ElectronNoSandboxEnvVar, "false")
+	if electronNoSandboxEnabled() {
+		t.Fatal("false no-sandbox env should not add Electron no-sandbox flag")
+	}
+}
+
 func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
 	t.Setenv(SkipNativeWebRendererEnvVar, "true")
+	t.Setenv(ElectronNoSandboxEnvVar, "true")
 	result := &bldr_manifest_builder.BuilderResult{}
 	if err := addWebPluginStartupInputs(
 		&bldr_manifest_builder.BuilderConfig{SourcePath: t.TempDir()},
@@ -79,13 +97,21 @@ func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, input := range result.GetInputManifest().GetStartupInputs() {
-		if input.GetKey() == SkipNativeWebRendererEnvVar {
-			if input.GetStringValue() != "true" {
-				t.Fatalf("skip renderer env input = %q, want true", input.GetStringValue())
-			}
-			return
-		}
+	wantInputs := map[string]string{
+		SkipNativeWebRendererEnvVar: "true",
+		ElectronNoSandboxEnvVar:     "true",
 	}
-	t.Fatalf("missing startup input for %s", SkipNativeWebRendererEnvVar)
+	for _, input := range result.GetInputManifest().GetStartupInputs() {
+		want, ok := wantInputs[input.GetKey()]
+		if !ok {
+			continue
+		}
+		if input.GetStringValue() != want {
+			t.Fatalf("%s input = %q, want %q", input.GetKey(), input.GetStringValue(), want)
+		}
+		delete(wantInputs, input.GetKey())
+	}
+	for key := range wantInputs {
+		t.Fatalf("missing startup input for %s", key)
+	}
 }
