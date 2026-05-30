@@ -5,6 +5,7 @@ import (
 	"time"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
@@ -16,12 +17,57 @@ import (
 // accountStateCacheKey is the ObjectStore key for the account state cache.
 const accountStateCacheKey = "account-state-cache"
 
+// accountFetcherRetryOwner owns transient retry delay for accountFetcher.
+//
+// The wake channel is captured with the account snapshot that produced the
+// failed fetch. If account epoch or session-client readiness changes while a
+// request is in flight, that channel closes and the retry owner skips the
+// remaining backoff so the fetcher can re-check current account state.
+type accountFetcherRetryOwner struct {
+	bo cbackoff.BackOff
+}
+
+func newAccountFetcherRetryOwner() *accountFetcherRetryOwner {
+	return &accountFetcherRetryOwner{bo: providerBackoff.Construct()}
+}
+
+func (r *accountFetcherRetryOwner) Reset() {
+	r.bo.Reset()
+}
+
+func (r *accountFetcherRetryOwner) WaitTransient(
+	ctx context.Context,
+	wakeCh <-chan struct{},
+	err error,
+) error {
+	delay := nextProviderRetryDelay(r.bo, err)
+	return waitAccountFetcherRetryDelay(ctx, wakeCh, delay)
+}
+
+func waitAccountFetcherRetryDelay(
+	ctx context.Context,
+	wakeCh <-chan struct{},
+	delay time.Duration,
+) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-wakeCh:
+		return nil
+	case <-timer.C:
+		return nil
+	}
+}
+
 // accountFetcher runs a loop that fetches account state from the cloud when the
 // epoch advances past the last fetched epoch. Single goroutine, triggered by
 // epoch changes via accountBcast.
 func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 	le := a.le.WithField("component", "account-fetcher")
-	bo := providerBackoff.Construct()
+	retry := newAccountFetcherRetryOwner()
 	var prevKeypairs []*session.EntityKeypair
 	for {
 		var epoch, lastFetched uint64
@@ -57,11 +103,8 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 					return err
 				}
 				le.WithError(err).Warn("failed to fetch account state, will retry")
-				delay := nextProviderRetryDelay(bo, err)
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-time.After(delay):
+				if err := retry.WaitTransient(ctx, ch, err); err != nil {
+					return err
 				}
 				continue
 			}
@@ -80,11 +123,8 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 					return err
 				}
 				le.WithError(err).Warn("failed to fetch emails, will retry")
-				delay := nextProviderRetryDelay(bo, err)
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-time.After(delay):
+				if err := retry.WaitTransient(ctx, ch, err); err != nil {
+					return err
 				}
 				continue
 			}
@@ -102,15 +142,12 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 					return err
 				}
 				le.WithError(err).Warn("failed to fetch sessions, will retry")
-				delay := nextProviderRetryDelay(bo, err)
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-time.After(delay):
+				if err := retry.WaitTransient(ctx, ch, err); err != nil {
+					return err
 				}
 				continue
 			}
-			bo.Reset()
+			retry.Reset()
 
 			le.WithFields(logrus.Fields{
 				"epoch":         state.GetEpoch(),
