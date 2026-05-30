@@ -424,18 +424,28 @@ body {
   cursor: default;
 }
 .nav-card.action:hover,
-.nav-card.action:focus {
+.nav-card.action:focus,
+.nav-card.action:focus-visible {
   border-color: #b7cce8;
   background: #edf4ff;
   outline: none;
+}
+.nav-card.action:focus-visible {
+  box-shadow: 0 0 0 2px rgb(90 142 208 / 26%);
 }
 .nav-card.action[aria-disabled="true"] {
   color: #98a2af;
   pointer-events: none;
 }
+.nav-card.disabled-action {
+  color: #98a2af;
+}
 .nav-card.active {
   border-color: #87c6aa;
   background: #f0fbf6;
+}
+.nav-card[aria-current="page"] {
+  border-color: #70b795;
 }
 .nav-card-overflow {
   padding: 4px 2px;
@@ -479,13 +489,23 @@ body {
   cursor: default;
 }
 .row.action:hover,
-.row.action:focus {
+.row.action:focus,
+.row.action:focus-visible {
   background: #edf4ff;
   outline: none;
+}
+.row.action:focus-visible {
+  box-shadow: inset 0 0 0 2px rgb(90 142 208 / 26%);
 }
 .row.action[aria-disabled="true"] {
   color: #98a2af;
   pointer-events: none;
+}
+.row.disabled-action {
+  color: #98a2af;
+}
+.row[aria-current="page"] {
+  background: #f0fbf6;
 }
 .row.active .label::before,
 .nav-card.active .label::before {
@@ -525,6 +545,22 @@ body {
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.row.action .status,
+.nav-card.action .status {
+  max-width: 118px;
+  padding: 2px 5px;
+  border: 1px solid #d5dbe4;
+  border-radius: 5px;
+  background: #f7f9fb;
+  color: #536172;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.1;
+}
+.row.disabled-action .status,
+.nav-card.disabled-action .status {
+  opacity: 0.75;
 }
 .row.severity-info .status {
   color: #2573a7;
@@ -583,13 +619,24 @@ body {
   }
   .row.action:hover,
   .row.action:focus,
+  .row.action:focus-visible,
   .nav-card.action:hover,
-  .nav-card.action:focus {
+  .nav-card.action:focus,
+  .nav-card.action:focus-visible {
     background: #26354a;
+  }
+  .row[aria-current="page"] {
+    background: #1f342b;
   }
   .nav-card.active {
     border-color: #3b7458;
     background: #1f342b;
+  }
+  .row.action .status,
+  .nav-card.action .status {
+    border-color: #3a424e;
+    background: #171b21;
+    color: #c3ccd8;
   }
   .card-value,
   .title {
@@ -758,26 +805,32 @@ function renderRowsPanel(
 
 function renderRow(row: DesktopTrayPanelRow): string {
   if (!row.action) {
-    return `<div class="${rowClass(row, '')}">${renderRowContents(row)}</div>`
+    return `<div class="${rowClass(row, '')}"${rowStateAttributes(
+      row,
+    )}>${renderRowContents(row)}</div>`
   }
   return `<a class="${rowClass(row, 'action')}" href="${actionHref(
     row.action.id,
   )}" role="button" tabindex="0" data-action-id="${escapeHtml(
     row.action.id,
-  )}" aria-disabled="${row.enabled ? 'false' : 'true'}">${renderRowContents(row)}</a>`
+  )}" aria-disabled="${row.enabled ? 'false' : 'true'}"${rowStateAttributes(
+    row,
+  )}>${renderRowContents(row)}</a>`
 }
 
 function renderNavigationCard(row: DesktopTrayPanelRow): string {
   if (!row.action) {
-    return `<div class="${navigationCardClass(row, '')}">${renderRowContents(
+    return `<div class="${navigationCardClass(row, '')}"${rowStateAttributes(
       row,
-    )}</div>`
+    )}>${renderRowContents(row)}</div>`
   }
   return `<a class="${navigationCardClass(row, 'action')}" href="${actionHref(
     row.action.id,
   )}" role="button" tabindex="0" data-action-id="${escapeHtml(
     row.action.id,
-  )}" aria-disabled="${row.enabled ? 'false' : 'true'}">${renderRowContents(row)}</a>`
+  )}" aria-disabled="${row.enabled ? 'false' : 'true'}"${rowStateAttributes(
+    row,
+  )}>${renderRowContents(row)}</a>`
 }
 
 function renderNavigationOverflow(title: string, count: number): string {
@@ -804,6 +857,7 @@ function rowClass(row: DesktopTrayPanelRow, extra: string): string {
     'row',
     extra,
     row.active ? 'active' : '',
+    row.kind === 'action' && !row.enabled ? 'disabled-action' : '',
     severityClass(row.severity),
     row.empty ? 'empty-row' : '',
   ]
@@ -816,10 +870,21 @@ function navigationCardClass(row: DesktopTrayPanelRow, extra: string): string {
     'nav-card',
     extra,
     row.active ? 'active' : '',
+    row.kind === 'action' && !row.enabled ? 'disabled-action' : '',
     severityClass(row.severity),
   ]
     .filter(Boolean)
     .join(' ')
+}
+
+function rowStateAttributes(row: DesktopTrayPanelRow): string {
+  return [
+    row.active ? 'aria-current="page"' : '',
+    row.kind === 'action' && !row.enabled ? 'aria-disabled="true"' : '',
+  ]
+    .filter(Boolean)
+    .map((attr) => ` ${attr}`)
+    .join('')
 }
 
 function actionHref(entryId: string): string {

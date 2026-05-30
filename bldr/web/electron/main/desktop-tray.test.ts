@@ -1017,9 +1017,22 @@ describe('DesktopTrayController', () => {
       iconState: DesktopTrayIconState.NORMAL,
       entries: [
         {
+          id: 'active-route',
+          kind: DesktopTrayEntryKind.ACTION,
+          label: 'Current Space',
+          statusText: 'Cmd+1',
+          active: true,
+          enabled: true,
+          action: {
+            kind: DesktopTrayActionKind.OPEN_ROUTE,
+            route: '/spaces/current',
+          },
+        },
+        {
           id: 'diagnostics',
           kind: DesktopTrayEntryKind.ACTION,
           label: 'Copy Diagnostics',
+          statusText: 'Cmd+C',
           enabled: true,
           action: {
             kind: DesktopTrayActionKind.COPY_TEXT,
@@ -1030,6 +1043,7 @@ describe('DesktopTrayController', () => {
           id: 'disabled',
           kind: DesktopTrayEntryKind.ACTION,
           label: 'Disabled Action',
+          statusText: 'Cmd+D',
           enabled: false,
           action: {
             kind: DesktopTrayActionKind.OPEN_ROUTE,
@@ -1050,8 +1064,19 @@ describe('DesktopTrayController', () => {
     await flushPromises()
     await Promise.resolve()
 
-    expect(latestPopoverHtml()).toContain('spacewave-tray-action:diagnostics')
-    expect(latestPopoverHtml()).not.toContain('spacewave-tray-action:disabled')
+    const html = latestPopoverHtml()
+    expect(html).toContain('spacewave-tray-action:diagnostics')
+    expect(html).toContain('aria-current="page"')
+    expect(html).toContain('Cmd+1')
+    expect(html).toContain('Cmd+C')
+    expect(html).toContain(
+      'class="row disabled-action" aria-disabled="true"',
+    )
+    expect(html).toContain('Cmd+D')
+    expect(html).toContain('.row.action:hover,')
+    expect(html).toContain('.row.action:focus-visible')
+    expect(html).toContain('.row.action .status,')
+    expect(html).not.toContain('spacewave-tray-action:disabled')
 
     const event = { preventDefault: vi.fn() }
     browserWindows[0]?.webContents.emit(
