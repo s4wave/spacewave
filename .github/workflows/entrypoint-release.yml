@@ -892,74 +892,52 @@ jobs:
           cp -R .tmp/entrypoint-parts/browser/browser-staging .tmp/entrypoint-handoff/browser-staging
           cp .tmp/entrypoint-parts/browser/static-manifest.ts .tmp/entrypoint-handoff/static-manifest.ts
 
-      - name: Build checksums and handoff manifest
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Cache trusted Go dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Build public release checksums
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          from pathlib import Path
+          {
+            find .tmp/entrypoint-public-assets/installers -type f -print
+            if [[ -d .tmp/entrypoint-public-assets/cli ]]; then
+              find .tmp/entrypoint-public-assets/cli -type f -print
+            fi
+          } | sort | while IFS= read -r path; do
+            digest="$(sha256sum "${path}" | awk '{print $1}')"
+            printf '%s  %s\n' "${digest}" "$(basename "${path}")"
+          done > .tmp/entrypoint-public-assets/checksums.txt
 
-          handoff_root = Path(".tmp/entrypoint-handoff")
-          public_root = Path(".tmp/entrypoint-public-assets")
-          installers_root = public_root / "installers"
-          cli_root = public_root / "cli"
-          browser_root = handoff_root / "browser-staging"
-          static_manifest_path = handoff_root / "static-manifest.ts"
-
-          def sha256(path: Path) -> str:
-              h = hashlib.sha256()
-              with path.open("rb") as f:
-                  while True:
-                      chunk = f.read(1024 * 1024)
-                      if not chunk:
-                          break
-                      h.update(chunk)
-              return h.hexdigest()
-
-          checksums_lines = []
-          for path in sorted(p for p in installers_root.rglob("*") if p.is_file()):
-              digest = sha256(path)
-              checksums_lines.append(f"{digest}  {path.name}")
-
-          if cli_root.exists():
-              for path in sorted(p for p in cli_root.rglob("*") if p.is_file()):
-                  digest = sha256(path)
-                  checksums_lines.append(f"{digest}  {path.name}")
-
-          checksums_path = public_root / "checksums.txt"
-          checksums_path.write_text("\n".join(checksums_lines) + "\n", encoding="utf-8")
-
-          browser_entries = []
-          for path in sorted(p for p in browser_root.rglob("*") if p.is_file()):
-              browser_entries.append({
-                  "path": path.relative_to(handoff_root).as_posix(),
-                  "sha256": sha256(path),
-                  "size": path.stat().st_size,
-              })
-
-          manifest = {
-              "format": "entrypoint-handoff.v1",
-              "release_environment": "${{ needs.prep.outputs.environment_name }}",
-              "version": "${{ needs.prep.outputs.version }}",
-              "rev": "${{ needs.prep.outputs.rev }}",
-              "tag": "${{ needs.prep.outputs.tag }}",
-              "git_sha": os.environ["GITHUB_SHA"],
-              "run_id": os.environ["GITHUB_RUN_ID"],
-              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
-              "source_repo": os.environ["GITHUB_REPOSITORY"],
-              "workflow": os.environ["GITHUB_WORKFLOW"],
-              "browser_staging": browser_entries,
-              "static_manifest": {
-                  "path": "static-manifest.ts",
-                  "sha256": sha256(static_manifest_path),
-                  "size": static_manifest_path.stat().st_size,
-              },
-          }
-          (handoff_root / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-          PY
+      - name: Write typed entrypoint handoff manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --write-handoff-manifest \
+            --out-dir .tmp/entrypoint-handoff \
+            --browser-staging-dir .tmp/entrypoint-handoff/browser-staging \
+            --static-manifest-path .tmp/entrypoint-handoff/static-manifest.ts \
+            --version "${{ needs.prep.outputs.version }}" \
+            --rev "${{ needs.prep.outputs.rev }}" \
+            --tag "${{ needs.prep.outputs.tag }}" \
+            --release-environment "${{ needs.prep.outputs.environment_name }}" \
+            --git-sha "${GITHUB_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --source-repo "${GITHUB_REPOSITORY}" \
+            --workflow "${GITHUB_WORKFLOW}"
 
       - name: Archive entrypoint handoff bundle
         shell: bash
@@ -975,20 +953,6 @@ jobs:
           name: entrypoint-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff.tar
           if-no-files-found: error
-
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: false
-
-      - name: Cache trusted Go dependencies
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
 
       - name: Write release notes
         shell: bash

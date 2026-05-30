@@ -5,7 +5,10 @@ package handoff
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/aperturerobotics/fastjson"
 )
 
 func TestNeedsBuilderImage(t *testing.T) {
@@ -54,6 +57,87 @@ func TestNeedsBuilderImage(t *testing.T) {
 				t.Fatalf("needsBuilderImage(%q, %#v) = %v, want %v", test.hostGOOS, test.platforms, got, test.want)
 			}
 		})
+	}
+}
+
+func TestWriteEntrypointHandoffManifestRecordsStringRevisionAndFiles(t *testing.T) {
+	root := t.TempDir()
+	browserRelease := filepath.Join(root, "browser-staging", "app", "browser-release.json")
+	staticIndex := filepath.Join(root, "browser-staging", "static", "index.html")
+	staticManifest := filepath.Join(root, "static-manifest.ts")
+	writeTestFile(t, browserRelease)
+	writeTestFile(t, staticIndex)
+	writeTestFile(t, staticManifest)
+
+	if err := WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
+		RootDir:            root,
+		BrowserStagingDir:  filepath.Join(root, "browser-staging"),
+		StaticManifestPath: staticManifest,
+		Version:            "0.51.7",
+		Rev:                "31",
+		GitSHA:             "abc123",
+		Tag:                "v0.51.7",
+		ReleaseEnvironment: "production",
+		RunID:              "123",
+		RunAttempt:         "2",
+		SourceRepo:         "s4wave/spacewave",
+		Workflow:           "entrypoint-release",
+	}); err != nil {
+		t.Fatalf("WriteEntrypointHandoffManifest() error = %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(root, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var p fastjson.Parser
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("parse manifest: %v", err)
+	}
+	if got := string(v.GetStringBytes("rev")); got != "31" {
+		t.Fatalf("rev = %q, want 31", got)
+	}
+	if got := string(v.GetStringBytes("run_id")); got != "123" {
+		t.Fatalf("run_id = %q, want 123", got)
+	}
+	entries := v.GetArray("browser_staging")
+	if len(entries) != 2 {
+		t.Fatalf("browser_staging entries = %d, want 2", len(entries))
+	}
+	if got := string(entries[0].GetStringBytes("path")); got != "browser-staging/app/browser-release.json" {
+		t.Fatalf("first browser path = %q", got)
+	}
+	if got := string(v.GetStringBytes("static_manifest", "path")); got != "static-manifest.ts" {
+		t.Fatalf("static manifest path = %q", got)
+	}
+}
+
+func TestWriteEntrypointHandoffManifestRejectsSymlink(t *testing.T) {
+	root := t.TempDir()
+	browserRelease := filepath.Join(root, "browser-staging", "app", "browser-release.json")
+	staticManifest := filepath.Join(root, "static-manifest.ts")
+	writeTestFile(t, browserRelease)
+	if err := os.Symlink(browserRelease, staticManifest); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	err := WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
+		RootDir:            root,
+		BrowserStagingDir:  filepath.Join(root, "browser-staging"),
+		StaticManifestPath: staticManifest,
+		Version:            "0.51.7",
+		Rev:                "31",
+		GitSHA:             "abc123",
+		Tag:                "v0.51.7",
+		ReleaseEnvironment: "production",
+		RunID:              "123",
+		RunAttempt:         "2",
+		SourceRepo:         "s4wave/spacewave",
+		Workflow:           "entrypoint-release",
+	})
+	if err == nil || !strings.Contains(err.Error(), "must not be a symlink") {
+		t.Fatalf("expected symlink rejection, got %v", err)
 	}
 }
 

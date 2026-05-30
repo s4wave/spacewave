@@ -37,12 +37,23 @@ const (
 // Args contains entrypoint handoff command flags.
 type Args struct {
 	Version                   string
+	Rev                       string
+	Tag                       string
+	ReleaseEnvironment        string
+	GitSHA                    string
+	RunID                     string
+	RunAttempt                string
+	SourceRepo                string
+	Workflow                  string
 	PlatformsCSV              string
 	OutDir                    string
+	BrowserStagingDir         string
+	StaticManifestPath        string
 	ReactDev                  bool
 	SkipNotarize              bool
 	IncludeBrowser            bool
 	BrowserOnly               bool
+	WriteHandoffManifest      bool
 	SkipBuild                 bool
 	SkipPackage               bool
 	StageBuildInputs          bool
@@ -71,6 +82,22 @@ func Run(ctx context.Context, args *Args) error {
 		return errors.New("args is nil")
 	}
 	args.FillDefaults()
+	if args.WriteHandoffManifest {
+		return WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
+			RootDir:            args.OutDir,
+			BrowserStagingDir:  args.BrowserStagingDir,
+			StaticManifestPath: args.StaticManifestPath,
+			Version:            args.Version,
+			Rev:                args.Rev,
+			GitSHA:             args.GitSHA,
+			Tag:                args.Tag,
+			ReleaseEnvironment: args.ReleaseEnvironment,
+			RunID:              args.RunID,
+			RunAttempt:         args.RunAttempt,
+			SourceRepo:         args.SourceRepo,
+			Workflow:           args.Workflow,
+		})
+	}
 	if args.Version == "" || args.OutDir == "" {
 		return errors.New(usageText)
 	}

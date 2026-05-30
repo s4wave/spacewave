@@ -564,7 +564,6 @@ jobs:
           rm -rf .tmp/plugin-handoff
           mkdir -p .tmp/plugin-handoff/native
           cp .bldr/devtool.s4wave .tmp/plugin-handoff/devtool.s4wave
-          cp .tmp/plugin-handoff-manifest-refs.json .tmp/plugin-handoff/manifest-refs.json
           for platform in darwin windows linux; do
             if [[ -d ".tmp/native-artifacts/${platform}" ]]; then
               cp -R ".tmp/native-artifacts/${platform}" ".tmp/plugin-handoff/native/${platform}"
@@ -575,66 +574,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          from pathlib import Path
-
-          root = Path(".tmp/plugin-handoff/native")
-          world_path = Path(".tmp/plugin-handoff/devtool.s4wave")
-          manifest_refs = json.loads(Path(".tmp/plugin-handoff/manifest-refs.json").read_text(encoding="utf-8"))
-
-          def sha256(path: Path) -> str:
-              h = hashlib.sha256()
-              with path.open("rb") as f:
-                  while True:
-                      chunk = f.read(1024 * 1024)
-                      if not chunk:
-                          break
-                      h.update(chunk)
-              return h.hexdigest()
-
-          artifacts = []
-          if root.exists():
-              for path in sorted(p for p in root.rglob("*") if p.is_file()):
-                  artifacts.append({
-                      "path": path.relative_to(root).as_posix(),
-                      "sha256": sha256(path),
-                      "size": path.stat().st_size,
-                  })
-
-          out_path = Path(".tmp/plugin-handoff")
-          out_path.mkdir(parents=True, exist_ok=True)
-
-          manifest = {
-              "format": "plugin-handoff.v1",
-              "plugin_rev": "${{ needs.prep.outputs.plugin_rev }}",
-              "release_environment": "${{ needs.prep.outputs.environment_name }}",
-              "requested_selection": "${{ needs.prep.outputs.selection }}",
-              "git_sha": os.environ["GITHUB_SHA"],
-              "run_id": os.environ["GITHUB_RUN_ID"],
-              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
-              "source_repo": os.environ["GITHUB_REPOSITORY"],
-              "workflow": os.environ["GITHUB_WORKFLOW"],
-              "produced_surfaces": {
-                  "browser": "${{ needs.prep.outputs.include_browser }}" == "true",
-                  "macos": "${{ needs.prep.outputs.include_macos }}" == "true",
-                  "windows": "${{ needs.prep.outputs.include_windows }}" == "true",
-                  "linux": "${{ needs.prep.outputs.include_linux }}" == "true",
-              },
-              "manifest_refs": manifest_refs,
-              "world": {
-                  "path": "devtool.s4wave",
-                  "sha256": sha256(world_path),
-                  "size": world_path.stat().st_size,
-              },
-              "artifacts": artifacts,
-          }
-
-          manifest_path = out_path / "manifest.json"
-          manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-          PY
+          go run ./cmd/plugin-release write-handoff-manifest \
+            --root .tmp/plugin-handoff \
+            --world .tmp/plugin-handoff/devtool.s4wave \
+            --manifest-refs .tmp/plugin-handoff-manifest-refs.json \
+            --native-dir .tmp/plugin-handoff/native \
+            --plugin-rev "${{ needs.prep.outputs.plugin_rev }}" \
+            --release-environment "${{ needs.prep.outputs.environment_name }}" \
+            --requested-selection "${{ needs.prep.outputs.selection }}" \
+            --git-sha "${GITHUB_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --source-repo "${GITHUB_REPOSITORY}" \
+            --workflow "${GITHUB_WORKFLOW}" \
+            --include-browser=${{ needs.prep.outputs.include_browser }} \
+            --include-macos=${{ needs.prep.outputs.include_macos }} \
+            --include-windows=${{ needs.prep.outputs.include_windows }} \
+            --include-linux=${{ needs.prep.outputs.include_linux }}
 
       - name: Archive plugin handoff bundle
         shell: bash

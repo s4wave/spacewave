@@ -41,6 +41,8 @@ func run() error {
 		return runConsolidateWorld(os.Args[2:])
 	case "manifest-inventory":
 		return runManifestInventory(os.Args[2:])
+	case "write-handoff-manifest":
+		return runWritePluginHandoffManifest(os.Args[2:])
 	default:
 		return errors.Errorf("unknown command %q", os.Args[1])
 	}
