@@ -99,7 +99,9 @@ func startE2ECloudAuthConfigEndpoint(bindAddr string) (string, func(), error) {
 func applyE2ECloudAuthConfigEndpoint(projectConfig *bldr_project.ProjectConfig, endpoint string) error {
 	manifest := projectConfig.GetManifests()["spacewave-core"]
 	if manifest == nil {
-		return errors.New("spacewave-core manifest not found")
+		// Downstream Bldr apps can reuse the WASM harness without bundling the
+		// Spacewave product provider; there is no cloud auth config to rewrite.
+		return nil
 	}
 	builder := manifest.GetBuilder()
 	if builder == nil {
