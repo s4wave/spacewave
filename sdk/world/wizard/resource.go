@@ -121,30 +121,22 @@ func (r *WizardRegistryResource) ListWizards(
 
 // WatchWizards streams all registered object wizards.
 func (r *WizardRegistryResource) WatchWizards(
-	req *WatchWizardsRequest,
+	_ *WatchWizardsRequest,
 	strm SRPCObjectWizardRegistryResourceService_WatchWizardsStream,
 ) error {
-	ctx := strm.Context()
-
-	for {
-		var wizards []*ObjectWizard
-		var waitCh <-chan struct{}
-
-		r.state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			wizards = r.getWizardsLocked()
-			waitCh = getWaitCh()
-		})
-
-		if err := strm.Send(&WatchWizardsResponse{Wizards: wizards}); err != nil {
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-waitCh:
-		}
-	}
+	return broadcast.WatchBroadcastWithEqual(
+		strm.Context(),
+		&r.state.bcast,
+		func() *WatchWizardsResponse {
+			return &WatchWizardsResponse{Wizards: r.getWizardsLocked()}
+		},
+		func(resp *WatchWizardsResponse) error {
+			return strm.Send(resp)
+		},
+		func(_, _ *WatchWizardsResponse) bool {
+			return false
+		},
+	)
 }
 
 func (r *WizardRegistryResource) getWizardsLocked() []*ObjectWizard {

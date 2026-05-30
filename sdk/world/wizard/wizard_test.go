@@ -437,6 +437,65 @@ func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
 	t.Fatal("expected canvas wizard")
 }
 
+func TestWizardRegistryWatchPreservesDuplicateSnapshotBroadcast(t *testing.T) {
+	ctx, client := setupWizardRegistryClient(t)
+	watchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rootClient)
+
+	watch, err := svc.WatchWizards(watchCtx, &s4wave_wizard.WatchWizardsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	initial, err := watch.Recv()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	initialCount := len(initial.GetWizards())
+	if initialCount == 0 {
+		t.Fatal("expected static object wizards")
+	}
+
+	resp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
+		Wizard: &s4wave_wizard.ObjectWizard{
+			TypeId:       "canvas",
+			PluginId:     "duplicate-plugin",
+			DisplayName:  "Dynamic Canvas",
+			Category:     "Examples",
+			Persistent:   true,
+			WizardTypeId: "wizard/duplicate/canvas",
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if resp.GetResourceId() == 0 {
+		t.Fatal("expected registration resource id")
+	}
+	ref := client.CreateResourceReference(resp.GetResourceId())
+	t.Cleanup(ref.Release)
+
+	duplicate, err := watch.Recv()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(duplicate.GetWizards()) != initialCount {
+		t.Fatalf("expected duplicate visible snapshot, got %d before and %d after", initialCount, len(duplicate.GetWizards()))
+	}
+	for _, wizard := range duplicate.GetWizards() {
+		if wizard.GetTypeId() == "canvas" && wizard.GetDisplayName() != "Canvas" {
+			t.Fatalf("expected static canvas wizard to remain visible, got %s", wizard.GetDisplayName())
+		}
+	}
+}
+
 // TestWizardResourcePersistsState verifies the persistent wizard flow for a
 // test type: create a wizard object, update it through WizardResourceService,
 // then re-open it through a fresh typed-object resource and verify the updated
