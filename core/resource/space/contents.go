@@ -11,6 +11,7 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/routine"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
@@ -24,18 +25,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type spaceContentsControllerStarter func(
+	ctx context.Context,
+	b bus.Bus,
+	conf *plugin_space.Config,
+) (*plugin_space.Controller, directive.Reference, error)
+
 // SpaceContentsResource provides streaming plugin status for a mounted space.
 type SpaceContentsResource struct {
-	le       *logrus.Entry
-	b        bus.Bus
-	mux      srpc.Invoker
-	engine   world.Engine
-	spaceID  string
-	engineID string
-	volumeID string
-	storeID  string
-	// startCancel cancels the asynchronous plugin/space controller startup.
-	startCancel context.CancelFunc
+	le        *logrus.Entry
+	b         bus.Bus
+	mux       srpc.Invoker
+	engine    world.Engine
+	spaceID   string
+	engineID  string
+	volumeID  string
+	storeID   string
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+	start     *routine.RoutineContainer
+	startSeq  uint64
+	released  bool
 	// ctrlRef holds the plugin/space controller reference.
 	// Released when the resource is cleaned up.
 	ctrlRef directive.Reference
@@ -50,17 +60,24 @@ type SpaceContentsResource struct {
 	descriptions map[string]string
 	// buildDescriptions overrides description lookup in tests.
 	buildDescriptions func(context.Context, world.WorldState, []string) (map[string]string, error)
+	startController   spaceContentsControllerStarter
 }
 
 // NewSpaceContentsResource creates a new SpaceContentsResource.
 func NewSpaceContentsResource(le *logrus.Entry, b bus.Bus, engine world.Engine, spaceID, engineID string) *SpaceContentsResource {
+	ctx, cancel := context.WithCancel(context.Background())
 	r := &SpaceContentsResource{
-		le:       le,
-		b:        b,
-		engine:   engine,
-		spaceID:  spaceID,
-		engineID: engineID,
+		le:              le,
+		b:               b,
+		engine:          engine,
+		spaceID:         spaceID,
+		engineID:        engineID,
+		ctx:             ctx,
+		ctxCancel:       cancel,
+		start:           newSpaceContentsStartRoutine(le),
+		startController: startSpaceContentsController,
 	}
+	r.start.SetContext(ctx, false)
 	mux := srpc.NewMux()
 	_ = s4wave_space.SRPCRegisterSpaceContentsResourceService(mux, r)
 	r.mux = mux
@@ -69,11 +86,16 @@ func NewSpaceContentsResource(le *logrus.Entry, b bus.Bus, engine world.Engine, 
 
 // Release releases the controller reference.
 func (r *SpaceContentsResource) Release() {
-	var cancel context.CancelFunc
+	var start *routine.RoutineContainer
 	var ref directive.Reference
+	var cancel context.CancelFunc
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		cancel = r.startCancel
-		r.startCancel = nil
+		r.released = true
+		r.startSeq++
+		start = r.start
+		cancel = r.ctxCancel
+		r.ctxCancel = nil
+		r.ctx = nil
 		ref = r.ctrlRef
 		r.ctrlRef = nil
 		r.ctrl = nil
@@ -81,6 +103,9 @@ func (r *SpaceContentsResource) Release() {
 	})
 	if cancel != nil {
 		cancel()
+	}
+	if start != nil {
+		start.ClearContext()
 	}
 	if ref != nil {
 		ref.Release()
@@ -123,37 +148,79 @@ func (r *SpaceContentsResource) GetMux() srpc.Invoker {
 
 // StartController starts the plugin/space controller behind this resource.
 func (r *SpaceContentsResource) StartController(conf *plugin_space.Config) {
-	ctx, cancel := context.WithCancel(context.Background())
+	var seq uint64
+	var start *routine.RoutineContainer
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if r.startCancel != nil {
-			r.startCancel()
-		}
-		r.startCancel = cancel
-		broadcast()
-	})
-	go func() {
-		ctrl, _, ctrlRef, err := plugin_space.StartControllerWithConfig(ctx, r.b, conf, func() {})
-		if err != nil {
-			if ctx.Err() == nil {
-				r.le.WithError(err).Warn("failed to start Space contents controller")
-			}
+		if r.released {
 			return
 		}
+		r.ensureStartOwnerLocked()
+		r.startSeq++
+		seq = r.startSeq
+		start = r.start
+		broadcast()
+	})
+	if start == nil {
+		return
+	}
+	start.SetRoutine(func(ctx context.Context) error {
+		return r.startControllerRoutine(ctx, seq, conf)
+	})
+}
 
-		var release directive.Reference
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			if r.startCancel == nil || ctx.Err() != nil {
-				release = ctrlRef
-			} else {
-				r.ctrl = ctrl
-				r.ctrlRef = ctrlRef
-			}
-			broadcast()
-		})
-		if release != nil {
-			release.Release()
+func (r *SpaceContentsResource) ensureStartOwnerLocked() {
+	if r.ctx == nil {
+		r.ctx, r.ctxCancel = context.WithCancel(context.Background())
+	}
+	if r.start == nil {
+		r.start = newSpaceContentsStartRoutine(r.le)
+		r.start.SetContext(r.ctx, false)
+	}
+	if r.startController == nil {
+		r.startController = startSpaceContentsController
+	}
+}
+
+func (r *SpaceContentsResource) startControllerRoutine(ctx context.Context, seq uint64, conf *plugin_space.Config) error {
+	ctrl, ctrlRef, err := r.startController(ctx, r.b, conf)
+	if err != nil {
+		if ctx.Err() == nil && r.le != nil {
+			r.le.WithError(err).Warn("failed to start Space contents controller")
 		}
-	}()
+		return nil
+	}
+
+	var release directive.Reference
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if r.released || r.startSeq != seq || ctx.Err() != nil {
+			release = ctrlRef
+		} else {
+			release = r.ctrlRef
+			r.ctrl = ctrl
+			r.ctrlRef = ctrlRef
+		}
+		broadcast()
+	})
+	if release != nil {
+		release.Release()
+	}
+	return nil
+}
+
+func newSpaceContentsStartRoutine(le *logrus.Entry) *routine.RoutineContainer {
+	if le == nil {
+		return routine.NewRoutineContainer()
+	}
+	return routine.NewRoutineContainerWithLogger(le.WithField("routine", "space-contents-start"))
+}
+
+func startSpaceContentsController(
+	ctx context.Context,
+	b bus.Bus,
+	conf *plugin_space.Config,
+) (*plugin_space.Controller, directive.Reference, error) {
+	ctrl, _, ctrlRef, err := plugin_space.StartControllerWithConfig(ctx, b, conf, func() {})
+	return ctrl, ctrlRef, err
 }
 
 // WatchState streams the current plugin and process state for the space.
