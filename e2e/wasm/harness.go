@@ -824,6 +824,14 @@ const bldrModPath = "github.com/s4wave/spacewave"
 // vendored dist source tree follows local bldr checkouts instead of re-vendoring
 // an older module version.
 func resolveBldrDependency(repoRoot string) (version, sum, srcPath string, err error) {
+	repoModulePath, repoModuleErr := repoGoModulePath(repoRoot)
+	if repoModuleErr == nil && repoModulePath != "" && repoModulePath != bldrModPath {
+		if p, ok := resolveLocalModulePath("", repoRoot); ok {
+			return "", "", p, nil
+		}
+		return "", "", repoRoot, nil
+	}
+
 	buildInfo, ok := debug.ReadBuildInfo()
 	if !ok {
 		return resolveBldrDependencyFromGoMod(repoRoot)
@@ -898,6 +906,25 @@ func resolveBldrDependencyFromGoMod(repoRoot string) (version, sum, srcPath stri
 		return "", "", srcPath, nil
 	}
 	return "", "", "", errors.New("unable to resolve bldr dependency")
+}
+
+func repoGoModulePath(repoRoot string) (string, error) {
+	if repoRoot == "" {
+		return "", errors.New("repo root is required")
+	}
+	goModPath := filepath.Join(repoRoot, "go.mod")
+	goModData, err := os.ReadFile(goModPath)
+	if err != nil {
+		return "", errors.Wrap(err, "read go.mod")
+	}
+	mod, err := modfile.Parse(goModPath, goModData, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "parse go.mod")
+	}
+	if mod.Module == nil {
+		return "", errors.New("go.mod has no module path")
+	}
+	return mod.Module.Mod.Path, nil
 }
 
 // resolveLocalModulePath resolves a local replace target relative to repoRoot.
