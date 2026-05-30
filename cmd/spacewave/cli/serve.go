@@ -127,6 +127,7 @@ func runServeCommand(
 		return err
 	}
 	defer invokerRef.Release()
+	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
 
 	if takeover {
 		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {

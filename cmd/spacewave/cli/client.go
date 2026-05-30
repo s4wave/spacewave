@@ -196,6 +196,28 @@ func buildSDKClient(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 	}, nil
 }
 
+func buildSDKClientFromInvoker(ctx context.Context, invoker srpc.Invoker) (*sdkClient, error) {
+	srpcClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
+	resourceSvc := resource.NewSRPCResourceServiceClient(srpcClient)
+	resClient, err := resource_client.NewClient(ctx, resourceSvc)
+	if err != nil {
+		return nil, errors.Wrap(err, "resource client")
+	}
+
+	rootRef := resClient.AccessRootResource()
+	root, err := s4wave_root.NewRoot(resClient, rootRef)
+	if err != nil {
+		resClient.Release()
+		return nil, errors.Wrap(err, "root resource")
+	}
+
+	return &sdkClient{
+		srpc:      srpcClient,
+		resClient: resClient,
+		root:      root,
+	}, nil
+}
+
 // mountSession mounts a session by index and returns the Session SDK wrapper.
 func (c *sdkClient) mountSession(ctx context.Context, idx uint32) (*s4wave_session.Session, error) {
 	resp, err := c.root.MountSessionByIdx(ctx, idx)

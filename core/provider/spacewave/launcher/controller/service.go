@@ -60,6 +60,7 @@ func (l *LauncherServer) ApplyUpdate(
 	req *spacewave_launcher.ApplyUpdateRequest,
 ) (*spacewave_launcher.ApplyUpdateResponse, error) {
 	if err := l.c.applyUpdate(); err != nil {
+		l.c.setUpdateError(err)
 		return nil, err
 	}
 	return &spacewave_launcher.ApplyUpdateResponse{}, nil
