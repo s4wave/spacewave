@@ -41,23 +41,33 @@ func TestMain(m *testing.M) {
 
 	ctx := context.Background()
 
-	tinyGo := E2EWasmTinyGoEnabled()
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		le.WithError(err).Fatal("configure e2e wasm compiler")
+	}
 	opts := []Option{
 		WithSessionHarness(),
 	}
-	if tinyGo {
-		if err := ApplyE2EWasmTinyGoCompilerEnv(); err != nil {
-			le.WithError(err).Fatal("configure TinyGo e2e wasm compiler env")
-		}
-		le.Info("disabling trace service injection for TinyGo e2e/wasm mode")
+	if compiler != E2EWasmCompilerGo {
+		le.WithField("compiler", compiler).Info("disabling trace service injection for alternate e2e/wasm compiler mode")
 		manifestBuildTimeout, err := ResolveE2EWasmManifestBuildTimeout(20 * time.Minute)
 		if err != nil {
 			le.WithError(err).Fatal("configure e2e wasm manifest build timeout")
 		}
-		opts = append(opts, WithTinyGoCore())
 		opts = append(opts, WithManifestBuildTimeout(manifestBuildTimeout))
 	} else {
 		opts = append(opts, WithConfigMutator(trace_service.InjectTraceConfig))
+	}
+
+	switch compiler {
+	case E2EWasmCompilerGo:
+	case E2EWasmCompilerTinyGo:
+		if err := ApplyE2EWasmTinyGoCompilerEnv(); err != nil {
+			le.WithError(err).Fatal("configure TinyGo e2e wasm compiler env")
+		}
+		opts = append(opts, WithTinyGoCore())
+	case E2EWasmCompilerGoScript:
+		opts = append(opts, WithGoScriptCore())
 	}
 
 	h, err := Boot(ctx, le, opts...)
@@ -101,7 +111,7 @@ func TestWasmHarnessBoot(t *testing.T) {
 
 // TestWasmHarnessTraceConfig verifies trace service wiring was injected.
 func TestWasmHarnessTraceConfig(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	h := testHarness
 	for name, manifest := range h.GetProjectConfig().GetManifests() {
@@ -128,10 +138,14 @@ func TestWasmHarnessTraceConfig(t *testing.T) {
 	}
 }
 
-func skipTraceServiceForTinyGo(t testing.TB) {
+func skipTraceServiceWhenDisabled(t testing.TB) {
 	t.Helper()
-	if E2EWasmTinyGoEnabled() {
-		t.Skip("trace service is disabled in TinyGo e2e/wasm mode")
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !E2EWasmTraceServiceEnabled(compiler) {
+		t.Skipf("trace service is disabled in %s e2e/wasm mode", compiler)
 	}
 }
 
@@ -765,7 +779,7 @@ func TestResourceSetupHelpers(t *testing.T) {
 // TestTraceCaptureBytes verifies StartTrace and StopTrace capture a non-empty
 // raw trace and return the bytes to the Go test process.
 func TestTraceCaptureBytes(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -790,7 +804,7 @@ func TestTraceCaptureBytes(t *testing.T) {
 // TestTraceCaptureWritesFile verifies the returned bytes are written to an
 // explicit destination path owned by the Go test process.
 func TestTraceCaptureWritesFile(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -842,7 +856,7 @@ func TestTracePathDerivation(t *testing.T) {
 // TestTraceWindowControl verifies trace helpers can bracket only the profiled
 // interaction instead of full app boot.
 func TestTraceWindowControl(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -865,7 +879,7 @@ func TestTraceWindowControl(t *testing.T) {
 // TestTracePolicyBehavior verifies trace capture behavior: discard-on-replace,
 // no watchdog, no forced timeout.
 func TestTracePolicyBehavior(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -1271,7 +1285,7 @@ func TestQuickstartDriveDeleteSpace(t *testing.T) {
 // TestQuickstartDriveTrace writes a trace artifact for the drive quickstart
 // startup flow using client-side routing without a full page reload.
 func TestQuickstartDriveTrace(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -1308,7 +1322,7 @@ func TestQuickstartDriveTrace(t *testing.T) {
 // block commit hot path with sustained navigation traffic, producing
 // enough write transactions to measure coalescing and batching behavior.
 func TestDriveNavigationBurstTrace(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	const rounds = 12
 	const releasedErr = "resource or inode was released"
@@ -1588,7 +1602,7 @@ func TestForgeWorkerExecution(t *testing.T) {
 // TestQuickstartForgeTrace writes a trace artifact for the forge quickstart
 // startup flow.
 func TestQuickstartForgeTrace(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -1623,7 +1637,7 @@ func TestQuickstartForgeTrace(t *testing.T) {
 // TestQuickstartDriveNavigateTrace writes a trace artifact for navigating from
 // the drive listing into a file via the real UI double-click path.
 func TestQuickstartDriveNavigateTrace(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	sess := testHarness.NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)

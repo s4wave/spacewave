@@ -11,6 +11,44 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 )
 
+func TestResolveReleaseWasmCompiler(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		tinyGo   string
+		goScript string
+		want     releaseWasmCompiler
+	}{
+		{name: "default", want: releaseWasmCompilerGo},
+		{name: "tinygo", tinyGo: "true", want: releaseWasmCompilerTinyGo},
+		{name: "goscript", goScript: "true", want: releaseWasmCompilerGoScript},
+		{name: "case insensitive", goScript: "TRUE", want: releaseWasmCompilerGoScript},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			clearReleaseWasmCompilerEnv(t)
+			t.Setenv(E2EReleaseWasmTinyGoEnv, tc.tinyGo)
+			t.Setenv(E2EReleaseWasmGoScriptEnv, tc.goScript)
+
+			got, err := resolveReleaseWasmCompiler()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tc.want {
+				t.Fatalf("compiler = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestResolveReleaseWasmCompilerRejectsConflictingSelectors(t *testing.T) {
+	clearReleaseWasmCompilerEnv(t)
+	t.Setenv(E2EReleaseWasmTinyGoEnv, "true")
+	t.Setenv(E2EReleaseWasmGoScriptEnv, "true")
+
+	if _, err := resolveReleaseWasmCompiler(); err == nil {
+		t.Fatal("expected conflicting release compiler selectors to fail")
+	}
+}
+
 func TestApplyReleaseWasmTinyGoCompilerEnvDefaultsToFastProfile(t *testing.T) {
 	clearBldrTinyGoEnv(t)
 	clearReleaseWasmTinyGoEnv(t)
@@ -101,6 +139,8 @@ func clearBldrTinyGoEnv(t *testing.T) {
 func clearReleaseWasmTinyGoEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{
+		E2EReleaseWasmTinyGoEnv,
+		E2EReleaseWasmGoScriptEnv,
 		E2EReleaseWasmTinyGoProfileEnv,
 		E2EReleaseWasmTinyGoOptEnv,
 		E2EReleaseWasmTinyGoPanicEnv,
@@ -113,4 +153,10 @@ func clearReleaseWasmTinyGoEnv(t *testing.T) {
 	} {
 		t.Setenv(key, "")
 	}
+}
+
+func clearReleaseWasmCompilerEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv(E2EReleaseWasmTinyGoEnv, "")
+	t.Setenv(E2EReleaseWasmGoScriptEnv, "")
 }

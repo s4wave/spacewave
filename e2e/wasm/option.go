@@ -16,6 +16,10 @@ import (
 )
 
 const (
+	// E2EWasmCompilerEnv selects the browser Go plugin compiler for app tests.
+	E2EWasmCompilerEnv = "E2E_WASM_COMPILER"
+	// E2EWasmLegacyTinyGoEnv was the old boolean TinyGo selector.
+	E2EWasmLegacyTinyGoEnv = "E2E_WASM_TINYGO"
 	// E2EWasmWorkerModeEnv selects the browser worker topology for local tests.
 	E2EWasmWorkerModeEnv = "E2E_WASM_WORKER_MODE"
 	// E2EWasmTinyGoProfileEnv selects the local TinyGo build profile.
@@ -34,6 +38,18 @@ const (
 	E2EWasmTinyGoInterpTimeoutEnv = "E2E_WASM_TINYGO_INTERP_TIMEOUT"
 	// E2EWasmManifestBuildTimeoutEnv overrides the local startup Manifest build wait.
 	E2EWasmManifestBuildTimeoutEnv = "E2E_WASM_MANIFEST_BUILD_TIMEOUT"
+)
+
+// E2EWasmCompiler selects the browser Go plugin compiler used by e2e/wasm.
+type E2EWasmCompiler string
+
+const (
+	// E2EWasmCompilerGo keeps the default Bldr browser Go plugin compiler.
+	E2EWasmCompilerGo E2EWasmCompiler = "go"
+	// E2EWasmCompilerTinyGo selects TinyGo for spacewave-core.
+	E2EWasmCompilerTinyGo E2EWasmCompiler = "tinygo"
+	// E2EWasmCompilerGoScript selects GoScript for spacewave-core.
+	E2EWasmCompilerGoScript E2EWasmCompiler = "goscript"
 )
 
 // WorkerMode selects the browser worker topology used by the harness.
@@ -121,10 +137,38 @@ func WithSessionHarness() Option {
 	return WithConfigMutator(e2e_wasm_session.InjectSessionHarnessConfig)
 }
 
-// E2EWasmTinyGoEnabled reports whether the harness should build
-// spacewave-core with TinyGo.
-func E2EWasmTinyGoEnabled() bool {
-	return strings.EqualFold(strings.TrimSpace(os.Getenv("E2E_WASM_TINYGO")), "true")
+// ResolveE2EWasmCompiler resolves the browser Go plugin compiler for local
+// harness runs.
+func ResolveE2EWasmCompiler() (E2EWasmCompiler, error) {
+	legacyTinyGo := strings.TrimSpace(os.Getenv(E2EWasmLegacyTinyGoEnv))
+	if legacyTinyGo != "" {
+		return "", errors.Errorf("%s is no longer supported; use %s=tinygo", E2EWasmLegacyTinyGoEnv, E2EWasmCompilerEnv)
+	}
+
+	raw := strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmCompilerEnv)))
+	switch raw {
+	case "", string(E2EWasmCompilerGo):
+		return E2EWasmCompilerGo, nil
+	case string(E2EWasmCompilerTinyGo):
+		return E2EWasmCompilerTinyGo, nil
+	case string(E2EWasmCompilerGoScript):
+		return E2EWasmCompilerGoScript, nil
+	default:
+		return "", errors.Errorf("unsupported %s value %q, expected go, tinygo, or goscript", E2EWasmCompilerEnv, raw)
+	}
+}
+
+// E2EWasmTraceServiceEnabled reports whether the trace service should be
+// injected into the app harness config.
+func E2EWasmTraceServiceEnabled(compiler E2EWasmCompiler) bool {
+	return compiler == E2EWasmCompilerGo
+}
+
+// E2EWasmSlowCompilerEnabled reports whether app readiness should allow the
+// longer browser boot budget used by alternate browser compilers.
+func E2EWasmSlowCompilerEnabled() bool {
+	compiler, err := ResolveE2EWasmCompiler()
+	return err == nil && compiler != E2EWasmCompilerGo
 }
 
 // ResolveE2EWasmWorkerMode resolves the local worker topology.
@@ -198,15 +242,26 @@ func ApplyE2EWasmTinyGoCompilerEnv() error {
 
 // E2EWasmStartupBuildCacheEnabled reports whether the harness should preserve
 // world-backed startup Manifest build results between test process boots.
-func E2EWasmStartupBuildCacheEnabled() bool {
+func ResolveE2EWasmStartupBuildCacheEnabled() (bool, error) {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("E2E_WASM_STARTUP_BUILD_CACHE"))) {
 	case "true", "1", "yes", "on":
-		return true
+		return true, nil
 	case "false", "0", "no", "off":
-		return false
+		return false, nil
 	default:
-		return E2EWasmTinyGoEnabled()
+		compiler, err := ResolveE2EWasmCompiler()
+		if err != nil {
+			return false, err
+		}
+		return compiler == E2EWasmCompilerTinyGo, nil
 	}
+}
+
+// E2EWasmStartupBuildCacheEnabled reports whether the harness should preserve
+// world-backed startup Manifest build results between test process boots.
+func E2EWasmStartupBuildCacheEnabled() bool {
+	enabled, err := ResolveE2EWasmStartupBuildCacheEnabled()
+	return err == nil && enabled
 }
 
 // WithTinyGoCore enables TinyGo for the browser spacewave-core Manifest.
@@ -214,19 +269,31 @@ func WithTinyGoCore() Option {
 	return WithConfigMutator(ConfigureTinyGoForManifest("spacewave-core"))
 }
 
+// WithGoScriptCore enables GoScript for the browser spacewave-core Manifest.
+func WithGoScriptCore() Option {
+	return WithConfigMutator(ConfigureGoScriptForManifest("spacewave-core"))
+}
+
 // EnableTinyGoForManifest enables TinyGo for a Go plugin Manifest's web
 // platform override.
 func EnableTinyGoForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
+	return EnableCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO)
+}
+
+// EnableGoScriptForManifest enables GoScript for a Go plugin Manifest's web
+// platform override.
+func EnableGoScriptForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
+	return EnableCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT)
+}
+
+// EnableCompilerModeForManifest enables a compiler mode for a Go plugin
+// Manifest's web platform override.
+func EnableCompilerModeForManifest(
+	manifestID string,
+	mode bldr_plugin_compiler_go.CompilerMode,
+) func(*bldr_project.ProjectConfig) error {
 	return updateGoPluginManifest(manifestID, func(goConf *bldr_plugin_compiler_go.Config) error {
-		if goConf.PlatformTypes == nil {
-			goConf.PlatformTypes = make(map[string]*bldr_plugin_compiler_go.Config)
-		}
-		webConf := goConf.PlatformTypes["web"]
-		if webConf == nil {
-			webConf = &bldr_plugin_compiler_go.Config{}
-		}
-		webConf.CompilerMode = bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO
-		goConf.PlatformTypes["web"] = webConf
+		setWebCompilerMode(goConf, mode)
 		return nil
 	})
 }
@@ -234,8 +301,23 @@ func EnableTinyGoForManifest(manifestID string) func(*bldr_project.ProjectConfig
 // ConfigureTinyGoForManifest enables TinyGo and removes dev-only config that
 // pulls packages TinyGo cannot compile.
 func ConfigureTinyGoForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
+	return ConfigureCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO)
+}
+
+// ConfigureGoScriptForManifest enables GoScript and removes dev-only config
+// that pulls packages the seed GoScript browser lane should not compile.
+func ConfigureGoScriptForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
+	return ConfigureCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT)
+}
+
+// ConfigureCompilerModeForManifest enables an alternate browser Go plugin
+// compiler and removes dev-only config outside the seed compiler proof.
+func ConfigureCompilerModeForManifest(
+	manifestID string,
+	mode bldr_plugin_compiler_go.CompilerMode,
+) func(*bldr_project.ProjectConfig) error {
 	return updateGoPluginManifest(manifestID, func(goConf *bldr_plugin_compiler_go.Config) error {
-		enableTinyGo(goConf)
+		setWebCompilerMode(goConf, mode)
 		removeDebugTraceConfig(goConf)
 		removeSessionHarnessWebRTCConfig(goConf)
 		return nil
@@ -278,7 +360,7 @@ func updateGoPluginManifest(
 	}
 }
 
-func enableTinyGo(goConf *bldr_plugin_compiler_go.Config) {
+func setWebCompilerMode(goConf *bldr_plugin_compiler_go.Config, mode bldr_plugin_compiler_go.CompilerMode) {
 	if goConf.PlatformTypes == nil {
 		goConf.PlatformTypes = make(map[string]*bldr_plugin_compiler_go.Config)
 	}
@@ -286,7 +368,7 @@ func enableTinyGo(goConf *bldr_plugin_compiler_go.Config) {
 	if webConf == nil {
 		webConf = &bldr_plugin_compiler_go.Config{}
 	}
-	webConf.CompilerMode = bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO
+	webConf.CompilerMode = mode
 	goConf.PlatformTypes["web"] = webConf
 }
 

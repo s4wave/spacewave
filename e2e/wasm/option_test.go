@@ -50,6 +50,84 @@ func TestEnableTinyGoForManifest(t *testing.T) {
 	}
 }
 
+func TestEnableGoScriptForManifest(t *testing.T) {
+	goConf := &bldr_plugin_compiler_go.Config{}
+	data, err := goConf.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf := &bldr_project.ProjectConfig{
+		Manifests: map[string]*bldr_project.ManifestConfig{
+			"spacewave-core": {
+				Builder: &configset_proto.ControllerConfig{
+					Id:     bldr_plugin_compiler_go.ConfigID,
+					Config: data,
+				},
+			},
+		},
+	}
+
+	if err := EnableGoScriptForManifest("spacewave-core")(conf); err != nil {
+		t.Fatal(err)
+	}
+
+	got := &bldr_plugin_compiler_go.Config{}
+	if err := got.UnmarshalJSON(conf.GetManifests()["spacewave-core"].GetBuilder().GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	webConf := got.GetPlatformTypes()["web"]
+	if webConf == nil {
+		t.Fatal("missing web platform override")
+	}
+	if webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+		t.Fatalf("compilerMode = %s, want COMPILER_MODE_GOSCRIPT", webConf.GetCompilerMode())
+	}
+}
+
+func TestResolveE2EWasmCompiler(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		env  string
+		want E2EWasmCompiler
+	}{
+		{name: "default", want: E2EWasmCompilerGo},
+		{name: "go", env: "go", want: E2EWasmCompilerGo},
+		{name: "tinygo", env: "tinygo", want: E2EWasmCompilerTinyGo},
+		{name: "goscript", env: "goscript", want: E2EWasmCompilerGoScript},
+		{name: "case insensitive", env: "GoScript", want: E2EWasmCompilerGoScript},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv(E2EWasmLegacyTinyGoEnv, "")
+			t.Setenv(E2EWasmCompilerEnv, tc.env)
+			got, err := ResolveE2EWasmCompiler()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tc.want {
+				t.Fatalf("compiler = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestResolveE2EWasmCompilerRejectsInvalid(t *testing.T) {
+	t.Setenv(E2EWasmLegacyTinyGoEnv, "")
+	t.Setenv(E2EWasmCompilerEnv, "banana")
+
+	if _, err := ResolveE2EWasmCompiler(); err == nil {
+		t.Fatal("expected unsupported compiler to fail")
+	}
+}
+
+func TestResolveE2EWasmCompilerRejectsLegacyTinyGoEnv(t *testing.T) {
+	t.Setenv(E2EWasmLegacyTinyGoEnv, "true")
+	t.Setenv(E2EWasmCompilerEnv, "tinygo")
+
+	if _, err := ResolveE2EWasmCompiler(); err == nil {
+		t.Fatal("expected legacy TinyGo selector to fail")
+	}
+}
+
 func TestConfigureTinyGoForManifestRemovesDebugTrace(t *testing.T) {
 	goConf := &bldr_plugin_compiler_go.Config{
 		BuildTypes: map[string]*bldr_plugin_compiler_go.Config{
@@ -156,6 +234,74 @@ func TestConfigureTinyGoForManifestRemovesSessionHarnessWebRTC(t *testing.T) {
 	}
 }
 
+func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
+	goConf := &bldr_plugin_compiler_go.Config{
+		GoPkgs: []string{
+			"./e2e/wasm/session",
+			"github.com/s4wave/spacewave/net/transport/webrtc",
+		},
+		ConfigSet: map[string]*configset_proto.ControllerConfig{
+			"e2e-session-harness":        {Id: "e2e/wasm/session"},
+			"e2e-session-harness-webrtc": {Id: "bifrost/webrtc"},
+		},
+		BuildTypes: map[string]*bldr_plugin_compiler_go.Config{
+			"dev": {
+				GoPkgs: []string{
+					"./core/debug/trace",
+					"./core/plugin/space",
+				},
+				ConfigSet: map[string]*configset_proto.ControllerConfig{
+					"debug-trace": {Id: "debug/trace"},
+					"space":       {Id: "plugin/space"},
+				},
+			},
+		},
+	}
+	data, err := goConf.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf := &bldr_project.ProjectConfig{
+		Manifests: map[string]*bldr_project.ManifestConfig{
+			"spacewave-core": {
+				Builder: &configset_proto.ControllerConfig{
+					Id:     bldr_plugin_compiler_go.ConfigID,
+					Config: data,
+				},
+			},
+		},
+	}
+
+	if err := ConfigureGoScriptForManifest("spacewave-core")(conf); err != nil {
+		t.Fatal(err)
+	}
+
+	got := &bldr_plugin_compiler_go.Config{}
+	if err := got.UnmarshalJSON(conf.GetManifests()["spacewave-core"].GetBuilder().GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	webConf := got.GetPlatformTypes()["web"]
+	if webConf == nil || webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+		t.Fatalf("web GoScript config missing: %#v", webConf)
+	}
+	devConf := got.GetBuildTypes()["dev"]
+	if slices.Contains(devConf.GetGoPkgs(), "./core/debug/trace") {
+		t.Fatal("GoScript config still includes ./core/debug/trace")
+	}
+	if _, ok := devConf.GetConfigSet()["debug-trace"]; ok {
+		t.Fatal("GoScript config still includes debug-trace config")
+	}
+	if slices.Contains(got.GetGoPkgs(), "github.com/s4wave/spacewave/net/transport/webrtc") {
+		t.Fatal("GoScript config still includes net/transport/webrtc")
+	}
+	if _, ok := got.GetConfigSet()["e2e-session-harness-webrtc"]; ok {
+		t.Fatal("GoScript config still includes e2e-session-harness-webrtc")
+	}
+	if _, ok := got.GetConfigSet()["e2e-session-harness"]; !ok {
+		t.Fatal("expected session harness controller config to remain")
+	}
+}
+
 func TestConfigureTinyGoForManifestDeterministicConfig(t *testing.T) {
 	goConf := &bldr_plugin_compiler_go.Config{
 		ConfigSet: map[string]*configset_proto.ControllerConfig{
@@ -210,20 +356,25 @@ func TestConfigureTinyGoForManifestDeterministicConfig(t *testing.T) {
 
 func TestStartupBuildCacheDefaultsToTinyGo(t *testing.T) {
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "")
-	t.Setenv("E2E_WASM_TINYGO", "")
+	t.Setenv(E2EWasmLegacyTinyGoEnv, "")
+	t.Setenv(E2EWasmCompilerEnv, "")
 	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("startup build cache should default off without TinyGo")
+		t.Fatal("startup build cache should default off with the Go compiler")
 	}
-	t.Setenv("E2E_WASM_TINYGO", "true")
+	t.Setenv(E2EWasmCompilerEnv, "tinygo")
 	if !E2EWasmStartupBuildCacheEnabled() {
 		t.Fatal("startup build cache should default on with TinyGo")
 	}
+	t.Setenv(E2EWasmCompilerEnv, "goscript")
+	if E2EWasmStartupBuildCacheEnabled() {
+		t.Fatal("startup build cache should default off with GoScript")
+	}
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "false")
 	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("explicit startup build cache false should override TinyGo")
+		t.Fatal("explicit startup build cache false should override compiler defaults")
 	}
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "true")
-	t.Setenv("E2E_WASM_TINYGO", "")
+	t.Setenv(E2EWasmCompilerEnv, "")
 	if !E2EWasmStartupBuildCacheEnabled() {
 		t.Fatal("explicit startup build cache true should enable cache")
 	}
@@ -393,6 +544,8 @@ func clearBldrTinyGoEnv(t *testing.T) {
 func clearE2EWasmTinyGoEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{
+		E2EWasmCompilerEnv,
+		E2EWasmLegacyTinyGoEnv,
 		E2EWasmTinyGoProfileEnv,
 		E2EWasmTinyGoOptEnv,
 		E2EWasmTinyGoPanicEnv,

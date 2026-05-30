@@ -187,25 +187,18 @@ func releaseWasmBuildScript() string {
 	return script
 }
 
-func releaseWasmTinyGoEnabled() bool {
-	return strings.EqualFold(strings.TrimSpace(os.Getenv("E2E_RELEASE_WASM_TINYGO")), "true")
-}
-
-func releaseWasmGoScriptEnabled() bool {
-	return strings.EqualFold(strings.TrimSpace(os.Getenv("E2E_RELEASE_WASM_GOSCRIPT")), "true")
-}
-
 func buildReleaseWeb(ctx context.Context, repoRoot string) error {
-	if releaseWasmGoScriptEnabled() && releaseWasmTinyGoEnabled() {
-		return errors.New("E2E_RELEASE_WASM_GOSCRIPT and E2E_RELEASE_WASM_TINYGO are mutually exclusive")
+	compiler, err := resolveReleaseWasmCompiler()
+	if err != nil {
+		return err
 	}
-	if releaseWasmGoScriptEnabled() {
+	if compiler == releaseWasmCompilerGoScript {
 		return runBun(ctx, repoRoot, "run", "build:release:web:e2e:goscript")
 	}
 	if err := applyReleaseWasmTinyGoCompilerEnv(); err != nil {
 		return errors.Wrap(err, "apply release wasm TinyGo compiler env")
 	}
-	if releaseWasmTinyGoEnabled() {
+	if compiler == releaseWasmCompilerTinyGo {
 		return runBun(ctx, repoRoot, "run", "bldr", "--", "--state-path=.bldr-dist", "--build-type=release", "build", "-b", "release-web-e2e-tinygo")
 	}
 	return runBun(ctx, repoRoot, "run", releaseWasmBuildScript())

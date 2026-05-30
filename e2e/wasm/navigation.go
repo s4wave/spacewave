@@ -31,7 +31,7 @@ func WaitForApp(t testing.TB, page playwright.Page) {
 	t.Helper()
 
 	deadlineMS := 120000
-	if E2EWasmTinyGoEnabled() {
+	if E2EWasmSlowCompilerEnabled() {
 		deadlineMS = 240000
 	}
 

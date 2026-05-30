@@ -11,6 +11,10 @@ import (
 )
 
 const (
+	// E2EReleaseWasmTinyGoEnv selects the release-wasm TinyGo build path.
+	E2EReleaseWasmTinyGoEnv = "E2E_RELEASE_WASM_TINYGO"
+	// E2EReleaseWasmGoScriptEnv selects the release-wasm GoScript build path.
+	E2EReleaseWasmGoScriptEnv = "E2E_RELEASE_WASM_GOSCRIPT"
 	// E2EReleaseWasmTinyGoProfileEnv selects the release-wasm TinyGo build profile.
 	E2EReleaseWasmTinyGoProfileEnv = "E2E_RELEASE_WASM_TINYGO_PROFILE"
 	// E2EReleaseWasmTinyGoOptEnv overrides the release-wasm TinyGo optimization level.
@@ -30,6 +34,29 @@ const (
 	// E2EReleaseWasmTinyGoDebugInfoEnv keeps TinyGo debug info for release-wasm diagnostics.
 	E2EReleaseWasmTinyGoDebugInfoEnv = "E2E_RELEASE_WASM_TINYGO_DEBUG"
 )
+
+type releaseWasmCompiler string
+
+const (
+	releaseWasmCompilerGo       releaseWasmCompiler = "go"
+	releaseWasmCompilerTinyGo   releaseWasmCompiler = "tinygo"
+	releaseWasmCompilerGoScript releaseWasmCompiler = "goscript"
+)
+
+func resolveReleaseWasmCompiler() (releaseWasmCompiler, error) {
+	tinyGo := strings.EqualFold(strings.TrimSpace(os.Getenv(E2EReleaseWasmTinyGoEnv)), "true")
+	goScript := strings.EqualFold(strings.TrimSpace(os.Getenv(E2EReleaseWasmGoScriptEnv)), "true")
+	if tinyGo && goScript {
+		return "", errors.Errorf("%s and %s are mutually exclusive", E2EReleaseWasmGoScriptEnv, E2EReleaseWasmTinyGoEnv)
+	}
+	if goScript {
+		return releaseWasmCompilerGoScript, nil
+	}
+	if tinyGo {
+		return releaseWasmCompilerTinyGo, nil
+	}
+	return releaseWasmCompilerGo, nil
+}
 
 func applyReleaseWasmTinyGoCompilerEnv() error {
 	profile := strings.TrimSpace(os.Getenv(E2EReleaseWasmTinyGoProfileEnv))

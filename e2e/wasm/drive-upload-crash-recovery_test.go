@@ -50,7 +50,7 @@ func TestQuickstartDriveUploadCrashRecovery(t *testing.T) {
 // TestQuickstartDriveUploadTrace writes a runtime trace for the Drive UploadTree
 // path, including the bounded large-file branch used by crash recovery.
 func TestQuickstartDriveUploadTrace(t *testing.T) {
-	skipTraceServiceForTinyGo(t)
+	skipTraceServiceWhenDisabled(t)
 
 	sess := testHarness.NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
