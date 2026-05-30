@@ -223,17 +223,13 @@ func TestAttachResourceAddAckErrorReturnsError(t *testing.T) {
 		t.Fatalf("expected attach rejected error, got %v", err)
 	}
 
-	c.attachMtx.Lock()
-	sess := c.attachSess
-	c.attachMtx.Unlock()
+	sess := c.attach.currentSession()
 	if sess == nil {
 		t.Fatalf("expected attach session")
 	}
 
-	sess.mu.Lock()
-	defer sess.mu.Unlock()
-	if len(sess.pending) != 0 {
-		t.Fatalf("expected no pending attaches, got %d", len(sess.pending))
+	if got := sess.pending.len(); got != 0 {
+		t.Fatalf("expected no pending attaches, got %d", got)
 	}
 }
 
@@ -300,9 +296,7 @@ func TestAttachSessionClearedOnClientRelease(t *testing.T) {
 
 	c.Release()
 	waitFor(t, time.Second, func() bool {
-		c.attachMtx.Lock()
-		defer c.attachMtx.Unlock()
-		return c.attachSess == nil
+		return c.attach.currentSession() == nil
 	})
 }
 
@@ -379,9 +373,7 @@ func TestAttachResourceReopensAfterSessionClose(t *testing.T) {
 		t.Fatalf("AttachResource: %v", err)
 	}
 
-	c.attachMtx.Lock()
-	sess := c.attachSess
-	c.attachMtx.Unlock()
+	sess := c.attach.currentSession()
 	if sess == nil {
 		t.Fatalf("expected attach session")
 	}
@@ -389,9 +381,7 @@ func TestAttachResourceReopensAfterSessionClose(t *testing.T) {
 		t.Fatalf("close attach session: %v", err)
 	}
 	waitFor(t, time.Second, func() bool {
-		c.attachMtx.Lock()
-		defer c.attachMtx.Unlock()
-		return c.attachSess == nil
+		return c.attach.currentSession() == nil
 	})
 
 	if _, err := c.AttachResource(context.Background(), "test", srpc.InvokerFunc(nil)); err != nil {
@@ -449,6 +439,68 @@ func TestCanceledAttachDetachesLateSuccessfulAck(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("expected detach after late successful AddAck")
+	}
+}
+
+func TestAttachPendingCancelAfterResolvedAckDetaches(t *testing.T) {
+	pending := newAttachPendingAcks()
+	attachID, ch := pending.add()
+
+	if resourceID, detach := pending.resolve(&resource.ResourceAttachAddAck{
+		AttachId:   attachID,
+		ResourceId: 42,
+	}); detach || resourceID != 0 {
+		t.Fatalf("resolve returned detach=%v resource=%d, want no detach", detach, resourceID)
+	}
+	resourceID, detach := pending.cancel(attachID)
+	if !detach || resourceID != 42 {
+		t.Fatalf("cancel after resolved ack returned detach=%v resource=%d, want detach 42", detach, resourceID)
+	}
+
+	select {
+	case result := <-ch:
+		if result.err != nil || result.resourceID != 42 {
+			t.Fatalf("resolved result = %+v, want resource 42", result)
+		}
+	default:
+		t.Fatal("resolved ack did not notify waiter")
+	}
+	if got := pending.len(); got != 0 {
+		t.Fatalf("pending len = %d, want 0", got)
+	}
+}
+
+func TestAttachPendingDuplicateAckDoesNotResend(t *testing.T) {
+	pending := newAttachPendingAcks()
+	attachID, ch := pending.add()
+	ack := &resource.ResourceAttachAddAck{
+		AttachId:   attachID,
+		ResourceId: 42,
+	}
+
+	if resourceID, detach := pending.resolve(ack); detach || resourceID != 0 {
+		t.Fatalf("first resolve returned detach=%v resource=%d, want no detach", detach, resourceID)
+	}
+	if resourceID, detach := pending.resolve(ack); detach || resourceID != 0 {
+		t.Fatalf("duplicate resolve returned detach=%v resource=%d, want no detach", detach, resourceID)
+	}
+
+	select {
+	case result := <-ch:
+		if result.err != nil || result.resourceID != 42 {
+			t.Fatalf("resolved result = %+v, want resource 42", result)
+		}
+	default:
+		t.Fatal("first ack did not notify waiter")
+	}
+	select {
+	case result := <-ch:
+		t.Fatalf("duplicate ack resent result: %+v", result)
+	default:
+	}
+	pending.complete(attachID)
+	if got := pending.len(); got != 0 {
+		t.Fatalf("pending len = %d, want 0", got)
 	}
 }
 
@@ -683,9 +735,7 @@ func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
 		releaseCalls.Add(1)
 	})
 
-	c.attachMtx.Lock()
-	sess := c.attachSess
-	c.attachMtx.Unlock()
+	sess := c.attach.currentSession()
 	if sess == nil {
 		t.Fatal("expected attach session")
 	}
@@ -694,10 +744,26 @@ func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
 	}
 
 	waitFor(t, time.Second, func() bool {
-		c.attachMtx.Lock()
-		defer c.attachMtx.Unlock()
-		return c.attachSess == nil && releaseCalls.Load() == 1
+		return c.attach.currentSession() == nil && releaseCalls.Load() == 1
 	})
+}
+
+func TestAttachSessionSetReleaseAfterCloseRunsRelease(t *testing.T) {
+	sess := &attachSession{
+		releaseFns: make(map[uint32]func()),
+	}
+	sess.releaseAllAttachedResources()
+
+	released := make(chan struct{}, 1)
+	sess.setRelease(42, func() {
+		released <- struct{}{}
+	})
+
+	select {
+	case <-released:
+	case <-time.After(time.Second):
+		t.Fatal("release callback registered after close was not called")
+	}
 }
 
 func TestAttachedResourceCanPublishCallableChild(t *testing.T) {

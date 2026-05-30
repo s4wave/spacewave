@@ -44,12 +44,8 @@ type Client struct {
 	rootResourceID uint32
 	// resourceLifetime owns local resource references and cached clients.
 	resourceLifetime *resourceLifetime
-	// attachMtx guards below fields
-	attachMtx sync.Mutex
-	// attachSess is the single attach session (lazy, one per client).
-	attachSess *attachSession
-	// attachSessInitCh is closed when attach session initialization finishes
-	attachSessInitCh chan struct{}
+	// attach owns attach session readiness and pending AddAck state.
+	attach *attachLifetime
 }
 
 // NewClient constructs and initializes a new Client.
@@ -111,6 +107,7 @@ func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) 
 		rootResourceID:   rootResourceID,
 		resourceLifetime: newResourceLifetime(clientCtx, service, clientHandleID),
 	}
+	client.attach = newAttachLifetime(client)
 
 	// Start background goroutine to handle resource notifications
 	go client.execute(stream)
@@ -167,15 +164,15 @@ func (c *Client) Release() {
 // attachSession manages the single ResourceAttach stream + yamux session.
 // One session serves all attached resources.
 type attachSession struct {
-	ctx         context.Context
-	strm        resource.SRPCResourceService_ResourceAttachClient
-	mc          srpc.MuxedConn
-	router      *resource.RoutedInvoker
-	attachIDCtr uint32
-	pending     map[uint32]*pendingAttach // attachID -> pending attach
-	releaseFns  map[uint32]func()
-	sendCh      chan *attachSendRequest
-	mu          sync.Mutex
+	ctx        context.Context
+	strm       resource.SRPCResourceService_ResourceAttachClient
+	mc         srpc.MuxedConn
+	router     *resource.RoutedInvoker
+	pending    *attachPendingAcks
+	releaseFns map[uint32]func()
+	released   bool
+	sendCh     chan *attachSendRequest
+	mu         sync.Mutex
 }
 
 // attachResult carries the outcome of one attach request.
@@ -192,6 +189,10 @@ type pendingAttach struct {
 	ch chan attachResult
 	// canceled indicates the caller returned before AddAck arrived
 	canceled bool
+	// resolved indicates AddAck arrived before the caller selected a result.
+	resolved bool
+	// result is the resolved AddAck result.
+	result attachResult
 }
 
 // attachSendRequest is one serialized stream send.
@@ -233,28 +234,24 @@ func (c *Client) AttachResource(
 	label string,
 	mux srpc.Invoker,
 ) (uint32, error) {
-	c.attachMtx.Lock()
-	sess := c.attachSess
-	c.attachMtx.Unlock()
+	resourceID, _, err := c.attachResource(ctx, label, mux)
+	return resourceID, err
+}
 
-	if sess == nil {
-		var err error
-		sess, err = c.ensureAttachSession()
-		if err != nil {
-			return 0, err
-		}
+func (c *Client) attachResource(
+	ctx context.Context,
+	label string,
+	mux srpc.Invoker,
+) (uint32, *attachSession, error) {
+	sess, err := c.attach.ensureSession()
+	if err != nil {
+		return 0, nil, err
 	}
 
-	// Allocate attach correlation ID.
-	sess.mu.Lock()
-	sess.attachIDCtr++
-	attachID := sess.attachIDCtr
-	ch := make(chan attachResult, 1)
-	sess.pending[attachID] = &pendingAttach{ch: ch}
-	sess.mu.Unlock()
+	attachID, ch := sess.pending.add()
 
 	// Send Add.
-	err := sess.send(&resource.ResourceAttachRequest{
+	err = sess.send(&resource.ResourceAttachRequest{
 		Body: &resource.ResourceAttachRequest_Add{
 			Add: &resource.ResourceAttachAdd{
 				AttachId: attachID,
@@ -263,48 +260,35 @@ func (c *Client) AttachResource(
 		},
 	})
 	if err != nil {
-		sess.mu.Lock()
-		delete(sess.pending, attachID)
-		sess.mu.Unlock()
-		return 0, err
+		sess.pending.remove(attachID)
+		return 0, nil, err
 	}
 
 	// Wait for AddAck.
 	select {
 	case <-ctx.Done():
-		sess.mu.Lock()
-		pending := sess.pending[attachID]
-		if pending != nil {
-			pending.canceled = true
+		if resourceID, detach := sess.pending.cancel(attachID); detach {
+			_ = sess.sendDetach(resourceID)
 		}
-		sess.mu.Unlock()
-		return 0, ctx.Err()
+		return 0, nil, ctx.Err()
 	case result := <-ch:
+		sess.pending.complete(attachID)
 		if result.err != nil {
-			return 0, result.err
+			return 0, nil, result.err
 		}
 		sess.router.SetMux(result.resourceID, mux)
-		return result.resourceID, nil
+		return result.resourceID, sess, nil
 	}
 }
 
 // DetachResource withdraws a previously attached resource.
 func (c *Client) DetachResource(ctx context.Context, resourceID uint32) error {
-	c.attachMtx.Lock()
-	sess := c.attachSess
-	c.attachMtx.Unlock()
-
+	sess := c.attach.currentSession()
 	if sess == nil {
 		return errors.New("no attach session")
 	}
 
-	err := sess.send(&resource.ResourceAttachRequest{
-		Body: &resource.ResourceAttachRequest_Detach{
-			Detach: &resource.ResourceAttachDetach{
-				ResourceId: resourceID,
-			},
-		},
-	})
+	err := sess.sendDetach(resourceID)
 	if err != nil {
 		return err
 	}
@@ -326,12 +310,12 @@ func (o *attachedResourceOwner) AddResource(mux srpc.Invoker, releaseFn func()) 
 }
 
 func (o *attachedResourceOwner) AddResourceValue(mux srpc.Invoker, _ any, releaseFn func()) (uint32, error) {
-	resourceID, err := o.client.AttachResource(o.client.ctx, "attached-child", mux)
+	resourceID, sess, err := o.client.attachResource(o.client.ctx, "attached-child", mux)
 	if err != nil {
 		return 0, err
 	}
 	if releaseFn != nil {
-		o.client.setAttachedRelease(resourceID, releaseFn)
+		sess.setRelease(resourceID, releaseFn)
 	}
 	return resourceID, nil
 }
@@ -346,47 +330,6 @@ func (o *attachedResourceOwner) GetResourceValue(resourceID uint32) (any, error)
 
 func (o *attachedResourceOwner) GetAttachedResource(id uint32) (srpc.Client, error) {
 	return nil, resource.ErrResourceNotFound
-}
-
-// ensureAttachSession opens the ResourceAttach stream if not already open.
-func (c *Client) ensureAttachSession() (*attachSession, error) {
-	for {
-		c.attachMtx.Lock()
-		if c.attachSess != nil {
-			sess := c.attachSess
-			c.attachMtx.Unlock()
-			return sess, nil
-		}
-		if c.attachSessInitCh != nil {
-			initCh := c.attachSessInitCh
-			c.attachMtx.Unlock()
-
-			select {
-			case <-c.ctx.Done():
-				return nil, c.ctx.Err()
-			case <-initCh:
-				continue
-			}
-		}
-		initCh := make(chan struct{})
-		c.attachSessInitCh = initCh
-		c.attachMtx.Unlock()
-
-		sess, err := c.openAttachSession()
-
-		c.attachMtx.Lock()
-		if err == nil {
-			c.attachSess = sess
-		}
-		c.attachSessInitCh = nil
-		close(initCh)
-		c.attachMtx.Unlock()
-
-		if err != nil {
-			return nil, err
-		}
-		return sess, nil
-	}
 }
 
 // openAttachSession opens a new attach session for the client.
@@ -430,7 +373,7 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 		ctx:        c.ctx,
 		strm:       strm,
 		router:     router,
-		pending:    make(map[uint32]*pendingAttach),
+		pending:    newAttachPendingAcks(),
 		releaseFns: make(map[uint32]func()),
 		sendCh:     make(chan *attachSendRequest),
 	}
@@ -451,29 +394,9 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 			}
 			switch body := pkt.GetBody().(type) {
 			case *resource.ResourceAttachResponse_AddAck:
-				addAck := body.AddAck
-				sess.mu.Lock()
-				pending := sess.pending[addAck.GetAttachId()]
-				delete(sess.pending, addAck.GetAttachId())
-				sess.mu.Unlock()
-				if pending != nil {
-					if pending.canceled {
-						if addAck.GetError() == "" {
-							_ = sess.send(&resource.ResourceAttachRequest{
-								Body: &resource.ResourceAttachRequest_Detach{
-									Detach: &resource.ResourceAttachDetach{
-										ResourceId: addAck.GetResourceId(),
-									},
-								},
-							})
-						}
-						return nil, nil
-					}
-					if addAck.GetError() != "" {
-						pending.ch <- attachResult{err: errors.New(addAck.GetError())}
-					} else {
-						pending.ch <- attachResult{resourceID: addAck.GetResourceId()}
-					}
+				resourceID, detach := sess.pending.resolve(body.AddAck)
+				if detach {
+					_ = sess.sendDetach(resourceID)
 				}
 				return nil, nil
 			case *resource.ResourceAttachResponse_DetachAck:
@@ -498,33 +421,29 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 	srv := srpc.NewServer(router)
 	go func() {
 		_ = srv.AcceptMuxedConn(c.ctx, mc)
-		c.clearAttachSession(sess)
+		c.attach.clearSession(sess)
 		sess.releaseAllAttachedResources()
 	}()
 
 	return sess, nil
 }
 
-// clearAttachSession clears the cached attach session if it still matches sess.
-func (c *Client) clearAttachSession(sess *attachSession) {
-	c.attachMtx.Lock()
-	defer c.attachMtx.Unlock()
-
-	if c.attachSess == sess {
-		c.attachSess = nil
-	}
+func (c *Client) setAttachedRelease(resourceID uint32, releaseFn func()) {
+	c.attach.setRelease(resourceID, releaseFn)
 }
 
-func (c *Client) setAttachedRelease(resourceID uint32, releaseFn func()) {
-	c.attachMtx.Lock()
-	sess := c.attachSess
-	c.attachMtx.Unlock()
-	if sess == nil || releaseFn == nil {
+func (s *attachSession) setRelease(resourceID uint32, releaseFn func()) {
+	if releaseFn == nil {
 		return
 	}
-	sess.mu.Lock()
-	sess.releaseFns[resourceID] = releaseFn
-	sess.mu.Unlock()
+	s.mu.Lock()
+	if !s.released {
+		s.releaseFns[resourceID] = releaseFn
+		s.mu.Unlock()
+		return
+	}
+	s.mu.Unlock()
+	releaseFn()
 }
 
 func (s *attachSession) releaseAttachedResource(resourceID uint32) {
@@ -541,6 +460,11 @@ func (s *attachSession) releaseAttachedResource(resourceID uint32) {
 
 func (s *attachSession) releaseAllAttachedResources() {
 	s.mu.Lock()
+	if s.released {
+		s.mu.Unlock()
+		return
+	}
+	s.released = true
 	releaseFns := make([]func(), 0, len(s.releaseFns))
 	for id, releaseFn := range s.releaseFns {
 		delete(s.releaseFns, id)
@@ -554,6 +478,16 @@ func (s *attachSession) releaseAllAttachedResources() {
 	for _, releaseFn := range releaseFns {
 		releaseFn()
 	}
+}
+
+func (s *attachSession) sendDetach(resourceID uint32) error {
+	return s.send(&resource.ResourceAttachRequest{
+		Body: &resource.ResourceAttachRequest_Detach{
+			Detach: &resource.ResourceAttachDetach{
+				ResourceId: resourceID,
+			},
+		},
+	})
 }
 
 // send queues a serialized stream send on the attach session.
