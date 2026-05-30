@@ -278,6 +278,7 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
+      BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -359,6 +360,7 @@ jobs:
 
       - name: Build browser handoff slice
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        timeout-minutes: 60
         shell: bash
         run: |
           set -euo pipefail
@@ -368,6 +370,15 @@ jobs:
             --react-dev=${{ inputs.react_dev }} \
             --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/browser
+
+      - name: Upload wasm-opt diagnostics
+        if: failure() && steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: wasm-opt-diagnostics-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.run_id }}
+          path: .tmp/wasm-opt-diagnostics
+          include-hidden-files: true
+          if-no-files-found: warn
 
       - name: Upload browser handoff part
         uses: actions/upload-artifact@v7

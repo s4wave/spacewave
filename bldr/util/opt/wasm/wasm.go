@@ -170,6 +170,8 @@ func runWasmOpt(
 	}
 	version := wasmOptVersion(ctx)
 	argv := append([]string{"wasm-opt"}, args...)
+	diagnosticsDir := wasmOptDiagnosticsDir()
+	diagnosticsPreserved := false
 
 	le.WithFields(logrus.Fields{
 		"mode":             mode,
@@ -181,16 +183,30 @@ func runWasmOpt(
 		"argv":             strings.Join(argv, " "),
 	}).Info("running wasm-opt")
 
+	if diagnosticsDir != "" {
+		if diagErr := preserveWasmOptDiagnostics(diagnosticsDir, mode, outBinPath, outBinPathRel, optPathRel, inputSize, inputHash, version, argv); diagErr != nil {
+			le.WithError(diagErr).Warn("failed to preserve wasm-opt diagnostics before execution")
+		} else {
+			diagnosticsPreserved = true
+		}
+	}
+
 	ecmd := uexec.NewCmd(ctx, "wasm-opt", args...)
 	ecmd.Env = os.Environ()
 	ecmd.Dir = workingPath
 	if err := uexec.ExecCmd(le, ecmd); err != nil {
-		if diagErr := preserveWasmOptDiagnostics(mode, outBinPath, outBinPathRel, optPathRel, inputSize, inputHash, version, argv); diagErr != nil {
-			le.WithError(diagErr).Warn("failed to preserve wasm-opt diagnostics")
+		if diagnosticsDir != "" && !diagnosticsPreserved {
+			if diagErr := preserveWasmOptDiagnostics(diagnosticsDir, mode, outBinPath, outBinPathRel, optPathRel, inputSize, inputHash, version, argv); diagErr != nil {
+				le.WithError(diagErr).Warn("failed to preserve wasm-opt diagnostics")
+			}
 		}
 		return err
 	}
 	return nil
+}
+
+func wasmOptDiagnosticsDir() string {
+	return strings.TrimSpace(os.Getenv(wasmOptDiagnosticsDirEnv))
 }
 
 func wasmInputEvidence(path string) (int64, string, error) {
@@ -223,6 +239,7 @@ func wasmOptVersion(ctx context.Context) string {
 }
 
 func preserveWasmOptDiagnostics(
+	dir,
 	mode,
 	outBinPath,
 	outBinPathRel,
@@ -232,10 +249,6 @@ func preserveWasmOptDiagnostics(
 	version string,
 	argv []string,
 ) error {
-	dir := strings.TrimSpace(os.Getenv(wasmOptDiagnosticsDirEnv))
-	if dir == "" {
-		return nil
-	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
