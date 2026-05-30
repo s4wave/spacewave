@@ -39,6 +39,11 @@ type remoteShellProcess interface {
 
 type remoteShellStarter func(context.Context, *s4wave_terminal.TerminalFrame) (remoteShellProcess, error)
 
+type remoteShellOpenResult struct {
+	frame *s4wave_terminal.TerminalFrame
+	err   error
+}
+
 // StartHandler registers the daemon-side remote-shell stream handler.
 func StartHandler(ctx context.Context, le *logrus.Entry, b bus.Bus) func() {
 	if b == nil {
@@ -148,8 +153,8 @@ func runRemoteShellSession(
 	policy remoteShellPolicy,
 	starter remoteShellStarter,
 ) error {
-	openFrame := &s4wave_terminal.TerminalFrame{}
-	if err := session.RecvMsg(openFrame); err != nil {
+	openFrame, err := receiveRemoteShellOpenFrame(ctx, session)
+	if err != nil {
 		return errors.Wrap(err, "receive terminal open frame")
 	}
 	if openFrame.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OPEN {
@@ -183,13 +188,38 @@ func runRemoteShellSession(
 	go waitRemoteShellProcess(session, proc, errCh)
 	go receiveRemoteShellInput(ctx, session, proc, errCh)
 
-	err = <-errCh
+	select {
+	case err = <-errCh:
+	case <-ctx.Done():
+		err = ctx.Err()
+	}
 	cancel()
 	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
 		le.WithError(err).Debug("remote shell stream ended")
 		return err
 	}
 	return nil
+}
+
+func receiveRemoteShellOpenFrame(
+	ctx context.Context,
+	session *stream_packet.Session,
+) (*s4wave_terminal.TerminalFrame, error) {
+	resultCh := make(chan remoteShellOpenResult, 1)
+	go func() {
+		frame := &s4wave_terminal.TerminalFrame{}
+		resultCh <- remoteShellOpenResult{
+			frame: frame,
+			err:   session.RecvMsg(frame),
+		}
+	}()
+
+	select {
+	case result := <-resultCh:
+		return result.frame, result.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func pumpRemoteShellOutput(
@@ -379,6 +409,7 @@ func errorString(err error) string {
 	return err.Error()
 }
 
+// _ is a type assertion
 var (
 	_ controller.Controller     = (*deviceRemoteShellController)(nil)
 	_ directive.Resolver        = (*deviceRemoteShellResolver)(nil)

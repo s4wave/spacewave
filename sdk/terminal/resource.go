@@ -22,6 +22,14 @@ import (
 
 const terminalFrameMaxBytes = 4 * 1024 * 1024
 
+type terminalConnectResult struct {
+	err          error
+	updateState  bool
+	finalState   TerminalSessionState
+	status       string
+	errorMessage string
+}
+
 // TerminalResource implements the TerminalResourceService SRPC interface.
 type TerminalResource struct {
 	b      bus.Bus
@@ -163,17 +171,19 @@ func (r *TerminalResource) ConnectTerminal(strm SRPCTerminalResourceService_Conn
 		return err
 	}
 
-	errCh := make(chan error, 2)
+	errCh := make(chan terminalConnectResult, 2)
 	go r.forwardClientFrames(ctx, strm, frameSession, errCh)
 	go r.forwardRemoteFrames(ctx, strm, frameSession, errCh)
 
-	err = <-errCh
+	result := <-errCh
 	cancel()
-	if err != nil && !stderrors.Is(err, context.Canceled) && !stderrors.Is(err, io.EOF) {
-		_ = r.updateState(context.Background(), TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "terminal failed", err.Error())
-		return err
+	if result.err != nil && !stderrors.Is(result.err, context.Canceled) && !stderrors.Is(result.err, io.EOF) {
+		_ = r.updateState(context.Background(), TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "terminal failed", result.err.Error())
+		return result.err
 	}
-	_ = r.updateState(context.Background(), TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED, "disconnected", "")
+	if result.updateState {
+		return r.updateState(context.Background(), result.finalState, result.status, result.errorMessage)
+	}
 	return nil
 }
 
@@ -181,13 +191,18 @@ func (r *TerminalResource) forwardClientFrames(
 	ctx context.Context,
 	strm SRPCTerminalResourceService_ConnectTerminalStream,
 	frameSession *stream_packet.Session,
-	errCh chan<- error,
+	errCh chan<- terminalConnectResult,
 ) {
 	for {
 		frame, err := strm.Recv()
 		if err != nil {
 			_ = frameSession.SendMsg(&TerminalFrame{Kind: TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE})
-			errCh <- err
+			errCh <- terminalConnectResult{
+				err:         err,
+				updateState: true,
+				finalState:  TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
+				status:      "disconnected",
+			}
 			return
 		}
 		if frame == nil {
@@ -198,19 +213,28 @@ func (r *TerminalResource) forwardClientFrames(
 			TerminalFrameKind_TERMINAL_FRAME_KIND_RESIZE,
 			TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE:
 			if err := frameSession.SendMsg(frame); err != nil {
-				errCh <- err
+				errCh <- terminalConnectResult{err: err}
 				return
 			}
 			if frame.GetKind() == TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE {
-				errCh <- nil
+				errCh <- terminalConnectResult{
+					updateState: true,
+					finalState:  TerminalSessionState_TERMINAL_SESSION_STATE_CLOSED,
+					status:      "closed",
+				}
 				return
 			}
 		default:
-			errCh <- errors.Errorf("unsupported terminal client frame kind %s", frame.GetKind().String())
+			errCh <- terminalConnectResult{err: errors.Errorf("unsupported terminal client frame kind %s", frame.GetKind().String())}
 			return
 		}
 		if err := ctx.Err(); err != nil {
-			errCh <- err
+			errCh <- terminalConnectResult{
+				err:         err,
+				updateState: true,
+				finalState:  TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
+				status:      "disconnected",
+			}
 			return
 		}
 	}
@@ -220,18 +244,23 @@ func (r *TerminalResource) forwardRemoteFrames(
 	ctx context.Context,
 	strm SRPCTerminalResourceService_ConnectTerminalStream,
 	frameSession *stream_packet.Session,
-	errCh chan<- error,
+	errCh chan<- terminalConnectResult,
 ) {
 	for {
 		frame := &TerminalFrame{}
 		if err := frameSession.RecvMsg(frame); err != nil {
-			errCh <- err
+			errCh <- terminalConnectResult{
+				err:         err,
+				updateState: true,
+				finalState:  TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
+				status:      "disconnected",
+			}
 			return
 		}
 		switch frame.GetKind() {
 		case TerminalFrameKind_TERMINAL_FRAME_KIND_READY:
 			if err := r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_ACTIVE, "active", ""); err != nil {
-				errCh <- err
+				errCh <- terminalConnectResult{err: err}
 				return
 			}
 		case TerminalFrameKind_TERMINAL_FRAME_KIND_ERROR:
@@ -241,25 +270,33 @@ func (r *TerminalResource) forwardRemoteFrames(
 			}
 			_ = r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "terminal failed", errMessage)
 			if err := strm.Send(frame); err != nil {
-				errCh <- err
+				errCh <- terminalConnectResult{err: err}
 				return
 			}
-			errCh <- errors.New(errMessage)
+			errCh <- terminalConnectResult{err: errors.New(errMessage)}
 			return
 		case TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT:
-			_ = r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED, "exited", "")
+			if err := r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED, "exited", ""); err != nil {
+				errCh <- terminalConnectResult{err: err}
+				return
+			}
 		}
 		if err := strm.Send(frame); err != nil {
-			errCh <- err
+			errCh <- terminalConnectResult{err: err}
 			return
 		}
 		if frame.GetKind() == TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT ||
 			frame.GetKind() == TerminalFrameKind_TERMINAL_FRAME_KIND_ERROR {
-			errCh <- nil
+			errCh <- terminalConnectResult{}
 			return
 		}
 		if err := ctx.Err(); err != nil {
-			errCh <- err
+			errCh <- terminalConnectResult{
+				err:         err,
+				updateState: true,
+				finalState:  TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
+				status:      "disconnected",
+			}
 			return
 		}
 	}

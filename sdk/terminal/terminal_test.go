@@ -2,11 +2,15 @@ package s4wave_terminal
 
 import (
 	"context"
+	"io"
+	"net"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/world"
+	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 )
 
 func TestTerminalValidatePinsDeviceTarget(t *testing.T) {
@@ -98,4 +102,107 @@ func TestLookupCreateTerminalOp(t *testing.T) {
 	if _, ok := op.(*CreateTerminalOp); !ok {
 		t.Fatalf("expected CreateTerminalOp, got %T", op)
 	}
+}
+
+func TestForwardClientFramesReportsClosed(t *testing.T) {
+	serverConn, clientConn := net.Pipe()
+	defer serverConn.Close()
+	defer clientConn.Close()
+
+	frameSession := stream_packet.NewSession(serverConn, terminalFrameMaxBytes)
+	clientSession := stream_packet.NewSession(clientConn, terminalFrameMaxBytes)
+	strm := &testTerminalConnectStream{
+		ctx: context.Background(),
+		recv: []*TerminalFrame{{
+			Kind: TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE,
+		}},
+	}
+	errCh := make(chan terminalConnectResult, 1)
+	go (&TerminalResource{}).forwardClientFrames(context.Background(), strm, frameSession, errCh)
+
+	gotRemote := &TerminalFrame{}
+	if err := clientSession.RecvMsg(gotRemote); err != nil {
+		t.Fatal(err)
+	}
+	if gotRemote.GetKind() != TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE {
+		t.Fatalf("remote frame kind = %s", gotRemote.GetKind().String())
+	}
+
+	select {
+	case result := <-errCh:
+		if result.err != nil {
+			t.Fatalf("client forward result error = %v", result.err)
+		}
+		if !result.updateState {
+			t.Fatal("client close did not request terminal state update")
+		}
+		if result.finalState != TerminalSessionState_TERMINAL_SESSION_STATE_CLOSED {
+			t.Fatalf("final state = %s", result.finalState.String())
+		}
+		if result.status != "closed" {
+			t.Fatalf("status = %q", result.status)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("client frame forwarder did not stop")
+	}
+}
+
+type testTerminalConnectStream struct {
+	ctx  context.Context
+	recv []*TerminalFrame
+	sent []*TerminalFrame
+}
+
+func (s *testTerminalConnectStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *testTerminalConnectStream) MsgSend(msg srpc.Message) error {
+	frame, ok := msg.(*TerminalFrame)
+	if ok {
+		s.sent = append(s.sent, frame)
+	}
+	return nil
+}
+
+func (s *testTerminalConnectStream) MsgRecv(srpc.Message) error {
+	return io.EOF
+}
+
+func (s *testTerminalConnectStream) CloseSend() error {
+	return nil
+}
+
+func (s *testTerminalConnectStream) Close() error {
+	return nil
+}
+
+func (s *testTerminalConnectStream) Send(frame *TerminalFrame) error {
+	s.sent = append(s.sent, frame)
+	return nil
+}
+
+func (s *testTerminalConnectStream) SendAndClose(frame *TerminalFrame) error {
+	if frame != nil {
+		s.sent = append(s.sent, frame)
+	}
+	return nil
+}
+
+func (s *testTerminalConnectStream) Recv() (*TerminalFrame, error) {
+	if len(s.recv) == 0 {
+		return nil, io.EOF
+	}
+	frame := s.recv[0]
+	s.recv = s.recv[1:]
+	return frame, nil
+}
+
+func (s *testTerminalConnectStream) RecvTo(frame *TerminalFrame) error {
+	next, err := s.Recv()
+	if err != nil {
+		return err
+	}
+	*frame = *next
+	return nil
 }

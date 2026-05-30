@@ -119,6 +119,42 @@ func TestRemoteShellDefaultPolicyDeniesBeforeStartingProcess(t *testing.T) {
 	}
 }
 
+func TestRemoteShellSessionStopsBeforeOpenWhenContextCanceled(t *testing.T) {
+	serverConn, clientConn := net.Pipe()
+	defer serverConn.Close()
+	defer clientConn.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	serverSession := stream_packet.NewSession(serverConn, deviceRemoteShellFrameMaxBytes)
+	started := false
+	done := make(chan error, 1)
+	go func() {
+		done <- runRemoteShellSession(
+			ctx,
+			logrus.NewEntry(logrus.New()),
+			serverSession,
+			nil,
+			func(context.Context, *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {
+				started = true
+				return nil, errors.New("unexpected start")
+			},
+		)
+	}()
+
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("remote shell session error = %v, want context canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("remote shell session did not stop")
+	}
+	if started {
+		t.Fatal("process started before OPEN")
+	}
+}
+
 func TestRemoteShellSessionForwardsInputResizeAndClose(t *testing.T) {
 	serverConn, clientConn := net.Pipe()
 	defer serverConn.Close()
