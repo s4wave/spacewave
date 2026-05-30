@@ -29,6 +29,7 @@ import {
   type InlineConfig,
   type Rollup,
 } from 'vite'
+import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
 
 // verboseDebug is the verbose debugging flag
 const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
@@ -87,6 +88,20 @@ function resolveTrackedSourceFile(
     return filePath
   } catch {
     return null
+  }
+}
+
+function findNearestGoModRoot(startDir: string): string | null {
+  let dir = path.resolve(startDir)
+  while (true) {
+    if (fs.existsSync(path.join(dir, 'go.mod'))) {
+      return dir
+    }
+    const parent = path.dirname(dir)
+    if (parent === dir) {
+      return null
+    }
+    dir = parent
   }
 }
 
@@ -386,6 +401,9 @@ async function buildWebPkg(
   const jsMinification = request.jsMinification || false
   const jsSourcemaps = request.jsSourcemaps || false
   const cacheDir = request.cacheDir || ''
+  const projectRoot =
+    process.env['BLDR_PROJECT_ROOT'] || findNearestGoModRoot(pkgRoot) || pkgRoot
+  const distRoot = process.env['BLDR_DIST_ROOT'] || projectRoot
 
   if (!pkgId || !pkgRoot || imports.length === 0 || !outDir) {
     return {
@@ -501,6 +519,7 @@ async function buildWebPkg(
       // runs first and the plugin never sees ImportKind::Require calls.
       // Also remap non-BldrExternal sibling web packages to /b/pkg/ URLs.
       plugins: [
+        goTsResolver(projectRoot, distRoot),
         ...(allExternal.length > 0
           ? [
               esmExternalRequirePlugin({
@@ -522,6 +541,9 @@ async function buildWebPkg(
             ]
           : []),
       ],
+      resolve: {
+        alias: buildGoAliases(projectRoot, distRoot),
+      },
 
       build: {
         outDir,

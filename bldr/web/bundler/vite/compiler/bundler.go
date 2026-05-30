@@ -175,7 +175,14 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	cmd.Stderr = t.le.WriterLevel(logrus.DebugLevel)
 
 	// Env vars
-	cmd.Env = append(cmd.Env, "NO_COLOR=1", "NODE_DISABLE_COLORS=1", "FORCE_COLOR=0")
+	cmd.Env = append(
+		cmd.Env,
+		"NO_COLOR=1",
+		"NODE_DISABLE_COLORS=1",
+		"FORCE_COLOR=0",
+		"BLDR_PROJECT_ROOT="+sourcePath,
+		"BLDR_DIST_ROOT="+distPath,
+	)
 
 	// Check if canceled
 	if ctx.Err() != nil {
