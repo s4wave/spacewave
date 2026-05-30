@@ -77,6 +77,21 @@ describe('desktop tray icon model', () => {
       decodeURIComponent(renderMacOSTrayIconDataURL(disconnected)),
     ).toContain('12.1-12.1')
   })
+
+  it('keeps attention icon rendering non-animated and fallback-title safe', () => {
+    const attention = buildDesktopTrayIconModel({
+      state: state(DesktopTrayIconState.ATTENTION, 'Needs attention'),
+      dynamicIconEnabled: true,
+    })
+    const dataURL = renderMacOSTrayIconDataURL(attention)
+    const svg = decodeURIComponent(dataURL)
+
+    expect(attention.renderKey).toBe('dynamic:attention')
+    expect(attention.fallbackTitle).toBe('!')
+    expect(renderMacOSTrayIconDataURL(attention)).toBe(dataURL)
+    expect(svg).not.toContain('<animate')
+    expect(svg).not.toContain('<set')
+  })
 })
 
 function state(

@@ -161,6 +161,13 @@ critical-attention notifications, and
 process-owned toggle shortcut. All three default off and are cleaned up by
 Electron main on quit.
 
+Icon animation decision as of 2026-05-30: the dynamic macOS tray icon remains
+deterministic and non-animated. Attention continues to use the `!` title
+fallback, and active/attention/disconnected/quitting states render as stable SVG
+template icon variants. Any future animation needs a separate owner proof for
+timer lifetime, flicker behavior, screenshot/pixel output, and fallback title
+semantics.
+
 ## Native Menu Fallback Boundary
 
 The fallback renderer is intentionally lower fidelity:
