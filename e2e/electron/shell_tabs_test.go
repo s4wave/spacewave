@@ -23,7 +23,7 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	mainPage, err := h.WaitForPage(ctx)
+	mainPage, err := waitForShellPage(ctx, h)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 	if err := waitForSelectedShellTab(popoutPage, "Docs"); err != nil {
 		t.Fatal(err)
 	}
-	if err := waitForStoredActiveTabID(mainPage, "docs"); err != nil {
+	if err := waitForStoredActiveTabID(mainPage, "home"); err != nil {
 		t.Fatal(err)
 	}
 	if err := assertSelectedShellTab(mainPage, "Home"); err != nil {
@@ -68,7 +68,10 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 	if err := waitForSelectedShellTab(mainPage, "Changelog"); err != nil {
 		t.Fatal(err)
 	}
-	if err := waitForStoredActiveTabID(popoutPage, "changelog"); err != nil {
+	if err := waitForStoredActiveTabID(mainPage, "changelog"); err != nil {
+		t.Fatal(err)
+	}
+	if err := waitForStoredActiveTabID(popoutPage, "docs"); err != nil {
 		t.Fatal(err)
 	}
 	if err := assertSelectedShellTab(popoutPage, "Docs"); err != nil {
@@ -81,7 +84,10 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 	if err := waitForSelectedShellTab(popoutPage, "Home"); err != nil {
 		t.Fatal(err)
 	}
-	if err := waitForStoredActiveTabID(mainPage, "home"); err != nil {
+	if err := waitForStoredActiveTabID(popoutPage, "home"); err != nil {
+		t.Fatal(err)
+	}
+	if err := waitForStoredActiveTabID(mainPage, "changelog"); err != nil {
 		t.Fatal(err)
 	}
 	if err := assertSelectedShellTab(mainPage, "Changelog"); err != nil {
@@ -90,7 +96,7 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 }
 
 // TIER: nightly
-func TestShellTabsSurviveElectronRelaunch(t *testing.T) {
+func TestShellTabsSurviveRendererReload(t *testing.T) {
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
@@ -110,7 +116,7 @@ func TestShellTabsSurviveElectronRelaunch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := h.Relaunch(ctx); err != nil {
+	if _, err := page.Reload(); err != nil {
 		t.Fatal(err)
 	}
 	page, err = waitForShellPage(ctx, h)
@@ -186,16 +192,15 @@ func seedShellTabs(page playwright.Page) error {
 			{ id: 'changelog', name: 'Changelog', path: '/changelog' },
 		]
 		const nextState = JSON.stringify({ tabs, activeTabId: 'home' })
-		localStorage.setItem(
+		sessionStorage.setItem(
 			'shell-tabs-state',
 			nextState,
 		)
-		localStorage.removeItem('shell-tabs-layout')
-		window.dispatchEvent(new StorageEvent('storage', {
-			key: 'shell-tabs-state',
-			newValue: nextState,
-		}))
+		sessionStorage.removeItem('shell-tabs-layout')
 	}`); err != nil {
+		return err
+	}
+	if _, err := page.Reload(); err != nil {
 		return err
 	}
 	_, err := page.WaitForFunction(
@@ -279,7 +284,7 @@ func selectedShellTab(page playwright.Page) (string, error) {
 
 func waitForStoredActiveTabID(page playwright.Page, tabID string) error {
 	_, err := page.WaitForFunction(`(tabID) => {
-		const raw = localStorage.getItem('shell-tabs-state')
+		const raw = sessionStorage.getItem('shell-tabs-state')
 		if (!raw) return false
 		return JSON.parse(raw).activeTabId === tabID
 	}`, tabID, playwright.PageWaitForFunctionOptions{
