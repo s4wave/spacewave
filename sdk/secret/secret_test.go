@@ -1,4 +1,4 @@
-package s4wave_secret
+package s4wave_secret_test
 
 import (
 	"bytes"
@@ -18,6 +18,7 @@ import (
 	spacewave_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_secret "github.com/s4wave/spacewave/sdk/secret"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -27,11 +28,11 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 	defer release()
 
 	token := "matrix-token-secret-value"
-	secret, err := CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, CreateSecretOptions{
+	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/matrix",
 		DisplayName: "Matrix token",
-		Kind:        SecretKindMatrixAccessToken,
-		ContentType: MatrixAccessTokenContentType,
+		Kind:        s4wave_secret.SecretKindMatrixAccessToken,
+		ContentType: s4wave_secret.MatrixAccessTokenContentType,
 		Value:       []byte(token),
 		Timestamp:   time.Unix(100, 0),
 	})
@@ -45,7 +46,7 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 		t.Fatal("expected nested SharedObject id")
 	}
 
-	if err := world_types.CheckObjectType(ctx, tb.WorldState, "secrets/matrix", SecretTypeID); err != nil {
+	if err := world_types.CheckObjectType(ctx, tb.WorldState, "secrets/matrix", s4wave_secret.SecretTypeID); err != nil {
 		t.Fatalf("CheckObjectType: %v", err)
 	}
 
@@ -58,14 +59,14 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 		t.Fatal("parent Secret block contains raw token bytes")
 	}
 
-	payload, err := ReadSecretPayload(ctx, tb.Bus, secret)
+	payload, err := s4wave_secret.ReadSecretPayload(ctx, tb.Bus, secret)
 	if err != nil {
 		t.Fatalf("ReadSecretPayload: %v", err)
 	}
 	if got := string(payload.GetValue()); got != token {
 		t.Fatalf("payload value mismatch: %q", got)
 	}
-	readToken, err := ReadMatrixAccessToken(ctx, tb.Bus, secret)
+	readToken, err := s4wave_secret.ReadMatrixAccessToken(ctx, tb.Bus, secret)
 	if err != nil {
 		t.Fatalf("ReadMatrixAccessToken: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	defer release()
 
 	value := []byte("grant-gated-secret")
-	secret, err := CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, CreateSecretOptions{
+	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/grants",
 		DisplayName: "Grant gated",
 		Kind:        "api_key",
@@ -102,7 +103,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 
 	grantedPriv, grantedPub, grantedPeerID := makePeer(t)
 	ungrantedPriv, _, ungrantedPeerID := makePeer(t)
-	if _, err := AddSecretParticipant(
+	if _, err := s4wave_secret.AddSecretParticipant(
 		ctx,
 		tb.Bus,
 		secret,
@@ -136,7 +137,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		grantedPriv,
 		grantedPeerID,
 	)
-	grantedPayload, err := ReadSecretPayloadFromSnapshot(ctx, grantedSnap)
+	grantedPayload, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, grantedSnap)
 	if err != nil {
 		t.Fatalf("granted ReadSecretPayloadFromSnapshot: %v", err)
 	}
@@ -152,11 +153,11 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		ungrantedPriv,
 		ungrantedPeerID,
 	)
-	if _, err := ReadSecretPayloadFromSnapshot(ctx, ungrantedSnap); !errors.Is(err, ErrPayloadAccessDenied) {
+	if _, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, ungrantedSnap); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
 		t.Fatalf("expected ungranted access denied, got %v", err)
 	}
 
-	removed, err := RemoveSecretParticipant(ctx, tb.Bus, secret, grantedPeerID.String(), nil)
+	removed, err := s4wave_secret.RemoveSecretParticipant(ctx, tb.Bus, secret, grantedPeerID.String(), nil)
 	if err != nil {
 		t.Fatalf("RemoveSecretParticipant: %v", err)
 	}
@@ -186,7 +187,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		grantedPriv,
 		grantedPeerID,
 	)
-	if _, err := ReadSecretPayloadFromSnapshot(ctx, revokedSnap); !errors.Is(err, ErrPayloadAccessDenied) {
+	if _, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, revokedSnap); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
 		t.Fatalf("expected revoked access denied, got %v", err)
 	}
 }
@@ -197,7 +198,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 	defer release()
 
 	value := []byte("resource-read-secret")
-	secret, err := CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, CreateSecretOptions{
+	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/resource-read",
 		DisplayName: "Resource read",
 		Kind:        "api_key",
@@ -210,7 +211,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 
 	grantedPriv, grantedPub, grantedPeerID := makePeer(t)
 	ungrantedPriv, _, ungrantedPeerID := makePeer(t)
-	if _, err := AddSecretParticipant(
+	if _, err := s4wave_secret.AddSecretParticipant(
 		ctx,
 		tb.Bus,
 		secret,
@@ -222,21 +223,21 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 		t.Fatalf("AddSecretParticipant: %v", err)
 	}
 
-	res := NewSecretResource(tb.Logger, tb.Bus, tb.WorldState, "secrets/resource-read")
-	if _, err := res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+	res := s4wave_secret.NewSecretResource(tb.Logger, tb.Bus, tb.WorldState, "secrets/resource-read")
+	if _, err := res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: ungrantedPeerID.String(),
 		ExpectedKind: "api_key",
-	}); !errors.Is(err, ErrPayloadAccessDenied) {
+	}); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
 		t.Fatalf("expected ungranted BeginReadPayload access denied, got %v", err)
 	}
-	if _, err := res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+	if _, err := res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: grantedPeerID.String(),
 		ExpectedKind: "wrong-kind",
-	}); !errors.Is(err, ErrSecretKindMismatch) {
+	}); !errors.Is(err, s4wave_secret.ErrSecretKindMismatch) {
 		t.Fatalf("expected kind mismatch, got %v", err)
 	}
 
-	begin, err := res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+	begin, err := res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: grantedPeerID.String(),
 		ExpectedKind: "api_key",
 	})
@@ -244,7 +245,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 		t.Fatalf("BeginReadPayload: %v", err)
 	}
 	sig, err := peer.NewSignature(
-		ReadPayloadChallengeSignatureContext,
+		s4wave_secret.ReadPayloadChallengeSignatureContext,
 		grantedPriv,
 		hash.HashType_HashType_BLAKE3,
 		begin.GetChallenge(),
@@ -253,7 +254,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSignature: %v", err)
 	}
-	read, err := res.ReadPayload(ctx, &ReadPayloadRequest{
+	read, err := res.ReadPayload(ctx, &s4wave_secret.ReadPayloadRequest{
 		ChallengeId: begin.GetChallengeId(),
 		Signature:   sig,
 	})
@@ -263,14 +264,14 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 	if !bytes.Equal(read.GetPayload().GetValue(), value) {
 		t.Fatalf("payload mismatch: %q", read.GetPayload().GetValue())
 	}
-	if _, err := res.ReadPayload(ctx, &ReadPayloadRequest{
+	if _, err := res.ReadPayload(ctx, &s4wave_secret.ReadPayloadRequest{
 		ChallengeId: begin.GetChallengeId(),
 		Signature:   sig,
-	}); !errors.Is(err, ErrReadChallengeNotFound) {
+	}); !errors.Is(err, s4wave_secret.ErrReadChallengeNotFound) {
 		t.Fatalf("expected replay failure, got %v", err)
 	}
 
-	begin, err = res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+	begin, err = res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: grantedPeerID.String(),
 		ExpectedKind: "api_key",
 	})
@@ -278,7 +279,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 		t.Fatalf("BeginReadPayload before revocation: %v", err)
 	}
 	sig, err = peer.NewSignature(
-		ReadPayloadChallengeSignatureContext,
+		s4wave_secret.ReadPayloadChallengeSignatureContext,
 		grantedPriv,
 		hash.HashType_HashType_BLAKE3,
 		begin.GetChallenge(),
@@ -287,28 +288,28 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSignature before revocation: %v", err)
 	}
-	removed, err := RemoveSecretParticipant(ctx, tb.Bus, secret, grantedPeerID.String(), nil)
+	removed, err := s4wave_secret.RemoveSecretParticipant(ctx, tb.Bus, secret, grantedPeerID.String(), nil)
 	if err != nil {
 		t.Fatalf("RemoveSecretParticipant: %v", err)
 	}
 	if !removed {
 		t.Fatal("expected participant removal")
 	}
-	if _, err := res.ReadPayload(ctx, &ReadPayloadRequest{
+	if _, err := res.ReadPayload(ctx, &s4wave_secret.ReadPayloadRequest{
 		ChallengeId: begin.GetChallengeId(),
 		Signature:   sig,
-	}); !errors.Is(err, ErrPayloadAccessDenied) {
+	}); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
 		t.Fatalf("expected revoked read access denied, got %v", err)
 	}
 
-	begin, err = res.BeginReadPayload(ctx, &BeginReadPayloadRequest{
+	begin, err = res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: ungrantedPeerID.String(),
 	})
-	if !errors.Is(err, ErrPayloadAccessDenied) {
+	if !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
 		t.Fatalf("expected ungranted access denied after revocation, got begin=%v err=%v", begin, err)
 	}
 	badSig, err := peer.NewSignature(
-		ReadPayloadChallengeSignatureContext,
+		s4wave_secret.ReadPayloadChallengeSignatureContext,
 		ungrantedPriv,
 		hash.HashType_HashType_BLAKE3,
 		[]byte("not the issued challenge"),
@@ -317,10 +318,10 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bad NewSignature: %v", err)
 	}
-	if _, err := res.ReadPayload(ctx, &ReadPayloadRequest{
+	if _, err := res.ReadPayload(ctx, &s4wave_secret.ReadPayloadRequest{
 		ChallengeId: "missing",
 		Signature:   badSig,
-	}); !errors.Is(err, ErrReadChallengeNotFound) {
+	}); !errors.Is(err, s4wave_secret.ErrReadChallengeNotFound) {
 		t.Fatalf("expected missing challenge failure, got %v", err)
 	}
 }
@@ -368,7 +369,12 @@ func setupSecretTest(
 	}
 }
 
-func readParentSecret(ctx context.Context, t *testing.T, ws world.WorldState, objectKey string) *Secret {
+func readParentSecret(
+	ctx context.Context,
+	t *testing.T,
+	ws world.WorldState,
+	objectKey string,
+) *s4wave_secret.Secret {
 	t.Helper()
 	obj, found, err := ws.GetObject(ctx, objectKey)
 	if err != nil {
@@ -377,10 +383,10 @@ func readParentSecret(ctx context.Context, t *testing.T, ws world.WorldState, ob
 	if !found {
 		t.Fatal("parent Secret object not found")
 	}
-	var secret *Secret
+	var secret *s4wave_secret.Secret
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
-		secret, err = UnmarshalSecret(ctx, bcs)
+		secret, err = s4wave_secret.UnmarshalSecret(ctx, bcs)
 		return err
 	})
 	if err != nil {
