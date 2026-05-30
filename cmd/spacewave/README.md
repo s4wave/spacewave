@@ -33,6 +33,7 @@ spacewave fs write /u/1/so/SPACE_ID/-/docs/-/hello.txt --from hello.txt
 | Flag | Env | Description |
 |---|---|---|
 | `--state-path, -s` | `SPACEWAVE_STATE_PATH`, `SPACEWAVE_DATA_DIR`, `BLDR_STATE_PATH` | State directory |
+| `--socket-path` | `SPACEWAVE_SOCKET_PATH` | Existing daemon socket to connect to without autostart |
 | `--output, -o` | `SPACEWAVE_OUTPUT` | Output format: `text` (default), `json`, `yaml` |
 | `--color` | `SPACEWAVE_COLOR` | Color mode: `auto`, `always`, `never` |
 | `--log-level` | `SPACEWAVE_LOG_LEVEL`, `BLDR_LOG_LEVEL` | Log level: `debug`, `info`, `warn`, `error` |
@@ -284,10 +285,17 @@ flags. Key variables:
 | Variable                  | Description                               |
 |---------------------------|-------------------------------------------|
 | `SPACEWAVE_STATE_PATH`    | Daemon state directory                    |
+| `SPACEWAVE_DATA_DIR`      | Daemon state directory compatibility alias |
+| `BLDR_STATE_PATH`         | Fallback daemon state directory           |
+| `SPACEWAVE_SOCKET_PATH`   | Existing daemon socket for client commands |
 | `SPACEWAVE_SESSION_INDEX` | Default session index                     |
 | `SPACEWAVE_SPACE`         | Default space ID                          |
 | `SPACEWAVE_PASSWORD`      | Account password (avoid shell history)    |
 | `SPACEWAVE_USERNAME`      | Account username                          |
 | `SPACEWAVE_OUTPUT`        | Default output format                     |
+| `SPACEWAVE_COLOR`         | Default color mode                        |
+| `SPACEWAVE_LOG_LEVEL`     | Spacewave console log level               |
+| `BLDR_LOG_LEVEL`          | Fallback console log level                |
+| `BLDR_LOG_FILE`           | File logging spec (`none` disables)       |
 | `SPACEWAVE_WATCH`         | Enable watch mode                         |
 | `NO_COLOR`                | Disable color output (community standard) |

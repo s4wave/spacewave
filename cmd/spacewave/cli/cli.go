@@ -102,11 +102,7 @@ func newHydraCommand() *cli.Command {
 func clientFlags(statePath *string, sessionIdx *uint) []cli.Flag {
 	return []cli.Flag{
 		statePathFlag(statePath),
-		&cli.StringFlag{
-			Name:    "socket-path",
-			Usage:   "connect to an existing daemon socket at this exact path",
-			EnvVars: socketPathEnvVars,
-		},
+		socketPathFlag(),
 		&cli.UintFlag{
 			Name:        "session-index",
 			Usage:       "session index to use",
@@ -114,6 +110,14 @@ func clientFlags(statePath *string, sessionIdx *uint) []cli.Flag {
 			Value:       1,
 			Destination: sessionIdx,
 		},
+	}
+}
+
+// daemonClientFlags returns common flags for daemon clients that do not select a session.
+func daemonClientFlags(statePath *string) []cli.Flag {
+	return []cli.Flag{
+		statePathFlag(statePath),
+		socketPathFlag(),
 	}
 }
 
@@ -126,5 +130,14 @@ func statePathFlag(dest *string) cli.Flag {
 		EnvVars:     statePathEnvVars,
 		Value:       defaultStatePath,
 		Destination: dest,
+	}
+}
+
+// socketPathFlag returns the common connect-only daemon socket flag.
+func socketPathFlag() cli.Flag {
+	return &cli.StringFlag{
+		Name:    "socket-path",
+		Usage:   "connect to an existing daemon socket at this exact path",
+		EnvVars: socketPathEnvVars,
 	}
 }

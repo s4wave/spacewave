@@ -27,8 +27,7 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newWebListCommand(),
 			newWebStopCommand(),
 		},
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
+		Flags: append(daemonClientFlags(&statePath),
 			&cli.StringFlag{
 				Name:        "host",
 				Usage:       "localhost hostname or loopback address to bind",
@@ -52,7 +51,7 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 				Usage:       "keep the listener in the daemon after this command exits",
 				Destination: &background,
 			},
-		},
+		),
 		Action: func(c *cli.Context) error {
 			return runWeb(c, statePath, host, port, listenMultiaddr, background)
 		},
@@ -64,9 +63,7 @@ func newWebListCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "list",
 		Usage: "list background localhost web listeners",
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
-		},
+		Flags: daemonClientFlags(&statePath),
 		Action: func(c *cli.Context) error {
 			return runWebList(c, statePath)
 		},
@@ -80,9 +77,7 @@ func newWebStopCommand() *cli.Command {
 		Usage:     "stop a background localhost web listener",
 		Args:      true,
 		ArgsUsage: "<listener-id>",
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
-		},
+		Flags:     daemonClientFlags(&statePath),
 		Action: func(c *cli.Context) error {
 			listenerID := c.Args().First()
 			if listenerID == "" {

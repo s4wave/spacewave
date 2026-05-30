@@ -240,6 +240,7 @@ func (fc *fsContext) lookupParentAndName(c *cli.Context, fsPath string) (s4wave_
 func commonFsFlags(statePath *string, spaceID *string, sessIdx *int) []cli.Flag {
 	return []cli.Flag{
 		statePathFlag(statePath),
+		socketPathFlag(),
 		&cli.StringFlag{
 			Name:        "space",
 			Usage:       "space ID (overrides URI)",

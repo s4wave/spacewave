@@ -173,6 +173,7 @@ func commonGitFlags(gitURI *string, statePath *string, spaceID *string, sessIdx 
 			Destination: gitURI,
 		},
 		statePathFlag(statePath),
+		socketPathFlag(),
 		&cli.StringFlag{
 			Name:        "space",
 			Usage:       "space ID (overrides URI)",
@@ -875,6 +876,7 @@ func buildGitCloneCommand() *cli.Command {
 		Usage: "clone a remote repository into the world",
 		Flags: []cli.Flag{
 			statePathFlag(&statePath),
+			socketPathFlag(),
 			&cli.StringFlag{
 				Name:        "space",
 				Usage:       "space ID (auto-detected if only one space)",

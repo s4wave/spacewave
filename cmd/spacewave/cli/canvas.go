@@ -169,6 +169,7 @@ func commonCanvasFlags(canvasURI *string, statePath *string, spaceID *string, se
 			Destination: canvasURI,
 		},
 		statePathFlag(statePath),
+		socketPathFlag(),
 		&cli.StringFlag{
 			Name:        "space",
 			Usage:       "space ID (overrides URI)",

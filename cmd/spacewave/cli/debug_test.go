@@ -5,6 +5,8 @@ package spacewave_cli
 import (
 	"bytes"
 	"context"
+	"net"
+	"path/filepath"
 	"runtime/trace"
 	"testing"
 	"time"
@@ -66,6 +68,46 @@ func TestDefaultDebugMemoryProfileOutputPath(t *testing.T) {
 	want := ".tmp/spacewave-daemon-20260511-182030-allocs.pprof"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestConnectDebugTraceDaemonUsesSocketPathWithoutAutostart(t *testing.T) {
+	oldDial := connectDaemonDial
+	oldBuildClient := connectDaemonBuildClient
+	oldStart := connectDaemonStart
+	t.Cleanup(func() {
+		connectDaemonDial = oldDial
+		connectDaemonBuildClient = oldBuildClient
+		connectDaemonStart = oldStart
+	})
+
+	connA, connB := net.Pipe()
+	t.Cleanup(func() {
+		connA.Close()
+		connB.Close()
+	})
+
+	sock := filepath.Join(t.TempDir(), "spacewave-debug.sock")
+	var dialed string
+	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
+		dialed = sockPath
+		return connA, nil
+	}
+	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
+		return &sdkClient{conn: conn}, nil
+	}
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
+		t.Fatal("debug connection must not autostart daemon")
+		return nil
+	}
+
+	client, err := connectDebugTraceDaemon(context.Background(), nil, t.TempDir(), sock)
+	if err != nil {
+		t.Fatalf("connect debug daemon: %v", err)
+	}
+	client.conn.Close()
+	if dialed != sock {
+		t.Fatalf("dialed %s, want %s", dialed, sock)
 	}
 }
 

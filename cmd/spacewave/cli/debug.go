@@ -33,7 +33,6 @@ func newDebugCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 
 func newDebugTraceCommand() *cli.Command {
 	var statePath string
-	var socketPath string
 	var outputPath string
 	var label string
 	var duration time.Duration
@@ -42,12 +41,7 @@ func newDebugTraceCommand() *cli.Command {
 		Usage: "capture a Go runtime trace from the running daemon",
 		Flags: []cli.Flag{
 			statePathFlag(&statePath),
-			&cli.StringFlag{
-				Name:        "socket-path",
-				Usage:       "connect to an existing daemon socket at this exact path",
-				EnvVars:     socketPathEnvVars,
-				Destination: &socketPath,
-			},
+			socketPathFlag(),
 			&cli.StringFlag{
 				Name:        "out",
 				Aliases:     []string{"o"},
@@ -69,14 +63,13 @@ func newDebugTraceCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return runDebugTrace(c, statePath, socketPath, outputPath, duration, label, c.String("output"))
+			return runDebugTrace(c, statePath, c.String("socket-path"), outputPath, duration, label, c.String("output"))
 		},
 	}
 }
 
 func newDebugCPUProfileCommand() *cli.Command {
 	var statePath string
-	var socketPath string
 	var outputPath string
 	var label string
 	var duration time.Duration
@@ -86,12 +79,7 @@ func newDebugCPUProfileCommand() *cli.Command {
 		Usage:   "capture a Go CPU profile from the running daemon",
 		Flags: []cli.Flag{
 			statePathFlag(&statePath),
-			&cli.StringFlag{
-				Name:        "socket-path",
-				Usage:       "connect to an existing daemon socket at this exact path",
-				EnvVars:     socketPathEnvVars,
-				Destination: &socketPath,
-			},
+			socketPathFlag(),
 			&cli.StringFlag{
 				Name:        "out",
 				Aliases:     []string{"o"},
@@ -113,14 +101,13 @@ func newDebugCPUProfileCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return runDebugCPUProfile(c, statePath, socketPath, outputPath, duration, label, c.String("output"))
+			return runDebugCPUProfile(c, statePath, c.String("socket-path"), outputPath, duration, label, c.String("output"))
 		},
 	}
 }
 
 func newDebugMemoryProfileCommand() *cli.Command {
 	var statePath string
-	var socketPath string
 	var outputPath string
 	var profile string
 	var gc bool
@@ -131,12 +118,7 @@ func newDebugMemoryProfileCommand() *cli.Command {
 		Usage:   "capture a Go memory profile from the running daemon",
 		Flags: []cli.Flag{
 			statePathFlag(&statePath),
-			&cli.StringFlag{
-				Name:        "socket-path",
-				Usage:       "connect to an existing daemon socket at this exact path",
-				EnvVars:     socketPathEnvVars,
-				Destination: &socketPath,
-			},
+			socketPathFlag(),
 			&cli.StringFlag{
 				Name:        "out",
 				Aliases:     []string{"o"},
@@ -161,7 +143,7 @@ func newDebugMemoryProfileCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return runDebugMemoryProfile(c, statePath, socketPath, outputPath, profile, gc, debug, c.String("output"))
+			return runDebugMemoryProfile(c, statePath, c.String("socket-path"), outputPath, profile, gc, debug, c.String("output"))
 		},
 	}
 }
