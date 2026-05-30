@@ -1597,6 +1597,20 @@ describe('DesktopTrayController', () => {
     expect(trayInstances[0]?.destroy).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps the tray toggle shortcut dev-only by default', async () => {
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    controller.dispose()
+
+    expect(mockGlobalShortcut.register).not.toHaveBeenCalled()
+    expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled()
+  })
+
   it('uses the macOS template icon when configured', async () => {
     platformState.value = 'darwin'
     const [electron, { DesktopTrayController }] = await Promise.all([
