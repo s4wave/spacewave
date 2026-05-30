@@ -12,6 +12,7 @@ import type { MessageStream } from 'starpc'
 import {
   TerminalFrameKind,
   TerminalSessionState,
+  TerminalTargetKind,
   type Terminal,
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
@@ -127,9 +128,9 @@ export function TerminalViewer({
       </div>
       <div className="border-foreground/8 flex h-8 shrink-0 items-center gap-4 border-b px-4 text-[11px]">
         <span className="text-muted-foreground min-w-0 truncate">
-          device{' '}
+          {formatTerminalTargetLabel(state)}{' '}
           <span className="text-foreground font-mono">
-            {state?.deviceObjectKey || objectKey}
+            {formatTerminalTargetObjectKey(state, objectKey)}
           </span>
         </span>
         {state?.command && (
@@ -251,6 +252,22 @@ function createTerminalFrameQueue(): {
       }
     },
   }
+}
+
+function formatTerminalTargetLabel(state?: Terminal): string {
+  return state?.targetKind === TerminalTargetKind.SSH_HOST
+    ? 'ssh host'
+    : 'device'
+}
+
+function formatTerminalTargetObjectKey(
+  state: Terminal | undefined,
+  fallback: string,
+): string {
+  if (state?.targetKind === TerminalTargetKind.SSH_HOST) {
+    return state.sshHostObjectKey || fallback
+  }
+  return state?.deviceObjectKey || fallback
 }
 
 function formatTerminalState(state?: TerminalSessionState): string {

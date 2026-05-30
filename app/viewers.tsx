@@ -57,6 +57,10 @@ import {
 } from '@s4wave/app/chat/ChatMessageViewer.js'
 import { DeviceViewer, DeviceTypeID } from '@s4wave/app/device/DeviceViewer.js'
 import {
+  SshHostViewer,
+  SshHostTypeID,
+} from '@s4wave/app/device/SshHostViewer.js'
+import {
   ComputersDashboardViewer,
   ComputersDashboardTypeID,
 } from '@s4wave/app/device/ComputersDashboardViewer.js'
@@ -222,6 +226,13 @@ const staticViewers: ObjectViewerComponent[] = [
     name: 'Device',
     category: 'Devices',
     component: DeviceViewer,
+  },
+  {
+    componentID: 'spacewave.ssh-host.viewer',
+    typeID: SshHostTypeID,
+    name: 'SSH Host',
+    category: 'Devices',
+    component: SshHostViewer,
   },
   {
     componentID: 'spacewave.computers.viewer',

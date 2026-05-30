@@ -26,8 +26,18 @@ const (
 	SecretBodyType = "secret"
 	// SecretKindMatrixAccessToken is the kind for Matrix access tokens.
 	SecretKindMatrixAccessToken = "matrix_access_token"
+	// SecretKindSSHPrivateKey is the kind for SSH private-key credentials.
+	SecretKindSSHPrivateKey = "ssh_private_key"
+	// SecretKindSSHPassword is the kind for SSH password credentials.
+	SecretKindSSHPassword = "ssh_password"
+	// SecretKindSSHPassphrase is the kind for SSH private-key passphrases.
+	SecretKindSSHPassphrase = "ssh_passphrase"
 	// MatrixAccessTokenContentType is the content type for Matrix access tokens.
 	MatrixAccessTokenContentType = "text/plain; charset=utf-8"
+	// SSHPrivateKeyContentType is the content type for SSH private-key payloads.
+	SSHPrivateKeyContentType = "application/x-pem-file"
+	// SSHTextCredentialContentType is the content type for text SSH credentials.
+	SSHTextCredentialContentType = "text/plain; charset=utf-8"
 )
 
 // SecretResource implements the SecretResourceService SRPC interface.
@@ -94,15 +104,22 @@ func NewSharedObjectMeta() *sobject.SharedObjectMeta {
 
 // NewMatrixAccessTokenPayload constructs a Matrix access token payload.
 func NewMatrixAccessTokenPayload(token string, ts time.Time) *SecretPayload {
-	if ts.IsZero() {
-		ts = time.Now()
-	}
-	return &SecretPayload{
-		Value:       []byte(token),
-		ContentType: MatrixAccessTokenContentType,
-		Version:     1,
-		UpdatedAt:   timestamppb.New(ts),
-	}
+	return newSecretPayload([]byte(token), MatrixAccessTokenContentType, ts)
+}
+
+// NewSSHPrivateKeyPayload constructs an SSH private-key payload.
+func NewSSHPrivateKeyPayload(privateKey []byte, ts time.Time) *SecretPayload {
+	return newSecretPayload(privateKey, SSHPrivateKeyContentType, ts)
+}
+
+// NewSSHPasswordPayload constructs an SSH password payload.
+func NewSSHPasswordPayload(password string, ts time.Time) *SecretPayload {
+	return newSecretPayload([]byte(password), SSHTextCredentialContentType, ts)
+}
+
+// NewSSHPassphrasePayload constructs an SSH private-key passphrase payload.
+func NewSSHPassphrasePayload(passphrase string, ts time.Time) *SecretPayload {
+	return newSecretPayload([]byte(passphrase), SSHTextCredentialContentType, ts)
 }
 
 // GetMux returns the srpc mux for this resource.
@@ -311,6 +328,18 @@ func ReadMatrixAccessToken(ctx context.Context, b bus.Bus, secret *Secret) (stri
 	return string(payload.GetValue()), nil
 }
 
+// ReadSSHCredentialPayload reads an SSH Secret payload after checking its kind.
+func ReadSSHCredentialPayload(ctx context.Context, b bus.Bus, secret *Secret, expectedKind string) ([]byte, error) {
+	if secret == nil || secret.GetKind() != expectedKind {
+		return nil, ErrSecretKindMismatch
+	}
+	payload, err := ReadSecretPayload(ctx, b, secret)
+	if err != nil {
+		return nil, err
+	}
+	return append([]byte(nil), payload.GetValue()...), nil
+}
+
 // AddSecretParticipant grants nested SharedObject access to a peer.
 func AddSecretParticipant(
 	ctx context.Context,
@@ -505,6 +534,18 @@ func mountSecretInviteHost(
 		return nil, nil, errors.New("secret shared object does not support participant mutation")
 	}
 	return so, soRef.Release, nil
+}
+
+func newSecretPayload(value []byte, contentType string, ts time.Time) *SecretPayload {
+	if ts.IsZero() {
+		ts = time.Now()
+	}
+	return &SecretPayload{
+		Value:       append([]byte(nil), value...),
+		ContentType: contentType,
+		Version:     1,
+		UpdatedAt:   timestamppb.New(ts),
+	}
 }
 
 // _ is a type assertion

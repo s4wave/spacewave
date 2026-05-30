@@ -43,6 +43,16 @@ enum TerminalFrameKind {
   TERMINAL_FRAME_KIND_ERROR = 8;
 }
 
+// TerminalTargetKind selects the owner that opens the live terminal session.
+enum TerminalTargetKind {
+  // TERMINAL_TARGET_KIND_UNKNOWN preserves old Device terminals when Device fields are set.
+  TERMINAL_TARGET_KIND_UNKNOWN = 0;
+  // TERMINAL_TARGET_KIND_DEVICE opens a Spacewave-managed Device remote shell.
+  TERMINAL_TARGET_KIND_DEVICE = 1;
+  // TERMINAL_TARGET_KIND_SSH_HOST opens an SSH-only Host session.
+  TERMINAL_TARGET_KIND_SSH_HOST = 2;
+}
+
 // Terminal is the world-block state for a durable remote shell tab.
 message Terminal {
   // Name is the display name for this terminal.
@@ -69,6 +79,10 @@ message Terminal {
   .google.protobuf.Timestamp created_at = 11;
   // UpdatedAt is when this Terminal object was last updated.
   .google.protobuf.Timestamp updated_at = 12;
+  // TargetKind selects the terminal session owner.
+  TerminalTargetKind target_kind = 13;
+  // SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+  string ssh_host_object_key = 14;
 }
 
 // TerminalFrame carries terminal data and control frames.
@@ -111,6 +125,10 @@ message CreateTerminalOp {
   uint32 rows = 8;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 9;
+  // TargetKind selects the terminal session owner.
+  TerminalTargetKind target_kind = 10;
+  // SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+  string ssh_host_object_key = 11;
 }
 
 service TerminalResourceService {

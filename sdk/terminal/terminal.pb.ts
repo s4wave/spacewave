@@ -161,6 +161,44 @@ export const TerminalFrameKind_Enum = createEnumType(
 )
 
 /**
+ * TerminalTargetKind selects the owner that opens the live terminal session.
+ *
+ * @generated from enum s4wave.terminal.TerminalTargetKind
+ */
+export enum TerminalTargetKind {
+  /**
+   * TERMINAL_TARGET_KIND_UNKNOWN preserves old Device terminals when Device fields are set.
+   *
+   * @generated from enum value: TERMINAL_TARGET_KIND_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * TERMINAL_TARGET_KIND_DEVICE opens a Spacewave-managed Device remote shell.
+   *
+   * @generated from enum value: TERMINAL_TARGET_KIND_DEVICE = 1;
+   */
+  DEVICE = 1,
+
+  /**
+   * TERMINAL_TARGET_KIND_SSH_HOST opens an SSH-only Host session.
+   *
+   * @generated from enum value: TERMINAL_TARGET_KIND_SSH_HOST = 2;
+   */
+  SSH_HOST = 2,
+}
+
+// TerminalTargetKind_Enum is the enum type for TerminalTargetKind.
+export const TerminalTargetKind_Enum = createEnumType(
+  's4wave.terminal.TerminalTargetKind',
+  [
+    { no: 0, name: 'TERMINAL_TARGET_KIND_UNKNOWN' },
+    { no: 1, name: 'TERMINAL_TARGET_KIND_DEVICE' },
+    { no: 2, name: 'TERMINAL_TARGET_KIND_SSH_HOST' },
+  ],
+)
+
+/**
  * Terminal is the world-block state for a durable remote shell tab.
  *
  * @generated from message s4wave.terminal.Terminal
@@ -238,6 +276,18 @@ export interface Terminal {
    * @generated from field: google.protobuf.Timestamp updated_at = 12;
    */
   updatedAt?: Date
+  /**
+   * TargetKind selects the terminal session owner.
+   *
+   * @generated from field: s4wave.terminal.TerminalTargetKind target_kind = 13;
+   */
+  targetKind?: TerminalTargetKind
+  /**
+   * SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+   *
+   * @generated from field: string ssh_host_object_key = 14;
+   */
+  sshHostObjectKey?: string
 }
 
 // Terminal contains the message type declaration for Terminal.
@@ -262,6 +312,13 @@ export const Terminal: MessageType<Terminal> = createMessageType({
     { no: 10, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     { no: 11, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 12, name: 'updated_at', kind: 'message', T: () => Timestamp },
+    { no: 13, name: 'target_kind', kind: 'enum', T: TerminalTargetKind_Enum },
+    {
+      no: 14,
+      name: 'ssh_host_object_key',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -404,6 +461,18 @@ export interface CreateTerminalOp {
    * @generated from field: google.protobuf.Timestamp timestamp = 9;
    */
   timestamp?: Date
+  /**
+   * TargetKind selects the terminal session owner.
+   *
+   * @generated from field: s4wave.terminal.TerminalTargetKind target_kind = 10;
+   */
+  targetKind?: TerminalTargetKind
+  /**
+   * SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+   *
+   * @generated from field: string ssh_host_object_key = 11;
+   */
+  sshHostObjectKey?: string
 }
 
 // CreateTerminalOp contains the message type declaration for CreateTerminalOp.
@@ -431,6 +500,13 @@ export const CreateTerminalOp: MessageType<CreateTerminalOp> =
       { no: 7, name: 'cols', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 8, name: 'rows', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 9, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 10, name: 'target_kind', kind: 'enum', T: TerminalTargetKind_Enum },
+      {
+        no: 11,
+        name: 'ssh_host_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

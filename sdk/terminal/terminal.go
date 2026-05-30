@@ -47,13 +47,41 @@ func (t *Terminal) Validate() error {
 	if strings.TrimSpace(t.GetName()) == "" {
 		return errors.New("terminal name is required")
 	}
-	if strings.TrimSpace(t.GetDeviceObjectKey()) == "" {
-		return errors.New("terminal device object key is required")
-	}
-	if strings.TrimSpace(t.GetDevicePeerId()) == "" {
-		return errors.New("terminal device peer id is required")
+	switch EffectiveTerminalTargetKind(t) {
+	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE:
+		if strings.TrimSpace(t.GetDeviceObjectKey()) == "" {
+			return errors.New("terminal device object key is required")
+		}
+		if strings.TrimSpace(t.GetDevicePeerId()) == "" {
+			return errors.New("terminal device peer id is required")
+		}
+	case TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST:
+		if strings.TrimSpace(t.GetSshHostObjectKey()) == "" {
+			return errors.New("terminal SSH Host object key is required")
+		}
+	default:
+		return errors.New("terminal target is required")
 	}
 	return validateTerminalEnvironment(t.GetEnvironment())
+}
+
+// EffectiveTerminalTargetKind resolves old Device terminals with no explicit target kind.
+func EffectiveTerminalTargetKind(t *Terminal) TerminalTargetKind {
+	if t == nil {
+		return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
+	}
+	switch t.GetTargetKind() {
+	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE,
+		TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST:
+		return t.GetTargetKind()
+	}
+	if strings.TrimSpace(t.GetSshHostObjectKey()) != "" {
+		return TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST
+	}
+	if strings.TrimSpace(t.GetDeviceObjectKey()) != "" || strings.TrimSpace(t.GetDevicePeerId()) != "" {
+		return TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE
+	}
+	return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
 }
 
 func validateTerminalEnvironment(env []string) error {

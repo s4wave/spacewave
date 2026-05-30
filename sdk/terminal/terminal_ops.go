@@ -24,9 +24,23 @@ func NewCreateTerminalOp(objKey, name, deviceObjKey, devicePeerID string, ts tim
 		Name:            name,
 		DeviceObjectKey: deviceObjKey,
 		DevicePeerId:    devicePeerID,
+		TargetKind:      TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE,
 		Cols:            DefaultTerminalCols,
 		Rows:            DefaultTerminalRows,
 		Timestamp:       timestamppb.New(ts),
+	}
+}
+
+// NewCreateSshHostTerminalOp constructs a CreateTerminalOp for an SSH Host target.
+func NewCreateSshHostTerminalOp(objKey, name, sshHostObjKey string, ts time.Time) *CreateTerminalOp {
+	return &CreateTerminalOp{
+		ObjectKey:        objKey,
+		Name:             name,
+		SshHostObjectKey: sshHostObjKey,
+		TargetKind:       TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST,
+		Cols:             DefaultTerminalCols,
+		Rows:             DefaultTerminalRows,
+		Timestamp:        timestamppb.New(ts),
 	}
 }
 
@@ -48,10 +62,19 @@ func (o *CreateTerminalOp) Validate() error {
 	if strings.TrimSpace(o.GetName()) == "" {
 		return world.ErrEmptyOp
 	}
-	if strings.TrimSpace(o.GetDeviceObjectKey()) == "" {
-		return world.ErrEmptyOp
-	}
-	if strings.TrimSpace(o.GetDevicePeerId()) == "" {
+	switch effectiveCreateTerminalOpTargetKind(o) {
+	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE:
+		if strings.TrimSpace(o.GetDeviceObjectKey()) == "" {
+			return world.ErrEmptyOp
+		}
+		if strings.TrimSpace(o.GetDevicePeerId()) == "" {
+			return world.ErrEmptyOp
+		}
+	case TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST:
+		if strings.TrimSpace(o.GetSshHostObjectKey()) == "" {
+			return world.ErrEmptyOp
+		}
+	default:
 		return world.ErrEmptyOp
 	}
 	if err := validateTerminalEnvironment(o.GetEnvironment()); err != nil {
@@ -76,17 +99,19 @@ func (o *CreateTerminalOp) ApplyWorldOp(
 
 	cols, rows := NormalizeTerminalFrameSize(o.GetCols(), o.GetRows())
 	terminal := &Terminal{
-		Name:            o.GetName(),
-		DeviceObjectKey: o.GetDeviceObjectKey(),
-		DevicePeerId:    o.GetDevicePeerId(),
-		Command:         o.GetCommand(),
-		Environment:     slices.Clone(o.GetEnvironment()),
-		Cols:            cols,
-		Rows:            rows,
-		State:           TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
-		Status:          "not connected",
-		CreatedAt:       o.GetTimestamp(),
-		UpdatedAt:       o.GetTimestamp(),
+		Name:             o.GetName(),
+		DeviceObjectKey:  o.GetDeviceObjectKey(),
+		DevicePeerId:     o.GetDevicePeerId(),
+		SshHostObjectKey: o.GetSshHostObjectKey(),
+		TargetKind:       effectiveCreateTerminalOpTargetKind(o),
+		Command:          o.GetCommand(),
+		Environment:      slices.Clone(o.GetEnvironment()),
+		Cols:             cols,
+		Rows:             rows,
+		State:            TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
+		Status:           "not connected",
+		CreatedAt:        o.GetTimestamp(),
+		UpdatedAt:        o.GetTimestamp(),
 	}
 
 	_, _, err = world.CreateWorldObject(ctx, ws, o.GetObjectKey(), func(bcs *block.Cursor) error {
@@ -130,6 +155,24 @@ func LookupCreateTerminalOp(ctx context.Context, operationTypeID string) (world.
 		return &CreateTerminalOp{}, nil
 	}
 	return nil, nil
+}
+
+func effectiveCreateTerminalOpTargetKind(o *CreateTerminalOp) TerminalTargetKind {
+	if o == nil {
+		return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
+	}
+	switch o.GetTargetKind() {
+	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE,
+		TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST:
+		return o.GetTargetKind()
+	}
+	if strings.TrimSpace(o.GetSshHostObjectKey()) != "" {
+		return TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST
+	}
+	if strings.TrimSpace(o.GetDeviceObjectKey()) != "" || strings.TrimSpace(o.GetDevicePeerId()) != "" {
+		return TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE
+	}
+	return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
 }
 
 // _ is a type assertion

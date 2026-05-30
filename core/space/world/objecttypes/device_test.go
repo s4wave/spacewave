@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 )
 
@@ -44,5 +45,18 @@ func TestLookupTerminalObjectType(t *testing.T) {
 	}
 	if got.GetObjectTypeID() != s4wave_terminal.TerminalTypeID {
 		t.Fatalf("object type id = %q, want %q", got.GetObjectTypeID(), s4wave_terminal.TerminalTypeID)
+	}
+}
+
+func TestLookupSshHostObjectType(t *testing.T) {
+	got, err := LookupObjectType(context.Background(), s4wave_sshhost.SshHostTypeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil {
+		t.Fatal("expected SSH Host ObjectType")
+	}
+	if got.GetObjectTypeID() != s4wave_sshhost.SshHostTypeID {
+		t.Fatalf("object type id = %q, want %q", got.GetObjectTypeID(), s4wave_sshhost.SshHostTypeID)
 	}
 }

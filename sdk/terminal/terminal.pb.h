@@ -63,6 +63,8 @@ enum TerminalFrameKind : int;
 extern const uint32_t TerminalFrameKind_internal_data_[];
 enum TerminalSessionState : int;
 extern const uint32_t TerminalSessionState_internal_data_[];
+enum TerminalTargetKind : int;
+extern const uint32_t TerminalTargetKind_internal_data_[];
 class CreateTerminalOp;
 struct CreateTerminalOpDefaultTypeInternal;
 extern CreateTerminalOpDefaultTypeInternal _CreateTerminalOp_default_instance_;
@@ -93,6 +95,9 @@ internal::EnumTraitsT<::s4wave::terminal::TerminalFrameKind_internal_data_>
 template <>
 internal::EnumTraitsT<::s4wave::terminal::TerminalSessionState_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::terminal::TerminalSessionState>;
+template <>
+internal::EnumTraitsT<::s4wave::terminal::TerminalTargetKind_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::terminal::TerminalTargetKind>;
 }  // namespace protobuf
 }  // namespace google
 
@@ -179,6 +184,43 @@ inline const ::std::string& TerminalFrameKind_Name(TerminalFrameKind value) {
 inline bool TerminalFrameKind_Parse(
     ::absl::string_view name, TerminalFrameKind* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<TerminalFrameKind>(TerminalFrameKind_descriptor(), name,
+                                           value);
+}
+enum TerminalTargetKind : int {
+  TERMINAL_TARGET_KIND_UNKNOWN = 0,
+  TERMINAL_TARGET_KIND_DEVICE = 1,
+  TERMINAL_TARGET_KIND_SSH_HOST = 2,
+  TerminalTargetKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  TerminalTargetKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t TerminalTargetKind_internal_data_[];
+inline constexpr TerminalTargetKind TerminalTargetKind_MIN =
+    static_cast<TerminalTargetKind>(0);
+inline constexpr TerminalTargetKind TerminalTargetKind_MAX =
+    static_cast<TerminalTargetKind>(2);
+inline bool TerminalTargetKind_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int TerminalTargetKind_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TerminalTargetKind_descriptor();
+template <typename T>
+const ::std::string& TerminalTargetKind_Name(T value) {
+  static_assert(::std::is_same<T, TerminalTargetKind>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to TerminalTargetKind_Name().");
+  return TerminalTargetKind_Name(static_cast<TerminalTargetKind>(value));
+}
+template <>
+inline const ::std::string& TerminalTargetKind_Name(TerminalTargetKind value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<TerminalTargetKind_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool TerminalTargetKind_Parse(
+    ::absl::string_view name, TerminalTargetKind* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<TerminalTargetKind>(TerminalTargetKind_descriptor(), name,
                                            value);
 }
 
@@ -771,11 +813,13 @@ class Terminal final : public ::google::protobuf::Message
     kCommandFieldNumber = 4,
     kStatusFieldNumber = 9,
     kErrorFieldNumber = 10,
+    kSshHostObjectKeyFieldNumber = 14,
     kCreatedAtFieldNumber = 11,
     kUpdatedAtFieldNumber = 12,
     kColsFieldNumber = 6,
     kRowsFieldNumber = 7,
     kStateFieldNumber = 8,
+    kTargetKindFieldNumber = 13,
   };
   // repeated string environment = 5;
   int environment_size() const;
@@ -889,6 +933,21 @@ class Terminal final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
 
   public:
+  // string ssh_host_object_key = 14;
+  void clear_ssh_host_object_key() ;
+  const ::std::string& ssh_host_object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ssh_host_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ssh_host_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ssh_host_object_key();
+  void set_allocated_ssh_host_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ssh_host_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ssh_host_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ssh_host_object_key();
+
+  public:
   // .google.protobuf.Timestamp created_at = 11;
   bool has_created_at() const;
   void clear_created_at() ;
@@ -949,12 +1008,22 @@ class Terminal final : public ::google::protobuf::Message
   void _internal_set_state(::s4wave::terminal::TerminalSessionState value);
 
   public:
+  // .s4wave.terminal.TerminalTargetKind target_kind = 13;
+  void clear_target_kind() ;
+  ::s4wave::terminal::TerminalTargetKind target_kind() const;
+  void set_target_kind(::s4wave::terminal::TerminalTargetKind value);
+
+  private:
+  ::s4wave::terminal::TerminalTargetKind _internal_target_kind() const;
+  void _internal_set_target_kind(::s4wave::terminal::TerminalTargetKind value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.terminal.Terminal)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 12,
-                                   2, 105,
+  static const ::google::protobuf::internal::TcParseTable<4, 14,
+                                   2, 124,
                                    2>
       _table_;
 
@@ -982,11 +1051,13 @@ class Terminal final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr command_;
     ::google::protobuf::internal::ArenaStringPtr status_;
     ::google::protobuf::internal::ArenaStringPtr error_;
+    ::google::protobuf::internal::ArenaStringPtr ssh_host_object_key_;
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE created_at_;
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE updated_at_;
     ::uint32_t cols_;
     ::uint32_t rows_;
     int state_;
+    int target_kind_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1144,9 +1215,11 @@ class CreateTerminalOp final : public ::google::protobuf::Message
     kDeviceObjectKeyFieldNumber = 3,
     kDevicePeerIdFieldNumber = 4,
     kCommandFieldNumber = 5,
+    kSshHostObjectKeyFieldNumber = 11,
     kTimestampFieldNumber = 9,
     kColsFieldNumber = 7,
     kRowsFieldNumber = 8,
+    kTargetKindFieldNumber = 10,
   };
   // repeated string environment = 6;
   int environment_size() const;
@@ -1245,6 +1318,21 @@ class CreateTerminalOp final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_command();
 
   public:
+  // string ssh_host_object_key = 11;
+  void clear_ssh_host_object_key() ;
+  const ::std::string& ssh_host_object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ssh_host_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ssh_host_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ssh_host_object_key();
+  void set_allocated_ssh_host_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ssh_host_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ssh_host_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ssh_host_object_key();
+
+  public:
   // .google.protobuf.Timestamp timestamp = 9;
   bool has_timestamp() const;
   void clear_timestamp() ;
@@ -1280,12 +1368,22 @@ class CreateTerminalOp final : public ::google::protobuf::Message
   void _internal_set_rows(::uint32_t value);
 
   public:
+  // .s4wave.terminal.TerminalTargetKind target_kind = 10;
+  void clear_target_kind() ;
+  ::s4wave::terminal::TerminalTargetKind target_kind() const;
+  void set_target_kind(::s4wave::terminal::TerminalTargetKind value);
+
+  private:
+  ::s4wave::terminal::TerminalTargetKind _internal_target_kind() const;
+  void _internal_set_target_kind(::s4wave::terminal::TerminalTargetKind value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.terminal.CreateTerminalOp)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
-                                   1, 112,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   1, 131,
                                    2>
       _table_;
 
@@ -1312,9 +1410,11 @@ class CreateTerminalOp final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr device_object_key_;
     ::google::protobuf::internal::ArenaStringPtr device_peer_id_;
     ::google::protobuf::internal::ArenaStringPtr command_;
+    ::google::protobuf::internal::ArenaStringPtr ssh_host_object_key_;
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE timestamp_;
     ::uint32_t cols_;
     ::uint32_t rows_;
+    int target_kind_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1871,7 +1971,7 @@ inline void Terminal::clear_cols() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.cols_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline ::uint32_t Terminal::cols() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.Terminal.cols)
@@ -1879,7 +1979,7 @@ inline ::uint32_t Terminal::cols() const {
 }
 inline void Terminal::set_cols(::uint32_t value) {
   _internal_set_cols(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.Terminal.cols)
 }
 inline ::uint32_t Terminal::_internal_cols() const {
@@ -1896,7 +1996,7 @@ inline void Terminal::clear_rows() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rows_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00000800U);
 }
 inline ::uint32_t Terminal::rows() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.Terminal.rows)
@@ -1904,7 +2004,7 @@ inline ::uint32_t Terminal::rows() const {
 }
 inline void Terminal::set_rows(::uint32_t value) {
   _internal_set_rows(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.Terminal.rows)
 }
 inline ::uint32_t Terminal::_internal_rows() const {
@@ -1921,7 +2021,7 @@ inline void Terminal::clear_state() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000800U);
+                  0x00001000U);
 }
 inline ::s4wave::terminal::TerminalSessionState Terminal::state() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.Terminal.state)
@@ -1929,7 +2029,7 @@ inline ::s4wave::terminal::TerminalSessionState Terminal::state() const {
 }
 inline void Terminal::set_state(::s4wave::terminal::TerminalSessionState value) {
   _internal_set_state(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.Terminal.state)
 }
 inline ::s4wave::terminal::TerminalSessionState Terminal::_internal_state() const {
@@ -2073,7 +2173,7 @@ inline void Terminal::set_allocated_error(::std::string* PROTOBUF_NULLABLE value
 
 // .google.protobuf.Timestamp created_at = 11;
 inline bool Terminal::has_created_at() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
   PROTOBUF_ASSUME(!value || _impl_.created_at_ != nullptr);
   return value;
 }
@@ -2094,16 +2194,16 @@ inline void Terminal::unsafe_arena_set_allocated_created_at(
   }
   _impl_.created_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.terminal.Terminal.created_at)
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE Terminal::release_created_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
   ::google::protobuf::Timestamp* released = _impl_.created_at_;
   _impl_.created_at_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2123,7 +2223,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE Terminal::unsafe_arena_r
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.terminal.Terminal.created_at)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
   ::google::protobuf::Timestamp* temp = _impl_.created_at_;
   _impl_.created_at_ = nullptr;
   return temp;
@@ -2138,7 +2238,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL Terminal::_internal_mutab
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL Terminal::mutable_created_at()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   ::google::protobuf::Timestamp* _msg = _internal_mutable_created_at();
   // @@protoc_insertion_point(field_mutable:s4wave.terminal.Terminal.created_at)
   return _msg;
@@ -2155,9 +2255,9 @@ inline void Terminal::set_allocated_created_at(::google::protobuf::Timestamp* PR
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
   }
 
   _impl_.created_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
@@ -2166,7 +2266,7 @@ inline void Terminal::set_allocated_created_at(::google::protobuf::Timestamp* PR
 
 // .google.protobuf.Timestamp updated_at = 12;
 inline bool Terminal::has_updated_at() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000200U);
   PROTOBUF_ASSUME(!value || _impl_.updated_at_ != nullptr);
   return value;
 }
@@ -2187,16 +2287,16 @@ inline void Terminal::unsafe_arena_set_allocated_updated_at(
   }
   _impl_.updated_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.terminal.Terminal.updated_at)
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE Terminal::release_updated_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
   ::google::protobuf::Timestamp* released = _impl_.updated_at_;
   _impl_.updated_at_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2216,7 +2316,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE Terminal::unsafe_arena_r
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.terminal.Terminal.updated_at)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
   ::google::protobuf::Timestamp* temp = _impl_.updated_at_;
   _impl_.updated_at_ = nullptr;
   return temp;
@@ -2231,7 +2331,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL Terminal::_internal_mutab
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL Terminal::mutable_updated_at()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   ::google::protobuf::Timestamp* _msg = _internal_mutable_updated_at();
   // @@protoc_insertion_point(field_mutable:s4wave.terminal.Terminal.updated_at)
   return _msg;
@@ -2248,13 +2348,103 @@ inline void Terminal::set_allocated_updated_at(::google::protobuf::Timestamp* PR
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
   }
 
   _impl_.updated_at_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   // @@protoc_insertion_point(field_set_allocated:s4wave.terminal.Terminal.updated_at)
+}
+
+// .s4wave.terminal.TerminalTargetKind target_kind = 13;
+inline void Terminal::clear_target_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_kind_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00002000U);
+}
+inline ::s4wave::terminal::TerminalTargetKind Terminal::target_kind() const {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.Terminal.target_kind)
+  return _internal_target_kind();
+}
+inline void Terminal::set_target_kind(::s4wave::terminal::TerminalTargetKind value) {
+  _internal_set_target_kind(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  // @@protoc_insertion_point(field_set:s4wave.terminal.Terminal.target_kind)
+}
+inline ::s4wave::terminal::TerminalTargetKind Terminal::_internal_target_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::terminal::TerminalTargetKind>(_impl_.target_kind_);
+}
+inline void Terminal::_internal_set_target_kind(::s4wave::terminal::TerminalTargetKind value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_kind_ = value;
+}
+
+// string ssh_host_object_key = 14;
+inline void Terminal::clear_ssh_host_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_host_object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& Terminal::ssh_host_object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.Terminal.ssh_host_object_key)
+  return _internal_ssh_host_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Terminal::set_ssh_host_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.ssh_host_object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.terminal.Terminal.ssh_host_object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL Terminal::mutable_ssh_host_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_ssh_host_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.terminal.Terminal.ssh_host_object_key)
+  return _s;
+}
+inline const ::std::string& Terminal::_internal_ssh_host_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ssh_host_object_key_.Get();
+}
+inline void Terminal::_internal_set_ssh_host_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_host_object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Terminal::_internal_mutable_ssh_host_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ssh_host_object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Terminal::release_ssh_host_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.terminal.Terminal.ssh_host_object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.ssh_host_object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ssh_host_object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Terminal::set_allocated_ssh_host_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.ssh_host_object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ssh_host_object_key_.IsDefault()) {
+    _impl_.ssh_host_object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.terminal.Terminal.ssh_host_object_key)
 }
 
 // -------------------------------------------------------------------
@@ -3034,7 +3224,7 @@ inline void CreateTerminalOp::clear_cols() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.cols_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000100U);
 }
 inline ::uint32_t CreateTerminalOp::cols() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.CreateTerminalOp.cols)
@@ -3042,7 +3232,7 @@ inline ::uint32_t CreateTerminalOp::cols() const {
 }
 inline void CreateTerminalOp::set_cols(::uint32_t value) {
   _internal_set_cols(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.CreateTerminalOp.cols)
 }
 inline ::uint32_t CreateTerminalOp::_internal_cols() const {
@@ -3059,7 +3249,7 @@ inline void CreateTerminalOp::clear_rows() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rows_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline ::uint32_t CreateTerminalOp::rows() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.CreateTerminalOp.rows)
@@ -3067,7 +3257,7 @@ inline ::uint32_t CreateTerminalOp::rows() const {
 }
 inline void CreateTerminalOp::set_rows(::uint32_t value) {
   _internal_set_rows(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.CreateTerminalOp.rows)
 }
 inline ::uint32_t CreateTerminalOp::_internal_rows() const {
@@ -3081,7 +3271,7 @@ inline void CreateTerminalOp::_internal_set_rows(::uint32_t value) {
 
 // .google.protobuf.Timestamp timestamp = 9;
 inline bool CreateTerminalOp::has_timestamp() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
   PROTOBUF_ASSUME(!value || _impl_.timestamp_ != nullptr);
   return value;
 }
@@ -3102,16 +3292,16 @@ inline void CreateTerminalOp::unsafe_arena_set_allocated_timestamp(
   }
   _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.terminal.CreateTerminalOp.timestamp)
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE CreateTerminalOp::release_timestamp() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::google::protobuf::Timestamp* released = _impl_.timestamp_;
   _impl_.timestamp_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -3131,7 +3321,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NULLABLE CreateTerminalOp::unsafe
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.terminal.CreateTerminalOp.timestamp)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::google::protobuf::Timestamp* temp = _impl_.timestamp_;
   _impl_.timestamp_ = nullptr;
   return temp;
@@ -3146,7 +3336,7 @@ inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL CreateTerminalOp::_intern
 }
 inline ::google::protobuf::Timestamp* PROTOBUF_NONNULL CreateTerminalOp::mutable_timestamp()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::google::protobuf::Timestamp* _msg = _internal_mutable_timestamp();
   // @@protoc_insertion_point(field_mutable:s4wave.terminal.CreateTerminalOp.timestamp)
   return _msg;
@@ -3163,13 +3353,103 @@ inline void CreateTerminalOp::set_allocated_timestamp(::google::protobuf::Timest
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   }
 
   _impl_.timestamp_ = reinterpret_cast<::google::protobuf::Timestamp*>(value);
   // @@protoc_insertion_point(field_set_allocated:s4wave.terminal.CreateTerminalOp.timestamp)
+}
+
+// .s4wave.terminal.TerminalTargetKind target_kind = 10;
+inline void CreateTerminalOp::clear_target_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_kind_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::s4wave::terminal::TerminalTargetKind CreateTerminalOp::target_kind() const {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.CreateTerminalOp.target_kind)
+  return _internal_target_kind();
+}
+inline void CreateTerminalOp::set_target_kind(::s4wave::terminal::TerminalTargetKind value) {
+  _internal_set_target_kind(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:s4wave.terminal.CreateTerminalOp.target_kind)
+}
+inline ::s4wave::terminal::TerminalTargetKind CreateTerminalOp::_internal_target_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::terminal::TerminalTargetKind>(_impl_.target_kind_);
+}
+inline void CreateTerminalOp::_internal_set_target_kind(::s4wave::terminal::TerminalTargetKind value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_kind_ = value;
+}
+
+// string ssh_host_object_key = 11;
+inline void CreateTerminalOp::clear_ssh_host_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_host_object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& CreateTerminalOp::ssh_host_object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.CreateTerminalOp.ssh_host_object_key)
+  return _internal_ssh_host_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateTerminalOp::set_ssh_host_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.ssh_host_object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.terminal.CreateTerminalOp.ssh_host_object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTerminalOp::mutable_ssh_host_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_ssh_host_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.terminal.CreateTerminalOp.ssh_host_object_key)
+  return _s;
+}
+inline const ::std::string& CreateTerminalOp::_internal_ssh_host_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ssh_host_object_key_.Get();
+}
+inline void CreateTerminalOp::_internal_set_ssh_host_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_host_object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateTerminalOp::_internal_mutable_ssh_host_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ssh_host_object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateTerminalOp::release_ssh_host_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.terminal.CreateTerminalOp.ssh_host_object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.ssh_host_object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ssh_host_object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateTerminalOp::set_allocated_ssh_host_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.ssh_host_object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ssh_host_object_key_.IsDefault()) {
+    _impl_.ssh_host_object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.terminal.CreateTerminalOp.ssh_host_object_key)
 }
 
 // -------------------------------------------------------------------
@@ -3302,6 +3582,12 @@ struct is_proto_enum<::s4wave::terminal::TerminalFrameKind> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::terminal::TerminalFrameKind>() {
   return ::s4wave::terminal::TerminalFrameKind_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::terminal::TerminalTargetKind> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::terminal::TerminalTargetKind>() {
+  return ::s4wave::terminal::TerminalTargetKind_descriptor();
 }
 
 }  // namespace protobuf

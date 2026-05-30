@@ -133,6 +133,46 @@ func (x TerminalFrameKind) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// TerminalTargetKind selects the owner that opens the live terminal session.
+type TerminalTargetKind int32
+
+const (
+	// TERMINAL_TARGET_KIND_UNKNOWN preserves old Device terminals when Device fields are set.
+	TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN TerminalTargetKind = 0
+	// TERMINAL_TARGET_KIND_DEVICE opens a Spacewave-managed Device remote shell.
+	TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE TerminalTargetKind = 1
+	// TERMINAL_TARGET_KIND_SSH_HOST opens an SSH-only Host session.
+	TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST TerminalTargetKind = 2
+)
+
+// Enum value maps for TerminalTargetKind.
+var (
+	TerminalTargetKind_name = map[int32]string{
+		0: "TERMINAL_TARGET_KIND_UNKNOWN",
+		1: "TERMINAL_TARGET_KIND_DEVICE",
+		2: "TERMINAL_TARGET_KIND_SSH_HOST",
+	}
+	TerminalTargetKind_value = map[string]int32{
+		"TERMINAL_TARGET_KIND_UNKNOWN":  0,
+		"TERMINAL_TARGET_KIND_DEVICE":   1,
+		"TERMINAL_TARGET_KIND_SSH_HOST": 2,
+	}
+)
+
+func (x TerminalTargetKind) Enum() *TerminalTargetKind {
+	p := new(TerminalTargetKind)
+	*p = x
+	return p
+}
+
+func (x TerminalTargetKind) String() string {
+	name, valid := TerminalTargetKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // Terminal is the world-block state for a durable remote shell tab.
 type Terminal struct {
 	unknownFields []byte
@@ -160,6 +200,10 @@ type Terminal struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 	// UpdatedAt is when this Terminal object was last updated.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+	// TargetKind selects the terminal session owner.
+	TargetKind TerminalTargetKind `protobuf:"varint,13,opt,name=target_kind,json=targetKind,proto3" json:"targetKind,omitempty"`
+	// SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+	SshHostObjectKey string `protobuf:"bytes,14,opt,name=ssh_host_object_key,json=sshHostObjectKey,proto3" json:"sshHostObjectKey,omitempty"`
 }
 
 func (x *Terminal) Reset() {
@@ -250,6 +294,20 @@ func (x *Terminal) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *Terminal) GetTargetKind() TerminalTargetKind {
+	if x != nil {
+		return x.TargetKind
+	}
+	return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
+}
+
+func (x *Terminal) GetSshHostObjectKey() string {
+	if x != nil {
+		return x.SshHostObjectKey
+	}
+	return ""
 }
 
 // TerminalFrame carries terminal data and control frames.
@@ -356,6 +414,10 @@ type CreateTerminalOp struct {
 	Rows uint32 `protobuf:"varint,8,opt,name=rows,proto3" json:"rows,omitempty"`
 	// Timestamp is the creation timestamp.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// TargetKind selects the terminal session owner.
+	TargetKind TerminalTargetKind `protobuf:"varint,10,opt,name=target_kind,json=targetKind,proto3" json:"targetKind,omitempty"`
+	// SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+	SshHostObjectKey string `protobuf:"bytes,11,opt,name=ssh_host_object_key,json=sshHostObjectKey,proto3" json:"sshHostObjectKey,omitempty"`
 }
 
 func (x *CreateTerminalOp) Reset() {
@@ -427,6 +489,20 @@ func (x *CreateTerminalOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *CreateTerminalOp) GetTargetKind() TerminalTargetKind {
+	if x != nil {
+		return x.TargetKind
+	}
+	return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
+}
+
+func (x *CreateTerminalOp) GetSshHostObjectKey() string {
+	if x != nil {
+		return x.SshHostObjectKey
+	}
+	return ""
+}
+
 // WatchTerminalStateRequest is a request to watch Terminal state.
 type WatchTerminalStateRequest struct {
 	unknownFields []byte
@@ -472,6 +548,8 @@ func (m *Terminal) CloneVT() *Terminal {
 	r.State = m.State
 	r.Status = m.Status
 	r.Error = m.Error
+	r.TargetKind = m.TargetKind
+	r.SshHostObjectKey = m.SshHostObjectKey
 	if rhs := m.Environment; rhs != nil {
 		r.Environment = slices.Clone(rhs)
 	}
@@ -530,6 +608,8 @@ func (m *CreateTerminalOp) CloneVT() *CreateTerminalOp {
 	r.Command = m.Command
 	r.Cols = m.Cols
 	r.Rows = m.Rows
+	r.TargetKind = m.TargetKind
+	r.SshHostObjectKey = m.SshHostObjectKey
 	if rhs := m.Environment; rhs != nil {
 		r.Environment = slices.Clone(rhs)
 	}
@@ -623,6 +703,12 @@ func (this *Terminal) EqualVT(that *Terminal) bool {
 		return false
 	}
 	if !this.UpdatedAt.EqualVT(that.UpdatedAt) {
+		return false
+	}
+	if this.TargetKind != that.TargetKind {
+		return false
+	}
+	if this.SshHostObjectKey != that.SshHostObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -720,6 +806,12 @@ func (this *CreateTerminalOp) EqualVT(that *CreateTerminalOp) bool {
 		return false
 	}
 	if !this.Timestamp.EqualVT(that.Timestamp) {
+		return false
+	}
+	if this.TargetKind != that.TargetKind {
+		return false
+	}
+	if this.SshHostObjectKey != that.SshHostObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -850,6 +942,46 @@ func (x *TerminalFrameKind) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TerminalTargetKind to JSON.
+func (x TerminalTargetKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), TerminalTargetKind_name)
+}
+
+// MarshalText marshals the TerminalTargetKind to text.
+func (x TerminalTargetKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), TerminalTargetKind_name)), nil
+}
+
+// MarshalJSON marshals the TerminalTargetKind to JSON.
+func (x TerminalTargetKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TerminalTargetKind from JSON.
+func (x *TerminalTargetKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(TerminalTargetKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read TerminalTargetKind enum: %v", err)
+		return
+	}
+	*x = TerminalTargetKind(v)
+}
+
+// UnmarshalText unmarshals the TerminalTargetKind from text.
+func (x *TerminalTargetKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), TerminalTargetKind_value)
+	if err != nil {
+		return err
+	}
+	*x = TerminalTargetKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the TerminalTargetKind from JSON.
+func (x *TerminalTargetKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the Terminal message to JSON.
 func (x *Terminal) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -918,6 +1050,16 @@ func (x *Terminal) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("updatedAt")
 		x.UpdatedAt.MarshalProtoJSON(s.WithField("updatedAt"))
 	}
+	if x.TargetKind != 0 || s.HasField("targetKind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetKind")
+		x.TargetKind.MarshalProtoJSON(s)
+	}
+	if x.SshHostObjectKey != "" || s.HasField("sshHostObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sshHostObjectKey")
+		s.WriteString(x.SshHostObjectKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -983,6 +1125,12 @@ func (x *Terminal) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.UpdatedAt = &timestamppb.Timestamp{}
 			x.UpdatedAt.UnmarshalProtoJSON(s.WithField("updated_at", true))
+		case "target_kind", "targetKind":
+			s.AddField("target_kind")
+			x.TargetKind.UnmarshalProtoJSON(s)
+		case "ssh_host_object_key", "sshHostObjectKey":
+			s.AddField("ssh_host_object_key")
+			x.SshHostObjectKey = s.ReadString()
 		}
 	})
 }
@@ -1147,6 +1295,16 @@ func (x *CreateTerminalOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("timestamp")
 		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
 	}
+	if x.TargetKind != 0 || s.HasField("targetKind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetKind")
+		x.TargetKind.MarshalProtoJSON(s)
+	}
+	if x.SshHostObjectKey != "" || s.HasField("sshHostObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sshHostObjectKey")
+		s.WriteString(x.SshHostObjectKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1199,6 +1357,12 @@ func (x *CreateTerminalOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Timestamp = &timestamppb.Timestamp{}
 			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "target_kind", "targetKind":
+			s.AddField("target_kind")
+			x.TargetKind.UnmarshalProtoJSON(s)
+		case "ssh_host_object_key", "sshHostObjectKey":
+			s.AddField("ssh_host_object_key")
+			x.SshHostObjectKey = s.ReadString()
 		}
 	})
 }
@@ -1313,6 +1477,18 @@ func (m *Terminal) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.SshHostObjectKey) > 0 {
+		i -= len(m.SshHostObjectKey)
+		copy(dAtA[i:], m.SshHostObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SshHostObjectKey)))
+		i--
+		dAtA[i] = 0x72
+	}
+	if m.TargetKind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TargetKind))
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.UpdatedAt != nil {
 		size, err := m.UpdatedAt.MarshalToSizedBufferVT(dAtA[:i])
@@ -1516,6 +1692,18 @@ func (m *CreateTerminalOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.SshHostObjectKey) > 0 {
+		i -= len(m.SshHostObjectKey)
+		copy(dAtA[i:], m.SshHostObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SshHostObjectKey)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.TargetKind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TargetKind))
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.Timestamp != nil {
 		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1712,6 +1900,13 @@ func (m *Terminal) SizeVT() (n int) {
 		l = m.UpdatedAt.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.TargetKind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TargetKind))
+	}
+	l = len(m.SshHostObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1798,6 +1993,13 @@ func (m *CreateTerminalOp) SizeVT() (n int) {
 		l = m.Timestamp.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.TargetKind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.TargetKind))
+	}
+	l = len(m.SshHostObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1831,6 +2033,10 @@ func (x TerminalSessionState) MarshalProtoText() string {
 }
 
 func (x TerminalFrameKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x TerminalTargetKind) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -1928,6 +2134,22 @@ func (x *Terminal) MarshalProtoText() string {
 		}
 		sb.WriteString("updated_at: ")
 		sb.WriteString(x.UpdatedAt.MarshalProtoText())
+	}
+	if x.TargetKind != 0 {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(TerminalTargetKind(x.TargetKind).String())
+		sb.WriteString("\"")
+	}
+	if x.SshHostObjectKey != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ssh_host_object_key: ")
+		sb.WriteString(strconv.Quote(x.SshHostObjectKey))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2085,6 +2307,22 @@ func (x *CreateTerminalOp) MarshalProtoText() string {
 		}
 		sb.WriteString("timestamp: ")
 		sb.WriteString(x.Timestamp.MarshalProtoText())
+	}
+	if x.TargetKind != 0 {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(TerminalTargetKind(x.TargetKind).String())
+		sb.WriteString("\"")
+	}
+	if x.SshHostObjectKey != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ssh_host_object_key: ")
+		sb.WriteString(strconv.Quote(x.SshHostObjectKey))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2381,6 +2619,39 @@ func (m *Terminal) UnmarshalVT(dAtA []byte) error {
 			if err := m.UpdatedAt.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetKind", wireType)
+			}
+			m.TargetKind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.TargetKind = TerminalTargetKind(_v)
+			if err != nil {
+				return err
+			}
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SshHostObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SshHostObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -2775,6 +3046,39 @@ func (m *CreateTerminalOp) UnmarshalVT(dAtA []byte) error {
 			if err := m.Timestamp.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetKind", wireType)
+			}
+			m.TargetKind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.TargetKind = TerminalTargetKind(_v)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SshHostObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SshHostObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

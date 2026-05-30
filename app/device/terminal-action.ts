@@ -3,7 +3,11 @@ import {
   type Device,
   type DeviceCapability,
 } from '@s4wave/sdk/device/device.pb.js'
-import { CreateTerminalOp } from '@s4wave/sdk/terminal/terminal.pb.js'
+import type { SshHost } from '@s4wave/sdk/sshhost/sshhost.pb.js'
+import {
+  CreateTerminalOp,
+  TerminalTargetKind,
+} from '@s4wave/sdk/terminal/terminal.pb.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
 
@@ -44,6 +48,36 @@ export function buildCreateTerminalOpData({
       name,
       deviceObjectKey,
       devicePeerId: device.peerId,
+      targetKind: TerminalTargetKind.DEVICE,
+      cols: 80,
+      rows: 24,
+      timestamp: new Date(),
+    }),
+  }
+}
+
+export function buildCreateSshHostTerminalOpData({
+  host,
+  hostObjectKey,
+  existingObjectKeys,
+  command,
+}: {
+  host: SshHost
+  hostObjectKey: string
+  existingObjectKeys?: Iterable<string | undefined>
+  command?: string
+}): { objectKey: string; opData: Uint8Array } | undefined {
+  if (!hostObjectKey) return undefined
+  const name = `${host.label || 'SSH Host'} Terminal`
+  const objectKey = buildObjectKey('terminal/', name, existingObjectKeys)
+  return {
+    objectKey,
+    opData: CreateTerminalOp.toBinary({
+      objectKey,
+      name,
+      sshHostObjectKey: hostObjectKey,
+      targetKind: TerminalTargetKind.SSH_HOST,
+      command,
       cols: 80,
       rows: 24,
       timestamp: new Date(),

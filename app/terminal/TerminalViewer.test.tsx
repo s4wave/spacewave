@@ -5,6 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import {
   TerminalFrameKind,
   TerminalSessionState,
+  TerminalTargetKind,
   type Terminal,
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
@@ -61,10 +62,11 @@ vi.mock('@xterm/addon-fit', () => ({
   },
 }))
 
-const currentState: Terminal = {
+let currentState: Terminal = {
   name: 'Build Host Terminal',
   deviceObjectKey: 'devices/build-host',
   devicePeerId: '12D3KooWDevice',
+  targetKind: TerminalTargetKind.DEVICE,
   state: TerminalSessionState.DISCONNECTED,
   status: 'not connected',
   cols: 80,
@@ -133,6 +135,16 @@ describe('TerminalViewer', () => {
       h.resolveClose = resolve
     })
     h.abortObservedBeforeExit = true
+    currentState = {
+      name: 'Build Host Terminal',
+      deviceObjectKey: 'devices/build-host',
+      devicePeerId: '12D3KooWDevice',
+      targetKind: TerminalTargetKind.DEVICE,
+      state: TerminalSessionState.DISCONNECTED,
+      status: 'not connected',
+      cols: 80,
+      rows: 24,
+    }
   })
 
   it('renders terminal state and opens xterm host', async () => {
@@ -171,5 +183,41 @@ describe('TerminalViewer', () => {
       ).toBe(true),
     )
     await vi.waitFor(() => expect(h.abortObservedBeforeExit).toBe(false))
+  })
+
+  it('labels SSH Host terminal targets separately from Device targets', () => {
+    currentState = {
+      name: 'Prod SSH Terminal',
+      sshHostObjectKey: 'hosts/prod',
+      targetKind: TerminalTargetKind.SSH_HOST,
+      state: TerminalSessionState.DISCONNECTED,
+      status: 'not connected',
+      cols: 80,
+      rows: 24,
+    }
+
+    render(
+      <TerminalViewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'terminal/prod-ssh',
+              objectType: 'spacewave/terminal',
+            },
+          },
+        }}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Prod SSH Terminal')).toBeTruthy()
+    expect(screen.getByText('ssh host')).toBeTruthy()
+    expect(screen.getByText('hosts/prod')).toBeTruthy()
   })
 })

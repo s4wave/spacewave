@@ -1,6 +1,7 @@
 package s4wave_terminal
 
 import (
+	"bytes"
 	"context"
 	stderrors "errors"
 	"io"
@@ -21,6 +22,7 @@ func TestTerminalValidatePinsDeviceTarget(t *testing.T) {
 		Name:            "Build Host Shell",
 		DeviceObjectKey: "devices/build-host",
 		DevicePeerId:    "12D3KooWDevice",
+		TargetKind:      TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE,
 		Environment:     []string{"TERM=xterm-256color"},
 	}
 	if err := term.Validate(); err != nil {
@@ -44,6 +46,26 @@ func TestTerminalValidatePinsDeviceTarget(t *testing.T) {
 	}
 }
 
+func TestTerminalValidatePinsSshHostTarget(t *testing.T) {
+	term := &Terminal{
+		Name:             "Prod SSH Shell",
+		SshHostObjectKey: "hosts/prod",
+		TargetKind:       TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST,
+		Environment:      []string{"TERM=xterm-256color"},
+	}
+	if err := term.Validate(); err != nil {
+		t.Fatalf("valid SSH Host terminal failed validation: %v", err)
+	}
+	if got := EffectiveTerminalTargetKind(term); got != TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST {
+		t.Fatalf("target kind = %s", got.String())
+	}
+
+	term.SshHostObjectKey = ""
+	if err := term.Validate(); err == nil {
+		t.Fatal("expected missing SSH Host object key to fail validation")
+	}
+}
+
 func TestCreateTerminalOpValidate(t *testing.T) {
 	op := NewCreateTerminalOp(
 		"terminal/build-host-1",
@@ -55,10 +77,33 @@ func TestCreateTerminalOpValidate(t *testing.T) {
 	if err := op.Validate(); err != nil {
 		t.Fatalf("valid create terminal op failed validation: %v", err)
 	}
+	if got := effectiveCreateTerminalOpTargetKind(op); got != TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE {
+		t.Fatalf("target kind = %s", got.String())
+	}
 
 	op.ObjectKey = ""
 	if err := op.Validate(); err != world.ErrEmptyObjectKey {
 		t.Fatalf("missing object key error = %v, want %v", err, world.ErrEmptyObjectKey)
+	}
+}
+
+func TestCreateSshHostTerminalOpValidate(t *testing.T) {
+	op := NewCreateSshHostTerminalOp(
+		"terminal/prod-ssh-1",
+		"Prod SSH Shell",
+		"hosts/prod",
+		time.Unix(10, 0),
+	)
+	if err := op.Validate(); err != nil {
+		t.Fatalf("valid create SSH Host terminal op failed validation: %v", err)
+	}
+	if got := effectiveCreateTerminalOpTargetKind(op); got != TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST {
+		t.Fatalf("target kind = %s", got.String())
+	}
+
+	op.SshHostObjectKey = ""
+	if err := op.Validate(); err == nil {
+		t.Fatal("expected missing SSH Host object key to fail validation")
 	}
 }
 
@@ -94,6 +139,22 @@ func TestTerminalMarshalBlockRoundTrip(t *testing.T) {
 	}
 	if !got.EqualVT(term) {
 		t.Fatalf("round trip = %#v, want %#v", got, term)
+	}
+}
+
+func TestTerminalSshHostTargetDoesNotStoreCredentialMaterial(t *testing.T) {
+	rawCredential := []byte("-----BEGIN OPENSSH PRIVATE KEY-----\nspacewave-secret\n-----END OPENSSH PRIVATE KEY-----")
+	term := &Terminal{
+		Name:             "Prod SSH Terminal",
+		SshHostObjectKey: "hosts/prod",
+		TargetKind:       TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST,
+	}
+	data, err := term.MarshalBlock()
+	if err != nil {
+		t.Fatalf("MarshalBlock() error = %v", err)
+	}
+	if bytes.Contains(data, rawCredential) {
+		t.Fatal("Terminal block contains raw SSH credential bytes")
 	}
 }
 

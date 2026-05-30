@@ -122,18 +122,34 @@ func (r *TerminalResource) WatchTerminalState(_ *WatchTerminalStateRequest, strm
 	}
 }
 
-// ConnectTerminal opens a Bifrost remote-shell stream for this Terminal.
+// ConnectTerminal opens the live stream for this Terminal target.
 func (r *TerminalResource) ConnectTerminal(strm SRPCTerminalResourceService_ConnectTerminalStream) error {
 	ctx, cancel := context.WithCancel(strm.Context())
 	defer cancel()
 
-	if r.b == nil {
-		return errors.New("terminal resource requires a bus to connect")
-	}
-
 	current := r.currentState()
 	if err := current.Validate(); err != nil {
 		return err
+	}
+
+	switch EffectiveTerminalTargetKind(current) {
+	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE:
+		return r.connectDeviceTerminal(ctx, cancel, strm, current)
+	case TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST:
+		return r.connectSshHostTerminal(ctx, cancel, strm, current)
+	default:
+		return errors.New("terminal target is required")
+	}
+}
+
+func (r *TerminalResource) connectDeviceTerminal(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	strm SRPCTerminalResourceService_ConnectTerminalStream,
+	current *Terminal,
+) error {
+	if r.b == nil {
+		return errors.New("terminal resource requires a bus to connect")
 	}
 	remotePeer, err := peer.IDB58Decode(current.GetDevicePeerId())
 	if err != nil {

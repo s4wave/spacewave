@@ -9,7 +9,10 @@ import {
   DeviceUpdateState,
   type Device,
 } from '@s4wave/sdk/device/device.pb.js'
-import { CreateTerminalOp } from '@s4wave/sdk/terminal/terminal.pb.js'
+import {
+  CreateTerminalOp,
+  TerminalTargetKind,
+} from '@s4wave/sdk/terminal/terminal.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 
 const h = vi.hoisted(() => ({
@@ -189,6 +192,7 @@ describe('DeviceViewer', () => {
     expect(op.name).toBe('Build Host Terminal')
     expect(op.deviceObjectKey).toBe('devices/build-host')
     expect(op.devicePeerId).toBe('12D3KooWDevice')
+    expect(op.targetKind).toBe(TerminalTargetKind.DEVICE)
     expect(op.cols).toBe(80)
     expect(op.rows).toBe(24)
     expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])

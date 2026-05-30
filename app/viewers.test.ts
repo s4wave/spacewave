@@ -78,6 +78,15 @@ describe('getObjectViewersForType', () => {
       ['Debug Viewer', 'Developer'],
     ])
     expect(
+      getObjectViewersForType('spacewave/ssh-host').map((viewer) => [
+        viewer.name,
+        viewer.category,
+      ]),
+    ).toEqual([
+      ['SSH Host', 'Devices'],
+      ['Debug Viewer', 'Developer'],
+    ])
+    expect(
       getObjectViewersForType('spacewave/terminal').map((viewer) => [
         viewer.name,
         viewer.category,

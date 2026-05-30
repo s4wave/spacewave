@@ -11,6 +11,7 @@ import {
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
+import { SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'
 
 import {
   AddDeviceDefaultName,
@@ -37,7 +38,7 @@ const h = vi.hoisted<{
   visibleWizardTypes: new Set<string>(['spacewave/device']),
   objects: [
     { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
-    { objectKey: 'hosts/prod', objectType: 'ssh/host' },
+    { objectKey: 'hosts/prod', objectType: 'spacewave/ssh-host' },
   ],
 }))
 
@@ -62,7 +63,7 @@ describe('ComputersDashboardViewer', () => {
     h.visibleWizardTypes = new Set(['spacewave/device'])
     h.objects = [
       { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
-      { objectKey: 'hosts/prod', objectType: 'ssh/host' },
+      { objectKey: 'hosts/prod', objectType: SshHostTypeID },
     ]
   })
 

@@ -107,11 +107,15 @@ inline constexpr Terminal::Impl_::Impl_(
         error_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        ssh_host_object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         created_at_{nullptr},
         updated_at_{nullptr},
         cols_{0u},
         rows_{0u},
-        state_{static_cast< ::s4wave::terminal::TerminalSessionState >(0)} {}
+        state_{static_cast< ::s4wave::terminal::TerminalSessionState >(0)},
+        target_kind_{static_cast< ::s4wave::terminal::TerminalTargetKind >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Terminal::Terminal(::_pbi::ConstantInitialized)
@@ -152,9 +156,13 @@ inline constexpr CreateTerminalOp::Impl_::Impl_(
         command_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        ssh_host_object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         timestamp_{nullptr},
         cols_{0u},
-        rows_{0u} {}
+        rows_{0u},
+        target_kind_{static_cast< ::s4wave::terminal::TerminalTargetKind >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR CreateTerminalOp::CreateTerminalOp(::_pbi::ConstantInitialized)
@@ -203,7 +211,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace terminal
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto[2];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto[3];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto = nullptr;
 const ::uint32_t
@@ -211,7 +219,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_._has_bits_),
-        15, // hasbit index offset
+        17, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_.name_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_.device_object_key_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_.device_peer_id_),
@@ -224,18 +232,22 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_.error_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_.created_at_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_.updated_at_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_.target_kind_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::Terminal, _impl_.ssh_host_object_key_),
         1,
         2,
         3,
         4,
         0,
-        9,
         10,
         11,
+        12,
         5,
         6,
-        7,
         8,
+        9,
+        13,
+        7,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_._has_bits_),
         11, // hasbit index offset
@@ -257,7 +269,7 @@ const ::uint32_t
         7,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_._has_bits_),
-        12, // hasbit index offset
+        14, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_.object_key_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_.name_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_.device_object_key_),
@@ -267,14 +279,18 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_.cols_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_.rows_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_.timestamp_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_.target_kind_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_.ssh_host_object_key_),
         1,
         2,
         3,
         4,
         5,
         0,
-        7,
         8,
+        9,
+        7,
+        10,
         6,
         0x000, // bitmap
         0x081, // bitmap
@@ -287,10 +303,10 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::s4wave::terminal::Terminal)},
-        {27, sizeof(::s4wave::terminal::TerminalFrame)},
-        {46, sizeof(::s4wave::terminal::CreateTerminalOp)},
-        {67, sizeof(::s4wave::terminal::WatchTerminalStateRequest)},
-        {68, sizeof(::s4wave::terminal::WatchTerminalStateResponse)},
+        {31, sizeof(::s4wave::terminal::TerminalFrame)},
+        {50, sizeof(::s4wave::terminal::CreateTerminalOp)},
+        {75, sizeof(::s4wave::terminal::WatchTerminalStateRequest)},
+        {76, sizeof(::s4wave::terminal::WatchTerminalStateResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::terminal::_Terminal_default_instance_._instance,
@@ -303,7 +319,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ft
     protodesc_cold) = {
     "\n7github.com/s4wave/spacewave/sdk/termin"
     "al/terminal.proto\022\017s4wave.terminal\032\037goog"
-    "le/protobuf/timestamp.proto\"\302\002\n\010Terminal"
+    "le/protobuf/timestamp.proto\"\231\003\n\010Terminal"
     "\022\014\n\004name\030\001 \001(\t\022\031\n\021device_object_key\030\002 \001("
     "\t\022\026\n\016device_peer_id\030\003 \001(\t\022\017\n\007command\030\004 \001"
     "(\t\022\023\n\013environment\030\005 \003(\t\022\014\n\004cols\030\006 \001(\r\022\014\n"
@@ -311,41 +327,48 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ft
     "inal.TerminalSessionState\022\016\n\006status\030\t \001("
     "\t\022\r\n\005error\030\n \001(\t\022.\n\ncreated_at\030\013 \001(\0132\032.g"
     "oogle.protobuf.Timestamp\022.\n\nupdated_at\030\014"
-    " \001(\0132\032.google.protobuf.Timestamp\"\263\001\n\rTer"
-    "minalFrame\0220\n\004kind\030\001 \001(\0162\".s4wave.termin"
-    "al.TerminalFrameKind\022\014\n\004data\030\002 \001(\014\022\014\n\004co"
-    "ls\030\003 \001(\r\022\014\n\004rows\030\004 \001(\r\022\017\n\007command\030\005 \001(\t\022"
-    "\023\n\013environment\030\006 \003(\t\022\r\n\005error\030\007 \001(\t\022\021\n\te"
-    "xit_code\030\010 \001(\005\"\330\001\n\020CreateTerminalOp\022\022\n\no"
-    "bject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\031\n\021device_"
-    "object_key\030\003 \001(\t\022\026\n\016device_peer_id\030\004 \001(\t"
-    "\022\017\n\007command\030\005 \001(\t\022\023\n\013environment\030\006 \003(\t\022\014"
-    "\n\004cols\030\007 \001(\r\022\014\n\004rows\030\010 \001(\r\022-\n\ttimestamp\030"
-    "\t \001(\0132\032.google.protobuf.Timestamp\"\033\n\031Wat"
-    "chTerminalStateRequest\"F\n\032WatchTerminalS"
-    "tateResponse\022(\n\005state\030\001 \001(\0132\031.s4wave.ter"
-    "minal.Terminal*\363\001\n\024TerminalSessionState\022"
-    "\"\n\036TERMINAL_SESSION_STATE_UNKNOWN\020\000\022%\n!T"
-    "ERMINAL_SESSION_STATE_CONNECTING\020\001\022!\n\035TE"
-    "RMINAL_SESSION_STATE_ACTIVE\020\002\022\'\n#TERMINA"
-    "L_SESSION_STATE_DISCONNECTED\020\003\022!\n\035TERMIN"
-    "AL_SESSION_STATE_FAILED\020\004\022!\n\035TERMINAL_SE"
-    "SSION_STATE_CLOSED\020\005*\254\002\n\021TerminalFrameKi"
-    "nd\022\037\n\033TERMINAL_FRAME_KIND_UNKNOWN\020\000\022\034\n\030T"
-    "ERMINAL_FRAME_KIND_OPEN\020\001\022\035\n\031TERMINAL_FR"
-    "AME_KIND_READY\020\002\022\035\n\031TERMINAL_FRAME_KIND_"
-    "INPUT\020\003\022\036\n\032TERMINAL_FRAME_KIND_OUTPUT\020\004\022"
-    "\036\n\032TERMINAL_FRAME_KIND_RESIZE\020\005\022\035\n\031TERMI"
-    "NAL_FRAME_KIND_CLOSE\020\006\022\034\n\030TERMINAL_FRAME"
-    "_KIND_EXIT\020\007\022\035\n\031TERMINAL_FRAME_KIND_ERRO"
-    "R\020\0102\341\001\n\027TerminalResourceService\022o\n\022Watch"
-    "TerminalState\022*.s4wave.terminal.WatchTer"
-    "minalStateRequest\032+.s4wave.terminal.Watc"
-    "hTerminalStateResponse0\001\022U\n\017ConnectTermi"
-    "nal\022\036.s4wave.terminal.TerminalFrame\032\036.s4"
-    "wave.terminal.TerminalFrame(\0010\001B:Z8githu"
-    "b.com/s4wave/spacewave/sdk/terminal;s4wa"
-    "ve_terminalb\006proto3"
+    " \001(\0132\032.google.protobuf.Timestamp\0228\n\013targ"
+    "et_kind\030\r \001(\0162#.s4wave.terminal.Terminal"
+    "TargetKind\022\033\n\023ssh_host_object_key\030\016 \001(\t\""
+    "\263\001\n\rTerminalFrame\0220\n\004kind\030\001 \001(\0162\".s4wave"
+    ".terminal.TerminalFrameKind\022\014\n\004data\030\002 \001("
+    "\014\022\014\n\004cols\030\003 \001(\r\022\014\n\004rows\030\004 \001(\r\022\017\n\007command"
+    "\030\005 \001(\t\022\023\n\013environment\030\006 \003(\t\022\r\n\005error\030\007 \001"
+    "(\t\022\021\n\texit_code\030\010 \001(\005\"\257\002\n\020CreateTerminal"
+    "Op\022\022\n\nobject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\031\n\021"
+    "device_object_key\030\003 \001(\t\022\026\n\016device_peer_i"
+    "d\030\004 \001(\t\022\017\n\007command\030\005 \001(\t\022\023\n\013environment\030"
+    "\006 \003(\t\022\014\n\004cols\030\007 \001(\r\022\014\n\004rows\030\010 \001(\r\022-\n\ttim"
+    "estamp\030\t \001(\0132\032.google.protobuf.Timestamp"
+    "\0228\n\013target_kind\030\n \001(\0162#.s4wave.terminal."
+    "TerminalTargetKind\022\033\n\023ssh_host_object_ke"
+    "y\030\013 \001(\t\"\033\n\031WatchTerminalStateRequest\"F\n\032"
+    "WatchTerminalStateResponse\022(\n\005state\030\001 \001("
+    "\0132\031.s4wave.terminal.Terminal*\363\001\n\024Termina"
+    "lSessionState\022\"\n\036TERMINAL_SESSION_STATE_"
+    "UNKNOWN\020\000\022%\n!TERMINAL_SESSION_STATE_CONN"
+    "ECTING\020\001\022!\n\035TERMINAL_SESSION_STATE_ACTIV"
+    "E\020\002\022\'\n#TERMINAL_SESSION_STATE_DISCONNECT"
+    "ED\020\003\022!\n\035TERMINAL_SESSION_STATE_FAILED\020\004\022"
+    "!\n\035TERMINAL_SESSION_STATE_CLOSED\020\005*\254\002\n\021T"
+    "erminalFrameKind\022\037\n\033TERMINAL_FRAME_KIND_"
+    "UNKNOWN\020\000\022\034\n\030TERMINAL_FRAME_KIND_OPEN\020\001\022"
+    "\035\n\031TERMINAL_FRAME_KIND_READY\020\002\022\035\n\031TERMIN"
+    "AL_FRAME_KIND_INPUT\020\003\022\036\n\032TERMINAL_FRAME_"
+    "KIND_OUTPUT\020\004\022\036\n\032TERMINAL_FRAME_KIND_RES"
+    "IZE\020\005\022\035\n\031TERMINAL_FRAME_KIND_CLOSE\020\006\022\034\n\030"
+    "TERMINAL_FRAME_KIND_EXIT\020\007\022\035\n\031TERMINAL_F"
+    "RAME_KIND_ERROR\020\010*z\n\022TerminalTargetKind\022"
+    " \n\034TERMINAL_TARGET_KIND_UNKNOWN\020\000\022\037\n\033TER"
+    "MINAL_TARGET_KIND_DEVICE\020\001\022!\n\035TERMINAL_T"
+    "ARGET_KIND_SSH_HOST\020\0022\341\001\n\027TerminalResour"
+    "ceService\022o\n\022WatchTerminalState\022*.s4wave"
+    ".terminal.WatchTerminalStateRequest\032+.s4"
+    "wave.terminal.WatchTerminalStateResponse"
+    "0\001\022U\n\017ConnectTerminal\022\036.s4wave.terminal."
+    "TerminalFrame\032\036.s4wave.terminal.Terminal"
+    "Frame(\0010\001B:Z8github.com/s4wave/spacewave"
+    "/sdk/terminal;s4wave_terminalb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto_deps[1] = {
@@ -355,7 +378,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto = {
     false,
     false,
-    1779,
+    2077,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto,
     "github.com/s4wave/spacewave/sdk/terminal/terminal.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto_once,
@@ -382,6 +405,12 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TerminalFrameKind_des
 }
 PROTOBUF_CONSTINIT const uint32_t TerminalFrameKind_internal_data_[] = {
     589824u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TerminalTargetKind_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto[2];
+}
+PROTOBUF_CONSTINIT const uint32_t TerminalTargetKind_internal_data_[] = {
+    196608u, 0u, };
 // ===================================================================
 
 class Terminal::_Internal {
@@ -396,13 +425,13 @@ void Terminal::clear_created_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.created_at_ != nullptr) _impl_.created_at_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000100U);
 }
 void Terminal::clear_updated_at() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.updated_at_ != nullptr) _impl_.updated_at_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 Terminal::Terminal(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -425,7 +454,8 @@ PROTOBUF_NDEBUG_INLINE Terminal::Impl_::Impl_(
         device_peer_id_(arena, from.device_peer_id_),
         command_(arena, from.command_),
         status_(arena, from.status_),
-        error_(arena, from.error_) {}
+        error_(arena, from.error_),
+        ssh_host_object_key_(arena, from.ssh_host_object_key_) {}
 
 Terminal::Terminal(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -441,19 +471,19 @@ Terminal::Terminal(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.created_at_ = (CheckHasBit(cached_has_bits, 0x00000080U))
+  _impl_.created_at_ = (CheckHasBit(cached_has_bits, 0x00000100U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.created_at_)
                 : nullptr;
-  _impl_.updated_at_ = (CheckHasBit(cached_has_bits, 0x00000100U))
+  _impl_.updated_at_ = (CheckHasBit(cached_has_bits, 0x00000200U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.updated_at_)
                 : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, cols_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, cols_),
-           offsetof(Impl_, state_) -
+           offsetof(Impl_, target_kind_) -
                offsetof(Impl_, cols_) +
-               sizeof(Impl_::state_));
+               sizeof(Impl_::target_kind_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.terminal.Terminal)
 }
@@ -467,16 +497,17 @@ PROTOBUF_NDEBUG_INLINE Terminal::Impl_::Impl_(
         device_peer_id_(arena),
         command_(arena),
         status_(arena),
-        error_(arena) {}
+        error_(arena),
+        ssh_host_object_key_(arena) {}
 
 inline void Terminal::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, created_at_),
            0,
-           offsetof(Impl_, state_) -
+           offsetof(Impl_, target_kind_) -
                offsetof(Impl_, created_at_) +
-               sizeof(Impl_::state_));
+               sizeof(Impl_::target_kind_));
 }
 Terminal::~Terminal() {
   // @@protoc_insertion_point(destructor:s4wave.terminal.Terminal)
@@ -495,6 +526,7 @@ inline void Terminal::SharedDtor(MessageLite& self) {
   this_._impl_.command_.Destroy();
   this_._impl_.status_.Destroy();
   this_._impl_.error_.Destroy();
+  this_._impl_.ssh_host_object_key_.Destroy();
   delete this_._impl_.created_at_;
   delete this_._impl_.updated_at_;
   this_._impl_.~Impl_();
@@ -555,16 +587,16 @@ Terminal::GetClassData() const {
   return Terminal_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 12, 2, 105, 2>
+const ::_pbi::TcParseTable<4, 14, 2, 124, 2>
 Terminal::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Terminal, _impl_._has_bits_),
     0, // no _extensions_
-    12, 120,  // max_field_number, fast_idx_mask
+    14, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294963200,  // skipmap
+    4294950912,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    12,  // num_field_entries
+    14,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Terminal_class_data_.base(),
@@ -596,16 +628,16 @@ Terminal::_table_ = {
      {42, 0, 0,
       PROTOBUF_FIELD_OFFSET(Terminal, _impl_.environment_)}},
     // uint32 cols = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Terminal, _impl_.cols_), 9>(),
-     {48, 9, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Terminal, _impl_.cols_), 10>(),
+     {48, 10, 0,
       PROTOBUF_FIELD_OFFSET(Terminal, _impl_.cols_)}},
     // uint32 rows = 7;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Terminal, _impl_.rows_), 10>(),
-     {56, 10, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Terminal, _impl_.rows_), 11>(),
+     {56, 11, 0,
       PROTOBUF_FIELD_OFFSET(Terminal, _impl_.rows_)}},
     // .s4wave.terminal.TerminalSessionState state = 8;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Terminal, _impl_.state_), 11>(),
-     {64, 11, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Terminal, _impl_.state_), 12>(),
+     {64, 12, 0,
       PROTOBUF_FIELD_OFFSET(Terminal, _impl_.state_)}},
     // string status = 9;
     {::_pbi::TcParser::FastUS1,
@@ -617,14 +649,20 @@ Terminal::_table_ = {
       PROTOBUF_FIELD_OFFSET(Terminal, _impl_.error_)}},
     // .google.protobuf.Timestamp created_at = 11;
     {::_pbi::TcParser::FastMtS1,
-     {90, 7, 0,
+     {90, 8, 0,
       PROTOBUF_FIELD_OFFSET(Terminal, _impl_.created_at_)}},
     // .google.protobuf.Timestamp updated_at = 12;
     {::_pbi::TcParser::FastMtS1,
-     {98, 8, 1,
+     {98, 9, 1,
       PROTOBUF_FIELD_OFFSET(Terminal, _impl_.updated_at_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.terminal.TerminalTargetKind target_kind = 13;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Terminal, _impl_.target_kind_), 13>(),
+     {104, 13, 0,
+      PROTOBUF_FIELD_OFFSET(Terminal, _impl_.target_kind_)}},
+    // string ssh_host_object_key = 14;
+    {::_pbi::TcParser::FastUS1,
+     {114, 7, 0,
+      PROTOBUF_FIELD_OFFSET(Terminal, _impl_.ssh_host_object_key_)}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -640,26 +678,30 @@ Terminal::_table_ = {
     // repeated string environment = 5;
     {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.environment_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // uint32 cols = 6;
-    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.cols_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.cols_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 rows = 7;
-    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.rows_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.rows_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // .s4wave.terminal.TerminalSessionState state = 8;
-    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.state_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.state_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string status = 9;
     {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.status_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string error = 10;
     {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.error_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .google.protobuf.Timestamp created_at = 11;
-    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.created_at_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.created_at_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .google.protobuf.Timestamp updated_at = 12;
-    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.updated_at_), _Internal::kHasBitsOffset + 8, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.updated_at_), _Internal::kHasBitsOffset + 9, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.terminal.TerminalTargetKind target_kind = 13;
+    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.target_kind_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string ssh_host_object_key = 14;
+    {PROTOBUF_FIELD_OFFSET(Terminal, _impl_.ssh_host_object_key_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
   }},
   {{
-    "\30\4\21\16\7\13\0\0\0\6\5\0\0\0\0\0"
+    "\30\4\21\16\7\13\0\0\0\6\5\0\0\0\23\0"
     "s4wave.terminal.Terminal"
     "name"
     "device_object_key"
@@ -668,6 +710,7 @@ Terminal::_table_ = {
     "environment"
     "status"
     "error"
+    "ssh_host_object_key"
   }},
 };
 PROTOBUF_NOINLINE void Terminal::Clear() {
@@ -701,18 +744,23 @@ PROTOBUF_NOINLINE void Terminal::Clear() {
       _impl_.error_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      _impl_.ssh_host_object_key_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       ABSL_DCHECK(_impl_.created_at_ != nullptr);
       _impl_.created_at_->Clear();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      ABSL_DCHECK(_impl_.updated_at_ != nullptr);
+      _impl_.updated_at_->Clear();
+    }
   }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    ABSL_DCHECK(_impl_.updated_at_ != nullptr);
-    _impl_.updated_at_->Clear();
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000e00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003c00U)) {
     ::memset(&_impl_.cols_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.state_) -
-        reinterpret_cast<char*>(&_impl_.cols_)) + sizeof(_impl_.state_));
+        reinterpret_cast<char*>(&_impl_.target_kind_) -
+        reinterpret_cast<char*>(&_impl_.cols_)) + sizeof(_impl_.target_kind_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -788,7 +836,7 @@ PROTOBUF_NOINLINE void Terminal::Clear() {
   }
 
   // uint32 cols = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_cols() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -797,7 +845,7 @@ PROTOBUF_NOINLINE void Terminal::Clear() {
   }
 
   // uint32 rows = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
     if (this_._internal_rows() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -806,7 +854,7 @@ PROTOBUF_NOINLINE void Terminal::Clear() {
   }
 
   // .s4wave.terminal.TerminalSessionState state = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
     if (this_._internal_state() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -835,17 +883,36 @@ PROTOBUF_NOINLINE void Terminal::Clear() {
   }
 
   // .google.protobuf.Timestamp created_at = 11;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         11, *this_._impl_.created_at_, this_._impl_.created_at_->GetCachedSize(), target,
         stream);
   }
 
   // .google.protobuf.Timestamp updated_at = 12;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         12, *this_._impl_.updated_at_, this_._impl_.updated_at_->GetCachedSize(), target,
         stream);
+  }
+
+  // .s4wave.terminal.TerminalTargetKind target_kind = 13;
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (this_._internal_target_kind() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          13, this_._internal_target_kind(), target);
+    }
+  }
+
+  // string ssh_host_object_key = 14;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_ssh_host_object_key().empty()) {
+      const ::std::string& _s = this_._internal_ssh_host_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.terminal.Terminal.ssh_host_object_key");
+      target = stream->WriteStringMaybeAliased(14, _s, target);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -925,37 +992,51 @@ PROTOBUF_NOINLINE void Terminal::Clear() {
                                         this_._internal_error());
       }
     }
-    // .google.protobuf.Timestamp created_at = 11;
+    // string ssh_host_object_key = 14;
     if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!this_._internal_ssh_host_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_ssh_host_object_key());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
+    // .google.protobuf.Timestamp created_at = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.created_at_);
     }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
     // .google.protobuf.Timestamp updated_at = 12;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.updated_at_);
     }
     // uint32 cols = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_cols() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_cols());
       }
     }
     // uint32 rows = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (this_._internal_rows() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_rows());
       }
     }
     // .s4wave.terminal.TerminalSessionState state = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (this_._internal_state() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
+      }
+    }
+    // .s4wave.terminal.TerminalTargetKind target_kind = 13;
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (this_._internal_target_kind() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_target_kind());
       }
     }
   }
@@ -1039,6 +1120,17 @@ void Terminal::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!from._internal_ssh_host_object_key().empty()) {
+        _this->_internal_set_ssh_host_object_key(from._internal_ssh_host_object_key());
+      } else {
+        if (_this->_impl_.ssh_host_object_key_.IsDefault()) {
+          _this->_internal_set_ssh_host_object_key("");
+        }
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       ABSL_DCHECK(from._impl_.created_at_ != nullptr);
       if (_this->_impl_.created_at_ == nullptr) {
         _this->_impl_.created_at_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.created_at_);
@@ -1046,9 +1138,7 @@ void Terminal::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.created_at_->MergeFrom(*from._impl_.created_at_);
       }
     }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       ABSL_DCHECK(from._impl_.updated_at_ != nullptr);
       if (_this->_impl_.updated_at_ == nullptr) {
         _this->_impl_.updated_at_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.updated_at_);
@@ -1056,19 +1146,24 @@ void Terminal::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.updated_at_->MergeFrom(*from._impl_.updated_at_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (from._internal_cols() != 0) {
         _this->_impl_.cols_ = from._impl_.cols_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (from._internal_rows() != 0) {
         _this->_impl_.rows_ = from._impl_.rows_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (from._internal_state() != 0) {
         _this->_impl_.state_ = from._impl_.state_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (from._internal_target_kind() != 0) {
+        _this->_impl_.target_kind_ = from._impl_.target_kind_;
       }
     }
   }
@@ -1098,9 +1193,10 @@ void Terminal::InternalSwap(Terminal* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) 
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_, &other->_impl_.command_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.status_, &other->_impl_.status_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ssh_host_object_key_, &other->_impl_.ssh_host_object_key_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Terminal, _impl_.state_)
-      + sizeof(Terminal::_impl_.state_)
+      PROTOBUF_FIELD_OFFSET(Terminal, _impl_.target_kind_)
+      + sizeof(Terminal::_impl_.target_kind_)
       - PROTOBUF_FIELD_OFFSET(Terminal, _impl_.created_at_)>(
           reinterpret_cast<char*>(&_impl_.created_at_),
           reinterpret_cast<char*>(&other->_impl_.created_at_));
@@ -1662,7 +1758,7 @@ void CreateTerminalOp::clear_timestamp() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.timestamp_ != nullptr) _impl_.timestamp_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 CreateTerminalOp::CreateTerminalOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -1684,7 +1780,8 @@ PROTOBUF_NDEBUG_INLINE CreateTerminalOp::Impl_::Impl_(
         name_(arena, from.name_),
         device_object_key_(arena, from.device_object_key_),
         device_peer_id_(arena, from.device_peer_id_),
-        command_(arena, from.command_) {}
+        command_(arena, from.command_),
+        ssh_host_object_key_(arena, from.ssh_host_object_key_) {}
 
 CreateTerminalOp::CreateTerminalOp(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1700,16 +1797,16 @@ CreateTerminalOp::CreateTerminalOp(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000040U))
+  _impl_.timestamp_ = (CheckHasBit(cached_has_bits, 0x00000080U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_)
                 : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, cols_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, cols_),
-           offsetof(Impl_, rows_) -
+           offsetof(Impl_, target_kind_) -
                offsetof(Impl_, cols_) +
-               sizeof(Impl_::rows_));
+               sizeof(Impl_::target_kind_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.terminal.CreateTerminalOp)
 }
@@ -1722,16 +1819,17 @@ PROTOBUF_NDEBUG_INLINE CreateTerminalOp::Impl_::Impl_(
         name_(arena),
         device_object_key_(arena),
         device_peer_id_(arena),
-        command_(arena) {}
+        command_(arena),
+        ssh_host_object_key_(arena) {}
 
 inline void CreateTerminalOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, timestamp_),
            0,
-           offsetof(Impl_, rows_) -
+           offsetof(Impl_, target_kind_) -
                offsetof(Impl_, timestamp_) +
-               sizeof(Impl_::rows_));
+               sizeof(Impl_::target_kind_));
 }
 CreateTerminalOp::~CreateTerminalOp() {
   // @@protoc_insertion_point(destructor:s4wave.terminal.CreateTerminalOp)
@@ -1749,6 +1847,7 @@ inline void CreateTerminalOp::SharedDtor(MessageLite& self) {
   this_._impl_.device_object_key_.Destroy();
   this_._impl_.device_peer_id_.Destroy();
   this_._impl_.command_.Destroy();
+  this_._impl_.ssh_host_object_key_.Destroy();
   delete this_._impl_.timestamp_;
   this_._impl_.~Impl_();
 }
@@ -1808,16 +1907,16 @@ CreateTerminalOp::GetClassData() const {
   return CreateTerminalOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 1, 112, 2>
+const ::_pbi::TcParseTable<4, 11, 1, 131, 2>
 CreateTerminalOp::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
+    11,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     CreateTerminalOp_class_data_.base(),
@@ -1853,19 +1952,25 @@ CreateTerminalOp::_table_ = {
      {50, 0, 0,
       PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.environment_)}},
     // uint32 cols = 7;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateTerminalOp, _impl_.cols_), 7>(),
-     {56, 7, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateTerminalOp, _impl_.cols_), 8>(),
+     {56, 8, 0,
       PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.cols_)}},
     // uint32 rows = 8;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateTerminalOp, _impl_.rows_), 8>(),
-     {64, 8, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateTerminalOp, _impl_.rows_), 9>(),
+     {64, 9, 0,
       PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.rows_)}},
     // .google.protobuf.Timestamp timestamp = 9;
     {::_pbi::TcParser::FastMtS1,
-     {74, 6, 0,
+     {74, 7, 0,
       PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.timestamp_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.terminal.TerminalTargetKind target_kind = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateTerminalOp, _impl_.target_kind_), 10>(),
+     {80, 10, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.target_kind_)}},
+    // string ssh_host_object_key = 11;
+    {::_pbi::TcParser::FastUS1,
+     {90, 6, 0,
+      PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.ssh_host_object_key_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -1886,17 +1991,21 @@ CreateTerminalOp::_table_ = {
     // repeated string environment = 6;
     {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.environment_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // uint32 cols = 7;
-    {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.cols_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.cols_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 rows = 8;
-    {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.rows_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.rows_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // .google.protobuf.Timestamp timestamp = 9;
-    {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.timestamp_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.timestamp_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.terminal.TerminalTargetKind target_kind = 10;
+    {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.target_kind_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string ssh_host_object_key = 11;
+    {PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.ssh_host_object_key_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
   }},
   {{
-    "\40\12\4\21\16\7\13\0\0\0\0\0\0\0\0\0"
+    "\40\12\4\21\16\7\13\0\0\0\0\23\0\0\0\0"
     "s4wave.terminal.CreateTerminalOp"
     "object_key"
     "name"
@@ -1904,6 +2013,7 @@ CreateTerminalOp::_table_ = {
     "device_peer_id"
     "command"
     "environment"
+    "ssh_host_object_key"
   }},
 };
 PROTOBUF_NOINLINE void CreateTerminalOp::Clear() {
@@ -1914,7 +2024,7 @@ PROTOBUF_NOINLINE void CreateTerminalOp::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.environment_.Clear();
     }
@@ -1934,12 +2044,18 @@ PROTOBUF_NOINLINE void CreateTerminalOp::Clear() {
       _impl_.command_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.ssh_host_object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       ABSL_DCHECK(_impl_.timestamp_ != nullptr);
       _impl_.timestamp_->Clear();
     }
   }
-  _impl_.cols_ = 0u;
-  _impl_.rows_ = 0u;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    ::memset(&_impl_.cols_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.target_kind_) -
+        reinterpret_cast<char*>(&_impl_.cols_)) + sizeof(_impl_.target_kind_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -2024,7 +2140,7 @@ PROTOBUF_NOINLINE void CreateTerminalOp::Clear() {
   }
 
   // uint32 cols = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_cols() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -2033,7 +2149,7 @@ PROTOBUF_NOINLINE void CreateTerminalOp::Clear() {
   }
 
   // uint32 rows = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_rows() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -2042,10 +2158,29 @@ PROTOBUF_NOINLINE void CreateTerminalOp::Clear() {
   }
 
   // .google.protobuf.Timestamp timestamp = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         9, *this_._impl_.timestamp_, this_._impl_.timestamp_->GetCachedSize(), target,
         stream);
+  }
+
+  // .s4wave.terminal.TerminalTargetKind target_kind = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_target_kind() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          10, this_._internal_target_kind(), target);
+    }
+  }
+
+  // string ssh_host_object_key = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_ssh_host_object_key().empty()) {
+      const ::std::string& _s = this_._internal_ssh_host_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.terminal.CreateTerminalOp.ssh_host_object_key");
+      target = stream->WriteStringMaybeAliased(11, _s, target);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -2118,25 +2253,39 @@ PROTOBUF_NOINLINE void CreateTerminalOp::Clear() {
                                         this_._internal_command());
       }
     }
-    // .google.protobuf.Timestamp timestamp = 9;
+    // string ssh_host_object_key = 11;
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_ssh_host_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_ssh_host_object_key());
+      }
+    }
+    // .google.protobuf.Timestamp timestamp = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.timestamp_);
     }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     // uint32 cols = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_cols() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_cols());
       }
     }
-  }
-   {
     // uint32 rows = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_rows() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_rows());
+      }
+    }
+    // .s4wave.terminal.TerminalTargetKind target_kind = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_target_kind() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_target_kind());
       }
     }
   }
@@ -2211,6 +2360,15 @@ void CreateTerminalOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_ssh_host_object_key().empty()) {
+        _this->_internal_set_ssh_host_object_key(from._internal_ssh_host_object_key());
+      } else {
+        if (_this->_impl_.ssh_host_object_key_.IsDefault()) {
+          _this->_internal_set_ssh_host_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       ABSL_DCHECK(from._impl_.timestamp_ != nullptr);
       if (_this->_impl_.timestamp_ == nullptr) {
         _this->_impl_.timestamp_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.timestamp_);
@@ -2218,15 +2376,22 @@ void CreateTerminalOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.timestamp_->MergeFrom(*from._impl_.timestamp_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_cols() != 0) {
         _this->_impl_.cols_ = from._impl_.cols_;
       }
     }
-  }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (from._internal_rows() != 0) {
-      _this->_impl_.rows_ = from._impl_.rows_;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_rows() != 0) {
+        _this->_impl_.rows_ = from._impl_.rows_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_target_kind() != 0) {
+        _this->_impl_.target_kind_ = from._impl_.target_kind_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -2254,9 +2419,10 @@ void CreateTerminalOp::InternalSwap(CreateTerminalOp* PROTOBUF_RESTRICT PROTOBUF
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.device_object_key_, &other->_impl_.device_object_key_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.device_peer_id_, &other->_impl_.device_peer_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_, &other->_impl_.command_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ssh_host_object_key_, &other->_impl_.ssh_host_object_key_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.rows_)
-      + sizeof(CreateTerminalOp::_impl_.rows_)
+      PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.target_kind_)
+      + sizeof(CreateTerminalOp::_impl_.target_kind_)
       - PROTOBUF_FIELD_OFFSET(CreateTerminalOp, _impl_.timestamp_)>(
           reinterpret_cast<char*>(&_impl_.timestamp_),
           reinterpret_cast<char*>(&other->_impl_.timestamp_));

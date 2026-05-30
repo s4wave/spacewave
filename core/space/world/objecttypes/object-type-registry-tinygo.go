@@ -23,6 +23,8 @@ import (
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 	s4wave_org_world "github.com/s4wave/spacewave/sdk/org/world"
 	s4wave_secret_world "github.com/s4wave/spacewave/sdk/secret/world"
+	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
+	s4wave_sshhost_world "github.com/s4wave/spacewave/sdk/sshhost/world"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	s4wave_terminal_world "github.com/s4wave/spacewave/sdk/terminal/world"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
@@ -74,6 +76,8 @@ func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType
 		return s4wave_terminal_world.TerminalType, nil
 	case s4wave_secret_world.SecretTypeID:
 		return s4wave_secret_world.SecretType, nil
+	case s4wave_sshhost.SshHostTypeID:
+		return s4wave_sshhost_world.SshHostType, nil
 	case bldr_manifest_world.ManifestTypeID:
 		return objecttype.NewObjectType(bldr_manifest_world.ManifestTypeID, s4wave_forge_world.ForgeReadOnlyFactory), nil
 	default:

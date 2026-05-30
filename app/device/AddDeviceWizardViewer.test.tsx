@@ -15,6 +15,17 @@ import {
   SpaceLinkCallbackStatus,
   SpaceLinkCompletionMode,
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+import {
+  SecretKindSSHPassword,
+  SSHTextCredentialContentType,
+} from '@s4wave/sdk/secret/secret.js'
+import { CREATE_SSH_HOST_OP_ID } from '@s4wave/sdk/sshhost/create-ssh-host.js'
+import { CreateSshHostOp } from '@s4wave/sdk/sshhost/sshhost.pb.js'
+import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
+import {
+  CreateTerminalOp,
+  TerminalTargetKind,
+} from '@s4wave/sdk/terminal/terminal.pb.js'
 
 import { ComputersDashboardTypeID } from './computers.js'
 
@@ -28,6 +39,7 @@ const h = vi.hoisted(() => ({
   setCreating: vi.fn(),
   previewSpaceLink: vi.fn(),
   approveSpaceLink: vi.fn(),
+  createSecret: vi.fn().mockResolvedValue({ secret: {} }),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
   currentStep: 1,
@@ -88,9 +100,27 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
       },
     }),
   },
+  SpaceContext: {
+    useContext: () => ({
+      value: {
+        createSecret: h.createSecret,
+      },
+    }),
+  },
   SharedObjectContext: {
     useContext: () => ({ value: { meta: { sharedObjectId: 'space-1' } } }),
   },
+}))
+
+vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
+  useSessionInfo: () => ({
+    sessionInfo: {
+      cryptoInfo: {
+        publicKeyPem:
+          '-----BEGIN PUBLIC KEY-----\nmock\n-----END PUBLIC KEY-----',
+      },
+    },
+  }),
 }))
 
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
@@ -210,6 +240,156 @@ describe('AddDeviceWizardViewer', () => {
     expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host'])
+  })
+
+  it('creates an SSH-only Host with Secret refs and an SSH Host terminal', async () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: 'build.example.com',
+          port: 2222,
+          username: 'ubuntu',
+          authMode: 'password',
+          hostKeyAlgorithm: 'ssh-ed25519',
+          hostKeyFingerprint: 'SHA256:trusted-host',
+        },
+      }),
+    )
+    renderViewer()
+
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'raw-secret-value' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+
+    await waitFor(() => expect(h.createSecret).toHaveBeenCalled())
+    expect(h.createSecret).toHaveBeenCalledWith({
+      objectKey: 'build-host-ssh-password-1',
+      displayName: 'Build Host SSH password',
+      kind: SecretKindSSHPassword,
+      contentType: SSHTextCredentialContentType,
+      value: new TextEncoder().encode('raw-secret-value'),
+      readerPublicKeyPem: new TextEncoder().encode(
+        '-----BEGIN PUBLIC KEY-----\nmock\n-----END PUBLIC KEY-----',
+      ),
+    })
+
+    const hostCall = h.applyWorldOp.mock.calls.find(
+      ([opId]) => opId === CREATE_SSH_HOST_OP_ID,
+    ) as [string, unknown, string?] | undefined
+    if (!hostCall) throw new Error('expected SSH Host create op')
+    const hostOpData: unknown = hostCall[1]
+    if (!(hostOpData instanceof Uint8Array)) {
+      throw new Error('expected SSH Host op bytes')
+    }
+    const hostOp = CreateSshHostOp.fromBinary(hostOpData)
+    expect(hostOp.objectKey).toBe('build-host-1')
+    expect(hostOp.endpoint).toEqual({
+      host: 'build.example.com',
+      port: 2222,
+      username: 'ubuntu',
+    })
+    expect(hostOp.credentials).toEqual({
+      passwordSecretObjectKey: 'build-host-ssh-password-1',
+    })
+    expect(JSON.stringify(hostOp)).not.toContain('raw-secret-value')
+
+    const terminalCall = h.applyWorldOp.mock.calls.find(
+      ([opId]) => opId === CREATE_TERMINAL_OP_ID,
+    ) as [string, unknown, string?] | undefined
+    if (!terminalCall) throw new Error('expected SSH Host terminal create op')
+    const terminalOpData: unknown = terminalCall[1]
+    if (!(terminalOpData instanceof Uint8Array)) {
+      throw new Error('expected terminal op bytes')
+    }
+    const terminalOp = CreateTerminalOp.fromBinary(terminalOpData)
+    expect(terminalOp.targetKind).toBe(TerminalTargetKind.SSH_HOST)
+    expect(terminalOp.sshHostObjectKey).toBe('build-host-1')
+    expect(terminalOp.deviceObjectKey ?? '').toBe('')
+    expect(terminalOp.devicePeerId ?? '').toBe('')
+    expect(JSON.stringify(terminalOp)).not.toContain('raw-secret-value')
+
+    expect(
+      h.applyWorldOp.mock.calls.some(
+        ([opId]) => typeof opId === 'string' && opId.includes('/device'),
+      ),
+    ).toBe(false)
+    expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+  })
+
+  it('opens an SSH installer terminal without creating a Device object', async () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: 'install.example.com',
+          port: 22,
+          username: 'root',
+          authMode: 'password',
+          setupMode: 'install-agent',
+          hostKeyAlgorithm: 'ssh-ed25519',
+          hostKeyFingerprint: 'SHA256:installer-host',
+        },
+      }),
+    )
+    renderViewer()
+
+    expect(screen.getByText('Remote setup')).toBeTruthy()
+    expect(screen.getByText(/spacewave device setup/)).toBeTruthy()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'installer-secret' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /open installer/i }))
+
+    await waitFor(() =>
+      expect(h.applyWorldOp).toHaveBeenCalledWith(
+        CREATE_TERMINAL_OP_ID,
+        expect.any(Uint8Array),
+        '12D3KooWSession',
+      ),
+    )
+    const terminalCall = h.applyWorldOp.mock.calls.find(
+      ([opId]) => opId === CREATE_TERMINAL_OP_ID,
+    ) as [string, unknown, string?] | undefined
+    if (!terminalCall) throw new Error('expected installer terminal create op')
+    const terminalOpData: unknown = terminalCall[1]
+    if (!(terminalOpData instanceof Uint8Array)) {
+      throw new Error('expected terminal op bytes')
+    }
+    const terminalOp = CreateTerminalOp.fromBinary(terminalOpData)
+    expect(terminalOp.targetKind).toBe(TerminalTargetKind.SSH_HOST)
+    expect(terminalOp.command).toContain('spacewave device setup')
+    expect(terminalOp.command).toContain('--target-hint space-1')
+    expect(terminalOp.deviceObjectKey ?? '').toBe('')
+    expect(terminalOp.devicePeerId ?? '').toBe('')
+
+    expect(h.deleteObject).not.toHaveBeenCalled()
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+    const update = h.updateState.mock.calls.at(-1)?.[0] as
+      | { configData?: Uint8Array; step?: number }
+      | undefined
+    if (!update?.configData) {
+      throw new Error('expected installer status update')
+    }
+    expect(update.step).toBeUndefined()
+    const config = JSON.parse(new TextDecoder().decode(update.configData)) as {
+      ssh?: { setupStatus?: { state?: string; terminalObjectKey?: string } }
+    }
+    expect(config.ssh?.setupStatus).toEqual({
+      state: 'terminal_created',
+      hostObjectKey: 'build-host-1',
+      terminalObjectKey: 'build-host-terminal-1',
+      message: 'installer terminal opened',
+    })
+    expect(
+      h.applyWorldOp.mock.calls.some(
+        ([opId]) => typeof opId === 'string' && opId.includes('/device'),
+      ),
+    ).toBe(false)
   })
 })
 

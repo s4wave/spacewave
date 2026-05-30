@@ -8,6 +8,7 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
+import { SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'
 
 import { buildWizardObjectKey } from '../space/create-op-builders.js'
 import { useVisibleObjectWizardTypeSet } from '../space/useVisibleObjectWizardTypeSet.js'
@@ -34,7 +35,7 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
     () =>
       objects.filter((obj) => {
         const typeID = obj.objectType ?? ''
-        return typeID === 'ssh/host' || typeID === 'spacewave/host'
+        return typeID === SshHostTypeID
       }),
     [objects],
   )

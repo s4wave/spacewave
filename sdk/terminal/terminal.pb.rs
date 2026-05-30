@@ -39,6 +39,12 @@ pub struct Terminal {
     /// UpdatedAt is when this Terminal object was last updated.
     #[prost(message, optional, tag="12")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// TargetKind selects the terminal session owner.
+    #[prost(enumeration="TerminalTargetKind", tag="13")]
+    pub target_kind: i32,
+    /// SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+    #[prost(string, tag="14")]
+    pub ssh_host_object_key: ::prost::alloc::string::String,
 }
 /// TerminalFrame carries terminal data and control frames.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -98,6 +104,12 @@ pub struct CreateTerminalOp {
     /// Timestamp is the creation timestamp.
     #[prost(message, optional, tag="9")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    /// TargetKind selects the terminal session owner.
+    #[prost(enumeration="TerminalTargetKind", tag="10")]
+    pub target_kind: i32,
+    /// SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+    #[prost(string, tag="11")]
+    pub ssh_host_object_key: ::prost::alloc::string::String,
 }
 /// WatchTerminalStateRequest is a request to watch Terminal state.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -208,6 +220,39 @@ impl TerminalFrameKind {
             "TERMINAL_FRAME_KIND_CLOSE" => Some(Self::Close),
             "TERMINAL_FRAME_KIND_EXIT" => Some(Self::Exit),
             "TERMINAL_FRAME_KIND_ERROR" => Some(Self::Error),
+            _ => None,
+        }
+    }
+}
+/// TerminalTargetKind selects the owner that opens the live terminal session.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TerminalTargetKind {
+    /// TERMINAL_TARGET_KIND_UNKNOWN preserves old Device terminals when Device fields are set.
+    Unknown = 0,
+    /// TERMINAL_TARGET_KIND_DEVICE opens a Spacewave-managed Device remote shell.
+    Device = 1,
+    /// TERMINAL_TARGET_KIND_SSH_HOST opens an SSH-only Host session.
+    SshHost = 2,
+}
+impl TerminalTargetKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "TERMINAL_TARGET_KIND_UNKNOWN",
+            Self::Device => "TERMINAL_TARGET_KIND_DEVICE",
+            Self::SshHost => "TERMINAL_TARGET_KIND_SSH_HOST",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TERMINAL_TARGET_KIND_UNKNOWN" => Some(Self::Unknown),
+            "TERMINAL_TARGET_KIND_DEVICE" => Some(Self::Device),
+            "TERMINAL_TARGET_KIND_SSH_HOST" => Some(Self::SshHost),
             _ => None,
         }
     }

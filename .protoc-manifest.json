@@ -4209,6 +4209,22 @@
       ],
       "protoFiles": ["sdk/space/space.proto"]
     },
+    "github.com/s4wave/spacewave/sdk/sshhost": {
+      "hash": "6485936bc9a4bca3763ab6162a25cd72c9fdb80e39d2ad15609c2883f69633df",
+      "generatedFiles": [
+        "sdk/sshhost/sshhost.pb.cc",
+        "sdk/sshhost/sshhost.pb.go",
+        "sdk/sshhost/sshhost.pb.h",
+        "sdk/sshhost/sshhost.pb.rs",
+        "sdk/sshhost/sshhost.pb.ts",
+        "sdk/sshhost/sshhost_srpc.pb.cpp",
+        "sdk/sshhost/sshhost_srpc.pb.go",
+        "sdk/sshhost/sshhost_srpc.pb.hpp",
+        "sdk/sshhost/sshhost_srpc.pb.rs",
+        "sdk/sshhost/sshhost_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/sshhost/sshhost.proto"]
+    },
     "github.com/s4wave/spacewave/sdk/status": {
       "hash": "2c2dad811857c7b40b3745ef952ae173dbaba7f144deabe9763cfafd8c2aea4e",
       "generatedFiles": [
@@ -4226,7 +4242,7 @@
       "protoFiles": ["sdk/status/status.proto"]
     },
     "github.com/s4wave/spacewave/sdk/terminal": {
-      "hash": "22c87de63f5b8ad0ddb4380302b16a0168949f1e112d350fd5c147b848d68f4d",
+      "hash": "28e30f0f06df9f9868736858efe01f091bf2ff92f25d5894c08bdb79fbec7b37",
       "generatedFiles": [
         "sdk/terminal/terminal.pb.cc",
         "sdk/terminal/terminal.pb.go",
