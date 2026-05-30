@@ -145,6 +145,20 @@ func (p *attachPendingAcks) complete(attachID uint32) {
 	p.mtx.Unlock()
 }
 
+func (p *attachPendingAcks) failAll(err error) {
+	p.mtx.Lock()
+	pending := p.pending
+	p.pending = make(map[uint32]*pendingAttach)
+	p.mtx.Unlock()
+
+	for _, entry := range pending {
+		if entry.resolved {
+			continue
+		}
+		entry.ch <- attachResult{err: err}
+	}
+}
+
 func (p *attachPendingAcks) resolve(addAck *resource.ResourceAttachAddAck) (uint32, bool) {
 	attachID := addAck.GetAttachId()
 

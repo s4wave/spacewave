@@ -164,14 +164,18 @@ func (c *Client) Release() {
 // attachSession manages the single ResourceAttach stream + yamux session.
 // One session serves all attached resources.
 type attachSession struct {
+	owner      *attachLifetime
 	ctx        context.Context
+	cancel     context.CancelFunc
 	strm       resource.SRPCResourceService_ResourceAttachClient
 	mc         srpc.MuxedConn
 	router     *resource.RoutedInvoker
 	pending    *attachPendingAcks
+	muxes      map[uint32]struct{}
 	releaseFns map[uint32]func()
 	released   bool
 	sendCh     chan *attachSendRequest
+	closeOnce  sync.Once
 	mu         sync.Mutex
 }
 
@@ -271,12 +275,19 @@ func (c *Client) attachResource(
 			_ = sess.sendDetach(resourceID)
 		}
 		return 0, nil, ctx.Err()
+	case <-sess.ctx.Done():
+		if resourceID, detach := sess.pending.cancel(attachID); detach {
+			_ = sess.sendDetach(resourceID)
+		}
+		return 0, nil, sess.ctx.Err()
 	case result := <-ch:
 		sess.pending.complete(attachID)
 		if result.err != nil {
 			return 0, nil, result.err
 		}
-		sess.router.SetMux(result.resourceID, mux)
+		if err := sess.setMux(result.resourceID, mux); err != nil {
+			return 0, nil, err
+		}
 		return result.resourceID, sess, nil
 	}
 }
@@ -369,38 +380,69 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 	router := resource.NewRoutedInvokerWithContext(func(ctx context.Context, _ uint32) context.Context {
 		return resource_server.WithResourceClientContext(ctx, owner)
 	})
-	sess := &attachSession{
-		ctx:        c.ctx,
+	sess := newAttachSession(c.ctx, c.attach, strm, router)
+	if err := sess.start(); err != nil {
+		return nil, err
+	}
+
+	return sess, nil
+}
+
+func newAttachSession(
+	ctx context.Context,
+	owner *attachLifetime,
+	strm resource.SRPCResourceService_ResourceAttachClient,
+	router *resource.RoutedInvoker,
+) *attachSession {
+	sessCtx, cancel := context.WithCancel(ctx)
+	return &attachSession{
+		owner:      owner,
+		ctx:        sessCtx,
+		cancel:     cancel,
 		strm:       strm,
 		router:     router,
 		pending:    newAttachPendingAcks(),
+		muxes:      make(map[uint32]struct{}),
 		releaseFns: make(map[uint32]func()),
 		sendCh:     make(chan *attachSendRequest),
 	}
-	go sess.executeSendLoop()
+}
 
-	// Build ReadWriteCloser adapter bridging mux_data and yamux.
-	// The recv loop dispatches control messages (AddAck, DetachAck) inline.
-	rwc := resource.NewAttachMuxDataRwc(
+func (s *attachSession) start() error {
+	go s.executeSendLoop()
+
+	mc, err := srpc.NewMuxedConnWithRwc(s.ctx, s.newRWC(), false, nil)
+	if err != nil {
+		s.close()
+		return err
+	}
+	s.mc = mc
+
+	go s.executeAccept()
+	return nil
+}
+
+func (s *attachSession) newRWC() *resource.AttachMuxDataRwc {
+	return resource.NewAttachMuxDataRwc(
 		func(data []byte) error {
-			return sess.send(&resource.ResourceAttachRequest{
+			return s.send(&resource.ResourceAttachRequest{
 				Body: &resource.ResourceAttachRequest_MuxData{MuxData: data},
 			})
 		},
 		func() ([]byte, error) {
-			pkt, recvErr := strm.Recv()
+			pkt, recvErr := s.strm.Recv()
 			if recvErr != nil {
 				return nil, recvErr
 			}
 			switch body := pkt.GetBody().(type) {
 			case *resource.ResourceAttachResponse_AddAck:
-				resourceID, detach := sess.pending.resolve(body.AddAck)
+				resourceID, detach := s.pending.resolve(body.AddAck)
 				if detach {
-					_ = sess.sendDetach(resourceID)
+					_ = s.sendDetach(resourceID)
 				}
 				return nil, nil
 			case *resource.ResourceAttachResponse_DetachAck:
-				sess.releaseAttachedResource(body.DetachAck.GetResourceId())
+				s.releaseAttachedResource(body.DetachAck.GetResourceId())
 				return nil, nil
 			case *resource.ResourceAttachResponse_MuxData:
 				return body.MuxData, nil
@@ -408,28 +450,30 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 			return nil, nil
 		},
 	)
+}
 
-	// CLIENT side is yamux server (outbound=false): accepts sub-streams
-	// from the server to serve RPCs via routed SRPC.
-	mc, err := srpc.NewMuxedConnWithRwc(c.ctx, rwc, false, nil)
-	if err != nil {
-		return nil, err
-	}
-	sess.mc = mc
-
-	// Accept incoming yamux sub-streams, dispatch via routed invoker.
-	srv := srpc.NewServer(router)
-	go func() {
-		_ = srv.AcceptMuxedConn(c.ctx, mc)
-		c.attach.clearSession(sess)
-		sess.releaseAllAttachedResources()
-	}()
-
-	return sess, nil
+func (s *attachSession) executeAccept() {
+	_ = srpc.NewServer(s.router).AcceptMuxedConn(s.ctx, s.mc)
+	s.close()
 }
 
 func (c *Client) setAttachedRelease(resourceID uint32, releaseFn func()) {
 	c.attach.setRelease(resourceID, releaseFn)
+}
+
+func (s *attachSession) setMux(resourceID uint32, mux srpc.Invoker) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.released {
+		return context.Canceled
+	}
+	if s.muxes == nil {
+		s.muxes = make(map[uint32]struct{})
+	}
+	s.router.SetMux(resourceID, mux)
+	s.muxes[resourceID] = struct{}{}
+	return nil
 }
 
 func (s *attachSession) setRelease(resourceID uint32, releaseFn func()) {
@@ -449,35 +493,76 @@ func (s *attachSession) setRelease(resourceID uint32, releaseFn func()) {
 func (s *attachSession) releaseAttachedResource(resourceID uint32) {
 	s.mu.Lock()
 	releaseFn := s.releaseFns[resourceID]
+	_, hasMux := s.muxes[resourceID]
 	delete(s.releaseFns, resourceID)
+	delete(s.muxes, resourceID)
 	s.mu.Unlock()
 
-	s.router.RemoveMux(resourceID)
+	if hasMux {
+		s.router.RemoveMux(resourceID)
+	}
 	if releaseFn != nil {
 		releaseFn()
 	}
 }
 
 func (s *attachSession) releaseAllAttachedResources() {
+	muxIDs, releaseFns := s.drainAttachedResources()
+	s.releaseDrainedAttachedResources(muxIDs, releaseFns)
+}
+
+func (s *attachSession) drainAttachedResources() ([]uint32, []func()) {
 	s.mu.Lock()
 	if s.released {
 		s.mu.Unlock()
-		return
+		return nil, nil
 	}
 	s.released = true
+	muxIDs := make([]uint32, 0, len(s.muxes))
+	for id := range s.muxes {
+		muxIDs = append(muxIDs, id)
+		delete(s.muxes, id)
+	}
 	releaseFns := make([]func(), 0, len(s.releaseFns))
 	for id, releaseFn := range s.releaseFns {
 		delete(s.releaseFns, id)
-		s.router.RemoveMux(id)
 		if releaseFn != nil {
 			releaseFns = append(releaseFns, releaseFn)
 		}
 	}
 	s.mu.Unlock()
 
+	return muxIDs, releaseFns
+}
+
+func (s *attachSession) releaseDrainedAttachedResources(muxIDs []uint32, releaseFns []func()) {
+	for _, id := range muxIDs {
+		s.router.RemoveMux(id)
+	}
 	for _, releaseFn := range releaseFns {
 		releaseFn()
 	}
+}
+
+func (s *attachSession) close() {
+	s.closeOnce.Do(func() {
+		muxIDs, releaseFns := s.drainAttachedResources()
+		s.cancel()
+		if s.mc != nil {
+			_ = s.mc.Close()
+		}
+		if s.strm != nil {
+			if closeSend, ok := s.strm.(interface{ CloseSend() error }); ok {
+				_ = closeSend.CloseSend()
+			}
+			_ = s.strm.Close()
+		}
+		if s.owner != nil {
+			s.owner.clearSession(s)
+		}
+		s.pending.failAll(context.Canceled)
+		s.releaseDrainedAttachedResources(muxIDs, releaseFns)
+	})
 }
 
 func (s *attachSession) sendDetach(resourceID uint32) error {

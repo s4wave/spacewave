@@ -51,6 +51,7 @@ func (m *mockResourceService) ResourceAttach(ctx context.Context) (resource.SRPC
 		onSend:   m.onAttachSend,
 		service:  m,
 		resource: m.nextResourceID,
+		closed:   make(chan struct{}),
 	}
 	strm.recvCh <- &resource.ResourceAttachResponse{
 		Body: &resource.ResourceAttachResponse_Ack{
@@ -136,18 +137,37 @@ func (m *mockResourceClientClient) RecvTo(msg *resource.ResourceClientResponse) 
 }
 
 type mockResourceAttachClient struct {
-	ctx      context.Context
-	recvCh   chan *resource.ResourceAttachResponse
-	onSend   func(*mockResourceAttachClient, *resource.ResourceAttachRequest)
-	service  *mockResourceService
-	resource uint32
+	ctx            context.Context
+	recvCh         chan *resource.ResourceAttachResponse
+	onSend         func(*mockResourceAttachClient, *resource.ResourceAttachRequest)
+	service        *mockResourceService
+	resource       uint32
+	closed         chan struct{}
+	onClose        func()
+	closeOnce      sync.Once
+	closeCalls     atomic.Int32
+	closeSendCalls atomic.Int32
 }
 
 func (m *mockResourceAttachClient) Context() context.Context { return m.ctx }
 
-func (m *mockResourceAttachClient) CloseSend() error { return nil }
+func (m *mockResourceAttachClient) CloseSend() error {
+	m.closeSendCalls.Add(1)
+	return nil
+}
 
-func (m *mockResourceAttachClient) Close() error { return nil }
+func (m *mockResourceAttachClient) Close() error {
+	m.closeCalls.Add(1)
+	if m.onClose != nil {
+		m.onClose()
+	}
+	m.closeOnce.Do(func() {
+		if m.closed != nil {
+			close(m.closed)
+		}
+	})
+	return nil
+}
 
 func (m *mockResourceAttachClient) MsgSend(msg srpc.Message) error {
 	req, ok := msg.(*resource.ResourceAttachRequest)
@@ -181,6 +201,8 @@ func (m *mockResourceAttachClient) Recv() (*resource.ResourceAttachResponse, err
 	select {
 	case <-m.ctx.Done():
 		return nil, m.ctx.Err()
+	case <-m.closed:
+		return nil, context.Canceled
 	case resp := <-m.recvCh:
 		return resp, nil
 	}
@@ -193,6 +215,25 @@ func (m *mockResourceAttachClient) RecvTo(msg *resource.ResourceAttachResponse) 
 	}
 	*msg = *resp
 	return nil
+}
+
+type mockMuxedConn struct {
+	closeCalls atomic.Int32
+}
+
+func (m *mockMuxedConn) Close() error {
+	m.closeCalls.Add(1)
+	return nil
+}
+
+func (m *mockMuxedConn) IsClosed() bool { return m.closeCalls.Load() != 0 }
+
+func (m *mockMuxedConn) OpenStream(context.Context) (srpc.MuxedStream, error) {
+	return nil, errors.New("unused")
+}
+
+func (m *mockMuxedConn) AcceptStream() (srpc.MuxedStream, error) {
+	return nil, errors.New("unused")
 }
 
 func TestAttachResourceAddAckErrorReturnsError(t *testing.T) {
@@ -501,6 +542,120 @@ func TestAttachPendingDuplicateAckDoesNotResend(t *testing.T) {
 	pending.complete(attachID)
 	if got := pending.len(); got != 0 {
 		t.Fatalf("pending len = %d, want 0", got)
+	}
+}
+
+func TestAttachSessionCloseFailsPendingAttachAndSend(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	strm := &mockResourceAttachClient{
+		ctx:    context.Background(),
+		recvCh: make(chan *resource.ResourceAttachResponse),
+		closed: make(chan struct{}),
+	}
+	mc := &mockMuxedConn{}
+	sess := &attachSession{
+		ctx:        ctx,
+		cancel:     cancel,
+		strm:       strm,
+		mc:         mc,
+		router:     resource.NewRoutedInvoker(),
+		pending:    newAttachPendingAcks(),
+		muxes:      make(map[uint32]struct{}),
+		releaseFns: make(map[uint32]func()),
+		sendCh:     make(chan *attachSendRequest),
+	}
+	_, ch := sess.pending.add()
+
+	sess.close()
+
+	select {
+	case result := <-ch:
+		if !errors.Is(result.err, context.Canceled) {
+			t.Fatalf("pending attach error = %v, want context canceled", result.err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("pending attach was not failed on session close")
+	}
+	if got := sess.pending.len(); got != 0 {
+		t.Fatalf("pending len = %d, want 0", got)
+	}
+	if got := mc.closeCalls.Load(); got != 1 {
+		t.Fatalf("muxed connection close calls = %d, want 1", got)
+	}
+	if got := strm.closeCalls.Load(); got != 1 {
+		t.Fatalf("attach stream close calls = %d, want 1", got)
+	}
+	select {
+	case <-strm.closed:
+	default:
+		t.Fatal("attach stream close did not unblock recv")
+	}
+
+	err := sess.send(&resource.ResourceAttachRequest{
+		Body: &resource.ResourceAttachRequest_Detach{
+			Detach: &resource.ResourceAttachDetach{ResourceId: 1},
+		},
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("send after close error = %v, want context canceled", err)
+	}
+}
+
+func TestAttachSessionCloseRemovesMuxAndRejectsLateMux(t *testing.T) {
+	sess := newAttachSession(
+		context.Background(),
+		nil,
+		nil,
+		resource.NewRoutedInvoker(),
+	)
+	called := false
+	if err := sess.setMux(42, srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		called = true
+		return true, nil
+	})); err != nil {
+		t.Fatalf("set mux before close: %v", err)
+	}
+	ok, err := sess.router.InvokeMethod("42/test.Service", "Call", nil)
+	if err != nil || !ok || !called {
+		t.Fatalf("route before close ok=%v called=%v err=%v, want successful dispatch", ok, called, err)
+	}
+
+	sess.close()
+
+	called = false
+	ok, err = sess.router.InvokeMethod("42/test.Service", "Call", nil)
+	if ok || !errors.Is(err, resource.ErrResourceNotFound) || called {
+		t.Fatalf("route after close ok=%v called=%v err=%v, want resource not found", ok, called, err)
+	}
+	if err := sess.setMux(43, srpc.InvokerFunc(nil)); !errors.Is(err, context.Canceled) {
+		t.Fatalf("set mux after close error = %v, want context canceled", err)
+	}
+}
+
+func TestAttachSessionCloseMarksReleasedBeforeTransportClose(t *testing.T) {
+	sess := newAttachSession(
+		context.Background(),
+		nil,
+		nil,
+		resource.NewRoutedInvoker(),
+	)
+	errCh := make(chan error, 1)
+	sess.strm = &mockResourceAttachClient{
+		closed: make(chan struct{}),
+		onClose: func() {
+			errCh <- sess.setMux(42, srpc.InvokerFunc(nil))
+		},
+	}
+
+	sess.close()
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("set mux during transport close error = %v, want context canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("transport close did not run")
 	}
 }
 
