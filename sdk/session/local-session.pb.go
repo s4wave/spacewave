@@ -185,9 +185,7 @@ func (m *AddLocalEntityKeypairRequest) CloneVT() *AddLocalEntityKeypairRequest {
 		return (*AddLocalEntityKeypairRequest)(nil)
 	}
 	r := new(AddLocalEntityKeypairRequest)
-	if rhs := m.Credential; rhs != nil {
-		r.Credential = rhs.CloneVT()
-	}
+	r.Credential = m.Credential.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

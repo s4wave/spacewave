@@ -209,9 +209,12 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.RootPath = m.RootPath
 	r.LockPrefix = m.LockPrefix
+	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.Verbose = m.Verbose
+	r.VolumeConfig = m.VolumeConfig.CloneVT()
+	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.BlockShardCount = m.BlockShardCount
 	r.MetaShardCount = m.MetaShardCount
 	r.BlockBloomFpr = m.BlockBloomFpr
@@ -222,15 +225,6 @@ func (m *Config) CloneVT() *Config {
 	r.DriverMode = m.DriverMode
 	r.StorageFormatVersion = m.StorageFormatVersion
 	r.ResetPolicy = m.ResetPolicy
-	if rhs := m.KvKeyOpts; rhs != nil {
-		r.KvKeyOpts = rhs.CloneVT()
-	}
-	if rhs := m.VolumeConfig; rhs != nil {
-		r.VolumeConfig = rhs.CloneVT()
-	}
-	if rhs := m.StoreConfig; rhs != nil {
-		r.StoreConfig = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

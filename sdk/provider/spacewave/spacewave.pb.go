@@ -8278,9 +8278,7 @@ func (m *CreateAccountResponse) CloneVT() *CreateAccountResponse {
 		return (*CreateAccountResponse)(nil)
 	}
 	r := new(CreateAccountResponse)
-	if rhs := m.SessionListEntry; rhs != nil {
-		r.SessionListEntry = rhs.CloneVT()
-	}
+	r.SessionListEntry = m.SessionListEntry.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -8433,10 +8431,8 @@ func (m *LoginOrCreateAccountResponse) CloneVT() *LoginOrCreateAccountResponse {
 		return (*LoginOrCreateAccountResponse)(nil)
 	}
 	r := new(LoginOrCreateAccountResponse)
+	r.SessionListEntry = m.SessionListEntry.CloneVT()
 	r.IsNewAccount = m.IsNewAccount
-	if rhs := m.SessionListEntry; rhs != nil {
-		r.SessionListEntry = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -8470,9 +8466,7 @@ func (m *LoginWithEntityKeyResponse) CloneVT() *LoginWithEntityKeyResponse {
 		return (*LoginWithEntityKeyResponse)(nil)
 	}
 	r := new(LoginWithEntityKeyResponse)
-	if rhs := m.SessionListEntry; rhs != nil {
-		r.SessionListEntry = rhs.CloneVT()
-	}
+	r.SessionListEntry = m.SessionListEntry.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -8510,9 +8504,7 @@ func (m *MountLinkedDeviceSessionResponse) CloneVT() *MountLinkedDeviceSessionRe
 		return (*MountLinkedDeviceSessionResponse)(nil)
 	}
 	r := new(MountLinkedDeviceSessionResponse)
-	if rhs := m.SessionListEntry; rhs != nil {
-		r.SessionListEntry = rhs.CloneVT()
-	}
+	r.SessionListEntry = m.SessionListEntry.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -9265,9 +9257,7 @@ func (m *StartBrowserHandoffResponse) CloneVT() *StartBrowserHandoffResponse {
 		return (*StartBrowserHandoffResponse)(nil)
 	}
 	r := new(StartBrowserHandoffResponse)
-	if rhs := m.SessionListEntry; rhs != nil {
-		r.SessionListEntry = rhs.CloneVT()
-	}
+	r.SessionListEntry = m.SessionListEntry.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -9685,9 +9675,7 @@ func (m *ResetSessionRequest) CloneVT() *ResetSessionRequest {
 	}
 	r := new(ResetSessionRequest)
 	r.SessionIdx = m.SessionIdx
-	if rhs := m.Credential; rhs != nil {
-		r.Credential = rhs.CloneVT()
-	}
+	r.Credential = m.Credential.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -9733,9 +9721,7 @@ func (m *CreateLinkedLocalSessionResponse) CloneVT() *CreateLinkedLocalSessionRe
 		return (*CreateLinkedLocalSessionResponse)(nil)
 	}
 	r := new(CreateLinkedLocalSessionResponse)
-	if rhs := m.SessionListEntry; rhs != nil {
-		r.SessionListEntry = rhs.CloneVT()
-	}
+	r.SessionListEntry = m.SessionListEntry.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -11044,10 +11030,8 @@ func (m *OrganizationRootStateInfo) CloneVT() *OrganizationRootStateInfo {
 	}
 	r := new(OrganizationRootStateInfo)
 	r.SharedObjectId = m.SharedObjectId
+	r.Health = m.Health.CloneVT()
 	r.MutationPermission = m.MutationPermission.CloneVT()
-	if rhs := m.Health; rhs != nil {
-		r.Health = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -12305,9 +12289,7 @@ func (m *LookupInviteCodeResponse) CloneVT() *LookupInviteCodeResponse {
 	}
 	r := new(LookupInviteCodeResponse)
 	r.InviteId = m.InviteId
-	if rhs := m.InviteMessage; rhs != nil {
-		r.InviteMessage = rhs.CloneVT()
-	}
+	r.InviteMessage = m.InviteMessage.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

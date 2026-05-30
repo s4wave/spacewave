@@ -13,17 +13,23 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	core_session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -59,6 +65,7 @@ type deviceSetupRecord struct {
 	SessionID        string `json:"sessionId,omitempty"`
 	SessionIndex     uint32 `json:"sessionIndex,omitempty"`
 	SessionPeerID    string `json:"sessionPeerId,omitempty"`
+	DeviceObjectKey  string `json:"deviceObjectKey,omitempty"`
 	FailureReason    string `json:"failureReason,omitempty"`
 	ExpiresAt        int64  `json:"expiresAt,omitempty"`
 	Ticket           string `json:"ticket,omitempty"`
@@ -81,6 +88,7 @@ type deviceStatusOutput struct {
 	SessionID        string `json:"sessionId,omitempty"`
 	SessionIndex     uint32 `json:"sessionIndex,omitempty"`
 	SessionPeerID    string `json:"sessionPeerId,omitempty"`
+	DeviceObjectKey  string `json:"deviceObjectKey,omitempty"`
 	FailureReason    string `json:"failureReason,omitempty"`
 	ExpiresAt        int64  `json:"expiresAt,omitempty"`
 	Ticket           string `json:"ticket,omitempty"`
@@ -114,6 +122,8 @@ var deviceMountLinkedSession = func(
 	defer cleanup()
 	return prov.MountLinkedDeviceSession(ctx, req)
 }
+
+var deviceUpsertObject = upsertLinkedDeviceObject
 
 func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
@@ -292,6 +302,7 @@ func runDeviceSetup(c *cli.Context, args deviceSetupArgs) error {
 		SessionID:        record.SessionID,
 		SessionIndex:     record.SessionIndex,
 		SessionPeerID:    record.SessionPeerID,
+		DeviceObjectKey:  record.DeviceObjectKey,
 		FailureReason:    record.FailureReason,
 		ExpiresAt:        record.ExpiresAt,
 		Ticket:           record.Ticket,
@@ -349,6 +360,7 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 		SessionID:        updated.SessionID,
 		SessionIndex:     updated.SessionIndex,
 		SessionPeerID:    updated.SessionPeerID,
+		DeviceObjectKey:  updated.DeviceObjectKey,
 		FailureReason:    updated.FailureReason,
 		ExpiresAt:        updated.ExpiresAt,
 		Ticket:           updated.Ticket,
@@ -388,6 +400,7 @@ func runDeviceStatus(c *cli.Context, statePath, outputFormat string) error {
 		SessionID:        record.SessionID,
 		SessionIndex:     record.SessionIndex,
 		SessionPeerID:    record.SessionPeerID,
+		DeviceObjectKey:  record.DeviceObjectKey,
 		FailureReason:    record.FailureReason,
 		ExpiresAt:        record.ExpiresAt,
 		Ticket:           record.Ticket,
@@ -653,7 +666,182 @@ func openDeviceSession(
 	updated.SetupState = deviceSetupStateSessionReady
 	updated.SessionIndex = entry.GetSessionIndex()
 	updated.SessionPeerID = pid.String()
+	objectKey, err := deviceUpsertObject(ctx, client, &updated)
+	if err != nil {
+		return nil, errors.Wrap(err, "create or update device object")
+	}
+	updated.DeviceObjectKey = objectKey
 	return &updated, nil
+}
+
+func upsertLinkedDeviceObject(
+	ctx context.Context,
+	client *sdkClient,
+	record *deviceSetupRecord,
+) (string, error) {
+	if record == nil {
+		return "", errors.New("device setup state is required")
+	}
+	spaceID, err := decodeDeviceResourceID(record.ResourceID)
+	if err != nil {
+		return "", err
+	}
+	if record.SessionIndex == 0 {
+		return "", errors.New("device session index is required")
+	}
+
+	sess, err := client.mountSession(ctx, record.SessionIndex)
+	if err != nil {
+		return "", err
+	}
+	defer sess.Release()
+
+	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
+	if err != nil {
+		return "", err
+	}
+	defer spaceCleanup()
+
+	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+	if err != nil {
+		return "", err
+	}
+	defer engineCleanup()
+
+	objectKey := deviceObjectKey(record.PeerID)
+	now := time.Now()
+	next := deviceObjectFromSetupRecord(record, now)
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		return "", errors.Wrap(err, "new transaction")
+	}
+	defer tx.Discard()
+
+	existingState, found, err := tx.GetObject(ctx, objectKey)
+	if err != nil {
+		return "", err
+	}
+	if found {
+		existing, err := readDeviceBlock(ctx, existingState)
+		if err != nil {
+			return "", err
+		}
+		if existing != nil && existing.GetPeerId() != "" && existing.GetPeerId() != record.PeerID {
+			return "", errors.New("existing device object peer_id does not match setup state")
+		}
+		mergeDeviceObjectState(next, existing)
+		_, _, err = world.AccessObjectState(ctx, existingState, true, func(bcs *block.Cursor) error {
+			bcs.SetBlock(next, true)
+			return nil
+		})
+		if err != nil {
+			return "", err
+		}
+	} else {
+		_, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
+			bcs.ClearAllRefs()
+			bcs.SetBlock(next, true)
+			return nil
+		})
+		if err != nil {
+			return "", err
+		}
+		if err := world_types.SetObjectType(ctx, tx, objectKey, s4wave_device.DeviceTypeID); err != nil {
+			return "", err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return "", err
+	}
+	return objectKey, nil
+}
+
+func decodeDeviceResourceID(encoded string) (string, error) {
+	if strings.TrimSpace(encoded) == "" {
+		return "", errors.New("device completion resource id is missing")
+	}
+	data, err := base64.StdEncoding.DecodeString(strings.TrimSpace(encoded))
+	if err != nil {
+		return "", errors.Wrap(err, "decode device completion resource id")
+	}
+	if len(data) == 0 {
+		return "", errors.New("device completion resource id is empty")
+	}
+	return string(data), nil
+}
+
+func readDeviceBlock(ctx context.Context, objState world.ObjectState) (*s4wave_device.Device, error) {
+	var state *s4wave_device.Device
+	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
+		var uerr error
+		state, uerr = s4wave_device.UnmarshalDevice(ctx, bcs)
+		return uerr
+	})
+	return state, err
+}
+
+func deviceObjectFromSetupRecord(record *deviceSetupRecord, now time.Time) *s4wave_device.Device {
+	ts := timestamppb.New(now)
+	return &s4wave_device.Device{
+		PeerId:        record.PeerID,
+		Label:         record.Label,
+		Platform:      &s4wave_device.DevicePlatform{Os: runtime.GOOS, Arch: runtime.GOARCH},
+		DaemonVersion: "unknown",
+		SetupState:    deviceSetupStateProto(record.SetupState),
+		UpdateState:   s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_IDLE,
+		LastStatus: &s4wave_device.DeviceStatus{
+			Liveness:   s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
+			Message:    "device session ready",
+			ObservedAt: ts.CloneVT(),
+		},
+		CreatedAt: ts.CloneVT(),
+		UpdatedAt: ts,
+	}
+}
+
+func mergeDeviceObjectState(next *s4wave_device.Device, existing *s4wave_device.Device) {
+	if next == nil || existing == nil {
+		return
+	}
+	if existing.GetCreatedAt() != nil {
+		next.CreatedAt = existing.GetCreatedAt().CloneVT()
+	}
+	if existing.GetLastStatus() != nil {
+		next.LastStatus = existing.GetLastStatus().CloneVT()
+	}
+	if existing.GetUpdateState() != s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_UNKNOWN {
+		next.UpdateState = existing.GetUpdateState()
+	}
+	if caps := existing.GetCapabilities(); len(caps) > 0 {
+		next.Capabilities = make([]*s4wave_device.DeviceCapability, 0, len(caps))
+		for _, cap := range caps {
+			if cap == nil {
+				continue
+			}
+			next.Capabilities = append(next.Capabilities, cap.CloneVT())
+		}
+	}
+}
+
+func deviceSetupStateProto(state string) s4wave_device.DeviceSetupState {
+	switch state {
+	case deviceSetupStateWaiting:
+		return s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_WAITING_FOR_COMPLETION
+	case deviceSetupStateImported:
+		return s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_COMPLETION_IMPORTED
+	case deviceSetupStateSessionReady:
+		return s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY
+	case deviceSetupStateFailed:
+		return s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_FAILED
+	default:
+		return s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_UNKNOWN
+	}
+}
+
+func deviceObjectKey(peerID string) string {
+	sum := sha256.Sum256([]byte(peerID))
+	return "devices/" + hex.EncodeToString(sum[:])[:32]
 }
 
 func decodeDeviceCompletion(encoded string) (*s4wave_provider_spacewave.SpaceLinkCallback, error) {
@@ -822,6 +1010,9 @@ func writeDeviceStatusOutput(out deviceStatusOutput, outputFormat string) error 
 		}
 		if out.SessionPeerID != "" {
 			fields = append(fields, [2]string{"Session Peer", out.SessionPeerID})
+		}
+		if out.DeviceObjectKey != "" {
+			fields = append(fields, [2]string{"Device Object", out.DeviceObjectKey})
 		}
 		if out.FailureReason != "" {
 			fields = append(fields, [2]string{"Failure", out.FailureReason})

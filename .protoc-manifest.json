@@ -3898,6 +3898,22 @@
       ],
       "protoFiles": ["sdk/deploy/deploy.proto"]
     },
+    "github.com/s4wave/spacewave/sdk/device": {
+      "hash": "c32f9594d601a467b1644df414b0fe41459c7f6925079edfd02cc60b0a06c050",
+      "generatedFiles": [
+        "sdk/device/device.pb.cc",
+        "sdk/device/device.pb.go",
+        "sdk/device/device.pb.h",
+        "sdk/device/device.pb.rs",
+        "sdk/device/device.pb.ts",
+        "sdk/device/device_srpc.pb.cpp",
+        "sdk/device/device_srpc.pb.go",
+        "sdk/device/device_srpc.pb.hpp",
+        "sdk/device/device_srpc.pb.rs",
+        "sdk/device/device_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/device/device.proto"]
+    },
     "github.com/s4wave/spacewave/sdk/docs": {
       "hash": "ffe537eb3f7a941e18dab9eef69d044a97aaf4d9e4debff5382a045d41881550",
       "generatedFiles": [

@@ -55,6 +55,18 @@ describe('getObjectViewersForType', () => {
     ).toEqual(['Drive Intro', 'Wizard', 'Debug Viewer'])
   })
 
+  it('registers the Device viewer as a typed Space object surface', () => {
+    expect(
+      getObjectViewersForType('spacewave/device').map((viewer) => [
+        viewer.name,
+        viewer.category,
+      ]),
+    ).toEqual([
+      ['Device', 'Devices'],
+      ['Debug Viewer', 'Developer'],
+    ])
+  })
+
   it('lets wizard viewers open through their typed resource handle', () => {
     expect(
       getObjectViewersForType('wizard/drive/intro')

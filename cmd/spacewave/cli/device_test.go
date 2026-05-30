@@ -267,6 +267,7 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 		t.Fatalf("parse setup json: %v: %s", err, setupOut)
 	}
 	var mountReq *s4wave_provider_spacewave.MountLinkedDeviceSessionRequest
+	var upsertRecord *deviceSetupRecord
 	withDeviceMountSessionStub(t, func(
 		ctx context.Context,
 		client *sdkClient,
@@ -285,6 +286,10 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 				},
 			},
 		}, nil
+	})
+	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, record *deviceSetupRecord) (string, error) {
+		upsertRecord = record
+		return "devices/build-host", nil
 	})
 
 	completion := buildDeviceCompletion(
@@ -334,6 +339,9 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 	if got.SessionIndex != 7 {
 		t.Fatalf("session index = %d, want 7", got.SessionIndex)
 	}
+	if got.DeviceObjectKey != "devices/build-host" {
+		t.Fatalf("device object key = %q, want devices/build-host", got.DeviceObjectKey)
+	}
 	if mountReq == nil {
 		t.Fatal("device completion did not mount linked session")
 	}
@@ -352,6 +360,15 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 	if len(mountReq.GetSessionPemPrivateKey()) == 0 {
 		t.Fatal("mount request missing session PEM")
 	}
+	if upsertRecord == nil {
+		t.Fatal("device completion did not create or update the Device object")
+	}
+	if upsertRecord.SessionIndex != 7 {
+		t.Fatalf("upsert session index = %d, want 7", upsertRecord.SessionIndex)
+	}
+	if upsertRecord.ResourceID != base64.StdEncoding.EncodeToString([]byte("space-1")) {
+		t.Fatalf("upsert resource id = %q", upsertRecord.ResourceID)
+	}
 
 	record, err := readDeviceSetupRecord(statePath)
 	if err != nil {
@@ -359,6 +376,9 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 	}
 	if record.SetupState != deviceSetupStateSessionReady || record.Completion != completion {
 		t.Fatalf("record did not persist imported completion: %#v", record)
+	}
+	if record.DeviceObjectKey != "devices/build-host" {
+		t.Fatalf("record device object key = %q, want devices/build-host", record.DeviceObjectKey)
 	}
 }
 
@@ -413,6 +433,68 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 	}
 	if record.Completion != completion {
 		t.Fatal("completion payload was not preserved after mount failure")
+	}
+}
+
+func TestDeviceCompletePreservesCompletionWhenDeviceObjectUpsertFails(t *testing.T) {
+	clearStatePathEnv(t)
+	clearSocketPathEnv(t)
+
+	statePath := filepath.Join(t.TempDir(), "state")
+	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
+		return newTestDaemonConn(t), nil
+	}, func(_ context.Context, path string) error {
+		t.Fatal("autostart must not run after successful dial")
+		return nil
+	})
+
+	setupOut, err := captureStdout(t, func() error {
+		return runDeviceCLI(t, "device", "setup", "--state-path", statePath, "--output", "json")
+	})
+	if err != nil {
+		t.Fatalf("device setup: %v", err)
+	}
+	var setup deviceStatusOutput
+	if err := json.Unmarshal([]byte(setupOut), &setup); err != nil {
+		t.Fatalf("parse setup json: %v: %s", err, setupOut)
+	}
+	withDeviceMountSessionStub(t, func(
+		ctx context.Context,
+		client *sdkClient,
+		req *s4wave_provider_spacewave.MountLinkedDeviceSessionRequest,
+	) (*s4wave_provider_spacewave.MountLinkedDeviceSessionResponse, error) {
+		return &s4wave_provider_spacewave.MountLinkedDeviceSessionResponse{
+			SessionListEntry: &core_session.SessionListEntry{SessionIndex: 9},
+		}, nil
+	})
+	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, record *deviceSetupRecord) (string, error) {
+		return "", errors.New("world write rejected")
+	})
+
+	completion := buildDeviceCompletion(
+		t,
+		setup.Ticket,
+		s4wave_provider_spacewave.SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_OK,
+		"",
+	)
+	_, err = captureStdout(t, func() error {
+		return runDeviceCLI(t, "device", "complete", "--state-path", statePath, "--completion", completion)
+	})
+	if err == nil {
+		t.Fatal("device complete succeeded despite Device object write failure")
+	}
+	record, err := readDeviceSetupRecord(statePath)
+	if err != nil {
+		t.Fatalf("read setup record: %v", err)
+	}
+	if record.SetupState != deviceSetupStateImported {
+		t.Fatalf("setup state = %q, want imported completion after object write failure", record.SetupState)
+	}
+	if record.Completion != completion {
+		t.Fatal("completion payload was not preserved after object write failure")
+	}
+	if record.DeviceObjectKey != "" {
+		t.Fatalf("device object key = %q, want empty after failed write", record.DeviceObjectKey)
 	}
 }
 
@@ -678,6 +760,19 @@ func withDeviceMountSessionStub(
 		deviceMountLinkedSession = oldMount
 	})
 	deviceMountLinkedSession = mount
+}
+
+func withDeviceObjectUpsertStub(
+	t *testing.T,
+	upsert func(context.Context, *sdkClient, *deviceSetupRecord) (string, error),
+) {
+	t.Helper()
+
+	oldUpsert := deviceUpsertObject
+	t.Cleanup(func() {
+		deviceUpsertObject = oldUpsert
+	})
+	deviceUpsertObject = upsert
 }
 
 func assertDeviceTicket(
