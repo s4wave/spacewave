@@ -46,6 +46,10 @@ env:
   GO_VERSION: 1.26.3
   TINYGO_VERSION: 0.41.1
   BINARYEN_VERSION: 129
+  # Binaryen's static Linux release binaries can segfault in pthreaded
+  # wasm-opt on deep optimization recursion. Keep TinyGo's optimization level
+  # unchanged, but force wasm-opt to avoid pthread workers on GitHub Linux.
+  BINARYEN_CORES: 1
 
 jobs:
   prep:
