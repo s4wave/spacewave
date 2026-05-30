@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
@@ -22,10 +23,27 @@ type WizardResource struct {
 	objKey        string
 	ctxCancel     context.CancelFunc
 	cloneRoutine  *routine.RoutineContainer
+	stateWatch    *routine.RoutineContainer
 	state         *WizardState
+	stateRev      uint64
+	stateWatchErr error
+	stateClosed   bool
 	cloneProgress *GitCloneProgress
 	bcast         broadcast.Broadcast
 	mux           srpc.Mux
+}
+
+var wizardStateWatchBackoff = &backoff.Backoff{
+	BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+	Exponential: &backoff.Exponential{
+		InitialInterval: 100,
+		MaxInterval:     1000,
+	},
+}
+
+type wizardStateWatchSnapshot struct {
+	state *WizardState
+	err   error
 }
 
 // NewWizardResource creates a new WizardResource.
@@ -47,6 +65,11 @@ func NewWizardResource(ws world.WorldState, engine world.Engine, objKey string, 
 			State: GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_IDLE,
 		},
 	}
+	if ws != nil && objKey != "" {
+		r.stateWatch = routine.NewRoutineContainer(routine.WithRetry(wizardStateWatchBackoff))
+		r.stateWatch.SetRoutine(r.watchWizardWorld)
+		r.stateWatch.SetContext(ctx, false)
+	}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterWizardResourceService(mux, r)
 	})
@@ -61,62 +84,130 @@ func (r *WizardResource) GetMux() srpc.Mux {
 // Close releases the wizard resource lifecycle.
 func (r *WizardResource) Close() {
 	r.cloneRoutine.ClearContext()
+	if r.stateWatch != nil {
+		r.stateWatch.ClearContext()
+	}
 	r.ctxCancel()
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.stateClosed = true
+		r.stateWatchErr = context.Canceled
+		broadcast()
+	})
 }
 
 // WatchWizardState streams wizard state changes.
 func (r *WizardResource) WatchWizardState(_ *WatchWizardStateRequest, strm SRPCWizardResourceService_WatchWizardStateStream) error {
-	ctx := strm.Context()
+	return broadcast.WatchBroadcastWithEqual(
+		strm.Context(),
+		&r.bcast,
+		r.snapshotWizardStateWatchLocked,
+		func(snap *wizardStateWatchSnapshot) error {
+			if snap.err != nil {
+				return snap.err
+			}
+			return strm.Send(&WatchWizardStateResponse{State: snap.state.CloneVT()})
+		},
+		wizardStateWatchSnapshotsEqual,
+	)
+}
 
+func (r *WizardResource) watchWizardWorld(ctx context.Context) error {
 	objState, found, err := r.ws.GetObject(ctx, r.objKey)
 	if err != nil {
+		r.setWizardStateWatchError(err)
 		return err
 	}
 	if !found {
+		r.setWizardStateWatchError(world.ErrObjectNotFound)
 		return world.ErrObjectNotFound
 	}
 
-	var lastSent *WizardState
 	for {
 		if err := ctx.Err(); err != nil {
+			r.setWizardStateWatchError(err)
 			return err
 		}
 
 		_, rev, err := objState.GetRootRef(ctx)
 		if err != nil {
+			r.setWizardStateWatchError(err)
 			return err
 		}
 
-		var state *WizardState
-		_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
-			var uerr error
-			state, uerr = UnmarshalWizardState(ctx, bcs)
-			return uerr
-		})
+		state, err := r.readWizardWorldState(ctx, objState)
 		if err != nil {
+			r.setWizardStateWatchError(err)
 			return err
 		}
-		if state == nil {
-			state = &WizardState{}
-		}
-
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			r.state = state.CloneVT()
-			broadcast()
-		})
-
-		if lastSent == nil || !state.EqualVT(lastSent) {
-			if serr := strm.Send(&WatchWizardStateResponse{State: state.CloneVT()}); serr != nil {
-				return serr
-			}
-			lastSent = state
-		}
+		r.setWizardStateWatchState(state, rev)
 
 		_, err = objState.WaitRev(ctx, rev+1, false)
 		if err != nil {
+			r.setWizardStateWatchError(err)
 			return err
 		}
 	}
+}
+
+func (r *WizardResource) readWizardWorldState(ctx context.Context, objState world.ObjectState) (*WizardState, error) {
+	var state *WizardState
+	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
+		var uerr error
+		state, uerr = UnmarshalWizardState(ctx, bcs)
+		return uerr
+	})
+	if err != nil {
+		return nil, err
+	}
+	if state == nil {
+		state = &WizardState{}
+	}
+	return state, nil
+}
+
+func (r *WizardResource) setWizardStateWatchState(state *WizardState, rev uint64) {
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if r.stateClosed || rev < r.stateRev {
+			return
+		}
+		r.state = state.CloneVT()
+		r.stateRev = rev
+		r.stateWatchErr = nil
+		broadcast()
+	})
+}
+
+func (r *WizardResource) setWizardStateWatchError(err error) {
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if r.stateClosed {
+			return
+		}
+		r.stateWatchErr = err
+		broadcast()
+	})
+}
+
+func (r *WizardResource) snapshotWizardStateWatchLocked() *wizardStateWatchSnapshot {
+	if r.stateWatchErr != nil {
+		return &wizardStateWatchSnapshot{err: r.stateWatchErr}
+	}
+	return &wizardStateWatchSnapshot{state: r.state.CloneVT()}
+}
+
+func wizardStateWatchSnapshotsEqual(a, b *wizardStateWatchSnapshot) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.err != nil || b.err != nil {
+		if a.err == nil || b.err == nil {
+			return false
+		}
+		return a.err.Error() == b.err.Error()
+	}
+	if a.state == nil || b.state == nil {
+		return a.state == b.state
+	}
+	return a.state.EqualVT(b.state)
 }
 
 // UpdateWizardState updates the wizard block state.
@@ -136,14 +227,12 @@ func (r *WizardResource) UpdateWizardState(ctx context.Context, req *UpdateWizar
 		updated.ConfigData = req.GetConfigData()
 	}
 
-	if err := r.persistState(ctx, updated); err != nil {
+	rev, err := r.persistState(ctx, updated)
+	if err != nil {
 		return nil, err
 	}
 
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.state = updated
-		broadcast()
-	})
+	r.setWizardStateWatchState(updated, rev)
 
 	return &UpdateWizardStateResponse{State: updated.CloneVT()}, nil
 }
@@ -262,19 +351,19 @@ func (r *WizardResource) setGitCloneProgress(progress *GitCloneProgress) {
 }
 
 // persistState writes the wizard state to the world via a write transaction.
-func (r *WizardResource) persistState(ctx context.Context, state *WizardState) error {
+func (r *WizardResource) persistState(ctx context.Context, state *WizardState) (uint64, error) {
 	wtx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	writeState, found, err := wtx.GetObject(ctx, r.objKey)
 	if err != nil {
 		wtx.Discard()
-		return err
+		return 0, err
 	}
 	if !found {
 		wtx.Discard()
-		return world.ErrObjectNotFound
+		return 0, world.ErrObjectNotFound
 	}
 	_, _, err = world.AccessObjectState(ctx, writeState, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(state, true)
@@ -282,9 +371,17 @@ func (r *WizardResource) persistState(ctx context.Context, state *WizardState) e
 	})
 	if err != nil {
 		wtx.Discard()
-		return err
+		return 0, err
 	}
-	return wtx.Commit(ctx)
+	_, rev, err := writeState.GetRootRef(ctx)
+	if err != nil {
+		wtx.Discard()
+		return 0, err
+	}
+	if err := wtx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return rev, nil
 }
 
 // _ is a type assertion

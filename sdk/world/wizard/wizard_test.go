@@ -20,8 +20,11 @@ import (
 	forge_task_ops "github.com/s4wave/spacewave/core/forge/task"
 	s4wave_git "github.com/s4wave/spacewave/core/git"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
+	"github.com/s4wave/spacewave/db/block"
 	git_block "github.com/s4wave/spacewave/db/git/block"
+	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	bifcrypto "github.com/s4wave/spacewave/net/crypto"
@@ -31,6 +34,7 @@ import (
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
 	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
+	"github.com/sirupsen/logrus"
 )
 
 func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.Client) {
@@ -142,6 +146,77 @@ func setupWizardWorldEngine(ctx context.Context, t *testing.T) (*resource_client
 	}
 
 	return resClient, engine, cleanup
+}
+
+func setupWizardWatchWorld(
+	t *testing.T,
+	ctx context.Context,
+	objKey string,
+	state *s4wave_wizard.WizardState,
+) (*world_block.WorldState, func()) {
+	t.Helper()
+
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+	tb, err := db_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		tb.Release()
+		t.Fatal(err.Error())
+	}
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		ocs.Release()
+		tb.Release()
+		t.Fatal(err.Error())
+	}
+	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+		bcs.SetBlock(state, true)
+		return nil
+	})
+	if err == nil {
+		err = ws.Commit(ctx)
+	}
+	if err != nil {
+		ocs.Release()
+		tb.Release()
+		t.Fatal(err.Error())
+	}
+	return ws, func() {
+		ocs.Release()
+		tb.Release()
+	}
+}
+
+func setWizardWatchWorldState(
+	t *testing.T,
+	ctx context.Context,
+	ws *world_block.WorldState,
+	objKey string,
+	state *s4wave_wizard.WizardState,
+) {
+	t.Helper()
+
+	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+		bcs.SetBlock(state, true)
+		return nil
+	})
+	if err == nil {
+		err = ws.Commit(ctx)
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func requireWizardStateName(t *testing.T, state *s4wave_wizard.WizardState, name string) {
+	t.Helper()
+	if state.GetName() != name {
+		t.Fatalf("expected wizard state name %q, got %q", name, state.GetName())
+	}
 }
 
 // accessWizardResource opens a wizard object through the typed-object service.
@@ -277,6 +352,56 @@ func (s *wizardRegistryStream) Send(resp *s4wave_wizard.WatchWizardsResponse) er
 }
 
 func (s *wizardRegistryStream) SendAndClose(resp *s4wave_wizard.WatchWizardsResponse) error {
+	if resp != nil {
+		if err := s.Send(resp); err != nil {
+			return err
+		}
+	}
+	return s.CloseSend()
+}
+
+type wizardStateStream struct {
+	ctx  context.Context
+	sent chan *s4wave_wizard.WatchWizardStateResponse
+}
+
+func newWizardStateStream(ctx context.Context) *wizardStateStream {
+	return &wizardStateStream{
+		ctx:  ctx,
+		sent: make(chan *s4wave_wizard.WatchWizardStateResponse, 8),
+	}
+}
+
+func (s *wizardStateStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *wizardStateStream) MsgSend(srpc.Message) error {
+	panic("MsgSend should not be called")
+}
+
+func (s *wizardStateStream) MsgRecv(srpc.Message) error {
+	panic("MsgRecv should not be called")
+}
+
+func (s *wizardStateStream) CloseSend() error {
+	return nil
+}
+
+func (s *wizardStateStream) Close() error {
+	return nil
+}
+
+func (s *wizardStateStream) Send(resp *s4wave_wizard.WatchWizardStateResponse) error {
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	case s.sent <- resp.CloneVT():
+		return nil
+	}
+}
+
+func (s *wizardStateStream) SendAndClose(resp *s4wave_wizard.WatchWizardStateResponse) error {
 	if resp != nil {
 		if err := s.Send(resp); err != nil {
 			return err
@@ -704,6 +829,76 @@ func TestWizardGitCloneProgressWatchCancellation(t *testing.T) {
 	cancel()
 	if err := recvWizardTestValue(t, done, "clone progress watch cancellation"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+}
+
+func TestWizardResourceWatchSharesWorldUpdates(t *testing.T) {
+	ctx := t.Context()
+	objKey := "wizard/watch-shared"
+	initial := &s4wave_wizard.WizardState{
+		Name:            "Draft Canvas",
+		TargetTypeId:    "canvas",
+		TargetKeyPrefix: "canvas/",
+	}
+	ws, cleanup := setupWizardWatchWorld(t, ctx, objKey, initial)
+	t.Cleanup(cleanup)
+
+	resource := s4wave_wizard.NewWizardResource(ws, nil, objKey, initial)
+	t.Cleanup(resource.Close)
+	streamCtxA, cancelA := context.WithCancel(ctx)
+	defer cancelA()
+	streamCtxB, cancelB := context.WithCancel(ctx)
+	defer cancelB()
+	strmA := newWizardStateStream(streamCtxA)
+	strmB := newWizardStateStream(streamCtxB)
+	doneA := make(chan error, 1)
+	doneB := make(chan error, 1)
+	go func() {
+		doneA <- resource.WatchWizardState(&s4wave_wizard.WatchWizardStateRequest{}, strmA)
+	}()
+	go func() {
+		doneB <- resource.WatchWizardState(&s4wave_wizard.WatchWizardStateRequest{}, strmB)
+	}()
+
+	requireWizardStateName(t, recvWizardTestValue(t, strmA.sent, "stream A initial").GetState(), "Draft Canvas")
+	requireWizardStateName(t, recvWizardTestValue(t, strmB.sent, "stream B initial").GetState(), "Draft Canvas")
+
+	updated := initial.CloneVT()
+	updated.Name = "Configured Canvas"
+	updated.Step = 2
+	setWizardWatchWorldState(t, ctx, ws, objKey, updated)
+	requireWizardStateName(t, recvWizardTestValue(t, strmA.sent, "stream A update").GetState(), "Configured Canvas")
+	requireWizardStateName(t, recvWizardTestValue(t, strmB.sent, "stream B update").GetState(), "Configured Canvas")
+
+	resource.Close()
+	if err := recvWizardTestValue(t, doneA, "stream A close"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected stream A context.Canceled, got %v", err)
+	}
+	if err := recvWizardTestValue(t, doneB, "stream B close"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected stream B context.Canceled, got %v", err)
+	}
+}
+
+func TestWizardResourceCloseCancelsStateWatchersImmediately(t *testing.T) {
+	ctx := t.Context()
+	resource := s4wave_wizard.NewWizardResource(nil, nil, "", &s4wave_wizard.WizardState{Name: "Initial"})
+	streamCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	strm := newWizardStateStream(streamCtx)
+	done := make(chan error, 1)
+	go func() {
+		done <- resource.WatchWizardState(&s4wave_wizard.WatchWizardStateRequest{}, strm)
+	}()
+
+	requireWizardStateName(t, recvWizardTestValue(t, strm.sent, "initial wizard state").GetState(), "Initial")
+	resource.Close()
+	if err := recvWizardTestValue(t, done, "wizard state watch close"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+
+	late := newWizardStateStream(ctx)
+	if err := resource.WatchWizardState(&s4wave_wizard.WatchWizardStateRequest{}, late); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected late watcher context.Canceled, got %v", err)
 	}
 }
 
