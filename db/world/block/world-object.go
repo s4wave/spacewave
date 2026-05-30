@@ -103,7 +103,9 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	if err != nil {
 		return nil, err
 	}
-	changeBcs.SetRef(5, nbcs)
+	if changeBcs != nil {
+		changeBcs.SetRef(5, nbcs)
+	}
 
 	// GC: world -> object, object -> root block.
 	if rg := t.refGraph; rg != nil {
@@ -375,8 +377,9 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	// changeBcs may be nil here but this is checked in SetRef.
-	changeBcs.SetRef(7, nbcs)
+	if changeBcs != nil {
+		changeBcs.SetRef(7, nbcs)
+	}
 
 	// success
 	return true, nil

@@ -687,6 +687,75 @@ func TestWorldState_DeleteObject(t *testing.T) {
 	t.Log("DeleteObject test successful")
 }
 
+func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	btx, bcs := ocs.BuildTransaction(nil)
+	bcs.ClearAllRefs()
+	bcs.SetBlock(world_block.NewWorld(true), true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs.SetRootRef(rootRef)
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objKey := "disabled-changelog-object"
+	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
+	obj, err := ws.CreateObject(ctx, objKey, oref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, err = obj.SetRootRef(ctx, &bucket.ObjectRef{BucketId: "test-bucket-next"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	deleted, err := ws.DeleteObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatalf("expected %q to be deleted", objKey)
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	root, err := world_block.UnmarshalWorld(ctx, ws.GetBcs())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !root.GetLastChangeDisable() {
+		t.Fatal("expected changelog to remain disabled")
+	}
+	lastChange := root.GetLastChange().CloneVT()
+	lastChange.Seqno = 0
+	if lastChange.SizeVT() != 0 {
+		t.Fatalf("expected disabled changelog to keep only seqno, got %s", lastChange.String())
+	}
+	if root.GetLastChange().GetSeqno() != 3 {
+		t.Fatalf("last change seqno = %d, want 3", root.GetLastChange().GetSeqno())
+	}
+}
+
 func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
