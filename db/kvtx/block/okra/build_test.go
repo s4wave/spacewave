@@ -6,11 +6,13 @@ import (
 	"iter"
 	"slices"
 	"strconv"
-	"sync"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -514,92 +516,11 @@ func writeOkraFixture(
 	return rootRef, okraTx.root.CloneVT()
 }
 
-type okraTestStore struct {
-	block.NopStoreOps
-
-	mtx    sync.Mutex
-	blocks map[string][]byte
-}
-
-func newOkraTestStore() *okraTestStore {
-	return &okraTestStore{blocks: make(map[string][]byte)}
-}
-
-func (o *okraTestStore) GetHashType() hash.HashType {
-	return hash.HashType_HashType_BLAKE3
-}
-
-func (o *okraTestStore) PutBlock(
-	_ context.Context,
-	data []byte,
-	opts *block.PutOpts,
-) (*block.BlockRef, bool, error) {
-	ref := opts.GetForceBlockRef()
-	var err error
-	if ref.GetEmpty() {
-		ref, err = block.BuildBlockRef(data, opts)
-		if err != nil {
-			return nil, false, err
-		}
-	} else {
-		ref = ref.Clone()
-	}
-	key := ref.MarshalString()
-	o.mtx.Lock()
-	defer o.mtx.Unlock()
-	_, exists := o.blocks[key]
-	o.blocks[key] = bytes.Clone(data)
-	return ref, exists, nil
-}
-
-func (o *okraTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	for _, ent := range entries {
-		if ent.Tombstone {
-			if ent.Ref != nil {
-				o.mtx.Lock()
-				delete(o.blocks, ent.Ref.MarshalString())
-				o.mtx.Unlock()
-			}
-			continue
-		}
-		opts := &block.PutOpts{Refs: ent.Refs}
-		if ent.Ref != nil {
-			opts.ForceBlockRef = ent.Ref.Clone()
-		}
-		if _, _, err := o.PutBlock(ctx, ent.Data, opts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (o *okraTestStore) PutBlockBackground(
-	ctx context.Context,
-	data []byte,
-	opts *block.PutOpts,
-) (*block.BlockRef, bool, error) {
-	return o.PutBlock(ctx, data, opts)
-}
-
-func (o *okraTestStore) GetBlock(
-	_ context.Context,
-	ref *block.BlockRef,
-) ([]byte, bool, error) {
-	o.mtx.Lock()
-	defer o.mtx.Unlock()
-	data, ok := o.blocks[ref.MarshalString()]
-	if !ok {
-		return nil, false, nil
-	}
-	return bytes.Clone(data), true, nil
-}
-
-func (o *okraTestStore) GetBlockExists(
-	_ context.Context,
-	ref *block.BlockRef,
-) (bool, error) {
-	o.mtx.Lock()
-	defer o.mtx.Unlock()
-	_, ok := o.blocks[ref.MarshalString()]
-	return ok, nil
+func newOkraTestStore() block.StoreOps {
+	return block_store_inmem.NewInmemBlock(
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		hash.HashType_HashType_BLAKE3,
+		false,
+	)
 }

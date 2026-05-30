@@ -13,6 +13,9 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
 
 	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
@@ -24,14 +27,6 @@ import (
 type blockSpec struct {
 	key  string
 	data []byte
-}
-
-// memExists is an in-memory ExistsChecker that returns true for any hash
-// whose MarshalString is present in the map.
-type memExists map[string]bool
-
-func (m memExists) GetBlockExists(_ context.Context, ref *block.BlockRef) (bool, error) {
-	return m[ref.GetHash().MarshalString()], nil
 }
 
 type testRefGraph struct {
@@ -108,6 +103,26 @@ func blockRefFromKey(t *testing.T, key string) *block.BlockRef {
 	return block.NewBlockRef(h)
 }
 
+func newMirrorStore(t *testing.T, ctx context.Context, specs ...blockSpec) block.StoreOps {
+	t.Helper()
+	store := block_store_inmem.NewInmemBlock(
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		hash.HashType_HashType_SHA256,
+		false,
+	)
+	for _, spec := range specs {
+		ref, _, err := store.PutBlock(ctx, spec.data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := ref.GetHash().MarshalString(); got != spec.key {
+			t.Fatalf("mirror ref = %s, want %s", got, spec.key)
+		}
+	}
+	return store
+}
+
 func packPhysicalKeys(t *testing.T, body []byte) []string {
 	t.Helper()
 	reader, err := kvfile.BuildReader(bytes.NewReader(body), uint64(len(body)))
@@ -146,10 +161,7 @@ func TestDiffBlockStoresEmpty(t *testing.T) {
 	ctx := context.Background()
 
 	specs, reader := buildTestKvfile(t, "empty", 4, 64)
-	mirror := memExists{}
-	for _, s := range specs {
-		mirror[s.key] = true
-	}
+	mirror := newMirrorStore(t, ctx, specs...)
 
 	iter, err := DiffBlockStores(ctx, reader, mirror)
 	if err != nil {
@@ -181,7 +193,7 @@ func TestDiffBlockStoresSingleChunk(t *testing.T) {
 
 	specs, reader := buildTestKvfile(t, "single", 6, 128)
 	// mirror holds the first two specs; the remaining four should be packed.
-	mirror := memExists{specs[0].key: true, specs[1].key: true}
+	mirror := newMirrorStore(t, ctx, specs[0], specs[1])
 	expectedCount := uint64(len(specs) - 2)
 
 	iter, err := DiffBlockStores(ctx, reader, mirror)

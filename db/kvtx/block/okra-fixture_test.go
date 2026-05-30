@@ -5,11 +5,13 @@ import (
 	"context"
 	"iter"
 	"strconv"
-	"sync"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -152,92 +154,11 @@ func (o *selectorOkraFixture) seq() iter.Seq2[[]byte, *block.BlockRef] {
 	}
 }
 
-type selectorOkraStore struct {
-	block.NopStoreOps
-
-	mtx    sync.Mutex
-	blocks map[string][]byte
-}
-
-func newSelectorOkraStore() *selectorOkraStore {
-	return &selectorOkraStore{blocks: make(map[string][]byte)}
-}
-
-func (s *selectorOkraStore) GetHashType() hash.HashType {
-	return hash.HashType_HashType_BLAKE3
-}
-
-func (s *selectorOkraStore) PutBlock(
-	_ context.Context,
-	data []byte,
-	opts *block.PutOpts,
-) (*block.BlockRef, bool, error) {
-	ref := opts.GetForceBlockRef()
-	var err error
-	if ref.GetEmpty() {
-		ref, err = block.BuildBlockRef(data, opts)
-		if err != nil {
-			return nil, false, err
-		}
-	} else {
-		ref = ref.Clone()
-	}
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	key := ref.MarshalString()
-	_, exists := s.blocks[key]
-	s.blocks[key] = bytes.Clone(data)
-	return ref, exists, nil
-}
-
-func (s *selectorOkraStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	for _, ent := range entries {
-		if ent.Tombstone {
-			if ent.Ref != nil {
-				s.mtx.Lock()
-				delete(s.blocks, ent.Ref.MarshalString())
-				s.mtx.Unlock()
-			}
-			continue
-		}
-		opts := &block.PutOpts{Refs: ent.Refs}
-		if ent.Ref != nil {
-			opts.ForceBlockRef = ent.Ref.Clone()
-		}
-		if _, _, err := s.PutBlock(ctx, ent.Data, opts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *selectorOkraStore) PutBlockBackground(
-	ctx context.Context,
-	data []byte,
-	opts *block.PutOpts,
-) (*block.BlockRef, bool, error) {
-	return s.PutBlock(ctx, data, opts)
-}
-
-func (s *selectorOkraStore) GetBlock(
-	_ context.Context,
-	ref *block.BlockRef,
-) ([]byte, bool, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	data, ok := s.blocks[ref.MarshalString()]
-	if !ok {
-		return nil, false, nil
-	}
-	return bytes.Clone(data), true, nil
-}
-
-func (s *selectorOkraStore) GetBlockExists(
-	_ context.Context,
-	ref *block.BlockRef,
-) (bool, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	_, ok := s.blocks[ref.MarshalString()]
-	return ok, nil
+func newSelectorOkraStore() block.StoreOps {
+	return block_store_inmem.NewInmemBlock(
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		hash.HashType_HashType_BLAKE3,
+		false,
+	)
 }
