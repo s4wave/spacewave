@@ -45,12 +45,9 @@ func TestEvaluateBldr(t *testing.T) {
 	if err := demoConf.UnmarshalJSON(demo.GetBuilder().GetConfig()); err != nil {
 		t.Fatalf("parse bldr-demo config: %v", err)
 	}
-	webConf := demoConf.GetPlatformTypes()["web"]
-	if webConf == nil {
-		t.Fatal("missing bldr-demo web platform override")
-	}
-	if webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
-		t.Fatalf("bldr-demo web compilerMode: got %s, want COMPILER_MODE_TINYGO", webConf.GetCompilerMode())
+	webConf := flattenGoConfigForPlatform(t, demoConf, "web/js/wasm")
+	if webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_DEFAULT {
+		t.Fatalf("bldr-demo web compilerMode: got %s, want COMPILER_MODE_DEFAULT", webConf.GetCompilerMode())
 	}
 
 	releaseWeb := conf.GetBuild()["release-web"]

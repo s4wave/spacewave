@@ -50,8 +50,12 @@ func TestMain(m *testing.M) {
 			le.WithError(err).Fatal("configure TinyGo e2e wasm compiler env")
 		}
 		le.Info("disabling trace service injection for TinyGo e2e/wasm mode")
+		manifestBuildTimeout, err := ResolveE2EWasmManifestBuildTimeout(20 * time.Minute)
+		if err != nil {
+			le.WithError(err).Fatal("configure e2e wasm manifest build timeout")
+		}
 		opts = append(opts, WithTinyGoCore())
-		opts = append(opts, WithManifestBuildTimeout(20*time.Minute))
+		opts = append(opts, WithManifestBuildTimeout(manifestBuildTimeout))
 	} else {
 		opts = append(opts, WithConfigMutator(trace_service.InjectTraceConfig))
 	}

@@ -2,6 +2,7 @@ package chrometest
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,18 +16,25 @@ import (
 
 	"github.com/pkg/errors"
 	playwright "github.com/playwright-community/playwright-go"
+	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 )
 
 const (
 	runEnv               = "RUN_OPFS_CHROME_TEST"
 	profileEnv           = "RUN_OPFS_CHROME_PROFILE"
 	tinyGoEnv            = "RUN_OPFS_CHROME_TINYGO"
+	tinyGoProfileEnv     = "RUN_OPFS_CHROME_TINYGO_PROFILE"
+	tinyGoOptEnv         = "RUN_OPFS_CHROME_TINYGO_OPT"
 	tinyGoGCEnv          = "RUN_OPFS_CHROME_TINYGO_GC"
 	tinyGoLLVMEnv        = "RUN_OPFS_CHROME_TINYGO_LLVM_FEATURES"
 	tinyGoPanicEnv       = "RUN_OPFS_CHROME_TINYGO_PANIC"
+	tinyGoSchedulerEnv   = "RUN_OPFS_CHROME_TINYGO_SCHEDULER"
 	tinyGoStackEnv       = "RUN_OPFS_CHROME_TINYGO_STACK_SIZE"
 	resourceReadChunkEnv = "RUN_OPFS_CHROME_RESOURCE_READ_CHUNK"
 	largeSizeEnv         = "RUN_OPFS_CHROME_LARGE_SIZE"
+	tinyGoProfileCustom  = "custom"
+	tinyGoTargetDefault  = "target-default"
+	tinyGoBldrFeatures   = "bldr-features"
 	chromeSmoke          = "smoke"
 	chromeStress         = "stress"
 	defaultShards        = 4
@@ -392,6 +400,13 @@ func TestOpfsChromeTinyGoLargeBlockShardBatch(t *testing.T) {
 		batch:      96,
 		shards:     1,
 	})
+	s.runWorker(t, workerArgs{
+		scenario:   "large-block-verify",
+		root:       root,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
+		batch:      96,
+		shards:     1,
+	})
 }
 
 func TestOpfsChromeTinyGoLargeBlockShardMultiShardBatch(t *testing.T) {
@@ -414,6 +429,58 @@ func TestOpfsChromeTinyGoLargeBlockShardMultiShardBatch(t *testing.T) {
 		root:       root,
 		iterations: envIntDefault(t, largeSizeEnv, 68056093),
 		batch:      96,
+		shards:     defaultShards,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "large-block-verify",
+		root:       root,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
+		batch:      96,
+		shards:     defaultShards,
+	})
+}
+
+func TestOpfsChromeTinyGoLargeBlockShardWithGCWalContention(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
+		t.Skipf("set %s=1 to exercise TinyGo large Blockshard beside GC/WAL writes", tinyGoEnv)
+	}
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-large-block-gc-wal-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorkers(t, []workerArgs{
+		{
+			scenario:   "large-block-batch",
+			root:       root,
+			iterations: envIntDefault(t, largeSizeEnv, 68056093),
+			batch:      96,
+			shards:     defaultShards,
+		},
+		{
+			scenario:   "gc-wal-write-loop",
+			root:       root,
+			iterations: 16,
+			shards:     defaultShards,
+		},
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "large-block-verify",
+		root:       root,
+		iterations: envIntDefault(t, largeSizeEnv, 68056093),
+		batch:      96,
+		shards:     defaultShards,
+	})
+	s.runWorker(t, workerArgs{
+		scenario:   "gc-wal-verify",
+		root:       root,
+		iterations: 16,
 		shards:     defaultShards,
 	})
 }
@@ -1454,7 +1521,7 @@ func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[s
 		if !res.ok {
 			t.Fatalf("worker scenario=%s worker=%d failed: %s", res.scenario, res.worker, res.err)
 		}
-		t.Logf("worker scenario=%s worker=%d duration=%dms", res.scenario, res.worker, res.durationMS)
+		t.Logf("worker scenario=%s worker=%d ok=%t duration=%dms", res.scenario, res.worker, res.ok, res.durationMS)
 	}
 	return results
 }
@@ -1487,28 +1554,37 @@ func buildWasm(out string) error {
 		return err
 	}
 	if os.Getenv(tinyGoEnv) == "1" || strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
-		args := []string{"build", "-target", "wasm", "-scheduler=asyncify"}
-		panicStrategy := strings.TrimSpace(os.Getenv(tinyGoPanicEnv))
-		if panicStrategy == "" {
-			panicStrategy = "print"
+		envelope, err := resolveTinyGoBuildEnvelope()
+		if err != nil {
+			return err
 		}
-		args = append(args, "-panic="+panicStrategy)
-		if gc := strings.TrimSpace(os.Getenv(tinyGoGCEnv)); gc != "" {
-			args = append(args, "-gc="+gc)
-		}
-		if stackSize := strings.TrimSpace(os.Getenv(tinyGoStackEnv)); stackSize != "" {
-			args = append(args, "-stack-size="+stackSize)
-		}
-		if features := strings.TrimSpace(os.Getenv(tinyGoLLVMEnv)); features != "" {
-			args = append(args, "-llvm-features="+features)
-		}
+		args := append([]string{"build"}, envelope.args()...)
 		args = append(args, "-o", out, "./db/opfs/chrometest/testprog")
+		fmt.Fprintf(
+			os.Stderr,
+			"opfs chrometest wasm build: compiler=tinygo version=%q envelope=%s args=%q\n",
+			tinyGoVersion(ctx),
+			envelope.String(),
+			args,
+		)
+		start := time.Now()
 		cmd := exec.CommandContext(ctx, "tinygo", args...)
 		cmd.Dir = root
 		data, err := cmd.CombinedOutput()
 		if err != nil {
 			return errors.Errorf("tinygo build js/wasm failed: %v\n%s", err, data)
 		}
+		info, err := os.Stat(out)
+		if err != nil {
+			return errors.Wrap(err, "stat TinyGo wasm artifact")
+		}
+		fmt.Fprintf(
+			os.Stderr,
+			"opfs chrometest wasm build result: compiler=tinygo elapsed=%s artifact_bytes=%d wasm_features=%s\n",
+			time.Since(start).Round(time.Millisecond),
+			info.Size(),
+			wasmFeatureEvidence(ctx, out),
+		)
 		return nil
 	}
 	cmd := exec.CommandContext(ctx, "go", "build", "-o", out, "./db/opfs/chrometest/testprog")
@@ -1519,6 +1595,164 @@ func buildWasm(out string) error {
 		return errors.Errorf("go build js/wasm failed: %v\n%s", err, data)
 	}
 	return nil
+}
+
+type tinyGoBuildEnvelope struct {
+	profile       string
+	target        string
+	opt           string
+	panicStrategy string
+	gc            string
+	scheduler     string
+	stackSize     string
+	llvmFeatures  string
+}
+
+func resolveTinyGoBuildEnvelope() (*tinyGoBuildEnvelope, error) {
+	profile := strings.TrimSpace(os.Getenv(tinyGoProfileEnv))
+	if profile == "" {
+		profile = tinyGoProfileCustom
+	}
+	if profile != tinyGoProfileCustom && profile != tinyGoTargetDefault && profile != tinyGoBldrFeatures {
+		return nil, errors.Errorf("unsupported %s=%q, expected custom, target-default, or bldr-features", tinyGoProfileEnv, profile)
+	}
+
+	env := &tinyGoBuildEnvelope{
+		profile:       profile,
+		target:        "wasm",
+		opt:           strings.TrimSpace(os.Getenv(tinyGoOptEnv)),
+		panicStrategy: strings.TrimSpace(os.Getenv(tinyGoPanicEnv)),
+		gc:            strings.TrimSpace(os.Getenv(tinyGoGCEnv)),
+		scheduler:     strings.TrimSpace(os.Getenv(tinyGoSchedulerEnv)),
+		stackSize:     strings.TrimSpace(os.Getenv(tinyGoStackEnv)),
+		llvmFeatures:  strings.TrimSpace(os.Getenv(tinyGoLLVMEnv)),
+	}
+	if env.panicStrategy == "" {
+		env.panicStrategy = "print"
+	}
+	if env.scheduler == "" {
+		env.scheduler = "asyncify"
+	}
+	if profile == tinyGoTargetDefault || profile == tinyGoBldrFeatures {
+		if env.stackSize == "" {
+			env.stackSize = gocompiler.TinyGoDefaultStackSize
+		}
+	}
+	if profile == tinyGoBldrFeatures && env.llvmFeatures == "" {
+		env.llvmFeatures = strings.Join(gocompiler.GetDefaultTinygoLlvmFeatures(), ",")
+	}
+	return env, nil
+}
+
+func (e *tinyGoBuildEnvelope) args() []string {
+	args := []string{"-target", e.target}
+	if e.opt != "" {
+		args = append(args, "-opt="+e.opt)
+	}
+	if e.scheduler != "" {
+		args = append(args, "-scheduler="+e.scheduler)
+	}
+	if e.panicStrategy != "" {
+		args = append(args, "-panic="+e.panicStrategy)
+	}
+	if e.gc != "" {
+		args = append(args, "-gc="+e.gc)
+	}
+	if e.stackSize != "" {
+		args = append(args, "-stack-size="+e.stackSize)
+	}
+	if e.llvmFeatures != "" {
+		args = append(args, "-llvm-features="+e.llvmFeatures)
+	}
+	return args
+}
+
+func (e *tinyGoBuildEnvelope) String() string {
+	features := e.llvmFeatures
+	if features == "" {
+		features = "target-default"
+	}
+	gc := e.gc
+	if gc == "" {
+		gc = "target-default"
+	}
+	opt := e.opt
+	if opt == "" {
+		opt = "target-default"
+	}
+	stack := e.stackSize
+	if stack == "" {
+		stack = "target-default"
+	}
+	return fmt.Sprintf(
+		"%s=%s %s=%s %s=%s %s=%s %s=%s %s=%s %s=%s target=%s bldr_concepts=%s,%s,%s,%s,%s,%s,%s",
+		tinyGoProfileEnv,
+		e.profile,
+		tinyGoOptEnv,
+		opt,
+		tinyGoPanicEnv,
+		e.panicStrategy,
+		tinyGoGCEnv,
+		gc,
+		tinyGoSchedulerEnv,
+		e.scheduler,
+		tinyGoStackEnv,
+		stack,
+		tinyGoLLVMEnv,
+		features,
+		e.target,
+		gocompiler.TinyGoProfileEnv,
+		gocompiler.TinyGoOptEnv,
+		gocompiler.TinyGoPanicStrategyEnv,
+		gocompiler.TinyGoGCEnv,
+		gocompiler.TinyGoSchedulerEnv,
+		gocompiler.TinyGoStackSizeEnv,
+		gocompiler.TinyGoLLVMFeaturesEnv,
+	)
+}
+
+func tinyGoVersion(ctx context.Context) string {
+	versionCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(versionCtx, "tinygo", "version")
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return err.Error()
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func wasmFeatureEvidence(ctx context.Context, wasmPath string) string {
+	objdumpCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(objdumpCtx, "wasm-objdump", "-x", wasmPath)
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return "wasm-objdump-error=" + err.Error()
+	}
+	var features []string
+	inTargetFeatures := false
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.Contains(line, `name: "target_features"`) {
+			inTargetFeatures = true
+			continue
+		}
+		if !inTargetFeatures {
+			continue
+		}
+		if strings.HasPrefix(line, "- [+]") || strings.HasPrefix(line, "- [-]") {
+			features = append(features, strings.Join(strings.Fields(line), " "))
+			continue
+		}
+		if len(features) != 0 && line != "" {
+			break
+		}
+	}
+	if len(features) == 0 {
+		return "target_features=none"
+	}
+	return strings.Join(features, ";")
 }
 
 func wasmExecPath() (string, error) {

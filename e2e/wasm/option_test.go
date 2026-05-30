@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -249,6 +250,28 @@ func TestWorkerModeSelectsSharedWorker(t *testing.T) {
 	}
 	if mode != WorkerModeShared {
 		t.Fatalf("worker mode = %q, want %q", mode, WorkerModeShared)
+	}
+}
+
+func TestResolveE2EWasmManifestBuildTimeout(t *testing.T) {
+	t.Setenv(E2EWasmManifestBuildTimeoutEnv, "")
+
+	defaultTimeout := 20 * time.Minute
+	if got, err := ResolveE2EWasmManifestBuildTimeout(defaultTimeout); err != nil || got != defaultTimeout {
+		t.Fatalf("default timeout = %s, %v; want %s, nil", got, err, defaultTimeout)
+	}
+
+	t.Setenv(E2EWasmManifestBuildTimeoutEnv, "45m")
+	if got, err := ResolveE2EWasmManifestBuildTimeout(defaultTimeout); err != nil || got != 45*time.Minute {
+		t.Fatalf("explicit timeout = %s, %v; want 45m, nil", got, err)
+	}
+}
+
+func TestResolveE2EWasmManifestBuildTimeoutRejectsInvalid(t *testing.T) {
+	t.Setenv(E2EWasmManifestBuildTimeoutEnv, "0")
+
+	if _, err := ResolveE2EWasmManifestBuildTimeout(20 * time.Minute); err == nil {
+		t.Fatal("expected invalid manifest build timeout to fail")
 	}
 }
 

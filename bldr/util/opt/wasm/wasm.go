@@ -2,14 +2,22 @@ package opt_wasm
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	uexec "github.com/aperturerobotics/util/exec"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/sirupsen/logrus"
 )
+
+const wasmOptDiagnosticsDirEnv = "BLDR_WASM_OPT_DIAGNOSTICS_DIR"
 
 // OptimizeWasmBinary optimizes a .wasm binary using wasm-opt.
 func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outBinPath string) error {
@@ -38,10 +46,7 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 
 	// -Os: optimized .wasm binary from 34580687 -> 32068818 bytes delta -2511869
 	// -Oz: optimized .wasm binary from 34580687 -> 29498128 bytes delta -5082559
-	ecmd := uexec.NewCmd(
-		ctx,
-		"wasm-opt",
-
+	args := []string{
 		// https://caniuse.com/?search=WebAssembly
 		// Baseline 2023: https://caniuse.com/wasm-simd
 		"--enable-simd",
@@ -66,11 +71,9 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 
 		"-o", optPathRel,
 		outBinPathRel,
-	)
-	ecmd.Env = os.Environ()
-	ecmd.Dir = workingPath
+	}
 	timeStart := time.Now()
-	if err := uexec.ExecCmd(le, ecmd); err != nil {
+	if err := runWasmOpt(ctx, le, "optimize", workingPath, outBinPath, outBinPathRel, optPathRel, args); err != nil {
 		return err
 	}
 	if err := fsutil.MoveFile(outBinPath, optPath, 0o644); err != nil {
@@ -114,10 +117,7 @@ func StripWasmDebugSections(ctx context.Context, le *logrus.Entry, workingPath, 
 	optPathRel := filepath.Join(outBinDirRel, optFilename)
 	optPath := filepath.Join(workingPath, optPathRel)
 
-	ecmd := uexec.NewCmd(
-		ctx,
-		"wasm-opt",
-
+	args := []string{
 		"--enable-simd",
 		"--enable-sign-ext",
 		"--enable-threads",
@@ -132,11 +132,9 @@ func StripWasmDebugSections(ctx context.Context, le *logrus.Entry, workingPath, 
 
 		"-o", optPathRel,
 		outBinPathRel,
-	)
-	ecmd.Env = os.Environ()
-	ecmd.Dir = workingPath
+	}
 	timeStart := time.Now()
-	if err := uexec.ExecCmd(le, ecmd); err != nil {
+	if err := runWasmOpt(ctx, le, "strip-debug", workingPath, outBinPath, outBinPathRel, optPathRel, args); err != nil {
 		return err
 	}
 	if err := fsutil.MoveFile(outBinPath, optPath, 0o644); err != nil {
@@ -154,4 +152,131 @@ func StripWasmDebugSections(ctx context.Context, le *logrus.Entry, workingPath, 
 		WithField("dur", dur.String()).
 		Infof("stripped debug sections from %s from %d -> %d bytes delta %d", outBinFilename, preOptSize, postOptSize, postOptSize-preOptSize)
 	return nil
+}
+
+func runWasmOpt(
+	ctx context.Context,
+	le *logrus.Entry,
+	mode,
+	workingPath,
+	outBinPath,
+	outBinPathRel,
+	optPathRel string,
+	args []string,
+) error {
+	inputSize, inputHash, err := wasmInputEvidence(outBinPath)
+	if err != nil {
+		return err
+	}
+	version := wasmOptVersion(ctx)
+	argv := append([]string{"wasm-opt"}, args...)
+
+	le.WithFields(logrus.Fields{
+		"mode":             mode,
+		"input":            outBinPathRel,
+		"input-bytes":      inputSize,
+		"input-sha256":     inputHash,
+		"output":           optPathRel,
+		"wasm-opt-version": version,
+		"argv":             strings.Join(argv, " "),
+	}).Info("running wasm-opt")
+
+	ecmd := uexec.NewCmd(ctx, "wasm-opt", args...)
+	ecmd.Env = os.Environ()
+	ecmd.Dir = workingPath
+	if err := uexec.ExecCmd(le, ecmd); err != nil {
+		if diagErr := preserveWasmOptDiagnostics(mode, outBinPath, outBinPathRel, optPathRel, inputSize, inputHash, version, argv); diagErr != nil {
+			le.WithError(diagErr).Warn("failed to preserve wasm-opt diagnostics")
+		}
+		return err
+	}
+	return nil
+}
+
+func wasmInputEvidence(path string) (int64, string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, "", err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return 0, "", err
+	}
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return 0, "", err
+	}
+	return info.Size(), hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func wasmOptVersion(ctx context.Context) string {
+	versionCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(versionCtx, "wasm-opt", "--version")
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return err.Error()
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func preserveWasmOptDiagnostics(
+	mode,
+	outBinPath,
+	outBinPathRel,
+	optPathRel string,
+	inputSize int64,
+	inputHash,
+	version string,
+	argv []string,
+) error {
+	dir := strings.TrimSpace(os.Getenv(wasmOptDiagnosticsDirEnv))
+	if dir == "" {
+		return nil
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	hashPrefix := inputHash
+	if len(hashPrefix) > 16 {
+		hashPrefix = hashPrefix[:16]
+	}
+	base := fmt.Sprintf("%s.%s.%s", filepath.Base(outBinPath), mode, hashPrefix)
+	wasmPath := filepath.Join(dir, base+".input.wasm")
+	metaPath := filepath.Join(dir, base+".wasm-opt.txt")
+	if err := copyFile(wasmPath, outBinPath); err != nil {
+		return err
+	}
+	meta := fmt.Sprintf(
+		"mode: %s\ninput: %s\noutput: %s\ninput_bytes: %d\ninput_sha256: %s\nwasm_opt_version: %s\nargv: %s\n",
+		mode,
+		outBinPathRel,
+		optPathRel,
+		inputSize,
+		inputHash,
+		version,
+		strings.Join(argv, " "),
+	)
+	return os.WriteFile(metaPath, []byte(meta), 0o644)
+}
+
+func copyFile(dst, src string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(out, in)
+	closeErr := out.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
 }

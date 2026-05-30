@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 /* eslint-disable react-doctor/async-await-in-loop */
 
-// start-web-wasm-browser.js - Launch start:web:wasm and open Playwright Chromium with dark mode.
-// Persistent browser state is stored in .bldr/browser-state/playwright
+// start-web-wasm-browser.js - Launch a web dev script and open Playwright Chromium with dark mode.
+// Persistent browser state is stored in .bldr/browser-state/<profile>.
 
 import { spawn } from 'child_process'
 import { fileURLToPath } from 'url'
@@ -12,9 +12,12 @@ import { chromium } from 'playwright'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '..')
-const userDataDir = join(rootDir, '.bldr', 'browser-state', 'playwright')
-const serverUrl = 'http://127.0.0.1:8080'
-const wasmUrl = `${serverUrl}/entrypoint/runtime.wasm`
+const startScript = process.env.SPACEWAVE_WEB_START_SCRIPT || 'start:web:wasm'
+const browserProfile = process.env.SPACEWAVE_WEB_BROWSER_PROFILE || 'playwright'
+const userDataDir = join(rootDir, '.bldr', 'browser-state', browserProfile)
+const serverUrl = process.env.SPACEWAVE_WEB_SERVER_URL || 'http://127.0.0.1:8080'
+const readyPath = process.env.SPACEWAVE_WEB_READY_PATH || '/entrypoint/runtime.wasm'
+const readyUrl = new URL(readyPath, serverUrl).toString()
 
 async function waitForServer(timeout = 120000) {
   const start = Date.now()
@@ -32,18 +35,18 @@ async function waitForServer(timeout = 120000) {
   if (Date.now() - start >= timeout) {
     throw new Error(`Server did not start within ${timeout}ms`)
   }
-  console.log('Server responding, waiting for WASM build...')
-  // Now wait for the WASM file to be built
+  console.log(`Server responding, waiting for runtime at ${readyUrl}...`)
+  // Now wait for the runtime artifact to be built.
   while (Date.now() - start < timeout) {
     try {
-      const res = await fetch(wasmUrl, { method: 'HEAD' })
+      const res = await fetch(readyUrl, { method: 'HEAD' })
       if (res.ok) return true
     } catch {
-      // WASM not ready yet
+      // Runtime not ready yet
     }
     await new Promise((r) => setTimeout(r, 1000))
   }
-  throw new Error(`WASM build did not complete within ${timeout}ms`)
+  throw new Error(`Runtime build did not complete within ${timeout}ms`)
 }
 
 async function main() {
@@ -51,8 +54,8 @@ async function main() {
   await mkdir(userDataDir, { recursive: true })
 
   // Start the web server
-  console.log('Starting web server...')
-  const server = spawn('bun', ['run', 'start:web:wasm'], {
+  console.log(`Starting web server with bun run ${startScript}...`)
+  const server = spawn('bun', ['run', startScript], {
     cwd: rootDir,
     stdio: ['inherit', 'pipe', 'pipe'],
     detached: false,
@@ -68,7 +71,7 @@ async function main() {
     process.exit(1)
   })
 
-  // Wait for server and WASM to be ready
+  // Wait for server and runtime artifact to be ready.
   try {
     await waitForServer()
   } catch (err) {
@@ -76,7 +79,7 @@ async function main() {
     server.kill()
     process.exit(1)
   }
-  console.log('Server and WASM build ready.')
+  console.log('Server and runtime build ready.')
 
   // Launch Playwright with persistent context
   console.log('Launching browser...')

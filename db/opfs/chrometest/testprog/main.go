@@ -184,6 +184,8 @@ func run(ctx context.Context, c *config) error {
 		return runLargeWriteReadList(c)
 	case "large-block-batch":
 		return runLargeBlockBatch(ctx, c)
+	case "large-block-verify":
+		return runLargeBlockVerify(ctx, c)
 	case "block-corrupt-compaction":
 		return runBlockCorruptCompaction(ctx, c)
 	case "block-zero-size-compaction":
@@ -192,6 +194,8 @@ func run(ctx context.Context, c *config) error {
 		return runReadAtHelperLoop(c)
 	case "gc-wal-write-loop":
 		return runGCWalWriteLoop(ctx, c)
+	case "gc-wal-verify":
+		return verifyGCWal(c)
 	case "block-writer":
 		return runBlockWriter(ctx, c)
 	case "block-reader":
@@ -619,14 +623,7 @@ func runLargeBlockBatch(ctx context.Context, c *config) error {
 		return err
 	}
 
-	totalSize := c.iterations
-	if totalSize <= 0 {
-		totalSize = 64 * 1024 * 1024
-	}
-	entriesCount := c.batch
-	if entriesCount <= 0 {
-		entriesCount = 96
-	}
+	totalSize, entriesCount := largeBlockShape(c)
 	baseSize := totalSize / entriesCount
 	remainder := totalSize % entriesCount
 	entries := make([]segment.Entry, entriesCount)
@@ -641,11 +638,19 @@ func runLargeBlockBatch(ctx context.Context, c *config) error {
 			Value: deterministicLargeBytes(size, i),
 		}
 	}
+	postProgress(c, "large-block-put-start", 0, totalSize)
 	if err := e.Put(ctx, entries); err != nil {
 		release()
 		return errors.Wrap(err, "put large block batch")
 	}
-	if err := verifyLargeBlockSamples(ctx, e, totalSize, entriesCount); err != nil {
+	postProgress(c, "large-block-put-complete", totalSize, totalSize)
+	postProgress(c, "large-block-readback-before-close-start", 0, totalSize)
+	if err := verifyLargeBlocks(ctx, c, e, totalSize, entriesCount); err != nil {
+		release()
+		return err
+	}
+	postProgress(c, "large-block-readback-before-close-complete", totalSize, totalSize)
+	if err := verifyLargeBlockPublishLocks(ctx, c); err != nil {
 		release()
 		return err
 	}
@@ -656,13 +661,46 @@ func runLargeBlockBatch(ctx context.Context, c *config) error {
 		return errors.Wrap(err, "reopen large block engine")
 	}
 	defer release()
-	return verifyLargeBlockSamples(ctx, e, totalSize, entriesCount)
+	postProgress(c, "large-block-readback-after-reopen-start", 0, totalSize)
+	if err := verifyLargeBlocks(ctx, c, e, totalSize, entriesCount); err != nil {
+		return err
+	}
+	postProgress(c, "large-block-readback-after-reopen-complete", totalSize, totalSize)
+	return nil
 }
 
-func verifyLargeBlockSamples(ctx context.Context, e *blockshard.Engine, totalSize, entriesCount int) error {
+func runLargeBlockVerify(ctx context.Context, c *config) error {
+	e, release, err := openBlockEngine(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	totalSize, entriesCount := largeBlockShape(c)
+	postProgress(c, "large-block-readback-fresh-worker-start", 0, totalSize)
+	if err := verifyLargeBlocks(ctx, c, e, totalSize, entriesCount); err != nil {
+		return err
+	}
+	postProgress(c, "large-block-readback-fresh-worker-complete", totalSize, totalSize)
+	return nil
+}
+
+func largeBlockShape(c *config) (int, int) {
+	totalSize := c.iterations
+	if totalSize <= 0 {
+		totalSize = 64 * 1024 * 1024
+	}
+	entriesCount := c.batch
+	if entriesCount <= 0 {
+		entriesCount = 96
+	}
+	return totalSize, entriesCount
+}
+
+func verifyLargeBlocks(ctx context.Context, c *config, e *blockshard.Engine, totalSize, entriesCount int) error {
 	baseSize := totalSize / entriesCount
 	remainder := totalSize % entriesCount
-	for _, i := range []int{0, entriesCount / 2, entriesCount - 1} {
+	for i := 0; i < entriesCount; i++ {
 		size := baseSize
 		if i < remainder {
 			size++
@@ -679,15 +717,44 @@ func verifyLargeBlockSamples(ctx context.Context, e *blockshard.Engine, totalSiz
 		if len(got) != len(want) {
 			return errors.Errorf("large block %d length=%d want=%d", i, len(got), len(want))
 		}
-		for _, idx := range []int{0, 1, 4095, 4096, size / 2, size - 2, size - 1} {
-			if idx < 0 || idx >= len(want) {
-				continue
-			}
-			if got[idx] != want[idx] {
-				return errors.Errorf("large block %d byte[%d]=%d want=%d", i, idx, got[idx], want[idx])
-			}
+		if !bytes.Equal(got, want) {
+			return errors.Errorf("large block %d data mismatch", i)
+		}
+		if (i+1)%16 == 0 || i == entriesCount-1 {
+			readBytes := baseSize*(i+1) + min(i+1, remainder)
+			postProgress(c, "large-block-readback-stream", readBytes, totalSize)
 		}
 	}
+	return nil
+}
+
+func verifyLargeBlockPublishLocks(ctx context.Context, c *config) error {
+	postProgress(c, "large-block-publish-lock-start")
+	shardCount := c.shards
+	if shardCount <= 0 {
+		shardCount = blockshard.DefaultShardCount
+	}
+	settings := blockshard.DefaultSettings()
+	settings.ShardCount = shardCount
+	settings.AsyncIO = true
+	for shardID := 0; shardID < shardCount; shardID++ {
+		dir, err := openTestDirectory(c.root, []string{"blocks", "shard-" + zeroPad(shardID, 2)})
+		if err != nil {
+			return err
+		}
+		shard, err := blockshard.NewShard(shardID, dir, c.root+"/blocks", settings)
+		if err != nil {
+			return errors.Wrapf(err, "open large block shard %d for lock liveness", shardID)
+		}
+		lockCtx, cancel := context.WithTimeout(ctx, time.Second)
+		release, err := shard.AcquirePublishLockContext(lockCtx)
+		cancel()
+		if err != nil {
+			return errors.Wrapf(err, "acquire large block shard %d publish lock after publish", shardID)
+		}
+		release()
+	}
+	postProgress(c, "large-block-publish-lock-complete")
 	return nil
 }
 
@@ -946,7 +1013,14 @@ func runGCWalWriteLoop(ctx context.Context, c *config) error {
 			return errors.Wrapf(err, "append wal %d", i)
 		}
 	}
+	return verifyGCWal(c)
+}
 
+func verifyGCWal(c *config) error {
+	dir, err := openTestDirectory(c.root, []string{"gc", "wal"})
+	if err != nil {
+		return err
+	}
 	names, err := opfs.ListDirectory(dir)
 	if err != nil {
 		return errors.Wrap(err, "list wal directory")

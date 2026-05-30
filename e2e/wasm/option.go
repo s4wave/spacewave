@@ -32,6 +32,8 @@ const (
 	E2EWasmTinyGoLLVMFeaturesEnv = "E2E_WASM_TINYGO_LLVM_FEATURES"
 	// E2EWasmTinyGoInterpTimeoutEnv overrides TinyGo's interp timeout locally.
 	E2EWasmTinyGoInterpTimeoutEnv = "E2E_WASM_TINYGO_INTERP_TIMEOUT"
+	// E2EWasmManifestBuildTimeoutEnv overrides the local startup Manifest build wait.
+	E2EWasmManifestBuildTimeoutEnv = "E2E_WASM_MANIFEST_BUILD_TIMEOUT"
 )
 
 // WorkerMode selects the browser worker topology used by the harness.
@@ -131,6 +133,23 @@ func ResolveE2EWasmWorkerMode(explicit WorkerMode) (WorkerMode, error) {
 		return normalizeWorkerMode(string(explicit))
 	}
 	return normalizeWorkerMode(os.Getenv(E2EWasmWorkerModeEnv))
+}
+
+// ResolveE2EWasmManifestBuildTimeout resolves the startup Manifest build wait
+// for local harness runs.
+func ResolveE2EWasmManifestBuildTimeout(defaultTimeout time.Duration) (time.Duration, error) {
+	raw := strings.TrimSpace(os.Getenv(E2EWasmManifestBuildTimeoutEnv))
+	if raw == "" {
+		return defaultTimeout, nil
+	}
+	timeout, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, errors.Wrapf(err, "unsupported %s value %q", E2EWasmManifestBuildTimeoutEnv, raw)
+	}
+	if timeout <= 0 {
+		return 0, errors.Errorf("unsupported %s value %q: must be positive", E2EWasmManifestBuildTimeoutEnv, raw)
+	}
+	return timeout, nil
 }
 
 // ApplyE2EWasmTinyGoCompilerEnv applies the local TinyGo profile to Bldr's
