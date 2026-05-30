@@ -22,10 +22,69 @@ import {
 } from './ShellTabContext.js'
 import { buildUnixFSEntryAppDragEnvelope } from './unixfs/unixfs-app-drag.js'
 
-const mockNavigate = vi.fn()
-const mockOptimizedLayoutProps = vi.hoisted(() => vi.fn())
+interface MockOptimizedLayoutProps {
+  model: {
+    borders: Array<{
+      selected?: number
+      children: Array<{ id?: string }>
+    }>
+    tabs: Array<{ id: string }>
+    tabsets: Array<{
+      selected?: number
+      children: Array<{ id: string }>
+    }>
+    visitNodes: (
+      callback: (node: { getType(): string; getId(): string }) => void,
+    ) => void
+  }
+  onContextMenu?: unknown
+  onExternalDrag?: (event: unknown) => unknown
+  onModelChange?: (model: MockOptimizedLayoutProps['model']) => void
+  onRenderTab?: unknown
+}
 
-const mockJsonModel = {
+interface MockHasGridLayoutModel {
+  tabsets?: unknown[]
+}
+
+interface MockJsonTab {
+  type: 'tab'
+  id: string
+  name: string
+  config?: { path: string }
+}
+
+interface MockJsonTabset {
+  type: 'tabset'
+  id: string
+  selected?: number
+  children: MockJsonTab[]
+}
+
+interface MockJsonBorder {
+  type: 'border'
+  location: 'left' | 'right' | 'top' | 'bottom'
+  selected?: number
+  children: MockJsonTab[]
+}
+
+interface MockJsonModel {
+  borders?: MockJsonBorder[]
+  layout: {
+    type: 'row'
+    children: MockJsonTabset[]
+  }
+}
+
+const mockNavigate = vi.fn()
+const mockOptimizedLayoutProps = vi.hoisted(() =>
+  vi.fn<(props: MockOptimizedLayoutProps) => void>(),
+)
+const mockHasGridLayout = vi.hoisted(() =>
+  vi.fn((model: MockHasGridLayoutModel) => (model.tabsets?.length ?? 0) > 1),
+)
+
+const mockJsonModel: MockJsonModel = {
   layout: {
     type: 'row',
     children: [
@@ -100,7 +159,7 @@ vi.mock('./shell-grid-utils.js', () => ({
   decodeGridLayout: () => ({ model: mockJsonModel, localState: undefined }),
   encodeGridLayout: () => 'encoded-grid',
   encodeGridLayoutStructure: () => 'grid-structure',
-  hasGridLayout: () => true,
+  hasGridLayout: (model: MockHasGridLayoutModel) => mockHasGridLayout(model),
   getSelectedTabId: () => 'tab-1',
   getActiveTabsetId: () => 'tabset-1',
   applyLocalStateToModel: () => {},
@@ -110,10 +169,12 @@ vi.mock('./shell-grid-utils.js', () => ({
 vi.mock('@aptre/flex-layout', () => {
   class MockTabSetNode {
     id: string
+    selected?: number
     children: MockTabNode[]
 
-    constructor(id: string) {
+    constructor(id: string, selected: number | undefined) {
       this.id = id
+      this.selected = selected
       this.children = []
     }
 
@@ -126,7 +187,7 @@ vi.mock('@aptre/flex-layout', () => {
     }
 
     getSelectedNode() {
-      return this.children[0] ?? null
+      return this.children[this.selected ?? 0] ?? null
     }
 
     isActive() {
@@ -174,15 +235,23 @@ vi.mock('@aptre/flex-layout', () => {
   }
 
   class MockModel {
+    borders: Array<{
+      selected?: number
+      children: Array<{ id?: string }>
+    }>
     tabsets: MockTabSetNode[]
     tabs: MockTabNode[]
 
     constructor(json: typeof mockJsonModel) {
+      this.borders = (json.borders ?? []).map((border) => ({
+        selected: border.selected,
+        children: border.children.map((child) => ({ id: child.id })),
+      }))
       this.tabsets = []
       this.tabs = []
 
       for (const tabsetJson of json.layout.children) {
-        const tabset = new MockTabSetNode(tabsetJson.id)
+        const tabset = new MockTabSetNode(tabsetJson.id, tabsetJson.selected)
         this.tabsets.push(tabset)
         for (const tabJson of tabsetJson.children) {
           const tab = new MockTabNode(
@@ -225,6 +294,7 @@ vi.mock('@aptre/flex-layout', () => {
     model,
     onContextMenu,
     onExternalDrag,
+    onModelChange,
     onRenderTab,
   }: {
     model: MockModel
@@ -232,7 +302,8 @@ vi.mock('@aptre/flex-layout', () => {
       node: MockTabNode,
       event: React.MouseEvent<HTMLButtonElement>,
     ) => void
-    onExternalDrag?: unknown
+    onExternalDrag?: (event: unknown) => unknown
+    onModelChange?: (model: MockOptimizedLayoutProps['model']) => void
     onRenderTab?: (
       node: MockTabNode,
       renderValues: { content?: React.ReactNode },
@@ -242,6 +313,7 @@ vi.mock('@aptre/flex-layout', () => {
       model,
       onContextMenu,
       onExternalDrag,
+      onModelChange,
       onRenderTab,
     })
     return (
@@ -335,7 +407,14 @@ function createUnixFSRowDragEnterEvent() {
 
 describe('ShellGridLayout', () => {
   beforeEach(() => {
+    delete mockJsonModel.borders
+    for (const tabset of mockJsonModel.layout.children) {
+      delete tabset.selected
+    }
     clearActiveAppDragEnvelope()
+    mockHasGridLayout.mockImplementation(
+      (model: MockHasGridLayoutModel) => (model.tabsets?.length ?? 0) > 1,
+    )
   })
 
   afterEach(() => {
@@ -345,6 +424,194 @@ describe('ShellGridLayout', () => {
     clearActiveAppDragEnvelope()
     vi.clearAllMocks()
     mockOptimizedLayoutProps.mockReset()
+  })
+
+  it('prunes decoded grid tabs that are absent from shell tab state', () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Docs', path: '/docs' },
+          { id: 'tab-2', name: 'Home', path: '/' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      render(
+        <ShellTabsProvider>
+          <ShellGridLayout />
+        </ShellTabsProvider>,
+      )
+
+      const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+
+      expect(props?.model.tabs.map((tab) => tab.id) ?? []).toEqual([
+        'tab-1',
+        'tab-2',
+      ])
+      expect(warnSpy).not.toHaveBeenCalled()
+    } finally {
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('remaps tabset selection when the selected decoded tab is pruned', () => {
+    mockJsonModel.layout.children[0].selected = 1
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Docs', path: '/docs' },
+          { id: 'tab-3', name: 'Blog', path: '/blog' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <ShellGridLayout />
+      </ShellTabsProvider>,
+    )
+
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+    expect(props?.model.tabs.map((tab) => tab.id) ?? []).toEqual([
+      'tab-1',
+      'tab-3',
+    ])
+    expect(props?.model.tabsets[0]?.children.map((tab) => tab.id)).toEqual([
+      'tab-1',
+    ])
+    expect(props?.model.tabsets[0]?.selected).toBe(0)
+  })
+
+  it('clears empty border selection when pruning the selected border tab', () => {
+    mockJsonModel.borders = [
+      {
+        type: 'border',
+        location: 'left',
+        selected: 0,
+        children: [{ type: 'tab', id: 'tab-3', name: 'Blog' }],
+      },
+    ]
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Docs', path: '/docs' },
+          { id: 'tab-2', name: 'Home', path: '/' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <ShellGridLayout />
+      </ShellTabsProvider>,
+    )
+
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+    expect(props?.model.borders).toEqual([{ selected: -1, children: [] }])
+  })
+
+  it('preserves closed border selection while pruning grid layout tabs', () => {
+    mockJsonModel.borders = [
+      {
+        type: 'border',
+        location: 'left',
+        selected: -1,
+        children: [{ type: 'tab', id: 'tab-1', name: 'Docs' }],
+      },
+    ]
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Docs', path: '/docs' },
+          { id: 'tab-2', name: 'Home', path: '/' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <ShellGridLayout />
+      </ShellTabsProvider>,
+    )
+
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+    expect(props?.model.borders).toEqual([
+      { selected: -1, children: [{ id: 'tab-1' }] },
+    ])
+  })
+
+  it('exits grid mode when pruning stale tabs collapses the decoded layout', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Docs', path: '/docs' },
+          { id: 'tab-2', name: 'Home', path: '/' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <ShellGridLayout />
+      </ShellTabsProvider>,
+    )
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith({
+        path: '/docs',
+        replace: true,
+      })
+    })
+  })
+
+  it('uses shell tab state path when model changes collapse grid mode', () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Docs', path: '/shell-docs' },
+          { id: 'tab-2', name: 'Home', path: '/' },
+          { id: 'tab-3', name: 'Blog', path: '/blog' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <ShellGridLayout />
+      </ShellTabsProvider>,
+    )
+
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+    const onModelChange = props?.onModelChange
+    if (typeof onModelChange !== 'function' || !props) {
+      throw new Error('grid layout did not provide onModelChange')
+    }
+
+    props.model.tabsets = [props.model.tabsets[0]]
+    props.model.tabs = [props.model.tabs[0]]
+
+    act(() => {
+      onModelChange(props.model)
+    })
+
+    expect(mockNavigate).toHaveBeenCalledWith({
+      path: '/shell-docs',
+      replace: true,
+    })
   })
 
   it('opens the shared tab context menu in grid mode and routes rename through tab state', () => {
@@ -398,9 +665,7 @@ describe('ShellGridLayout', () => {
 
     expect(screen.getByTestId('external-drag-enabled').textContent).toBe('yes')
 
-    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0] as
-      | { onExternalDrag?: (event: unknown) => unknown }
-      | undefined
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
     const onExternalDrag = props?.onExternalDrag
     if (typeof onExternalDrag !== 'function') {
       throw new Error('grid layout did not provide onExternalDrag')
@@ -458,9 +723,7 @@ describe('ShellGridLayout', () => {
       </ShellTabsProvider>,
     )
 
-    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0] as
-      | { onExternalDrag?: (event: unknown) => unknown }
-      | undefined
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
     const onExternalDrag = props?.onExternalDrag
     if (typeof onExternalDrag !== 'function') {
       throw new Error('grid layout did not provide onExternalDrag')

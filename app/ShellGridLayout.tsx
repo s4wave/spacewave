@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import {
   type DragEvent as ReactDragEvent,
   useCallback,
@@ -13,6 +12,10 @@ import {
   TabNode,
   TabSetNode,
   IJsonModel,
+  IJsonBorderNode,
+  IJsonRowNode,
+  IJsonTabNode,
+  IJsonTabSetNode,
   ITabRenderValues,
   ITabSetRenderValues,
   BorderNode,
@@ -50,7 +53,7 @@ import {
   SHELL_GRID_BASE_MODEL,
   type DecodeResult,
 } from './shell-grid-utils.js'
-import { ShellTab } from '@s4wave/app/shell-tab.js'
+import { getTabDisplayName, type ShellTab } from '@s4wave/app/shell-tab.js'
 import { buildShellExternalDrag } from './shell-app-drag.js'
 
 // ShellGridLayout renders the shell in grid mode.
@@ -58,7 +61,8 @@ import { buildShellExternalDrag } from './shell-app-drag.js'
 export function ShellGridLayout() {
   const { layoutData } = useParams()
   const navigate = useNavigate()
-  const { tabs, setTabs, setActiveTabId, startRenaming } = useShellTabs()
+  const { tabs, activeTabId, setTabs, setActiveTabId, startRenaming } =
+    useShellTabs()
 
   // Decode layout from URL - only on initial mount or when URL changes externally
   const initialDecodeResult = useMemo((): DecodeResult | null => {
@@ -116,6 +120,24 @@ export function ShellGridLayout() {
     }
   }, [layoutData, model, navigate])
 
+  // If stale decoded tabs were pruned during initialization, the repaired
+  // model may already be a single-tabset layout. Leave grid mode immediately
+  // instead of rendering a /g/ route whose structure is no longer a grid.
+  useEffect(() => {
+    if (!model || hasGridLayout(model)) return
+
+    const selectedId = getSelectedTabId(model)
+    const selectedTab =
+      findShellTab(tabs, selectedId) ??
+      findShellTab(tabs, activeTabId) ??
+      tabs[0]
+    setActiveTabId(selectedTab?.id ?? selectedId ?? 'home')
+    structureRef.current = null
+    queueMicrotask(() =>
+      navigate({ path: selectedTab?.path ?? '/', replace: true }),
+    )
+  }, [activeTabId, model, navigate, setActiveTabId, tabs])
+
   // renderTab renders ShellGridPanel for each tab
   const renderTab = useCallback(
     (node: TabNode) => <ShellGridPanel tabId={node.getId()} />,
@@ -139,19 +161,13 @@ export function ShellGridLayout() {
       if (!hasGridLayout(newModel)) {
         // Collapsed to single tabset - exit grid mode
         const selectedId = getSelectedTabId(newModel)
-        let selectedPath = '/'
-        if (selectedId) {
-          const tabNode = newModel.getNodeById(selectedId)
-          if (tabNode && tabNode.getType() === 'tab') {
-            const config = (tabNode as TabNode).getConfig() as
-              | { path?: string }
-              | undefined
-            selectedPath = config?.path ?? '/'
-          }
-        }
-        setActiveTabId(selectedId ?? 'home')
+        const selectedTab =
+          findShellTab(tabs, selectedId) ??
+          findShellTab(tabs, activeTabId) ??
+          tabs[0]
+        setActiveTabId(selectedTab?.id ?? selectedId ?? 'home')
         structureRef.current = null
-        navigate({ path: selectedPath, replace: true })
+        navigate({ path: selectedTab?.path ?? '/', replace: true })
         return
       }
 
@@ -164,7 +180,7 @@ export function ShellGridLayout() {
         navigate({ path: `/g/${newLayoutData}`, replace: true })
       }
     },
-    [navigate, setActiveTabId, setTabs],
+    [activeTabId, navigate, setActiveTabId, setTabs, tabs],
   )
 
   // Handle adding a new tab to the active tabset
@@ -378,48 +394,105 @@ export function ShellGridLayout() {
   )
 }
 
-// LayoutNode is a union type for all possible nodes in a layout.
-type LayoutNode = {
-  type?: string
-  id?: string
-  children?: LayoutNode[]
+function normalizeSelectedIndex(
+  selected: number | undefined,
+  originalChildren: IJsonTabNode[],
+  children: IJsonTabNode[],
+  emptySelected: number | undefined,
+): number | undefined {
+  if (children.length === 0 || typeof selected !== 'number') {
+    return children.length === 0 ? emptySelected : selected
+  }
+  if (selected < 0) return selected
+  const selectedChildId = originalChildren[selected]?.id
+  if (!selectedChildId) return 0
+  const nextSelected = children.findIndex(
+    (child) => child.id === selectedChildId,
+  )
+  return nextSelected >= 0 ? nextSelected : 0
 }
 
 // reconcileModelWithTabs ensures all tabs in the model exist in global state.
-// Adds missing tabs to global state and removes orphaned tabs from model.
+// Shell tab paths and display names are owned by ShellTabsContext, so decoded
+// grid URL tabs with no global state entry cannot be rendered correctly.
 function reconcileModelWithTabs(
   model: IJsonModel,
   tabs: ShellTab[],
 ): IJsonModel {
-  const tabIds = new Set(tabs.map((t) => t.id))
-  const modelTabIds: string[] = []
+  const tabsById = new Map(tabs.map((tab) => [tab.id, tab]))
 
-  // Collect all tab IDs from model
-  const collectTabIds = (node: LayoutNode | undefined): void => {
-    if (!node || typeof node !== 'object') return
-
-    if (node.type === 'tab' && typeof node.id === 'string') {
-      modelTabIds.push(node.id)
-    }
-    if (node.children && Array.isArray(node.children)) {
-      for (const child of node.children) {
-        collectTabIds(child)
-      }
+  const reconcileTabNode = (node: IJsonTabNode): IJsonTabNode | null => {
+    const tab = node.id ? tabsById.get(node.id) : null
+    if (!tab) return null
+    return {
+      ...node,
+      name: getTabDisplayName(tab),
     }
   }
 
-  collectTabIds(model.layout)
+  const reconcileTabChildren = (children: IJsonTabNode[]): IJsonTabNode[] =>
+    children.flatMap((child) => {
+      const next = reconcileTabNode(child)
+      return next ? [next] : []
+    })
 
-  // Check if all model tabs exist in global state
-  const missingFromGlobal = modelTabIds.filter((id) => !tabIds.has(id))
-  if (missingFromGlobal.length > 0) {
-    // This shouldn't happen normally - tabs in URL layout should exist in global state
-    // For now, we'll create placeholder tabs for any missing ones
-    console.warn(
-      'Grid layout references tabs not in global state:',
-      missingFromGlobal,
-    )
+  const reconcileTabsetNode = (
+    node: IJsonTabSetNode,
+    keepEmpty: boolean,
+  ): IJsonTabSetNode | null => {
+    const children = reconcileTabChildren(node.children)
+    if (children.length === 0 && !keepEmpty) return null
+    return {
+      ...node,
+      children,
+      selected: normalizeSelectedIndex(
+        node.selected,
+        node.children,
+        children,
+        0,
+      ),
+    }
   }
 
-  return model
+  const reconcileRowNode = (
+    node: IJsonRowNode,
+    keepEmpty: boolean,
+  ): IJsonRowNode | null => {
+    const children = node.children.flatMap((child) => {
+      const next =
+        child.type === 'row'
+          ? reconcileRowNode(child, false)
+          : reconcileTabsetNode(child, false)
+      return next ? [next] : []
+    })
+    if (children.length === 0 && !keepEmpty) return null
+    return {
+      ...node,
+      children,
+    }
+  }
+
+  const reconcileBorderNode = (node: IJsonBorderNode): IJsonBorderNode => {
+    const children = reconcileTabChildren(node.children)
+    return {
+      ...node,
+      children,
+      selected: normalizeSelectedIndex(
+        node.selected,
+        node.children,
+        children,
+        -1,
+      ),
+    }
+  }
+
+  return {
+    ...model,
+    layout: reconcileRowNode(model.layout, true) ?? {
+      type: 'row',
+      weight: 100,
+      children: [],
+    },
+    borders: model.borders?.map(reconcileBorderNode),
+  }
 }
