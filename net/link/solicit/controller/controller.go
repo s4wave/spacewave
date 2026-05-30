@@ -68,6 +68,11 @@ type linkState struct {
 	matched      map[string]struct{} // hex hash -> already matched
 }
 
+type controlStreamLocalSnapshot struct {
+	linkRemoved bool
+	entries     []link_solicit.SolicitEntry
+}
+
 // NewController constructs a new solicitation controller.
 func NewController(le *logrus.Entry, conf *Config) (*Controller, error) {
 	c := &Controller{
@@ -292,6 +297,116 @@ func (c *Controller) getSolicitEntries(ml link.MountedLink) []link_solicit.Solic
 	return entries
 }
 
+func (c *Controller) watchControlStreamLocalSnapshots(
+	ctx context.Context,
+	ls *linkState,
+	send func(*controlStreamLocalSnapshot) error,
+) error {
+	return broadcast.WatchBroadcastWithEqual(
+		ctx,
+		&c.bcast,
+		func() *controlStreamLocalSnapshot {
+			return c.snapshotControlStreamLocalLocked(ls)
+		},
+		send,
+		controlStreamLocalSnapshotsEqual,
+	)
+}
+
+func (c *Controller) snapshotControlStreamLocalLocked(ls *linkState) *controlStreamLocalSnapshot {
+	if !c.controlStreamLinkActiveLocked(ls) {
+		return &controlStreamLocalSnapshot{linkRemoved: true}
+	}
+	return &controlStreamLocalSnapshot{
+		entries: cloneSolicitEntries(c.getSolicitEntries(ls.ml)),
+	}
+}
+
+func (c *Controller) currentControlStreamLocalSnapshot(ls *linkState) *controlStreamLocalSnapshot {
+	locked := c.bcast.Lock()
+	defer locked.Unlock()
+
+	return c.snapshotControlStreamLocalLocked(ls)
+}
+
+func (c *Controller) currentControlStreamRemoteHashes(ls *linkState) ([][]byte, bool) {
+	locked := c.bcast.Lock()
+	defer locked.Unlock()
+
+	if !c.controlStreamLinkActiveLocked(ls) {
+		return nil, true
+	}
+	return cloneHashes(ls.remoteHashes), false
+}
+
+func (c *Controller) setControlStreamRemoteHashes(ls *linkState, hashes [][]byte) bool {
+	locked := c.bcast.Lock()
+	defer locked.Unlock()
+
+	if !c.controlStreamLinkActiveLocked(ls) {
+		return false
+	}
+	ls.remoteHashes = cloneHashes(hashes)
+	return true
+}
+
+func (c *Controller) controlStreamLinkActiveLocked(ls *linkState) bool {
+	return c.links[ls.ml.GetLinkUUID()] == ls
+}
+
+func controlStreamLocalSnapshotsEqual(a, b *controlStreamLocalSnapshot) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.linkRemoved != b.linkRemoved {
+		return false
+	}
+	return solicitEntriesEqual(a.entries, b.entries)
+}
+
+func cloneSolicitEntries(entries []link_solicit.SolicitEntry) []link_solicit.SolicitEntry {
+	if len(entries) == 0 {
+		return nil
+	}
+	out := make([]link_solicit.SolicitEntry, len(entries))
+	for i, entry := range entries {
+		out[i] = link_solicit.SolicitEntry{
+			ProtocolID: entry.ProtocolID,
+			Context:    slices.Clone(entry.Context),
+		}
+	}
+	slices.SortFunc(out, func(a, b link_solicit.SolicitEntry) int {
+		if a.ProtocolID != b.ProtocolID {
+			return strings.Compare(string(a.ProtocolID), string(b.ProtocolID))
+		}
+		return bytes.Compare(a.Context, b.Context)
+	})
+	return out
+}
+
+func solicitEntriesEqual(a, b []link_solicit.SolicitEntry) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].ProtocolID != b[i].ProtocolID || !bytes.Equal(a[i].Context, b[i].Context) {
+			return false
+		}
+	}
+	return true
+}
+
+func cloneHashes(hashes [][]byte) [][]byte {
+	if len(hashes) == 0 {
+		return nil
+	}
+	out := make([][]byte, len(hashes))
+	for i, hash := range hashes {
+		out[i] = slices.Clone(hash)
+	}
+	return out
+}
+
 // computeHashes computes sorted hashes for the given entries.
 func (c *Controller) computeHashes(ls *linkState, entries []link_solicit.SolicitEntry) [][]byte {
 	if len(entries) == 0 {
@@ -394,6 +509,8 @@ func (c *Controller) runControlStream(
 	le := ls.le.WithField("phase", "control-stream")
 	le.Debug("control stream started")
 	defer sess.Close()
+	watchCtx, cancelWatch := context.WithCancel(ctx)
+	defer cancelWatch()
 
 	// Read incoming exchanges in a goroutine.
 	remoteCh := make(chan [][]byte, 1)
@@ -411,64 +528,95 @@ func (c *Controller) runControlStream(
 			}
 			select {
 			case remoteCh <- hashes:
-			case <-ctx.Done():
+			case <-watchCtx.Done():
 				return
 			}
 		}
 	}()
 
-	var localHashes [][]byte
-	for {
-		// Snapshot all state and wait channel atomically.
-		// Any broadcast after this lock release closes ch.
-		var ch <-chan struct{}
-		var entries []link_solicit.SolicitEntry
-		var rh [][]byte
-		var linkRemoved bool
-		c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ch = getWaitCh()
-			if _, ok := c.links[ls.ml.GetLinkUUID()]; !ok {
-				linkRemoved = true
-				return
-			}
-			entries = c.getSolicitEntries(ls.ml)
-			rh = ls.remoteHashes
-		})
-		if linkRemoved {
-			return
+	localCh := make(chan struct{}, 1)
+	localErrCh := make(chan error, 1)
+	go func() {
+		defer close(localErrCh)
+		err := c.watchControlStreamLocalSnapshots(
+			watchCtx,
+			ls,
+			func(*controlStreamLocalSnapshot) error {
+				select {
+				case localCh <- struct{}{}:
+					return nil
+				case <-watchCtx.Done():
+					return watchCtx.Err()
+				}
+			},
+		)
+		if err != nil && watchCtx.Err() == nil {
+			localErrCh <- err
 		}
+	}()
 
-		// Compute hashes outside the lock (pure computation).
-		newHashes := c.computeHashes(ls, entries)
-
-		// Send exchange if local hashes changed.
+	var localHashes [][]byte
+	handleLocalWake := func() bool {
+		snap := c.currentControlStreamLocalSnapshot(ls)
+		if snap.linkRemoved {
+			return false
+		}
+		remoteHashes, linkRemoved := c.currentControlStreamRemoteHashes(ls)
+		if linkRemoved {
+			return false
+		}
+		newHashes := c.computeHashes(ls, snap.entries)
 		if !slices.EqualFunc(localHashes, newHashes, bytes.Equal) {
 			le.WithField("hash-count", len(newHashes)).Debug("sending exchange")
 			localHashes = newHashes
 			if err := c.sendExchange(sess, localHashes); err != nil {
 				le.WithError(err).Debug("failed to send exchange")
-				return
+				return false
 			}
 		}
-
-		// Evaluate matches if we have remote hashes.
-		if rh != nil {
-			c.evaluateMatches(ctx, ls, localHashes, rh)
+		if remoteHashes != nil {
+			c.evaluateMatches(ctx, ls, localHashes, remoteHashes)
 		}
+		return true
+	}
 
+	select {
+	case <-ctx.Done():
+		return
+	case err, ok := <-localErrCh:
+		if ok && err != nil {
+			le.WithError(err).Debug("local solicitation watch ended")
+		}
+		return
+	case <-localCh:
+		if !handleLocalWake() {
+			return
+		}
+	}
+
+	for {
 		select {
 		case <-ctx.Done():
 			return
+		case err, ok := <-localErrCh:
+			if ok && err != nil {
+				le.WithError(err).Debug("local solicitation watch ended")
+				return
+			}
+			localErrCh = nil
+		case <-localCh:
+			if !handleLocalWake() {
+				return
+			}
 		case remoteHashes, ok := <-remoteCh:
 			if !ok {
 				return
 			}
 			le.WithField("remote-hash-count", len(remoteHashes)).Debug("received remote exchange")
-			c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-				ls.remoteHashes = remoteHashes
-			})
+			if !c.setControlStreamRemoteHashes(ls, remoteHashes) {
+				return
+			}
 			c.evaluateMatches(ctx, ls, localHashes, remoteHashes)
-		case <-ch:
 		}
 	}
 }

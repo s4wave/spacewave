@@ -1,8 +1,11 @@
 package link_solicit_controller
 
 import (
+	"bytes"
 	"context"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -12,12 +15,147 @@ import (
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
+	"github.com/s4wave/spacewave/net/stream"
 	"github.com/s4wave/spacewave/net/testbed"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	"github.com/s4wave/spacewave/net/transport/inproc"
 	"github.com/sirupsen/logrus"
 )
+
+type testMountedLink struct {
+	uuid          uint64
+	transportUUID uint64
+	localPeer     peer.ID
+	remotePeer    peer.ID
+	openCh        chan protocol.ID
+}
+
+func (l *testMountedLink) GetLinkUUID() uint64 {
+	return l.uuid
+}
+
+func (l *testMountedLink) GetTransportUUID() uint64 {
+	return l.transportUUID
+}
+
+func (l *testMountedLink) GetRemoteTransportUUID() uint64 {
+	return l.transportUUID
+}
+
+func (l *testMountedLink) GetLocalPeer() peer.ID {
+	return l.localPeer
+}
+
+func (l *testMountedLink) GetRemotePeer() peer.ID {
+	return l.remotePeer
+}
+
+func (l *testMountedLink) OpenMountedStream(
+	_ context.Context,
+	protocolID protocol.ID,
+	opts stream.OpenOpts,
+) (link.MountedStream, error) {
+	if l.openCh != nil {
+		l.openCh <- protocolID
+	}
+	return &testMountedStream{
+		link:       l,
+		protocolID: protocolID,
+		opts:       opts,
+	}, nil
+}
+
+type testMountedStream struct {
+	link       link.MountedLink
+	protocolID protocol.ID
+	opts       stream.OpenOpts
+}
+
+func (s *testMountedStream) GetStream() stream.Stream {
+	return testStream{}
+}
+
+func (s *testMountedStream) GetProtocolID() protocol.ID {
+	return s.protocolID
+}
+
+func (s *testMountedStream) GetOpenOpts() stream.OpenOpts {
+	return s.opts
+}
+
+func (s *testMountedStream) GetPeerID() peer.ID {
+	return s.link.GetRemotePeer()
+}
+
+func (s *testMountedStream) GetLink() link.MountedLink {
+	return s.link
+}
+
+type testStream struct{}
+
+func (testStream) Read([]byte) (int, error) {
+	return 0, nil
+}
+
+func (testStream) Write(b []byte) (int, error) {
+	return len(b), nil
+}
+
+func (testStream) SetReadDeadline(time.Time) error {
+	return nil
+}
+
+func (testStream) SetWriteDeadline(time.Time) error {
+	return nil
+}
+
+func (testStream) SetDeadline(time.Time) error {
+	return nil
+}
+
+func (testStream) Close() error {
+	return nil
+}
+
+type testResolverHandler struct {
+	values chan directive.Value
+}
+
+func newTestResolverHandler() *testResolverHandler {
+	return &testResolverHandler{values: make(chan directive.Value, 8)}
+}
+
+func (h *testResolverHandler) AddValue(val directive.Value) (uint32, bool) {
+	h.values <- val
+	return uint32(len(h.values)), true
+}
+
+func (h *testResolverHandler) RemoveValue(uint32) (directive.Value, bool) {
+	return nil, false
+}
+
+func (h *testResolverHandler) CountValues(bool) int {
+	return len(h.values)
+}
+
+func (h *testResolverHandler) ClearValues() []uint32 {
+	return nil
+}
+
+func (h *testResolverHandler) MarkIdle(bool) {}
+
+func (h *testResolverHandler) AddValueRemovedCallback(uint32, func()) func() {
+	return func() {}
+}
+
+func (h *testResolverHandler) AddResolverRemovedCallback(func()) func() {
+	return func() {}
+}
+
+func (h *testResolverHandler) AddResolver(directive.Resolver, func()) func() {
+	return func() {}
+}
 
 func buildTestbed(t *testing.T, ctx context.Context) *testbed.Testbed {
 	t.Helper()
@@ -87,6 +225,316 @@ func startSolicitController(
 		t.Fatal(err.Error())
 	}
 	return ref
+}
+
+func newTestSolicitController(t *testing.T) *Controller {
+	t.Helper()
+
+	c, err := NewController(logrus.NewEntry(logrus.New()), &Config{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return c
+}
+
+func newTestLinkState(local, remote peer.ID) *linkState {
+	ml := &testMountedLink{
+		uuid:          1,
+		transportUUID: 2,
+		localPeer:     local,
+		remotePeer:    remote,
+		openCh:        make(chan protocol.ID, 4),
+	}
+	return &linkState{
+		le:           logrus.NewEntry(logrus.New()),
+		ml:           ml,
+		sessionID:    link_solicit.ComputeSessionID(local, remote),
+		localIsLower: local < remote,
+		matched:      make(map[string]struct{}),
+	}
+}
+
+func recvLocalSnapshot(t *testing.T, ch <-chan *controlStreamLocalSnapshot) *controlStreamLocalSnapshot {
+	t.Helper()
+
+	snap := recvTestValue(t, ch, "local snapshot")
+	if snap == nil {
+		t.Fatal("expected local snapshot")
+	}
+	return snap
+}
+
+func recvTestValue[T any](t *testing.T, ch <-chan T, name string) T {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+
+	select {
+	case val, ok := <-ch:
+		if !ok {
+			t.Fatalf("%s channel closed", name)
+		}
+		return val
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for %s", name)
+	}
+	var zero T
+	return zero
+}
+
+func assertNoTestValue[T any](t *testing.T, ch <-chan T, name string) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+
+	select {
+	case val, ok := <-ch:
+		if !ok {
+			t.Fatalf("%s channel closed", name)
+		}
+		t.Fatalf("unexpected %s: %#v", name, val)
+	case <-ctx.Done():
+	}
+}
+
+func TestControlStreamLocalSnapshotWatchDynamicAddRemove(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		broadcast()
+	})
+
+	snapCh := make(chan *controlStreamLocalSnapshot, 8)
+	done := make(chan error, 1)
+	go func() {
+		done <- c.watchControlStreamLocalSnapshots(ctx, ls, func(snap *controlStreamLocalSnapshot) error {
+			snapCh <- snap
+			return nil
+		})
+	}()
+
+	initial := recvLocalSnapshot(t, snapCh)
+	if initial.linkRemoved || len(initial.entries) != 0 {
+		t.Fatalf("initial snapshot removed=%v entries=%d", initial.linkRemoved, len(initial.entries))
+	}
+
+	ss := &solicitState{
+		dir: link_solicit.NewSolicitProtocol(protocol.ID("test/dynamic"), []byte("ctx"), "", 0),
+	}
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.solicitations[ss] = struct{}{}
+		broadcast()
+	})
+	added := recvLocalSnapshot(t, snapCh)
+	if len(added.entries) != 1 || added.entries[0].ProtocolID != protocol.ID("test/dynamic") {
+		t.Fatalf("added entries = %#v", added.entries)
+	}
+	if string(added.entries[0].Context) != "ctx" {
+		t.Fatalf("added context = %q", added.entries[0].Context)
+	}
+
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		delete(c.solicitations, ss)
+		broadcast()
+	})
+	removed := recvLocalSnapshot(t, snapCh)
+	if removed.linkRemoved || len(removed.entries) != 0 {
+		t.Fatalf("removed snapshot removed=%v entries=%d", removed.linkRemoved, len(removed.entries))
+	}
+
+	cancel()
+	if err := recvTestValue(t, done, "watch completion"); err == nil {
+		t.Fatal("expected canceled watch")
+	}
+}
+
+func TestControlStreamLocalSnapshotWatchLinkRemoval(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		broadcast()
+	})
+
+	snapCh := make(chan *controlStreamLocalSnapshot, 4)
+	done := make(chan error, 1)
+	go func() {
+		done <- c.watchControlStreamLocalSnapshots(ctx, ls, func(snap *controlStreamLocalSnapshot) error {
+			snapCh <- snap
+			return nil
+		})
+	}()
+
+	initial := recvLocalSnapshot(t, snapCh)
+	if initial.linkRemoved {
+		t.Fatal("initial snapshot should not be removed")
+	}
+
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		delete(c.links, ls.ml.GetLinkUUID())
+		broadcast()
+	})
+	removed := recvLocalSnapshot(t, snapCh)
+	if !removed.linkRemoved {
+		t.Fatal("expected link removal snapshot")
+	}
+
+	cancel()
+	if err := recvTestValue(t, done, "watch completion"); err == nil {
+		t.Fatal("expected canceled watch")
+	}
+}
+
+func TestControlStreamLocalSnapshotRemoteHashesRefresh(t *testing.T) {
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	entry := link_solicit.SolicitEntry{
+		ProtocolID: protocol.ID("test/remote"),
+		Context:    []byte("ctx"),
+	}
+	hashes := link_solicit.ComputeProtocolHashes(ls.sessionID, []link_solicit.SolicitEntry{entry})
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		broadcast()
+	})
+
+	var snap *controlStreamLocalSnapshot
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		snap = c.snapshotControlStreamLocalLocked(ls)
+	})
+	if snap.linkRemoved || len(snap.entries) != 0 {
+		t.Fatalf("local snapshot removed=%v entries=%d", snap.linkRemoved, len(snap.entries))
+	}
+
+	if !c.setControlStreamRemoteHashes(ls, hashes) {
+		t.Fatal("link should accept remote hashes")
+	}
+	current, linkRemoved := c.currentControlStreamRemoteHashes(ls)
+	if linkRemoved {
+		t.Fatal("link should still exist")
+	}
+	if !slices.EqualFunc(current, hashes, bytes.Equal) {
+		t.Fatalf("current remote hashes did not refresh")
+	}
+
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		delete(c.links, ls.ml.GetLinkUUID())
+		broadcast()
+	})
+	if c.setControlStreamRemoteHashes(ls, hashes) {
+		t.Fatal("removed link accepted remote hashes")
+	}
+}
+
+func TestControlStreamLocalSnapshotRefreshesQueuedSolicitationState(t *testing.T) {
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	ss := &solicitState{
+		dir: link_solicit.NewSolicitProtocol(protocol.ID("test/stale"), []byte("ctx"), "", 0),
+	}
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		c.solicitations[ss] = struct{}{}
+		broadcast()
+	})
+
+	var queued *controlStreamLocalSnapshot
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		queued = c.snapshotControlStreamLocalLocked(ls)
+	})
+	if len(queued.entries) != 1 {
+		t.Fatalf("queued entries = %d, want 1", len(queued.entries))
+	}
+
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		delete(c.solicitations, ss)
+		broadcast()
+	})
+	current := c.currentControlStreamLocalSnapshot(ls)
+	if current.linkRemoved || len(current.entries) != 0 {
+		t.Fatalf("current snapshot removed=%v entries=%d", current.linkRemoved, len(current.entries))
+	}
+}
+
+func TestControlStreamLocalSnapshotRejectsReplacedLink(t *testing.T) {
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	replacement := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	entry := link_solicit.SolicitEntry{
+		ProtocolID: protocol.ID("test/replaced"),
+		Context:    []byte("ctx"),
+	}
+	hashes := link_solicit.ComputeProtocolHashes(ls.sessionID, []link_solicit.SolicitEntry{entry})
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		broadcast()
+	})
+
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = replacement
+		broadcast()
+	})
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		snap := c.snapshotControlStreamLocalLocked(ls)
+		if !snap.linkRemoved {
+			t.Fatal("replaced link should remove old local snapshot")
+		}
+	})
+
+	if _, linkRemoved := c.currentControlStreamRemoteHashes(ls); !linkRemoved {
+		t.Fatal("replaced link should hide old remote hashes")
+	}
+	if c.setControlStreamRemoteHashes(ls, hashes) {
+		t.Fatal("replaced link accepted old remote hashes")
+	}
+	if !c.setControlStreamRemoteHashes(replacement, hashes) {
+		t.Fatal("replacement link should accept remote hashes")
+	}
+}
+
+func TestEvaluateMatchesSuppressesDuplicateOpens(t *testing.T) {
+	ctx := t.Context()
+
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	handler := newTestResolverHandler()
+	entry := link_solicit.SolicitEntry{
+		ProtocolID: protocol.ID("test/dupe"),
+		Context:    []byte("ctx"),
+	}
+	hashes := link_solicit.ComputeProtocolHashes(ls.sessionID, []link_solicit.SolicitEntry{entry})
+	ss := &solicitState{
+		dir:     link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
+		handler: handler,
+	}
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		c.solicitations[ss] = struct{}{}
+		broadcast()
+	})
+
+	c.evaluateMatches(ctx, ls, hashes, hashes)
+	recvTestValue(t, ls.ml.(*testMountedLink).openCh, "opened protocol")
+	recvTestValue(t, handler.values, "solicit value")
+	if len(ls.matched) != 1 {
+		t.Fatalf("matched count = %d, want 1", len(ls.matched))
+	}
+
+	c.evaluateMatches(ctx, ls, hashes, hashes)
+	if len(ls.matched) != 1 {
+		t.Fatalf("matched count after duplicate = %d, want 1", len(ls.matched))
+	}
+	assertNoTestValue(t, ls.ml.(*testMountedLink).openCh, "duplicate opened protocol")
+	assertNoTestValue(t, handler.values, "duplicate solicit value")
 }
 
 // TestSolicitProtocolMatch tests that two peers both soliciting the same
