@@ -896,16 +896,29 @@ function renderPanelScript(): string {
 (() => {
   const tabs = Array.from(document.querySelectorAll('[data-tab]'));
   const panels = Array.from(document.querySelectorAll('[data-panel]'));
-  const actions = () => Array.from(document.querySelectorAll('[data-action-id]:not([aria-disabled="true"])'));
+  const lastFocusByPanel = new Map();
+  const isVisible = (item) => item.getClientRects().length > 0;
+  const activePanel = () => panels.find((panel) => panel.dataset.active === 'true') || document;
+  const actions = (scope = activePanel()) => Array.from(scope.querySelectorAll('[data-action-id]:not([aria-disabled="true"])')).filter(isVisible);
+  const focusPanelAction = (id) => {
+    const panel = activePanel();
+    const previous = lastFocusByPanel.get(id);
+    const target = previous && isVisible(previous) ? previous : actions(panel)[0];
+    if (target) target.focus();
+  };
   function selectTab(id) {
     for (const tab of tabs) tab.setAttribute('aria-selected', String(tab.dataset.tab === id));
     for (const panel of panels) panel.dataset.active = String(panel.dataset.panel === id);
-    const first = actions()[0];
-    if (first) first.focus();
+    focusPanelAction(id);
   }
   for (const tab of tabs) {
     tab.addEventListener('click', () => selectTab(tab.dataset.tab));
   }
+  document.addEventListener('focusin', (event) => {
+    if (!event.target?.dataset?.actionId) return;
+    const panel = event.target.closest('[data-panel]');
+    if (panel?.dataset?.panel) lastFocusByPanel.set(panel.dataset.panel, event.target);
+  });
   document.addEventListener('keydown', (event) => {
     const items = actions();
     const index = items.indexOf(document.activeElement);
@@ -940,8 +953,7 @@ function renderPanelScript(): string {
       document.activeElement.click();
     }
   });
-  const first = actions()[0];
-  if (first) first.focus();
+  focusPanelAction('overview');
 })();
 </script>`
 }

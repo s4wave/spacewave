@@ -1301,6 +1301,9 @@ describe('DesktopTrayController', () => {
       'class="row action severity-info" href="spacewave-tray-action:apply-update"',
     )
     expect(html).toContain('ArrowDown')
+    expect(html).toContain('lastFocusByPanel')
+    expect(html).toContain('const actions = (scope = activePanel())')
+    expect(html).toContain('focusPanelAction(id)')
   })
 
   it('collapses sparse popover tabs without changing native fallback rows', async () => {
