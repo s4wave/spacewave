@@ -1275,6 +1275,77 @@ describe('DesktopTrayController', () => {
     expect(html).toContain('ArrowDown')
   })
 
+  it('keeps the panel host independent of renderer window lifetime and runtime polling', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const initialState: DesktopTrayState = {
+      statusText: 'Initial host status',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Initial host status',
+        },
+        {
+          id: 'host-row',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Initial renderer window row',
+        },
+      ],
+    }
+    const updatedState: DesktopTrayState = {
+      statusText: 'Recovered host status',
+      iconState: DesktopTrayIconState.ACTIVE,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Recovered host status',
+        },
+        {
+          id: 'host-row',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Recovered watched tray row',
+        },
+      ],
+    }
+    mockResource.desktopTrayResource.getState.mockReturnValue(initialState)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    expect(browserWindows).toHaveLength(1)
+    expect(latestPopoverHtml()).toContain('Initial renderer window row')
+    expect(mockResource.getState).toHaveBeenCalledTimes(1)
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+
+    const firstWindow = browserWindows[0]
+    firstWindow?.close()
+    emitTrayState(updatedState)
+    await flushPromises()
+
+    expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
+    expect(firstWindow?.loadURL).toHaveBeenCalledTimes(1)
+    expect(mockResource.getState).toHaveBeenCalledTimes(1)
+
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    expect(browserWindows).toHaveLength(2)
+    expect(latestPopoverHtml()).toContain('Recovered watched tray row')
+    expect(mockResource.getState).toHaveBeenCalledTimes(2)
+    expect(
+      mockResource.desktopTrayResource.WatchDesktopTray,
+    ).toHaveBeenCalledTimes(1)
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+  })
+
   it('uses opt-in dynamic macOS tray icon variants with title fallback', async () => {
     platformState.value = 'darwin'
     process.env.BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON = '1'
