@@ -96,7 +96,7 @@ export function TerminalViewer({
     }
     window.addEventListener('resize', handleResize)
 
-    void readTerminalFrames(
+    const terminalDone = readTerminalFrames(
       terminalHandle.connectTerminal(queue.stream(), rpcAbort.signal),
       term,
       renderAbort.signal,
@@ -104,7 +104,10 @@ export function TerminalViewer({
 
     return () => {
       renderAbort.abort()
-      void queue.close().finally(() => rpcAbort.abort())
+      void queue
+        .close()
+        .then(() => terminalDone)
+        .finally(() => rpcAbort.abort())
       window.removeEventListener('resize', handleResize)
       disposeInput.dispose()
       term.dispose()
@@ -166,19 +169,24 @@ async function readTerminalFrames(
 ) {
   try {
     for await (const frame of frames) {
-      if (signal.aborted) return
       switch (frame.kind) {
         case TerminalFrameKind.OUTPUT:
-          term.write(terminalDecoder.decode(frame.data))
+          if (!signal.aborted) {
+            term.write(terminalDecoder.decode(frame.data))
+          }
           break
         case TerminalFrameKind.READY:
           break
         case TerminalFrameKind.ERROR:
-          term.writeln(`\r\n${frame.error || 'terminal error'}`)
-          break
+          if (!signal.aborted) {
+            term.writeln(`\r\n${frame.error || 'terminal error'}`)
+          }
+          return
         case TerminalFrameKind.EXIT:
-          term.writeln(`\r\nprocess exited ${frame.exitCode ?? 0}`)
-          break
+          if (!signal.aborted) {
+            term.writeln(`\r\nprocess exited ${frame.exitCode ?? 0}`)
+          }
+          return
       }
     }
   } catch (err) {

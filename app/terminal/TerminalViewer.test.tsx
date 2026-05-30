@@ -9,14 +9,26 @@ import {
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 
-const h = vi.hoisted(() => ({
-  open: vi.fn<(host: HTMLElement) => void>(),
-  write: vi.fn<(data: string) => void>(),
-  writeln: vi.fn<(data: string) => void>(),
-  dispose: vi.fn<() => void>(),
-  fit: vi.fn<() => void>(),
-  clientFrames: new Array<TerminalFrame>(),
-}))
+const h = vi.hoisted(() => {
+  const closeWaiter = {
+    promise: Promise.resolve(),
+    resolve: () => {},
+  }
+  closeWaiter.promise = new Promise<void>((resolve) => {
+    closeWaiter.resolve = resolve
+  })
+  return {
+    open: vi.fn<(host: HTMLElement) => void>(),
+    write: vi.fn<(data: string) => void>(),
+    writeln: vi.fn<(data: string) => void>(),
+    dispose: vi.fn<() => void>(),
+    fit: vi.fn<() => void>(),
+    clientFrames: new Array<TerminalFrame>(),
+    closeSeen: closeWaiter.promise,
+    resolveClose: closeWaiter.resolve,
+    abortObservedBeforeExit: true,
+  }
+})
 
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
@@ -66,6 +78,9 @@ async function* terminalFrames(): AsyncIterable<TerminalFrame> {
     kind: TerminalFrameKind.OUTPUT,
     data: new TextEncoder().encode('ready\n'),
   }
+  await h.closeSeen
+  h.abortObservedBeforeExit = false
+  yield { kind: TerminalFrameKind.EXIT, exitCode: 0 }
 }
 
 vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
@@ -78,7 +93,11 @@ vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
             for await (const frame of frames) {
               if (signal?.aborted) return
               h.clientFrames.push(frame)
-              if (frame.kind === TerminalFrameKind.CLOSE) return
+              if (frame.kind === TerminalFrameKind.CLOSE) {
+                h.abortObservedBeforeExit = signal?.aborted === true
+                h.resolveClose()
+                return
+              }
             }
           })()
           return terminalFrames()
@@ -107,6 +126,10 @@ describe('TerminalViewer', () => {
     cleanup()
     vi.clearAllMocks()
     h.clientFrames = []
+    h.closeSeen = new Promise<void>((resolve) => {
+      h.resolveClose = resolve
+    })
+    h.abortObservedBeforeExit = true
   })
 
   it('renders terminal state and opens xterm host', async () => {
@@ -144,5 +167,6 @@ describe('TerminalViewer', () => {
         h.clientFrames.some((frame) => frame.kind === TerminalFrameKind.CLOSE),
       ).toBe(true),
     )
+    await vi.waitFor(() => expect(h.abortObservedBeforeExit).toBe(false))
   })
 })
