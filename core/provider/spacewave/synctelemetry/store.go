@@ -339,6 +339,21 @@ func (s *Store) FinishPush(bstoreID string, bytes int64, err error) {
 	})
 }
 
+// RecordError records a sync error that happened outside an active push/pull.
+func (s *Store) RecordError(bstoreID string, err error) {
+	if err == nil {
+		return
+	}
+	now := time.Now()
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		state := s.getOrCreateStateLocked(bstoreID)
+		state.lastPushError = err.Error()
+		state.lastPushErrorAt = now
+		state.lastActivityAt = now
+		broadcast()
+	})
+}
+
 // AddDeduped records dirty blocks skipped because they already exist remotely.
 func (s *Store) AddDeduped(bstoreID string, bytes int64, count int) {
 	if bytes < 0 {

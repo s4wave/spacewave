@@ -371,23 +371,15 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		return err
 	}
 
-	// Run sync loop in a goroutine; cancellation via ctx.
-	syncDone := make(chan error, 1)
-	go func() {
-		syncDone <- sc.Execute(ctx)
-	}()
+	syncOwner := newBstoreSyncOwner(le, sc)
+	syncOwner.Start(ctx)
+	defer syncOwner.Stop()
 
 	// Done, publish the block store.
 	le.Debug("mounted cloud bstore")
 	t.bstoreCtr.SetValue(bstoreHandle)
 
-	select {
-	case <-ctx.Done():
-	case err := <-syncDone:
-		if err != nil {
-			le.WithError(err).Warn("sync controller exited with error")
-		}
-	}
+	<-ctx.Done()
 
 	t.bstoreCtr.SetValue(nil)
 	return context.Canceled

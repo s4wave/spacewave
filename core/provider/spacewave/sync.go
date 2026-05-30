@@ -883,6 +883,12 @@ func (s *syncController) telemetrySafeCall(fn func(t *ProviderAccount, resourceI
 	fn(s.telemetry, s.resourceID)
 }
 
+func (s *syncController) recordSyncOwnerError(err error) {
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.recordSyncTelemetryError(id, err)
+	})
+}
+
 func isRetryableSyncPushCancel(err error) bool {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return true

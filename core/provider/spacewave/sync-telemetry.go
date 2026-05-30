@@ -79,5 +79,9 @@ func (a *ProviderAccount) finishSyncTelemetryPull(bstoreID string, err error) {
 	a.syncTelemetry.FinishPull(bstoreID, err)
 }
 
+func (a *ProviderAccount) recordSyncTelemetryError(bstoreID string, err error) {
+	a.syncTelemetry.RecordError(bstoreID, err)
+}
+
 // _ is a type assertion
 var _ syncTelemetryFetchStatsProvider = ((*packfile_store.PackfileStore)(nil))
