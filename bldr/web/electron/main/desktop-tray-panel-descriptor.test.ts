@@ -79,6 +79,43 @@ describe('buildDesktopTrayPanelDescriptor', () => {
     expect(descriptor.primaryActions.map((row) => row.id)).toEqual(['open'])
   })
 
+  it('keeps app commands from enabling sparse navigation tabs after separators', () => {
+    const descriptor = buildDesktopTrayPanelDescriptor({
+      state: {
+        statusText: 'Running',
+        iconState: DesktopTrayIconState.NORMAL,
+        entries: [
+          section('Spaces'),
+          status('Spaces-empty', 'No spaces'),
+          separator('app-separator'),
+          action('settings', 'Settings...', DesktopTrayActionKind.OPEN_ROUTE, {
+            route: '/settings',
+          }),
+          action('quit', 'Quit', DesktopTrayActionKind.QUIT),
+        ],
+      },
+    })
+
+    expect(descriptor.tabs[2]).toMatchObject({
+      id: 'spaces',
+      enabled: false,
+      count: 0,
+    })
+    expect(descriptor.spaceRows).toHaveLength(1)
+    expect(descriptor.spaceRows[0]).toMatchObject({
+      id: 'Spaces-empty',
+      empty: true,
+    })
+    expect(
+      descriptor.sections.find((section) => section.title === 'Overview')?.rows,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'settings' }),
+        expect.objectContaining({ id: 'quit' }),
+      ]),
+    )
+  })
+
   it.each([
     [DesktopTrayIconState.ACTIVE, 'Active', 'active'],
     [DesktopTrayIconState.ATTENTION, 'Needs attention', 'attention'],
@@ -228,6 +265,14 @@ function section(label: string): DesktopTrayEntry {
     id: `${label}-section`,
     kind: DesktopTrayEntryKind.SECTION,
     label,
+  }
+}
+
+function separator(id: string): DesktopTrayEntry {
+  return {
+    id,
+    kind: DesktopTrayEntryKind.SEPARATOR,
+    label: '',
   }
 }
 

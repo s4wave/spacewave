@@ -1265,6 +1265,9 @@ describe('DesktopTrayController', () => {
     const html = latestPopoverHtml()
     expect(html).toContain('data-tab="overview"')
     expect(html).toContain('data-tab="sessions"')
+    expect(html).toContain('data-tabs="visible"')
+    expect(html).toContain('data-panel="sessions"')
+    expect(html).toContain('data-panel="spaces"')
     expect(html).toContain('Project Alpha With A Very Long Label')
     expect(html).toContain('.status {\n  min-width: 0;\n  max-width: 96px;')
     expect(html).toContain('spacewave-tray-action:navigation-')
@@ -1273,6 +1276,33 @@ describe('DesktopTrayController', () => {
       'class="row action severity-info" href="spacewave-tray-action:apply-update"',
     )
     expect(html).toContain('ArrowDown')
+  })
+
+  it('collapses sparse popover tabs without changing native fallback rows', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    const html = latestPopoverHtml()
+    expect(html).toContain('data-tabs="collapsed"')
+    expect(html).not.toContain('class="tabs"')
+    expect(html).not.toContain('data-tab="sessions"')
+    expect(html).not.toContain('data-tab="spaces"')
+    expect(html).not.toContain('data-panel="sessions"')
+    expect(html).not.toContain('data-panel="spaces"')
+    expect(html).toContain('No active sessions')
+    expect(templateLabels(menuTemplates[0])).toContain('Sessions')
+    expect(templateLabels(menuTemplates[0])).toContain('No sessions')
+    expect(templateLabels(menuTemplates[0])).toContain('Spaces')
+    expect(templateLabels(menuTemplates[0])).toContain('No spaces')
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
   })
 
   it('keeps the panel host independent of renderer window lifetime and runtime polling', async () => {

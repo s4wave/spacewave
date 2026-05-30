@@ -212,6 +212,7 @@ export class DesktopTrayPopoverController {
 export function renderDesktopTrayPanelHtml(
   descriptor: DesktopTrayPanelDescriptor,
 ): string {
+  const tabs = renderableTabs(descriptor)
   return `<!doctype html>
 <html>
 <head>
@@ -334,6 +335,9 @@ body {
   min-height: 0;
   padding-top: 10px;
   overflow: hidden auto;
+}
+.content[data-tabs="collapsed"] {
+  padding-top: 0;
 }
 .panel {
   display: none;
@@ -568,30 +572,26 @@ body {
       </div>
       <div class="status-pill">${escapeHtml(descriptor.icon.variant)}</div>
     </section>
-    ${renderTabs(descriptor)}
-    <section class="content">
-      <div class="panel" data-panel="overview" data-active="true">
-        ${renderCards(descriptor)}
-        ${renderPrimaryActions(descriptor.primaryActions)}
-        ${renderAttention(descriptor.attentionRows)}
-        ${renderSections(descriptor)}
-      </div>
-      <div class="panel" data-panel="sessions">
-        ${renderRowsPanel('Sessions', descriptor.sessionRows, 'No sessions')}
-      </div>
-      <div class="panel" data-panel="spaces">
-        ${renderRowsPanel('Spaces', descriptor.spaceRows, 'No spaces')}
-      </div>
-    </section>
+    ${renderTabs(tabs)}
+    ${renderPanels(descriptor, tabs)}
   </main>
   ${renderPanelScript()}
 </body>
 </html>`
 }
 
-function renderTabs(descriptor: DesktopTrayPanelDescriptor): string {
+function renderableTabs(
+  descriptor: DesktopTrayPanelDescriptor,
+): DesktopTrayPanelDescriptor['tabs'] {
+  return descriptor.tabs.filter((tab) => tab.id === 'overview' || tab.enabled)
+}
+
+function renderTabs(tabs: DesktopTrayPanelDescriptor['tabs']): string {
+  if (tabs.length <= 1) {
+    return ''
+  }
   return `<nav class="tabs" aria-label="Tray panel views">
-    ${descriptor.tabs
+    ${tabs
       .map(
         (tab) =>
           `<button class="tab" type="button" data-tab="${tab.id}" aria-selected="${
@@ -600,6 +600,37 @@ function renderTabs(descriptor: DesktopTrayPanelDescriptor): string {
       )
       .join('')}
   </nav>`
+}
+
+function renderPanels(
+  descriptor: DesktopTrayPanelDescriptor,
+  tabs: DesktopTrayPanelDescriptor['tabs'],
+): string {
+  const enabled = new Set(tabs.map((tab) => tab.id))
+  return `<section class="content" data-tabs="${
+    tabs.length > 1 ? 'visible' : 'collapsed'
+  }">
+      <div class="panel" data-panel="overview" data-active="true">
+        ${renderCards(descriptor)}
+        ${renderPrimaryActions(descriptor.primaryActions)}
+        ${renderAttention(descriptor.attentionRows)}
+        ${renderSections(descriptor)}
+      </div>
+      ${
+        enabled.has('sessions') ?
+          `<div class="panel" data-panel="sessions">
+        ${renderRowsPanel('Sessions', descriptor.sessionRows, 'No sessions')}
+      </div>`
+        : ''
+      }
+      ${
+        enabled.has('spaces') ?
+          `<div class="panel" data-panel="spaces">
+        ${renderRowsPanel('Spaces', descriptor.spaceRows, 'No spaces')}
+      </div>`
+        : ''
+      }
+    </section>`
 }
 
 function renderCards(descriptor: DesktopTrayPanelDescriptor): string {

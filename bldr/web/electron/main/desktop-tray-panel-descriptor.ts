@@ -215,6 +215,7 @@ function buildSections(rows: DesktopTrayPanelRow[]): DesktopTrayPanelSection[] {
 
   for (const row of rows) {
     if (row.kind === 'separator') {
+      current = ensureSection(sections, 'overview', 'Overview')
       continue
     }
     if (row.kind === 'section' || row.kind === 'submenu') {
