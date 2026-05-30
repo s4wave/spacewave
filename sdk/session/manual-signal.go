@@ -7,6 +7,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/aperturerobotics/util/broadcast"
 	webrtc "github.com/pion/webrtc/v4"
 	"github.com/pkg/errors"
 	"github.com/quic-go/quic-go"
@@ -33,11 +34,116 @@ type ManualSignalTransport struct {
 	le        *logrus.Entry
 
 	gatherDone <-chan struct{}
+	state      manualSignalTransportState
+	closeOnce  sync.Once
+	closeErr   error
+}
 
-	mu     sync.Mutex
-	dcRwc  io.ReadWriteCloser
-	dcOpen chan struct{}
-	closed bool
+var errManualSignalDataChannelClosed = errors.New("datachannel closed before link")
+var errManualSignalDataChannelLinked = errors.New("datachannel already linked")
+
+type manualSignalTransportState struct {
+	bcast    broadcast.Broadcast
+	dcRwc    io.ReadWriteCloser
+	err      error
+	closed   bool
+	consumed bool
+}
+
+func (s *manualSignalTransportState) setReady(dcRwc io.ReadWriteCloser) bool {
+	if dcRwc == nil {
+		s.fail(errManualSignalDataChannelClosed)
+		return false
+	}
+
+	var ready bool
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if s.closed || s.err != nil || s.dcRwc != nil || s.consumed {
+			return
+		}
+		s.dcRwc = dcRwc
+		ready = true
+		bcast()
+	})
+	return ready
+}
+
+func (s *manualSignalTransportState) fail(err error) {
+	if err == nil {
+		return
+	}
+	var closeRwc io.ReadWriteCloser
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if s.err != nil {
+			return
+		}
+		s.err = err
+		closeRwc = s.dcRwc
+		s.dcRwc = nil
+		bcast()
+	})
+	if closeRwc != nil {
+		_ = closeRwc.Close()
+	}
+}
+
+func (s *manualSignalTransportState) close() bool {
+	var closed bool
+	var closeRwc io.ReadWriteCloser
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if s.closed {
+			return
+		}
+		s.closed = true
+		closed = true
+		closeRwc = s.dcRwc
+		s.dcRwc = nil
+		bcast()
+	})
+	if closeRwc != nil {
+		_ = closeRwc.Close()
+	}
+	return closed
+}
+
+func (s *manualSignalTransportState) waitReady(ctx context.Context) (io.ReadWriteCloser, error) {
+	for {
+		var dcRwc io.ReadWriteCloser
+		var err error
+		var closed bool
+		var waitCh <-chan struct{}
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			dcRwc = s.dcRwc
+			err = s.err
+			closed = s.closed
+			if dcRwc != nil && err == nil && !closed {
+				s.dcRwc = nil
+				s.consumed = true
+				return
+			}
+			if err == nil && !closed && !s.consumed {
+				waitCh = getWaitCh()
+			}
+		})
+		if err != nil {
+			return nil, err
+		}
+		if closed {
+			return nil, errManualSignalDataChannelClosed
+		}
+		if dcRwc != nil {
+			return dcRwc, nil
+		}
+		if waitCh == nil {
+			return nil, errManualSignalDataChannelLinked
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-waitCh:
+		}
+	}
 }
 
 // NewManualSignalTransport creates a new transport with the given identity and
@@ -80,10 +186,11 @@ func NewManualSignalTransport(
 		identity:  identity,
 		localPeer: localPeerID,
 		le:        le,
-		dcOpen:    make(chan struct{}),
 	}
 
 	dc.OnOpen(m.onDataChannelOpen)
+	dc.OnClose(m.onDataChannelClose)
+	dc.OnError(m.onDataChannelError)
 	m.gatherDone = webrtc.GatheringCompletePromise(pc)
 
 	return m, nil
@@ -94,12 +201,29 @@ func (m *ManualSignalTransport) onDataChannelOpen() {
 	dcRwc, err := m.dc.Detach()
 	if err != nil {
 		m.le.WithError(err).Warn("datachannel detach failed")
+		m.state.fail(errors.Wrap(err, "detach datachannel"))
 		return
 	}
-	m.mu.Lock()
-	m.dcRwc = dcRwc
-	close(m.dcOpen)
-	m.mu.Unlock()
+	m.onDataChannelReady(dcRwc)
+}
+
+func (m *ManualSignalTransport) onDataChannelReady(dcRwc io.ReadWriteCloser) {
+	if !m.state.setReady(dcRwc) {
+		if dcRwc != nil {
+			_ = dcRwc.Close()
+		}
+	}
+}
+
+func (m *ManualSignalTransport) onDataChannelClose() {
+	m.state.close()
+}
+
+func (m *ManualSignalTransport) onDataChannelError(err error) {
+	if err == nil {
+		err = errors.New("datachannel error")
+	}
+	m.state.fail(errors.Wrap(err, "datachannel error"))
 }
 
 // CreateOffer generates a complete SDP offer with all ICE candidates gathered.
@@ -179,17 +303,9 @@ func (m *ManualSignalTransport) WaitLink(
 	linkCtx context.Context,
 	remotePeerID peer.ID,
 ) (*transport_quic.Link, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-m.dcOpen:
-	}
-
-	m.mu.Lock()
-	dcRwc := m.dcRwc
-	m.mu.Unlock()
-	if dcRwc == nil {
-		return nil, errors.New("datachannel closed before link")
+	dcRwc, err := m.state.waitReady(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	localAddr := peer.NewNetAddr(m.localPeer)
@@ -204,13 +320,13 @@ func (m *ManualSignalTransport) WaitLink(
 	}
 
 	var sess *quic.Conn
-	var err error
 	if m.offerer {
 		sess, err = transport_quic.ListenSession(ctx, m.le, linkOpts, pconn, m.identity, remotePeerID)
 	} else {
 		sess, _, err = transport_quic.DialSession(ctx, m.le, linkOpts, pconn, m.identity, remoteAddr, remotePeerID)
 	}
 	if err != nil {
+		_ = pconn.Close()
 		return nil, errors.Wrap(err, "quic session")
 	}
 
@@ -225,6 +341,8 @@ func (m *ManualSignalTransport) WaitLink(
 		func() { _ = m.Close() },
 	)
 	if err != nil {
+		_ = sess.CloseWithError(0, "")
+		_ = pconn.Close()
 		return nil, errors.Wrap(err, "create link")
 	}
 	return lnk, nil
@@ -237,12 +355,9 @@ func (m *ManualSignalTransport) IsOfferer() bool {
 
 // Close closes the peer connection and releases resources.
 func (m *ManualSignalTransport) Close() error {
-	m.mu.Lock()
-	if m.closed {
-		m.mu.Unlock()
-		return nil
-	}
-	m.closed = true
-	m.mu.Unlock()
-	return m.pc.Close()
+	m.state.close()
+	m.closeOnce.Do(func() {
+		m.closeErr = m.pc.Close()
+	})
+	return m.closeErr
 }
