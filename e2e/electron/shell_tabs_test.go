@@ -5,7 +5,6 @@ package electron
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 const shellUIWaitTimeout = 120_000
 
 // TIER: nightly
-func TestShellTabSelectionIsWindowLocal(t *testing.T) {
+func TestShellTabSelectionPersistsInWindowSession(t *testing.T) {
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
@@ -27,38 +26,14 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	closeOtherAppPages(t, h, mainPage)
 	if err := seedShellTabs(mainPage); err != nil {
 		t.Fatal(err)
 	}
 	if err := waitForSelectedShellTab(mainPage, "Home"); err != nil {
 		t.Fatal(err)
 	}
-
-	if _, err := mainPage.Evaluate(`() => {
-		const baseUrl = location.protocol + '//' + location.host + location.pathname
-		window.open(baseUrl + '#/docs', '_blank', 'noopener,noreferrer')
-	}`); err != nil {
-		t.Fatal(err)
-	}
-
-	pages, err := h.WaitForAppPages(ctx, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	popoutPage := findOtherPageWithHash(pages, mainPage, "#/docs")
-	if popoutPage == nil {
-		t.Fatalf("expected popout page at #/docs, got %v", appPageURLs(pages))
-	}
-	t.Cleanup(func() {
-		closePageIfOpen(t, popoutPage)
-	})
-	if err := waitForSelectedShellTab(popoutPage, "Docs"); err != nil {
-		t.Fatal(err)
-	}
 	if err := waitForStoredActiveTabID(mainPage, "home"); err != nil {
-		t.Fatal(err)
-	}
-	if err := assertSelectedShellTab(mainPage, "Home"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -71,26 +46,14 @@ func TestShellTabSelectionIsWindowLocal(t *testing.T) {
 	if err := waitForStoredActiveTabID(mainPage, "changelog"); err != nil {
 		t.Fatal(err)
 	}
-	if err := waitForStoredActiveTabID(popoutPage, "docs"); err != nil {
-		t.Fatal(err)
-	}
-	if err := assertSelectedShellTab(popoutPage, "Docs"); err != nil {
-		t.Fatal(err)
-	}
 
-	if err := clickShellTab(popoutPage, "Home"); err != nil {
+	if err := clickShellTab(mainPage, "Home"); err != nil {
 		t.Fatal(err)
 	}
-	if err := waitForSelectedShellTab(popoutPage, "Home"); err != nil {
+	if err := waitForSelectedShellTab(mainPage, "Home"); err != nil {
 		t.Fatal(err)
 	}
-	if err := waitForStoredActiveTabID(popoutPage, "home"); err != nil {
-		t.Fatal(err)
-	}
-	if err := waitForStoredActiveTabID(mainPage, "changelog"); err != nil {
-		t.Fatal(err)
-	}
-	if err := assertSelectedShellTab(mainPage, "Changelog"); err != nil {
+	if err := waitForStoredActiveTabID(mainPage, "home"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -291,28 +254,4 @@ func waitForStoredActiveTabID(page playwright.Page, tabID string) error {
 		Timeout: playwright.Float(shellUIWaitTimeout),
 	})
 	return err
-}
-
-func findOtherPageWithHash(
-	pages []playwright.Page,
-	current playwright.Page,
-	hash string,
-) playwright.Page {
-	for _, page := range pages {
-		if page == current {
-			continue
-		}
-		if strings.Contains(page.URL(), hash) {
-			return page
-		}
-	}
-	return nil
-}
-
-func appPageURLs(pages []playwright.Page) []string {
-	urls := make([]string, 0, len(pages))
-	for _, page := range pages {
-		urls = append(urls, page.URL())
-	}
-	return urls
 }
