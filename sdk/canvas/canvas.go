@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/block"
@@ -14,12 +15,20 @@ import (
 
 // CanvasResource implements the CanvasResourceService SRPC interface.
 type CanvasResource struct {
-	ws     world.WorldState
-	engine world.Engine
-	objKey string
-	state  *CanvasState
-	bcast  broadcast.Broadcast
-	mux    srpc.Mux
+	ws       world.WorldState
+	engine   world.Engine
+	objKey   string
+	state    *CanvasState
+	watch    *routine.RoutineContainer
+	watchErr error
+	closed   bool
+	bcast    broadcast.Broadcast
+	mux      srpc.Mux
+}
+
+type canvasWatchSnapshot struct {
+	state *CanvasState
+	err   error
 }
 
 // NewCanvasResource creates a new CanvasResource.
@@ -33,6 +42,11 @@ func NewCanvasResource(ws world.WorldState, engine world.Engine, objKey string, 
 		objKey: objKey,
 		state:  state,
 	}
+	if ws != nil && objKey != "" {
+		r.watch = routine.NewRoutineContainer()
+		r.watch.SetRoutine(r.watchCanvasWorld)
+		r.watch.SetContext(context.Background(), false)
+	}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterCanvasResourceService(mux, r)
 	})
@@ -42,6 +56,18 @@ func NewCanvasResource(ws world.WorldState, engine world.Engine, objKey string, 
 // GetMux returns the srpc mux for this resource.
 func (r *CanvasResource) GetMux() srpc.Mux {
 	return r.mux
+}
+
+// Close releases the canvas resource lifecycle.
+func (r *CanvasResource) Close() {
+	if r.watch != nil {
+		r.watch.ClearContext()
+	}
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.closed = true
+		r.watchErr = context.Canceled
+		broadcast()
+	})
 }
 
 // GetCanvasState returns the current canvas state.
@@ -143,68 +169,116 @@ func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequ
 }
 
 // WatchCanvasState streams canvas state changes.
-//
-// Watches the underlying world object for revision changes so that
-// updates from any source (other resource instances, world ops, etc.)
-// are detected and streamed to the caller.
 func (r *CanvasResource) WatchCanvasState(_ *WatchCanvasStateRequest, strm SRPCCanvasResourceService_WatchCanvasStateStream) error {
-	ctx := strm.Context()
+	return broadcast.WatchBroadcastWithEqual(
+		strm.Context(),
+		&r.bcast,
+		r.snapshotCanvasWatchLocked,
+		func(snap *canvasWatchSnapshot) error {
+			if snap.err != nil {
+				return snap.err
+			}
+			return strm.Send(&WatchCanvasStateResponse{State: snap.state.CloneVT()})
+		},
+		canvasWatchSnapshotsEqual,
+	)
+}
 
-	// Watch the world object for changes from any source.
+func (r *CanvasResource) watchCanvasWorld(ctx context.Context) error {
 	objState, found, err := r.ws.GetObject(ctx, r.objKey)
 	if err != nil {
+		r.setCanvasWatchError(err)
 		return err
 	}
 	if !found {
+		r.setCanvasWatchError(world.ErrObjectNotFound)
 		return world.ErrObjectNotFound
 	}
 
-	var lastSent *CanvasState
 	for {
 		if err := ctx.Err(); err != nil {
+			r.setCanvasWatchError(err)
 			return err
 		}
-
-		// Get the current object revision.
 		_, rev, err := objState.GetRootRef(ctx)
 		if err != nil {
+			r.setCanvasWatchError(err)
 			return err
 		}
 
-		// Read current canvas state from the world object.
-		var state *CanvasState
-		_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
-			var uerr error
-			state, uerr = UnmarshalCanvasState(ctx, bcs)
-			return uerr
-		})
+		state, err := r.readCanvasWorldState(ctx, objState)
 		if err != nil {
+			r.setCanvasWatchError(err)
 			return err
 		}
-		if state == nil {
-			state = &CanvasState{}
-		}
+		r.setCanvasWatchState(state)
 
-		// Update local state so GetCanvasState stays current.
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			r.state = state.CloneVT()
-			broadcast()
-		})
-
-		// Send if changed from last sent.
-		if lastSent == nil || !state.EqualVT(lastSent) {
-			if serr := strm.Send(&WatchCanvasStateResponse{State: state.CloneVT()}); serr != nil {
-				return serr
-			}
-			lastSent = state
-		}
-
-		// Wait for the next world object revision change.
 		_, err = objState.WaitRev(ctx, rev+1, false)
 		if err != nil {
+			r.setCanvasWatchError(err)
 			return err
 		}
 	}
+}
+
+func (r *CanvasResource) readCanvasWorldState(ctx context.Context, objState world.ObjectState) (*CanvasState, error) {
+	var state *CanvasState
+	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
+		var uerr error
+		state, uerr = UnmarshalCanvasState(ctx, bcs)
+		return uerr
+	})
+	if err != nil {
+		return nil, err
+	}
+	if state == nil {
+		state = &CanvasState{}
+	}
+	return state, nil
+}
+
+func (r *CanvasResource) setCanvasWatchState(state *CanvasState) {
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if r.closed {
+			return
+		}
+		r.state = state.CloneVT()
+		r.watchErr = nil
+		broadcast()
+	})
+}
+
+func (r *CanvasResource) setCanvasWatchError(err error) {
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if r.closed {
+			return
+		}
+		r.watchErr = err
+		broadcast()
+	})
+}
+
+func (r *CanvasResource) snapshotCanvasWatchLocked() *canvasWatchSnapshot {
+	if r.watchErr != nil {
+		return &canvasWatchSnapshot{err: r.watchErr}
+	}
+	return &canvasWatchSnapshot{state: r.state.CloneVT()}
+}
+
+func canvasWatchSnapshotsEqual(a, b *canvasWatchSnapshot) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.err != nil || b.err != nil {
+		if a.err == nil || b.err == nil {
+			return false
+		}
+		return a.err.Error() == b.err.Error()
+	}
+	if a.state == nil || b.state == nil {
+		return a.state == b.state
+	}
+	return a.state.EqualVT(b.state)
 }
 
 // persistState writes the canvas state to the world via a write transaction.

@@ -2,8 +2,244 @@ package s4wave_canvas
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
+
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/db/block"
+	db_testbed "github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/sirupsen/logrus"
 )
+
+type canvasStateStream struct {
+	ctx  context.Context
+	sent chan *WatchCanvasStateResponse
+}
+
+func newCanvasStateStream(ctx context.Context) *canvasStateStream {
+	return &canvasStateStream{
+		ctx:  ctx,
+		sent: make(chan *WatchCanvasStateResponse, 8),
+	}
+}
+
+func (s *canvasStateStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *canvasStateStream) MsgSend(srpc.Message) error {
+	panic("MsgSend should not be called")
+}
+
+func (s *canvasStateStream) MsgRecv(srpc.Message) error {
+	panic("MsgRecv should not be called")
+}
+
+func (s *canvasStateStream) CloseSend() error {
+	return nil
+}
+
+func (s *canvasStateStream) Close() error {
+	return nil
+}
+
+func (s *canvasStateStream) Send(resp *WatchCanvasStateResponse) error {
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	case s.sent <- resp.CloneVT():
+		return nil
+	}
+}
+
+func (s *canvasStateStream) SendAndClose(resp *WatchCanvasStateResponse) error {
+	if resp != nil {
+		if err := s.Send(resp); err != nil {
+			return err
+		}
+	}
+	return s.CloseSend()
+}
+
+func recvCanvasTestValue[T any](t *testing.T, ch <-chan T, name string) T {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+
+	select {
+	case val, ok := <-ch:
+		if !ok {
+			t.Fatalf("%s channel closed", name)
+		}
+		return val
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for %s", name)
+	}
+	var zero T
+	return zero
+}
+
+func setupCanvasWatchWorld(
+	t *testing.T,
+	ctx context.Context,
+	objKey string,
+	state *CanvasState,
+) (*world_block.WorldState, func()) {
+	t.Helper()
+
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+	tb, err := db_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		tb.Release()
+		t.Fatal(err.Error())
+	}
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		ocs.Release()
+		tb.Release()
+		t.Fatal(err.Error())
+	}
+	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+		bcs.SetBlock(state, true)
+		return nil
+	})
+	if err == nil {
+		err = ws.Commit(ctx)
+	}
+	if err != nil {
+		ocs.Release()
+		tb.Release()
+		t.Fatal(err.Error())
+	}
+	return ws, func() {
+		ocs.Release()
+		tb.Release()
+	}
+}
+
+func setCanvasWatchWorldState(
+	t *testing.T,
+	ctx context.Context,
+	ws *world_block.WorldState,
+	objKey string,
+	state *CanvasState,
+) {
+	t.Helper()
+
+	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+		bcs.SetBlock(state, true)
+		return nil
+	})
+	if err == nil {
+		err = ws.Commit(ctx)
+	}
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func requireCanvasNode(t *testing.T, state *CanvasState, id string) {
+	t.Helper()
+	if state.GetNodes()[id] == nil {
+		t.Fatalf("expected canvas node %q in %#v", id, state.GetNodes())
+	}
+}
+
+func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
+	ctx := t.Context()
+	objKey := "canvas/watch-shared"
+	initial := &CanvasState{
+		Nodes: map[string]*CanvasNode{
+			"initial": &CanvasNode{Id: "initial", TextContent: "initial"},
+		},
+	}
+	ws, cleanup := setupCanvasWatchWorld(t, ctx, objKey, initial)
+	t.Cleanup(cleanup)
+
+	resource := NewCanvasResource(ws, nil, objKey, initial)
+	t.Cleanup(resource.Close)
+	streamCtxA, cancelA := context.WithCancel(ctx)
+	defer cancelA()
+	streamCtxB, cancelB := context.WithCancel(ctx)
+	defer cancelB()
+	strmA := newCanvasStateStream(streamCtxA)
+	strmB := newCanvasStateStream(streamCtxB)
+	doneA := make(chan error, 1)
+	doneB := make(chan error, 1)
+	go func() {
+		doneA <- resource.WatchCanvasState(&WatchCanvasStateRequest{}, strmA)
+	}()
+	go func() {
+		doneB <- resource.WatchCanvasState(&WatchCanvasStateRequest{}, strmB)
+	}()
+
+	requireCanvasNode(t, recvCanvasTestValue(t, strmA.sent, "stream A initial").GetState(), "initial")
+	requireCanvasNode(t, recvCanvasTestValue(t, strmB.sent, "stream B initial").GetState(), "initial")
+
+	updated := &CanvasState{
+		Nodes: map[string]*CanvasNode{
+			"updated": &CanvasNode{Id: "updated", TextContent: "updated"},
+		},
+	}
+	setCanvasWatchWorldState(t, ctx, ws, objKey, updated)
+	requireCanvasNode(t, recvCanvasTestValue(t, strmA.sent, "stream A update").GetState(), "updated")
+	requireCanvasNode(t, recvCanvasTestValue(t, strmB.sent, "stream B update").GetState(), "updated")
+
+	resource.Close()
+	if err := recvCanvasTestValue(t, doneA, "stream A close"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected stream A context.Canceled, got %v", err)
+	}
+	if err := recvCanvasTestValue(t, doneB, "stream B close"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected stream B context.Canceled, got %v", err)
+	}
+}
+
+func TestCanvasResourceCloseCancelsWatchersImmediately(t *testing.T) {
+	ctx := t.Context()
+	resource := NewCanvasResource(nil, nil, "", &CanvasState{})
+	streamCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	strm := newCanvasStateStream(streamCtx)
+	done := make(chan error, 1)
+	go func() {
+		done <- resource.WatchCanvasState(&WatchCanvasStateRequest{}, strm)
+	}()
+
+	recvCanvasTestValue(t, strm.sent, "initial canvas snapshot")
+	resource.Close()
+	if err := recvCanvasTestValue(t, done, "watch close"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+
+	late := newCanvasStateStream(ctx)
+	if err := resource.WatchCanvasState(&WatchCanvasStateRequest{}, late); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected late watcher context.Canceled, got %v", err)
+	}
+}
+
+func TestCanvasResourceClosePreventsLateStatePublish(t *testing.T) {
+	resource := NewCanvasResource(nil, nil, "", &CanvasState{})
+	resource.Close()
+
+	resource.setCanvasWatchState(&CanvasState{
+		Nodes: map[string]*CanvasNode{
+			"late": &CanvasNode{Id: "late"},
+		},
+	})
+	late := newCanvasStateStream(t.Context())
+	if err := resource.WatchCanvasState(&WatchCanvasStateRequest{}, late); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled after late state publish, got %v", err)
+	}
+}
 
 func TestUpdateCanvasHiddenGraphLinks(t *testing.T) {
 	ctx := context.Background()

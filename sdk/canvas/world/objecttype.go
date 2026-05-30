@@ -55,5 +55,5 @@ func CanvasFactory(
 	}
 
 	resource := s4wave_canvas.NewCanvasResource(ws, engine, objectKey, state)
-	return resource.GetMux(), func() {}, nil
+	return resource.GetMux(), resource.Close, nil
 }
