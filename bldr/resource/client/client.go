@@ -3,10 +3,8 @@ package resource_client
 import (
 	"context"
 	"errors"
-	"strconv"
 	"sync"
 
-	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	pkgerrors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
@@ -31,7 +29,7 @@ type ResourceRef interface {
 //
 // Note: Server-side handlers may send the same resource ID to the client multiple times.
 // Additionally, client code may create multiple references to the same resource ID.
-// We use reference counting (via resourceRefSet) to track when all client-side
+// We use reference counting to track when all client-side
 // references to a resource have been released before notifying the server.
 type Client struct {
 	// ctx is the context for the client (canceled when client is released)
@@ -44,29 +42,14 @@ type Client struct {
 	clientHandleID uint32
 	// rootResourceID is the root resource ID from initialization
 	rootResourceID uint32
-	// mtx guards below fields
-	mtx sync.Mutex
-	// resources tracks all references to each resource ID
-	// map[resource_id]*resourceRefSet
-	resources map[uint32]*resourceRefSet
-	// srpcClients holds lazy-created SRPC clients per resource
-	// map[resource_id]srpc.Client
-	srpcClients map[uint32]srpc.Client
-	// resourceContexts holds per-resource contexts for cancellation
-	// map[resource_id]context.CancelFunc
-	resourceContexts map[uint32]context.CancelFunc
+	// resourceLifetime owns local resource references and cached clients.
+	resourceLifetime *resourceLifetime
+	// attachMtx guards below fields
+	attachMtx sync.Mutex
 	// attachSess is the single attach session (lazy, one per client).
 	attachSess *attachSession
 	// attachSessInitCh is closed when attach session initialization finishes
 	attachSessInitCh chan struct{}
-}
-
-// resourceRefSet tracks all references to a single resource ID.
-type resourceRefSet struct {
-	// refs contains all active references
-	refs map[*resourceRef]struct{}
-	// released indicates if this resource was released by the server
-	released bool
 }
 
 // NewClient constructs and initializes a new Client.
@@ -126,9 +109,7 @@ func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) 
 		service:          service,
 		clientHandleID:   clientHandleID,
 		rootResourceID:   rootResourceID,
-		resources:        make(map[uint32]*resourceRefSet),
-		srpcClients:      make(map[uint32]srpc.Client),
-		resourceContexts: make(map[uint32]context.CancelFunc),
+		resourceLifetime: newResourceLifetime(clientCtx, service, clientHandleID),
 	}
 
 	// Start background goroutine to handle resource notifications
@@ -154,42 +135,13 @@ func (c *Client) execute(stream resource.SRPCResourceService_ResourceClientClien
 		switch body := msg.Body.(type) {
 		case *resource.ResourceClientResponse_ResourceReleased:
 			if body.ResourceReleased != nil {
-				c.handleServerResourceRelease(body.ResourceReleased.ResourceId)
+				c.resourceLifetime.releaseFromServer(body.ResourceReleased.ResourceId)
 			}
 		case *resource.ResourceClientResponse_ClientError:
 			// Server sent an error, close the client
 			return
 		}
 	}
-}
-
-// handleServerResourceRelease handles server-initiated resource releases.
-func (c *Client) handleServerResourceRelease(resourceID uint32) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	refSet, ok := c.resources[resourceID]
-	if !ok {
-		return
-	}
-
-	// Mark as released by server
-	refSet.released = true
-
-	// Mark all client-side refs as released
-	for ref := range refSet.refs {
-		ref.released = true
-	}
-
-	// Cancel resource context to close all streams
-	if cancel, ok := c.resourceContexts[resourceID]; ok {
-		cancel()
-		delete(c.resourceContexts, resourceID)
-	}
-
-	// Clean up
-	delete(c.resources, resourceID)
-	delete(c.srpcClients, resourceID)
 }
 
 // AccessRootResource gets a reference to the root resource.
@@ -202,55 +154,13 @@ func (c *Client) AccessRootResource() ResourceRef {
 // The resource should already exist on the server.
 // Multiple references to the same resource ID are tracked via reference counting.
 func (c *Client) CreateResourceReference(resourceID uint32) ResourceRef {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	// Get or create resource ref set
-	refSet, ok := c.resources[resourceID]
-	if !ok {
-		refSet = &resourceRefSet{
-			refs: make(map[*resourceRef]struct{}),
-		}
-		c.resources[resourceID] = refSet
-	}
-
-	// Create new reference
-	ref := &resourceRef{
-		client:     c,
-		resourceID: resourceID,
-	}
-
-	// Track this reference
-	refSet.refs[ref] = struct{}{}
-
-	return ref
+	return c.resourceLifetime.createReference(resourceID)
 }
 
 // Release releases the client and all resources.
 // All sub-resources will be automatically released as well.
 func (c *Client) Release() {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	// Mark all refs as released
-	for _, refSet := range c.resources {
-		refSet.released = true
-		for ref := range refSet.refs {
-			ref.released = true
-		}
-	}
-
-	// Cancel all resource contexts
-	for _, cancel := range c.resourceContexts {
-		cancel()
-	}
-
-	// Clean up
-	clear(c.resources)
-	clear(c.srpcClients)
-	clear(c.resourceContexts)
-
-	// Cancel context
+	c.resourceLifetime.releaseAll()
 	c.cancel()
 }
 
@@ -323,9 +233,9 @@ func (c *Client) AttachResource(
 	label string,
 	mux srpc.Invoker,
 ) (uint32, error) {
-	c.mtx.Lock()
+	c.attachMtx.Lock()
 	sess := c.attachSess
-	c.mtx.Unlock()
+	c.attachMtx.Unlock()
 
 	if sess == nil {
 		var err error
@@ -380,9 +290,9 @@ func (c *Client) AttachResource(
 
 // DetachResource withdraws a previously attached resource.
 func (c *Client) DetachResource(ctx context.Context, resourceID uint32) error {
-	c.mtx.Lock()
+	c.attachMtx.Lock()
 	sess := c.attachSess
-	c.mtx.Unlock()
+	c.attachMtx.Unlock()
 
 	if sess == nil {
 		return errors.New("no attach session")
@@ -441,15 +351,15 @@ func (o *attachedResourceOwner) GetAttachedResource(id uint32) (srpc.Client, err
 // ensureAttachSession opens the ResourceAttach stream if not already open.
 func (c *Client) ensureAttachSession() (*attachSession, error) {
 	for {
-		c.mtx.Lock()
+		c.attachMtx.Lock()
 		if c.attachSess != nil {
 			sess := c.attachSess
-			c.mtx.Unlock()
+			c.attachMtx.Unlock()
 			return sess, nil
 		}
 		if c.attachSessInitCh != nil {
 			initCh := c.attachSessInitCh
-			c.mtx.Unlock()
+			c.attachMtx.Unlock()
 
 			select {
 			case <-c.ctx.Done():
@@ -460,17 +370,17 @@ func (c *Client) ensureAttachSession() (*attachSession, error) {
 		}
 		initCh := make(chan struct{})
 		c.attachSessInitCh = initCh
-		c.mtx.Unlock()
+		c.attachMtx.Unlock()
 
 		sess, err := c.openAttachSession()
 
-		c.mtx.Lock()
+		c.attachMtx.Lock()
 		if err == nil {
 			c.attachSess = sess
 		}
 		c.attachSessInitCh = nil
 		close(initCh)
-		c.mtx.Unlock()
+		c.attachMtx.Unlock()
 
 		if err != nil {
 			return nil, err
@@ -597,8 +507,8 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 
 // clearAttachSession clears the cached attach session if it still matches sess.
 func (c *Client) clearAttachSession(sess *attachSession) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
+	c.attachMtx.Lock()
+	defer c.attachMtx.Unlock()
 
 	if c.attachSess == sess {
 		c.attachSess = nil
@@ -606,9 +516,9 @@ func (c *Client) clearAttachSession(sess *attachSession) {
 }
 
 func (c *Client) setAttachedRelease(resourceID uint32, releaseFn func()) {
-	c.mtx.Lock()
+	c.attachMtx.Lock()
 	sess := c.attachSess
-	c.mtx.Unlock()
+	c.attachMtx.Unlock()
 	if sess == nil || releaseFn == nil {
 		return
 	}
@@ -677,123 +587,5 @@ func (s *attachSession) executeSendLoop() {
 		case sendReq := <-s.sendCh:
 			sendReq.errCh <- s.strm.Send(sendReq.req)
 		}
-	}
-}
-
-// releaseResourceRefLocked is called when a client-side reference is released.
-// It returns the resource ID to release on the server when this was the last
-// local reference.
-// Must be called with mtx held.
-func (c *Client) releaseResourceRefLocked(ref *resourceRef) (uint32, bool) {
-	resourceID := ref.resourceID
-
-	refSet, ok := c.resources[resourceID]
-	if !ok {
-		return 0, false
-	}
-
-	// Remove this specific ref
-	delete(refSet.refs, ref)
-
-	// If no more client-side references, clean up completely
-	if len(refSet.refs) == 0 {
-		// Cancel resource context to close all streams
-		if cancel, ok := c.resourceContexts[resourceID]; ok {
-			cancel()
-			delete(c.resourceContexts, resourceID)
-		}
-
-		delete(c.resources, resourceID)
-		delete(c.srpcClients, resourceID)
-
-		return resourceID, true
-	}
-	return 0, false
-}
-
-// getOrCreateSRPCClientLocked gets or creates an SRPC client for a resource.
-// Must be called with mtx held.
-func (c *Client) getOrCreateSRPCClientLocked(resourceID uint32) (srpc.Client, error) {
-	// Check if client already exists
-	if client, ok := c.srpcClients[resourceID]; ok {
-		return client, nil
-	}
-
-	// Check if resource exists
-	if _, ok := c.resources[resourceID]; !ok {
-		return nil, resource.ErrResourceNotFound
-	}
-
-	// Create per-resource context derived from client context
-	// This allows canceling all streams for this resource when it's released
-	// #nosec G118 -- stored in resourceContexts and canceled on resource release or Client.Release().
-	resourceCtx, resourceCancel := context.WithCancel(c.ctx)
-	c.resourceContexts[resourceID] = resourceCancel
-
-	// Create new SRPC client using rpcstream pattern
-	// The service.ResourceRpc function returns SRPCResourceService_ResourceRpcClient which implements rpcstream.RpcStream
-	resourceIDStr := strconv.FormatUint(uint64(resourceID), 10)
-
-	// Wrap the rpcCaller to use the per-resource context
-	wrappedCaller := func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
-		return c.service.ResourceRpc(resourceCtx)
-	}
-
-	client := rpcstream.NewRpcStreamClient(
-		wrappedCaller, // RpcStreamCaller
-		resourceIDStr, // componentID
-		true,          // waitAck
-	)
-
-	// Cache the client
-	c.srpcClients[resourceID] = client
-
-	return client, nil
-}
-
-// resourceRef implements ResourceRef.
-type resourceRef struct {
-	client     *Client
-	resourceID uint32
-	released   bool // protected by client.mtx
-}
-
-func (r *resourceRef) GetResourceID() uint32 {
-	return r.resourceID
-}
-
-// GetClient returns the srpc.Client or an error if the resource or client was released.
-func (r *resourceRef) GetClient() (srpc.Client, error) {
-	r.client.mtx.Lock()
-	defer r.client.mtx.Unlock()
-
-	if r.released {
-		return nil, resource.ErrResourceOrClientReleased
-	}
-
-	return r.client.getOrCreateSRPCClientLocked(r.resourceID)
-}
-
-// Release releases the resource ref.
-func (r *resourceRef) Release() {
-	r.client.mtx.Lock()
-
-	if r.released {
-		r.client.mtx.Unlock()
-		return
-	}
-	r.released = true
-
-	resourceID, notifyServer := r.client.releaseResourceRefLocked(r)
-	clientHandleID := r.client.clientHandleID
-	service := r.client.service
-	ctx := r.client.ctx
-	r.client.mtx.Unlock()
-
-	if notifyServer {
-		_, _ = service.ResourceRefRelease(ctx, &resource.ResourceRefReleaseRequest{
-			ClientHandleId: clientHandleID,
-			ResourceId:     resourceID,
-		})
 	}
 }

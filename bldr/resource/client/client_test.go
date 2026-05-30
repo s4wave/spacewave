@@ -223,9 +223,9 @@ func TestAttachResourceAddAckErrorReturnsError(t *testing.T) {
 		t.Fatalf("expected attach rejected error, got %v", err)
 	}
 
-	c.mtx.Lock()
+	c.attachMtx.Lock()
 	sess := c.attachSess
-	c.mtx.Unlock()
+	c.attachMtx.Unlock()
 	if sess == nil {
 		t.Fatalf("expected attach session")
 	}
@@ -300,8 +300,8 @@ func TestAttachSessionClearedOnClientRelease(t *testing.T) {
 
 	c.Release()
 	waitFor(t, time.Second, func() bool {
-		c.mtx.Lock()
-		defer c.mtx.Unlock()
+		c.attachMtx.Lock()
+		defer c.attachMtx.Unlock()
 		return c.attachSess == nil
 	})
 }
@@ -379,9 +379,9 @@ func TestAttachResourceReopensAfterSessionClose(t *testing.T) {
 		t.Fatalf("AttachResource: %v", err)
 	}
 
-	c.mtx.Lock()
+	c.attachMtx.Lock()
 	sess := c.attachSess
-	c.mtx.Unlock()
+	c.attachMtx.Unlock()
 	if sess == nil {
 		t.Fatalf("expected attach session")
 	}
@@ -389,8 +389,8 @@ func TestAttachResourceReopensAfterSessionClose(t *testing.T) {
 		t.Fatalf("close attach session: %v", err)
 	}
 	waitFor(t, time.Second, func() bool {
-		c.mtx.Lock()
-		defer c.mtx.Unlock()
+		c.attachMtx.Lock()
+		defer c.attachMtx.Unlock()
 		return c.attachSess == nil
 	})
 
@@ -537,13 +537,57 @@ func TestServerResourceReleaseCancelsRefsWithoutLocalReleaseNotify(t *testing.T)
 		t.Fatalf("server-initiated release triggered %d local release notifications", releaseCalls.Load())
 	}
 
-	c.mtx.Lock()
-	_, hasResource := c.resources[42]
-	_, hasClient := c.srpcClients[42]
-	_, hasCtx := c.resourceContexts[42]
-	c.mtx.Unlock()
+	c.resourceLifetime.mtx.Lock()
+	_, hasResource := c.resourceLifetime.resources[42]
+	_, hasClient := c.resourceLifetime.srpcClients[42]
+	_, hasCtx := c.resourceLifetime.resourceContexts[42]
+	c.resourceLifetime.mtx.Unlock()
 	if hasResource || hasClient || hasCtx {
 		t.Fatalf("server release left resource state: resource=%v client=%v ctx=%v", hasResource, hasClient, hasCtx)
+	}
+}
+
+func TestCreateResourceReferenceAfterClientReleaseIsReleased(t *testing.T) {
+	c, err := NewClient(context.Background(), &mockResourceService{})
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
+	c.Release()
+	ref := c.CreateResourceReference(42)
+	if _, err := ref.GetClient(); !errors.Is(err, resource.ErrResourceOrClientReleased) {
+		t.Fatalf("released client GetClient error = %v, want released", err)
+	}
+}
+
+func TestCreateResourceReferenceRacingClientReleaseReturnsReleasedRefs(t *testing.T) {
+	c, err := NewClient(context.Background(), &mockResourceService{})
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
+	start := make(chan struct{})
+	refs := make(chan ResourceRef, 16)
+	var wg sync.WaitGroup
+	for resourceID := uint32(1); resourceID <= 16; resourceID++ {
+		wg.Add(1)
+		go func(resourceID uint32) {
+			defer wg.Done()
+			<-start
+			refs <- c.CreateResourceReference(resourceID)
+		}(resourceID)
+	}
+
+	close(start)
+	c.Release()
+	wg.Wait()
+	close(refs)
+
+	for ref := range refs {
+		if _, err := ref.GetClient(); !errors.Is(err, resource.ErrResourceOrClientReleased) {
+			t.Fatalf("racing ref GetClient error = %v, want released", err)
+		}
+		ref.Release()
 	}
 }
 
@@ -639,9 +683,9 @@ func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
 		releaseCalls.Add(1)
 	})
 
-	c.mtx.Lock()
+	c.attachMtx.Lock()
 	sess := c.attachSess
-	c.mtx.Unlock()
+	c.attachMtx.Unlock()
 	if sess == nil {
 		t.Fatal("expected attach session")
 	}
@@ -650,8 +694,8 @@ func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
 	}
 
 	waitFor(t, time.Second, func() bool {
-		c.mtx.Lock()
-		defer c.mtx.Unlock()
+		c.attachMtx.Lock()
+		defer c.attachMtx.Unlock()
 		return c.attachSess == nil && releaseCalls.Load() == 1
 	})
 }
