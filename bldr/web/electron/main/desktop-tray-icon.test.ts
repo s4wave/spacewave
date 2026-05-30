@@ -42,6 +42,23 @@ describe('desktop tray icon model', () => {
     expect(model.tooltip).toBe('Spacewave: Syncing')
   })
 
+  it('keeps long update-ready status text out of icon render identity', () => {
+    const statusText =
+      'Update ready for Project Alpha With An Extremely Long Name That Must Not Resize The Menu Bar'
+    const model = buildDesktopTrayIconModel({
+      state: state(DesktopTrayIconState.ATTENTION, statusText),
+      dynamicIconEnabled: true,
+    })
+
+    expect(model.statusText).toBe(statusText)
+    expect(model.tooltip).toBe(`Spacewave: ${statusText}`)
+    expect(model.fallbackTitle).toBe('!')
+    expect(model.renderKey).toBe('dynamic:attention')
+    expect(decodeURIComponent(renderMacOSTrayIconDataURL(model))).not.toContain(
+      statusText,
+    )
+  })
+
   it('renders deterministic template SVG data urls for macOS variants', () => {
     const active = buildDesktopTrayIconModel({
       state: state(DesktopTrayIconState.ACTIVE, 'Syncing'),

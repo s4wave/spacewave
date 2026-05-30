@@ -14,6 +14,9 @@ import {
   canInvokeDesktopTrayEntry,
 } from './desktop-tray-panel-descriptor.js'
 
+const longSpaceLabel =
+  'Project Alpha With An Extremely Long Name That Must Be Preserved For Truncation'
+
 describe('buildDesktopTrayPanelDescriptor', () => {
   it('adapts the watched tray tree into stable panel sections and actions', () => {
     const state = panelTrayState()
@@ -116,6 +119,35 @@ describe('buildDesktopTrayPanelDescriptor', () => {
     expect(descriptor.actionRows.every((row) => row.action?.id)).toBe(true)
   })
 
+  it('preserves long labels and update-ready visual action state', () => {
+    const descriptor = buildDesktopTrayPanelDescriptor({
+      state: panelTrayState(),
+    })
+
+    expect(descriptor.spaceRows[0]).toMatchObject({
+      id: 'navigation-space',
+      label: longSpaceLabel,
+      detail: 'Shared',
+      enabled: true,
+    })
+    expect(descriptor.cards.find((card) => card.id === 'spaces')).toMatchObject(
+      {
+        detail: `${longSpaceLabel} - Shared`,
+      },
+    )
+    expect(descriptor.primaryActions.at(-1)).toMatchObject({
+      id: 'apply-update',
+      label: 'Install Update',
+      enabled: true,
+      severity: 'info',
+      action: {
+        id: 'apply-update',
+        kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+        value: '1.2.3',
+      },
+    })
+  })
+
   it('uses DesktopTrayEntry action eligibility for panel and native parity', () => {
     expect(
       canInvokeDesktopTrayEntry(
@@ -142,8 +174,6 @@ describe('buildDesktopTrayPanelDescriptor', () => {
 })
 
 function panelTrayState(): DesktopTrayState {
-  const longLabel =
-    'Project Alpha With An Extremely Long Name That Must Be Preserved For Truncation'
   return {
     statusText: 'Running',
     iconState: DesktopTrayIconState.NORMAL,
@@ -168,10 +198,15 @@ function panelTrayState(): DesktopTrayState {
         },
       ),
       section('Spaces'),
-      action('navigation-space', longLabel, DesktopTrayActionKind.OPEN_ROUTE, {
-        detail: 'Shared',
-        route: '/u/1/so/project-alpha',
-      }),
+      action(
+        'navigation-space',
+        longSpaceLabel,
+        DesktopTrayActionKind.OPEN_ROUTE,
+        {
+          detail: 'Shared',
+          route: '/u/1/so/project-alpha',
+        },
+      ),
       section('Activity'),
       status('activity-sync', 'Uploading changes', { detail: '2 sync items' }),
       section('Quick Actions'),

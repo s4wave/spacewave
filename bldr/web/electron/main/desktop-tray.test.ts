@@ -1242,6 +1242,12 @@ describe('DesktopTrayController', () => {
           detail: '2 sync items',
         },
       ] satisfies DesktopRuntimeActivityItem[],
+      update: {
+        ready: true,
+        version: '1.2.3',
+        label: 'Ready',
+        detail: 'Version 1.2.3',
+      },
     }
     setMockRuntimeState(state)
     const { DesktopTrayController } = await import('./desktop-tray.js')
@@ -1255,13 +1261,17 @@ describe('DesktopTrayController', () => {
     await flushPromises()
 
     expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
-    expect(latestPopoverHtml()).toContain('data-tab="overview"')
-    expect(latestPopoverHtml()).toContain('data-tab="sessions"')
-    expect(latestPopoverHtml()).toContain(
-      'Project Alpha With A Very Long Label',
+    const html = latestPopoverHtml()
+    expect(html).toContain('data-tab="overview"')
+    expect(html).toContain('data-tab="sessions"')
+    expect(html).toContain('Project Alpha With A Very Long Label')
+    expect(html).toContain('.status {\n  min-width: 0;\n  max-width: 96px;')
+    expect(html).toContain('spacewave-tray-action:navigation-')
+    expect(html).toContain('spacewave-tray-action:apply-update')
+    expect(html).toContain(
+      'class="row action severity-info" href="spacewave-tray-action:apply-update"',
     )
-    expect(latestPopoverHtml()).toContain('spacewave-tray-action:navigation-')
-    expect(latestPopoverHtml()).toContain('ArrowDown')
+    expect(html).toContain('ArrowDown')
   })
 
   it('uses opt-in dynamic macOS tray icon variants with title fallback', async () => {

@@ -470,9 +470,13 @@ body {
   line-height: 1.25;
 }
 .status {
+  min-width: 0;
+  max-width: 96px;
+  overflow: hidden;
   color: #647386;
   font-size: 11px;
   font-weight: 650;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .row.severity-info .status {
