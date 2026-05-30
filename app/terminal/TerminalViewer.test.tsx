@@ -72,15 +72,18 @@ vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
   useAccessTypedHandle: () => ({
     value: {
       watchTerminalState: vi.fn(),
-      connectTerminal: vi.fn((frames: AsyncIterable<TerminalFrame>) => {
-        void (async () => {
-          for await (const frame of frames) {
-            h.clientFrames.push(frame)
-            if (frame.kind === TerminalFrameKind.CLOSE) return
-          }
-        })()
-        return terminalFrames()
-      }),
+      connectTerminal: vi.fn(
+        (frames: AsyncIterable<TerminalFrame>, signal?: AbortSignal) => {
+          void (async () => {
+            for await (const frame of frames) {
+              if (signal?.aborted) return
+              h.clientFrames.push(frame)
+              if (frame.kind === TerminalFrameKind.CLOSE) return
+            }
+          })()
+          return terminalFrames()
+        },
+      ),
     },
     loading: false,
     error: null,

@@ -209,6 +209,13 @@ func TestRemoteShellSessionForwardsInputResizeAndClose(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	exitFrame := &s4wave_terminal.TerminalFrame{}
+	if err := clientSession.RecvMsg(exitFrame); err != nil {
+		t.Fatal(err)
+	}
+	if exitFrame.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT {
+		t.Fatalf("exit kind = %s", exitFrame.GetKind().String())
+	}
 
 	select {
 	case err := <-done:
@@ -230,14 +237,71 @@ func TestRemoteShellSessionForwardsInputResizeAndClose(t *testing.T) {
 	}
 }
 
+func TestRemoteShellSessionSendsExitWhenOutputReadEndsBeforeWait(t *testing.T) {
+	serverConn, clientConn := net.Pipe()
+	defer serverConn.Close()
+	defer clientConn.Close()
+
+	serverSession := stream_packet.NewSession(serverConn, deviceRemoteShellFrameMaxBytes)
+	clientSession := stream_packet.NewSession(clientConn, deviceRemoteShellFrameMaxBytes)
+	proc := newFakeRemoteShellProcess()
+	done := make(chan error, 1)
+	go func() {
+		done <- runRemoteShellSession(
+			context.Background(),
+			logrus.NewEntry(logrus.New()),
+			serverSession,
+			nil,
+			func(context.Context, *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {
+				return proc, nil
+			},
+		)
+	}()
+
+	if err := clientSession.SendMsg(&s4wave_terminal.TerminalFrame{
+		Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OPEN,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ready := &s4wave_terminal.TerminalFrame{}
+	if err := clientSession.RecvMsg(ready); err != nil {
+		t.Fatal(err)
+	}
+	if ready.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY {
+		t.Fatalf("ready kind = %s", ready.GetKind().String())
+	}
+
+	proc.closeOutput()
+	exitFrame := &s4wave_terminal.TerminalFrame{}
+	if err := clientSession.RecvMsg(exitFrame); err != nil {
+		t.Fatal(err)
+	}
+	if exitFrame.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT {
+		t.Fatalf("exit kind = %s", exitFrame.GetKind().String())
+	}
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("remote shell session error = %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("remote shell session did not stop")
+	}
+	if !proc.closed {
+		t.Fatal("process was not closed")
+	}
+}
+
 type fakeRemoteShellProcess struct {
-	input  bytes.Buffer
-	readCh chan []byte
-	done   chan struct{}
-	once   sync.Once
-	cols   uint32
-	rows   uint32
-	closed bool
+	input     bytes.Buffer
+	readCh    chan []byte
+	done      chan struct{}
+	closeOnce sync.Once
+	readOnce  sync.Once
+	cols      uint32
+	rows      uint32
+	closed    bool
 }
 
 func newFakeRemoteShellProcess() *fakeRemoteShellProcess {
@@ -266,12 +330,18 @@ func (p *fakeRemoteShellProcess) Resize(cols, rows uint32) error {
 }
 
 func (p *fakeRemoteShellProcess) Close() error {
-	p.once.Do(func() {
+	p.closeOnce.Do(func() {
 		p.closed = true
 		close(p.done)
-		close(p.readCh)
+		p.closeOutput()
 	})
 	return nil
+}
+
+func (p *fakeRemoteShellProcess) closeOutput() {
+	p.readOnce.Do(func() {
+		close(p.readCh)
+	})
 }
 
 func (p *fakeRemoteShellProcess) Wait() (int, error) {

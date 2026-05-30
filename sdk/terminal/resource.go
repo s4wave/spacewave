@@ -152,7 +152,8 @@ func (r *TerminalResource) ConnectTerminal(strm SRPCTerminalResourceService_Conn
 		stream.OpenOpts{},
 	)
 	if err != nil {
-		_ = r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "failed to connect", err.Error())
+		state, status, errMessage := terminalConnectOpenFailureState(ctx, err, "failed to connect")
+		_ = r.updateState(context.Background(), state, status, errMessage)
 		return err
 	}
 	defer release()
@@ -167,7 +168,8 @@ func (r *TerminalResource) ConnectTerminal(strm SRPCTerminalResourceService_Conn
 		Command:     current.GetCommand(),
 		Environment: append([]string(nil), current.GetEnvironment()...),
 	}); err != nil {
-		_ = r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "failed to open", err.Error())
+		state, status, errMessage := terminalConnectOpenFailureState(ctx, err, "failed to open")
+		_ = r.updateState(context.Background(), state, status, errMessage)
 		return err
 	}
 
@@ -185,6 +187,13 @@ func (r *TerminalResource) ConnectTerminal(strm SRPCTerminalResourceService_Conn
 		return r.updateState(context.Background(), result.finalState, result.status, result.errorMessage)
 	}
 	return nil
+}
+
+func terminalConnectOpenFailureState(ctx context.Context, err error, status string) (TerminalSessionState, string, string) {
+	if ctx.Err() != nil {
+		return TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED, "disconnected", ""
+	}
+	return TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, status, err.Error()
 }
 
 func (r *TerminalResource) forwardClientFrames(

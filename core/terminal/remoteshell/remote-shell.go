@@ -242,7 +242,11 @@ func pumpRemoteShellOutput(
 			}
 		}
 		if err != nil {
-			errCh <- err
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				errCh <- ctxErr
+				return
+			}
+			_ = proc.Close()
 			return
 		}
 		if err := ctx.Err(); err != nil {
@@ -296,7 +300,9 @@ func receiveRemoteShellInput(
 				return
 			}
 		case s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE:
-			errCh <- proc.Close()
+			if err := proc.Close(); err != nil {
+				errCh <- err
+			}
 			return
 		default:
 			errCh <- errors.Errorf("unsupported remote shell frame kind %s", frame.GetKind().String())

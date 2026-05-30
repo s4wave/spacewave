@@ -51,8 +51,9 @@ export function TerminalViewer({
     const host = terminalHostRef.current
     if (!terminalHandle || !host) return
 
-    const abort = new AbortController()
-    const queue = createTerminalFrameQueue(abort.signal)
+    const rpcAbort = new AbortController()
+    const renderAbort = new AbortController()
+    const queue = createTerminalFrameQueue()
     const term = new XTerm({
       cursorBlink: true,
       fontFamily:
@@ -96,14 +97,14 @@ export function TerminalViewer({
     window.addEventListener('resize', handleResize)
 
     void readTerminalFrames(
-      terminalHandle.connectTerminal(queue.stream(), abort.signal),
+      terminalHandle.connectTerminal(queue.stream(), rpcAbort.signal),
       term,
-      abort.signal,
+      renderAbort.signal,
     )
 
     return () => {
-      queue.push({ kind: TerminalFrameKind.CLOSE })
-      abort.abort()
+      renderAbort.abort()
+      void queue.close().finally(() => rpcAbort.abort())
       window.removeEventListener('resize', handleResize)
       disposeInput.dispose()
       term.dispose()
@@ -187,32 +188,55 @@ async function readTerminalFrames(
   }
 }
 
-function createTerminalFrameQueue(signal: AbortSignal): {
+function createTerminalFrameQueue(): {
   push: (frame: TerminalFrame) => void
+  close: () => Promise<void>
   stream: () => MessageStream<TerminalFrame>
 } {
   const frames: TerminalFrame[] = []
   const waiters: Array<() => void> = []
+  const closeWaiters: Array<() => void> = []
+  const closed = { value: false }
   const wake = () => {
     while (waiters.length !== 0) {
       waiters.shift()?.()
     }
   }
-  signal.addEventListener('abort', wake)
+  const closePromise = new Promise<void>((resolve) => {
+    closeWaiters.push(resolve)
+  })
+  const resolveClose = () => {
+    closed.value = true
+    while (closeWaiters.length !== 0) {
+      closeWaiters.shift()?.()
+    }
+  }
   return {
     push(frame) {
+      if (closed.value) return
       frames.push(frame)
       wake()
+    },
+    close() {
+      if (!closed.value) {
+        closed.value = true
+        frames.push({ kind: TerminalFrameKind.CLOSE })
+        wake()
+      }
+      return closePromise
     },
     async *stream() {
       for (;;) {
         const frame = frames.shift()
         if (frame) {
           yield frame
-          if (frame.kind === TerminalFrameKind.CLOSE) return
+          if (frame.kind === TerminalFrameKind.CLOSE) {
+            resolveClose()
+            return
+          }
           continue
         }
-        if (signal.aborted) return
+        if (closed.value) return
         await new Promise<void>((resolve) => {
           waiters.push(resolve)
         })

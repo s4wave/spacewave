@@ -2,6 +2,7 @@ package s4wave_terminal
 
 import (
 	"context"
+	stderrors "errors"
 	"io"
 	"net"
 	"testing"
@@ -144,6 +145,33 @@ func TestForwardClientFramesReportsClosed(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("client frame forwarder did not stop")
+	}
+}
+
+func TestTerminalConnectOpenFailureStateUsesDisconnectedForCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	state, status, errMessage := terminalConnectOpenFailureState(ctx, stderrors.New("context canceled"), "failed to connect")
+	if state != TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED {
+		t.Fatalf("state = %s", state.String())
+	}
+	if status != "disconnected" {
+		t.Fatalf("status = %q", status)
+	}
+	if errMessage != "" {
+		t.Fatalf("error = %q", errMessage)
+	}
+
+	state, status, errMessage = terminalConnectOpenFailureState(context.Background(), stderrors.New("dial failed"), "failed to connect")
+	if state != TerminalSessionState_TERMINAL_SESSION_STATE_FAILED {
+		t.Fatalf("state = %s", state.String())
+	}
+	if status != "failed to connect" {
+		t.Fatalf("status = %q", status)
+	}
+	if errMessage != "dial failed" {
+		t.Fatalf("error = %q", errMessage)
 	}
 }
 
