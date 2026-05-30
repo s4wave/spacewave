@@ -4,17 +4,17 @@ import (
 	"errors"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/util/broadcast"
 )
 
 const defaultRetainedEventLimit uint32 = 1000
 
 // Hub owns structured plugin log events for a host process.
 type Hub struct {
-	mu sync.Mutex
+	bcast broadcast.Broadcast
 
 	now                func() time.Time
 	retainedEventLimit uint32
@@ -64,8 +64,8 @@ func (h *Hub) Emit(event *StructuredLogEvent) (*EmitStructuredLogResponse, error
 		return nil, errors.New("structured log event cannot be nil")
 	}
 
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	locked := h.bcast.Lock()
+	defer locked.Unlock()
 
 	h.nextSequence++
 	assigned := event.CloneVT()
@@ -100,6 +100,7 @@ func (h *Hub) Emit(event *StructuredLogEvent) (*EmitStructuredLogResponse, error
 		}
 	}
 
+	locked.Broadcast()
 	return &EmitStructuredLogResponse{
 		Sequence:  assigned.Sequence,
 		Timestamp: assigned.Timestamp.CloneVT(),
@@ -108,28 +109,29 @@ func (h *Hub) Emit(event *StructuredLogEvent) (*EmitStructuredLogResponse, error
 
 // Snapshot returns the current retained state for a filter and range.
 func (h *Hub) Snapshot(filter *StructuredLogFilter, rng *StructuredLogRange) *StructuredLogState {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	locked := h.bcast.Lock()
+	defer locked.Unlock()
 
 	return h.buildStateLocked(filter, rng)
 }
 
 // OpenView opens a mutable structured-log view.
 func (h *Hub) OpenView(filter *StructuredLogFilter, rng *StructuredLogRange) *View {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	locked := h.bcast.Lock()
+	defer locked.Unlock()
 
 	view := &View{
 		hub:           h,
 		filter:        filter.CloneVT(),
 		rangeSnapshot: rng.CloneVT(),
-		updates:       make(chan struct{}, 1),
+		updates:       newViewUpdateSignal(),
 	}
 	view.state = h.buildStateLocked(view.filter, view.rangeSnapshot)
 	h.views[view] = struct{}{}
 	if view.rangeSnapshot.GetFollow() {
 		h.followViewCount++
 	}
+	locked.Broadcast()
 	return view
 }
 
@@ -179,27 +181,27 @@ type View struct {
 	filter        *StructuredLogFilter
 	rangeSnapshot *StructuredLogRange
 	state         *StructuredLogState
-	updates       chan struct{}
+	updates       *viewUpdateSignal
 	released      bool
 }
 
 // Updates returns a channel signaled when the view state changes.
 func (v *View) Updates() <-chan struct{} {
-	return v.updates
+	return v.updates.Updates()
 }
 
 // Snapshot returns the view's current state.
 func (v *View) Snapshot() *StructuredLogState {
-	v.hub.mu.Lock()
-	defer v.hub.mu.Unlock()
+	locked := v.hub.bcast.Lock()
+	defer locked.Unlock()
 
 	return v.state.CloneVT()
 }
 
 // Set updates the view filter and range and returns the new state.
 func (v *View) Set(filter *StructuredLogFilter, rng *StructuredLogRange) *StructuredLogState {
-	v.hub.mu.Lock()
-	defer v.hub.mu.Unlock()
+	locked := v.hub.bcast.Lock()
+	defer locked.Unlock()
 
 	wasFollow := v.rangeSnapshot.GetFollow()
 	v.filter = filter.CloneVT()
@@ -214,13 +216,14 @@ func (v *View) Set(filter *StructuredLogFilter, rng *StructuredLogRange) *Struct
 	}
 	v.state = v.hub.buildStateLocked(v.filter, v.rangeSnapshot)
 	v.notifyLocked()
+	locked.Broadcast()
 	return v.state.CloneVT()
 }
 
 // Release closes the view.
 func (v *View) Release() {
-	v.hub.mu.Lock()
-	defer v.hub.mu.Unlock()
+	locked := v.hub.bcast.Lock()
+	defer locked.Unlock()
 
 	if v.released {
 		return
@@ -234,14 +237,55 @@ func (v *View) Release() {
 		clear(v.hub.retained)
 		v.hub.retained = nil
 	}
-	close(v.updates)
+	v.updates.Close()
+	locked.Broadcast()
 }
 
 func (v *View) notifyLocked() {
+	v.updates.Notify()
+}
+
+type viewUpdateSignal struct {
+	bcast  broadcast.Broadcast
+	ch     chan struct{}
+	closed bool
+}
+
+func newViewUpdateSignal() *viewUpdateSignal {
+	return &viewUpdateSignal{ch: make(chan struct{}, 1)}
+}
+
+func (s *viewUpdateSignal) Updates() <-chan struct{} {
+	locked := s.bcast.Lock()
+	defer locked.Unlock()
+
+	return s.ch
+}
+
+func (s *viewUpdateSignal) Notify() {
+	locked := s.bcast.Lock()
+	defer locked.Unlock()
+
+	if s.closed {
+		return
+	}
 	select {
-	case v.updates <- struct{}{}:
+	case s.ch <- struct{}{}:
 	default:
 	}
+	locked.Broadcast()
+}
+
+func (s *viewUpdateSignal) Close() {
+	locked := s.bcast.Lock()
+	defer locked.Unlock()
+
+	if s.closed {
+		return
+	}
+	s.closed = true
+	close(s.ch)
+	locked.Broadcast()
 }
 
 func (v *View) appendFollowEventLocked(event *StructuredLogEvent) bool {

@@ -241,6 +241,68 @@ func TestHubFastPathSkipsInactiveFollowViews(t *testing.T) {
 	}
 }
 
+func TestViewUpdatesCoalesceAndCloseOnRelease(t *testing.T) {
+	hub := NewHub()
+	view := hub.OpenView(nil, nil)
+	ch := view.Updates()
+
+	view.Set(nil, nil)
+	view.Set(nil, nil)
+
+	select {
+	case <-ch:
+	default:
+		t.Fatal("view update was not signaled")
+	}
+	select {
+	case <-ch:
+		t.Fatal("view updates should coalesce")
+	default:
+	}
+
+	view.Release()
+	select {
+	case _, ok := <-ch:
+		if ok {
+			t.Fatal("view update channel should be closed")
+		}
+	default:
+		t.Fatal("view update channel did not close on release")
+	}
+}
+
+func TestHubBroadcastsOnStateChanges(t *testing.T) {
+	hub := NewHub()
+	assertHubBroadcasts := func(name string, mutate func()) {
+		t.Helper()
+
+		locked := hub.bcast.Lock()
+		ch := locked.WaitCh()
+		locked.Unlock()
+
+		mutate()
+		select {
+		case <-ch:
+		default:
+			t.Fatalf("%s did not broadcast", name)
+		}
+	}
+
+	var view *View
+	assertHubBroadcasts("OpenView", func() {
+		view = hub.OpenView(nil, nil)
+	})
+	assertHubBroadcasts("Emit", func() {
+		if _, err := hub.Emit(&StructuredLogEvent{PluginId: "runner"}); err != nil {
+			t.Fatalf("Emit: %v", err)
+		}
+	})
+	assertHubBroadcasts("Set", func() {
+		view.Set(nil, &StructuredLogRange{Follow: true})
+	})
+	assertHubBroadcasts("Release", view.Release)
+}
+
 func TestHostLogrusHookCapturesEvents(t *testing.T) {
 	log := logrus.New()
 	log.SetOutput(io.Discard)
