@@ -189,39 +189,29 @@ func (r *WizardResource) StartGitClone(ctx context.Context, req *StartGitCloneRe
 
 // WatchGitCloneProgress streams Git clone progress for this wizard resource.
 func (r *WizardResource) WatchGitCloneProgress(_ *WatchGitCloneProgressRequest, strm SRPCWizardResourceService_WatchGitCloneProgressStream) error {
-	ctx := strm.Context()
-
-	var lastSent *GitCloneProgress
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		var waitCh <-chan struct{}
-		var progress *GitCloneProgress
-		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			waitCh = getWaitCh()
-			progress = r.cloneProgress.CloneVT()
-		})
-
-		if lastSent == nil || !progress.EqualVT(lastSent) {
+	err := broadcast.WatchBroadcastVT(
+		strm.Context(),
+		&r.bcast,
+		func() *GitCloneProgress {
+			return r.cloneProgress.CloneVT()
+		},
+		func(progress *GitCloneProgress) error {
 			if err := strm.Send(&WatchGitCloneProgressResponse{Progress: progress}); err != nil {
 				return err
 			}
-			lastSent = progress
-		}
-
-		if progress.GetState() == GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_DONE ||
-			progress.GetState() == GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_FAILED {
-			return nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-waitCh:
-		}
+			switch progress.GetState() {
+			case GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_DONE,
+				GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_FAILED:
+				return errGitCloneProgressComplete
+			default:
+				return nil
+			}
+		},
+	)
+	if err == errGitCloneProgressComplete {
+		return nil
 	}
+	return err
 }
 
 func (r *WizardResource) replaceSpaceIndexIfWizardIsCurrent(

@@ -13,4 +13,6 @@ var (
 	ErrWizardNameRequired = errors.New("wizard display name is required")
 	// ErrWizardAlreadyRegistered is returned when a dynamic wizard type id is already registered.
 	ErrWizardAlreadyRegistered = errors.New("wizard type id is already registered")
+
+	errGitCloneProgressComplete = errors.New("git clone progress complete")
 )

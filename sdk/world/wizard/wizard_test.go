@@ -215,6 +215,56 @@ func recvWizardState(
 	return msg.GetState()
 }
 
+type gitCloneProgressStream struct {
+	ctx  context.Context
+	sent chan *s4wave_wizard.WatchGitCloneProgressResponse
+}
+
+func newGitCloneProgressStream(ctx context.Context) *gitCloneProgressStream {
+	return &gitCloneProgressStream{
+		ctx:  ctx,
+		sent: make(chan *s4wave_wizard.WatchGitCloneProgressResponse),
+	}
+}
+
+func (s *gitCloneProgressStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *gitCloneProgressStream) MsgSend(srpc.Message) error {
+	panic("MsgSend should not be called")
+}
+
+func (s *gitCloneProgressStream) MsgRecv(srpc.Message) error {
+	panic("MsgRecv should not be called")
+}
+
+func (s *gitCloneProgressStream) CloseSend() error {
+	return nil
+}
+
+func (s *gitCloneProgressStream) Close() error {
+	return nil
+}
+
+func (s *gitCloneProgressStream) Send(resp *s4wave_wizard.WatchGitCloneProgressResponse) error {
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	case s.sent <- resp.CloneVT():
+		return nil
+	}
+}
+
+func (s *gitCloneProgressStream) SendAndClose(resp *s4wave_wizard.WatchGitCloneProgressResponse) error {
+	if resp != nil {
+		if err := s.Send(resp); err != nil {
+			return err
+		}
+	}
+	return s.CloseSend()
+}
+
 func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 	ctx, client := setupWizardRegistryClient(t)
 	watchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -492,6 +542,55 @@ func TestWizardRegistryWatchPreservesDuplicateSnapshotBroadcast(t *testing.T) {
 	for _, wizard := range duplicate.GetWizards() {
 		if wizard.GetTypeId() == "canvas" && wizard.GetDisplayName() != "Canvas" {
 			t.Fatalf("expected static canvas wizard to remain visible, got %s", wizard.GetDisplayName())
+		}
+	}
+}
+
+func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	r := s4wave_wizard.NewWizardResource(nil, nil, "wizard/git/test", &s4wave_wizard.WizardState{})
+	defer r.Close()
+
+	_, err := r.StartGitClone(ctx, &s4wave_wizard.StartGitCloneRequest{
+		ObjectKey:  "git/repo/test",
+		Name:       "Test Repo",
+		ConfigData: []byte{0xff},
+	})
+	if err != nil {
+		t.Fatalf("StartGitClone: %v", err)
+	}
+
+	strm := newGitCloneProgressStream(ctx)
+	done := make(chan error, 1)
+	go func() {
+		done <- r.WatchGitCloneProgress(&s4wave_wizard.WatchGitCloneProgressRequest{}, strm)
+	}()
+
+	var states []s4wave_wizard.GitCloneProgressState
+	var terminalCount int
+	for {
+		select {
+		case resp := <-strm.sent:
+			progress := resp.GetProgress()
+			states = append(states, progress.GetState())
+			switch progress.GetState() {
+			case s4wave_wizard.GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_DONE:
+				t.Fatalf("invalid clone config should not finish successfully: states %v", states)
+			case s4wave_wizard.GitCloneProgressState_GIT_CLONE_PROGRESS_STATE_FAILED:
+				terminalCount++
+			}
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("WatchGitCloneProgress: %v", err)
+			}
+			if terminalCount != 1 {
+				t.Fatalf("expected one terminal failure progress, got %d states %v", terminalCount, states)
+			}
+			return
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting for terminal clone progress: states %v", states)
 		}
 	}
 }
