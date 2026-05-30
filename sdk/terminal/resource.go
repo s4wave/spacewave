@@ -235,7 +235,17 @@ func (r *TerminalResource) forwardRemoteFrames(
 				return
 			}
 		case TerminalFrameKind_TERMINAL_FRAME_KIND_ERROR:
-			_ = r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "terminal failed", frame.GetError())
+			errMessage := frame.GetError()
+			if errMessage == "" {
+				errMessage = "terminal failed"
+			}
+			_ = r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "terminal failed", errMessage)
+			if err := strm.Send(frame); err != nil {
+				errCh <- err
+				return
+			}
+			errCh <- errors.New(errMessage)
+			return
 		case TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT:
 			_ = r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED, "exited", "")
 		}

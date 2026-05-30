@@ -22,6 +22,7 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
+	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	db_world "github.com/s4wave/spacewave/db/world"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -128,7 +129,7 @@ func runServeCommand(
 	}
 	defer invokerRef.Release()
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
-	releaseDeviceRemoteShell := startDeviceRemoteShellHandler(serveCtx, le, cliBus.GetBus())
+	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus())
 	defer releaseDeviceRemoteShell()
 
 	if takeover {

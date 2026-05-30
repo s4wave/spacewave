@@ -205,12 +205,14 @@ function createTerminalFrameQueue(signal: AbortSignal): {
       wake()
     },
     async *stream() {
-      while (!signal.aborted) {
+      for (;;) {
         const frame = frames.shift()
         if (frame) {
           yield frame
+          if (frame.kind === TerminalFrameKind.CLOSE) return
           continue
         }
+        if (signal.aborted) return
         await new Promise<void>((resolve) => {
           waiters.push(resolve)
         })

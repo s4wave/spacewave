@@ -76,7 +76,7 @@ vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
         void (async () => {
           for await (const frame of frames) {
             h.clientFrames.push(frame)
-            break
+            if (frame.kind === TerminalFrameKind.CLOSE) return
           }
         })()
         return terminalFrames()
@@ -107,7 +107,7 @@ describe('TerminalViewer', () => {
   })
 
   it('renders terminal state and opens xterm host', async () => {
-    render(
+    const { unmount } = render(
       <TerminalViewer
         objectInfo={{
           info: {
@@ -134,6 +134,12 @@ describe('TerminalViewer', () => {
     await vi.waitFor(() => expect(h.write).toHaveBeenCalledWith('ready\n'))
     await vi.waitFor(() =>
       expect(h.clientFrames[0]?.kind).toBe(TerminalFrameKind.RESIZE),
+    )
+    unmount()
+    await vi.waitFor(() =>
+      expect(
+        h.clientFrames.some((frame) => frame.kind === TerminalFrameKind.CLOSE),
+      ).toBe(true),
     )
   })
 })

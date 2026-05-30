@@ -1,11 +1,5 @@
 import { useCallback, useMemo, type ReactNode } from 'react'
-import {
-  LuHardDrive,
-  LuMonitor,
-  LuPlus,
-  LuServer,
-  LuTerminal,
-} from 'react-icons/lu'
+import { LuHardDrive, LuMonitor, LuPlus, LuServer } from 'react-icons/lu'
 
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
@@ -13,11 +7,7 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
-import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
-import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
-import { DeviceHandle, DeviceTypeID } from '@s4wave/sdk/device/device.js'
-import type { Device } from '@s4wave/sdk/device/device.pb.js'
-import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
+import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 
 import { buildWizardObjectKey } from '../space/create-op-builders.js'
 import { useVisibleObjectWizardTypeSet } from '../space/useVisibleObjectWizardTypeSet.js'
@@ -27,16 +17,10 @@ import {
   AddDeviceWizardTypeID,
 } from './add-device-wizard.js'
 import { ComputersDashboardTypeID } from './computers.js'
-import {
-  buildCreateTerminalOpData,
-  findOpenableTerminalCapability,
-} from './terminal-action.js'
 
 export { ComputersDashboardTypeID }
 
-export function ComputersDashboardViewer({
-  worldState,
-}: ObjectViewerComponentProps) {
+export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
   const { navigateToObjects, spaceState, spaceWorld } =
     SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
@@ -114,15 +98,6 @@ export function ComputersDashboardViewer({
               entries={devices.map((obj) => obj.objectKey ?? '')}
               empty="No Device objects yet"
               onOpen={(objectKey) => navigateToObjects([objectKey])}
-              renderAction={(objectKey) => (
-                <DeviceTerminalAction
-                  deviceObjectKey={objectKey}
-                  existingObjectKeys={existingObjectKeys}
-                  navigateToObjects={navigateToObjects}
-                  spaceWorld={spaceWorld}
-                  worldState={worldState}
-                />
-              )}
             />
             <InventoryPanel
               title="Hosts"
@@ -155,14 +130,12 @@ function InventoryPanel({
   entries,
   empty,
   onOpen,
-  renderAction,
 }: {
   title: string
   icon: ReactNode
   entries: string[]
   empty: string
   onOpen: (objectKey: string) => void
-  renderAction?: (objectKey: string) => ReactNode
 }) {
   return (
     <div className="border-foreground/10 bg-background-secondary overflow-hidden rounded-md border">
@@ -175,96 +148,22 @@ function InventoryPanel({
       ) : (
         <div className="divide-foreground/8 divide-y">
           {entries.map((objectKey) => (
-            <div
+            <button
               key={objectKey}
-              className="hover:bg-foreground/5 flex min-w-0 items-center gap-2 px-3 transition-colors"
+              type="button"
+              onClick={() => onOpen(objectKey)}
+              className="hover:bg-foreground/5 flex w-full min-w-0 items-center justify-between gap-3 px-3 py-2 text-left transition-colors"
             >
-              <button
-                type="button"
-                onClick={() => onOpen(objectKey)}
-                className="flex min-h-9 min-w-0 flex-1 items-center justify-between gap-3 py-2 text-left"
-              >
-                <span className="text-foreground min-w-0 truncate text-sm font-medium">
-                  {objectKey}
-                </span>
-                <span className="text-muted-foreground shrink-0 text-xs">
-                  Open
-                </span>
-              </button>
-              {renderAction?.(objectKey)}
-            </div>
+              <span className="text-foreground min-w-0 truncate text-sm font-medium">
+                {objectKey}
+              </span>
+              <span className="text-muted-foreground shrink-0 text-xs">
+                Open
+              </span>
+            </button>
           ))}
         </div>
       )}
     </div>
-  )
-}
-
-function DeviceTerminalAction({
-  deviceObjectKey,
-  existingObjectKeys,
-  navigateToObjects,
-  spaceWorld,
-  worldState,
-}: {
-  deviceObjectKey: string
-  existingObjectKeys: Iterable<string | undefined>
-  navigateToObjects: (objectKeys: string[]) => void
-  spaceWorld: {
-    applyWorldOp(
-      opTypeId: string,
-      opData: Uint8Array,
-      opSender: string,
-    ): Promise<unknown>
-  }
-  worldState: ObjectViewerComponentProps['worldState']
-}) {
-  const handle = useAccessTypedHandle(
-    worldState,
-    deviceObjectKey,
-    DeviceHandle,
-    DeviceTypeID,
-  )
-  const streamFactory = useCallback(
-    (h: DeviceHandle, signal: AbortSignal) => h.watchDeviceState(signal),
-    [],
-  )
-  const stateResource = useStreamingResource(handle, streamFactory, [])
-  const state: Device | undefined = stateResource.value ?? undefined
-  const terminalCapability = findOpenableTerminalCapability(state)
-
-  const handleOpenTerminal = async () => {
-    if (!state || !terminalCapability) return
-    const terminalOp = buildCreateTerminalOpData({
-      device: state,
-      deviceObjectKey,
-      existingObjectKeys,
-    })
-    if (!terminalOp) return
-    try {
-      await spaceWorld.applyWorldOp(
-        CREATE_TERMINAL_OP_ID,
-        terminalOp.opData,
-        '',
-      )
-      navigateToObjects([terminalOp.objectKey])
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to open terminal',
-      )
-    }
-  }
-
-  if (!terminalCapability || !state?.peerId) return null
-  return (
-    <button
-      type="button"
-      title="Open Terminal"
-      aria-label={`Open terminal for ${state.label || deviceObjectKey}`}
-      onClick={() => void handleOpenTerminal()}
-      className="text-muted-foreground hover:text-foreground hover:bg-foreground/8 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors"
-    >
-      <LuTerminal className="size-3.5" />
-    </button>
   )
 }

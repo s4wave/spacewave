@@ -1,6 +1,6 @@
 //go:build !js
 
-package spacewave_cli
+package remoteshell
 
 import (
 	"context"
@@ -39,14 +39,15 @@ type remoteShellProcess interface {
 
 type remoteShellStarter func(context.Context, *s4wave_terminal.TerminalFrame) (remoteShellProcess, error)
 
-func startDeviceRemoteShellHandler(ctx context.Context, le *logrus.Entry, b bus.Bus) func() {
+// StartHandler registers the daemon-side remote-shell stream handler.
+func StartHandler(ctx context.Context, le *logrus.Entry, b bus.Bus) func() {
 	if b == nil {
 		return func() {}
 	}
 	ctrl := &deviceRemoteShellController{
 		le:      le.WithField("controller", deviceRemoteShellControllerID),
 		b:       b,
-		policy:  allowRemoteShell,
+		policy:  denyRemoteShellByDefault,
 		starter: startPtyRemoteShell,
 	}
 	release, err := b.AddController(ctx, ctrl, nil)
@@ -288,8 +289,8 @@ func sendTerminalError(session *stream_packet.Session, msg string) error {
 	return errors.New(msg)
 }
 
-func allowRemoteShell(openFrame *s4wave_terminal.TerminalFrame) error {
-	return nil
+func denyRemoteShellByDefault(openFrame *s4wave_terminal.TerminalFrame) error {
+	return errors.New("terminal disabled by local policy")
 }
 
 func startPtyRemoteShell(ctx context.Context, openFrame *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {
