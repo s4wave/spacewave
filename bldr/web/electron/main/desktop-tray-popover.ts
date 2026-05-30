@@ -19,6 +19,7 @@ interface DesktopTrayPopoverControllerOpts {
 const popoverWidth = 390
 const popoverHeight = 560
 const popoverMargin = 8
+const navigationCardLimit = 6
 const actionScheme = 'spacewave-tray-action:'
 const commandScheme = 'spacewave-tray-command:'
 
@@ -352,6 +353,7 @@ body {
   margin-bottom: 10px;
 }
 .card,
+.nav-card,
 .empty,
 .section {
   border: 1px solid #d8dee7;
@@ -402,6 +404,46 @@ body {
 .primary-actions .row {
   min-height: 36px;
 }
+.nav-cards {
+  display: grid;
+  gap: 7px;
+}
+.nav-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  min-height: 52px;
+  padding: 9px 10px;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+.nav-card.action {
+  cursor: default;
+}
+.nav-card.action:hover,
+.nav-card.action:focus {
+  border-color: #b7cce8;
+  background: #edf4ff;
+  outline: none;
+}
+.nav-card.action[aria-disabled="true"] {
+  color: #98a2af;
+  pointer-events: none;
+}
+.nav-card.active {
+  border-color: #87c6aa;
+  background: #f0fbf6;
+}
+.nav-card-overflow {
+  padding: 4px 2px;
+  color: #717f91;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+}
 .section {
   margin-bottom: 8px;
   overflow: hidden;
@@ -445,7 +487,8 @@ body {
   color: #98a2af;
   pointer-events: none;
 }
-.row.active .label::before {
+.row.active .label::before,
+.nav-card.active .label::before {
   content: "";
   display: inline-block;
   width: 6px;
@@ -517,6 +560,7 @@ body {
   .status-pill,
   .tab[aria-selected="true"],
   .card,
+  .nav-card,
   .empty,
   .section {
     border-color: #333944;
@@ -538,8 +582,14 @@ body {
     border-color: #2a3039;
   }
   .row.action:hover,
-  .row.action:focus {
+  .row.action:focus,
+  .nav-card.action:hover,
+  .nav-card.action:focus {
     background: #26354a;
+  }
+  .nav-card.active {
+    border-color: #3b7458;
+    background: #1f342b;
   }
   .card-value,
   .title {
@@ -696,7 +746,14 @@ function renderRowsPanel(
   if (!visible.length) {
     return `<div class="empty">${escapeHtml(emptyLabel)}</div>`
   }
-  return renderSection({ id: title.toLowerCase(), title, rows: visible })
+  const shown = visible.slice(0, navigationCardLimit)
+  const remaining = visible.length - shown.length
+  return `<section class="nav-cards" data-card-panel="${escapeHtml(
+    title.toLowerCase(),
+  )}">
+    ${shown.map(renderNavigationCard).join('')}
+    ${remaining > 0 ? renderNavigationOverflow(title, remaining) : ''}
+  </section>`
 }
 
 function renderRow(row: DesktopTrayPanelRow): string {
@@ -708,6 +765,29 @@ function renderRow(row: DesktopTrayPanelRow): string {
   )}" role="button" tabindex="0" data-action-id="${escapeHtml(
     row.action.id,
   )}" aria-disabled="${row.enabled ? 'false' : 'true'}">${renderRowContents(row)}</a>`
+}
+
+function renderNavigationCard(row: DesktopTrayPanelRow): string {
+  if (!row.action) {
+    return `<div class="${navigationCardClass(row, '')}">${renderRowContents(
+      row,
+    )}</div>`
+  }
+  return `<a class="${navigationCardClass(row, 'action')}" href="${actionHref(
+    row.action.id,
+  )}" role="button" tabindex="0" data-action-id="${escapeHtml(
+    row.action.id,
+  )}" aria-disabled="${row.enabled ? 'false' : 'true'}">${renderRowContents(row)}</a>`
+}
+
+function renderNavigationOverflow(title: string, count: number): string {
+  const noun =
+    title === 'Sessions' ? 'session'
+    : title === 'Spaces' ? 'space'
+    : 'item'
+  return `<div class="nav-card-overflow">+${count} more ${noun}${
+    count === 1 ? '' : 's'
+  }</div>`
 }
 
 function renderRowContents(row: DesktopTrayPanelRow): string {
@@ -726,6 +806,17 @@ function rowClass(row: DesktopTrayPanelRow, extra: string): string {
     row.active ? 'active' : '',
     severityClass(row.severity),
     row.empty ? 'empty-row' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+function navigationCardClass(row: DesktopTrayPanelRow, extra: string): string {
+  return [
+    'nav-card',
+    extra,
+    row.active ? 'active' : '',
+    severityClass(row.severity),
   ]
     .filter(Boolean)
     .join(' ')

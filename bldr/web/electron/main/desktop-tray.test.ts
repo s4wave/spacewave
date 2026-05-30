@@ -1305,6 +1305,96 @@ describe('DesktopTrayController', () => {
     expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
   })
 
+  it('renders bounded session and space cards with route actions and long labels', async () => {
+    process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
+    const longSpaceLabel =
+      'Space One With An Extremely Long Name That Should Truncate In The Card'
+    const sessionRows: DesktopTrayEntry[] = Array.from(
+      { length: 7 },
+      (_, index) => ({
+        id: `session-${index + 1}`,
+        kind: DesktopTrayEntryKind.ACTION,
+        label:
+          index === 6 ? 'Session 7 Hidden By Bound' : `Session ${index + 1}`,
+        detail: index === 0 ? 'Cloud' : 'Local',
+        statusText: index === 0 ? 'Ready' : 'Idle',
+        active: index === 0,
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.OPEN_ROUTE,
+          route: `/u/${index + 1}/`,
+        },
+      }),
+    )
+    const spaceRows: DesktopTrayEntry[] = Array.from(
+      { length: 7 },
+      (_, index) => ({
+        id: `space-${index + 1}`,
+        kind: DesktopTrayEntryKind.ACTION,
+        label:
+          index === 0 ? longSpaceLabel
+          : index === 6 ? 'Space 7 Hidden By Bound'
+          : `Space ${index + 1}`,
+        detail: 'Shared',
+        statusText: index === 0 ? 'Active' : 'Ready',
+        active: index === 0,
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.OPEN_ROUTE,
+          route: `/u/1/so/space-${index + 1}`,
+        },
+      }),
+    )
+    mockResource.desktopTrayResource.getState.mockReturnValue({
+      statusText: 'Running',
+      iconState: DesktopTrayIconState.NORMAL,
+      entries: [
+        {
+          id: 'title',
+          kind: DesktopTrayEntryKind.STATUS,
+          label: 'Spacewave: Running',
+        },
+        {
+          id: 'Sessions-section',
+          kind: DesktopTrayEntryKind.SECTION,
+          label: 'Sessions',
+        },
+        ...sessionRows,
+        {
+          id: 'Spaces-section',
+          kind: DesktopTrayEntryKind.SECTION,
+          label: 'Spaces',
+        },
+        ...spaceRows,
+      ],
+    })
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+
+    controller.init()
+    trayInstances[0]?.emit('click')
+    await flushPromises()
+
+    const html = latestPopoverHtml()
+    expect(html).toContain('data-card-panel="sessions"')
+    expect(html).toContain('data-card-panel="spaces"')
+    expect(html).toContain(
+      'class="nav-card action active" href="spacewave-tray-action:session-1"',
+    )
+    expect(html).toContain('data-action-id="space-1"')
+    expect(html).toContain(longSpaceLabel)
+    expect(html).toContain('Ready')
+    expect(html).toContain('+1 more session')
+    expect(html).toContain('+1 more space')
+    expect(html).not.toContain('Session 7 Hidden By Bound')
+    expect(html).not.toContain('Space 7 Hidden By Bound')
+    expect(templateLabels(menuTemplates[0])).toContain(longSpaceLabel)
+    expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
+  })
+
   it('keeps the panel host independent of renderer window lifetime and runtime polling', async () => {
     process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
     const initialState: DesktopTrayState = {
