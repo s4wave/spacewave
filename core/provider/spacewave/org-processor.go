@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"context"
 	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
@@ -11,6 +12,14 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 )
+
+type orgProcessorKeySet interface {
+	SyncKeys(keys []string, restart bool) (added, removed []string)
+}
+
+type orgProcessorHooks struct {
+	afterInitialSync func()
+}
 
 // buildOrgProcessorRoutine returns the keyed routine for an org processor.
 func (a *ProviderAccount) buildOrgProcessorRoutine(orgID string) (keyed.Routine, struct{}) {
@@ -46,84 +55,121 @@ func (a *ProviderAccount) watchOrgProcessors(ctx context.Context) error {
 	processors.SetContext(ctx, true)
 	defer processors.SetContext(nil, false)
 
-	watchCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	soList, err := a.soListCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	soListChanged := make(chan *sobject.SharedObjectList, 1)
-	orgListChanged := make(chan struct{}, 1)
-	errCh := make(chan error, 2)
+	desired := newOrgProcessorDesiredKeys(a, processors, soList)
+	if err := a.runOrgProcessorDesiredKeys(ctx, desired); err != nil {
+		return err
+	}
+	return nil
+}
 
-	go a.watchOrgProcessorSOList(watchCtx, soList, soListChanged, errCh)
-	go a.watchOrgProcessorOrgList(watchCtx, orgListChanged)
+func (a *ProviderAccount) runOrgProcessorDesiredKeys(
+	ctx context.Context,
+	desired *orgProcessorDesiredKeys,
+) error {
+	return a.runOrgProcessorDesiredKeysWithHooks(ctx, desired, orgProcessorHooks{})
+}
 
-	var prevOrgIDs []string
-	for {
-		orgIDs := a.orgProcessorKeys(soList)
-		if !slices.Equal(orgIDs, prevOrgIDs) {
-			processors.SyncKeys(orgIDs, false)
-			prevOrgIDs = orgIDs
-		}
+func (a *ProviderAccount) runOrgProcessorDesiredKeysWithHooks(
+	ctx context.Context,
+	desired *orgProcessorDesiredKeys,
+	hooks orgProcessorHooks,
+) error {
+	desired.sync()
+	if hooks.afterInitialSync != nil {
+		hooks.afterInitialSync()
+	}
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-errCh:
-			return err
-		case next := <-soListChanged:
-			soList = next
-		case <-orgListChanged:
-		}
+	soListWatcher := newNamedRoutineContainer(a.le, "org-processor-so-list")
+	soListWatcher.SetRoutine(desired.watchSOList)
+	soListWatcher.SetContext(ctx, true)
+	defer soListWatcher.ClearContext()
+
+	orgListWatcher := newNamedRoutineContainer(a.le, "org-processor-org-list")
+	orgListWatcher.SetRoutine(desired.watchOrgList)
+	orgListWatcher.SetContext(ctx, true)
+	defer orgListWatcher.ClearContext()
+
+	return soListWatcher.WaitExited(ctx, false, nil)
+}
+
+type orgProcessorDesiredKeys struct {
+	a          *ProviderAccount
+	processors orgProcessorKeySet
+	mtx        sync.Mutex
+	soList     *sobject.SharedObjectList
+	orgIDs     []string
+}
+
+func newOrgProcessorDesiredKeys(
+	a *ProviderAccount,
+	processors orgProcessorKeySet,
+	soList *sobject.SharedObjectList,
+) *orgProcessorDesiredKeys {
+	return &orgProcessorDesiredKeys{
+		a:          a,
+		processors: processors,
+		soList:     soList,
 	}
 }
 
-func (a *ProviderAccount) watchOrgProcessorSOList(
-	ctx context.Context,
-	current *sobject.SharedObjectList,
-	changed chan<- *sobject.SharedObjectList,
-	errCh chan<- error,
-) {
+func (d *orgProcessorDesiredKeys) watchSOList(ctx context.Context) error {
+	current := d.currentSOList()
 	for {
-		next, err := a.soListCtr.WaitValueChange(ctx, current, nil)
+		next, err := d.a.soListCtr.WaitValueChange(ctx, current, nil)
 		if err != nil {
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
-			return
+			return err
 		}
 		current = next
-		select {
-		case changed <- next:
-		case <-ctx.Done():
-			return
-		}
+		d.setSOList(next)
 	}
 }
 
-func (a *ProviderAccount) watchOrgProcessorOrgList(
-	ctx context.Context,
-	changed chan<- struct{},
-) {
+func (d *orgProcessorDesiredKeys) watchOrgList(ctx context.Context) error {
 	for {
 		var ch <-chan struct{}
-		a.orgBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		d.a.orgBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
 		})
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		case <-ch:
 		}
-		select {
-		case changed <- struct{}{}:
-		default:
-		}
+		d.sync()
 	}
+}
+
+func (d *orgProcessorDesiredKeys) currentSOList() *sobject.SharedObjectList {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return d.soList
+}
+
+func (d *orgProcessorDesiredKeys) setSOList(next *sobject.SharedObjectList) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	d.soList = next
+	d.syncLocked()
+}
+
+func (d *orgProcessorDesiredKeys) sync() {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	d.syncLocked()
+}
+
+func (d *orgProcessorDesiredKeys) syncLocked() {
+	orgIDs := d.a.orgProcessorKeys(d.soList)
+	if slices.Equal(orgIDs, d.orgIDs) {
+		return
+	}
+	d.processors.SyncKeys(orgIDs, false)
+	d.orgIDs = orgIDs
 }
 
 func (a *ProviderAccount) orgProcessorKeys(
