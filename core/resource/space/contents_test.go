@@ -3,6 +3,7 @@ package resource_space
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"testing"
 	"time"
 
@@ -74,6 +75,97 @@ func (m *testWatchSpaceContentsStateStream) CloseSend() error {
 
 func (m *testWatchSpaceContentsStateStream) Close() error {
 	return nil
+}
+
+func TestWaitSpaceContentsSeqnoWaitsForEverySource(t *testing.T) {
+	t.Parallel()
+
+	for sourceIdx := range 5 {
+		sourceIdx := sourceIdx
+		t.Run(fmt.Sprintf("source-%d", sourceIdx), func(t *testing.T) {
+			t.Parallel()
+
+			waitChs, closeSource := testWaitChannels(5, sourceIdx)
+			done := make(chan error, 1)
+			go func() {
+				done <- waitSpaceContentsSeqno(t.Context(), func(ctx context.Context) error {
+					<-ctx.Done()
+					return ctx.Err()
+				}, waitChs...)
+			}()
+
+			select {
+			case err := <-done:
+				t.Fatalf("waitSpaceContentsSeqno returned before source %d woke: %v", sourceIdx, err)
+			case <-time.After(10 * time.Millisecond):
+			}
+
+			closeSource()
+
+			select {
+			case err := <-done:
+				if err != nil {
+					t.Fatalf("waitSpaceContentsSeqno returned %v after source %d woke", err, sourceIdx)
+				}
+			case <-time.After(time.Second):
+				t.Fatalf("waitSpaceContentsSeqno ignored source %d", sourceIdx)
+			}
+		})
+	}
+}
+
+func TestWaitSpaceContentsSeqnoContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- waitSpaceContentsSeqno(ctx, func(ctx context.Context) error {
+			<-ctx.Done()
+			return ctx.Err()
+		})
+	}()
+
+	select {
+	case err := <-done:
+		t.Fatalf("waitSpaceContentsSeqno returned before cancellation: %v", err)
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != context.Canceled {
+			t.Fatalf("expected context.Canceled, got %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("waitSpaceContentsSeqno did not return after cancellation")
+	}
+}
+
+func TestWaitSpaceContentsSeqnoWorldWake(t *testing.T) {
+	t.Parallel()
+
+	if err := waitSpaceContentsSeqno(t.Context(), func(context.Context) error {
+		return nil
+	}); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+}
+
+func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
+	chans := make([]chan struct{}, count)
+	waitChs := make([]<-chan struct{}, 0, count+2)
+	waitChs = append(waitChs, nil)
+	for i := range chans {
+		chans[i] = make(chan struct{})
+		waitChs = append(waitChs, chans[i])
+	}
+	waitChs = append(waitChs, nil)
+	return waitChs, func() {
+		close(chans[sourceIdx])
+	}
 }
 
 func generateSpaceContentsTestPeerID(t *testing.T) peer.ID {

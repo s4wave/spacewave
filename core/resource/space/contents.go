@@ -240,22 +240,39 @@ func (r *SpaceContentsResource) WatchState(
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
 		})
-		waitCtx, waitCancel := context.WithCancel(ctx)
-		go func() {
-			select {
-			case <-ch:
-				waitCancel()
-			case <-loadedCh:
-				waitCancel()
-			case <-waitCtx.Done():
-			}
-		}()
-		_, err = r.engine.WaitSeqno(waitCtx, prevSeqno+1)
-		waitCancel()
-		if err != nil && ctx.Err() != nil {
-			return ctx.Err()
+		err = waitSpaceContentsSeqno(ctx, func(waitCtx context.Context) error {
+			_, err := r.engine.WaitSeqno(waitCtx, prevSeqno+1)
+			return err
+		}, ch, loadedCh)
+		if err != nil {
+			return err
 		}
 	}
+}
+
+func waitSpaceContentsSeqno(
+	ctx context.Context,
+	waitSeqno func(context.Context) error,
+	waitChs ...<-chan struct{},
+) error {
+	waitCtx, waitCancel := context.WithCancel(ctx)
+	defer waitCancel()
+
+	waitAnyDone := make(chan struct{})
+	go func() {
+		defer close(waitAnyDone)
+		if err := broadcast.WaitAny(waitCtx, waitChs...); err == nil {
+			waitCancel()
+		}
+	}()
+
+	err := waitSeqno(waitCtx)
+	waitCancel()
+	<-waitAnyDone
+	if err != nil && ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return nil
 }
 
 // getPluginDescriptions returns cached plugin descriptions for the current plugin set.
