@@ -26,6 +26,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
+	"github.com/sirupsen/logrus"
 )
 
 type wrapperForwardTestStore struct {
@@ -176,6 +177,78 @@ func TestPublicReadRemoteRefreshInvalidatesDecodedCache(t *testing.T) {
 	tx.SetDecodedBlockCache(decodedBlocks)
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
 		t.Fatalf("Unmarshal after public-read refresh error = %v, want %v", err, block.ErrNotFound)
+	}
+}
+
+type testPublicReadRemoteRefresher struct {
+	started chan struct{}
+	release chan struct{}
+}
+
+func (r *testPublicReadRemoteRefresher) Refresh(ctx context.Context) error {
+	r.started <- struct{}{}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-r.release:
+		return nil
+	}
+}
+
+func TestPublicReadCdnRootRefreshCallbackWiring(t *testing.T) {
+	ctx := t.Context()
+
+	remote := &testPublicReadRemoteRefresher{
+		started: make(chan struct{}, 4),
+		release: make(chan struct{}),
+	}
+	acc := &ProviderAccount{}
+	tracker := &bstoreTracker{a: acc, id: "space-1"}
+	release := tracker.registerPublicReadCdnRootRefresh(
+		ctx,
+		logrus.New().WithField("test", t.Name()),
+		remote,
+	)
+
+	acc.fireCdnRootChanged("other-space")
+	assertNoPublicReadRefresh(t, remote.started)
+
+	acc.fireCdnRootChanged("space-1")
+	waitPublicReadRefresh(t, remote.started)
+
+	returned := make(chan struct{})
+	go func() {
+		acc.fireCdnRootChanged("space-1")
+		close(returned)
+	}()
+	select {
+	case <-returned:
+	case <-time.After(time.Second):
+		t.Fatal("cdn-root callback blocked behind an in-flight refresh")
+	}
+	waitPublicReadRefresh(t, remote.started)
+
+	close(remote.release)
+	release()
+	acc.fireCdnRootChanged("space-1")
+	assertNoPublicReadRefresh(t, remote.started)
+}
+
+func waitPublicReadRefresh(t *testing.T, started <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for public-read CDN refresh")
+	}
+}
+
+func assertNoPublicReadRefresh(t *testing.T, started <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-started:
+		t.Fatal("unexpected public-read CDN refresh")
+	case <-time.After(100 * time.Millisecond):
 	}
 }
 

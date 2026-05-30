@@ -114,6 +114,8 @@ type ProviderAccount struct {
 	accountFetcherRoutine *routine.RoutineContainer
 	// orgProcessors watches org SO membership and runs org processors.
 	orgProcessors *routine.RoutineContainer
+	// launcherRecheckJobs owns update_available launcher recheck work.
+	launcherRecheckJobs *asyncCallbackJobs
 	// entityKeyStore holds unlocked entity keypairs shared across account
 	// resources for this provider account.
 	entityKeyStore *EntityKeyStore
@@ -412,6 +414,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	acc.orgProcessors.SetRoutine(acc.watchOrgProcessors)
+	acc.launcherRecheckJobs = newAsyncCallbackJobs(func(jobCtx context.Context) {
+		if err := spacewave_launcher.ExRecheckDistConfig(jobCtx, t.p.b, ""); err != nil && !errors.Is(err, context.Canceled) {
+			le.WithError(err).Warn("launcher recheck failed")
+		}
+	})
 
 	acc.checkoutWatcher = newCheckoutWatcher(
 		le.WithField("component", "checkout-watcher"),
@@ -515,11 +522,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	}
 	acc.wsTracker.onUpdateAvailable = func() {
 		le.Debug("dispatching launcher recheck after update_available notify")
-		go func() {
-			if err := spacewave_launcher.ExRecheckDistConfig(ctx, t.p.b, ""); err != nil && !errors.Is(err, context.Canceled) {
-				le.WithError(err).Warn("launcher recheck failed")
-			}
-		}()
+		acc.launcherRecheckJobs.Trigger()
 	}
 	acc.wsTracker.onCdnRootChanged = func(spaceID string) {
 		le.WithField("space-id", spaceID).
@@ -655,6 +658,9 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 
 	acc.checkoutWatcher.SetContext(ctx)
 	defer acc.checkoutWatcher.ClearContext()
+
+	acc.launcherRecheckJobs.SetContext(ctx)
+	defer acc.launcherRecheckJobs.ClearContext()
 
 	acc.wsTracker.SetContext(ctx)
 	defer acc.wsTracker.ClearContext()

@@ -60,6 +60,134 @@ func waitCoalescedTriggerRun(t *testing.T, started <-chan struct{}) {
 	}
 }
 
+func TestAsyncCallbackJobsStartsOneOwnedJobPerTrigger(t *testing.T) {
+	started := make(chan struct{}, 2)
+	release := make(chan struct{})
+	jobs := newAsyncCallbackJobs(func(ctx context.Context) {
+		started <- struct{}{}
+		select {
+		case <-ctx.Done():
+		case <-release:
+		}
+	})
+
+	jobs.SetContext(t.Context())
+	defer jobs.ClearContext()
+
+	jobs.Trigger()
+	waitAsyncCallbackJob(t, started)
+	jobs.Trigger()
+	waitAsyncCallbackJob(t, started)
+
+	close(release)
+	waitAsyncCallbackJobsEmpty(t, jobs)
+}
+
+func TestAsyncCallbackJobsClearContextWaitsForOwnedJobs(t *testing.T) {
+	started := make(chan struct{})
+	canceled := make(chan struct{})
+	allowReturn := make(chan struct{})
+	clearReturned := make(chan struct{})
+	jobs := newAsyncCallbackJobs(func(ctx context.Context) {
+		started <- struct{}{}
+		<-ctx.Done()
+		close(canceled)
+		<-allowReturn
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	jobs.SetContext(ctx)
+	jobs.Trigger()
+	waitAsyncCallbackJob(t, started)
+
+	cancel()
+	go func() {
+		jobs.ClearContext()
+		close(clearReturned)
+	}()
+	select {
+	case <-canceled:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for async callback job cancellation")
+	}
+	select {
+	case <-clearReturned:
+		t.Fatal("ClearContext returned before the owned job exited")
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(allowReturn)
+	select {
+	case <-clearReturned:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for ClearContext to return")
+	}
+}
+
+func TestAsyncCallbackJobsIgnoresTriggerWithoutContext(t *testing.T) {
+	started := make(chan struct{}, 1)
+	jobs := newAsyncCallbackJobs(func(context.Context) {
+		started <- struct{}{}
+	})
+
+	jobs.Trigger()
+	if got := jobs.Pending(); got != 0 {
+		t.Fatalf("trigger without context queued %d jobs", got)
+	}
+	select {
+	case <-started:
+		t.Fatal("trigger without context started a job")
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func TestAsyncCallbackJobsDoesNotReplayTriggerAfterCancel(t *testing.T) {
+	started := make(chan struct{}, 1)
+	jobs := newAsyncCallbackJobs(func(context.Context) {
+		started <- struct{}{}
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	jobs.SetContext(ctx)
+	cancel()
+	jobs.Trigger()
+	jobs.SetContext(t.Context())
+
+	if got := jobs.Pending(); got != 0 {
+		t.Fatalf("trigger after canceled context queued %d jobs", got)
+	}
+	select {
+	case <-started:
+		t.Fatal("trigger after canceled context replayed on the next context")
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func waitAsyncCallbackJob(t *testing.T, started <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for async callback job")
+	}
+}
+
+func waitAsyncCallbackJobsEmpty(t *testing.T, jobs *asyncCallbackJobs) {
+	t.Helper()
+	deadline := time.After(time.Second)
+	tick := time.NewTicker(time.Millisecond)
+	defer tick.Stop()
+	for {
+		if jobs.Pending() == 0 {
+			return
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("timed out waiting for async callback jobs to drain: %d", jobs.Pending())
+		case <-tick.C:
+		}
+	}
+}
+
 func TestApplyChangeLogEntryRootPrunesAcceptedAndRejectedOps(t *testing.T) {
 	validator, err := peer.NewPeer(nil)
 	if err != nil {

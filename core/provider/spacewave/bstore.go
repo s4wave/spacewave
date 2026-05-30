@@ -40,6 +40,10 @@ type decodedBlockRefInvalidator interface {
 	InvalidateDecodedBlockRef(context.Context, *block.BlockRef)
 }
 
+type publicReadRemoteRefresher interface {
+	Refresh(context.Context) error
+}
+
 // BlockStore wraps a block store overlay with packfile-backed cloud storage.
 type BlockStore struct {
 	// store is the inner block store overlay.
@@ -257,17 +261,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		if err := publicRemote.Refresh(ctx); err != nil {
 			le.WithError(err).Warn("public-read CDN root refresh failed")
 		}
-		releaseCdnRootChanged := t.a.RegisterCdnRootChangedCallback(func(spaceID string) {
-			if spaceID != t.id {
-				return
-			}
-			go func() {
-				if err := publicRemote.Refresh(ctx); err != nil && ctx.Err() == nil {
-					le.WithError(err).Warn("public-read CDN root refresh failed")
-				}
-			}()
-		})
-		defer releaseCdnRootChanged()
+		releaseCdnRootRefresh := t.registerPublicReadCdnRootRefresh(ctx, le, publicRemote)
+		defer releaseCdnRootRefresh()
 	}
 
 	// Mount a Bucket for the upper block cache.
@@ -396,6 +391,29 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 
 	t.bstoreCtr.SetValue(nil)
 	return context.Canceled
+}
+
+func (t *bstoreTracker) registerPublicReadCdnRootRefresh(
+	ctx context.Context,
+	le *logrus.Entry,
+	publicRemote publicReadRemoteRefresher,
+) func() {
+	cdnRootRefreshJobs := newAsyncCallbackJobs(func(jobCtx context.Context) {
+		if err := publicRemote.Refresh(jobCtx); err != nil && jobCtx.Err() == nil {
+			le.WithError(err).Warn("public-read CDN root refresh failed")
+		}
+	})
+	cdnRootRefreshJobs.SetContext(ctx)
+	releaseCdnRootChanged := t.a.RegisterCdnRootChangedCallback(func(spaceID string) {
+		if spaceID != t.id {
+			return
+		}
+		cdnRootRefreshJobs.Trigger()
+	})
+	return func() {
+		releaseCdnRootChanged()
+		cdnRootRefreshJobs.ClearContext()
+	}
 }
 
 func (t *bstoreTracker) getRefGraph() packfile_order.RefGraph {
