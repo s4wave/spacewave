@@ -114,6 +114,97 @@ func TestBufferSubscribe(t *testing.T) {
 	}
 }
 
+func TestBufferSubscribeReleaseClosesUpdates(t *testing.T) {
+	buf := New(2)
+	_, updates, release := buf.Subscribe()
+	release()
+
+	select {
+	case _, ok := <-updates:
+		if ok {
+			t.Fatal("updates channel remained open after release")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for updates channel close")
+	}
+}
+
+func TestBufferSubscribeUpdatesStartAfterSnapshot(t *testing.T) {
+	buf := New(4)
+	buf.Record(seedreason.ColdSeed, "/snapshot")
+
+	snap, updates, release := buf.Subscribe()
+	defer release()
+	if len(snap) != 1 || snap[0].Path != "/snapshot" {
+		t.Fatalf("snapshot = %+v, want /snapshot only", snap)
+	}
+
+	buf.Record(seedreason.Mutation, "/after")
+	select {
+	case entry := <-updates:
+		if entry.Path != "/after" {
+			t.Fatalf("update path = %q, want /after", entry.Path)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for post-snapshot update")
+	}
+}
+
+func TestBufferSubscribeSlowConsumerDropsWithoutBlockingProducer(t *testing.T) {
+	buf := New(1)
+	_, updates, release := buf.Subscribe()
+	defer release()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := range 64 {
+			buf.Record(seedreason.ColdSeed, "/slow-"+strconv.Itoa(i))
+		}
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("Record blocked behind a slow subscriber")
+	}
+
+	waitForBufferedUpdate(t, updates)
+	time.Sleep(100 * time.Millisecond)
+	got := 0
+	for {
+		select {
+		case <-updates:
+			got++
+		default:
+			if got == 0 {
+				t.Fatal("slow subscriber received no updates")
+			}
+			if got >= 64 {
+				t.Fatalf("slow subscriber received all %d updates; expected drops", got)
+			}
+			return
+		}
+	}
+}
+
+func waitForBufferedUpdate(t *testing.T, updates <-chan Entry) {
+	t.Helper()
+	deadline := time.After(time.Second)
+	tick := time.NewTicker(time.Millisecond)
+	defer tick.Stop()
+	for {
+		if len(updates) != 0 {
+			return
+		}
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for buffered update")
+		case <-tick.C:
+		}
+	}
+}
+
 // TestBufferConcurrent records from multiple goroutines to exercise the mutex
 // under -race and asserts the buffer never exceeds its capacity.
 func TestBufferConcurrent(t *testing.T) {

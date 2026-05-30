@@ -102,7 +102,6 @@ func (b *Buffer) Capacity() int {
 // buffer; if a slow consumer falls behind, newer entries are dropped rather
 // than blocking the producer.
 func (b *Buffer) Subscribe() (snapshot []Entry, updates <-chan Entry, release func()) {
-	ch := make(chan Entry, b.cap)
 	var seq uint64
 	b.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		snapshot = make([]Entry, 0, len(b.entries))
@@ -112,21 +111,41 @@ func (b *Buffer) Subscribe() (snapshot []Entry, updates <-chan Entry, release fu
 		seq = b.nextSeq
 	})
 
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		defer close(ch)
-		b.watchUpdates(ctx, seq, ch)
-	}()
+	sub := b.newSubscription(seq)
+	return snapshot, sub.Updates(), sub.Release
+}
 
-	var once sync.Once
-	return snapshot, ch, func() {
-		once.Do(func() {
-			cancel()
-			<-done
-		})
+type subscription struct {
+	updates chan Entry
+	cancel  context.CancelFunc
+	done    chan struct{}
+	once    sync.Once
+}
+
+func (b *Buffer) newSubscription(seq uint64) *subscription {
+	ctx, cancel := context.WithCancel(context.Background())
+	sub := &subscription{
+		updates: make(chan Entry, b.cap),
+		cancel:  cancel,
+		done:    make(chan struct{}),
 	}
+	go func() {
+		defer close(sub.done)
+		defer close(sub.updates)
+		b.watchUpdates(ctx, seq, sub.updates)
+	}()
+	return sub
+}
+
+func (s *subscription) Updates() <-chan Entry {
+	return s.updates
+}
+
+func (s *subscription) Release() {
+	s.once.Do(func() {
+		s.cancel()
+		<-s.done
+	})
 }
 
 func (b *Buffer) watchUpdates(ctx context.Context, seq uint64, ch chan<- Entry) {
