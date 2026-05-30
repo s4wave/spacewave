@@ -1,4 +1,6 @@
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
+import { buildProjectedObjectPath } from '@s4wave/sdk/space/projected-path.js'
+import { joinUnixFSDisplayPath } from '@s4wave/sdk/unixfs/path.js'
 import {
   type AppDragEnvelope,
   APP_DRAG_VERSION,
@@ -9,17 +11,6 @@ import {
   type ObjectInfo,
   type UnixfsObjectInfo,
 } from '@s4wave/web/object/object.pb.js'
-
-function joinPath(base: string, name: string): string {
-  if (base.endsWith('/')) return base + name
-  return base + '/' + name
-}
-
-function buildSpaceObjectPath(objectKey: string, objectPath: string): string {
-  const strippedObjectPath = objectPath.replace(/^\/+/, '')
-  if (!strippedObjectPath) return objectKey
-  return `${objectKey}/-/${strippedObjectPath}`
-}
 
 export interface BuildUnixFSEntryAppDragParams {
   entry: FileEntry
@@ -52,7 +43,7 @@ function buildUnixFSEntryAppDragItem(
   unixfsId: string,
   includeMovable: boolean,
 ): AppDragEnvelope['items'][number] {
-  const entryPath = joinPath(currentPath, entry.name)
+  const entryPath = joinUnixFSDisplayPath(currentPath, entry.name)
   const capabilities: AppDragEnvelope['items'][number]['capabilities'] = []
   if (includeMovable) {
     capabilities.push({
@@ -78,7 +69,12 @@ function buildUnixFSEntryAppDragItem(
         } satisfies UnixfsObjectInfo,
       },
     }
-    const routePath = `/u/${sessionIndex}/so/${spaceId}/-/${buildSpaceObjectPath(unixfsId, entryPath)}`
+    const routePath = `/${buildProjectedObjectPath({
+      sessionIndex,
+      sharedObjectId: spaceId,
+      objectKey: unixfsId,
+      path: entryPath,
+    })}`
     capabilities.unshift({
       kind: 'openable',
       value: {

@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import { useDeferredValue, useState } from 'react'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -12,7 +11,7 @@ import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { PanelSizeGate } from '@s4wave/web/ui/PanelSizeGate.js'
 
-import { buildUnixFSFileInlineURL } from '@s4wave/app/unixfs/download.js'
+import { buildProjectedFileInlineURL } from '@s4wave/app/space/projected-url.js'
 
 import { CommitDetail } from './commits/CommitDetail.js'
 import { CommitLog } from './commits/CommitLog.js'
@@ -80,12 +79,12 @@ export function GitRepoViewer({
       ? undefined
       : !sessionIndex || !spaceCtx?.spaceId
         ? undefined
-        : buildUnixFSFileInlineURL(
+        : buildProjectedFileInlineURL({
             sessionIndex,
-            spaceCtx.spaceId,
+            sharedObjectId: spaceCtx.spaceId,
             objectKey,
-            displayPath,
-          )
+            path: displayPath,
+          })
   const nav = useGitNavigation({
     route,
     effectiveRef,

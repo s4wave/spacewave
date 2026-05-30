@@ -7,12 +7,18 @@ import { useAccessTypedHandle } from './useAccessTypedHandle.js'
 import { useMappedResource } from '@aptre/bldr-sdk/hooks/useMappedResource.js'
 import { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import type { FileInfo, DirEntry } from '@s4wave/sdk/unixfs/handle.pb.js'
+import {
+  getUnixFSDirEntryKind,
+  getUnixFSFileInfoKind,
+  type UnixFSFileKind,
+} from '@s4wave/sdk/unixfs/file-kind.js'
+import { normalizeUnixFSLookupPath } from '@s4wave/sdk/unixfs/path.js'
+import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 
-// UnixFSTypeID is the type identifier for UnixFS objects.
-export const UnixFSTypeID = 'unixfs/fs-node'
+export { UnixFSTypeID }
 
 // useUnixFSRootHandle returns a root FSHandle for the given UnixFS object.
 // This is the entry point for handle-based UnixFS operations.
@@ -45,10 +51,11 @@ export async function resolveUnixFSHandle(
   signal: AbortSignal,
   cleanup: RegisterCleanup,
 ): Promise<FSHandle> {
-  if (!path || path === '/' || path === '.') {
+  const lookupPath = normalizeUnixFSLookupPath(path)
+  if (!lookupPath) {
     return root
   }
-  const { handle } = await root.lookupPath(path, signal)
+  const { handle } = await root.lookupPath(lookupPath, signal)
   return cleanup(handle)
 }
 
@@ -56,12 +63,15 @@ export async function resolveUnixFSHandle(
 export function convertDirEntriesToFileEntries(
   entries: DirEntry[],
 ): FileEntry[] {
-  return entries.map((entry) => ({
-    id: entry.name ?? '',
-    name: entry.name ?? '',
-    isDir: entry.isDir ?? false,
-    isSymlink: entry.isSymlink ?? false,
-  }))
+  return entries.map((entry) => {
+    const fileKind = getUnixFSDirEntryKind(entry)
+    return {
+      id: entry.name ?? '',
+      name: entry.name ?? '',
+      isDir: fileKind === 'directory',
+      isSymlink: fileKind === 'symlink',
+    }
+  })
 }
 
 // emptyAsyncIterable is a no-op async iterable that yields nothing.
@@ -102,6 +112,7 @@ export function useUnixFSHandleEntries(
 // StatResult contains the result of a stat operation with derived mime type.
 export interface StatResult {
   info: FileInfo
+  fileKind?: UnixFSFileKind
   mimeType: string
 }
 
@@ -129,8 +140,10 @@ export async function readUnixFSHandleStat(
     ? rootFSHandleInfo(handle)
     : await handle.getFileInfo(signal)
   const name = info.name ?? ''
-  const mimeType = info.isDir ? 'inode/directory' : getMimeType(name)
-  return { info, mimeType }
+  const fileKind = getUnixFSFileInfoKind(info)
+  const mimeType =
+    fileKind === 'directory' ? 'inode/directory' : getMimeType(name)
+  return { info, fileKind, mimeType }
 }
 
 function rootFSHandleInfo(handle: FSHandle): FileInfo {

@@ -4,8 +4,9 @@ import {
   LayoutObjectViewer,
   ObjectLayoutTypeID,
 } from '@s4wave/web/object/LayoutObjectViewer.js'
-import { UnixFSViewer, UnixFSTypeID } from '@s4wave/app/unixfs/UnixFSViewer.js'
+import { UnixFSViewer } from '@s4wave/app/unixfs/UnixFSViewer.js'
 import { UnixFSGalleryViewer } from '@s4wave/app/unixfs/UnixFSGalleryViewer.js'
+import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import { GitRepoViewer, GitRepoTypeID } from '@s4wave/app/git/GitRepoViewer.js'
 import {
   GitWorktreeViewer,

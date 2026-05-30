@@ -20,6 +20,7 @@ import {
   useUnixFSHandleTextContent,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import { getUnixFSFileInfoKind } from '@s4wave/sdk/unixfs/file-kind.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
 import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
@@ -172,9 +173,6 @@ function ImageFileViewer({
   )
 }
 
-// GoModeSymlink is Go's os.ModeSymlink bit value.
-const GoModeSymlink = 0x08000000
-
 // SymlinkViewer displays the symlink target path with a navigate button.
 function SymlinkViewer({
   target,
@@ -254,7 +252,8 @@ export function UnixFSFileViewer({
     [navigate],
   )
 
-  const isSymlink = ((stat.info.mode ?? 0) & GoModeSymlink) !== 0
+  const fileKind = stat.fileKind ?? getUnixFSFileInfoKind(stat.info)
+  const isSymlink = fileKind === 'symlink'
   const isText = !isSymlink && isTextMimeType(stat.mimeType)
   const isImage = !isSymlink && isImageMimeType(stat.mimeType)
   const isPdf = !isSymlink && stat.mimeType === 'application/pdf'

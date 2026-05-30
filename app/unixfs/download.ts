@@ -1,5 +1,12 @@
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
 import { ExportBatchRequest } from '@s4wave/core/space/http/export/config.pb.js'
+import {
+  buildProjectedExportURL,
+  buildProjectedFileInlineURL,
+  buildProjectedFileURL,
+  buildProjectedObjectContentPath,
+} from '@s4wave/app/space/projected-url.js'
+import { joinProjectedSubpath } from '@s4wave/sdk/space/projected-path.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import type { DownloadDragTarget } from '@s4wave/web/dnd/download-url-drag.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
@@ -13,36 +20,6 @@ interface UnixFSSelectionDownloadOpts {
 }
 
 type UnixFSSelectionDownloadDragTargetOpts = UnixFSSelectionDownloadOpts
-
-function normalizeUnixFSPath(path: string): string {
-  if (!path || path === '/') {
-    return ''
-  }
-  return path.split('/').filter(Boolean).join('/')
-}
-
-function encodePath(path: string): string {
-  return path
-    .split('/')
-    .flatMap((part) => (part ? [encodeURIComponent(part)] : []))
-    .join('/')
-}
-
-function buildProjectedObjectPath(
-  sessionIndex: number,
-  sharedObjectId: string,
-  objectKey: string,
-  path: string,
-): string {
-  const projectedPath =
-    `u/${sessionIndex}/so/${encodeURIComponent(sharedObjectId)}/-/` +
-    encodePath(objectKey)
-  const normalizedPath = normalizeUnixFSPath(path)
-  if (!normalizedPath) {
-    return projectedPath
-  }
-  return `${projectedPath}/-/${encodePath(normalizedPath)}`
-}
 
 function buildBatchFilename(entries: FileEntry[]): string {
   if (entries.length === 1) {
@@ -78,13 +55,12 @@ export function buildUnixFSFileDownloadURL(
   objectKey: string,
   path: string,
 ): string {
-  const projectedPath = buildProjectedObjectPath(
+  return buildProjectedFileURL({
     sessionIndex,
     sharedObjectId,
     objectKey,
     path,
-  )
-  return `${pluginPathPrefix}/fs/${projectedPath}`
+  })
 }
 
 export function buildUnixFSFileInlineURL(
@@ -93,10 +69,12 @@ export function buildUnixFSFileInlineURL(
   objectKey: string,
   path: string,
 ): string {
-  return (
-    buildUnixFSFileDownloadURL(sessionIndex, sharedObjectId, objectKey, path) +
-    '?inline=1'
-  )
+  return buildProjectedFileInlineURL({
+    sessionIndex,
+    sharedObjectId,
+    objectKey,
+    path,
+  })
 }
 
 export function buildUnixFSExportURL(
@@ -105,13 +83,12 @@ export function buildUnixFSExportURL(
   objectKey: string,
   path: string,
 ): string {
-  const projectedPath = buildProjectedObjectPath(
+  return buildProjectedExportURL({
     sessionIndex,
     sharedObjectId,
     objectKey,
     path,
-  )
-  return `${pluginPathPrefix}/export/${projectedPath}`
+  })
 }
 
 export function buildUnixFSBatchExportURL(
@@ -125,12 +102,12 @@ export function buildUnixFSBatchExportURL(
   const req = ExportBatchRequest.toBinary({
     paths: normalizedEntries.map((entry) => entry.name),
   })
-  const baseProjectedPath = buildProjectedObjectPath(
+  const baseProjectedPath = buildProjectedObjectContentPath({
     sessionIndex,
     sharedObjectId,
     objectKey,
-    basePath,
-  )
+    path: basePath,
+  })
   const filename = buildBatchFilename(normalizedEntries)
   const encodedFilename = encodeURIComponent(filename)
   const encodedReq = encodeBase64Url(req)
@@ -155,12 +132,10 @@ export function buildUnixFSSelectionDownloadDragTarget({
   }
 
   if (normalizedEntries.length === 1 && !normalizedEntries[0].isDir) {
-    const filePath = [
-      normalizeUnixFSPath(currentPath),
+    const filePath = joinProjectedSubpath([
+      currentPath,
       normalizedEntries[0].name,
-    ]
-      .filter(Boolean)
-      .join('/')
+    ])
     return {
       mimeType: 'application/octet-stream',
       filename: normalizedEntries[0].name,
@@ -174,12 +149,10 @@ export function buildUnixFSSelectionDownloadDragTarget({
   }
 
   if (normalizedEntries.length === 1) {
-    const dirPath = [
-      normalizeUnixFSPath(currentPath),
+    const dirPath = joinProjectedSubpath([
+      currentPath,
       normalizedEntries[0].name,
-    ]
-      .filter(Boolean)
-      .join('/')
+    ])
     return {
       mimeType: 'application/zip',
       filename: `${normalizedEntries[0].name}.zip`,
@@ -219,12 +192,10 @@ export function downloadUnixFSSelection({
   }
 
   if (normalizedEntries.length === 1 && !normalizedEntries[0].isDir) {
-    const filePath = [
-      normalizeUnixFSPath(currentPath),
+    const filePath = joinProjectedSubpath([
+      currentPath,
       normalizedEntries[0].name,
-    ]
-      .filter(Boolean)
-      .join('/')
+    ])
     downloadURL(
       buildUnixFSFileDownloadURL(
         sessionIndex,
@@ -238,12 +209,10 @@ export function downloadUnixFSSelection({
   }
 
   if (normalizedEntries.length === 1) {
-    const dirPath = [
-      normalizeUnixFSPath(currentPath),
+    const dirPath = joinProjectedSubpath([
+      currentPath,
       normalizedEntries[0].name,
-    ]
-      .filter(Boolean)
-      .join('/')
+    ])
     downloadURL(
       buildUnixFSExportURL(sessionIndex, sharedObjectId, objectKey, dirPath),
       `${normalizedEntries[0].name}.zip`,

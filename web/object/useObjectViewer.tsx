@@ -9,7 +9,7 @@ import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import type { ObjectInfo } from './object.pb.js'
 import { useObjectViewerSetup } from './useObjectViewerSetup.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state'
-import { UnixFSTypeID } from '@s4wave/web/hooks/useUnixFSHandle.js'
+import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import {
   useAllViewers,
   getViewersForType,

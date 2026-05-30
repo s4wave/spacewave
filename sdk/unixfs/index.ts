@@ -36,3 +36,6 @@ export {
 export * from './handle_srpc.pb.js'
 export * from './handle.js'
 export * from './fs-cursor.js'
+export * from './file-kind.js'
+export * from './path.js'
+export * from './type.js'

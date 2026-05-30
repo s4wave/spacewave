@@ -1,5 +1,14 @@
-/* eslint-disable react-doctor/async-await-in-loop */
+import {
+  getUnixFSDirEntryKind,
+  getUnixFSFileInfoKind,
+} from '@s4wave/sdk/unixfs/file-kind.js'
 import { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import {
+  getUnixFSParentPath,
+  getUnixFSRelativePath,
+  joinUnixFSDisplayPath,
+  normalizeUnixFSLookupPath,
+} from '@s4wave/sdk/unixfs/path.js'
 import { getMimeType } from '@s4wave/web/hooks/useUnixFSHandle.js'
 
 // UnixFSGalleryCandidate describes one discovered gallery item.
@@ -30,45 +39,8 @@ const galleryMimeTypes = new Set<string>([
   'image/avif',
 ])
 
-function normalizeScopePath(path: string): string {
-  if (!path || path === '/') {
-    return ''
-  }
-  return path.split('/').filter(Boolean).join('/')
-}
-
-function joinPath(base: string, name: string): string {
-  if (!base || base === '/') {
-    return '/' + name
-  }
-  if (base.endsWith('/')) {
-    return base + name
-  }
-  return `${base}/${name}`
-}
-
-function splitPath(path: string): string[] {
-  return path.split('/').filter(Boolean)
-}
-
-function getParentPath(path: string): string {
-  const parts = splitPath(path)
-  if (parts.length <= 1) {
-    return '/'
-  }
-  return '/' + parts.slice(0, -1).join('/')
-}
-
 function getScopeRelativeLabel(scopeRoot: string, entryPath: string): string {
-  const normalizedScopeRoot = normalizeScopePath(scopeRoot)
-  const normalizedEntryPath = normalizeScopePath(entryPath)
-  if (!normalizedScopeRoot) {
-    return normalizedEntryPath
-  }
-  if (!normalizedEntryPath.startsWith(normalizedScopeRoot + '/')) {
-    return normalizedEntryPath
-  }
-  return normalizedEntryPath.slice(normalizedScopeRoot.length + 1)
+  return getUnixFSRelativePath(scopeRoot, entryPath)
 }
 
 function sortGalleryCandidates(
@@ -104,12 +76,12 @@ async function resolveGalleryScope(
   handle: FSHandle
   scopePath: string
 }> {
-  const normalizedRequestedPath = normalizeScopePath(requestedScopePath)
+  const normalizedRequestedPath = normalizeUnixFSLookupPath(requestedScopePath)
   const requestedHandle = normalizedRequestedPath
     ? (await rootHandle.lookupPath(normalizedRequestedPath, signal)).handle
     : await rootHandle.clone(signal)
   const info = await requestedHandle.getFileInfo(signal)
-  if (info.isDir ?? false) {
+  if (getUnixFSFileInfoKind(info) === 'directory') {
     return {
       handle: requestedHandle,
       scopePath: requestedScopePath || '/',
@@ -117,8 +89,8 @@ async function resolveGalleryScope(
   }
   requestedHandle[Symbol.dispose]()
 
-  const scopePath = getParentPath(requestedScopePath || '/')
-  const normalizedScopePath = normalizeScopePath(scopePath)
+  const scopePath = getUnixFSParentPath(requestedScopePath || '/')
+  const normalizedScopePath = normalizeUnixFSLookupPath(scopePath)
   const handle = normalizedScopePath
     ? (await rootHandle.lookupPath(normalizedScopePath, signal)).handle
     : await rootHandle.clone(signal)
@@ -135,7 +107,7 @@ async function walkGalleryScope(
   signal: AbortSignal,
 ): Promise<UnixFSGalleryCandidate[]> {
   const info = await handle.getFileInfo(signal)
-  if (!(info.isDir ?? false)) {
+  if (getUnixFSFileInfoKind(info) !== 'directory') {
     return []
   }
 
@@ -148,9 +120,9 @@ async function walkGalleryScope(
       continue
     }
 
-    const entryPath = joinPath(scopePath || '/', entry.name)
+    const entryPath = joinUnixFSDisplayPath(scopePath || '/', entry.name)
     using child = await handle.lookup(entry.name, signal)
-    if (entry.isDir ?? false) {
+    if (getUnixFSDirEntryKind(entry) === 'directory') {
       images.push(
         ...(await walkGalleryScope(child, scopeRoot, entryPath, signal)),
       )
@@ -180,7 +152,7 @@ async function* streamGalleryScope(
   errors: string[],
 ): AsyncIterable<UnixFSGalleryDiscoveryState> {
   const info = await handle.getFileInfo(signal)
-  if (!(info.isDir ?? false)) {
+  if (getUnixFSFileInfoKind(info) !== 'directory') {
     return
   }
 
@@ -192,10 +164,10 @@ async function* streamGalleryScope(
       continue
     }
 
-    const entryPath = joinPath(scopePath || '/', entry.name)
+    const entryPath = joinUnixFSDisplayPath(scopePath || '/', entry.name)
     try {
       using child = await handle.lookup(entry.name, signal)
-      if (entry.isDir ?? false) {
+      if (getUnixFSDirEntryKind(entry) === 'directory') {
         yield* streamGalleryScope(
           child,
           scopeRoot,

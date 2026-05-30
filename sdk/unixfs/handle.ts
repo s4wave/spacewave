@@ -16,6 +16,11 @@ import type {
   HandleUploadFileRequest,
   HandleUploadTreeRequest,
 } from './handle.pb.js'
+import {
+  joinUnixFSDisplayPath,
+  normalizeUnixFSLookupPath,
+  splitUnixFSPath,
+} from './path.js'
 
 // FSHandleMeta contains metadata for constructing an FSHandle.
 interface FSHandleMeta {
@@ -92,6 +97,12 @@ async function* uploadDataFrames(
   } finally {
     reader.releaseLock()
   }
+}
+
+function buildChildHandlePath(basePath: string, pathParts: string[]): string {
+  return normalizeUnixFSLookupPath(
+    joinUnixFSDisplayPath(basePath, ...pathParts),
+  )
 }
 
 // IFSHandle contains the FSHandle interface.
@@ -300,7 +311,7 @@ export class FSHandle extends Resource implements IFSHandle {
     abortSignal?: AbortSignal,
   ): Promise<FSHandle> {
     const resp = await this.service.Lookup({ name }, abortSignal)
-    const childPath = this._path ? `${this._path}/${name}` : name
+    const childPath = buildChildHandlePath(this._path, [name])
     return this.resourceRef.createResource(resp.resourceId ?? 0, FSHandle, {
       info: resp.info,
       path: childPath,
@@ -313,7 +324,8 @@ export class FSHandle extends Resource implements IFSHandle {
     abortSignal?: AbortSignal,
   ): Promise<{ handle: FSHandle; traversedPath: string[] }> {
     const resp = await this.service.LookupPath({ path }, abortSignal)
-    const childPath = this._path ? `${this._path}/${path}` : path
+    const traversedPath = resp.traversedPath ?? splitUnixFSPath(path)
+    const childPath = buildChildHandlePath(this._path, traversedPath)
     const handle = this.resourceRef.createResource(
       resp.resourceId ?? 0,
       FSHandle,
@@ -324,7 +336,7 @@ export class FSHandle extends Resource implements IFSHandle {
     )
     return {
       handle,
-      traversedPath: resp.traversedPath ?? [],
+      traversedPath,
     }
   }
 

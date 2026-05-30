@@ -13,6 +13,7 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 import { cn } from '@s4wave/web/style/utils.js'
 import { downloadURL } from '@s4wave/web/download.js'
 
+import { joinUnixFSDisplayPath } from '@s4wave/sdk/unixfs/path.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import {
@@ -24,13 +25,6 @@ import {
   streamUnixFSGalleryCandidates,
 } from './gallery.js'
 import { UnixFSBrowser, type UnixFSBrowserBodyProps } from './UnixFSBrowser.js'
-
-// joinPath joins two path segments.
-function joinPath(base: string, rel: string): string {
-  if (!rel || rel === '/') return base
-  if (base.endsWith('/')) return base + rel.replace(/^\//, '')
-  return base + '/' + rel.replace(/^\//, '')
-}
 
 interface GalleryPreviewItem {
   path: string
@@ -294,7 +288,7 @@ export function UnixFSGalleryViewer({
   const unixfsInfo =
     objectInfo?.info?.case === 'unixfsObjectInfo' ? objectInfo.info.value : null
   const basePath = unixfsInfo?.path || '/'
-  const currentPath = joinPath(basePath, routerPath || '/')
+  const currentPath = joinUnixFSDisplayPath(basePath, routerPath || '/')
 
   return (
     <UnixFSBrowser

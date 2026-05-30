@@ -106,6 +106,7 @@ describe('readUnixFSHandleStat', () => {
       )
 
       expect(stat.info).toEqual({ isDir: true })
+      expect(stat.fileKind).toBe('directory')
       expect(stat.mimeType).toBe('inode/directory')
       expect(root.getFileInfo).not.toHaveBeenCalled()
     },
@@ -124,6 +125,7 @@ describe('readUnixFSHandleStat', () => {
     )
 
     expect(stat.info).toEqual({ isDir: true })
+    expect(stat.fileKind).toBe('directory')
     expect(stat.mimeType).toBe('inode/directory')
     expect(root.getFileInfo).not.toHaveBeenCalled()
   })
@@ -142,6 +144,7 @@ describe('readUnixFSHandleStat', () => {
     const stat = await readUnixFSHandleStat(file as unknown as FSHandle, signal)
 
     expect(stat.info).toEqual({ name: 'getting-started.md', isDir: false })
+    expect(stat.fileKind).toBe('file')
     expect(stat.mimeType).toBe('text/markdown')
     expect(file.getFileInfo).toHaveBeenCalledWith(signal)
   })

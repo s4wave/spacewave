@@ -1,5 +1,6 @@
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { ObjectInfo } from './object.pb.js'
 
@@ -29,7 +30,7 @@ export function getTypeID(info: ObjectInfo): string {
   if (info?.info?.case === 'worldObjectInfo') {
     return info.info.value.objectType ?? ''
   }
-  return 'unixfs/fs-node'
+  return UnixFSTypeID
 }
 
 // ObjectViewerComponent describes a registered viewer component.

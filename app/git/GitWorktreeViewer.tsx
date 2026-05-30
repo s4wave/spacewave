@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import {
   useCallback,
   useDeferredValue,
@@ -25,7 +24,7 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { PanelSizeGate } from '@s4wave/web/ui/PanelSizeGate.js'
 
-import { buildUnixFSFileInlineURL } from '@s4wave/app/unixfs/download.js'
+import { buildProjectedFileInlineURL } from '@s4wave/app/space/projected-url.js'
 
 import { ChangesView } from './changes/ChangesView.js'
 import {
@@ -205,12 +204,12 @@ export function GitWorktreeViewer({
     !spaceCtx?.spaceId ||
     !inlinePreviewObjectKey
       ? undefined
-      : buildUnixFSFileInlineURL(
+      : buildProjectedFileInlineURL({
           sessionIndex,
-          spaceCtx.spaceId,
-          inlinePreviewObjectKey,
-          displayPath,
-        )
+          sharedObjectId: spaceCtx.spaceId,
+          objectKey: inlinePreviewObjectKey,
+          path: displayPath,
+        })
   const workdirInlineFileURL =
     route.mode !== 'workdir' ||
     workdirFiles.isDir !== false ||
@@ -219,12 +218,12 @@ export function GitWorktreeViewer({
     !spaceCtx?.spaceId ||
     !inlinePreviewObjectKey
       ? undefined
-      : buildUnixFSFileInlineURL(
+      : buildProjectedFileInlineURL({
           sessionIndex,
-          spaceCtx.spaceId,
-          inlinePreviewObjectKey,
-          workdirPath,
-        )
+          sharedObjectId: spaceCtx.spaceId,
+          objectKey: inlinePreviewObjectKey,
+          path: workdirPath,
+        })
   const nav = useGitNavigation({
     route,
     effectiveRef,

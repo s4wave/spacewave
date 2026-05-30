@@ -144,6 +144,23 @@ describe('UnixFSFileViewer image preview', () => {
     expect(screen.getByText('Preview not available')).toBeDefined()
   })
 
+  it('renders symlink metadata from the UnixFS file kind primitive', () => {
+    render(
+      <UnixFSFileViewer
+        path="/nested/link"
+        stat={{
+          info: { isDir: false, name: 'link' },
+          fileKind: 'symlink',
+          mimeType: 'text/plain',
+        }}
+        rootHandle={buildResource(null)}
+        hideToolbar
+      />,
+    )
+
+    expect(screen.getByText('Symbolic link')).toBeDefined()
+  })
+
   it('renders a pdf viewer for pdf mime types when an inline raw url is provided', () => {
     render(
       <UnixFSFileViewer

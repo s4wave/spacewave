@@ -18,7 +18,7 @@ import {
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import { UnixFSTypeID } from '@s4wave/web/hooks/useUnixFSHandle.js'
+import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 
 import { v86SerialChannelName, type SerialFrame } from './serial-channel.js'
 import { VmV86TypeID } from './sdk/vmv86.js'

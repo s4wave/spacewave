@@ -44,6 +44,15 @@ describe('unixfs download dispatch', () => {
     )
   })
 
+  it('builds root raw projected file urls at the object content root', () => {
+    expect(buildUnixFSFileDownloadURL(7, 'space-1', 'docs/demo', '/')).toBe(
+      '/p/spacewave-core/fs/u/7/so/space-1/-/docs/demo/-',
+    )
+    expect(buildUnixFSFileInlineURL(7, 'space-1', 'docs/demo', '/')).toBe(
+      '/p/spacewave-core/fs/u/7/so/space-1/-/docs/demo/-?inline=1',
+    )
+  })
+
   it('uses raw file serving for one selected file', async () => {
     await downloadUnixFSSelection({
       sessionIndex: 3,
@@ -105,6 +114,18 @@ describe('unixfs download dispatch', () => {
 
     expect(batch.url).toMatch(
       /^\/p\/spacewave-core\/export-batch\/u\/5\/so\/space-b\/-\/docs\/demo\/-\/nested\/.+\/selection\.zip$/,
+    )
+    expect(batch.filename).toBe('selection.zip')
+  })
+
+  it('keeps root batch exports inside the mounted object content root', () => {
+    const batch = buildUnixFSBatchExportURL(5, 'space-b', 'docs/demo', '/', [
+      buildEntry('b', 'beta.txt', false),
+      buildEntry('a', 'alpha', true),
+    ])
+
+    expect(batch.url).toMatch(
+      /^\/p\/spacewave-core\/export-batch\/u\/5\/so\/space-b\/-\/docs\/demo\/-\/.+\/selection\.zip$/,
     )
     expect(batch.filename).toBe('selection.zip')
   })

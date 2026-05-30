@@ -3,12 +3,16 @@ import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Client as SRPCClient } from 'starpc'
 import { FSHandle } from './handle.js'
 import type {
+  HandleLookupPathRequest,
+  HandleLookupRequest,
   HandleReadAtRequest,
   HandleUploadFileRequest,
   HandleUploadTreeRequest,
 } from './handle.pb.js'
 
 const getSizeMock = vi.hoisted(() => vi.fn())
+const lookupMock = vi.hoisted(() => vi.fn())
+const lookupPathMock = vi.hoisted(() => vi.fn())
 const readAtMock = vi.hoisted(() => vi.fn())
 const uploadFileMock = vi.hoisted(() => vi.fn())
 const uploadTreeMock = vi.hoisted(() => vi.fn())
@@ -18,6 +22,8 @@ const uploadDataFrameMaxBytes = 64 * 1024
 vi.mock('./handle_srpc.pb.js', () => ({
   FSHandleResourceServiceClient: class {
     GetSize = getSizeMock
+    Lookup = lookupMock
+    LookupPath = lookupPathMock
     ReadAt = readAtMock
     UploadFile = uploadFileMock
     UploadTree = uploadTreeMock
@@ -106,6 +112,78 @@ function dataMessageFrames(sent: HandleUploadTreeRequest[]): Uint8Array[] {
     request.body?.case === 'data' ? [request.body.value] : [],
   )
 }
+
+describe('FSHandle path identity', () => {
+  it('keeps root and dot lookup paths at root identity', async () => {
+    lookupPathMock.mockReset()
+    lookupPathMock.mockImplementation((request: HandleLookupPathRequest) =>
+      Promise.resolve({
+        resourceId: request.path === '.' ? 2 : 3,
+        traversedPath: [],
+        info: { isDir: true },
+      }),
+    )
+
+    const handle = new FSHandle(buildResourceRef())
+    const dot = await handle.lookupPath('.')
+    const root = await handle.lookupPath('/')
+
+    expect(dot.handle.getPath()).toBe('')
+    expect(dot.traversedPath).toEqual([])
+    expect(root.handle.getPath()).toBe('')
+    expect(root.traversedPath).toEqual([])
+  })
+
+  it('records backend-cleaned traversed paths after path lookup', async () => {
+    lookupPathMock.mockReset()
+    lookupPathMock.mockResolvedValue({
+      resourceId: 2,
+      traversedPath: ['docs', 'logo.png'],
+      info: { name: 'logo.png', isDir: false },
+    })
+
+    const handle = new FSHandle(buildResourceRef())
+    const result = await handle.lookupPath('/docs//logo.png')
+
+    expect(lookupPathMock).toHaveBeenCalledWith(
+      { path: '/docs//logo.png' },
+      undefined,
+    )
+    expect(result.traversedPath).toEqual(['docs', 'logo.png'])
+    expect(result.handle.getPath()).toBe('docs/logo.png')
+  })
+
+  it('joins relative backend-cleaned lookup paths onto the current handle path', async () => {
+    lookupPathMock.mockReset()
+    lookupPathMock.mockResolvedValue({
+      resourceId: 3,
+      traversedPath: ['nested', 'report.md'],
+      info: { name: 'report.md', isDir: false },
+    })
+
+    const handle = new FSHandle(buildResourceRef(), { path: 'docs' })
+    const result = await handle.lookupPath('./nested//report.md')
+
+    expect(result.traversedPath).toEqual(['nested', 'report.md'])
+    expect(result.handle.getPath()).toBe('docs/nested/report.md')
+  })
+
+  it('normalizes nested child lookup identity from the current handle path', async () => {
+    lookupMock.mockReset()
+    lookupMock.mockImplementation((request: HandleLookupRequest) =>
+      Promise.resolve({
+        resourceId: 4,
+        info: { name: request.name, isDir: false },
+      }),
+    )
+
+    const handle = new FSHandle(buildResourceRef(), { path: 'docs' })
+    const child = await handle.lookup('report.md')
+
+    expect(lookupMock).toHaveBeenCalledWith({ name: 'report.md' }, undefined)
+    expect(child.getPath()).toBe('docs/report.md')
+  })
+})
 
 describe('FSHandle readAt', () => {
   it('joins capped resource reads for an explicit large length', async () => {

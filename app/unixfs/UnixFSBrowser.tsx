@@ -13,6 +13,15 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { ObjectLayoutTab } from '@s4wave/sdk/layout/world/world.pb.js'
 import { MknodType } from '@s4wave/sdk/unixfs/index.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import {
+  getUnixFSDirEntryKind,
+  getUnixFSFileInfoKind,
+} from '@s4wave/sdk/unixfs/file-kind.js'
+import {
+  getUnixFSParentPath,
+  joinUnixFSDisplayPath,
+  normalizeUnixFSLookupPath,
+} from '@s4wave/sdk/unixfs/path.js'
 import { ObjectInfo, UnixfsObjectInfo } from '@s4wave/web/object/object.pb.js'
 import {
   useUnixFSRootHandle,
@@ -104,23 +113,6 @@ export interface UnixFSBrowserProps {
   worldState: Resource<IWorldState>
   // browserBody replaces the browser's default file list/file viewer body.
   browserBody?: ComponentType<UnixFSBrowserBodyProps>
-}
-
-// joinPath joins path segments, handling leading slashes.
-function joinPath(base: string, ...segments: string[]): string {
-  let result = base
-  for (const segment of segments) {
-    if (result.endsWith('/')) {
-      result = result + segment
-    } else {
-      result = result + '/' + segment
-    }
-  }
-  return result
-}
-
-function normalizeHandlePath(path: string): string {
-  return !path || path === '/' || path === '.' ? '' : path
 }
 
 function getTrackedHandlePath(handle: {
@@ -307,11 +299,13 @@ export function UnixFSBrowser({
 
   // Determine if path is a directory - only after stat completes
   // CRITICAL: Also check statResource.loading to avoid using stale data during path changes
-  const isDir =
+  const fileKind =
     statResource.loading || statResource.value === null
       ? null
-      : (statResource.value.info.isDir ?? false)
-  const normalizedDisplayPath = normalizeHandlePath(displayPath)
+      : (statResource.value.fileKind ??
+        getUnixFSFileInfoKind(statResource.value.info))
+  const isDir = fileKind === null ? null : fileKind === 'directory'
+  const normalizedDisplayPath = normalizeUnixFSLookupPath(displayPath)
 
   const directoryHandle = useMappedResource(
     pathHandle,
@@ -331,14 +325,15 @@ export function UnixFSBrowser({
   // Convert to FileEntry format expected by FileList
   const fileEntries = useMemo(() => {
     if (!entriesResource.value) return []
-    return entriesResource.value.map(
-      (entry): FileEntry => ({
+    return entriesResource.value.map((entry): FileEntry => {
+      const entryKind = getUnixFSDirEntryKind(entry)
+      return {
         id: entry.id,
         name: entry.name,
-        isDir: entry.isDir,
-        isSymlink: entry.isSymlink,
-      }),
-    )
+        isDir: entryKind === 'directory',
+        isSymlink: entryKind === 'symlink',
+      }
+    })
   }, [entriesResource.value])
 
   const [state, dispatch] = useReducer(
@@ -458,7 +453,7 @@ export function UnixFSBrowser({
   const handleUp = useCallback(() => {
     if (displayPath === '/') return
     dispatch({ type: 'set-pending-name', name: null })
-    navigate({ path: joinPath(displayPath, '..') })
+    navigate({ path: getUnixFSParentPath(displayPath) })
   }, [displayPath, navigate])
 
   // Handle path change from toolbar (user edited path directly)
@@ -486,7 +481,7 @@ export function UnixFSBrowser({
       // Multiple items: open new tabs for each
       if (!tabContext) return
       for (const entry of entries) {
-        const filePath = joinPath(displayPath, entry.name)
+        const filePath = joinUnixFSDisplayPath(displayPath, entry.name)
         const objectInfo: ObjectInfo = {
           info: {
             case: 'unixfsObjectInfo',
@@ -740,7 +735,7 @@ export function UnixFSBrowser({
         return null
       }
 
-      const destPath = joinPath(displayPath, entry.name)
+      const destPath = joinUnixFSDisplayPath(displayPath, entry.name)
       const moveItems = movableItems.map((movableItem) => {
         const sourceName =
           movableItem.label ?? getUnixFSBaseName(movableItem.value.path)

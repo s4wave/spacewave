@@ -1,5 +1,13 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import {
+  getUnixFSBaseName,
+  getUnixFSParentPath,
+  isSameOrChildUnixFSPath,
+  joinUnixFSDisplayPath,
+  normalizeUnixFSDisplayPath,
+  normalizeUnixFSLookupPath,
+  splitUnixFSPath,
+} from '@s4wave/sdk/unixfs/path.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 
 export interface UnixFSMoveItem {
@@ -27,42 +35,12 @@ export interface UnixFSMoveValidation {
     | null
 }
 
-// splitUnixFSPath splits a UnixFS path into non-empty segments.
-export function splitUnixFSPath(path: string): string[] {
-  return path.split('/').filter(Boolean)
-}
-
-// getUnixFSParentPath returns the normalized parent path for a UnixFS path.
-export function getUnixFSParentPath(path: string): string {
-  const parts = splitUnixFSPath(path)
-  if (parts.length <= 1) return '/'
-  return '/' + parts.slice(0, -1).join('/')
-}
-
-// getUnixFSBaseName returns the final path segment for a UnixFS path.
-export function getUnixFSBaseName(path: string): string {
-  const parts = splitUnixFSPath(path)
-  return parts.at(-1) ?? ''
-}
-
-// normalizeUnixFSHandlePath normalizes a handle path for root-relative lookups.
-export function normalizeUnixFSHandlePath(path: string): string {
-  if (!path || path === '/' || path === '.') return ''
-  return path.replace(/^\/+/, '')
-}
-
-// isSameOrChildUnixFSPath returns true when childPath is the same as or below parentPath.
-export function isSameOrChildUnixFSPath(
-  parentPath: string,
-  childPath: string,
-): boolean {
-  const parentParts = splitUnixFSPath(parentPath)
-  const childParts = splitUnixFSPath(childPath)
-  if (childParts.length < parentParts.length) return false
-  for (const [i, part] of parentParts.entries()) {
-    if (childParts[i] !== part) return false
-  }
-  return true
+export {
+  getUnixFSBaseName,
+  getUnixFSParentPath,
+  isSameOrChildUnixFSPath,
+  normalizeUnixFSLookupPath as normalizeUnixFSHandlePath,
+  splitUnixFSPath,
 }
 
 // buildUnixFSMoveItems maps browser entries in one directory into move items.
@@ -70,17 +48,12 @@ export function buildUnixFSMoveItems(
   currentPath: string,
   entries: Pick<FileEntry, 'id' | 'name' | 'isDir'>[],
 ): UnixFSMoveItem[] {
-  const normalizedCurrentPath =
-    !currentPath || currentPath === '/' || currentPath === '.'
-      ? ''
-      : '/' + currentPath.replace(/^\/+|\/+$/g, '')
+  const normalizedCurrentPath = normalizeUnixFSDisplayPath(currentPath)
   return entries.map((entry) => ({
     id: entry.id,
     name: entry.name,
     isDir: entry.isDir ?? false,
-    path: normalizedCurrentPath
-      ? `${normalizedCurrentPath}/${entry.name}`
-      : `/${entry.name}`,
+    path: joinUnixFSDisplayPath(normalizedCurrentPath, entry.name),
   }))
 }
 
@@ -156,8 +129,7 @@ async function collectUnixFSDirectories(
   for (const entry of entries) {
     const name = entry.name
     if (!name) continue
-    const childPath =
-      currentPath === '/' ? `/${name}` : `${currentPath}/${name}`
+    const childPath = joinUnixFSDisplayPath(currentPath, name)
     using childHandle = await handle.lookup(name, abortSignal)
     await collectUnixFSDirectories(
       childHandle,
@@ -185,7 +157,7 @@ async function lookupUnixFSMoveHandle(
   path: string,
   abortSignal?: AbortSignal,
 ): Promise<FSHandle> {
-  const normalizedPath = normalizeUnixFSHandlePath(path)
+  const normalizedPath = normalizeUnixFSLookupPath(path)
   if (!normalizedPath) {
     return rootHandle.clone(abortSignal)
   }

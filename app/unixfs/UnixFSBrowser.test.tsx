@@ -633,6 +633,28 @@ describe('UnixFSBrowser drag gating', () => {
     expect(screen.queryByText('My Drive')).toBeNull()
   })
 
+  it('accepts backend-cleaned directory handles for display paths with dot segments', () => {
+    h.mockPathHandleResource = buildResource({
+      getPath: () => 'docs/images',
+      lookup: h.mockLookup,
+      mkdirAll: h.mockMkdirAll,
+      mknod: h.mockMknod,
+      rename: h.mockRename,
+    })
+
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/docs/./images"
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(screen.getByTestId('file-entry-docs')).toBeTruthy()
+    expect(h.latestFileListProps?.entries).toHaveLength(3)
+  })
+
   it('renders a custom browser body under the toolbar instead of the file list', () => {
     render(
       <UnixFSBrowser

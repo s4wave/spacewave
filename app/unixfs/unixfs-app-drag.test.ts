@@ -74,6 +74,27 @@ describe('buildUnixFSEntryAppDragEnvelope', () => {
     })
   })
 
+  it('encodes openable route hints through the projected path owner', () => {
+    const envelope = buildUnixFSEntryAppDragEnvelope({
+      entry: { id: 'cover', name: 'cover #1.png', isDir: false },
+      currentPath: '/docs with spaces',
+      sessionIndex: 7,
+      spaceId: 'space 1',
+      unixfsId: 'files/% key',
+    })
+
+    expect(envelope?.items[0].capabilities[0]).toMatchObject({
+      kind: 'openable',
+      value: {
+        case: 'object',
+        value: {
+          routePath:
+            '/u/7/so/space%201/-/files/%25%20key/-/docs%20with%20spaces/cover%20%231.png',
+        },
+      },
+    })
+  })
+
   it('reads the movable UnixFS drag item back from dataTransfer', () => {
     const envelope = buildUnixFSEntryAppDragEnvelope({
       entry: { id: 'docs', name: 'docs', isDir: true },
