@@ -3,6 +3,7 @@ package resource_session
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
@@ -149,43 +150,31 @@ func waitPairedDevices(
 	errCh <-chan error,
 	waitChs []<-chan struct{},
 ) (sobject.SharedObjectStateSnapshot, error) {
-	chans := make([]<-chan struct{}, 0, len(waitChs))
+	var waitDone <-chan error
 	for _, ch := range waitChs {
 		if ch != nil {
-			chans = append(chans, ch)
+			waitCtx, cancelWait := context.WithCancel(ctx)
+			defer cancelWait()
+			done := make(chan error, 1)
+			go func() {
+				done <- broadcast.WaitAny(waitCtx, waitChs...)
+			}()
+			waitDone = done
+			break
 		}
 	}
-	switch len(chans) {
-	case 0:
-		select {
-		case <-ctx.Done():
-		case err := <-errCh:
-			return nil, err
-		case next := <-stateCh:
-			return next, nil
-		}
-	case 1:
-		select {
-		case <-ctx.Done():
-		case err := <-errCh:
-			return nil, err
-		case next := <-stateCh:
-			return next, nil
-		case <-chans[0]:
-		}
-	default:
-		select {
-		case <-ctx.Done():
-		case err := <-errCh:
-			return nil, err
-		case next := <-stateCh:
-			return next, nil
-		case <-chans[0]:
-		case <-chans[1]:
-		}
-	}
-	if err := ctx.Err(); err != nil {
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case err := <-errCh:
 		return nil, err
+	case next := <-stateCh:
+		return next, nil
+	case err := <-waitDone:
+		if err != nil {
+			return nil, err
+		}
 	}
 	return nil, nil
 }

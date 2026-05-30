@@ -78,8 +78,8 @@ github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phq
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.49.16-0.20260528143940-9eed94e2b09a h1:cl9aEzBUp9y/c9LcqP+4VvCHusOPA4M1c5qQIOTJg9E=
 github.com/aperturerobotics/starpc v0.49.16-0.20260528143940-9eed94e2b09a/go.mod h1:5SIPOGIoUG7dLpb1NzZG2qK9l1T5oZ2454yzyMukviw=
-github.com/aperturerobotics/util v1.34.7-0.20260528053543-9d9adb42d4fc h1:+AIvNUmXNBAbOzwBp6T83nPONg2TV1jttYC8Ik1uJJA=
-github.com/aperturerobotics/util v1.34.7-0.20260528053543-9d9adb42d4fc/go.mod h1:sktI4Hxtjcqqs45FmAIjb448ZoN4rizIBjgfRD5gSik=
+github.com/aperturerobotics/util v1.34.7-0.20260530185007-da6d29f33ebf h1:GZBda3bRlwrPo2kqhn2Hq8luSjVneWC/EfWyhVkl81w=
+github.com/aperturerobotics/util v1.34.7-0.20260530185007-da6d29f33ebf/go.mod h1:sktI4Hxtjcqqs45FmAIjb448ZoN4rizIBjgfRD5gSik=
 github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010 h1:gOEsFiQyF2xvAp+V57qc998Y1F+LNwFuzgXjwMo8+0o=
 github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010/go.mod h1:PkKy4Pu/qDPCMrZMngTiXuRFxyqBHkYI28I3uqqXnAk=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 h1:ZbKfJ4Qftk6XS8L05XgS6thW6hGadgeGN4KVmxwazvc=

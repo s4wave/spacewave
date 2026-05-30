@@ -5,6 +5,7 @@ import (
 	"time"
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/util/broadcast"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
@@ -321,38 +322,7 @@ func (s *syncStatusRateState) apply(
 }
 
 func waitSyncStatus(ctx context.Context, waitChs []<-chan struct{}) error {
-	chans := make([]<-chan struct{}, 0, len(waitChs))
-	for _, ch := range waitChs {
-		if ch != nil {
-			chans = append(chans, ch)
-		}
-	}
-	switch len(chans) {
-	case 0:
-		<-ctx.Done()
-	case 1:
-		select {
-		case <-ctx.Done():
-		case <-chans[0]:
-		}
-	case 2:
-		select {
-		case <-ctx.Done():
-		case <-chans[0]:
-		case <-chans[1]:
-		}
-	default:
-		select {
-		case <-ctx.Done():
-		case <-chans[0]:
-		case <-chans[1]:
-		case <-chans[2]:
-		}
-	}
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	return nil
+	return broadcast.WaitAny(ctx, waitChs...)
 }
 
 func bytesPerSecond(delta int64, elapsed time.Duration) uint64 {

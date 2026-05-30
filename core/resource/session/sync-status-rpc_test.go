@@ -2,6 +2,7 @@ package resource_session
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -194,6 +195,40 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 			cancel()
 			if err := <-errCh; err != context.Canceled {
 				t.Fatalf("WatchSyncStatus() = %v, want context canceled", err)
+			}
+		})
+	}
+}
+
+func TestWaitSyncStatusWaitsForEverySource(t *testing.T) {
+	t.Parallel()
+
+	for sourceIdx := range 5 {
+		sourceIdx := sourceIdx
+		t.Run(fmt.Sprintf("source-%d", sourceIdx), func(t *testing.T) {
+			t.Parallel()
+
+			waitChs, closeSource := testWaitChannels(5, sourceIdx)
+			done := make(chan error, 1)
+			go func() {
+				done <- waitSyncStatus(t.Context(), waitChs)
+			}()
+
+			select {
+			case err := <-done:
+				t.Fatalf("waitSyncStatus returned before source %d woke: %v", sourceIdx, err)
+			case <-time.After(10 * time.Millisecond):
+			}
+
+			closeSource()
+
+			select {
+			case err := <-done:
+				if err != nil {
+					t.Fatalf("waitSyncStatus returned %v after source %d woke", err, sourceIdx)
+				}
+			case <-time.After(time.Second):
+				t.Fatalf("waitSyncStatus ignored source %d", sourceIdx)
 			}
 		})
 	}
@@ -541,6 +576,20 @@ func recvSyncStatusResponse(
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for sync status response")
 		return nil
+	}
+}
+
+func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
+	chans := make([]chan struct{}, count)
+	waitChs := make([]<-chan struct{}, 0, count+2)
+	waitChs = append(waitChs, nil)
+	for i := range chans {
+		chans[i] = make(chan struct{})
+		waitChs = append(waitChs, chans[i])
+	}
+	waitChs = append(waitChs, nil)
+	return waitChs, func() {
+		close(chans[sourceIdx])
 	}
 }
 
