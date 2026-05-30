@@ -12,6 +12,12 @@ import { OVERAGE_STORAGE_PER_GB } from '../provider/spacewave/pricing.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
 
 const BYTES_PER_GB = 1024 * 1024 * 1024
+const SOFT_USAGE_ALERT_RATIO = 0.8
+
+type UsageAlert = {
+  label: string
+  percent: number
+}
 
 function formatCount(n: number): string {
   if (n < 1000) return String(n)
@@ -28,6 +34,20 @@ function thresholdBarColor(ratio: number): string {
 function formatCurrency(amount: number): string {
   if (amount > 0 && amount < 0.01) return '<$0.01'
   return `$${amount.toFixed(2)}`
+}
+
+function usageAlert(
+  label: string,
+  used: number,
+  baseline: number,
+): UsageAlert | null {
+  if (baseline <= 0) return null
+  const ratio = used / baseline
+  if (ratio < SOFT_USAGE_ALERT_RATIO) return null
+  return {
+    label,
+    percent: Math.round(ratio * 100),
+  }
 }
 
 // UsageBars shows storage, write ops, and read ops progress bars.
@@ -53,6 +73,11 @@ export function UsageBars(props: { actions?: ReactNode }) {
   const deletedGbMonths = usage.storageOverageDeletedGbMonths ?? 0
   const deletedCost = usage.storageOverageDeletedCostEstimateUsd ?? 0
   const meteredThroughAt = Number(usage.usageMeteredThroughAt ?? 0n)
+  const softAlerts = [
+    usageAlert('Storage', storageUsed, storageBaseline),
+    usageAlert('Write Ops', writeOps, writeBaseline),
+    usageAlert('Cloud Reads', readOps, readBaseline),
+  ].filter((alert): alert is UsageAlert => alert !== null)
 
   return (
     <div className="space-y-3">
@@ -65,6 +90,20 @@ export function UsageBars(props: { actions?: ReactNode }) {
       {meteredThroughAt > 0 && (
         <div className="text-foreground-alt/45 -mt-2 text-[0.6rem]">
           Usage metered through {formatMeteredThrough(meteredThroughAt)}
+        </div>
+      )}
+      {softAlerts.length > 0 && (
+        <div className="rounded-md border border-yellow-400/20 bg-yellow-400/10 px-2.5 py-2 text-[0.6rem] leading-relaxed">
+          <div className="text-foreground text-[0.65rem] font-medium">
+            Included usage alert
+          </div>
+          <div className="text-foreground-alt/60 mt-1 space-y-0.5">
+            {softAlerts.map((alert) => (
+              <div key={alert.label}>
+                {alert.label} has reached {alert.percent}% of included usage.
+              </div>
+            ))}
+          </div>
         </div>
       )}
       <div className="space-y-2">

@@ -17,6 +17,8 @@ colors:
   error-text: "#ffb3b3"
   error-bg: "#ff8f8f"
   error-border: "#ff8f8f"
+  destructive: "{colors.error}"
+  destructive-foreground: "{colors.primary-foreground}"
   foreground: "#ffffff"
   foreground-alt: "#e1dddd"
   text-primary: "#f7f1ff"
@@ -494,9 +496,15 @@ rules still apply.
 - **Success** (`{colors.success}`): confirmation, completed step, positive
   status.
 - **Warning** (`{colors.warning}`): caution, expiring or degraded state.
-- **Error** (`{colors.error}`): destructive and failed states. Use low-opacity
-  backgrounds such as `bg-destructive/5` or error token equivalents before
-  reaching for solid fills.
+- **Destructive** (`{colors.destructive}`): current app utility for destructive,
+  invalid, and failed states. It aliases the error color in CSS; use
+  low-opacity combinations such as `bg-destructive/5`,
+  `border-destructive/20`, and `text-destructive` before reaching for solid
+  fills.
+- **Error** (`{colors.error}`, `error-text`, `error-bg`, `error-border`):
+  specialized error tokens for components that already own those aliases. New
+  app UI should prefer destructive utilities unless matching an existing
+  error-token component.
 
 ### Opacity Rules
 
@@ -553,6 +561,9 @@ a brand decoration.
   normal panel headings uppercase.
 - Keep letter spacing at 0 for normal text. Use `tracking-widest` only on
   micro labels such as wizard steps and group labels.
+- Shell and FlexLayout tab labels are the chrome exception: cramped tab text
+  may use slight negative tracking. Do not carry negative tracking into panels,
+  cards, or form controls.
 - Use `select-none` on headings, labels, tabs, badges, and non-editable chrome.
 
 ## Layout
@@ -728,6 +739,9 @@ description.
 - Text `text-foreground text-xs`.
 - Height usually `h-7` in wizards and `h-9` on focused pages.
 - Do not use a solid brand fill for ordinary app actions.
+- `web/ui/Button.tsx` is a shadcn-compatible low-level primitive. App surfaces
+  should pass this class set, or use a wrapper/owner component that does, when
+  they need the polished `primary-action` pattern.
 
 ### Text Input
 
@@ -739,6 +753,9 @@ description.
 - Focus `focus-visible:border-brand/50 focus-visible:ring-brand/15`.
 - Use `font-mono` only when the input is a token, URL, hash, path, or object
   reference.
+- `web/ui/Input.tsx` is a shadcn-compatible low-level primitive. App-owned
+  forms should apply this class set or use a surface-specific wrapper for the
+  polished `text-input` pattern.
 
 ### Radio Option
 
@@ -796,6 +813,8 @@ description.
 
 - Height 22px in shell layout; 20px in the top-bar-style strip.
 - Max width 100px, ellipsized text, `font-size: 11px`.
+- FlexLayout shell tabs use `letter-spacing: -0.01em`; the legacy
+  top-bar-style strip uses `-0.025em`.
 - Top corners only, no underline pseudo-element.
 - Inactive tabs are translucent and blurred; selected tabs are opaque and
   brighter.
@@ -850,8 +869,18 @@ Spacewave uses container queries and viewport-height variants heavily.
 | `short` | max-height 580px | Hide or compress footer adornments |
 | `very-short` | max-height 470px | Hide logo when necessary |
 | `ultra-short` | max-height 390px | Hide hero wordmark when necessary |
+| `auth-short` | container max-height 740px | Compress auth/onboarding layout |
+| `auth-very-short` | container max-height 580px | Top-align compact auth content |
+| `auth-short-narrow` | container max-height 740px and max-width 950px | Hide secondary auth intro content |
+| `@xs` | container min-width 20rem | Fine-grained component scale-up |
+| `@sm` | container min-width 24rem | Fine-grained component scale-up |
+| `@md` | container min-width 28rem | Fine-grained component scale-up |
 | `@lg` | container min-width 32rem | Landing and component scale-up |
+| `@xl` | container min-width 36rem | Fine-grained component scale-up |
 | `@2xl` | container min-width 42rem | Larger landing spacing |
+| `@3xl` | container min-width 48rem | Fine-grained component scale-up |
+| `@4xl` | container min-width 56rem | Fine-grained component scale-up |
+| `@5xl` | container min-width 64rem | Fine-grained component scale-up |
 
 ### Rules
 
@@ -916,6 +945,9 @@ Spacewave uses container queries and viewport-height variants heavily.
 
 - `web/style/app.css`: Tailwind v4 theme variables, fonts, HDR/P3 variants,
   shell styles, scrollbars, and hero button class.
+- `web/ui/Button.tsx` and `web/ui/Input.tsx`: shadcn-compatible low-level
+  primitives; polished app action/input patterns are applied through wrappers
+  or source-owned class overrides.
 - `web/ui/InfoCard.tsx`: standard static card.
 - `web/ui/DashboardButton.tsx`: compact panel action button.
 - `web/ui/RadioOption.tsx`: selected/unselected choice row.
@@ -923,6 +955,7 @@ Spacewave uses container queries and viewport-height variants heavily.
 - `web/ui/loading/*`: `LoadingView`, `Spinner`, `ProgressBar`,
   `LoadingInline`, `LoadingCard`, and `LoadingScreen`.
 - `app/wizard/WizardShell.tsx`: persistent wizard shell.
+- `app/auth/AuthScreenLayout.tsx`: auth container-query variants.
 - `app/session/dashboard/SessionDashboard.tsx`: empty-session dashboard and
   command-palette onboarding surface.
 - `app/landing/*`: landing page hero, section, CTA, reveal, legal, and

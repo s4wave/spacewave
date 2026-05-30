@@ -40,6 +40,10 @@ describe('UsageBars', () => {
     mockBillingState.response.usage.storageBytes = 112.4 * 1024 * 1024 * 1024
     mockBillingState.response.usage.storageBaselineBytes =
       100 * 1024 * 1024 * 1024
+    mockBillingState.response.usage.writeOps = 1n
+    mockBillingState.response.usage.writeOpsBaseline = 10n
+    mockBillingState.response.usage.readOps = 1n
+    mockBillingState.response.usage.readOpsBaseline = 10n
     mockBillingState.response.usage.storageOverageBytes =
       12.4 * 1024 * 1024 * 1024
     mockBillingState.response.usage.storageOverageMonthlyCostEstimateUsd = 0.25
@@ -76,6 +80,29 @@ describe('UsageBars', () => {
     render(<UsageBars />)
 
     expect(screen.queryByText('Extra storage')).toBeNull()
+    expect(screen.queryByText('Included usage alert')).toBeNull()
+  })
+
+  it('shows a soft alert when usage reaches 80% of the included baseline', () => {
+    mockBillingState.response.usage.storageBytes = 80 * 1024 * 1024 * 1024
+    mockBillingState.response.usage.storageOverageBytes = 0
+    mockBillingState.response.usage.writeOps = 850_000n
+    mockBillingState.response.usage.writeOpsBaseline = 1_000_000n
+    mockBillingState.response.usage.readOps = 9_000_000n
+    mockBillingState.response.usage.readOpsBaseline = 10_000_000n
+
+    render(<UsageBars />)
+
+    expect(screen.getByText('Included usage alert')).toBeDefined()
+    expect(
+      screen.getByText('Storage has reached 80% of included usage.'),
+    ).toBeDefined()
+    expect(
+      screen.getByText('Write Ops has reached 85% of included usage.'),
+    ).toBeDefined()
+    expect(
+      screen.getByText('Cloud Reads has reached 90% of included usage.'),
+    ).toBeDefined()
   })
 
   it('shows already-deleted data cost only when provided', () => {

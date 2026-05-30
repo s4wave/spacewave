@@ -233,6 +233,8 @@
   --color-error-text: oklch(0.8385 0.0891 19.11);
   --color-error-bg: oklch(0.7703 0.1356 20.68 / 0.1);
   --color-error-border: oklch(0.7703 0.1356 20.68 / 0.2);
+  --color-destructive: var(--color-error);
+  --color-destructive-foreground: var(--color-primary-foreground);
 
   /* Footer */
   --color-footer-bg: oklch(0.15 0 0);
