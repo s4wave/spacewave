@@ -44,6 +44,41 @@ pub struct DeviceCapability {
     /// Detail is a short status or policy note.
     #[prost(string, tag="5")]
     pub detail: ::prost::alloc::string::String,
+    /// Link points at the owner that executes the capability.
+    #[prost(message, optional, tag="6")]
+    pub link: ::core::option::Option<DeviceCapabilityLink>,
+    /// Policy records the local and Space policy refs used for the effective state.
+    #[prost(message, optional, tag="7")]
+    pub policy: ::core::option::Option<DeviceCapabilityPolicy>,
+}
+/// DeviceCapabilityLink points at the capability execution owner.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeviceCapabilityLink {
+    /// ObjectKey is the linked owner object, such as a UnixFS root or Forge Worker.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// TypeId is the ObjectType id for ObjectKey when ObjectKey is set.
+    #[prost(string, tag="2")]
+    pub type_id: ::prost::alloc::string::String,
+    /// ProtocolId is the post-registration Bifrost protocol id for stream-backed adapters.
+    #[prost(string, tag="3")]
+    pub protocol_id: ::prost::alloc::string::String,
+}
+/// DeviceCapabilityPolicy records inputs to the effective capability state.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeviceCapabilityPolicy {
+    /// LocalPolicyRef identifies the daemon-local policy entry.
+    #[prost(string, tag="1")]
+    pub local_policy_ref: ::prost::alloc::string::String,
+    /// GrantPolicyRef identifies the Space grant or policy entry.
+    #[prost(string, tag="2")]
+    pub grant_policy_ref: ::prost::alloc::string::String,
+    /// LocalState is the daemon-local allowlist state.
+    #[prost(enumeration="DeviceCapabilityLocalState", tag="3")]
+    pub local_state: i32,
+    /// GrantState is the current Space grant projection.
+    #[prost(enumeration="DeviceCapabilityGrantState", tag="4")]
+    pub grant_state: i32,
 }
 /// Device is the world-block state for a Spacewave-managed Device object.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -287,6 +322,72 @@ impl DeviceCapabilityState {
             "DEVICE_CAPABILITY_STATE_GRANT_BLOCKED" => Some(Self::GrantBlocked),
             "DEVICE_CAPABILITY_STATE_AVAILABLE" => Some(Self::Available),
             "DEVICE_CAPABILITY_STATE_ACTIVE" => Some(Self::Active),
+            _ => None,
+        }
+    }
+}
+/// DeviceCapabilityLocalState is the daemon-local allowlist state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DeviceCapabilityLocalState {
+    /// DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN is unset.
+    Unknown = 0,
+    /// DEVICE_CAPABILITY_LOCAL_STATE_ENABLED means daemon-local policy allows the capability.
+    Enabled = 1,
+    /// DEVICE_CAPABILITY_LOCAL_STATE_DISABLED means daemon-local policy disables the capability.
+    Disabled = 2,
+}
+impl DeviceCapabilityLocalState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN",
+            Self::Enabled => "DEVICE_CAPABILITY_LOCAL_STATE_ENABLED",
+            Self::Disabled => "DEVICE_CAPABILITY_LOCAL_STATE_DISABLED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN" => Some(Self::Unknown),
+            "DEVICE_CAPABILITY_LOCAL_STATE_ENABLED" => Some(Self::Enabled),
+            "DEVICE_CAPABILITY_LOCAL_STATE_DISABLED" => Some(Self::Disabled),
+            _ => None,
+        }
+    }
+}
+/// DeviceCapabilityGrantState is the Space grant projection for a capability.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DeviceCapabilityGrantState {
+    /// DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN is unset.
+    Unknown = 0,
+    /// DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy currently allows the capability.
+    Allowed = 1,
+    /// DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy currently blocks the capability.
+    Blocked = 2,
+}
+impl DeviceCapabilityGrantState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN",
+            Self::Allowed => "DEVICE_CAPABILITY_GRANT_STATE_ALLOWED",
+            Self::Blocked => "DEVICE_CAPABILITY_GRANT_STATE_BLOCKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN" => Some(Self::Unknown),
+            "DEVICE_CAPABILITY_GRANT_STATE_ALLOWED" => Some(Self::Allowed),
+            "DEVICE_CAPABILITY_GRANT_STATE_BLOCKED" => Some(Self::Blocked),
             _ => None,
         }
     }

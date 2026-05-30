@@ -59,6 +59,10 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace device {
+enum DeviceCapabilityGrantState : int;
+extern const uint32_t DeviceCapabilityGrantState_internal_data_[];
+enum DeviceCapabilityLocalState : int;
+extern const uint32_t DeviceCapabilityLocalState_internal_data_[];
 enum DeviceCapabilityState : int;
 extern const uint32_t DeviceCapabilityState_internal_data_[];
 enum DeviceLiveness : int;
@@ -75,6 +79,14 @@ class DeviceCapability;
 struct DeviceCapabilityDefaultTypeInternal;
 extern DeviceCapabilityDefaultTypeInternal _DeviceCapability_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull DeviceCapability_class_data_;
+class DeviceCapabilityLink;
+struct DeviceCapabilityLinkDefaultTypeInternal;
+extern DeviceCapabilityLinkDefaultTypeInternal _DeviceCapabilityLink_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DeviceCapabilityLink_class_data_;
+class DeviceCapabilityPolicy;
+struct DeviceCapabilityPolicyDefaultTypeInternal;
+extern DeviceCapabilityPolicyDefaultTypeInternal _DeviceCapabilityPolicy_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DeviceCapabilityPolicy_class_data_;
 class DevicePlatform;
 struct DevicePlatformDefaultTypeInternal;
 extern DevicePlatformDefaultTypeInternal _DevicePlatform_default_instance_;
@@ -103,6 +115,12 @@ extern const ::google::protobuf::internal::ClassDataFull WatchDeviceStateRespons
 }  // namespace s4wave
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::s4wave::device::DeviceCapabilityGrantState_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::device::DeviceCapabilityGrantState>;
+template <>
+internal::EnumTraitsT<::s4wave::device::DeviceCapabilityLocalState_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::device::DeviceCapabilityLocalState>;
 template <>
 internal::EnumTraitsT<::s4wave::device::DeviceCapabilityState_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::device::DeviceCapabilityState>;
@@ -278,6 +296,80 @@ inline bool DeviceCapabilityState_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<DeviceCapabilityState>(DeviceCapabilityState_descriptor(), name,
                                            value);
 }
+enum DeviceCapabilityLocalState : int {
+  DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN = 0,
+  DEVICE_CAPABILITY_LOCAL_STATE_ENABLED = 1,
+  DEVICE_CAPABILITY_LOCAL_STATE_DISABLED = 2,
+  DeviceCapabilityLocalState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DeviceCapabilityLocalState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DeviceCapabilityLocalState_internal_data_[];
+inline constexpr DeviceCapabilityLocalState DeviceCapabilityLocalState_MIN =
+    static_cast<DeviceCapabilityLocalState>(0);
+inline constexpr DeviceCapabilityLocalState DeviceCapabilityLocalState_MAX =
+    static_cast<DeviceCapabilityLocalState>(2);
+inline bool DeviceCapabilityLocalState_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int DeviceCapabilityLocalState_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DeviceCapabilityLocalState_descriptor();
+template <typename T>
+const ::std::string& DeviceCapabilityLocalState_Name(T value) {
+  static_assert(::std::is_same<T, DeviceCapabilityLocalState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DeviceCapabilityLocalState_Name().");
+  return DeviceCapabilityLocalState_Name(static_cast<DeviceCapabilityLocalState>(value));
+}
+template <>
+inline const ::std::string& DeviceCapabilityLocalState_Name(DeviceCapabilityLocalState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DeviceCapabilityLocalState_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool DeviceCapabilityLocalState_Parse(
+    ::absl::string_view name, DeviceCapabilityLocalState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DeviceCapabilityLocalState>(DeviceCapabilityLocalState_descriptor(), name,
+                                           value);
+}
+enum DeviceCapabilityGrantState : int {
+  DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN = 0,
+  DEVICE_CAPABILITY_GRANT_STATE_ALLOWED = 1,
+  DEVICE_CAPABILITY_GRANT_STATE_BLOCKED = 2,
+  DeviceCapabilityGrantState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DeviceCapabilityGrantState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DeviceCapabilityGrantState_internal_data_[];
+inline constexpr DeviceCapabilityGrantState DeviceCapabilityGrantState_MIN =
+    static_cast<DeviceCapabilityGrantState>(0);
+inline constexpr DeviceCapabilityGrantState DeviceCapabilityGrantState_MAX =
+    static_cast<DeviceCapabilityGrantState>(2);
+inline bool DeviceCapabilityGrantState_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int DeviceCapabilityGrantState_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DeviceCapabilityGrantState_descriptor();
+template <typename T>
+const ::std::string& DeviceCapabilityGrantState_Name(T value) {
+  static_assert(::std::is_same<T, DeviceCapabilityGrantState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DeviceCapabilityGrantState_Name().");
+  return DeviceCapabilityGrantState_Name(static_cast<DeviceCapabilityGrantState>(value));
+}
+template <>
+inline const ::std::string& DeviceCapabilityGrantState_Name(DeviceCapabilityGrantState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DeviceCapabilityGrantState_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool DeviceCapabilityGrantState_Parse(
+    ::absl::string_view name, DeviceCapabilityGrantState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DeviceCapabilityGrantState>(DeviceCapabilityGrantState_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -338,7 +430,7 @@ class WatchDeviceStateRequest final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const WatchDeviceStateRequest*>(
         &_WatchDeviceStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(WatchDeviceStateRequest& a, WatchDeviceStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchDeviceStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -630,30 +722,30 @@ class DevicePlatform final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull DevicePlatform_class_data_;
 // -------------------------------------------------------------------
 
-class DeviceCapability final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.device.DeviceCapability) */ {
+class DeviceCapabilityPolicy final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.device.DeviceCapabilityPolicy) */ {
  public:
-  inline DeviceCapability() : DeviceCapability(nullptr) {}
-  ~DeviceCapability() PROTOBUF_FINAL;
+  inline DeviceCapabilityPolicy() : DeviceCapabilityPolicy(nullptr) {}
+  ~DeviceCapabilityPolicy() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DeviceCapability* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(DeviceCapabilityPolicy* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DeviceCapability));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DeviceCapabilityPolicy));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DeviceCapability(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR DeviceCapabilityPolicy(::google::protobuf::internal::ConstantInitialized);
 
-  inline DeviceCapability(const DeviceCapability& from) : DeviceCapability(nullptr, from) {}
-  inline DeviceCapability(DeviceCapability&& from) noexcept
-      : DeviceCapability(nullptr, ::std::move(from)) {}
-  inline DeviceCapability& operator=(const DeviceCapability& from) {
+  inline DeviceCapabilityPolicy(const DeviceCapabilityPolicy& from) : DeviceCapabilityPolicy(nullptr, from) {}
+  inline DeviceCapabilityPolicy(DeviceCapabilityPolicy&& from) noexcept
+      : DeviceCapabilityPolicy(nullptr, ::std::move(from)) {}
+  inline DeviceCapabilityPolicy& operator=(const DeviceCapabilityPolicy& from) {
     CopyFrom(from);
     return *this;
   }
-  inline DeviceCapability& operator=(DeviceCapability&& from) noexcept {
+  inline DeviceCapabilityPolicy& operator=(DeviceCapabilityPolicy&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -681,13 +773,13 @@ class DeviceCapability final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const DeviceCapability& default_instance() {
-    return *reinterpret_cast<const DeviceCapability*>(
-        &_DeviceCapability_default_instance_);
+  static const DeviceCapabilityPolicy& default_instance() {
+    return *reinterpret_cast<const DeviceCapabilityPolicy*>(
+        &_DeviceCapabilityPolicy_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
-  friend void swap(DeviceCapability& a, DeviceCapability& b) { a.Swap(&b); }
-  inline void Swap(DeviceCapability* PROTOBUF_NONNULL other) {
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(DeviceCapabilityPolicy& a, DeviceCapabilityPolicy& b) { a.Swap(&b); }
+  inline void Swap(DeviceCapabilityPolicy* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -695,7 +787,7 @@ class DeviceCapability final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(DeviceCapability* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(DeviceCapabilityPolicy* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -703,13 +795,13 @@ class DeviceCapability final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  DeviceCapability* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DeviceCapability>(arena);
+  DeviceCapabilityPolicy* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DeviceCapabilityPolicy>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DeviceCapability& from);
+  void CopyFrom(const DeviceCapabilityPolicy& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DeviceCapability& from) { DeviceCapability::MergeImpl(*this, from); }
+  void MergeFrom(const DeviceCapabilityPolicy& from) { DeviceCapabilityPolicy::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -745,17 +837,17 @@ class DeviceCapability final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(DeviceCapability* PROTOBUF_NONNULL other);
+  void InternalSwap(DeviceCapabilityPolicy* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.device.DeviceCapability"; }
+  static ::absl::string_view FullMessageName() { return "s4wave.device.DeviceCapabilityPolicy"; }
 
-  explicit DeviceCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DeviceCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DeviceCapability& from);
-  DeviceCapability(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DeviceCapability&& from) noexcept
-      : DeviceCapability(arena) {
+  explicit DeviceCapabilityPolicy(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DeviceCapabilityPolicy(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DeviceCapabilityPolicy& from);
+  DeviceCapabilityPolicy(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DeviceCapabilityPolicy&& from) noexcept
+      : DeviceCapabilityPolicy(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -772,88 +864,67 @@ class DeviceCapability final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kIdFieldNumber = 1,
-    kKindFieldNumber = 2,
-    kLabelFieldNumber = 3,
-    kDetailFieldNumber = 5,
-    kStateFieldNumber = 4,
+    kLocalPolicyRefFieldNumber = 1,
+    kGrantPolicyRefFieldNumber = 2,
+    kLocalStateFieldNumber = 3,
+    kGrantStateFieldNumber = 4,
   };
-  // string id = 1;
-  void clear_id() ;
-  const ::std::string& id() const;
+  // string local_policy_ref = 1;
+  void clear_local_policy_ref() ;
+  const ::std::string& local_policy_ref() const;
   template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
-  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+  void set_local_policy_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_local_policy_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_local_policy_ref();
+  void set_allocated_local_policy_ref(::std::string* PROTOBUF_NULLABLE value);
 
   private:
-  const ::std::string& _internal_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+  const ::std::string& _internal_local_policy_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_local_policy_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_local_policy_ref();
 
   public:
-  // string kind = 2;
-  void clear_kind() ;
-  const ::std::string& kind() const;
+  // string grant_policy_ref = 2;
+  void clear_grant_policy_ref() ;
+  const ::std::string& grant_policy_ref() const;
   template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_kind(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_kind();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_kind();
-  void set_allocated_kind(::std::string* PROTOBUF_NULLABLE value);
+  void set_grant_policy_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_grant_policy_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_grant_policy_ref();
+  void set_allocated_grant_policy_ref(::std::string* PROTOBUF_NULLABLE value);
 
   private:
-  const ::std::string& _internal_kind() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_kind(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_kind();
+  const ::std::string& _internal_grant_policy_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_grant_policy_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_grant_policy_ref();
 
   public:
-  // string label = 3;
-  void clear_label() ;
-  const ::std::string& label() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_label(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_label();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
-  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+  // .s4wave.device.DeviceCapabilityLocalState local_state = 3;
+  void clear_local_state() ;
+  ::s4wave::device::DeviceCapabilityLocalState local_state() const;
+  void set_local_state(::s4wave::device::DeviceCapabilityLocalState value);
 
   private:
-  const ::std::string& _internal_label() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+  ::s4wave::device::DeviceCapabilityLocalState _internal_local_state() const;
+  void _internal_set_local_state(::s4wave::device::DeviceCapabilityLocalState value);
 
   public:
-  // string detail = 5;
-  void clear_detail() ;
-  const ::std::string& detail() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_detail(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_detail();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
-  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+  // .s4wave.device.DeviceCapabilityGrantState grant_state = 4;
+  void clear_grant_state() ;
+  ::s4wave::device::DeviceCapabilityGrantState grant_state() const;
+  void set_grant_state(::s4wave::device::DeviceCapabilityGrantState value);
 
   private:
-  const ::std::string& _internal_detail() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+  ::s4wave::device::DeviceCapabilityGrantState _internal_grant_state() const;
+  void _internal_set_grant_state(::s4wave::device::DeviceCapabilityGrantState value);
 
   public:
-  // .s4wave.device.DeviceCapabilityState state = 4;
-  void clear_state() ;
-  ::s4wave::device::DeviceCapabilityState state() const;
-  void set_state(::s4wave::device::DeviceCapabilityState value);
-
-  private:
-  ::s4wave::device::DeviceCapabilityState _internal_state() const;
-  void _internal_set_state(::s4wave::device::DeviceCapabilityState value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.device.DeviceCapability)
+  // @@protoc_insertion_point(class_scope:s4wave.device.DeviceCapabilityPolicy)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   0, 56,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 77,
                                    2>
       _table_;
 
@@ -871,21 +942,249 @@ class DeviceCapability final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DeviceCapability& from_msg);
+        const DeviceCapabilityPolicy& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr id_;
-    ::google::protobuf::internal::ArenaStringPtr kind_;
-    ::google::protobuf::internal::ArenaStringPtr label_;
-    ::google::protobuf::internal::ArenaStringPtr detail_;
-    int state_;
+    ::google::protobuf::internal::ArenaStringPtr local_policy_ref_;
+    ::google::protobuf::internal::ArenaStringPtr grant_policy_ref_;
+    int local_state_;
+    int grant_state_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull DeviceCapability_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull DeviceCapabilityPolicy_class_data_;
+// -------------------------------------------------------------------
+
+class DeviceCapabilityLink final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.device.DeviceCapabilityLink) */ {
+ public:
+  inline DeviceCapabilityLink() : DeviceCapabilityLink(nullptr) {}
+  ~DeviceCapabilityLink() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DeviceCapabilityLink* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DeviceCapabilityLink));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DeviceCapabilityLink(::google::protobuf::internal::ConstantInitialized);
+
+  inline DeviceCapabilityLink(const DeviceCapabilityLink& from) : DeviceCapabilityLink(nullptr, from) {}
+  inline DeviceCapabilityLink(DeviceCapabilityLink&& from) noexcept
+      : DeviceCapabilityLink(nullptr, ::std::move(from)) {}
+  inline DeviceCapabilityLink& operator=(const DeviceCapabilityLink& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DeviceCapabilityLink& operator=(DeviceCapabilityLink&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DeviceCapabilityLink& default_instance() {
+    return *reinterpret_cast<const DeviceCapabilityLink*>(
+        &_DeviceCapabilityLink_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(DeviceCapabilityLink& a, DeviceCapabilityLink& b) { a.Swap(&b); }
+  inline void Swap(DeviceCapabilityLink* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DeviceCapabilityLink* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DeviceCapabilityLink* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DeviceCapabilityLink>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DeviceCapabilityLink& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DeviceCapabilityLink& from) { DeviceCapabilityLink::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DeviceCapabilityLink* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.device.DeviceCapabilityLink"; }
+
+  explicit DeviceCapabilityLink(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DeviceCapabilityLink(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DeviceCapabilityLink& from);
+  DeviceCapabilityLink(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DeviceCapabilityLink&& from) noexcept
+      : DeviceCapabilityLink(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeyFieldNumber = 1,
+    kTypeIdFieldNumber = 2,
+    kProtocolIdFieldNumber = 3,
+  };
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // string type_id = 2;
+  void clear_type_id() ;
+  const ::std::string& type_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_type_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_type_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_type_id();
+  void set_allocated_type_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_type_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_type_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_type_id();
+
+  public:
+  // string protocol_id = 3;
+  void clear_protocol_id() ;
+  const ::std::string& protocol_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_protocol_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_protocol_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_protocol_id();
+  void set_allocated_protocol_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_protocol_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_protocol_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_protocol_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.device.DeviceCapabilityLink)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 71,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DeviceCapabilityLink& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr type_id_;
+    ::google::protobuf::internal::ArenaStringPtr protocol_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DeviceCapabilityLink_class_data_;
 // -------------------------------------------------------------------
 
 class DeviceStatus final : public ::google::protobuf::Message
@@ -1129,6 +1428,298 @@ class DeviceStatus final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull DeviceStatus_class_data_;
 // -------------------------------------------------------------------
 
+class DeviceCapability final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.device.DeviceCapability) */ {
+ public:
+  inline DeviceCapability() : DeviceCapability(nullptr) {}
+  ~DeviceCapability() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DeviceCapability* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DeviceCapability));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DeviceCapability(::google::protobuf::internal::ConstantInitialized);
+
+  inline DeviceCapability(const DeviceCapability& from) : DeviceCapability(nullptr, from) {}
+  inline DeviceCapability(DeviceCapability&& from) noexcept
+      : DeviceCapability(nullptr, ::std::move(from)) {}
+  inline DeviceCapability& operator=(const DeviceCapability& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DeviceCapability& operator=(DeviceCapability&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DeviceCapability& default_instance() {
+    return *reinterpret_cast<const DeviceCapability*>(
+        &_DeviceCapability_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(DeviceCapability& a, DeviceCapability& b) { a.Swap(&b); }
+  inline void Swap(DeviceCapability* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DeviceCapability* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DeviceCapability* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DeviceCapability>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DeviceCapability& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DeviceCapability& from) { DeviceCapability::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DeviceCapability* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.device.DeviceCapability"; }
+
+  explicit DeviceCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DeviceCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DeviceCapability& from);
+  DeviceCapability(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DeviceCapability&& from) noexcept
+      : DeviceCapability(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+    kKindFieldNumber = 2,
+    kLabelFieldNumber = 3,
+    kDetailFieldNumber = 5,
+    kLinkFieldNumber = 6,
+    kPolicyFieldNumber = 7,
+    kStateFieldNumber = 4,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string kind = 2;
+  void clear_kind() ;
+  const ::std::string& kind() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_kind(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_kind();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_kind();
+  void set_allocated_kind(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_kind() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_kind(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_kind();
+
+  public:
+  // string label = 3;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string detail = 5;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // .s4wave.device.DeviceCapabilityLink link = 6;
+  bool has_link() const;
+  void clear_link() ;
+  const ::s4wave::device::DeviceCapabilityLink& link() const;
+  [[nodiscard]] ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE release_link();
+  ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NONNULL mutable_link();
+  void set_allocated_link(::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_link(::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE value);
+  ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE unsafe_arena_release_link();
+
+  private:
+  const ::s4wave::device::DeviceCapabilityLink& _internal_link() const;
+  ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NONNULL _internal_mutable_link();
+
+  public:
+  // .s4wave.device.DeviceCapabilityPolicy policy = 7;
+  bool has_policy() const;
+  void clear_policy() ;
+  const ::s4wave::device::DeviceCapabilityPolicy& policy() const;
+  [[nodiscard]] ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE release_policy();
+  ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NONNULL mutable_policy();
+  void set_allocated_policy(::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_policy(::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE value);
+  ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE unsafe_arena_release_policy();
+
+  private:
+  const ::s4wave::device::DeviceCapabilityPolicy& _internal_policy() const;
+  ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NONNULL _internal_mutable_policy();
+
+  public:
+  // .s4wave.device.DeviceCapabilityState state = 4;
+  void clear_state() ;
+  ::s4wave::device::DeviceCapabilityState state() const;
+  void set_state(::s4wave::device::DeviceCapabilityState value);
+
+  private:
+  ::s4wave::device::DeviceCapabilityState _internal_state() const;
+  void _internal_set_state(::s4wave::device::DeviceCapabilityState value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.device.DeviceCapability)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   2, 56,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DeviceCapability& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr kind_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE link_;
+    ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE policy_;
+    int state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DeviceCapability_class_data_;
+// -------------------------------------------------------------------
+
 class ReportDeviceStatusRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.device.ReportDeviceStatusRequest) */ {
  public:
@@ -1184,7 +1775,7 @@ class ReportDeviceStatusRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReportDeviceStatusRequest*>(
         &_ReportDeviceStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(ReportDeviceStatusRequest& a, ReportDeviceStatusRequest& b) { a.Swap(&b); }
   inline void Swap(ReportDeviceStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1451,7 +2042,7 @@ class Device final : public ::google::protobuf::Message
     return *reinterpret_cast<const Device*>(
         &_Device_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(Device& a, Device& b) { a.Swap(&b); }
   inline void Swap(Device* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1791,7 +2382,7 @@ class WatchDeviceStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchDeviceStateResponse*>(
         &_WatchDeviceStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(WatchDeviceStateResponse& a, WatchDeviceStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchDeviceStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1986,7 +2577,7 @@ class ReportDeviceStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReportDeviceStatusResponse*>(
         &_ReportDeviceStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(ReportDeviceStatusResponse& a, ReportDeviceStatusResponse& b) { a.Swap(&b); }
   inline void Swap(ReportDeviceStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2727,7 +3318,7 @@ inline void DeviceCapability::clear_state() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000040U);
 }
 inline ::s4wave::device::DeviceCapabilityState DeviceCapability::state() const {
   // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapability.state)
@@ -2735,7 +3326,7 @@ inline ::s4wave::device::DeviceCapabilityState DeviceCapability::state() const {
 }
 inline void DeviceCapability::set_state(::s4wave::device::DeviceCapabilityState value) {
   _internal_set_state(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapability.state)
 }
 inline ::s4wave::device::DeviceCapabilityState DeviceCapability::_internal_state() const {
@@ -2810,6 +3401,587 @@ inline void DeviceCapability::set_allocated_detail(::std::string* PROTOBUF_NULLA
     _impl_.detail_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapability.detail)
+}
+
+// .s4wave.device.DeviceCapabilityLink link = 6;
+inline bool DeviceCapability::has_link() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.link_ != nullptr);
+  return value;
+}
+inline void DeviceCapability::clear_link() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.link_ != nullptr) _impl_.link_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::s4wave::device::DeviceCapabilityLink& DeviceCapability::_internal_link() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::device::DeviceCapabilityLink* p = _impl_.link_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::device::DeviceCapabilityLink&>(::s4wave::device::_DeviceCapabilityLink_default_instance_);
+}
+inline const ::s4wave::device::DeviceCapabilityLink& DeviceCapability::link() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapability.link)
+  return _internal_link();
+}
+inline void DeviceCapability::unsafe_arena_set_allocated_link(
+    ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.link_);
+  }
+  _impl_.link_ = reinterpret_cast<::s4wave::device::DeviceCapabilityLink*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.device.DeviceCapability.link)
+}
+inline ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE DeviceCapability::release_link() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::device::DeviceCapabilityLink* released = _impl_.link_;
+  _impl_.link_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE DeviceCapability::unsafe_arena_release_link() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCapability.link)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::device::DeviceCapabilityLink* temp = _impl_.link_;
+  _impl_.link_ = nullptr;
+  return temp;
+}
+inline ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NONNULL DeviceCapability::_internal_mutable_link() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.link_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::device::DeviceCapabilityLink>(GetArena());
+    _impl_.link_ = reinterpret_cast<::s4wave::device::DeviceCapabilityLink*>(p);
+  }
+  return _impl_.link_;
+}
+inline ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NONNULL DeviceCapability::mutable_link()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::device::DeviceCapabilityLink* _msg = _internal_mutable_link();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCapability.link)
+  return _msg;
+}
+inline void DeviceCapability::set_allocated_link(::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.link_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.link_ = reinterpret_cast<::s4wave::device::DeviceCapabilityLink*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapability.link)
+}
+
+// .s4wave.device.DeviceCapabilityPolicy policy = 7;
+inline bool DeviceCapability::has_policy() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.policy_ != nullptr);
+  return value;
+}
+inline void DeviceCapability::clear_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.policy_ != nullptr) _impl_.policy_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::s4wave::device::DeviceCapabilityPolicy& DeviceCapability::_internal_policy() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::device::DeviceCapabilityPolicy* p = _impl_.policy_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::device::DeviceCapabilityPolicy&>(::s4wave::device::_DeviceCapabilityPolicy_default_instance_);
+}
+inline const ::s4wave::device::DeviceCapabilityPolicy& DeviceCapability::policy() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapability.policy)
+  return _internal_policy();
+}
+inline void DeviceCapability::unsafe_arena_set_allocated_policy(
+    ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.policy_);
+  }
+  _impl_.policy_ = reinterpret_cast<::s4wave::device::DeviceCapabilityPolicy*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.device.DeviceCapability.policy)
+}
+inline ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE DeviceCapability::release_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::s4wave::device::DeviceCapabilityPolicy* released = _impl_.policy_;
+  _impl_.policy_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE DeviceCapability::unsafe_arena_release_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCapability.policy)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::s4wave::device::DeviceCapabilityPolicy* temp = _impl_.policy_;
+  _impl_.policy_ = nullptr;
+  return temp;
+}
+inline ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NONNULL DeviceCapability::_internal_mutable_policy() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.policy_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::device::DeviceCapabilityPolicy>(GetArena());
+    _impl_.policy_ = reinterpret_cast<::s4wave::device::DeviceCapabilityPolicy*>(p);
+  }
+  return _impl_.policy_;
+}
+inline ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NONNULL DeviceCapability::mutable_policy()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::s4wave::device::DeviceCapabilityPolicy* _msg = _internal_mutable_policy();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCapability.policy)
+  return _msg;
+}
+inline void DeviceCapability::set_allocated_policy(::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.policy_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.policy_ = reinterpret_cast<::s4wave::device::DeviceCapabilityPolicy*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapability.policy)
+}
+
+// -------------------------------------------------------------------
+
+// DeviceCapabilityLink
+
+// string object_key = 1;
+inline void DeviceCapabilityLink::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DeviceCapabilityLink::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapabilityLink.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeviceCapabilityLink::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapabilityLink.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityLink::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCapabilityLink.object_key)
+  return _s;
+}
+inline const ::std::string& DeviceCapabilityLink::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void DeviceCapabilityLink::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityLink::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeviceCapabilityLink::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCapabilityLink.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeviceCapabilityLink::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapabilityLink.object_key)
+}
+
+// string type_id = 2;
+inline void DeviceCapabilityLink::clear_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.type_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DeviceCapabilityLink::type_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapabilityLink.type_id)
+  return _internal_type_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeviceCapabilityLink::set_type_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.type_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapabilityLink.type_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityLink::mutable_type_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_type_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCapabilityLink.type_id)
+  return _s;
+}
+inline const ::std::string& DeviceCapabilityLink::_internal_type_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.type_id_.Get();
+}
+inline void DeviceCapabilityLink::_internal_set_type_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.type_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityLink::_internal_mutable_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.type_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeviceCapabilityLink::release_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCapabilityLink.type_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.type_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.type_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeviceCapabilityLink::set_allocated_type_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.type_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.type_id_.IsDefault()) {
+    _impl_.type_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapabilityLink.type_id)
+}
+
+// string protocol_id = 3;
+inline void DeviceCapabilityLink::clear_protocol_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.protocol_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DeviceCapabilityLink::protocol_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapabilityLink.protocol_id)
+  return _internal_protocol_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeviceCapabilityLink::set_protocol_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.protocol_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapabilityLink.protocol_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityLink::mutable_protocol_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_protocol_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCapabilityLink.protocol_id)
+  return _s;
+}
+inline const ::std::string& DeviceCapabilityLink::_internal_protocol_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.protocol_id_.Get();
+}
+inline void DeviceCapabilityLink::_internal_set_protocol_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.protocol_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityLink::_internal_mutable_protocol_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.protocol_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeviceCapabilityLink::release_protocol_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCapabilityLink.protocol_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.protocol_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.protocol_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeviceCapabilityLink::set_allocated_protocol_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.protocol_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.protocol_id_.IsDefault()) {
+    _impl_.protocol_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapabilityLink.protocol_id)
+}
+
+// -------------------------------------------------------------------
+
+// DeviceCapabilityPolicy
+
+// string local_policy_ref = 1;
+inline void DeviceCapabilityPolicy::clear_local_policy_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_policy_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DeviceCapabilityPolicy::local_policy_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapabilityPolicy.local_policy_ref)
+  return _internal_local_policy_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeviceCapabilityPolicy::set_local_policy_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.local_policy_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapabilityPolicy.local_policy_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityPolicy::mutable_local_policy_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_local_policy_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCapabilityPolicy.local_policy_ref)
+  return _s;
+}
+inline const ::std::string& DeviceCapabilityPolicy::_internal_local_policy_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.local_policy_ref_.Get();
+}
+inline void DeviceCapabilityPolicy::_internal_set_local_policy_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_policy_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityPolicy::_internal_mutable_local_policy_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.local_policy_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeviceCapabilityPolicy::release_local_policy_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCapabilityPolicy.local_policy_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.local_policy_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.local_policy_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeviceCapabilityPolicy::set_allocated_local_policy_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.local_policy_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.local_policy_ref_.IsDefault()) {
+    _impl_.local_policy_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapabilityPolicy.local_policy_ref)
+}
+
+// string grant_policy_ref = 2;
+inline void DeviceCapabilityPolicy::clear_grant_policy_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.grant_policy_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DeviceCapabilityPolicy::grant_policy_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapabilityPolicy.grant_policy_ref)
+  return _internal_grant_policy_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeviceCapabilityPolicy::set_grant_policy_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.grant_policy_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapabilityPolicy.grant_policy_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityPolicy::mutable_grant_policy_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_grant_policy_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCapabilityPolicy.grant_policy_ref)
+  return _s;
+}
+inline const ::std::string& DeviceCapabilityPolicy::_internal_grant_policy_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.grant_policy_ref_.Get();
+}
+inline void DeviceCapabilityPolicy::_internal_set_grant_policy_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.grant_policy_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCapabilityPolicy::_internal_mutable_grant_policy_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.grant_policy_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeviceCapabilityPolicy::release_grant_policy_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCapabilityPolicy.grant_policy_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.grant_policy_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.grant_policy_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeviceCapabilityPolicy::set_allocated_grant_policy_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.grant_policy_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.grant_policy_ref_.IsDefault()) {
+    _impl_.grant_policy_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapabilityPolicy.grant_policy_ref)
+}
+
+// .s4wave.device.DeviceCapabilityLocalState local_state = 3;
+inline void DeviceCapabilityPolicy::clear_local_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::s4wave::device::DeviceCapabilityLocalState DeviceCapabilityPolicy::local_state() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapabilityPolicy.local_state)
+  return _internal_local_state();
+}
+inline void DeviceCapabilityPolicy::set_local_state(::s4wave::device::DeviceCapabilityLocalState value) {
+  _internal_set_local_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapabilityPolicy.local_state)
+}
+inline ::s4wave::device::DeviceCapabilityLocalState DeviceCapabilityPolicy::_internal_local_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::device::DeviceCapabilityLocalState>(_impl_.local_state_);
+}
+inline void DeviceCapabilityPolicy::_internal_set_local_state(::s4wave::device::DeviceCapabilityLocalState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_state_ = value;
+}
+
+// .s4wave.device.DeviceCapabilityGrantState grant_state = 4;
+inline void DeviceCapabilityPolicy::clear_grant_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.grant_state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::s4wave::device::DeviceCapabilityGrantState DeviceCapabilityPolicy::grant_state() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapabilityPolicy.grant_state)
+  return _internal_grant_state();
+}
+inline void DeviceCapabilityPolicy::set_grant_state(::s4wave::device::DeviceCapabilityGrantState value) {
+  _internal_set_grant_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapabilityPolicy.grant_state)
+}
+inline ::s4wave::device::DeviceCapabilityGrantState DeviceCapabilityPolicy::_internal_grant_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::device::DeviceCapabilityGrantState>(_impl_.grant_state_);
+}
+inline void DeviceCapabilityPolicy::_internal_set_grant_state(::s4wave::device::DeviceCapabilityGrantState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.grant_state_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -4045,6 +5217,18 @@ struct is_proto_enum<::s4wave::device::DeviceCapabilityState> : std::true_type {
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::device::DeviceCapabilityState>() {
   return ::s4wave::device::DeviceCapabilityState_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::device::DeviceCapabilityLocalState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::device::DeviceCapabilityLocalState>() {
+  return ::s4wave::device::DeviceCapabilityLocalState_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::device::DeviceCapabilityGrantState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::device::DeviceCapabilityGrantState>() {
+  return ::s4wave::device::DeviceCapabilityGrantState_descriptor();
 }
 
 }  // namespace protobuf

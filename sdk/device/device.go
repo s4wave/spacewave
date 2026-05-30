@@ -52,6 +52,10 @@ func (d *Device) Validate() error {
 			return errors.Errorf("duplicate device capability id %q", id)
 		}
 		seenCapabilities[id] = struct{}{}
+		link := cap.GetLink()
+		if link.GetObjectKey() != "" && strings.TrimSpace(link.GetTypeId()) == "" {
+			return errors.Errorf("device capability %q link type_id is required with object_key", id)
+		}
 	}
 	return nil
 }

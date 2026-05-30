@@ -11,7 +11,9 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
@@ -138,7 +140,39 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 				Id:    "filesystem",
 				Kind:  "filesystem",
 				Label: "Files",
-				State: s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE,
+				Link: &s4wave_device.DeviceCapabilityLink{
+					ObjectKey: "files/device-root",
+					TypeId:    s4wave_unixfs_world.UnixFSTypeID,
+				},
+				Policy: &s4wave_device.DeviceCapabilityPolicy{
+					LocalState: s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
+					GrantState: s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED,
+				},
+			},
+			{
+				Id:    "forge-worker",
+				Kind:  "forge-worker",
+				Label: "Forge Worker",
+				Link: &s4wave_device.DeviceCapabilityLink{
+					ObjectKey: "forge/worker/device",
+					TypeId:    forge_worker.WorkerTypeID,
+				},
+				Policy: &s4wave_device.DeviceCapabilityPolicy{
+					LocalState: s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
+					GrantState: s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED,
+				},
+			},
+			{
+				Id:    "terminal",
+				Kind:  "terminal",
+				Label: "Terminal",
+				Link: &s4wave_device.DeviceCapabilityLink{
+					ProtocolId: "alpha/remote-shell/v0",
+				},
+				Policy: &s4wave_device.DeviceCapabilityPolicy{
+					LocalState: s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_DISABLED,
+					GrantState: s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED,
+				},
 			},
 		},
 	})
@@ -148,8 +182,27 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 	if updateResp.GetState().GetUpdateState() != s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_READY {
 		t.Fatalf("update state = %v", updateResp.GetState().GetUpdateState())
 	}
-	if len(updateResp.GetState().GetCapabilities()) != 1 {
-		t.Fatalf("capabilities = %d, want 1", len(updateResp.GetState().GetCapabilities()))
+	caps := updateResp.GetState().GetCapabilities()
+	if len(caps) != 3 {
+		t.Fatalf("capabilities = %d, want 3", len(caps))
+	}
+	if caps[0].GetState() != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE {
+		t.Fatalf("filesystem state = %v, want available", caps[0].GetState())
+	}
+	if caps[0].GetLink().GetObjectKey() != "files/device-root" || caps[0].GetLink().GetTypeId() != s4wave_unixfs_world.UnixFSTypeID {
+		t.Fatalf("filesystem link = %#v", caps[0].GetLink())
+	}
+	if caps[1].GetState() != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED {
+		t.Fatalf("forge state = %v, want grant blocked", caps[1].GetState())
+	}
+	if caps[1].GetLink().GetObjectKey() != "forge/worker/device" || caps[1].GetLink().GetTypeId() != forge_worker.WorkerTypeID {
+		t.Fatalf("forge link = %#v", caps[1].GetLink())
+	}
+	if caps[2].GetState() != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DISABLED {
+		t.Fatalf("terminal state = %v, want disabled", caps[2].GetState())
+	}
+	if caps[2].GetLink().GetProtocolId() != "alpha/remote-shell/v0" {
+		t.Fatalf("terminal protocol = %q", caps[2].GetLink().GetProtocolId())
 	}
 
 	watchCtx, cancel := context.WithTimeout(ctx, 5*time.Second)

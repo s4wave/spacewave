@@ -28,6 +28,26 @@ let currentState: Device | undefined = {
       label: 'Files',
       state: DeviceCapabilityState.AVAILABLE,
     },
+    {
+      id: 'terminal',
+      kind: 'terminal',
+      label: 'Terminal',
+      state: DeviceCapabilityState.DISABLED,
+      detail: 'disabled by local policy',
+    },
+    {
+      id: 'forge-worker',
+      kind: 'forge-worker',
+      label: 'Forge Worker',
+      state: DeviceCapabilityState.GRANT_BLOCKED,
+      detail: 'blocked by Space grant',
+    },
+    {
+      id: 'remote-shell-session',
+      kind: 'terminal',
+      label: 'Shell Session',
+      state: DeviceCapabilityState.ACTIVE,
+    },
   ],
 }
 
@@ -87,5 +107,11 @@ describe('DeviceViewer', () => {
     expect(screen.getByText('12D3KooWDevice')).toBeTruthy()
     expect(screen.getByText('Files')).toBeTruthy()
     expect(screen.getByText('Available')).toBeTruthy()
+    expect(screen.getByText('Terminal')).toBeTruthy()
+    expect(screen.getByText('Disabled')).toBeTruthy()
+    expect(screen.getByText('blocked by Space grant')).toBeTruthy()
+    expect(screen.getByText('Grant blocked')).toBeTruthy()
+    expect(screen.getByText('Shell Session')).toBeTruthy()
+    expect(screen.getByText('Active')).toBeTruthy()
   })
 })

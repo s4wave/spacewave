@@ -125,7 +125,7 @@ func (r *DeviceResource) ReportDeviceStatus(ctx context.Context, req *ReportDevi
 		updated.LastStatus = req.GetLastStatus().CloneVT()
 	}
 	if req.GetReplaceCapabilities() {
-		updated.Capabilities = cloneCapabilities(req.GetCapabilities())
+		updated.Capabilities = normalizeCapabilities(req.GetCapabilities())
 	}
 	updated.UpdatedAt = timestamppb.New(time.Now())
 
@@ -182,7 +182,7 @@ func readDeviceObject(ctx context.Context, objState world.ObjectState) (*Device,
 	return state, err
 }
 
-func cloneCapabilities(caps []*DeviceCapability) []*DeviceCapability {
+func normalizeCapabilities(caps []*DeviceCapability) []*DeviceCapability {
 	if len(caps) == 0 {
 		return nil
 	}
@@ -191,7 +191,32 @@ func cloneCapabilities(caps []*DeviceCapability) []*DeviceCapability {
 		if cap == nil {
 			continue
 		}
-		out = append(out, cap.CloneVT())
+		out = append(out, normalizeCapability(cap))
+	}
+	return out
+}
+
+func normalizeCapability(cap *DeviceCapability) *DeviceCapability {
+	out := cap.CloneVT()
+	policy := out.GetPolicy()
+	switch {
+	case policy.GetLocalState() == DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_DISABLED:
+		out.State = DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DISABLED
+		if out.Detail == "" {
+			out.Detail = "disabled by local policy"
+		}
+	case policy.GetGrantState() == DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED:
+		out.State = DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED
+		if out.Detail == "" {
+			out.Detail = "blocked by Space grant"
+		}
+	case out.GetState() == DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE:
+		out.State = DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
+	case policy.GetLocalState() == DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED &&
+		policy.GetGrantState() == DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED:
+		out.State = DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE
+	case out.GetState() == DeviceCapabilityState_DEVICE_CAPABILITY_STATE_UNKNOWN:
+		out.State = DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DECLARED
 	}
 	return out
 }

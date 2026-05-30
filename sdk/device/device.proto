@@ -65,6 +65,26 @@ enum DeviceCapabilityState {
   DEVICE_CAPABILITY_STATE_ACTIVE = 5;
 }
 
+// DeviceCapabilityLocalState is the daemon-local allowlist state.
+enum DeviceCapabilityLocalState {
+  // DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN is unset.
+  DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN = 0;
+  // DEVICE_CAPABILITY_LOCAL_STATE_ENABLED means daemon-local policy allows the capability.
+  DEVICE_CAPABILITY_LOCAL_STATE_ENABLED = 1;
+  // DEVICE_CAPABILITY_LOCAL_STATE_DISABLED means daemon-local policy disables the capability.
+  DEVICE_CAPABILITY_LOCAL_STATE_DISABLED = 2;
+}
+
+// DeviceCapabilityGrantState is the Space grant projection for a capability.
+enum DeviceCapabilityGrantState {
+  // DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN is unset.
+  DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN = 0;
+  // DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy currently allows the capability.
+  DEVICE_CAPABILITY_GRANT_STATE_ALLOWED = 1;
+  // DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy currently blocks the capability.
+  DEVICE_CAPABILITY_GRANT_STATE_BLOCKED = 2;
+}
+
 // DevicePlatform summarizes the daemon runtime platform.
 message DevicePlatform {
   // Os is the daemon operating system.
@@ -97,6 +117,32 @@ message DeviceCapability {
   DeviceCapabilityState state = 4;
   // Detail is a short status or policy note.
   string detail = 5;
+  // Link points at the owner that executes the capability.
+  DeviceCapabilityLink link = 6;
+  // Policy records the local and Space policy refs used for the effective state.
+  DeviceCapabilityPolicy policy = 7;
+}
+
+// DeviceCapabilityLink points at the capability execution owner.
+message DeviceCapabilityLink {
+  // ObjectKey is the linked owner object, such as a UnixFS root or Forge Worker.
+  string object_key = 1;
+  // TypeId is the ObjectType id for ObjectKey when ObjectKey is set.
+  string type_id = 2;
+  // ProtocolId is the post-registration Bifrost protocol id for stream-backed adapters.
+  string protocol_id = 3;
+}
+
+// DeviceCapabilityPolicy records inputs to the effective capability state.
+message DeviceCapabilityPolicy {
+  // LocalPolicyRef identifies the daemon-local policy entry.
+  string local_policy_ref = 1;
+  // GrantPolicyRef identifies the Space grant or policy entry.
+  string grant_policy_ref = 2;
+  // LocalState is the daemon-local allowlist state.
+  DeviceCapabilityLocalState local_state = 3;
+  // GrantState is the current Space grant projection.
+  DeviceCapabilityGrantState grant_state = 4;
 }
 
 // Device is the world-block state for a Spacewave-managed Device object.

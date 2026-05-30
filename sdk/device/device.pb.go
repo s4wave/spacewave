@@ -216,6 +216,86 @@ func (x DeviceCapabilityState) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// DeviceCapabilityLocalState is the daemon-local allowlist state.
+type DeviceCapabilityLocalState int32
+
+const (
+	// DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN is unset.
+	DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN DeviceCapabilityLocalState = 0
+	// DEVICE_CAPABILITY_LOCAL_STATE_ENABLED means daemon-local policy allows the capability.
+	DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED DeviceCapabilityLocalState = 1
+	// DEVICE_CAPABILITY_LOCAL_STATE_DISABLED means daemon-local policy disables the capability.
+	DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_DISABLED DeviceCapabilityLocalState = 2
+)
+
+// Enum value maps for DeviceCapabilityLocalState.
+var (
+	DeviceCapabilityLocalState_name = map[int32]string{
+		0: "DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN",
+		1: "DEVICE_CAPABILITY_LOCAL_STATE_ENABLED",
+		2: "DEVICE_CAPABILITY_LOCAL_STATE_DISABLED",
+	}
+	DeviceCapabilityLocalState_value = map[string]int32{
+		"DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN":  0,
+		"DEVICE_CAPABILITY_LOCAL_STATE_ENABLED":  1,
+		"DEVICE_CAPABILITY_LOCAL_STATE_DISABLED": 2,
+	}
+)
+
+func (x DeviceCapabilityLocalState) Enum() *DeviceCapabilityLocalState {
+	p := new(DeviceCapabilityLocalState)
+	*p = x
+	return p
+}
+
+func (x DeviceCapabilityLocalState) String() string {
+	name, valid := DeviceCapabilityLocalState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DeviceCapabilityGrantState is the Space grant projection for a capability.
+type DeviceCapabilityGrantState int32
+
+const (
+	// DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN is unset.
+	DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN DeviceCapabilityGrantState = 0
+	// DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy currently allows the capability.
+	DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED DeviceCapabilityGrantState = 1
+	// DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy currently blocks the capability.
+	DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED DeviceCapabilityGrantState = 2
+)
+
+// Enum value maps for DeviceCapabilityGrantState.
+var (
+	DeviceCapabilityGrantState_name = map[int32]string{
+		0: "DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN",
+		1: "DEVICE_CAPABILITY_GRANT_STATE_ALLOWED",
+		2: "DEVICE_CAPABILITY_GRANT_STATE_BLOCKED",
+	}
+	DeviceCapabilityGrantState_value = map[string]int32{
+		"DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN": 0,
+		"DEVICE_CAPABILITY_GRANT_STATE_ALLOWED": 1,
+		"DEVICE_CAPABILITY_GRANT_STATE_BLOCKED": 2,
+	}
+)
+
+func (x DeviceCapabilityGrantState) Enum() *DeviceCapabilityGrantState {
+	p := new(DeviceCapabilityGrantState)
+	*p = x
+	return p
+}
+
+func (x DeviceCapabilityGrantState) String() string {
+	name, valid := DeviceCapabilityGrantState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // DevicePlatform summarizes the daemon runtime platform.
 type DevicePlatform struct {
 	unknownFields []byte
@@ -305,6 +385,10 @@ type DeviceCapability struct {
 	State DeviceCapabilityState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
 	// Detail is a short status or policy note.
 	Detail string `protobuf:"bytes,5,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Link points at the owner that executes the capability.
+	Link *DeviceCapabilityLink `protobuf:"bytes,6,opt,name=link,proto3" json:"link,omitempty"`
+	// Policy records the local and Space policy refs used for the effective state.
+	Policy *DeviceCapabilityPolicy `protobuf:"bytes,7,opt,name=policy,proto3" json:"policy,omitempty"`
 }
 
 func (x *DeviceCapability) Reset() {
@@ -346,6 +430,105 @@ func (x *DeviceCapability) GetDetail() string {
 		return x.Detail
 	}
 	return ""
+}
+
+func (x *DeviceCapability) GetLink() *DeviceCapabilityLink {
+	if x != nil {
+		return x.Link
+	}
+	return nil
+}
+
+func (x *DeviceCapability) GetPolicy() *DeviceCapabilityPolicy {
+	if x != nil {
+		return x.Policy
+	}
+	return nil
+}
+
+// DeviceCapabilityLink points at the capability execution owner.
+type DeviceCapabilityLink struct {
+	unknownFields []byte
+	// ObjectKey is the linked owner object, such as a UnixFS root or Forge Worker.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// TypeId is the ObjectType id for ObjectKey when ObjectKey is set.
+	TypeId string `protobuf:"bytes,2,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
+	// ProtocolId is the post-registration Bifrost protocol id for stream-backed adapters.
+	ProtocolId string `protobuf:"bytes,3,opt,name=protocol_id,json=protocolId,proto3" json:"protocolId,omitempty"`
+}
+
+func (x *DeviceCapabilityLink) Reset() {
+	*x = DeviceCapabilityLink{}
+}
+
+func (*DeviceCapabilityLink) ProtoMessage() {}
+
+func (x *DeviceCapabilityLink) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *DeviceCapabilityLink) GetTypeId() string {
+	if x != nil {
+		return x.TypeId
+	}
+	return ""
+}
+
+func (x *DeviceCapabilityLink) GetProtocolId() string {
+	if x != nil {
+		return x.ProtocolId
+	}
+	return ""
+}
+
+// DeviceCapabilityPolicy records inputs to the effective capability state.
+type DeviceCapabilityPolicy struct {
+	unknownFields []byte
+	// LocalPolicyRef identifies the daemon-local policy entry.
+	LocalPolicyRef string `protobuf:"bytes,1,opt,name=local_policy_ref,json=localPolicyRef,proto3" json:"localPolicyRef,omitempty"`
+	// GrantPolicyRef identifies the Space grant or policy entry.
+	GrantPolicyRef string `protobuf:"bytes,2,opt,name=grant_policy_ref,json=grantPolicyRef,proto3" json:"grantPolicyRef,omitempty"`
+	// LocalState is the daemon-local allowlist state.
+	LocalState DeviceCapabilityLocalState `protobuf:"varint,3,opt,name=local_state,json=localState,proto3" json:"localState,omitempty"`
+	// GrantState is the current Space grant projection.
+	GrantState DeviceCapabilityGrantState `protobuf:"varint,4,opt,name=grant_state,json=grantState,proto3" json:"grantState,omitempty"`
+}
+
+func (x *DeviceCapabilityPolicy) Reset() {
+	*x = DeviceCapabilityPolicy{}
+}
+
+func (*DeviceCapabilityPolicy) ProtoMessage() {}
+
+func (x *DeviceCapabilityPolicy) GetLocalPolicyRef() string {
+	if x != nil {
+		return x.LocalPolicyRef
+	}
+	return ""
+}
+
+func (x *DeviceCapabilityPolicy) GetGrantPolicyRef() string {
+	if x != nil {
+		return x.GrantPolicyRef
+	}
+	return ""
+}
+
+func (x *DeviceCapabilityPolicy) GetLocalState() DeviceCapabilityLocalState {
+	if x != nil {
+		return x.LocalState
+	}
+	return DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN
+}
+
+func (x *DeviceCapabilityPolicy) GetGrantState() DeviceCapabilityGrantState {
+	if x != nil {
+		return x.GrantState
+	}
+	return DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN
 }
 
 // Device is the world-block state for a Spacewave-managed Device object.
@@ -613,6 +796,8 @@ func (m *DeviceCapability) CloneVT() *DeviceCapability {
 	r.Label = m.Label
 	r.State = m.State
 	r.Detail = m.Detail
+	r.Link = m.Link.CloneVT()
+	r.Policy = m.Policy.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -620,6 +805,43 @@ func (m *DeviceCapability) CloneVT() *DeviceCapability {
 }
 
 func (m *DeviceCapability) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DeviceCapabilityLink) CloneVT() *DeviceCapabilityLink {
+	if m == nil {
+		return (*DeviceCapabilityLink)(nil)
+	}
+	r := new(DeviceCapabilityLink)
+	r.ObjectKey = m.ObjectKey
+	r.TypeId = m.TypeId
+	r.ProtocolId = m.ProtocolId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeviceCapabilityLink) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DeviceCapabilityPolicy) CloneVT() *DeviceCapabilityPolicy {
+	if m == nil {
+		return (*DeviceCapabilityPolicy)(nil)
+	}
+	r := new(DeviceCapabilityPolicy)
+	r.LocalPolicyRef = m.LocalPolicyRef
+	r.GrantPolicyRef = m.GrantPolicyRef
+	r.LocalState = m.LocalState
+	r.GrantState = m.GrantState
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeviceCapabilityPolicy) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -803,11 +1025,72 @@ func (this *DeviceCapability) EqualVT(that *DeviceCapability) bool {
 	if this.Detail != that.Detail {
 		return false
 	}
+	if !this.Link.EqualVT(that.Link) {
+		return false
+	}
+	if !this.Policy.EqualVT(that.Policy) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *DeviceCapability) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DeviceCapability)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DeviceCapabilityLink) EqualVT(that *DeviceCapabilityLink) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.TypeId != that.TypeId {
+		return false
+	}
+	if this.ProtocolId != that.ProtocolId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DeviceCapabilityLink) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeviceCapabilityLink)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DeviceCapabilityPolicy) EqualVT(that *DeviceCapabilityPolicy) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LocalPolicyRef != that.LocalPolicyRef {
+		return false
+	}
+	if this.GrantPolicyRef != that.GrantPolicyRef {
+		return false
+	}
+	if this.LocalState != that.LocalState {
+		return false
+	}
+	if this.GrantState != that.GrantState {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DeviceCapabilityPolicy) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeviceCapabilityPolicy)
 	if !ok {
 		return false
 	}
@@ -1141,6 +1424,86 @@ func (x *DeviceCapabilityState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the DeviceCapabilityLocalState to JSON.
+func (x DeviceCapabilityLocalState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DeviceCapabilityLocalState_name)
+}
+
+// MarshalText marshals the DeviceCapabilityLocalState to text.
+func (x DeviceCapabilityLocalState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DeviceCapabilityLocalState_name)), nil
+}
+
+// MarshalJSON marshals the DeviceCapabilityLocalState to JSON.
+func (x DeviceCapabilityLocalState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeviceCapabilityLocalState from JSON.
+func (x *DeviceCapabilityLocalState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DeviceCapabilityLocalState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DeviceCapabilityLocalState enum: %v", err)
+		return
+	}
+	*x = DeviceCapabilityLocalState(v)
+}
+
+// UnmarshalText unmarshals the DeviceCapabilityLocalState from text.
+func (x *DeviceCapabilityLocalState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DeviceCapabilityLocalState_value)
+	if err != nil {
+		return err
+	}
+	*x = DeviceCapabilityLocalState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DeviceCapabilityLocalState from JSON.
+func (x *DeviceCapabilityLocalState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DeviceCapabilityGrantState to JSON.
+func (x DeviceCapabilityGrantState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DeviceCapabilityGrantState_name)
+}
+
+// MarshalText marshals the DeviceCapabilityGrantState to text.
+func (x DeviceCapabilityGrantState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DeviceCapabilityGrantState_name)), nil
+}
+
+// MarshalJSON marshals the DeviceCapabilityGrantState to JSON.
+func (x DeviceCapabilityGrantState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeviceCapabilityGrantState from JSON.
+func (x *DeviceCapabilityGrantState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DeviceCapabilityGrantState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DeviceCapabilityGrantState enum: %v", err)
+		return
+	}
+	*x = DeviceCapabilityGrantState(v)
+}
+
+// UnmarshalText unmarshals the DeviceCapabilityGrantState from text.
+func (x *DeviceCapabilityGrantState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DeviceCapabilityGrantState_value)
+	if err != nil {
+		return err
+	}
+	*x = DeviceCapabilityGrantState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DeviceCapabilityGrantState from JSON.
+func (x *DeviceCapabilityGrantState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the DevicePlatform message to JSON.
 func (x *DevicePlatform) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1294,6 +1657,16 @@ func (x *DeviceCapability) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("detail")
 		s.WriteString(x.Detail)
 	}
+	if x.Link != nil || s.HasField("link") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("link")
+		x.Link.MarshalProtoJSON(s.WithField("link"))
+	}
+	if x.Policy != nil || s.HasField("policy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("policy")
+		x.Policy.MarshalProtoJSON(s.WithField("policy"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1326,12 +1699,150 @@ func (x *DeviceCapability) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "detail":
 			s.AddField("detail")
 			x.Detail = s.ReadString()
+		case "link":
+			if s.ReadNil() {
+				x.Link = nil
+				return
+			}
+			x.Link = &DeviceCapabilityLink{}
+			x.Link.UnmarshalProtoJSON(s.WithField("link", true))
+		case "policy":
+			if s.ReadNil() {
+				x.Policy = nil
+				return
+			}
+			x.Policy = &DeviceCapabilityPolicy{}
+			x.Policy.UnmarshalProtoJSON(s.WithField("policy", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the DeviceCapability from JSON.
 func (x *DeviceCapability) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DeviceCapabilityLink message to JSON.
+func (x *DeviceCapabilityLink) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.TypeId != "" || s.HasField("typeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeId")
+		s.WriteString(x.TypeId)
+	}
+	if x.ProtocolId != "" || s.HasField("protocolId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("protocolId")
+		s.WriteString(x.ProtocolId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DeviceCapabilityLink to JSON.
+func (x *DeviceCapabilityLink) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeviceCapabilityLink message from JSON.
+func (x *DeviceCapabilityLink) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "type_id", "typeId":
+			s.AddField("type_id")
+			x.TypeId = s.ReadString()
+		case "protocol_id", "protocolId":
+			s.AddField("protocol_id")
+			x.ProtocolId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DeviceCapabilityLink from JSON.
+func (x *DeviceCapabilityLink) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DeviceCapabilityPolicy message to JSON.
+func (x *DeviceCapabilityPolicy) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LocalPolicyRef != "" || s.HasField("localPolicyRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("localPolicyRef")
+		s.WriteString(x.LocalPolicyRef)
+	}
+	if x.GrantPolicyRef != "" || s.HasField("grantPolicyRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grantPolicyRef")
+		s.WriteString(x.GrantPolicyRef)
+	}
+	if x.LocalState != 0 || s.HasField("localState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("localState")
+		x.LocalState.MarshalProtoJSON(s)
+	}
+	if x.GrantState != 0 || s.HasField("grantState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grantState")
+		x.GrantState.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DeviceCapabilityPolicy to JSON.
+func (x *DeviceCapabilityPolicy) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeviceCapabilityPolicy message from JSON.
+func (x *DeviceCapabilityPolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "local_policy_ref", "localPolicyRef":
+			s.AddField("local_policy_ref")
+			x.LocalPolicyRef = s.ReadString()
+		case "grant_policy_ref", "grantPolicyRef":
+			s.AddField("grant_policy_ref")
+			x.GrantPolicyRef = s.ReadString()
+		case "local_state", "localState":
+			s.AddField("local_state")
+			x.LocalState.UnmarshalProtoJSON(s)
+		case "grant_state", "grantState":
+			s.AddField("grant_state")
+			x.GrantState.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DeviceCapabilityPolicy from JSON.
+func (x *DeviceCapabilityPolicy) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1854,6 +2365,26 @@ func (m *DeviceCapability) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Policy != nil {
+		size, err := m.Policy.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.Link != nil {
+		size, err := m.Link.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.Detail) > 0 {
 		i -= len(m.Detail)
 		copy(dAtA[i:], m.Detail)
@@ -1884,6 +2415,117 @@ func (m *DeviceCapability) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.Id)
 		copy(dAtA[i:], m.Id)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DeviceCapabilityLink) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeviceCapabilityLink) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DeviceCapabilityLink) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ProtocolId) > 0 {
+		i -= len(m.ProtocolId)
+		copy(dAtA[i:], m.ProtocolId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ProtocolId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.TypeId) > 0 {
+		i -= len(m.TypeId)
+		copy(dAtA[i:], m.TypeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TypeId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DeviceCapabilityPolicy) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeviceCapabilityPolicy) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DeviceCapabilityPolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.GrantState != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GrantState))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.LocalState != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LocalState))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.GrantPolicyRef) > 0 {
+		i -= len(m.GrantPolicyRef)
+		copy(dAtA[i:], m.GrantPolicyRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.GrantPolicyRef)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.LocalPolicyRef) > 0 {
+		i -= len(m.LocalPolicyRef)
+		copy(dAtA[i:], m.LocalPolicyRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LocalPolicyRef)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -2275,6 +2917,60 @@ func (m *DeviceCapability) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.Link != nil {
+		l = m.Link.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Policy != nil {
+		l = m.Policy.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DeviceCapabilityLink) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TypeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ProtocolId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DeviceCapabilityPolicy) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.LocalPolicyRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.GrantPolicyRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.LocalState != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.LocalState))
+	}
+	if m.GrantState != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.GrantState))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2416,6 +3112,14 @@ func (x DeviceCapabilityState) MarshalProtoText() string {
 	return x.String()
 }
 
+func (x DeviceCapabilityLocalState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DeviceCapabilityGrantState) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x *DevicePlatform) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("DevicePlatform {")
@@ -2522,11 +3226,100 @@ func (x *DeviceCapability) MarshalProtoText() string {
 		sb.WriteString("detail: ")
 		sb.WriteString(strconv.Quote(x.Detail))
 	}
+	if x.Link != nil {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("link: ")
+		sb.WriteString(x.Link.MarshalProtoText())
+	}
+	if x.Policy != nil {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("policy: ")
+		sb.WriteString(x.Policy.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *DeviceCapability) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DeviceCapabilityLink) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DeviceCapabilityLink {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.TypeId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("type_id: ")
+		sb.WriteString(strconv.Quote(x.TypeId))
+	}
+	if x.ProtocolId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("protocol_id: ")
+		sb.WriteString(strconv.Quote(x.ProtocolId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DeviceCapabilityLink) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DeviceCapabilityPolicy) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DeviceCapabilityPolicy {")
+	if x.LocalPolicyRef != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("local_policy_ref: ")
+		sb.WriteString(strconv.Quote(x.LocalPolicyRef))
+	}
+	if x.GrantPolicyRef != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("grant_policy_ref: ")
+		sb.WriteString(strconv.Quote(x.GrantPolicyRef))
+	}
+	if x.LocalState != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("local_state: ")
+		sb.WriteString("\"")
+		sb.WriteString(DeviceCapabilityLocalState(x.LocalState).String())
+		sb.WriteString("\"")
+	}
+	if x.GrantState != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("grant_state: ")
+		sb.WriteString("\"")
+		sb.WriteString(DeviceCapabilityGrantState(x.GrantState).String())
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DeviceCapabilityPolicy) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3063,6 +3856,280 @@ func (m *DeviceCapability) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Detail = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Link", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Link == nil {
+				m.Link = &DeviceCapabilityLink{}
+			}
+			if err := m.Link.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Policy", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Policy == nil {
+				m.Policy = &DeviceCapabilityPolicy{}
+			}
+			if err := m.Policy.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DeviceCapabilityLink) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeviceCapabilityLink: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeviceCapabilityLink: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TypeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProtocolId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProtocolId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DeviceCapabilityPolicy) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeviceCapabilityPolicy: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeviceCapabilityPolicy: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalPolicyRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LocalPolicyRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrantPolicyRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.GrantPolicyRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalState", wireType)
+			}
+			m.LocalState = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.LocalState = DeviceCapabilityLocalState(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrantState", wireType)
+			}
+			m.GrantState = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.GrantState = DeviceCapabilityGrantState(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

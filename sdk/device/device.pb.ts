@@ -245,6 +245,82 @@ export const DeviceCapabilityState_Enum = createEnumType(
 )
 
 /**
+ * DeviceCapabilityLocalState is the daemon-local allowlist state.
+ *
+ * @generated from enum s4wave.device.DeviceCapabilityLocalState
+ */
+export enum DeviceCapabilityLocalState {
+  /**
+   * DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN is unset.
+   *
+   * @generated from enum value: DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * DEVICE_CAPABILITY_LOCAL_STATE_ENABLED means daemon-local policy allows the capability.
+   *
+   * @generated from enum value: DEVICE_CAPABILITY_LOCAL_STATE_ENABLED = 1;
+   */
+  ENABLED = 1,
+
+  /**
+   * DEVICE_CAPABILITY_LOCAL_STATE_DISABLED means daemon-local policy disables the capability.
+   *
+   * @generated from enum value: DEVICE_CAPABILITY_LOCAL_STATE_DISABLED = 2;
+   */
+  DISABLED = 2,
+}
+
+// DeviceCapabilityLocalState_Enum is the enum type for DeviceCapabilityLocalState.
+export const DeviceCapabilityLocalState_Enum = createEnumType(
+  's4wave.device.DeviceCapabilityLocalState',
+  [
+    { no: 0, name: 'DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN' },
+    { no: 1, name: 'DEVICE_CAPABILITY_LOCAL_STATE_ENABLED' },
+    { no: 2, name: 'DEVICE_CAPABILITY_LOCAL_STATE_DISABLED' },
+  ],
+)
+
+/**
+ * DeviceCapabilityGrantState is the Space grant projection for a capability.
+ *
+ * @generated from enum s4wave.device.DeviceCapabilityGrantState
+ */
+export enum DeviceCapabilityGrantState {
+  /**
+   * DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN is unset.
+   *
+   * @generated from enum value: DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy currently allows the capability.
+   *
+   * @generated from enum value: DEVICE_CAPABILITY_GRANT_STATE_ALLOWED = 1;
+   */
+  ALLOWED = 1,
+
+  /**
+   * DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy currently blocks the capability.
+   *
+   * @generated from enum value: DEVICE_CAPABILITY_GRANT_STATE_BLOCKED = 2;
+   */
+  BLOCKED = 2,
+}
+
+// DeviceCapabilityGrantState_Enum is the enum type for DeviceCapabilityGrantState.
+export const DeviceCapabilityGrantState_Enum = createEnumType(
+  's4wave.device.DeviceCapabilityGrantState',
+  [
+    { no: 0, name: 'DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN' },
+    { no: 1, name: 'DEVICE_CAPABILITY_GRANT_STATE_ALLOWED' },
+    { no: 2, name: 'DEVICE_CAPABILITY_GRANT_STATE_BLOCKED' },
+  ],
+)
+
+/**
  * DevicePlatform summarizes the daemon runtime platform.
  *
  * @generated from message s4wave.device.DevicePlatform
@@ -319,6 +395,99 @@ export const DeviceStatus: MessageType<DeviceStatus> = createMessageType({
 })
 
 /**
+ * DeviceCapabilityLink points at the capability execution owner.
+ *
+ * @generated from message s4wave.device.DeviceCapabilityLink
+ */
+export interface DeviceCapabilityLink {
+  /**
+   * ObjectKey is the linked owner object, such as a UnixFS root or Forge Worker.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * TypeId is the ObjectType id for ObjectKey when ObjectKey is set.
+   *
+   * @generated from field: string type_id = 2;
+   */
+  typeId?: string
+  /**
+   * ProtocolId is the post-registration Bifrost protocol id for stream-backed adapters.
+   *
+   * @generated from field: string protocol_id = 3;
+   */
+  protocolId?: string
+}
+
+// DeviceCapabilityLink contains the message type declaration for DeviceCapabilityLink.
+export const DeviceCapabilityLink: MessageType<DeviceCapabilityLink> =
+  createMessageType({
+    typeName: 's4wave.device.DeviceCapabilityLink',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'protocol_id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DeviceCapabilityPolicy records inputs to the effective capability state.
+ *
+ * @generated from message s4wave.device.DeviceCapabilityPolicy
+ */
+export interface DeviceCapabilityPolicy {
+  /**
+   * LocalPolicyRef identifies the daemon-local policy entry.
+   *
+   * @generated from field: string local_policy_ref = 1;
+   */
+  localPolicyRef?: string
+  /**
+   * GrantPolicyRef identifies the Space grant or policy entry.
+   *
+   * @generated from field: string grant_policy_ref = 2;
+   */
+  grantPolicyRef?: string
+  /**
+   * LocalState is the daemon-local allowlist state.
+   *
+   * @generated from field: s4wave.device.DeviceCapabilityLocalState local_state = 3;
+   */
+  localState?: DeviceCapabilityLocalState
+  /**
+   * GrantState is the current Space grant projection.
+   *
+   * @generated from field: s4wave.device.DeviceCapabilityGrantState grant_state = 4;
+   */
+  grantState?: DeviceCapabilityGrantState
+}
+
+// DeviceCapabilityPolicy contains the message type declaration for DeviceCapabilityPolicy.
+export const DeviceCapabilityPolicy: MessageType<DeviceCapabilityPolicy> =
+  createMessageType({
+    typeName: 's4wave.device.DeviceCapabilityPolicy',
+    fields: [
+      { no: 1, name: 'local_policy_ref', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'grant_policy_ref', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'local_state',
+        kind: 'enum',
+        T: DeviceCapabilityLocalState_Enum,
+      },
+      {
+        no: 4,
+        name: 'grant_state',
+        kind: 'enum',
+        T: DeviceCapabilityGrantState_Enum,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * DeviceCapability is a declared capability summary, not the capability owner.
  *
  * @generated from message s4wave.device.DeviceCapability
@@ -354,6 +523,18 @@ export interface DeviceCapability {
    * @generated from field: string detail = 5;
    */
   detail?: string
+  /**
+   * Link points at the owner that executes the capability.
+   *
+   * @generated from field: s4wave.device.DeviceCapabilityLink link = 6;
+   */
+  link?: DeviceCapabilityLink
+  /**
+   * Policy records the local and Space policy refs used for the effective state.
+   *
+   * @generated from field: s4wave.device.DeviceCapabilityPolicy policy = 7;
+   */
+  policy?: DeviceCapabilityPolicy
 }
 
 // DeviceCapability contains the message type declaration for DeviceCapability.
@@ -366,6 +547,13 @@ export const DeviceCapability: MessageType<DeviceCapability> =
       { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'state', kind: 'enum', T: DeviceCapabilityState_Enum },
       { no: 5, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'link', kind: 'message', T: () => DeviceCapabilityLink },
+      {
+        no: 7,
+        name: 'policy',
+        kind: 'message',
+        T: () => DeviceCapabilityPolicy,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
