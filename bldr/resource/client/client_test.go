@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ type mockResourceService struct {
 	mu             sync.Mutex
 	attachCalls    int
 	nextResourceID uint32
+	clientEvents   chan *resource.ResourceClientResponse
 	onAttachSend   func(*mockResourceAttachClient, *resource.ResourceAttachRequest)
 	onRelease      func(context.Context, *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error)
 }
@@ -24,7 +26,7 @@ type mockResourceService struct {
 func (m *mockResourceService) SRPCClient() srpc.Client { return nil }
 
 func (m *mockResourceService) ResourceClient(ctx context.Context, _ *resource.ResourceClientRequest) (resource.SRPCResourceService_ResourceClientClient, error) {
-	return &mockResourceClientClient{ctx: ctx}, nil
+	return &mockResourceClientClient{ctx: ctx, events: m.clientEvents}, nil
 }
 
 func (m *mockResourceService) ResourceRpc(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
@@ -68,6 +70,7 @@ func (m *mockResourceService) nextAttachResourceID() uint32 {
 
 type mockResourceClientClient struct {
 	ctx      context.Context
+	events   <-chan *resource.ResourceClientResponse
 	initOnce sync.Once
 }
 
@@ -112,8 +115,15 @@ func (m *mockResourceClientClient) Recv() (*resource.ResourceClientResponse, err
 		return resp, nil
 	}
 
-	<-m.ctx.Done()
-	return nil, m.ctx.Err()
+	select {
+	case <-m.ctx.Done():
+		return nil, m.ctx.Err()
+	case resp := <-m.events:
+		if resp != nil {
+			return resp, nil
+		}
+		return nil, errors.New("resource client event stream closed")
+	}
 }
 
 func (m *mockResourceClientClient) RecvTo(msg *resource.ResourceClientResponse) error {
@@ -440,6 +450,210 @@ func TestCanceledAttachDetachesLateSuccessfulAck(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("expected detach after late successful AddAck")
 	}
+}
+
+func TestResourceReferenceFinalReleaseNotifiesAfterLastLocalRef(t *testing.T) {
+	releaseCh := make(chan *resource.ResourceRefReleaseRequest, 1)
+	svc := &mockResourceService{
+		onRelease: func(_ context.Context, req *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error) {
+			releaseCh <- req
+			return &resource.ResourceRefReleaseResponse{}, nil
+		},
+	}
+
+	c, err := NewClient(context.Background(), svc)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer c.Release()
+
+	first := c.CreateResourceReference(42)
+	second := c.CreateResourceReference(42)
+
+	first.Release()
+	select {
+	case req := <-releaseCh:
+		t.Fatalf("first local release notified server: %#v", req)
+	default:
+	}
+
+	second.Release()
+	var req *resource.ResourceRefReleaseRequest
+	select {
+	case req = <-releaseCh:
+	case <-time.After(time.Second):
+		t.Fatal("final local release did not notify server")
+	}
+	if req.GetClientHandleId() != 1 || req.GetResourceId() != 42 {
+		t.Fatalf("unexpected final release request: %#v", req)
+	}
+
+	first.Release()
+	second.Release()
+	select {
+	case req := <-releaseCh:
+		t.Fatalf("duplicate local release notified server: %#v", req)
+	default:
+	}
+}
+
+func TestServerResourceReleaseCancelsRefsWithoutLocalReleaseNotify(t *testing.T) {
+	events := make(chan *resource.ResourceClientResponse, 1)
+	var releaseCalls atomic.Int32
+	svc := &mockResourceService{
+		clientEvents: events,
+		onRelease: func(_ context.Context, _ *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error) {
+			releaseCalls.Add(1)
+			return &resource.ResourceRefReleaseResponse{}, nil
+		},
+	}
+
+	c, err := NewClient(context.Background(), svc)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer c.Release()
+
+	ref := c.CreateResourceReference(42)
+	if _, err := ref.GetClient(); err != nil {
+		t.Fatalf("GetClient before server release: %v", err)
+	}
+
+	events <- &resource.ResourceClientResponse{
+		Body: &resource.ResourceClientResponse_ResourceReleased{
+			ResourceReleased: &resource.ResourceReleasedResponse{
+				ResourceId: 42,
+			},
+		},
+	}
+
+	waitFor(t, time.Second, func() bool {
+		_, err := ref.GetClient()
+		return errors.Is(err, resource.ErrResourceOrClientReleased)
+	})
+
+	ref.Release()
+	if releaseCalls.Load() != 0 {
+		t.Fatalf("server-initiated release triggered %d local release notifications", releaseCalls.Load())
+	}
+
+	c.mtx.Lock()
+	_, hasResource := c.resources[42]
+	_, hasClient := c.srpcClients[42]
+	_, hasCtx := c.resourceContexts[42]
+	c.mtx.Unlock()
+	if hasResource || hasClient || hasCtx {
+		t.Fatalf("server release left resource state: resource=%v client=%v ctx=%v", hasResource, hasClient, hasCtx)
+	}
+}
+
+func TestDetachResourceReleasesAttachedRootOnce(t *testing.T) {
+	var releaseCalls atomic.Int32
+	released := make(chan struct{}, 1)
+	svc := &mockResourceService{
+		onAttachSend: func(strm *mockResourceAttachClient, req *resource.ResourceAttachRequest) {
+			if add := req.GetAdd(); add != nil {
+				strm.recvCh <- &resource.ResourceAttachResponse{
+					Body: &resource.ResourceAttachResponse_AddAck{
+						AddAck: &resource.ResourceAttachAddAck{
+							AttachId:   add.GetAttachId(),
+							ResourceId: strm.service.nextAttachResourceID(),
+						},
+					},
+				}
+			}
+			if detach := req.GetDetach(); detach != nil {
+				strm.recvCh <- &resource.ResourceAttachResponse{
+					Body: &resource.ResourceAttachResponse_DetachAck{
+						DetachAck: &resource.ResourceAttachDetachAck{
+							ResourceId: detach.GetResourceId(),
+						},
+					},
+				}
+			}
+		},
+	}
+
+	c, err := NewClient(context.Background(), svc)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer c.Release()
+
+	rootID, err := c.AttachResource(context.Background(), "root", srpc.InvokerFunc(nil))
+	if err != nil {
+		t.Fatalf("AttachResource: %v", err)
+	}
+	c.setAttachedRelease(rootID, func() {
+		releaseCalls.Add(1)
+		select {
+		case released <- struct{}{}:
+		default:
+		}
+	})
+
+	if err := c.DetachResource(context.Background(), rootID); err != nil {
+		t.Fatalf("DetachResource: %v", err)
+	}
+	select {
+	case <-released:
+	case <-time.After(time.Second):
+		t.Fatal("attached root release callback was not called")
+	}
+	if err := c.DetachResource(context.Background(), rootID); err != nil {
+		t.Fatalf("second DetachResource: %v", err)
+	}
+	if releaseCalls.Load() != 1 {
+		t.Fatalf("attached root release calls = %d, want 1", releaseCalls.Load())
+	}
+}
+
+func TestAttachSessionCloseReleasesAttachedResources(t *testing.T) {
+	var releaseCalls atomic.Int32
+	svc := &mockResourceService{
+		onAttachSend: func(strm *mockResourceAttachClient, req *resource.ResourceAttachRequest) {
+			if add := req.GetAdd(); add != nil {
+				strm.recvCh <- &resource.ResourceAttachResponse{
+					Body: &resource.ResourceAttachResponse_AddAck{
+						AddAck: &resource.ResourceAttachAddAck{
+							AttachId:   add.GetAttachId(),
+							ResourceId: strm.service.nextAttachResourceID(),
+						},
+					},
+				}
+			}
+		},
+	}
+
+	c, err := NewClient(context.Background(), svc)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer c.Release()
+
+	rootID, err := c.AttachResource(context.Background(), "root", srpc.InvokerFunc(nil))
+	if err != nil {
+		t.Fatalf("AttachResource: %v", err)
+	}
+	c.setAttachedRelease(rootID, func() {
+		releaseCalls.Add(1)
+	})
+
+	c.mtx.Lock()
+	sess := c.attachSess
+	c.mtx.Unlock()
+	if sess == nil {
+		t.Fatal("expected attach session")
+	}
+	if err := sess.mc.Close(); err != nil {
+		t.Fatalf("close attach session: %v", err)
+	}
+
+	waitFor(t, time.Second, func() bool {
+		c.mtx.Lock()
+		defer c.mtx.Unlock()
+		return c.attachSess == nil && releaseCalls.Load() == 1
+	})
 }
 
 func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
