@@ -27,6 +27,7 @@ import (
 const (
 	defaultCDPReadyTimeout = 10 * time.Minute
 	cdpReadyTimeoutEnv     = "E2E_ELECTRON_CDP_READY_TIMEOUT"
+	cdpShutdownTimeout     = 15 * time.Second
 )
 
 // Harness owns a Bldr desktop runtime plus a Playwright CDP attachment to the
@@ -475,6 +476,11 @@ func (h *Harness) stopDesktopRuntime() error {
 	}
 	<-h.done
 	h.done = nil
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cdpShutdownTimeout)
+	defer shutdownCancel()
+	if err := h.waitForCDPClosed(shutdownCtx); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -512,6 +518,26 @@ func (h *Harness) waitForCDP(ctx context.Context) error {
 			return errors.Wrap(ctx.Err(), "wait for Electron CDP endpoint")
 		case <-h.done:
 			return h.desktopRuntimeErr("desktop runtime exited before CDP endpoint became ready")
+		case <-ticker.C:
+		}
+	}
+}
+
+// waitForCDPClosed prevents relaunch from treating a previous Electron process
+// as the newly started runtime when both launches reuse the same debug port.
+func (h *Harness) waitForCDPClosed(ctx context.Context) error {
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(h.cdpPort))
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		conn, err := net.DialTimeout("tcp", addr, 250*time.Millisecond)
+		if err != nil {
+			return nil
+		}
+		_ = conn.Close()
+		select {
+		case <-ctx.Done():
+			return errors.Wrap(ctx.Err(), "wait for stale Electron CDP endpoint to close")
 		case <-ticker.C:
 		}
 	}
