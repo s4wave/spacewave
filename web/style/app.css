@@ -600,6 +600,14 @@ input[type='number'],
   }
 }
 
+html {
+  /* Keep the fixed-density app shell from inheriting browser default font
+     size. Browser zoom still scales CSS pixels for accessibility. */
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html,
 body,
 #root {

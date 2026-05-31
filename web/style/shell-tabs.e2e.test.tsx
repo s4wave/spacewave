@@ -122,6 +122,16 @@ describe('Heavy Frost Tab CSS (baked-in)', () => {
   beforeEach(() => void cleanup())
   afterEach(() => void cleanup())
 
+  it('pins the app rem scale to 16px', async () => {
+    await render(<div className="h-4 w-4" data-testid="rem-probe" />)
+    await expect.poll(() => getEl('rem-probe')).not.toBeNull()
+
+    expect(window.getComputedStyle(document.documentElement).fontSize).toBe(
+      '16px',
+    )
+    expect(getEl('rem-probe').getBoundingClientRect().height).toBe(16)
+  })
+
   it('tab bar outer is 30px in menu mode', async () => {
     await render(<MockShellFlexLayout />)
     await expect.poll(() => getEl('tabbar-outer')).not.toBeNull()
