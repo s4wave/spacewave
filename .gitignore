@@ -54,6 +54,7 @@ eslint-errors.json
 /spacewave-debug*
 /spacewave-cli
 /build-web-pkgs
+/desktop/macos/.build
 /playwright-report
 trace.out
 /e2e/wasm/testdata
