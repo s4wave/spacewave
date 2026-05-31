@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	"github.com/sirupsen/logrus"
 )
@@ -70,7 +71,7 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 	}
 
 	postWaiting := make(chan struct{}, 1)
-	dm.muxWriteWaitHook = func(docID string) {
+	dm.sessions.muxWriteWaitHook = func(docID string) {
 		if docID != "doc-a" {
 			return
 		}
@@ -109,8 +110,8 @@ func TestDocumentManagerMuxWriteWaitsForMuxRead(t *testing.T) {
 		writeCh: make(chan []byte, 1),
 		flushCh: make(chan []byte, 1),
 	}
-	dm.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		dm.docs["doc-a"] = &documentState{
+	dm.sessions.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		dm.sessions.docs["doc-a"] = &documentState{
 			id:        "doc-a",
 			connected: true,
 			mc:        mc,
@@ -191,10 +192,62 @@ func TestDocumentManagerDefaultDocAndStatusWatchFollowMuxLifecycle(t *testing.T)
 	}
 }
 
+func TestDocumentSessionOwnerIgnoresStaleDisconnect(t *testing.T) {
+	dm := newTestDocumentManager()
+	owner := &dm.sessions
+	firstMux := &testMuxedConn{}
+	secondMux := &testMuxedConn{}
+	firstGeneration, oldMux := owner.beginMuxReconnect("doc-a")
+	if oldMux != nil {
+		t.Fatal("first reconnect returned old mux")
+	}
+	if !owner.connectMux("doc-a", firstGeneration, firstMux, newTestMuxConn(t.Context())) {
+		t.Fatal("first mux did not connect")
+	}
+
+	secondGeneration, oldMux := owner.beginMuxReconnect("doc-a")
+	if oldMux != firstMux {
+		t.Fatalf("old mux = %#v, want first mux", oldMux)
+	}
+	if !owner.connectMux("doc-a", secondGeneration, secondMux, newTestMuxConn(t.Context())) {
+		t.Fatal("second mux did not connect")
+	}
+
+	owner.disconnectMux(documentSession{docID: "doc-a", generation: firstGeneration})
+	if firstMux.closed.Load() {
+		t.Fatal("stale disconnect closed the old mux returned to the reconnect owner")
+	}
+	if secondMux.closed.Load() {
+		t.Fatal("stale disconnect closed the current mux")
+	}
+	ids := owner.documentIDs()
+	if len(ids) != 1 || ids[0] != "doc-a" {
+		t.Fatalf("connected document ids = %v, want [doc-a]", ids)
+	}
+
+	owner.disconnectMux(documentSession{docID: "doc-a", generation: secondGeneration})
+	if !secondMux.closed.Load() {
+		t.Fatal("current disconnect did not close the current mux")
+	}
+	if ids := owner.documentIDs(); len(ids) != 0 {
+		t.Fatalf("connected document ids after current disconnect = %v, want none", ids)
+	}
+}
+
 func newTestDocumentManager() *DocumentManager {
 	log := logrus.New()
 	log.SetLevel(logrus.PanicLevel)
 	return NewDocumentManager(logrus.NewEntry(log))
+}
+
+func newTestMuxConn(ctx context.Context) *muxConn {
+	muxCtx, muxCancel := context.WithCancel(ctx)
+	return &muxConn{
+		ctx:     muxCtx,
+		cancel:  muxCancel,
+		writeCh: make(chan []byte, 1),
+		flushCh: make(chan []byte, 1),
+	}
 }
 
 func startTestMuxRead(dm *DocumentManager, ctx context.Context, docID string) <-chan struct{} {
@@ -325,4 +378,25 @@ func (r *countingReader) Read(p []byte) (int, error) {
 	n := copy(p, r.data)
 	r.data = r.data[n:]
 	return n, nil
+}
+
+type testMuxedConn struct {
+	closed atomic.Bool
+}
+
+func (c *testMuxedConn) Close() error {
+	c.closed.Store(true)
+	return nil
+}
+
+func (c *testMuxedConn) IsClosed() bool {
+	return c.closed.Load()
+}
+
+func (c *testMuxedConn) OpenStream(context.Context) (srpc.MuxedStream, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (c *testMuxedConn) AcceptStream() (srpc.MuxedStream, error) {
+	return nil, errors.New("not implemented")
 }
