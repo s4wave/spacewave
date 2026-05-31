@@ -5,10 +5,7 @@ package devtool
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"syscall"
-	"time"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -138,53 +135,56 @@ func (a *DevtoolArgs) runCliSubprocess(
 	var lastRev uint64
 
 	for {
-		// start subprocess
-		proc := exec.CommandContext(ctx, binaryPath, args...)
-		proc.Stdin = os.Stdin
-		proc.Stdout = os.Stdout
-		proc.Stderr = le.WriterLevel(logrus.DebugLevel)
-
-		if err := proc.Start(); err != nil {
+		runCtx, cancelRun := context.WithCancel(ctx)
+		proc := newCliSubprocessSupervisor(runCtx, le, binaryPath, args)
+		if err := proc.start(); err != nil {
+			cancelRun()
 			return err
 		}
 
-		// wait for subprocess to exit OR a manifest rebuild
-		procDone := make(chan error, 1)
-		go func() {
-			procDone <- proc.Wait()
-		}()
-
 		// watch for manifest changes in the world
-		rebuildCh := make(chan struct{}, 1)
+		rebuildCh := make(chan error, 1)
 		if a.Watch {
 			go func() {
-				watchErr := a.watchManifestChanges(ctx, b, manifestID, platformID, &lastRev)
-				if watchErr != nil && ctx.Err() == nil {
-					le.WithError(watchErr).Warn("manifest watch error")
+				watchErr := a.watchManifestChanges(runCtx, b, manifestID, platformID, &lastRev)
+				if watchErr != nil {
+					if runCtx.Err() == nil {
+						le.WithError(watchErr).Warn("manifest watch error")
+						select {
+						case rebuildCh <- watchErr:
+						default:
+						}
+					}
+					return
 				}
 				select {
-				case rebuildCh <- struct{}{}:
+				case rebuildCh <- nil:
 				default:
 				}
 			}()
 		}
 
 		select {
-		case err := <-procDone:
+		case err := <-proc.wait():
 			// subprocess exited on its own (not killed by us)
 			// propagate exit code to parent
+			cancelRun()
 			return exitError(err)
 
-		case <-rebuildCh:
+		case watchErr := <-rebuildCh:
+			if watchErr != nil {
+				cancelRun()
+				_ = proc.terminate()
+				return watchErr
+			}
 			// manifest rebuilt, kill subprocess and restart
 			le.Info("manifest rebuilt, restarting CLI...")
-			killProcess(proc)
-			<-procDone
+			cancelRun()
+			_ = proc.terminate()
 
 		case <-ctx.Done():
-			killProcess(proc)
-			err := <-procDone
-			return exitError(err)
+			cancelRun()
+			return exitError(proc.terminate())
 		}
 
 		// collect the updated manifest ref from the world
@@ -272,36 +272,4 @@ func (a *DevtoolArgs) watchManifestChanges(
 			return err
 		}
 	}
-}
-
-// killProcess sends SIGTERM to the process and waits briefly, then SIGKILL.
-func killProcess(proc *exec.Cmd) {
-	if proc.Process == nil {
-		return
-	}
-	_ = proc.Process.Signal(syscall.SIGTERM)
-	done := make(chan struct{})
-	go func() {
-		proc.Wait()
-		close(done)
-	}()
-	timeout := time.NewTimer(3 * time.Second)
-	select {
-	case <-done:
-		timeout.Stop()
-	case <-timeout.C:
-		_ = proc.Process.Kill()
-	}
-}
-
-// exitError extracts the exit code from an exec error.
-// Returns nil for success, the original error otherwise.
-func exitError(err error) error {
-	if err == nil {
-		return nil
-	}
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		os.Exit(exitErr.ExitCode())
-	}
-	return err
 }
