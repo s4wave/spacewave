@@ -27,25 +27,21 @@ type tinyGoPluginStream struct {
 	id       uint32
 	incoming *serialPacketDataHandler
 	release  sync.Once
-	notify   chan struct{}
-	done     chan struct{}
 
-	mtx            sync.Mutex
-	closed         bool
-	messagePending bool
-	messageEvent   tinyGoPluginStreamMessageEvent
-	closePending   bool
-	closeEvent     tinyGoPluginStreamCloseEvent
+	mtx    sync.Mutex
+	events tinyGoPluginStreamEventOwner
 }
 
-var (
-	tinyGoPluginMu           sync.Mutex
-	tinyGoPluginNextOpID     uint32
-	tinyGoPluginOpenOps      = map[uint32]*tinyGoPluginOpenOp{}
-	tinyGoPluginStreams      = map[uint32]*tinyGoPluginStream{}
-	tinyGoPluginAcceptCtx    context.Context
-	tinyGoPluginAcceptInvoke srpc.Invoker
-)
+type tinyGoPluginRuntimeOwner struct {
+	mtx          sync.Mutex
+	nextOpID     uint32
+	openOps      map[uint32]*tinyGoPluginOpenOp
+	streams      map[uint32]*tinyGoPluginStream
+	acceptCtx    context.Context
+	acceptInvoke srpc.Invoker
+}
+
+var tinyGoPluginRuntime = tinyGoPluginRuntimeOwner{}
 
 //go:wasmimport gojs bldr.plugin.openStream
 func tinyGoPluginOpenStream(opID uint32)
@@ -98,24 +94,12 @@ func newTinyGoPluginOpenStream(
 }
 
 func setTinyGoPluginAcceptStreams(ctx context.Context, invoker srpc.Invoker) {
-	tinyGoPluginMu.Lock()
-	tinyGoPluginAcceptCtx = ctx
-	tinyGoPluginAcceptInvoke = invoker
-	tinyGoPluginMu.Unlock()
+	tinyGoPluginRuntime.setAcceptStreams(ctx, invoker)
 
 	tinyGoPluginSetAcceptStreams(1)
 	go func() {
 		<-ctx.Done()
-		tinyGoPluginMu.Lock()
-		if tinyGoPluginAcceptCtx == ctx {
-			tinyGoPluginAcceptCtx = nil
-			tinyGoPluginAcceptInvoke = nil
-		}
-		streams := make([]*tinyGoPluginStream, 0, len(tinyGoPluginStreams))
-		for _, stream := range tinyGoPluginStreams {
-			streams = append(streams, stream)
-		}
-		tinyGoPluginMu.Unlock()
+		streams := tinyGoPluginRuntime.closeAcceptStreams(ctx)
 
 		tinyGoPluginSetAcceptStreams(0)
 		for _, stream := range streams {
@@ -128,27 +112,104 @@ func registerTinyGoPluginOpenOp(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 ) (uint32, *tinyGoPluginOpenOp) {
-	tinyGoPluginMu.Lock()
-	defer tinyGoPluginMu.Unlock()
-	tinyGoPluginNextOpID++
-	if tinyGoPluginNextOpID == 0 {
-		tinyGoPluginNextOpID++
+	tinyGoPluginRuntime.mtx.Lock()
+	defer tinyGoPluginRuntime.mtx.Unlock()
+	tinyGoPluginRuntime.ensureLocked()
+	tinyGoPluginRuntime.nextOpID++
+	if tinyGoPluginRuntime.nextOpID == 0 {
+		tinyGoPluginRuntime.nextOpID++
 	}
 	op := &tinyGoPluginOpenOp{
 		done:         make(chan struct{}),
 		msgHandler:   msgHandler,
 		closeHandler: closeHandler,
 	}
-	tinyGoPluginOpenOps[tinyGoPluginNextOpID] = op
-	return tinyGoPluginNextOpID, op
+	tinyGoPluginRuntime.openOps[tinyGoPluginRuntime.nextOpID] = op
+	return tinyGoPluginRuntime.nextOpID, op
+}
+
+func (o *tinyGoPluginRuntimeOwner) ensureLocked() {
+	if o.openOps == nil {
+		o.openOps = map[uint32]*tinyGoPluginOpenOp{}
+	}
+	if o.streams == nil {
+		o.streams = map[uint32]*tinyGoPluginStream{}
+	}
 }
 
 func takeTinyGoPluginOpenOp(opID uint32) *tinyGoPluginOpenOp {
-	tinyGoPluginMu.Lock()
-	op := tinyGoPluginOpenOps[opID]
-	delete(tinyGoPluginOpenOps, opID)
-	tinyGoPluginMu.Unlock()
+	return tinyGoPluginRuntime.takeOpenOp(opID)
+}
+
+func (o *tinyGoPluginRuntimeOwner) takeOpenOp(opID uint32) *tinyGoPluginOpenOp {
+	o.mtx.Lock()
+	op := o.openOps[opID]
+	delete(o.openOps, opID)
+	o.mtx.Unlock()
 	return op
+}
+
+func (o *tinyGoPluginRuntimeOwner) setAcceptStreams(ctx context.Context, invoker srpc.Invoker) {
+	o.mtx.Lock()
+	o.ensureLocked()
+	o.acceptCtx = ctx
+	o.acceptInvoke = invoker
+	o.mtx.Unlock()
+}
+
+func (o *tinyGoPluginRuntimeOwner) closeAcceptStreams(ctx context.Context) []*tinyGoPluginStream {
+	o.mtx.Lock()
+	if o.acceptCtx == ctx {
+		o.acceptCtx = nil
+		o.acceptInvoke = nil
+	}
+	streams := make([]*tinyGoPluginStream, 0, len(o.streams))
+	for _, stream := range o.streams {
+		streams = append(streams, stream)
+	}
+	o.mtx.Unlock()
+	return streams
+}
+
+func (o *tinyGoPluginRuntimeOwner) acceptState() (context.Context, srpc.Invoker) {
+	o.mtx.Lock()
+	ctx := o.acceptCtx
+	invoker := o.acceptInvoke
+	o.mtx.Unlock()
+	return ctx, invoker
+}
+
+func (o *tinyGoPluginRuntimeOwner) resolveOpen(opID, streamID uint32) bool {
+	o.mtx.Lock()
+	o.ensureLocked()
+	op := o.openOps[opID]
+	if op == nil || op.closed {
+		o.mtx.Unlock()
+		return false
+	}
+	op.closed = true
+	stream := newTinyGoPluginStream(streamID, op.msgHandler, op.closeHandler)
+	op.stream = stream
+	o.streams[streamID] = stream
+	close(op.done)
+	o.mtx.Unlock()
+	return true
+}
+
+func (o *tinyGoPluginRuntimeOwner) rejectOpen(opID, errBytesID, errLen uint32) bool {
+	o.mtx.Lock()
+	op := o.openOps[opID]
+	if op == nil || op.closed {
+		o.mtx.Unlock()
+		return false
+	}
+	op.closed = true
+	op.rejected = true
+	op.errBytesID = errBytesID
+	op.errLen = errLen
+	close(op.done)
+	o.mtx.Unlock()
+	return true
 }
 
 func finishTinyGoPluginOpenOp(opID uint32, op *tinyGoPluginOpenOp) (srpc.PacketWriter, error) {
@@ -192,33 +253,45 @@ func newTinyGoPluginStream(
 
 func newTinyGoPluginStreamState(streamID uint32) *tinyGoPluginStream {
 	stream := &tinyGoPluginStream{
-		id:     streamID,
-		notify: make(chan struct{}, 1),
-		done:   make(chan struct{}),
+		id: streamID,
 	}
-	go stream.runExportEvents()
+	stream.events.init()
+	go stream.events.run(stream)
 	return stream
 }
 
 func registerTinyGoPluginStream(stream *tinyGoPluginStream) {
-	tinyGoPluginMu.Lock()
-	tinyGoPluginStreams[stream.id] = stream
-	tinyGoPluginMu.Unlock()
+	tinyGoPluginRuntime.registerStream(stream)
+}
+
+func (o *tinyGoPluginRuntimeOwner) registerStream(stream *tinyGoPluginStream) {
+	o.mtx.Lock()
+	o.ensureLocked()
+	o.streams[stream.id] = stream
+	o.mtx.Unlock()
 }
 
 func lookupTinyGoPluginStream(streamID uint32) *tinyGoPluginStream {
-	tinyGoPluginMu.Lock()
-	stream := tinyGoPluginStreams[streamID]
-	tinyGoPluginMu.Unlock()
+	return tinyGoPluginRuntime.lookupStream(streamID)
+}
+
+func (o *tinyGoPluginRuntimeOwner) lookupStream(streamID uint32) *tinyGoPluginStream {
+	o.mtx.Lock()
+	stream := o.streams[streamID]
+	o.mtx.Unlock()
 	return stream
 }
 
 func removeTinyGoPluginStream(stream *tinyGoPluginStream) {
-	tinyGoPluginMu.Lock()
-	if tinyGoPluginStreams[stream.id] == stream {
-		delete(tinyGoPluginStreams, stream.id)
+	tinyGoPluginRuntime.removeStream(stream)
+}
+
+func (o *tinyGoPluginRuntimeOwner) removeStream(stream *tinyGoPluginStream) {
+	o.mtx.Lock()
+	if o.streams[stream.id] == stream {
+		delete(o.streams, stream.id)
 	}
-	tinyGoPluginMu.Unlock()
+	o.mtx.Unlock()
 }
 
 func (s *tinyGoPluginStream) WritePacket(pkt *srpc.Packet) error {
@@ -230,10 +303,7 @@ func (s *tinyGoPluginStream) WritePacket(pkt *srpc.Packet) error {
 }
 
 func (s *tinyGoPluginStream) WritePacketData(data []byte) error {
-	s.mtx.Lock()
-	closed := s.closed
-	s.mtx.Unlock()
-	if closed {
+	if s.events.isClosed() {
 		return io.ErrClosedPipe
 	}
 
@@ -248,13 +318,9 @@ func (s *tinyGoPluginStream) WritePacketData(data []byte) error {
 }
 
 func (s *tinyGoPluginStream) Close() error {
-	s.mtx.Lock()
-	if s.closed {
-		s.mtx.Unlock()
+	if !s.events.markClosed() {
 		return nil
 	}
-	s.closed = true
-	s.mtx.Unlock()
 
 	closed := tinyGoPluginStreamClose(s.id) != 0
 	s.releaseJS()
@@ -265,11 +331,16 @@ func (s *tinyGoPluginStream) Close() error {
 }
 
 func (s *tinyGoPluginStream) handleMessage(bytes []byte, handled func(error)) {
+	if s.events.isClosed() {
+		if handled != nil {
+			handled(io.ErrClosedPipe)
+		}
+		return
+	}
 	s.mtx.Lock()
-	closed := s.closed
 	incoming := s.incoming
 	s.mtx.Unlock()
-	if closed || incoming == nil {
+	if incoming == nil {
 		if handled != nil {
 			handled(io.ErrClosedPipe)
 		}
@@ -279,12 +350,10 @@ func (s *tinyGoPluginStream) handleMessage(bytes []byte, handled func(error)) {
 }
 
 func (s *tinyGoPluginStream) handleClose(err error) {
-	s.mtx.Lock()
-	if s.closed {
-		s.mtx.Unlock()
+	if !s.events.markClosed() {
 		return
 	}
-	s.closed = true
+	s.mtx.Lock()
 	incoming := s.incoming
 	s.mtx.Unlock()
 
@@ -297,13 +366,9 @@ func (s *tinyGoPluginStream) handleClose(err error) {
 
 func (s *tinyGoPluginStream) releaseJS() {
 	s.release.Do(func() {
-		s.mtx.Lock()
-		s.closed = true
-		msg, hasMsg, closeEvent, hasClose := s.takePendingEventsLocked()
-		s.mtx.Unlock()
+		msg, hasMsg, closeEvent, hasClose := s.events.releasePending()
 
 		dropTinyGoPluginStreamEvents(msg, hasMsg, closeEvent, hasClose)
-		close(s.done)
 		removeTinyGoPluginStream(s)
 		tinyGoPluginStreamRelease(s.id)
 	})
@@ -348,76 +413,142 @@ type tinyGoPluginStreamCloseEvent struct {
 	errLen     uint32
 }
 
-func (s *tinyGoPluginStream) enqueueMessage(bytesID, length uint32) bool {
-	s.mtx.Lock()
-	if s.closed || s.messagePending {
-		s.mtx.Unlock()
+type tinyGoPluginStreamEventOwner struct {
+	mtx            sync.Mutex
+	notify         chan struct{}
+	done           chan struct{}
+	closed         bool
+	messagePending bool
+	messageEvent   tinyGoPluginStreamMessageEvent
+	closePending   bool
+	closeEvent     tinyGoPluginStreamCloseEvent
+}
+
+type tinyGoPluginStreamEventKind uint8
+
+const (
+	tinyGoPluginStreamEventNone tinyGoPluginStreamEventKind = iota
+	tinyGoPluginStreamEventMessage
+	tinyGoPluginStreamEventClose
+)
+
+type tinyGoPluginStreamEvent struct {
+	kind       tinyGoPluginStreamEventKind
+	message    tinyGoPluginStreamMessageEvent
+	closeEvent tinyGoPluginStreamCloseEvent
+}
+
+func (e *tinyGoPluginStreamEventOwner) init() {
+	e.notify = make(chan struct{}, 1)
+	e.done = make(chan struct{})
+}
+
+func (e *tinyGoPluginStreamEventOwner) isClosed() bool {
+	e.mtx.Lock()
+	closed := e.closed
+	e.mtx.Unlock()
+	return closed
+}
+
+func (e *tinyGoPluginStreamEventOwner) markClosed() bool {
+	e.mtx.Lock()
+	if e.closed {
+		e.mtx.Unlock()
 		return false
 	}
-	s.messagePending = true
-	s.messageEvent = tinyGoPluginStreamMessageEvent{
+	e.closed = true
+	e.mtx.Unlock()
+	return true
+}
+
+func (e *tinyGoPluginStreamEventOwner) enqueueMessage(bytesID, length uint32) bool {
+	e.mtx.Lock()
+	if e.closed || e.messagePending {
+		e.mtx.Unlock()
+		return false
+	}
+	e.messagePending = true
+	e.messageEvent = tinyGoPluginStreamMessageEvent{
 		bytesID: bytesID,
 		length:  length,
 	}
-	s.signalLocked()
-	s.mtx.Unlock()
+	e.signalLocked()
+	e.mtx.Unlock()
 	return true
 }
 
-func (s *tinyGoPluginStream) enqueueClose(errBytesID, errLen uint32) bool {
-	s.mtx.Lock()
-	if s.closed || s.closePending {
-		s.mtx.Unlock()
+func (e *tinyGoPluginStreamEventOwner) enqueueClose(errBytesID, errLen uint32) bool {
+	e.mtx.Lock()
+	if e.closed || e.closePending {
+		e.mtx.Unlock()
 		return false
 	}
-	s.closePending = true
-	s.closeEvent = tinyGoPluginStreamCloseEvent{
+	e.closePending = true
+	e.closeEvent = tinyGoPluginStreamCloseEvent{
 		errBytesID: errBytesID,
 		errLen:     errLen,
 	}
-	s.signalLocked()
-	s.mtx.Unlock()
+	e.signalLocked()
+	e.mtx.Unlock()
 	return true
 }
 
-func (s *tinyGoPluginStream) signalLocked() {
+func (e *tinyGoPluginStreamEventOwner) signalLocked() {
 	select {
-	case s.notify <- struct{}{}:
+	case e.notify <- struct{}{}:
 	default:
 	}
 }
 
-func (s *tinyGoPluginStream) runExportEvents() {
+func (e *tinyGoPluginStreamEventOwner) run(stream *tinyGoPluginStream) {
 	for {
-		s.mtx.Lock()
-		for !s.messagePending && !s.closePending && !s.closed {
-			s.mtx.Unlock()
-			select {
-			case <-s.notify:
-			case <-s.done:
-				return
-			}
-			s.mtx.Lock()
-		}
-		if s.messagePending {
-			event := s.messageEvent
-			s.messageEvent = tinyGoPluginStreamMessageEvent{}
-			s.messagePending = false
-			s.mtx.Unlock()
-			s.handleMessageEvent(event)
+		event := e.next()
+		switch event.kind {
+		case tinyGoPluginStreamEventMessage:
+			stream.handleMessageEvent(event.message)
 			continue
-		}
-		if s.closePending {
-			event := s.closeEvent
-			s.closeEvent = tinyGoPluginStreamCloseEvent{}
-			s.closePending = false
-			s.mtx.Unlock()
-			s.handleClose(tinyGoPluginError(event.errBytesID, event.errLen))
+		case tinyGoPluginStreamEventClose:
+			stream.handleClose(tinyGoPluginError(event.closeEvent.errBytesID, event.closeEvent.errLen))
 			continue
+		default:
+			return
 		}
-		s.mtx.Unlock()
-		return
 	}
+}
+
+func (e *tinyGoPluginStreamEventOwner) next() tinyGoPluginStreamEvent {
+	e.mtx.Lock()
+	for !e.messagePending && !e.closePending && !e.closed {
+		e.mtx.Unlock()
+		select {
+		case <-e.notify:
+		case <-e.done:
+			return tinyGoPluginStreamEvent{}
+		}
+		e.mtx.Lock()
+	}
+	if e.messagePending {
+		event := e.messageEvent
+		e.messageEvent = tinyGoPluginStreamMessageEvent{}
+		e.messagePending = false
+		e.mtx.Unlock()
+		return tinyGoPluginStreamEvent{
+			kind:    tinyGoPluginStreamEventMessage,
+			message: event,
+		}
+	}
+	if e.closePending {
+		event := e.closeEvent
+		e.closeEvent = tinyGoPluginStreamCloseEvent{}
+		e.closePending = false
+		e.mtx.Unlock()
+		return tinyGoPluginStreamEvent{
+			kind:       tinyGoPluginStreamEventClose,
+			closeEvent: event,
+		}
+	}
+	e.mtx.Unlock()
+	return tinyGoPluginStreamEvent{}
 }
 
 func (s *tinyGoPluginStream) handleMessageEvent(event tinyGoPluginStreamMessageEvent) {
@@ -436,24 +567,28 @@ func (s *tinyGoPluginStream) handleMessageEvent(event tinyGoPluginStreamMessageE
 	})
 }
 
-func (s *tinyGoPluginStream) takePendingEventsLocked() (
+func (e *tinyGoPluginStreamEventOwner) releasePending() (
 	tinyGoPluginStreamMessageEvent,
 	bool,
 	tinyGoPluginStreamCloseEvent,
 	bool,
 ) {
-	msg := s.messageEvent
-	hasMsg := s.messagePending
-	closeEvent := s.closeEvent
-	hasClose := s.closePending
+	e.mtx.Lock()
+	e.closed = true
+	msg := e.messageEvent
+	hasMsg := e.messagePending
+	closeEvent := e.closeEvent
+	hasClose := e.closePending
 	if hasMsg {
-		s.messageEvent = tinyGoPluginStreamMessageEvent{}
-		s.messagePending = false
+		e.messageEvent = tinyGoPluginStreamMessageEvent{}
+		e.messagePending = false
 	}
 	if hasClose {
-		s.closeEvent = tinyGoPluginStreamCloseEvent{}
-		s.closePending = false
+		e.closeEvent = tinyGoPluginStreamCloseEvent{}
+		e.closePending = false
 	}
+	close(e.done)
+	e.mtx.Unlock()
 	return msg, hasMsg, closeEvent, hasClose
 }
 
@@ -478,43 +613,25 @@ func dropTinyGoPluginStreamEvents(
 //
 //export BLDR_PLUGIN_STREAM_OPEN_RESOLVE
 func tinyGoPluginStreamOpenResolve(opID uint32, streamID uint32) {
-	tinyGoPluginMu.Lock()
-	op := tinyGoPluginOpenOps[opID]
-	if op == nil || op.closed {
-		tinyGoPluginMu.Unlock()
+	if !tinyGoPluginRuntime.resolveOpen(opID, streamID) {
 		tinyGoPluginStreamClose(streamID)
 		tinyGoPluginStreamRelease(streamID)
 		return
 	}
-	op.closed = true
-	stream := newTinyGoPluginStream(streamID, op.msgHandler, op.closeHandler)
-	op.stream = stream
-	tinyGoPluginStreams[streamID] = stream
-	close(op.done)
-	tinyGoPluginMu.Unlock()
 }
 
 //export BLDR_PLUGIN_STREAM_OPEN_REJECT
 func tinyGoPluginStreamOpenReject(opID uint32, errBytesID uint32, errLen uint32) {
-	tinyGoPluginMu.Lock()
-	op := tinyGoPluginOpenOps[opID]
-	if op == nil || op.closed {
-		tinyGoPluginMu.Unlock()
+	if !tinyGoPluginRuntime.rejectOpen(opID, errBytesID, errLen) {
 		dropTinyGoPluginBytes(errBytesID, errLen)
 		return
 	}
-	op.closed = true
-	op.rejected = true
-	op.errBytesID = errBytesID
-	op.errLen = errLen
-	close(op.done)
-	tinyGoPluginMu.Unlock()
 }
 
 //export BLDR_PLUGIN_STREAM_MESSAGE
 func tinyGoPluginStreamMessage(streamID uint32, bytesID uint32, length uint32) {
 	stream := lookupTinyGoPluginStream(streamID)
-	if stream == nil || !stream.enqueueMessage(bytesID, length) {
+	if stream == nil || !stream.events.enqueueMessage(bytesID, length) {
 		dropTinyGoPluginBytes(bytesID, length)
 		tinyGoPluginStreamMessageHandled(bytesID, 0)
 		return
@@ -524,7 +641,7 @@ func tinyGoPluginStreamMessage(streamID uint32, bytesID uint32, length uint32) {
 //export BLDR_PLUGIN_STREAM_CLOSE
 func tinyGoPluginStreamClosed(streamID uint32, errBytesID uint32, errLen uint32) {
 	stream := lookupTinyGoPluginStream(streamID)
-	if stream == nil || !stream.enqueueClose(errBytesID, errLen) {
+	if stream == nil || !stream.events.enqueueClose(errBytesID, errLen) {
 		dropTinyGoPluginBytes(errBytesID, errLen)
 		return
 	}
@@ -532,10 +649,7 @@ func tinyGoPluginStreamClosed(streamID uint32, errBytesID uint32, errLen uint32)
 
 //export BLDR_PLUGIN_STREAM_ACCEPT
 func tinyGoPluginStreamAccept(streamID uint32) {
-	tinyGoPluginMu.Lock()
-	ctx := tinyGoPluginAcceptCtx
-	invoker := tinyGoPluginAcceptInvoke
-	tinyGoPluginMu.Unlock()
+	ctx, invoker := tinyGoPluginRuntime.acceptState()
 	if ctx == nil || invoker == nil || ctx.Err() != nil {
 		tinyGoPluginStreamClose(streamID)
 		tinyGoPluginStreamRelease(streamID)
