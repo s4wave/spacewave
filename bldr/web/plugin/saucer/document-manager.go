@@ -48,6 +48,10 @@ type DocumentManager struct {
 
 	// server is the SRPC server for handling JS-initiated RPC streams.
 	server *srpc.Server
+
+	// muxWriteWaitHook is test-only synchronization for pre-GET POST ordering.
+	// Production leaves it nil; if set, it must be nonblocking.
+	muxWriteWaitHook func(docID string)
 }
 
 // NewDocumentManager constructs a new DocumentManager.
@@ -293,14 +297,19 @@ func (dm *DocumentManager) handleMuxWrite(rw http.ResponseWriter, req *http.Requ
 	var mc *muxConn
 	for {
 		var ch <-chan struct{}
+		var waitHook func(string)
 		dm.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
+			waitHook = dm.muxWriteWaitHook
 			if doc, ok := dm.docs[docID]; ok && doc.connected {
 				mc = doc.mc
 			}
 		})
 		if mc != nil {
 			break
+		}
+		if waitHook != nil {
+			waitHook(docID)
 		}
 		select {
 		case <-req.Context().Done():

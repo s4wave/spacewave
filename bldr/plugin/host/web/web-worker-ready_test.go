@@ -189,6 +189,32 @@ func TestWaitForCreatedWebWorkerReadyDoesNotRemoveReadyWorker(t *testing.T) {
 	}
 }
 
+func TestWaitForCreatedWebWorkerReadyReturnsWorkerFailureWithoutRemovingWorker(t *testing.T) {
+	ctr := ccontainer.NewCContainer[*web_document.WebDocumentStatus](nil)
+	ctr.SetValue(&web_document.WebDocumentStatus{
+		WebWorkers: []*web_document.WebWorkerStatus{{
+			Id:            "plugin/test",
+			Failed:        true,
+			FailureReason: "fatal wasm exit",
+		}},
+	})
+	worker := &testWebWorker{id: "plugin/test"}
+
+	ready, err := waitForCreatedWebWorkerReadyWithTimeout(context.Background(), ctr, worker, time.Second)
+	if err == nil {
+		t.Fatal("expected failed worker error")
+	}
+	if ready {
+		t.Fatal("failed worker should not be ready")
+	}
+	if !isWebWorkerFailureError(errors.Wrap(err, "track web document")) {
+		t.Fatal("expected worker failure classification")
+	}
+	if worker.removed {
+		t.Fatal("failed worker should be reported to the tracker instead of removed as unready")
+	}
+}
+
 type testWebWorker struct {
 	id      string
 	removed bool

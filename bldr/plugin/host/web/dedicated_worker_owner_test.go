@@ -49,6 +49,56 @@ func TestDedicatedWorkerOwnerClosedOwnerReleasesSingleton(t *testing.T) {
 	}
 }
 
+func TestDedicatedWorkerOwnerHiddenOwnerDoesNotTransferSingleton(t *testing.T) {
+	var owner dedicatedWorkerOwner
+
+	create, wake := owner.beginCreate("doc-a")
+	if !create || wake {
+		t.Fatalf("first document create = %v, wake = %v; want create without wake", create, wake)
+	}
+	owner.observeCreatedWorker("doc-a", false)
+
+	if wake := owner.observeDocumentStatus("doc-a", true); wake {
+		t.Fatal("hidden owner should not wake other documents")
+	}
+	create, wake = owner.beginCreate("doc-b")
+	if create || wake {
+		t.Fatalf("visible second document create = %v, wake = %v; want blocked while hidden owner is alive", create, wake)
+	}
+
+	if wake := owner.observeDocumentStatus("doc-a", false); wake {
+		t.Fatal("visible owner should not wake other documents")
+	}
+	create, wake = owner.beginCreate("doc-a")
+	if !create || wake {
+		t.Fatalf("owner document recreate = %v, wake = %v; want create without wake", create, wake)
+	}
+}
+
+func TestDedicatedWorkerOwnerWorkerFailureDoesNotTransferSingleton(t *testing.T) {
+	var owner dedicatedWorkerOwner
+
+	create, wake := owner.beginCreate("doc-a")
+	if !create || wake {
+		t.Fatalf("first document create = %v, wake = %v; want create without wake", create, wake)
+	}
+	owner.observeCreatedWorker("doc-a", false)
+
+	// Worker failure is reported by the tracker; the singleton owner changes only
+	// when the owning document is removed.
+	create, wake = owner.beginCreate("doc-b")
+	if create || wake {
+		t.Fatalf("visible second document create = %v, wake = %v; want blocked after owner worker failure", create, wake)
+	}
+	if wake := owner.observeDocumentRemoved("doc-a"); !wake {
+		t.Fatal("removed failed owner should wake other document trackers")
+	}
+	create, wake = owner.beginCreate("doc-b")
+	if !create || wake {
+		t.Fatalf("second document create after failed owner removal = %v, wake = %v; want create without wake", create, wake)
+	}
+}
+
 func TestDedicatedWorkerOwnerSharedWorkersDoNotPinDocument(t *testing.T) {
 	var owner dedicatedWorkerOwner
 
