@@ -194,23 +194,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	var prevResult *bldr_manifest_builder.BuilderResult
-	var prevErr error
-	var changedFiles []*bldr_manifest_builder.InputManifest_File
 	var startupValidated bool
-	var rebuildReason string
-	var rebuildReasonMtx sync.Mutex
-	setRebuildReason := func(reason string) {
-		rebuildReasonMtx.Lock()
-		rebuildReason = reason
-		rebuildReasonMtx.Unlock()
-	}
-	getRebuildReason := func() string {
-		rebuildReasonMtx.Lock()
-		reason := rebuildReason
-		rebuildReasonMtx.Unlock()
-		return reason
-	}
+	buildOwner := newManifestBuildOwner(c, builderConfig)
 
 	// manifestDepSnapshot holds the last-seen refs for watched manifest deps.
 	// Passed as an immutable snapshot to the watcher goroutine.
@@ -224,8 +209,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return context.Canceled
 		}
 
-		resultPromise := promise.NewPromise[*bldr_manifest_builder.BuilderResult]()
-		c.resultPromise.SetPromise(resultPromise)
+		resultPromise := buildOwner.nextResultPromise()
 
 		var result *bldr_manifest_builder.BuilderResult
 		var err error
@@ -259,55 +243,39 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 
-		buildCtx, buildCtxCancel := context.WithCancel(ctx)
-		var restarted atomic.Bool
-		restartFn := func(reason string) {
-			setRebuildReason(reason)
-			if !restarted.Swap(true) {
-				buildCtxCancel()
-			}
-		}
-		fullRebuild := false
-		hotRebuild := false
+		attempt := buildOwner.beginAttempt(ctx)
+		fullRebuild, hotRebuild := buildOwner.rebuildFlags(result)
 		if result == nil {
-			fullRebuild = prevResult == nil
-			hotRebuild = prevResult != nil
 			c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
 				State:                   ManifestBuilderLifecycleStateRunning,
 				FullRebuild:             fullRebuild,
 				HotRebuild:              hotRebuild,
-				DependencyRebuildReason: getRebuildReason(),
+				DependencyRebuildReason: buildOwner.rebuildReasonSnapshot(),
 				Summary:                 rebuildSummary(fullRebuild, hotRebuild),
 			})
-			args := &bldr_manifest_builder.BuildManifestArgs{
-				BuilderConfig: builderConfig,
-
-				PrevBuilderResult: prevResult,
-				ChangedFiles:      changedFiles,
-			}
+			args := buildOwner.buildArgs()
 
 			// construct the builder host which will set the restartFn when necessary
-			builderHost := newBuildManifestHost(c, builderConfig, restartFn)
+			builderHost := newBuildManifestHost(c, builderConfig, attempt.restart)
 
 			// update restartFn on any existing manifest trackers
 			for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
 				tkr := prevSubManifestTracker.Data
 				tkr.mtx.Lock()
-				tkr.restartFn = restartFn
+				tkr.restartFn = attempt.restart
 				tkr.resultPcObserved = false // flag that we shouldn't call restart() if the value changes (yet)
 				tkr.mtx.Unlock()
 			}
 
 			// Call the builder controller BuildManifest function.
-			changedFiles = nil
-			result, err = builderCtrl.BuildManifest(buildCtx, args, builderHost)
+			result, err = builderCtrl.BuildManifest(attempt.ctx, args, builderHost)
 			if ctx.Err() != nil {
-				buildCtxCancel()
+				attempt.release()
 				return context.Canceled
 			}
-			if buildCtx.Err() != nil {
-				if restarted.Load() {
-					buildCtxCancel()
+			if attempt.ctx.Err() != nil {
+				if attempt.wasRestarted() {
+					attempt.release()
 					continue
 				}
 			}
@@ -335,51 +303,22 @@ func (c *Controller) Execute(ctx context.Context) error {
 		// Only watch manifest deps if the build produced a result.
 		// Compilers that skip a platform return nil result with nil error.
 		hasManifestDeps := len(watchManifestIDs) > 0 && result != nil
-		if err == nil {
-			// Populate manifest_deps with current refs for watched manifests.
-			if hasManifestDeps && result.GetInputManifest() != nil {
-				deps, refs := c.resolveManifestDeps(ctx, le, watchManifestIDs)
-				result.GetInputManifest().ManifestDeps = deps
-				manifestDepSnapshot = refs
-				le.WithField("watch-manifest-ids", watchManifestIDs).
-					WithField("resolved-refs", len(refs)).
-					Debug("resolved manifest dep refs for watching")
-			}
-			if result != nil {
-				if err := result.Validate(); err != nil {
-					le.WithError(err).Debug("skipping world-backed manifest build result")
-				} else if err := c.storeManifestBuildResult(ctx, le, result); err != nil {
-					resultPromise.SetResult(nil, err)
-					prevErr = err
-					buildCtxCancel()
-					return err
-				}
-			}
-			resultPromise.SetResult(result, nil)
-			prevResult = result
-			c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
-				State:                   ManifestBuilderLifecycleStateDone,
-				CacheHit:                cacheHit,
-				FullRebuild:             fullRebuild,
-				HotRebuild:              hotRebuild,
-				DependencyRebuildReason: getRebuildReason(),
-				Summary:                 "build complete",
-			})
-		} else {
-			resultPromise.SetResult(nil, err)
-			c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
-				State:                   ManifestBuilderLifecycleStateError,
-				FullRebuild:             fullRebuild,
-				HotRebuild:              hotRebuild,
-				DependencyRebuildReason: getRebuildReason(),
-				Summary:                 "build failed",
-				Error:                   err.Error(),
-			})
+		// Populate manifest_deps with current refs for watched manifests.
+		if err == nil && hasManifestDeps && result.GetInputManifest() != nil {
+			deps, refs := c.resolveManifestDeps(ctx, le, watchManifestIDs)
+			result.GetInputManifest().ManifestDeps = deps
+			manifestDepSnapshot = refs
+			le.WithField("watch-manifest-ids", watchManifestIDs).
+				WithField("resolved-refs", len(refs)).
+				Debug("resolved manifest dep refs for watching")
 		}
-		prevErr = err
+		if err := buildOwner.publishResult(ctx, le, resultPromise, result, err, cacheHit, fullRebuild, hotRebuild); err != nil {
+			attempt.release()
+			return err
+		}
 
 		// NOTE: prevResult is the most recent result iif err == nil
-		inputFiles := prevResult.GetInputManifest().GetFiles()
+		inputFiles := buildOwner.prevResult.GetInputManifest().GetFiles()
 		if err == nil {
 			le.Debugf("input manifest returned with %d files", len(inputFiles))
 		}
@@ -387,8 +326,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 			le.WithError(err).Warn("build failed")
 		}
 		if !c.c.GetWatch() || (len(inputFiles) == 0 && subManifestCount == 0 && !hasManifestDeps) {
-			buildCtxCancel()
-			return prevErr
+			attempt.release()
+			return buildOwner.prevErr
 		}
 
 		// ignoreWatchPrefixes are prefixes to ignore from watching
@@ -420,28 +359,28 @@ func (c *Controller) Execute(ctx context.Context) error {
 				FullRebuild:             fullRebuild,
 				HotRebuild:              hotRebuild,
 				WatchedFileCount:        0,
-				DependencyRebuildReason: getRebuildReason(),
+				DependencyRebuildReason: buildOwner.rebuildReasonSnapshot(),
 				Summary:                 "watching for rebuild triggers",
 			})
 
 			if subManifestCount == 0 && !hasManifestDeps {
 				// nothing to wait for, return.
-				buildCtxCancel()
+				attempt.release()
 				return nil
 			}
 
 			// Start manifest dep watcher if we have deps.
 			if hasManifestDeps {
-				go c.watchManifestDeps(buildCtx, le, watchManifestIDs, manifestDepSnapshot, restartFn)
+				go c.watchManifestDeps(attempt.ctx, le, watchManifestIDs, manifestDepSnapshot, attempt.restart)
 			}
 
 			// wait for sub-manifests/manifest-deps to change or ctx to cancel
 			select {
-			case <-buildCtx.Done():
-				buildCtxCancel()
+			case <-attempt.ctx.Done():
+				attempt.release()
 				continue
 			case <-ctx.Done():
-				buildCtxCancel()
+				attempt.release()
 				return context.Canceled
 			}
 		}
@@ -474,14 +413,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		//   https://github.com/fsnotify/fsnotify/issues/18
 		watcher, err := fsnotify.NewWatcher()
 		if err != nil {
-			buildCtxCancel()
+			attempt.release()
 			return err
 		}
 
 		for watchedDirPath := range watchedSourceDirs {
 			err = watcher.Add(watchedDirPath)
 			if err != nil {
-				buildCtxCancel()
+				attempt.release()
 				_ = watcher.Close()
 				return err
 			}
@@ -489,7 +428,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 		// Start manifest dep watcher concurrently with file watcher.
 		if hasManifestDeps {
-			go c.watchManifestDeps(buildCtx, le, watchManifestIDs, manifestDepSnapshot, restartFn)
+			go c.watchManifestDeps(attempt.ctx, le, watchManifestIDs, manifestDepSnapshot, attempt.restart)
 		}
 
 		le.Debugf("watching for changes in %d files and %d directories and %d sub-manifests and %d manifest deps", len(watchedFiles), len(watchedSourceDirs), subManifestCount, len(watchManifestIDs))
@@ -499,11 +438,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 			FullRebuild:             fullRebuild,
 			HotRebuild:              hotRebuild,
 			WatchedFileCount:        len(watchedFiles),
-			DependencyRebuildReason: getRebuildReason(),
+			DependencyRebuildReason: buildOwner.rebuildReasonSnapshot(),
 			Summary:                 "watching for changes",
 		})
 		happened, err := debounce_fswatcher.DebounceFSWatcherEvents(
-			buildCtx,
+			attempt.ctx,
 			watcher,
 			time.Millisecond*100,
 			func(event fsnotify.Event) (match bool, err error) {
@@ -517,22 +456,23 @@ func (c *Controller) Execute(ctx context.Context) error {
 		_ = watcher.Close()
 
 		if ctx.Err() != nil {
-			buildCtxCancel()
+			attempt.release()
 			return context.Canceled
 		}
-		if buildCtx.Err() != nil {
-			buildCtxCancel()
+		if attempt.ctx.Err() != nil {
+			attempt.release()
 			le.Info("re-building after sub-manifest or manifest dep changed")
 			continue
 		}
 		if err != nil {
-			buildCtxCancel()
+			attempt.release()
 			return err
 		}
 
 		// build list of changed files
 		// DebounceFSWatcherEvents watches for Create, Rename, Write, Remove
 		// we know there is at least one event in happened
+		var changedFiles []*bldr_manifest_builder.InputManifest_File
 		seenChangedFiles := make(map[*bldr_manifest_builder.InputManifest_File]struct{}, len(happened))
 		for _, event := range happened {
 			inputFile := watchedSourcePaths[event.Name]
@@ -543,8 +483,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		le.Infof("re-building after %d filesystem events with %d changed files", len(happened), len(changedFiles))
-		setRebuildReason(changedFilesSummary(len(changedFiles)))
-		buildCtxCancel()
+		buildOwner.setChangedFiles(changedFiles)
+		attempt.release()
 	}
 }
 
