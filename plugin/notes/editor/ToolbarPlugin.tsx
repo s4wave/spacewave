@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
@@ -45,6 +44,8 @@ import {
   LuLink,
   LuChevronDown,
 } from 'react-icons/lu'
+
+import { TextInputDialog } from '../NoteDialogs.js'
 
 type BlockType =
   | 'paragraph'
@@ -120,6 +121,7 @@ function ToolbarPlugin() {
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
   const [showBlockMenu, setShowBlockMenu] = useState(false)
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false)
 
   const updateToolbar = useCallback(() => {
     editor.getEditorState().read(() => {
@@ -214,12 +216,18 @@ function ToolbarPlugin() {
     if (isLink) {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)
     } else {
-      const url = window.prompt('Enter URL:')
-      if (url && /^https?:\/\//i.test(url.trim())) {
-        editor.dispatchCommand(TOGGLE_LINK_COMMAND, url.trim())
-      }
+      setLinkDialogOpen(true)
     }
   }, [editor, isLink])
+
+  const confirmLink = useCallback(
+    (url: string) => {
+      if (!/^https?:\/\//i.test(url)) return
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, url)
+      setLinkDialogOpen(false)
+    },
+    [editor],
+  )
 
   const blockTypeOptions = useMemo(
     () =>
@@ -234,132 +242,144 @@ function ToolbarPlugin() {
   const activeClass = 'text-brand bg-brand/10'
 
   return (
-    <div className="flex items-center gap-0.5 border-b border-border px-2 py-1">
-      <button
-        type="button"
-        className={cn(btnClass, !canUndo && 'opacity-30')}
-        onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
-        disabled={!canUndo}
-        title="Undo"
-      >
-        <LuUndo2 className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className={cn(btnClass, !canRedo && 'opacity-30')}
-        onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
-        disabled={!canRedo}
-        title="Redo"
-      >
-        <LuRedo2 className="size-3.5" />
-      </button>
-
-      <div className="mx-1 h-4 w-px bg-border" />
-
-      <div className="relative">
+    <>
+      <div className="border-border flex items-center gap-0.5 border-b px-2 py-1">
         <button
           type="button"
-          className={cn(btnClass, 'gap-1 px-2')}
-          onClick={() => setShowBlockMenu(!showBlockMenu)}
-          title="Block type"
+          className={cn(btnClass, !canUndo && 'opacity-30')}
+          onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
+          disabled={!canUndo}
+          title="Undo"
         >
-          <span className="text-foreground-alt/50 text-xs">
-            {BLOCK_TYPE_LABELS[blockType]}
-          </span>
-          <LuChevronDown className="size-3" />
+          <LuUndo2 className="size-3.5" />
         </button>
-        {showBlockMenu && (
-          <div className="bg-popover border-border absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border py-1 shadow-lg">
-            {blockTypeOptions.map((type) => (
-              <button
-                key={type}
-                type="button"
-                className={cn(
-                  'w-full px-3 py-1 text-left text-xs hover:bg-list-hover-background',
-                  blockType === type && 'text-brand font-medium',
-                )}
-                onClick={() => formatBlock(type)}
-              >
-                {BLOCK_TYPE_LABELS[type]}
-              </button>
-            ))}
-          </div>
-        )}
+        <button
+          type="button"
+          className={cn(btnClass, !canRedo && 'opacity-30')}
+          onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
+          disabled={!canRedo}
+          title="Redo"
+        >
+          <LuRedo2 className="size-3.5" />
+        </button>
+
+        <div className="bg-border mx-1 h-4 w-px" />
+
+        <div className="relative">
+          <button
+            type="button"
+            className={cn(btnClass, 'gap-1 px-2')}
+            onClick={() => setShowBlockMenu(!showBlockMenu)}
+            title="Block type"
+          >
+            <span className="text-foreground-alt/50 text-xs">
+              {BLOCK_TYPE_LABELS[blockType]}
+            </span>
+            <LuChevronDown className="size-3" />
+          </button>
+          {showBlockMenu && (
+            <div className="bg-popover border-border absolute top-full left-0 z-50 mt-1 min-w-[140px] rounded-lg border py-1 shadow-lg">
+              {blockTypeOptions.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  className={cn(
+                    'w-full px-3 py-1 text-left text-xs hover:bg-list-hover-background',
+                    blockType === type && 'text-brand font-medium',
+                  )}
+                  onClick={() => formatBlock(type)}
+                >
+                  {BLOCK_TYPE_LABELS[type]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-border mx-1 h-4 w-px" />
+
+        <button
+          type="button"
+          className={cn(btnClass, isBold && activeClass)}
+          onClick={() => formatText('bold')}
+          title="Bold (Ctrl+B)"
+        >
+          <LuBold className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          className={cn(btnClass, isItalic && activeClass)}
+          onClick={() => formatText('italic')}
+          title="Italic (Ctrl+I)"
+        >
+          <LuItalic className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          className={cn(btnClass, isStrikethrough && activeClass)}
+          onClick={() => formatText('strikethrough')}
+          title="Strikethrough"
+        >
+          <LuStrikethrough className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          className={cn(btnClass, isCode && activeClass)}
+          onClick={() => formatText('code')}
+          title="Inline Code"
+        >
+          <LuCode className="size-3.5" />
+        </button>
+
+        <div className="bg-border mx-1 h-4 w-px" />
+
+        <button
+          type="button"
+          className={cn(btnClass, blockType === 'bullet' && activeClass)}
+          onClick={() => formatBlock('bullet')}
+          title="Bullet List"
+        >
+          <LuList className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          className={cn(btnClass, blockType === 'number' && activeClass)}
+          onClick={() => formatBlock('number')}
+          title="Numbered List"
+        >
+          <LuListOrdered className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          className={cn(btnClass, blockType === 'check' && activeClass)}
+          onClick={() => formatBlock('check')}
+          title="Check List"
+        >
+          <LuListChecks className="size-3.5" />
+        </button>
+
+        <div className="bg-border mx-1 h-4 w-px" />
+
+        <button
+          type="button"
+          className={cn(btnClass, isLink && activeClass)}
+          onClick={insertLink}
+          title="Insert Link"
+        >
+          <LuLink className="size-3.5" />
+        </button>
       </div>
-
-      <div className="mx-1 h-4 w-px bg-border" />
-
-      <button
-        type="button"
-        className={cn(btnClass, isBold && activeClass)}
-        onClick={() => formatText('bold')}
-        title="Bold (Ctrl+B)"
-      >
-        <LuBold className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className={cn(btnClass, isItalic && activeClass)}
-        onClick={() => formatText('italic')}
-        title="Italic (Ctrl+I)"
-      >
-        <LuItalic className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className={cn(btnClass, isStrikethrough && activeClass)}
-        onClick={() => formatText('strikethrough')}
-        title="Strikethrough"
-      >
-        <LuStrikethrough className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className={cn(btnClass, isCode && activeClass)}
-        onClick={() => formatText('code')}
-        title="Inline Code"
-      >
-        <LuCode className="size-3.5" />
-      </button>
-
-      <div className="mx-1 h-4 w-px bg-border" />
-
-      <button
-        type="button"
-        className={cn(btnClass, blockType === 'bullet' && activeClass)}
-        onClick={() => formatBlock('bullet')}
-        title="Bullet List"
-      >
-        <LuList className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className={cn(btnClass, blockType === 'number' && activeClass)}
-        onClick={() => formatBlock('number')}
-        title="Numbered List"
-      >
-        <LuListOrdered className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className={cn(btnClass, blockType === 'check' && activeClass)}
-        onClick={() => formatBlock('check')}
-        title="Check List"
-      >
-        <LuListChecks className="size-3.5" />
-      </button>
-
-      <div className="mx-1 h-4 w-px bg-border" />
-
-      <button
-        type="button"
-        className={cn(btnClass, isLink && activeClass)}
-        onClick={insertLink}
-        title="Insert Link"
-      >
-        <LuLink className="size-3.5" />
-      </button>
-    </div>
+      <TextInputDialog
+        open={linkDialogOpen}
+        title="Insert link"
+        label="URL"
+        placeholder="https://example.com"
+        confirmLabel="Apply link"
+        requireValue
+        onOpenChange={setLinkDialogOpen}
+        onConfirm={confirmLink}
+      />
+    </>
   )
 }
 

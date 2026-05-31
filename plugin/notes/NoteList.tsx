@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop, react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
 
 import type { NotebookSource } from './proto/notebook.pb.js'
@@ -30,6 +29,7 @@ import {
   normalizeFrontmatterStatus,
   parseNote,
 } from './frontmatter.js'
+import { ConfirmActionDialog, TextInputDialog } from './NoteDialogs.js'
 import { readFileText } from './read-file.js'
 import { createTextFile } from './write-file.js'
 
@@ -76,6 +76,9 @@ function NoteList({
   renderEntryExtra,
 }: NoteListProps) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false)
+  const [renameTarget, setRenameTarget] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const sourceRef = source?.ref
 
   const parsed = useMemo(() => {
@@ -192,29 +195,37 @@ function NoteList({
     onSelectNote(joinNotePath(currentPath, name))
   }, [pathHandle.value, entriesResource.value, currentPath, onSelectNote])
 
-  const handleCreateFolder = useCallback(async () => {
-    const prompt = globalThis.prompt
-    const handle = pathHandle.value
-    if (!prompt || !handle) return
+  const handleCreateFolder = useCallback(() => {
+    setFolderDialogOpen(true)
+  }, [])
 
-    const name = prompt('Folder name')?.trim() ?? ''
-    const parts = name.split('/').flatMap((part) => {
-      const trimmed = part.trim()
-      return trimmed ? [trimmed] : []
-    })
-    if (parts.length === 0) return
-
-    await handle.mkdirAll(parts)
-  }, [pathHandle.value])
-
-  const handleRenameNote = useCallback(
+  const handleConfirmCreateFolder = useCallback(
     async (name: string) => {
-      const prompt = globalThis.prompt
       const handle = pathHandle.value
-      if (!prompt || !handle) return
+      if (!handle) return
 
-      let nextName =
-        prompt('Rename note', name.replace(/\.md$/, ''))?.trim() ?? ''
+      const parts = name.split('/').flatMap((part) => {
+        const trimmed = part.trim()
+        return trimmed ? [trimmed] : []
+      })
+      if (parts.length === 0) return
+
+      await handle.mkdirAll(parts)
+      setFolderDialogOpen(false)
+    },
+    [pathHandle.value],
+  )
+
+  const handleRenameNote = useCallback((name: string) => {
+    setRenameTarget(name)
+  }, [])
+
+  const handleConfirmRenameNote = useCallback(
+    async (name: string, nextTitle: string) => {
+      const handle = pathHandle.value
+      if (!handle) return
+
+      let nextName = nextTitle.trim()
       if (!nextName) return
       if (!nextName.endsWith('.md')) nextName += '.md'
       if (nextName === name) return
@@ -224,22 +235,31 @@ function NoteList({
         joinNotePath(currentPath, name),
         joinNotePath(currentPath, nextName),
       )
+      setRenameTarget(null)
     },
     [pathHandle.value, currentPath, onNoteRenamed],
   )
 
-  const handleDeleteNote = useCallback(
-    async (name: string) => {
-      const confirm = globalThis.confirm
-      const handle = pathHandle.value
-      if (!handle) return
-      if (confirm && !confirm('Delete this note?')) return
+  const handleDeleteNote = useCallback((name: string) => {
+    setDeleteTarget(name)
+  }, [])
 
-      await handle.remove([name])
-      onNoteDeleted?.(joinNotePath(currentPath, name))
-    },
-    [pathHandle.value, currentPath, onNoteDeleted],
-  )
+  const handleConfirmDeleteNote = useCallback(async () => {
+    const handle = pathHandle.value
+    if (!handle || !deleteTarget) return
+
+    await handle.remove([deleteTarget])
+    onNoteDeleted?.(joinNotePath(currentPath, deleteTarget))
+    setDeleteTarget(null)
+  }, [pathHandle.value, currentPath, deleteTarget, onNoteDeleted])
+
+  const renameDefaultValue = renameTarget?.replace(/\.md$/, '') ?? ''
+  const closeRenameDialog = useCallback((open: boolean) => {
+    if (!open) setRenameTarget(null)
+  }, [])
+  const closeDeleteDialog = useCallback((open: boolean) => {
+    if (!open) setDeleteTarget(null)
+  }, [])
 
   const handleCreateNote = onCreateNote ?? handleCreateNoteDefault
   const hasFilter = !!filterTag || !!filterStatus
@@ -300,159 +320,195 @@ function NoteList({
   }
 
   return (
-    <div
-      className="flex h-full flex-col overflow-y-auto"
-      data-testid="notes-note-list"
-    >
-      <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
-        <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
-          <LuSearch className="text-muted-foreground size-3 shrink-0" />
-          <input
-            type="text"
-            placeholder="Search notes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"
-          />
-        </div>
-        <button
-          type="button"
-          className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
-          onClick={() => void handleCreateFolder()}
-          title="New folder"
-        >
-          <LuFolderPlus className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
-          onClick={() => void handleCreateNote()}
-          title="New note"
-        >
-          <LuPlus className="size-3.5" />
-        </button>
-      </div>
-      {currentPath && (
-        <div className="border-border flex items-center gap-1 border-b px-2 py-1 text-xs">
+    <>
+      <div
+        className="flex h-full flex-col overflow-y-auto"
+        data-testid="notes-note-list"
+      >
+        <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
+          <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
+            <LuSearch className="text-muted-foreground size-3 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search notes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"
+            />
+          </div>
           <button
             type="button"
-            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground rounded p-1"
-            onClick={() => onChangePath?.(getParentPath(currentPath))}
-            title="Up one level"
+            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
+            onClick={() => handleCreateFolder()}
+            title="New folder"
           >
-            <LuChevronLeft className="size-3" />
+            <LuFolderPlus className="size-3.5" />
           </button>
-          <span className="text-muted-foreground truncate">/{currentPath}</span>
+          <button
+            type="button"
+            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
+            onClick={() => void handleCreateNote()}
+            title="New note"
+          >
+            <LuPlus className="size-3.5" />
+          </button>
         </div>
-      )}
-      {hasFilter && (
-        <div className="bg-brand/5 border-border flex flex-wrap items-center gap-2 border-b px-3 py-1 text-xs">
-          <span className="text-muted-foreground">Filtering:</span>
-          {filterTag && (
+        {currentPath && (
+          <div className="border-border flex items-center gap-1 border-b px-2 py-1 text-xs">
             <button
               type="button"
-              className="bg-brand/10 text-brand inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
-              onClick={() => onFilterTagChange?.(undefined)}
-              title="Clear tag filter"
+              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground rounded p-1"
+              onClick={() => onChangePath?.(getParentPath(currentPath))}
+              title="Up one level"
             >
-              {filterTag}
-              <LuX className="size-2.5" />
+              <LuChevronLeft className="size-3" />
             </button>
-          )}
-          {filterStatus && (
-            <button
-              type="button"
-              className="bg-muted text-foreground-alt inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
-              onClick={() => onFilterStatusChange?.(undefined)}
-              title="Clear status filter"
-            >
-              {filterStatus}
-              <LuX className="size-2.5" />
-            </button>
-          )}
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto">
-        {showEmptyState ? (
-          <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
-            {isEmptyDirectory ? (
-              <>
-                <span className="text-xs">No notes yet</span>
-                <button
-                  type="button"
-                  className="bg-brand text-brand-foreground rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90"
-                  onClick={handleCreateNote}
-                >
-                  Create your first note
-                </button>
-              </>
-            ) : (
-              <span className="text-xs">No matching notes</span>
+            <span className="text-muted-foreground truncate">
+              /{currentPath}
+            </span>
+          </div>
+        )}
+        {hasFilter && (
+          <div className="bg-brand/5 border-border flex flex-wrap items-center gap-2 border-b px-3 py-1 text-xs">
+            <span className="text-muted-foreground">Filtering:</span>
+            {filterTag && (
+              <button
+                type="button"
+                className="bg-brand/10 text-brand inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+                onClick={() => onFilterTagChange?.(undefined)}
+                title="Clear tag filter"
+              >
+                {filterTag}
+                <LuX className="size-2.5" />
+              </button>
+            )}
+            {filterStatus && (
+              <button
+                type="button"
+                className="bg-muted text-foreground-alt inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+                onClick={() => onFilterStatusChange?.(undefined)}
+                title="Clear status filter"
+              >
+                {filterStatus}
+                <LuX className="size-2.5" />
+              </button>
             )}
           </div>
-        ) : (
-          <>
-            {filteredDirEntries.map((entry) => (
-              <button
-                key={entry.name}
-                type="button"
-                className="hover:bg-list-hover-background flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs"
-                onClick={() =>
-                  onChangePath?.(joinNotePath(currentPath, entry.name))
-                }
-              >
-                <LuFolder className="size-3 shrink-0" />
-                <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-              </button>
-            ))}
-            {filteredNoteEntries.map((entry) => {
-              const notePath = joinNotePath(currentPath, entry.name)
-              const selected = selectedNote === notePath
-              return (
-                <div
-                  key={notePath}
-                  className={cn(
-                    'flex items-center gap-1 pr-1',
-                    selected &&
-                      'bg-list-active-selection-background text-list-active-selection-foreground',
-                  )}
-                >
-                  <button
-                    type="button"
-                    data-testid="notes-note-row"
-                    data-note-path={notePath}
-                    className="hover:bg-list-hover-background flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-xs"
-                    onClick={() => onSelectNote(notePath)}
-                  >
-                    <LuFile className="size-3 shrink-0" />
-                    <span className="min-w-0 flex-1 truncate">
-                      {entry.title}
-                    </span>
-                    {renderEntryExtra?.(notePath)}
-                  </button>
-                  <button
-                    type="button"
-                    className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground rounded p-1"
-                    onClick={() => void handleRenameNote(entry.name)}
-                    title="Rename note"
-                  >
-                    <LuPenLine className="size-3" />
-                  </button>
-                  <button
-                    type="button"
-                    className="text-foreground-alt hover:bg-list-hover-background hover:text-destructive rounded p-1"
-                    onClick={() => void handleDeleteNote(entry.name)}
-                    title="Delete note"
-                  >
-                    <LuTrash2 className="size-3" />
-                  </button>
-                </div>
-              )
-            })}
-          </>
         )}
+        <div className="flex-1 overflow-y-auto">
+          {showEmptyState ? (
+            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
+              {isEmptyDirectory ? (
+                <>
+                  <span className="text-xs">No notes yet</span>
+                  <button
+                    type="button"
+                    className="bg-brand text-brand-foreground rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90"
+                    onClick={handleCreateNote}
+                  >
+                    Create your first note
+                  </button>
+                </>
+              ) : (
+                <span className="text-xs">No matching notes</span>
+              )}
+            </div>
+          ) : (
+            <>
+              {filteredDirEntries.map((entry) => (
+                <button
+                  key={entry.name}
+                  type="button"
+                  className="hover:bg-list-hover-background flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs"
+                  onClick={() =>
+                    onChangePath?.(joinNotePath(currentPath, entry.name))
+                  }
+                >
+                  <LuFolder className="size-3 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+                </button>
+              ))}
+              {filteredNoteEntries.map((entry) => {
+                const notePath = joinNotePath(currentPath, entry.name)
+                const selected = selectedNote === notePath
+                return (
+                  <div
+                    key={notePath}
+                    className={cn(
+                      'flex items-center gap-1 pr-1',
+                      selected &&
+                        'bg-list-active-selection-background text-list-active-selection-foreground',
+                    )}
+                  >
+                    <button
+                      type="button"
+                      data-testid="notes-note-row"
+                      data-note-path={notePath}
+                      className="hover:bg-list-hover-background flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-xs"
+                      onClick={() => onSelectNote(notePath)}
+                    >
+                      <LuFile className="size-3 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {entry.title}
+                      </span>
+                      {renderEntryExtra?.(notePath)}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground rounded p-1"
+                      onClick={() => handleRenameNote(entry.name)}
+                      title="Rename note"
+                    >
+                      <LuPenLine className="size-3" />
+                    </button>
+                    <button
+                      type="button"
+                      className="text-foreground-alt hover:bg-list-hover-background hover:text-destructive rounded p-1"
+                      onClick={() => handleDeleteNote(entry.name)}
+                      title="Delete note"
+                    >
+                      <LuTrash2 className="size-3" />
+                    </button>
+                  </div>
+                )
+              })}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+      <TextInputDialog
+        open={folderDialogOpen}
+        title="New folder"
+        label="Folder name"
+        placeholder="projects/client-a"
+        confirmLabel="Create folder"
+        requireValue
+        onOpenChange={setFolderDialogOpen}
+        onConfirm={(value) => void handleConfirmCreateFolder(value)}
+      />
+      <TextInputDialog
+        open={renameTarget !== null}
+        title="Rename note"
+        label="Note name"
+        defaultValue={renameDefaultValue}
+        confirmLabel="Rename"
+        requireValue
+        onOpenChange={closeRenameDialog}
+        onConfirm={(value) =>
+          renameTarget && void handleConfirmRenameNote(renameTarget, value)
+        }
+      />
+      <ConfirmActionDialog
+        open={deleteTarget !== null}
+        title="Delete note"
+        description={
+          deleteTarget ? `Delete "${deleteTarget}"?` : 'Delete this note?'
+        }
+        confirmLabel="Delete"
+        onOpenChange={closeDeleteDialog}
+        onConfirm={() => void handleConfirmDeleteNote()}
+      />
+    </>
   )
 }
 

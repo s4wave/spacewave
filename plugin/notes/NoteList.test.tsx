@@ -105,12 +105,12 @@ function renderList(
   props: Partial<React.ComponentProps<typeof NoteList>> = {},
 ) {
   const source =
-    'source' in props ?
-      props.source
-    : ({
-        name: 'Docs',
-        ref: 'obj-key/-/docs',
-      } satisfies NotebookSource)
+    'source' in props
+      ? props.source
+      : ({
+          name: 'Docs',
+          ref: 'obj-key/-/docs',
+        } satisfies NotebookSource)
 
   return render(
     <NoteList
@@ -343,14 +343,15 @@ describe('NoteList', () => {
 
   it('creates a folder in the current directory', () => {
     const handle = mockDirectory([])
-    vi.stubGlobal(
-      'prompt',
-      vi.fn(() => 'projects/client-a'),
-    )
 
     renderList()
 
     fireEvent.click(screen.getByTitle('New folder'))
+    fireEvent.change(screen.getByLabelText('Folder name'), {
+      target: { value: 'projects/client-a' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create folder' }))
+
     expect(handle.mkdirAll).toHaveBeenCalledWith(['projects', 'client-a'])
   })
 
@@ -385,16 +386,19 @@ describe('NoteList', () => {
     const handle = mockDirectory([{ name: 'draft.md', isDir: false }], {
       'draft.md': '# Draft',
     })
-    vi.stubGlobal(
-      'prompt',
-      vi.fn(() => 'final'),
-    )
     const onNoteRenamed = vi.fn()
 
     renderList({ currentPath: 'projects', onNoteRenamed })
 
     await waitFor(() => {
       fireEvent.click(screen.getByTitle('Rename note'))
+    })
+    fireEvent.change(screen.getByLabelText('Note name'), {
+      target: { value: 'final' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
+
+    await waitFor(() => {
       expect(handle.rename).toHaveBeenCalledWith('draft.md', 'final.md')
       expect(onNoteRenamed).toHaveBeenCalledWith(
         'projects/draft.md',
@@ -407,16 +411,16 @@ describe('NoteList', () => {
     const handle = mockDirectory([{ name: 'draft.md', isDir: false }], {
       'draft.md': '# Draft',
     })
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => true),
-    )
     const onNoteDeleted = vi.fn()
 
     renderList({ currentPath: 'projects', onNoteDeleted })
 
     await waitFor(() => {
       fireEvent.click(screen.getByTitle('Delete note'))
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
       expect(handle.remove).toHaveBeenCalledWith(['draft.md'])
       expect(onNoteDeleted).toHaveBeenCalledWith('projects/draft.md')
     })

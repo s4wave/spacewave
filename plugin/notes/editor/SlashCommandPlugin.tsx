@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component, react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -26,6 +25,7 @@ import { $createHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleN
 import { INSERT_TABLE_COMMAND } from '@lexical/table'
 import { SpacewaveEmbedNode } from './SpacewaveEmbedNode.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { TextInputDialog } from '../NoteDialogs.js'
 
 type SlashMenuItem = {
   title: string
@@ -41,7 +41,28 @@ function SlashCommandPlugin() {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [position, setPosition] = useState({ top: 0, left: 0 })
+  const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const insertEmbed = useCallback(
+    (path: string) => {
+      if (!path) return
+      editor.update(() => {
+        const selection = $getSelection()
+        if ($isRangeSelection(selection)) {
+          const node = selection.anchor.getNode()
+          const topLevel = node.getTopLevelElementOrThrow()
+          const embedNode = new SpacewaveEmbedNode(path)
+          topLevel.insertAfter(embedNode)
+          const paragraph = $createParagraphNode()
+          embedNode.insertAfter(paragraph)
+          paragraph.selectStart()
+        }
+      })
+      setEmbedDialogOpen(false)
+    },
+    [editor],
+  )
 
   const menuItems: SlashMenuItem[] = useMemo(
     () => [
@@ -170,21 +191,7 @@ function SlashCommandPlugin() {
         description: 'Embed a Space object',
         icon: '\u25C6',
         action: () => {
-          const path = window.prompt('Enter object path:')
-          if (path) {
-            editor.update(() => {
-              const selection = $getSelection()
-              if ($isRangeSelection(selection)) {
-                const node = selection.anchor.getNode()
-                const topLevel = node.getTopLevelElementOrThrow()
-                const embedNode = new SpacewaveEmbedNode(path)
-                topLevel.insertAfter(embedNode)
-                const paragraph = $createParagraphNode()
-                embedNode.insertAfter(paragraph)
-                paragraph.selectStart()
-              }
-            })
-          }
+          setEmbedDialogOpen(true)
         },
       },
     ],
@@ -353,44 +360,63 @@ function SlashCommandPlugin() {
     }
   }, [editor, isOpen, filteredItems.length, selectedIndex, executeItem, close])
 
-  if (!isOpen || filteredItems.length === 0) return null
+  if ((!isOpen || filteredItems.length === 0) && !embedDialogOpen) return null
 
-  return createPortal(
-    <div
-      ref={menuRef}
-      className="bg-popover border-border fixed z-[200] min-w-[220px] rounded-lg border py-1 shadow-lg"
-      style={{
-        top: position.top,
-        left: position.left,
-      }}
-    >
-      {filteredItems.map((item, index) => (
-        <button
-          key={item.title}
-          type="button"
-          className={cn(
-            'flex w-full items-center gap-3 px-3 py-1.5 text-left',
-            index === selectedIndex && 'bg-list-active-selection-background',
-          )}
-          onMouseDown={(e) => {
-            e.preventDefault()
-            executeItem(index)
-          }}
-          onMouseEnter={() => setSelectedIndex(index)}
-        >
-          <span className="text-muted-foreground flex size-6 items-center justify-center text-xs font-medium">
-            {item.icon}
-          </span>
-          <span className="flex flex-col">
-            <span className="text-foreground text-xs">{item.title}</span>
-            <span className="text-muted-foreground text-xs">
-              {item.description}
-            </span>
-          </span>
-        </button>
-      ))}
-    </div>,
-    document.body,
+  return (
+    <>
+      {isOpen && filteredItems.length > 0
+        ? createPortal(
+            <div
+              ref={menuRef}
+              className="bg-popover border-border fixed z-[200] min-w-[220px] rounded-lg border py-1 shadow-lg"
+              style={{
+                top: position.top,
+                left: position.left,
+              }}
+            >
+              {filteredItems.map((item, index) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  className={cn(
+                    'flex w-full items-center gap-3 px-3 py-1.5 text-left',
+                    index === selectedIndex &&
+                      'bg-list-active-selection-background',
+                  )}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    executeItem(index)
+                  }}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                >
+                  <span className="text-muted-foreground flex size-6 items-center justify-center text-xs font-medium">
+                    {item.icon}
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="text-foreground text-xs">
+                      {item.title}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {item.description}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
+      <TextInputDialog
+        open={embedDialogOpen}
+        title="Insert Spacewave embed"
+        label="Object path"
+        placeholder="object/key"
+        confirmLabel="Insert embed"
+        requireValue
+        onOpenChange={setEmbedDialogOpen}
+        onConfirm={insertEmbed}
+      />
+    </>
   )
 }
 

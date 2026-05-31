@@ -1,4 +1,4 @@
-import type { DragEvent } from 'react'
+import type { DragEvent, ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   act,
@@ -55,6 +55,7 @@ interface MockFileViewerProps {
 
 interface MockFileListProps {
   entries: FileEntry[]
+  placeholder?: ReactNode
   dropTargetEntryId?: string | null
   renderEntry?: RenderEntryCallback
   getDragEnvelope?: (
@@ -171,6 +172,7 @@ vi.mock('@s4wave/web/editors/file-browser/FileList.js', () => ({
     h.latestFileListProps = props
     const {
       entries,
+      placeholder,
       dropTargetEntryId,
       renderEntry,
       onEntryDragOver,
@@ -179,6 +181,7 @@ vi.mock('@s4wave/web/editors/file-browser/FileList.js', () => ({
     } = props
     return (
       <div>
+        {entries.length === 0 ? placeholder : null}
         {entries.map((entry) => {
           const defaultNode = <span>{entry.name}</span>
           return (
@@ -653,6 +656,33 @@ describe('UnixFSBrowser drag gating', () => {
 
     expect(screen.getByTestId('file-entry-docs')).toBeTruthy()
     expect(h.latestFileListProps?.entries).toHaveLength(3)
+  })
+
+  it('shows empty folder actions that create or upload from the current folder', async () => {
+    const user = userEvent.setup()
+    h.mockFileEntries = []
+
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(screen.getByText('This folder is empty')).toBeTruthy()
+    const uploadInput = screen.getByTestId('unixfs-upload-input')
+    const uploadClick = vi.spyOn(uploadInput, 'click')
+
+    await user.click(screen.getByRole('button', { name: 'Upload files' }))
+    expect(uploadClick).toHaveBeenCalledOnce()
+
+    const newFolderButtons = screen.getAllByRole('button', {
+      name: 'New folder',
+    })
+    await user.click(newFolderButtons[newFolderButtons.length - 1])
+    expect(screen.getByPlaceholderText('Folder name')).toBeTruthy()
   })
 
   it('renders a custom browser body under the toolbar instead of the file list', () => {

@@ -48,6 +48,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 import {
   LuCheck,
   LuCircleAlert,
+  LuFolderPlus,
   LuRotateCw,
   LuUpload,
   LuX,
@@ -158,6 +159,46 @@ function UnixFSLoadingDiagnostics({
       </div>
       <div>
         Lookup: {status.packLookupLabel}; cache {status.packIndexCacheLabel}
+      </div>
+    </div>
+  )
+}
+
+function UnixFSEmptyFolderState({
+  onNewFolder,
+  onUploadFiles,
+}: {
+  onNewFolder: () => void
+  onUploadFiles: () => void
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="border-foreground/10 bg-background/70 text-foreground-alt flex size-10 items-center justify-center rounded-md border">
+        <LuUpload className="size-5" />
+      </div>
+      <div>
+        <h2 className="text-foreground text-sm font-medium">
+          This folder is empty
+        </h2>
+        <p className="mt-1 text-xs">Drop files here or add a folder.</p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button
+          type="button"
+          className="border-border text-foreground hover:bg-foreground/5 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors"
+          onClick={onUploadFiles}
+        >
+          <LuUpload className="size-3.5" />
+          Upload files
+        </button>
+        <button
+          type="button"
+          className="border-border text-foreground hover:bg-foreground/5 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors"
+          onClick={onNewFolder}
+        >
+          <LuFolderPlus className="size-3.5" />
+          New folder
+        </button>
       </div>
     </div>
   )
@@ -1502,6 +1543,12 @@ export function UnixFSBrowser({
           onOpen={handleOpen}
           onContextMenu={handleContextMenu}
           onStateChange={handleListStateChange}
+          placeholder={
+            <UnixFSEmptyFolderState
+              onNewFolder={handleNewFolder}
+              onUploadFiles={handleUploadFiles}
+            />
+          }
           renderEntry={renderEntry}
           currentPath={displayPath}
           getDragEnvelope={getDragEnvelope}

@@ -1,3 +1,6 @@
+import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
+import { getObjectDisplayName } from '@s4wave/web/space/object-tree.js'
+
 // ShellTab represents a single tab in the editor shell.
 export interface ShellTab {
   id: string
@@ -48,14 +51,9 @@ export function getTabNameFromPath(path: string): string {
     if (parts.length >= 4 && parts[2] === 'so') {
       // /u/{idx}/so/{id} or deeper -- derive from sub-path if present
       if (parts.length >= 6 && parts[4] === '-') {
-        // /u/{idx}/so/{id}/-/{objectKey}/... -- use object key
-        const objectKey = parts[5]
-        if (objectKey === 'object-layout') return 'Layout'
-        if (objectKey === 'unixfs') return 'Files'
-        if (objectKey === 'canvas') return 'Canvas'
-        if (objectKey === 'notes') return 'Notes'
-        if (objectKey === 'chat') return 'Chat'
-        return 'Space'
+        // /u/{idx}/so/{id}/-/{objectKey}/... -- use the object identity.
+        const { objectKey } = parseObjectUri(parts.slice(5).join('/'))
+        return objectKey ? getObjectDisplayName(objectKey) : 'Space'
       }
       return 'Space'
     }

@@ -1,5 +1,5 @@
 import { lazy, type ComponentType } from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -99,5 +99,34 @@ describe('ObjectViewerContent', () => {
         '/b/pa/glados-web/v/b/fe/web/workfront/WorkfrontViewer-DemfR9tb.mjs',
       ),
     ).toBeDefined()
+  })
+
+  it('shows a recovery state before opening the debug viewer fallback', () => {
+    const onSelectComponent = vi.fn()
+    const debugComponent: ObjectViewerComponent = {
+      componentID: 'spacewave.debug.viewer',
+      typeID: '*',
+      name: 'Debug Viewer',
+      component: () => null,
+    }
+
+    render(
+      <ObjectViewerContent
+        objectInfo={buildObjectInfo()}
+        worldState={buildWorldState()}
+        typeID="glados/missing"
+        availableComponents={[debugComponent]}
+        missingComponentID="glados.custom.viewer"
+        onSelectComponent={onSelectComponent}
+      />,
+    )
+
+    expect(screen.getByText("Can't open this object yet")).toBeDefined()
+    expect(screen.getByText('glados/missing')).toBeDefined()
+    expect(screen.getByText(/glados\.custom\.viewer/)).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Debug Viewer' }))
+
+    expect(onSelectComponent).toHaveBeenCalledWith(debugComponent)
   })
 })

@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import {
   useCallback,
   useId,
@@ -142,10 +141,11 @@ export function SessionDashboard({
             spaces={spaces}
             orgs={orgs}
             onSpaceClick={onSpaceClick}
-            onQuickstartClick={readOnly ? undefined : onQuickstartClick}
+            onQuickstartClick={onQuickstartClick}
             quickstartOptions={quickstartOptions}
             isLoading={isLoading}
             isEmpty={isEmpty}
+            canCreate={!readOnly}
           />
         </div>
 
@@ -644,6 +644,7 @@ interface DashboardCommandPaletteProps {
   quickstartOptions: QuickstartOption[]
   isLoading: boolean
   isEmpty: boolean
+  canCreate: boolean
 }
 
 function DashboardCommandPalette({
@@ -654,12 +655,34 @@ function DashboardCommandPalette({
   quickstartOptions,
   isLoading,
   isEmpty,
+  canCreate,
 }: DashboardCommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const setOpenMenu = useBottomBarSetOpenMenu()
   const ns = useStateNamespace(['session-settings'])
   const [, setDetailsPath] = useStateAtom<string>(ns, 'details-path', '/')
+
+  const createQuickstartOptions = useMemo(
+    () =>
+      canCreate
+        ? quickstartOptions.filter(
+            (opt) => opt.id !== 'account' && opt.id !== 'pair',
+          )
+        : [],
+    [canCreate, quickstartOptions],
+  )
+
+  const primaryQuickstart =
+    createQuickstartOptions.find((opt) => opt.id === 'drive') ??
+    createQuickstartOptions[0]
+  const blankSpaceQuickstart = createQuickstartOptions.find(
+    (opt) => opt.id === 'space',
+  )
+  const browseQuickstartOptions = createQuickstartOptions.filter(
+    (opt) =>
+      opt.id !== primaryQuickstart?.id && opt.id !== blankSpaceQuickstart?.id,
+  )
 
   const recentSpaces = useMemo(() => {
     if (!spaces || spaces.length === 0) return []
@@ -673,6 +696,17 @@ function DashboardCommandPalette({
       onSpaceClick?.(space)
     },
     [onSpaceClick],
+  )
+
+  const handleQuickstartSelect = useCallback(
+    (opt: QuickstartOption) => {
+      if (onQuickstartClick) {
+        onQuickstartClick(opt.id)
+        return
+      }
+      navigate({ path: getQuickstartPath(opt) })
+    },
+    [navigate, onQuickstartClick],
   )
 
   const handleLinkDevice = useCallback(() => {
@@ -729,83 +763,64 @@ function DashboardCommandPalette({
           )}
         </CommandEmpty>
 
-        {hasSpaces && personalSpaces.length > 0 && (
-          <CommandGroup
-            heading={<SectionHeading label={hasOrgs ? 'Personal' : 'Spaces'} />}
-            className="py-1"
-          >
-            {personalSpaces.map((space) => (
-              <DashboardItem
-                key={space.id}
-                value={`space-${space.name}-${space.id}`}
-                icon={LuLayers}
-                iconTone="brand"
-                label={space.name}
-                sublabel={space.id}
-                onSelect={() => handleSpaceSelect(space)}
-              />
-            ))}
-          </CommandGroup>
-        )}
-
-        {orgSections.map(({ org, spaces: orgSpaces }) => (
-          <CommandGroup
-            key={org.id}
-            heading={
-              <SectionHeading
-                label={org.displayName}
-                onLabelClick={() => navigate({ path: `./org/${org.id}` })}
-              />
-            }
-            className="py-1"
-          >
-            {orgSpaces.length === 0 ? (
-              <div className="text-foreground-alt/40 px-2 py-3 text-center text-xs">
-                No spaces yet
-              </div>
-            ) : (
-              orgSpaces.map((space) => (
+        {isEmpty ? (
+          <>
+            {primaryQuickstart && (
+              <CommandGroup heading="Continue" className="py-1">
                 <DashboardItem
-                  key={space.id}
-                  value={`space-${space.name}-${space.id}`}
-                  icon={LuLayers}
+                  value={`continue-${primaryQuickstart.id}`}
+                  icon={primaryQuickstart.icon}
                   iconTone="brand"
-                  label={space.name}
-                  sublabel={space.id}
-                  orgName={org.displayName}
-                  onSelect={() => handleSpaceSelect(space)}
+                  label={primaryQuickstart.name}
+                  sublabel={primaryQuickstart.description}
+                  experimental={
+                    'experimental' in primaryQuickstart &&
+                    !!primaryQuickstart.experimental
+                  }
+                  onSelect={() => handleQuickstartSelect(primaryQuickstart)}
                 />
-              ))
+              </CommandGroup>
             )}
-          </CommandGroup>
-        ))}
 
-        <CommandGroup heading="Join" className="py-1">
-          <DashboardItem
-            value="join-link-device"
-            icon={LuLink}
-            iconTone="muted"
-            label="Link a device"
-            sublabel="Link to an existing device via pairing code"
-            onSelect={handleLinkDevice}
-          />
-          <DashboardItem
-            value="join-space"
-            icon={LuLogIn}
-            iconTone="muted"
-            label="Join Space"
-            sublabel="Join a shared space via invite code or link"
-            onSelect={() => navigate({ path: './join' })}
-          />
-        </CommandGroup>
+            <CommandGroup heading="Other starts" className="py-1">
+              {blankSpaceQuickstart &&
+                blankSpaceQuickstart.id !== primaryQuickstart?.id && (
+                  <DashboardItem
+                    value={`create-${blankSpaceQuickstart.id}`}
+                    icon={blankSpaceQuickstart.icon}
+                    iconTone="muted"
+                    label={blankSpaceQuickstart.name}
+                    sublabel={blankSpaceQuickstart.description}
+                    experimental={
+                      'experimental' in blankSpaceQuickstart &&
+                      !!blankSpaceQuickstart.experimental
+                    }
+                    onSelect={() =>
+                      handleQuickstartSelect(blankSpaceQuickstart)
+                    }
+                  />
+                )}
+              <DashboardItem
+                value="join-link-device"
+                icon={LuLink}
+                iconTone="muted"
+                label="Link a device"
+                sublabel="Link to an existing device via pairing code"
+                onSelect={handleLinkDevice}
+              />
+              <DashboardItem
+                value="join-space"
+                icon={LuLogIn}
+                iconTone="muted"
+                label="Join Space"
+                sublabel="Join a shared space via invite code or link"
+                onSelect={() => navigate({ path: './join' })}
+              />
+            </CommandGroup>
 
-        <CommandGroup
-          heading={isEmpty ? 'Get Started' : 'Create'}
-          className="py-1"
-        >
-          {quickstartOptions.flatMap((opt) =>
-            opt.id !== 'account' && opt.id !== 'pair'
-              ? [
+            {browseQuickstartOptions.length > 0 && (
+              <CommandGroup heading="Browse templates" className="py-1">
+                {browseQuickstartOptions.map((opt) => (
                   <DashboardItem
                     key={opt.id}
                     value={`create-${opt.id}`}
@@ -814,16 +829,104 @@ function DashboardCommandPalette({
                     label={opt.name}
                     sublabel={opt.description}
                     experimental={'experimental' in opt && !!opt.experimental}
-                    onSelect={() =>
-                      onQuickstartClick
-                        ? onQuickstartClick(opt.id)
-                        : navigate({ path: getQuickstartPath(opt) })
-                    }
-                  />,
-                ]
-              : [],
-          )}
-        </CommandGroup>
+                    onSelect={() => handleQuickstartSelect(opt)}
+                  />
+                ))}
+              </CommandGroup>
+            )}
+          </>
+        ) : (
+          <>
+            {hasSpaces && personalSpaces.length > 0 && (
+              <CommandGroup
+                heading={
+                  <SectionHeading label={hasOrgs ? 'Personal' : 'Spaces'} />
+                }
+                className="py-1"
+              >
+                {personalSpaces.map((space) => (
+                  <DashboardItem
+                    key={space.id}
+                    value={`space-${space.name}-${space.id}`}
+                    icon={LuLayers}
+                    iconTone="brand"
+                    label={space.name}
+                    sublabel={space.id}
+                    onSelect={() => handleSpaceSelect(space)}
+                  />
+                ))}
+              </CommandGroup>
+            )}
+
+            {orgSections.map(({ org, spaces: orgSpaces }) => (
+              <CommandGroup
+                key={org.id}
+                heading={
+                  <SectionHeading
+                    label={org.displayName}
+                    onLabelClick={() => navigate({ path: `./org/${org.id}` })}
+                  />
+                }
+                className="py-1"
+              >
+                {orgSpaces.length === 0 ? (
+                  <div className="text-foreground-alt/40 px-2 py-3 text-center text-xs">
+                    No spaces yet
+                  </div>
+                ) : (
+                  orgSpaces.map((space) => (
+                    <DashboardItem
+                      key={space.id}
+                      value={`space-${space.name}-${space.id}`}
+                      icon={LuLayers}
+                      iconTone="brand"
+                      label={space.name}
+                      sublabel={space.id}
+                      orgName={org.displayName}
+                      onSelect={() => handleSpaceSelect(space)}
+                    />
+                  ))
+                )}
+              </CommandGroup>
+            ))}
+
+            <CommandGroup heading="Join" className="py-1">
+              <DashboardItem
+                value="join-link-device"
+                icon={LuLink}
+                iconTone="muted"
+                label="Link a device"
+                sublabel="Link to an existing device via pairing code"
+                onSelect={handleLinkDevice}
+              />
+              <DashboardItem
+                value="join-space"
+                icon={LuLogIn}
+                iconTone="muted"
+                label="Join Space"
+                sublabel="Join a shared space via invite code or link"
+                onSelect={() => navigate({ path: './join' })}
+              />
+            </CommandGroup>
+
+            {createQuickstartOptions.length > 0 && (
+              <CommandGroup heading="Create" className="py-1">
+                {createQuickstartOptions.map((opt) => (
+                  <DashboardItem
+                    key={opt.id}
+                    value={`create-${opt.id}`}
+                    icon={opt.icon}
+                    iconTone="muted"
+                    label={opt.name}
+                    sublabel={opt.description}
+                    experimental={'experimental' in opt && !!opt.experimental}
+                    onSelect={() => handleQuickstartSelect(opt)}
+                  />
+                ))}
+              </CommandGroup>
+            )}
+          </>
+        )}
       </CommandList>
     </Command>
   )

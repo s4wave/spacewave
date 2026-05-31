@@ -4,6 +4,7 @@ import type { ObjectViewerComponent } from './object.js'
 import {
   getDefaultStateNamespace,
   resolveObjectViewerSelection,
+  shouldHoldDebugViewerFallback,
 } from './useObjectViewer.js'
 
 function component(
@@ -186,5 +187,51 @@ describe('resolveObjectViewerSelection', () => {
       selectedComponent: { componentID: 'glados.decision' },
       missingComponentID: undefined,
     })
+  })
+})
+
+describe('shouldHoldDebugViewerFallback', () => {
+  it('holds the debug viewer when it was only selected as a wildcard fallback', () => {
+    expect(
+      shouldHoldDebugViewerFallback(
+        'glados/unknown',
+        component('spacewave.debug.viewer', 'Debug'),
+        undefined,
+        undefined,
+      ),
+    ).toBe(true)
+  })
+
+  it('allows the debug viewer when the user selected it directly', () => {
+    expect(
+      shouldHoldDebugViewerFallback(
+        'glados/unknown',
+        component('spacewave.debug.viewer', 'Debug'),
+        'spacewave.debug.viewer',
+        undefined,
+      ),
+    ).toBe(false)
+  })
+
+  it('allows the debug viewer when a layout requested it directly', () => {
+    expect(
+      shouldHoldDebugViewerFallback(
+        'glados/unknown',
+        component('spacewave.debug.viewer', 'Debug'),
+        undefined,
+        'spacewave.debug.viewer',
+      ),
+    ).toBe(false)
+  })
+
+  it('does not hold a real viewer selection', () => {
+    expect(
+      shouldHoldDebugViewerFallback(
+        'glados/workfront',
+        component('glados.workfront.viewer', 'Workfront'),
+        undefined,
+        undefined,
+      ),
+    ).toBe(false)
   })
 })

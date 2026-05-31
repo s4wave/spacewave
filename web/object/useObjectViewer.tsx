@@ -64,6 +64,28 @@ export interface ObjectViewerSelection {
   missingComponentID: string | undefined
 }
 
+export const debugViewerComponentID = 'spacewave.debug.viewer'
+
+export function isDebugViewerComponent(
+  component: ObjectViewerComponent | undefined,
+): boolean {
+  return component?.componentID === debugViewerComponentID
+}
+
+export function shouldHoldDebugViewerFallback(
+  typeID: string | undefined,
+  selectedComponent: ObjectViewerComponent | undefined,
+  selectedComponentID: string | undefined,
+  preferredComponentID: string | undefined,
+): boolean {
+  if (!typeID) return false
+  if (!isDebugViewerComponent(selectedComponent)) return false
+  return (
+    selectedComponentID !== debugViewerComponentID &&
+    preferredComponentID !== debugViewerComponentID
+  )
+}
+
 export function resolveObjectViewerSelection(
   visibleComponents: ObjectViewerComponent[],
   selectedComponentID: string | undefined,
@@ -173,15 +195,27 @@ export function useObjectViewer({
 
   const [selectorOpen, setSelectorOpen] = useState(false)
 
-  const { selectedComponent, missingComponentID } = useMemo(
-    () =>
-      resolveObjectViewerSelection(
-        visibleComponents,
+  const { selectedComponent, missingComponentID } = useMemo(() => {
+    const selection = resolveObjectViewerSelection(
+      visibleComponents,
+      selectedComponentID,
+      preferredComponentID,
+    )
+    if (
+      shouldHoldDebugViewerFallback(
+        typeID,
+        selection.selectedComponent,
         selectedComponentID,
         preferredComponentID,
-      ),
-    [visibleComponents, selectedComponentID, preferredComponentID],
-  )
+      )
+    ) {
+      return {
+        selectedComponent: undefined,
+        missingComponentID: selection.missingComponentID ?? typeID,
+      }
+    }
+    return selection
+  }, [visibleComponents, selectedComponentID, preferredComponentID, typeID])
 
   const handleSelectComponent = useCallback(
     (component: ObjectViewerComponent) => {

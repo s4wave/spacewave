@@ -108,6 +108,7 @@ export default function VmV86Viewer({
 
   const vm = vmState.value
   const vmStateValue = vm?.state
+  const vmErrorMessage = vm?.errorMessage?.trim() ?? ''
   const cfg: V86Config | undefined = vm?.config
   const mounts: VmMount[] = cfg?.mounts ?? []
   const memoryMb = cfg?.memoryMb ?? 0
@@ -222,6 +223,10 @@ export default function VmV86Viewer({
     void applyVmState(VmState.VmState_STOPPED)
   }, [applyVmState])
 
+  const handleReset = useCallback(() => {
+    void applyVmState(VmState.VmState_STOPPED)
+  }, [applyVmState])
+
   const startedLabel = useMemo(() => {
     if (!isRunningLike || !createdAtMs) return '-'
     return new Date(createdAtMs).toLocaleTimeString([], {
@@ -237,10 +242,15 @@ export default function VmV86Viewer({
         vmStateValue={vmStateValue}
         isRunningLike={isRunningLike}
         showSettings={showSettings}
+        errorMessage={vmErrorMessage}
         onStart={handleStart}
         onStop={handleStop}
+        onReset={handleReset}
         onToggleSettings={toggleSettings}
       />
+      {vmStateValue === VmState.VmState_ERROR && (
+        <VmErrorBanner message={vmErrorMessage} />
+      )}
       <SerialTerminal objectKey={objectKey} />
       <VmInfoBar
         memoryMb={memoryMb}
@@ -264,17 +274,22 @@ function VmHeader({
   vmStateValue,
   isRunningLike,
   showSettings,
+  errorMessage,
   onStart,
   onStop,
+  onReset,
   onToggleSettings,
 }: {
   vmStateValue: VmState | undefined
   isRunningLike: boolean
   showSettings: boolean
+  errorMessage: string
   onStart: () => void
   onStop: () => void
+  onReset: () => void
   onToggleSettings: () => void
 }) {
+  const isError = vmStateValue === VmState.VmState_ERROR
   return (
     <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
       <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
@@ -290,28 +305,39 @@ function VmHeader({
         </span>
       </div>
       <div className="flex items-center gap-1 text-xs">
-        <button
-          type="button"
-          onClick={onStart}
-          disabled={isRunningLike}
-          className={cn(
-            'rounded px-2 py-0.5 transition-colors',
-            isRunningLike ?
-              'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
-            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20',
-          )}
-        >
-          Start
-        </button>
+        {isError ? (
+          <button
+            type="button"
+            onClick={onReset}
+            title={errorMessage || 'Clear the VM error before starting again'}
+            className="rounded bg-red-500/10 px-2 py-0.5 text-red-500 transition-colors hover:bg-red-500/20"
+          >
+            Reset
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={isRunningLike}
+            className={cn(
+              'rounded px-2 py-0.5 transition-colors',
+              isRunningLike
+                ? 'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
+                : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20',
+            )}
+          >
+            Start
+          </button>
+        )}
         <button
           type="button"
           onClick={onStop}
           disabled={!isRunningLike}
           className={cn(
             'rounded px-2 py-0.5 transition-colors',
-            !isRunningLike ?
-              'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
-            : 'bg-red-500/10 text-red-500 hover:bg-red-500/20',
+            !isRunningLike
+              ? 'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
+              : 'bg-red-500/10 text-red-500 hover:bg-red-500/20',
           )}
         >
           Stop
@@ -323,14 +349,25 @@ function VmHeader({
           title="Asset overrides"
           className={cn(
             'rounded px-2 py-0.5 transition-colors',
-            showSettings ?
-              'bg-primary/10 text-primary'
-            : 'text-muted-foreground hover:bg-muted/40',
+            showSettings
+              ? 'bg-primary/10 text-primary'
+              : 'text-muted-foreground hover:bg-muted/40',
           )}
         >
           <LuSettings className="size-3.5" />
         </button>
       </div>
+    </div>
+  )
+}
+
+function VmErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="flex shrink-0 items-start gap-2 border-b border-red-500/20 bg-red-500/5 px-4 py-2 text-xs text-red-500">
+      <span className="font-medium">Runtime error</span>
+      <span className="text-foreground-alt min-w-0 flex-1">
+        {message || 'The VM stopped with an error.'}
+      </span>
     </div>
   )
 }

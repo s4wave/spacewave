@@ -31,6 +31,7 @@ interface FileListProps {
   headerStyle?: React.CSSProperties
   loadingId?: string | null
   autoHeight?: boolean
+  placeholder?: React.ReactNode
   renderEntry?: RenderEntryCallback
   currentPath?: string
   getDragEnvelope?: (
@@ -79,6 +80,7 @@ export function FileList({
   headerStyle,
   loadingId,
   autoHeight,
+  placeholder,
   renderEntry,
   currentPath,
   getDragEnvelope,
@@ -209,6 +211,7 @@ export function FileList({
       namespace={namespace}
       stateKey="fileList"
       autoHeight={autoHeight}
+      placeholder={placeholder}
     />
   )
 }

@@ -11,6 +11,7 @@ import {
   HIDDEN_OBJECT_TYPES,
   getObjectTypeLabel,
   getObjectTypeIcon,
+  getObjectDisplayName,
   isHiddenSpaceObject,
 } from '@s4wave/web/space/object-tree.js'
 
@@ -144,6 +145,19 @@ describe('getObjectTypeIcon', () => {
   })
 })
 
+describe('getObjectDisplayName', () => {
+  it('uses product labels for built-in object keys', () => {
+    expect(getObjectDisplayName('unixfs')).toBe('Files')
+    expect(getObjectDisplayName('object-layout')).toBe('Layout')
+  })
+
+  it('humanizes the final object-key segment for generated keys', () => {
+    expect(getObjectDisplayName('glados/bootstrap/llm-session')).toBe(
+      'Llm Session',
+    )
+  })
+})
+
 describe('buildObjectTypeMetadataMap', () => {
   it('keeps the first registration for a type by registration ID', () => {
     const registrations: ObjectTypeRegistration[] = [
@@ -241,7 +255,7 @@ describe('buildObjectTree', () => {
       { objectKey: 'glados-home', objectType: 'glados/operator-home' },
     ]
     const result = buildObjectTree(objects, metadata)
-    expect(result[0].name).toBe('glados-home')
+    expect(result[0].name).toBe('Glados Home')
     expect(result[0].detail).toBe('GLaDOS Home')
     expect(result[0].data?.objectTypeLabel).toBe('GLaDOS Home')
     expect(result[0].data?.objectTypeDescription).toBe(

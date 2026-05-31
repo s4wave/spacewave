@@ -11,6 +11,7 @@ import { LuMenu, LuX } from 'react-icons/lu'
 import { Notebook } from './proto/notebook.pb.js'
 import { NotebookHandle, NotebookTypeID } from './sdk/notebook.js'
 import { useWorldObjectMessageState } from './useWorldObjectMessageState.js'
+import { ConfirmActionDialog, SourceInputDialog } from './NoteDialogs.js'
 
 import NotebookSidebar from './NotebookSidebar.js'
 import NoteList from './NoteList.js'
@@ -62,6 +63,10 @@ function NotebookViewer({
 
   // Responsive sidebar visibility.
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [addSourceOpen, setAddSourceOpen] = useState(false)
+  const [removeSourceIndex, setRemoveSourceIndex] = useState<number | null>(
+    null,
+  )
 
   const currentSource = sources[selectedSource]
   const notebookHandle = resource.value
@@ -78,42 +83,18 @@ function NotebookViewer({
     [setSelectedSource, setCurrentPath, setSelectedNote, setEditing],
   )
 
-  const handleAddSource = useCallback(async () => {
-    const prompt = globalThis.prompt
-    if (!prompt || !notebookHandle) return
+  const handleAddSource = useCallback(() => {
+    setAddSourceOpen(true)
+  }, [])
 
-    const name = prompt('Source name (optional)')?.trim() ?? ''
-    const ref = prompt('Source ref')?.trim() ?? ''
-    if (!ref) return
-
-    await notebookHandle.addSource({ name, ref })
-    setSelectedSource(sources.length)
-    setCurrentPath('')
-    setSelectedNote('')
-    setEditing(false)
-    setFilterTag(undefined)
-    setFilterStatus(undefined)
-  }, [
-    notebookHandle,
-    setSelectedSource,
-    setCurrentPath,
-    setSelectedNote,
-    setEditing,
-    sources.length,
-  ])
-
-  const handleRemoveSource = useCallback(
-    async (index: number) => {
+  const handleConfirmAddSource = useCallback(
+    async ({ name, ref }: { name: string; ref: string }) => {
       if (!notebookHandle) return
-      const confirm = globalThis.confirm
-      if (confirm && !confirm('Remove this notebook source?')) return
+      if (!ref) return
 
-      await notebookHandle.removeSource(index)
-      setSelectedSource((prev) => {
-        if (prev > index) return prev - 1
-        if (prev === index) return Math.max(0, prev - 1)
-        return prev
-      })
+      await notebookHandle.addSource({ name, ref })
+      setAddSourceOpen(false)
+      setSelectedSource(sources.length)
       setCurrentPath('')
       setSelectedNote('')
       setEditing(false)
@@ -126,8 +107,38 @@ function NotebookViewer({
       setCurrentPath,
       setSelectedNote,
       setEditing,
+      sources.length,
     ],
   )
+
+  const handleRemoveSource = useCallback((index: number) => {
+    setRemoveSourceIndex(index)
+  }, [])
+
+  const handleConfirmRemoveSource = useCallback(async () => {
+    if (!notebookHandle || removeSourceIndex === null) return
+
+    const index = removeSourceIndex
+    await notebookHandle.removeSource(index)
+    setRemoveSourceIndex(null)
+    setSelectedSource((prev) => {
+      if (prev > index) return prev - 1
+      if (prev === index) return Math.max(0, prev - 1)
+      return prev
+    })
+    setCurrentPath('')
+    setSelectedNote('')
+    setEditing(false)
+    setFilterTag(undefined)
+    setFilterStatus(undefined)
+  }, [
+    notebookHandle,
+    removeSourceIndex,
+    setSelectedSource,
+    setCurrentPath,
+    setSelectedNote,
+    setEditing,
+  ])
 
   const handleMoveSource = useCallback(
     async (index: number, delta: -1 | 1) => {
@@ -193,8 +204,6 @@ function NotebookViewer({
       resource={state}
       state={state}
       loadingText="Loading notebook..."
-      emptyText="No sources configured for this notebook"
-      sources={sources}
     >
       <div className="bg-background-primary flex h-full w-full overflow-hidden">
         {/* Mobile hamburger toggle */}
@@ -203,9 +212,11 @@ function NotebookViewer({
           className="bg-background-primary text-foreground-alt hover:text-foreground absolute top-2 left-2 z-30 rounded p-1 md:hidden"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
-          {sidebarOpen ?
+          {sidebarOpen ? (
             <LuX className="size-5" />
-          : <LuMenu className="size-5" />}
+          ) : (
+            <LuMenu className="size-5" />
+          )}
         </button>
 
         {/* Sidebar - responsive: hidden on mobile unless toggled */}
@@ -213,9 +224,9 @@ function NotebookViewer({
           className={cn(
             'border-border border-r',
             'md:relative md:block',
-            sidebarOpen ?
-              'bg-background-primary absolute inset-y-0 left-0 z-20 block'
-            : 'hidden',
+            sidebarOpen
+              ? 'bg-background-primary absolute inset-y-0 left-0 z-20 block'
+              : 'hidden',
           )}
           style={{ width: 200, minWidth: 200 }}
         >
@@ -223,8 +234,8 @@ function NotebookViewer({
             sources={sources}
             selectedSource={selectedSource}
             onSelectSource={handleSelectSource}
-            onAddSource={() => void handleAddSource()}
-            onRemoveSource={(index) => void handleRemoveSource(index)}
+            onAddSource={handleAddSource}
+            onRemoveSource={handleRemoveSource}
             onMoveSource={(index, delta) => void handleMoveSource(index, delta)}
             namespace={ns}
           />
@@ -256,7 +267,7 @@ function NotebookViewer({
 
         {/* Content area */}
         <div className="min-w-0 flex-1">
-          {currentSource?.ref && selectedNote ?
+          {currentSource?.ref && selectedNote ? (
             <NoteContentView
               worldState={worldState}
               sourceRef={currentSource.ref}
@@ -266,12 +277,13 @@ function NotebookViewer({
               onFilterTag={setFilterTag}
               onFilterStatus={setFilterStatus}
             />
-          : <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-              {sources.length === 0 ?
-                'No sources configured for this notebook'
-              : 'Select a note to view'}
+          ) : (
+            <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+              {sources.length === 0
+                ? 'No sources configured for this notebook'
+                : 'Select a note to view'}
             </div>
-          }
+          )}
         </div>
 
         {/* Backdrop for mobile sidebar */}
@@ -283,6 +295,21 @@ function NotebookViewer({
             onClick={() => setSidebarOpen(false)}
           />
         )}
+        <SourceInputDialog
+          open={addSourceOpen}
+          onOpenChange={setAddSourceOpen}
+          onConfirm={(source) => void handleConfirmAddSource(source)}
+        />
+        <ConfirmActionDialog
+          open={removeSourceIndex !== null}
+          title="Remove source"
+          description="Remove this source from the notebook?"
+          confirmLabel="Remove"
+          onOpenChange={(open) => {
+            if (!open) setRemoveSourceIndex(null)
+          }}
+          onConfirm={() => void handleConfirmRemoveSource()}
+        />
       </div>
     </ViewerStatusShell>
   )

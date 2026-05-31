@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  cleanup,
+  waitFor,
+} from '@testing-library/react'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
 
 const mockUseWorldObjectMessageState = vi.hoisted(() => vi.fn())
@@ -172,6 +178,44 @@ describe('NotebookViewer', () => {
     expect(
       screen.getByText('No sources configured for this notebook'),
     ).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Add source' })).toBeDefined()
+  })
+
+  it('adds a source from the in-app dialog', async () => {
+    const addSource = vi.fn(() => Promise.resolve())
+    vi.mocked(useAccessTypedHandle).mockReturnValue({
+      value: { addSource },
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    } as never)
+    mockUseWorldObjectMessageState.mockReturnValue({
+      state: {
+        value: { sources: [] },
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+      sources: [],
+    })
+
+    renderViewer()
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
+    fireEvent.change(screen.getByLabelText('Source name'), {
+      target: { value: 'Docs' },
+    })
+    fireEvent.change(screen.getByLabelText('Source ref'), {
+      target: { value: 'key/-/docs' },
+    })
+    const addButtons = screen.getAllByRole('button', { name: 'Add source' })
+    fireEvent.click(addButtons[addButtons.length - 1])
+
+    await waitFor(() => {
+      expect(addSource).toHaveBeenCalledWith({
+        name: 'Docs',
+        ref: 'key/-/docs',
+      })
+    })
   })
 
   it('renders "Select a note to view" when sources exist but no note selected', () => {

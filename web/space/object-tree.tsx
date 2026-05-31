@@ -160,6 +160,41 @@ export function getObjectTypeDescription(
   return metadataById?.get(typeId)?.description?.trim() ?? ''
 }
 
+export function getObjectDisplayName(objectKey: string): string {
+  const key = objectKey.trim()
+  switch (key) {
+    case 'object-layout':
+      return 'Layout'
+    case 'unixfs':
+      return 'Files'
+    case 'canvas':
+      return 'Canvas'
+    case 'notes':
+      return 'Notes'
+    case 'chat':
+      return 'Chat'
+  }
+
+  const segment = key.split('/').filter(Boolean).at(-1) ?? key
+  return humanizeObjectKeySegment(segment)
+}
+
+function humanizeObjectKeySegment(segment: string): string {
+  const decoded = safeDecodeURIComponent(segment)
+  if (decoded === segment && !/[-_\s%]/.test(segment)) return segment
+  const words = decoded.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!words) return segment || 'Object'
+  return words.replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 function isHiddenObjectTypeMetadata(
   metadata: ObjectTypeMetadata | undefined,
 ): boolean {
@@ -228,7 +263,9 @@ function mapToTreeNodes(
 
     const node: TreeNode<ObjectTreeNode> = {
       id: fullKey,
-      name,
+      name: isVirtual
+        ? humanizeObjectKeySegment(name)
+        : getObjectDisplayName(fullKey),
       detail: objectTypeLabel,
       icon: isVirtual ? (
         <LuFolder className={iconSize} />

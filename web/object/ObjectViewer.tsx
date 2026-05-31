@@ -98,6 +98,9 @@ export function ObjectViewer({
           objectState={viewer.objectState.value ?? undefined}
           typeID={viewer.typeID}
           component={viewer.selectedComponent}
+          availableComponents={viewer.visibleComponents}
+          missingComponentID={viewer.missingComponentID}
+          onSelectComponent={viewer.onSelectComponent}
           standalone={standalone}
         />
       </HistoryRouter>
