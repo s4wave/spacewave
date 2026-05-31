@@ -56,7 +56,7 @@ const GetStartedItem = ({ item }: { item: QuickstartOption }) => {
       className="text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5"
       onSelect={handleClick}
     >
-      <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md transition-colors">
+      <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
         <item.icon className="size-5 stroke-[1.5]" />
       </div>
       <div>
@@ -79,7 +79,7 @@ function AddStateRootItem() {
       disabled={!canAddRootAlias}
       onSelect={handleClick}
     >
-      <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md transition-colors">
+      <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
         <LuFolderOpen className="size-5 stroke-[1.5]" />
       </div>
       <div>
@@ -121,7 +121,7 @@ function SessionItem({ session }: { session: SessionListEntry }) {
       className="text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5"
       onSelect={handleClick}
     >
-      <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md transition-colors">
+      <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
         <LuUser className="size-5 stroke-[1.5]" />
       </div>
       <div>
@@ -183,7 +183,7 @@ function StaticGetStarted({ className }: { className?: string }) {
                 href={getStaticQuickstartHref(item, useHandoffLinks)}
                 className="text-foreground-alt flex items-center gap-3 px-4 py-1.5 no-underline"
               >
-                <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-md">
+                <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-md">
                   <item.icon className="size-5 stroke-[1.5]" />
                 </div>
                 <div>
