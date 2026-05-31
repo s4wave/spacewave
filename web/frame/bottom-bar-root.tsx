@@ -36,6 +36,8 @@ class ItemsStore {
       if (isQuietItemUpdate(existing, item)) {
         existing.button = item.button
         existing.overlay = item.overlay
+        existing.contextMenuItems = item.contextMenuItems
+        existing.contextMenuLabel = item.contextMenuLabel
         existing.onBreadcrumbClick = item.onBreadcrumbClick
         return
       }
@@ -69,7 +71,10 @@ function isQuietItemUpdate(a: BottomBarItem, b: BottomBarItem) {
     a.buttonKey === b.buttonKey &&
     a.overlayKey === b.overlayKey &&
     a.menuLabel === b.menuLabel &&
+    a.contextMenuKey === b.contextMenuKey &&
+    a.contextMenuLabel === b.contextMenuLabel &&
     !!a.overlay === !!b.overlay &&
+    !!a.contextMenuItems === !!b.contextMenuItems &&
     !!a.onBreadcrumbClick === !!b.onBreadcrumbClick &&
     a.position === b.position
   )

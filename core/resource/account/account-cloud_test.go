@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/starpc/srpc"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -139,4 +140,82 @@ func TestResolveEntityKeyRejectsLocalAccountResource(t *testing.T) {
 	if !strings.Contains(err.Error(), "cloud account") {
 		t.Fatalf("expected cloud account error, got %v", err)
 	}
+}
+
+// TestCloudOnlyWatchesRejectLocalAccountResource verifies dashboard streams
+// get a typed error instead of a nil-pointer panic if mounted against a local
+// account resource.
+func TestCloudOnlyWatchesRejectLocalAccountResource(t *testing.T) {
+	r := &AccountResource{localAccount: &provider_local.ProviderAccount{}}
+	ctx := context.Background()
+
+	err := r.WatchEntityKeypairs(
+		&s4wave_account.WatchEntityKeypairsRequest{},
+		&testWatchEntityKeypairsStream{testStream: testStream{ctx: ctx}},
+	)
+	if err == nil {
+		t.Fatal("expected local account resource entity keypair watch to fail")
+	}
+	if !strings.Contains(err.Error(), "cloud account") {
+		t.Fatalf("expected cloud account error, got %v", err)
+	}
+
+	err = r.WatchAuthMethods(
+		&s4wave_account.WatchAuthMethodsRequest{},
+		&testWatchAuthMethodsStream{testStream: testStream{ctx: ctx}},
+	)
+	if err == nil {
+		t.Fatal("expected local account resource auth-method watch to fail")
+	}
+	if !strings.Contains(err.Error(), "cloud account") {
+		t.Fatalf("expected cloud account error, got %v", err)
+	}
+}
+
+type testStream struct {
+	ctx context.Context
+}
+
+func (s *testStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *testStream) MsgSend(srpc.Message) error {
+	return nil
+}
+
+func (s *testStream) MsgRecv(srpc.Message) error {
+	return nil
+}
+
+func (s *testStream) CloseSend() error {
+	return nil
+}
+
+func (s *testStream) Close() error {
+	return nil
+}
+
+type testWatchEntityKeypairsStream struct {
+	testStream
+}
+
+func (s *testWatchEntityKeypairsStream) Send(*s4wave_account.WatchEntityKeypairsResponse) error {
+	return nil
+}
+
+func (s *testWatchEntityKeypairsStream) SendAndClose(*s4wave_account.WatchEntityKeypairsResponse) error {
+	return nil
+}
+
+type testWatchAuthMethodsStream struct {
+	testStream
+}
+
+func (s *testWatchAuthMethodsStream) Send(*s4wave_account.WatchAuthMethodsResponse) error {
+	return nil
+}
+
+func (s *testWatchAuthMethodsStream) SendAndClose(*s4wave_account.WatchAuthMethodsResponse) error {
+	return nil
 }

@@ -17,13 +17,17 @@ func (r *AccountResource) StartDesktopPasskeyRegisterHandoff(
 	req *s4wave_account.StartDesktopPasskeyRegisterHandoffRequest,
 ) (*s4wave_account.StartDesktopPasskeyRegisterHandoffResponse, error) {
 	_ = req
-	cli := r.account.GetSessionClient()
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	cli := acc.GetSessionClient()
 	startResp, err := cli.StartDesktopPasskeyRegister(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "start desktop passkey register")
 	}
 
-	p := r.account.GetProvider()
+	p := acc.GetProvider()
 	result, err := provider_spacewave_handoff.WaitForDesktopPasskeyRegister(
 		ctx,
 		p.GetHTTPClient(),

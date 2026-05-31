@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/core"
@@ -210,6 +211,121 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 	reconcileCancel()
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("expected reconciler to stop on context cancel, got %v", err)
+	}
+}
+
+func TestDesktopTrayReconcilerRetriesSourceFailures(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	le := logrus.NewEntry(logrus.New())
+	var attempts atomic.Int32
+	var notified atomic.Bool
+	retried := make(chan struct{})
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- runDesktopTrayReconcilerUntilCanceled(ctx, le, func(ctx context.Context) error {
+			if attempts.Add(1) == 1 {
+				return errors.New("source stream closed")
+			}
+			if notified.CompareAndSwap(false, true) {
+				close(retried)
+			}
+			<-ctx.Done()
+			return ctx.Err()
+		})
+	}()
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("reconciler stopped after source failure: %v", err)
+	case <-retried:
+	}
+	if attempts.Load() != 2 {
+		t.Fatalf("reconciler attempts = %d, want 2", attempts.Load())
+	}
+
+	cancel()
+	select {
+	case err := <-errCh:
+		if err != context.Canceled {
+			t.Fatalf("expected reconciler to stop on context cancel, got %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for reconciler cancellation")
+	}
+}
+
+func TestDesktopTrayMirroredRuntimeDoesNotExitOnTrayFailure(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	runtime := newDesktopRuntimeOnlyWebRuntime(t, desktop_tray.NewDesktopTray())
+	trayFailed := make(chan struct{})
+	secondAttempt := make(chan struct{})
+	cancelObserved := make(chan struct{})
+	releaseCancel := make(chan struct{})
+	var attempts atomic.Int32
+	var secondNotified atomic.Bool
+	mirrored := &desktopTrayMirroredRuntime{
+		WebRuntime: runtime,
+		controller: &Controller{le: le},
+		reconcileDesktopTrayRaw: func(ctx context.Context, rt web_runtime.WebRuntime) error {
+			if attempts.Add(1) == 1 {
+				close(trayFailed)
+				return errors.New("source stream closed")
+			}
+			if secondNotified.CompareAndSwap(false, true) {
+				close(secondAttempt)
+			}
+			<-ctx.Done()
+			close(cancelObserved)
+			<-releaseCancel
+			return ctx.Err()
+		},
+	}
+
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- mirrored.Execute(runCtx)
+	}()
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("mirrored runtime exited after tray failure before parent cancel: %v", err)
+	case <-trayFailed:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for tray reconciler failure")
+	}
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("mirrored runtime exited after tray failure before parent cancel: %v", err)
+	case <-secondAttempt:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for tray reconciler retry")
+	}
+
+	cancel()
+	select {
+	case <-cancelObserved:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for tray reconciler cancellation")
+	}
+	select {
+	case err := <-errCh:
+		t.Fatalf("mirrored runtime exited before tray reconciler cleanup finished: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(releaseCancel)
+	select {
+	case err := <-errCh:
+		if err != context.Canceled {
+			t.Fatalf("expected mirrored runtime to stop on parent cancel, got %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for mirrored runtime cancellation")
 	}
 }
 

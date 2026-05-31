@@ -2,8 +2,11 @@ package electron
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/routine"
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_resource "github.com/s4wave/spacewave/bldr/resource"
@@ -11,12 +14,26 @@ import (
 	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	errDesktopTrayReconcilerEnded = errors.New("desktop tray reconciler ended")
+	desktopTrayReconcilerBackoff  = &backoff.Backoff{
+		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+		Exponential: &backoff.Exponential{
+			InitialInterval:     100,
+			MaxInterval:         1200,
+			RandomizationFactor: 0.1,
+		},
+	}
 )
 
 type desktopTrayMirroredRuntime struct {
 	web_runtime.WebRuntime
 
-	controller *Controller
+	controller              *Controller
+	reconcileDesktopTrayRaw func(context.Context, web_runtime.WebRuntime) error
 }
 
 type pluginHostDesktopTray struct {
@@ -62,31 +79,95 @@ func (r *Controller) reconcileDesktopTray(
 	return err
 }
 
+func (r *Controller) reconcileDesktopTrayUntilCanceled(
+	ctx context.Context,
+	rt web_runtime.WebRuntime,
+) error {
+	return runDesktopTrayReconcilerUntilCanceled(ctx, r.le, func(ctx context.Context) error {
+		return r.reconcileDesktopTray(ctx, rt)
+	})
+}
+
+func runDesktopTrayReconcilerUntilCanceled(
+	ctx context.Context,
+	le *logrus.Entry,
+	reconcile func(context.Context) error,
+) error {
+	opts := []routine.Option{routine.WithRetry(desktopTrayReconcilerBackoff)}
+	if le != nil {
+		opts = append(opts, routine.WithExitLogger(le.WithField("routine", "desktop-tray-reconciler")))
+	}
+
+	rc := routine.NewRoutineContainer(opts...)
+	rc.SetRoutine(func(ctx context.Context) error {
+		err := reconcile(ctx)
+		if ctx.Err() != nil {
+			return context.Canceled
+		}
+		if err == nil {
+			return errDesktopTrayReconcilerEnded
+		}
+		return err
+	})
+	rc.SetContext(ctx, false)
+
+	<-ctx.Done()
+	waitCh, _ := rc.SetRoutine(nil)
+	if waitCh != nil {
+		<-waitCh
+	}
+	rc.ClearContext()
+	return context.Canceled
+}
+
 func (r *desktopTrayMirroredRuntime) Execute(ctx context.Context) error {
 	runCtx, runCancel := context.WithCancel(ctx)
 	defer runCancel()
 
-	errCh := make(chan error, 2)
+	runtimeErrCh := make(chan error, 1)
 	go func() {
-		errCh <- r.WebRuntime.Execute(runCtx)
-	}()
-	go func() {
-		errCh <- r.controller.reconcileDesktopTray(runCtx, r.WebRuntime)
+		runtimeErrCh <- r.WebRuntime.Execute(runCtx)
 	}()
 
-	err := <-errCh
-	runCancel()
-	secondErr := <-errCh
-	if err == context.Canceled && ctx.Err() != nil {
-		return context.Canceled
+	trayErrCh := make(chan error, 1)
+	go func() {
+		trayErrCh <- r.executeDesktopTrayReconciler(runCtx)
+	}()
+
+	select {
+	case err := <-runtimeErrCh:
+		runCancel()
+		trayErr := <-trayErrCh
+		if err == context.Canceled && ctx.Err() != nil {
+			return context.Canceled
+		}
+		if err == nil && trayErr != nil && trayErr != context.Canceled {
+			return trayErr
+		}
+		if err == context.Canceled && trayErr != nil && trayErr != context.Canceled {
+			return trayErr
+		}
+		return err
+	case err := <-trayErrCh:
+		runCancel()
+		runtimeErr := <-runtimeErrCh
+		if err == context.Canceled && ctx.Err() != nil {
+			return context.Canceled
+		}
+		if err != nil && err != context.Canceled {
+			return err
+		}
+		return runtimeErr
 	}
-	if err == nil && secondErr != nil && secondErr != context.Canceled {
-		return secondErr
+}
+
+func (r *desktopTrayMirroredRuntime) executeDesktopTrayReconciler(ctx context.Context) error {
+	if r.reconcileDesktopTrayRaw != nil {
+		return runDesktopTrayReconcilerUntilCanceled(ctx, r.controller.le, func(ctx context.Context) error {
+			return r.reconcileDesktopTrayRaw(ctx, r.WebRuntime)
+		})
 	}
-	if err == context.Canceled && secondErr != nil && secondErr != context.Canceled {
-		return secondErr
-	}
-	return err
+	return r.controller.reconcileDesktopTrayUntilCanceled(ctx, r.WebRuntime)
 }
 
 func openPluginHostDesktopTray(ctx context.Context, b bus.Bus) (*pluginHostDesktopTray, error) {

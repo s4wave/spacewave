@@ -35,6 +35,15 @@ type AccountResource struct {
 	stepUpRef    *refcount.Ref[struct{}]
 }
 
+var errCloudAccountRequired = errors.New("account operation requires a cloud account")
+
+func (r *AccountResource) requireCloudAccount() (*provider_spacewave.ProviderAccount, error) {
+	if r == nil || r.account == nil {
+		return nil, errCloudAccountRequired
+	}
+	return r.account, nil
+}
+
 // NewAccountResource creates a new AccountResource.
 func NewAccountResource(acc provider.ProviderAccount) *AccountResource {
 	r := &AccountResource{}
@@ -218,13 +227,18 @@ func (r *AccountResource) WatchAuthMethods(
 	req *s4wave_account.WatchAuthMethodsRequest,
 	strm s4wave_account.SRPCAccountResourceService_WatchAuthMethodsStream,
 ) error {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return err
+	}
+
 	var prev *s4wave_account.WatchAuthMethodsResponse
 	return watchCloudBcast(
 		strm.Context(),
-		r.account.GetAccountBroadcast(),
+		acc.GetAccountBroadcast(),
 		func() ([]*api.AccountAuthMethod, bool) {
-			authMethods := r.account.AuthMethodsSnapshot()
-			valid := r.account.AccountStateSnapshot() != nil
+			authMethods := acc.AuthMethodsSnapshot()
+			valid := acc.AccountStateSnapshot() != nil
 			return authMethods, valid
 		},
 		func(authMethods []*api.AccountAuthMethod) *s4wave_account.WatchAuthMethodsResponse {
@@ -500,13 +514,14 @@ func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.En
 	if cred == nil {
 		return nil, "", errors.New("credential is required")
 	}
-	if r.account == nil {
-		return nil, "", errors.New("entity key resolution requires a cloud account")
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, "", errors.Wrap(err, "entity key resolution")
 	}
 	password := cred.GetPassword()
 	pemPrivateKey := cred.GetPemPrivateKey()
 	if password != "" {
-		info, err := r.account.GetAccountState(ctx)
+		info, err := acc.GetAccountState(ctx)
 		if err != nil {
 			return nil, "", errors.Wrap(err, "fetch account info")
 		}
@@ -538,8 +553,12 @@ func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.En
 // entity keys sign. Binding account_id, kind, method, and path to the signed
 // bytes prevents replay across accounts or endpoints.
 func (r *AccountResource) buildMultiSigEnvelope(kind api.MultiSigActionKind, method, reqPath string, actionBody []byte) ([]byte, error) {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
 	env := &api.MultiSigActionEnvelope{
-		AccountId: r.account.GetAccountID(),
+		AccountId: acc.GetAccountID(),
 		Kind:      kind,
 		Method:    method,
 		Path:      reqPath,
@@ -588,7 +607,11 @@ func (r *AccountResource) sendMultiSig(
 	envelope []byte,
 	sigs []*api.EntitySignature,
 ) (*api.MultiSigActionResponse, error) {
-	cli := r.account.GetSessionClient()
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	cli := acc.GetSessionClient()
 	msReq := &api.MultiSigRequest{
 		Envelope:   envelope,
 		Signatures: sigs,
@@ -620,6 +643,10 @@ func (r *AccountResource) submitTrackedAction(
 	actionBody []byte,
 	wrapMsg string,
 ) error {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return err
+	}
 	envelope, sigs, err := r.resolveOrSignWithStore(ctx, cred, kind, method, reqPath, actionBody)
 	if err != nil {
 		return err
@@ -627,7 +654,7 @@ func (r *AccountResource) submitTrackedAction(
 	if _, err := r.sendMultiSig(ctx, method, reqPath, envelope, sigs); err != nil {
 		return errors.Wrap(err, wrapMsg)
 	}
-	r.account.BumpLocalEpoch()
+	acc.BumpLocalEpoch()
 	return nil
 }
 
@@ -636,6 +663,10 @@ func (r *AccountResource) AddAuthMethod(
 	ctx context.Context,
 	req *s4wave_account.AddAuthMethodRequest,
 ) (*s4wave_account.AddAuthMethodResponse, error) {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
 	kp := req.GetKeypair()
 	if kp == nil {
 		return nil, errors.New("keypair is required")
@@ -644,7 +675,7 @@ func (r *AccountResource) AddAuthMethod(
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal add keypair action")
 	}
-	reqPath := accountAPIPath(r.account.GetAccountID(), "keypair", "add")
+	reqPath := accountAPIPath(acc.GetAccountID(), "keypair", "add")
 	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
@@ -664,11 +695,15 @@ func (r *AccountResource) RemoveAuthMethod(
 	ctx context.Context,
 	req *s4wave_account.RemoveAuthMethodRequest,
 ) (*s4wave_account.RemoveAuthMethodResponse, error) {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
 	actionBody, err := (&api.RemoveKeypairAction{PeerId: req.GetPeerId()}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal remove keypair action")
 	}
-	reqPath := accountAPIPath(r.account.GetAccountID(), "keypair", "remove")
+	reqPath := accountAPIPath(acc.GetAccountID(), "keypair", "remove")
 	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
@@ -688,11 +723,15 @@ func (r *AccountResource) SetSecurityLevel(
 	ctx context.Context,
 	req *s4wave_account.SetSecurityLevelRequest,
 ) (*s4wave_account.SetSecurityLevelResponse, error) {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
 	actionBody, err := (&api.UpdateThresholdAction{Threshold: req.GetThreshold()}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal update threshold action")
 	}
-	reqPath := accountAPIPath(r.account.GetAccountID(), "threshold")
+	reqPath := accountAPIPath(acc.GetAccountID(), "threshold")
 	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
@@ -717,10 +756,11 @@ func (r *AccountResource) RevokeSession(
 	ctx context.Context,
 	req *s4wave_account.RevokeSessionRequest,
 ) (*s4wave_account.RevokeSessionResponse, error) {
-	if r.account == nil {
-		return nil, errors.New("session revoke is only supported for Spacewave provider accounts")
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, errors.Wrap(err, "session revoke")
 	}
-	cli := r.account.GetSessionClient()
+	cli := acc.GetSessionClient()
 
 	// Self-revoke path: no credential provided, current session.
 	if req.GetCredential() == nil {
@@ -729,7 +769,7 @@ func (r *AccountResource) RevokeSession(
 			if err := cli.SelfRevoke(ctx); err != nil {
 				return nil, errors.Wrap(err, "self-revoke session")
 			}
-			r.account.BumpLocalEpoch()
+			acc.BumpLocalEpoch()
 			return &s4wave_account.RevokeSessionResponse{}, nil
 		}
 	}
@@ -740,7 +780,7 @@ func (r *AccountResource) RevokeSession(
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal revoke session action")
 	}
-	reqPath := accountAPIPath(r.account.GetAccountID(), "session", req.GetSessionPeerId())
+	reqPath := accountAPIPath(acc.GetAccountID(), "session", req.GetSessionPeerId())
 	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
@@ -762,6 +802,10 @@ func (r *AccountResource) GenerateBackupKey(
 	ctx context.Context,
 	req *s4wave_account.GenerateBackupKeyRequest,
 ) (*s4wave_account.GenerateBackupKeyResponse, error) {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
 	// Generate a new Ed25519 keypair for the backup key.
 	backupPriv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -782,7 +826,7 @@ func (r *AccountResource) GenerateBackupKey(
 	}
 
 	// Register the backup key with the cloud.
-	reqPath := accountAPIPath(r.account.GetAccountID(), "keypair", "add")
+	reqPath := accountAPIPath(acc.GetAccountID(), "keypair", "add")
 	if err := r.submitTrackedAction(
 		ctx,
 		req.GetCredential(),
@@ -813,6 +857,10 @@ func (r *AccountResource) ChangePassword(
 	ctx context.Context,
 	req *s4wave_account.ChangePasswordRequest,
 ) (*s4wave_account.ChangePasswordResponse, error) {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
 	oldPassword := req.GetOldPassword()
 	newPassword := req.GetNewPassword()
 	if oldPassword == "" || newPassword == "" {
@@ -828,7 +876,7 @@ func (r *AccountResource) ChangePassword(
 	}
 
 	// Derive new entity keypair from new password.
-	info, err := r.account.GetAccountState(ctx)
+	info, err := acc.GetAccountState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch account info")
 	}
@@ -841,7 +889,7 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.Wrap(err, "derive new entity peer ID")
 	}
 	// Add new keypair (signed with old entity key).
-	accountID := r.account.GetAccountID()
+	accountID := acc.GetAccountID()
 	kp := &session.EntityKeypair{
 		PeerId:     newPeerID.String(),
 		AuthMethod: auth_password.MethodID,
@@ -881,7 +929,7 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.Wrap(err, "remove old keypair")
 	}
 
-	r.account.BumpLocalEpoch()
+	acc.BumpLocalEpoch()
 
 	return &s4wave_account.ChangePasswordResponse{}, nil
 }

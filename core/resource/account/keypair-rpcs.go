@@ -26,17 +26,21 @@ func (r *AccountResource) WatchEntityKeypairs(
 	req *s4wave_account.WatchEntityKeypairsRequest,
 	strm s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsStream,
 ) error {
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return err
+	}
 	ctx := strm.Context()
-	store := r.account.GetEntityKeyStore()
+	store := acc.GetEntityKeyStore()
 	state := &entityKeypairsWatchState{
-		keypairs:      r.account.KeypairsSnapshot(),
-		valid:         r.account.AccountStateSnapshot() != nil,
+		keypairs:      acc.KeypairsSnapshot(),
+		valid:         acc.AccountStateSnapshot() != nil,
 		unlockedPeers: store.GetUnlockedPeerIDs(),
 	}
 
 	bridgeCtx, cancelBridges := context.WithCancel(ctx)
 	defer cancelBridges()
-	go state.bridgeAccount(bridgeCtx, r.account)
+	go state.bridgeAccount(bridgeCtx, acc)
 	go state.bridgeStore(bridgeCtx, store)
 
 	return state.runWatchLoop(ctx, strm.Send)
@@ -175,7 +179,11 @@ func (r *AccountResource) UnlockEntityKeypair(
 	if requestedPeerID != "" && resolvedPeerID.String() != requestedPeerID {
 		return nil, errors.Errorf("resolved peer ID %s does not match requested %s", resolvedPeerID.String(), requestedPeerID)
 	}
-	r.account.GetEntityKeyStore().Unlock(resolvedPeerID, privKey)
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	acc.GetEntityKeyStore().Unlock(resolvedPeerID, privKey)
 	return &s4wave_account.UnlockEntityKeypairResponse{}, nil
 }
 
@@ -192,7 +200,11 @@ func (r *AccountResource) LockEntityKeypair(
 	if err != nil {
 		return nil, errors.Wrap(err, "decode peer ID")
 	}
-	r.account.GetEntityKeyStore().Lock(pid)
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	acc.GetEntityKeyStore().Lock(pid)
 	return &s4wave_account.LockEntityKeypairResponse{}, nil
 }
 
@@ -201,7 +213,11 @@ func (r *AccountResource) LockAllEntityKeypairs(
 	ctx context.Context,
 	_ *s4wave_account.LockAllEntityKeypairsRequest,
 ) (*s4wave_account.LockAllEntityKeypairsResponse, error) {
-	r.account.GetEntityKeyStore().LockAll()
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	acc.GetEntityKeyStore().LockAll()
 	return &s4wave_account.LockAllEntityKeypairsResponse{}, nil
 }
 
@@ -242,7 +258,11 @@ func (r *AccountResource) resolveOrSignWithStore(
 			SignedAt:  now,
 		}}, nil
 	}
-	storeSigs, err := r.account.GetEntityKeyStore().SignAll(envelope)
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, nil, err
+	}
+	storeSigs, err := acc.GetEntityKeyStore().SignAll(envelope)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "key store sign")
 	}

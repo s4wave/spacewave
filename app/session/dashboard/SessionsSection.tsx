@@ -179,27 +179,29 @@ export function SessionsSection({
           </div>
         )}
       </div>
-      <AuthConfirmDialog
-        open={!!revokeRow}
-        onOpenChange={(next) => {
-          if (!next) {
-            setRevokeRow(null)
-          }
-        }}
-        title="Sign Out Session"
-        description={`Sign out ${revokeRow?.label || revokeRow?.peerId || 'this session'} from Spacewave Cloud.`}
-        confirmLabel="Sign Out"
-        intent={{
-          kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION,
-          title: 'Sign Out Session',
-          description: `Sign out ${revokeRow?.label || revokeRow?.peerId || 'this session'} from Spacewave Cloud.`,
-          targetLabel: revokeRow?.label,
-          targetPeerId: revokeRow?.peerId,
-        }}
-        onConfirm={handleConfirmRevoke}
-        account={account}
-        retainAfterClose={retainStepUp}
-      />
+      {!isLocal && (
+        <AuthConfirmDialog
+          open={!!revokeRow}
+          onOpenChange={(next) => {
+            if (!next) {
+              setRevokeRow(null)
+            }
+          }}
+          title="Sign Out Session"
+          description={`Sign out ${revokeRow?.label || revokeRow?.peerId || 'this session'} from Spacewave Cloud.`}
+          confirmLabel="Sign Out"
+          intent={{
+            kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION,
+            title: 'Sign Out Session',
+            description: `Sign out ${revokeRow?.label || revokeRow?.peerId || 'this session'} from Spacewave Cloud.`,
+            targetLabel: revokeRow?.label,
+            targetPeerId: revokeRow?.peerId,
+          }}
+          onConfirm={handleConfirmRevoke}
+          account={account}
+          retainAfterClose={retainStepUp}
+        />
+      )}
     </CollapsibleSection>
   )
 }

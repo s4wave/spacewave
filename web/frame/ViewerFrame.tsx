@@ -1,22 +1,35 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@s4wave/web/ui/DropdownMenu.js'
+import { DropdownMenuGhostAnchor } from '@s4wave/web/ui/DropdownMenuGhostAnchor.js'
 
 import { Frame } from './frame.js'
 import { BottomBarBreadcrumbSeparator } from './breadcrumb-separator.js'
 import {
+  type BottomBarContextMenuAction,
+  type BottomBarContextMenuItem,
+  type BottomBarContextMenuOpenKind,
   type BottomBarItem,
   useBottomBarItems,
   useBottomBarOpenMenu,
   useBottomBarSetOpenMenu,
 } from './bottom-bar-context.js'
-import { BottomBarItem as BottomBarButton } from './bottom-bar-item.js'
+import {
+  BottomBarItem as BottomBarButton,
+  type BottomBarSecondaryActivation,
+  type IBottomBarItemProps,
+} from './bottom-bar-item.js'
 
 // ViewerFrameProps are properties for ViewerFrame.
 export interface ViewerFrameProps {
@@ -25,18 +38,42 @@ export interface ViewerFrameProps {
   children?: React.ReactNode
 }
 
+interface BottomBarContextMenuState {
+  itemId: string
+  x: number
+  y: number
+  openKind: BottomBarContextMenuOpenKind
+}
+
 function renderBottomBarButton(
   item: BottomBarItem,
   openMenu: string,
   setOpenMenu: (id: string) => void,
+  openContextMenu?: (
+    item: BottomBarItem,
+    activation: BottomBarSecondaryActivation,
+  ) => void,
+  contextMenuOpen?: boolean,
   className?: string,
 ) {
   const selected = openMenu === item.id
-  return item.button(
+  const button = item.button(
     selected,
     () => setOpenMenu(selected ? '' : item.id),
     cn(selected && 'bg-bar-item-selected', className),
   )
+  const hasContextMenu = (item.contextMenuItems?.length ?? 0) > 0
+  if (!hasContextMenu || !openContextMenu || !React.isValidElement(button)) {
+    return button
+  }
+  if (button.type !== BottomBarButton) return button
+
+  return React.cloneElement(button as React.ReactElement<IBottomBarItemProps>, {
+    onSecondaryActivate: (activation: BottomBarSecondaryActivation) => {
+      openContextMenu(item, activation)
+    },
+    contextMenuOpen,
+  })
 }
 
 function CollapsedBottomBarItems({
@@ -79,12 +116,154 @@ function CollapsedBottomBarItems({
   )
 }
 
+function BottomBarContextMenu({
+  item,
+  state,
+  setOpenMenu,
+  onClose,
+  returnFocusRef,
+}: {
+  item: BottomBarItem | undefined
+  state: BottomBarContextMenuState | null
+  setOpenMenu: (id: string) => void
+  onClose: () => void
+  returnFocusRef: React.RefObject<HTMLElement | null>
+}) {
+  const items = item?.contextMenuItems ?? []
+  const open = !!item && !!state && items.length > 0
+
+  return (
+    <DropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose()
+      }}
+    >
+      <DropdownMenuTrigger asChild>
+        <DropdownMenuGhostAnchor x={state?.x ?? 0} y={state?.y ?? 0} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="top"
+        align="center"
+        className="max-w-72 min-w-44"
+        aria-label={item?.contextMenuLabel ?? `${item?.id ?? ''} actions`}
+        onCloseAutoFocus={(event) => {
+          const trigger = returnFocusRef.current
+          if (!trigger) return
+          event.preventDefault()
+          trigger.focus({ preventScroll: true })
+          returnFocusRef.current = null
+        }}
+      >
+        {items.map((menuItem) =>
+          renderContextMenuItem(menuItem, item, state, setOpenMenu, onClose),
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function renderContextMenuItem(
+  menuItem: BottomBarContextMenuItem,
+  item: BottomBarItem | undefined,
+  state: BottomBarContextMenuState | null,
+  setOpenMenu: (id: string) => void,
+  onClose: () => void,
+): React.ReactNode {
+  switch (menuItem.type) {
+    case 'separator':
+      return <DropdownMenuSeparator key={menuItem.id} />
+    case 'group':
+      return (
+        <DropdownMenuSub key={menuItem.id}>
+          <DropdownMenuSubTrigger disabled={menuItem.disabled}>
+            {menuItem.label}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {menuItem.items.map((child) =>
+              renderContextMenuItem(child, item, state, setOpenMenu, onClose),
+            )}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      )
+    case 'action':
+      return (
+        <BottomBarContextMenuActionItem
+          key={menuItem.id}
+          action={menuItem}
+          item={item}
+          state={state}
+          setOpenMenu={setOpenMenu}
+          onClose={onClose}
+        />
+      )
+  }
+}
+
+function BottomBarContextMenuActionItem({
+  action,
+  item,
+  state,
+  setOpenMenu,
+  onClose,
+}: {
+  action: BottomBarContextMenuAction
+  item: BottomBarItem | undefined
+  state: BottomBarContextMenuState | null
+  setOpenMenu: (id: string) => void
+  onClose: () => void
+}) {
+  const Icon = action.icon
+
+  return (
+    <DropdownMenuItem
+      disabled={action.disabled}
+      variant={action.variant}
+      onSelect={() => {
+        if (!item || !state) return
+        void action.onSelect({
+          itemId: item.id,
+          openKind: state.openKind,
+          closeMenu: onClose,
+          openPrimaryOverlay: () => setOpenMenu(item.id),
+        })
+      }}
+    >
+      {Icon ? <Icon className="size-3.5" /> : null}
+      <span className="truncate">{action.label}</span>
+      {action.shortcut ? (
+        <DropdownMenuShortcut>{action.shortcut}</DropdownMenuShortcut>
+      ) : null}
+    </DropdownMenuItem>
+  )
+}
+
 // ViewerFrame renders bottom bar items with breadcrumb separators and an overlay.
 // Extracted from SessionFrame for reuse in standalone ObjectViewer contexts.
 export function ViewerFrame(props: ViewerFrameProps) {
   const items = useBottomBarItems()
   const openMenu = useBottomBarOpenMenu() ?? ''
   const setOpenMenu = useBottomBarSetOpenMenu() ?? (() => {})
+  const [contextMenuState, setContextMenuState] =
+    useState<BottomBarContextMenuState | null>(null)
+  const contextMenuTriggerRef = useRef<HTMLElement | null>(null)
+
+  const openContextMenu = useCallback(
+    (item: BottomBarItem, activation: BottomBarSecondaryActivation) => {
+      contextMenuTriggerRef.current = activation.trigger
+      setContextMenuState({
+        itemId: item.id,
+        x: activation.x,
+        y: activation.y,
+        openKind: activation.openKind,
+      })
+    },
+    [],
+  )
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenuState(null)
+  }, [])
 
   const leftItems = useMemo(
     () => items.filter((item) => item.position !== 'right'),
@@ -105,7 +284,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
 
         return (
           <>
-            {renderBottomBarButton(first, openMenu, setOpenMenu)}
+            {renderBottomBarButton(
+              first,
+              openMenu,
+              setOpenMenu,
+              openContextMenu,
+              contextMenuState?.itemId === first.id,
+            )}
             <BottomBarBreadcrumbSeparator onClick={first.onBreadcrumbClick} />
             <CollapsedBottomBarItems
               items={middle}
@@ -115,7 +300,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
             <BottomBarBreadcrumbSeparator
               onClick={beforeLast.onBreadcrumbClick}
             />
-            {renderBottomBarButton(last, openMenu, setOpenMenu)}
+            {renderBottomBarButton(
+              last,
+              openMenu,
+              setOpenMenu,
+              openContextMenu,
+              contextMenuState?.itemId === last.id,
+            )}
           </>
         )
       })()
@@ -129,7 +320,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
               {index > 0 && (
                 <BottomBarBreadcrumbSeparator onClick={prevItemHandler} />
               )}
-              {renderBottomBarButton(item, openMenu, setOpenMenu)}
+              {renderBottomBarButton(
+                item,
+                openMenu,
+                setOpenMenu,
+                openContextMenu,
+                contextMenuState?.itemId === item.id,
+              )}
             </React.Fragment>
           )
         })}
@@ -138,14 +335,15 @@ export function ViewerFrame(props: ViewerFrameProps) {
 
   const right = (
     <>
-      {rightItems.map(({ id, button }) => {
-        const selected = openMenu === id
+      {rightItems.map((item) => {
         return (
-          <React.Fragment key={id}>
-            {button(
-              selected,
-              () => setOpenMenu(selected ? '' : id),
-              cn(selected && 'bg-bar-item-selected'),
+          <React.Fragment key={item.id}>
+            {renderBottomBarButton(
+              item,
+              openMenu,
+              setOpenMenu,
+              openContextMenu,
+              contextMenuState?.itemId === item.id,
             )}
           </React.Fragment>
         )
@@ -155,19 +353,31 @@ export function ViewerFrame(props: ViewerFrameProps) {
   )
 
   const activeOverlay = items.find((item) => item.id === openMenu)?.overlay?.()
+  const contextMenuItem = contextMenuState
+    ? items.find((item) => item.id === contextMenuState.itemId)
+    : undefined
 
   return (
-    <Frame
-      className={props.className}
-      bottomBar={{
-        className: 'px-1',
-        left,
-        right,
-      }}
-      overlay={activeOverlay}
-      onCloseOverlay={() => setOpenMenu('')}
-    >
-      {props.children}
-    </Frame>
+    <>
+      <Frame
+        className={props.className}
+        bottomBar={{
+          className: 'px-1',
+          left,
+          right,
+        }}
+        overlay={activeOverlay}
+        onCloseOverlay={() => setOpenMenu('')}
+      >
+        {props.children}
+      </Frame>
+      <BottomBarContextMenu
+        item={contextMenuItem}
+        state={contextMenuState}
+        setOpenMenu={setOpenMenu}
+        onClose={closeContextMenu}
+        returnFocusRef={contextMenuTriggerRef}
+      />
+    </>
   )
 }

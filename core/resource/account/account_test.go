@@ -260,7 +260,7 @@ func TestRevokeSessionLocalReturnsUnsupported(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected unsupported revoke error")
 	}
-	if !strings.Contains(err.Error(), "only supported for Spacewave provider accounts") {
+	if !strings.Contains(err.Error(), "cloud account") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

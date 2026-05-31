@@ -20,7 +20,11 @@ func (r *AccountResource) SSOCodeExchange(
 		return nil, errors.New("provider and code are required")
 	}
 
-	result, err := r.account.GetEntityClient().SSOCodeExchange(ctx, provider, code, redirectUri)
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	result, err := acc.GetEntityClient().SSOCodeExchange(ctx, provider, code, redirectUri)
 	if err != nil {
 		return nil, errors.Wrap(err, "sso callback")
 	}
@@ -50,6 +54,10 @@ func (r *AccountResource) LinkSSO(
 		return nil, errors.New("provider and code are required")
 	}
 
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
 	cred := req.GetCredential()
 
 	// If credential provided, resolve entity key and use LinkSSOProvider.
@@ -58,7 +66,7 @@ func (r *AccountResource) LinkSSO(
 		if err != nil {
 			return nil, err
 		}
-		err = r.account.LinkSSOProvider(
+		err = acc.LinkSSOProvider(
 			ctx,
 			provider,
 			code,
@@ -70,18 +78,18 @@ func (r *AccountResource) LinkSSO(
 		if err != nil {
 			return nil, errors.Wrap(err, "link sso")
 		}
-		r.account.BumpLocalEpoch()
+		acc.BumpLocalEpoch()
 		return &s4wave_account.LinkSSOResponse{}, nil
 	}
 
 	// Fall back to the key-store signed path.
-	storeKeys, storePeerIDs := r.account.GetEntityKeyStore().
+	storeKeys, storePeerIDs := acc.GetEntityKeyStore().
 		GetUnlockedKeysAndPeerIDs()
 	if len(storeKeys) == 0 {
 		return nil, errors.New("no credentials provided and no keypairs unlocked")
 	}
 
-	err := r.account.LinkSSOProvider(
+	err = acc.LinkSSOProvider(
 		ctx,
 		provider,
 		code,
@@ -93,6 +101,6 @@ func (r *AccountResource) LinkSSO(
 	if err != nil {
 		return nil, errors.Wrap(err, "link sso")
 	}
-	r.account.BumpLocalEpoch()
+	acc.BumpLocalEpoch()
 	return &s4wave_account.LinkSSOResponse{}, nil
 }

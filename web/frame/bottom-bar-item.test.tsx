@@ -6,6 +6,7 @@ import { BottomBarItem } from './bottom-bar-item.js'
 describe('BottomBarItem', () => {
   beforeEach(() => {
     cleanup()
+    vi.useRealTimers()
   })
 
   describe('Keyboard Accessibility', () => {
@@ -66,6 +67,83 @@ describe('BottomBarItem', () => {
       expect(onClick).not.toHaveBeenCalled()
     })
 
+    it('opens secondary actions with the ContextMenu key', () => {
+      const onClick = vi.fn()
+      const onSecondaryActivate = vi.fn()
+      const { container } = render(
+        <BottomBarItem
+          onClick={onClick}
+          onSecondaryActivate={onSecondaryActivate}
+        >
+          Test Item
+        </BottomBarItem>,
+      )
+
+      const item = container.firstChild as HTMLElement
+      item.getBoundingClientRect = () =>
+        ({
+          left: 10,
+          top: 20,
+          width: 80,
+          height: 20,
+          right: 90,
+          bottom: 40,
+          x: 10,
+          y: 20,
+          toJSON: () => {},
+        }) as DOMRect
+      fireEvent.keyDown(item, { key: 'ContextMenu' })
+
+      expect(onClick).not.toHaveBeenCalled()
+      expect(onSecondaryActivate).toHaveBeenCalledWith({
+        openKind: 'keyboard',
+        x: 50,
+        y: 20,
+        trigger: item,
+      })
+    })
+
+    it('opens secondary actions with Shift+F10', () => {
+      const onClick = vi.fn()
+      const onSecondaryActivate = vi.fn()
+      const { container } = render(
+        <BottomBarItem
+          onClick={onClick}
+          onSecondaryActivate={onSecondaryActivate}
+        >
+          Test Item
+        </BottomBarItem>,
+      )
+
+      const item = container.firstChild as HTMLElement
+      fireEvent.keyDown(item, { key: 'F10', shiftKey: true })
+
+      expect(onClick).not.toHaveBeenCalled()
+      expect(onSecondaryActivate).toHaveBeenCalledWith(
+        expect.objectContaining({ openKind: 'keyboard', trigger: item }),
+      )
+    })
+
+    it('keeps Enter and Space on the primary click path when secondary actions exist', () => {
+      const onClick = vi.fn()
+      const onSecondaryActivate = vi.fn()
+      const { container } = render(
+        <BottomBarItem
+          onClick={onClick}
+          onSecondaryActivate={onSecondaryActivate}
+        >
+          Test Item
+        </BottomBarItem>,
+      )
+
+      const item = container.firstChild as HTMLElement
+      fireEvent.keyDown(item, { key: 'Enter' })
+      fireEvent.keyDown(item, { key: ' ' })
+
+      expect(onClick).toHaveBeenCalledTimes(2)
+      expect(onSecondaryActivate).not.toHaveBeenCalled()
+    })
+
     it('does not call onClick when onClick is undefined', () => {
       const { container } = render(<BottomBarItem>Test Item</BottomBarItem>)
 
@@ -104,6 +182,23 @@ describe('BottomBarItem', () => {
       const item = container.firstChild as HTMLElement
       expect(item.getAttribute('aria-selected')).toBe('true')
     })
+
+    it('applies menu ARIA state when secondary actions are available', () => {
+      const { container, rerender } = render(
+        <BottomBarItem onSecondaryActivate={() => {}}>Test Item</BottomBarItem>,
+      )
+
+      const item = container.firstChild as HTMLElement
+      expect(item.getAttribute('aria-haspopup')).toBe('menu')
+      expect(item.getAttribute('aria-expanded')).toBe('false')
+
+      rerender(
+        <BottomBarItem onSecondaryActivate={() => {}} contextMenuOpen>
+          Test Item
+        </BottomBarItem>,
+      )
+      expect(item.getAttribute('aria-expanded')).toBe('true')
+    })
   })
 
   describe('Click Handling', () => {
@@ -117,6 +212,114 @@ describe('BottomBarItem', () => {
       fireEvent.click(item)
 
       expect(onClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('opens secondary actions from right-click without primary click', () => {
+      const onClick = vi.fn()
+      const onSecondaryActivate = vi.fn()
+      const { container } = render(
+        <BottomBarItem
+          onClick={onClick}
+          onSecondaryActivate={onSecondaryActivate}
+        >
+          Test Item
+        </BottomBarItem>,
+      )
+
+      const item = container.firstChild as HTMLElement
+      fireEvent.contextMenu(item, { clientX: 12, clientY: 34 })
+
+      expect(onClick).not.toHaveBeenCalled()
+      expect(onSecondaryActivate).toHaveBeenCalledWith({
+        openKind: 'mouse',
+        x: 12,
+        y: 34,
+        trigger: item,
+      })
+    })
+
+    it('opens secondary actions from long-press and suppresses the follow-up click', () => {
+      vi.useFakeTimers()
+      const onClick = vi.fn()
+      const onSecondaryActivate = vi.fn()
+      const { container } = render(
+        <BottomBarItem
+          onClick={onClick}
+          onSecondaryActivate={onSecondaryActivate}
+        >
+          Test Item
+        </BottomBarItem>,
+      )
+
+      const item = container.firstChild as HTMLElement
+      fireEvent.pointerDown(item, {
+        pointerId: 1,
+        pointerType: 'touch',
+        clientX: 12,
+        clientY: 34,
+      })
+      vi.advanceTimersByTime(550)
+      fireEvent.click(item)
+
+      expect(onSecondaryActivate).toHaveBeenCalledWith({
+        openKind: 'touch',
+        x: 12,
+        y: 34,
+        trigger: item,
+      })
+      expect(onClick).not.toHaveBeenCalled()
+
+      fireEvent.click(item)
+      expect(onClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('cancels long-press when the pointer moves beyond the tolerance', () => {
+      vi.useFakeTimers()
+      const onSecondaryActivate = vi.fn()
+      const { container } = render(
+        <BottomBarItem onSecondaryActivate={onSecondaryActivate}>
+          Test Item
+        </BottomBarItem>,
+      )
+
+      const item = container.firstChild as HTMLElement
+      fireEvent.pointerDown(item, {
+        pointerId: 1,
+        pointerType: 'touch',
+        clientX: 12,
+        clientY: 34,
+      })
+      fireEvent.pointerMove(item, {
+        pointerId: 1,
+        pointerType: 'touch',
+        clientX: 25,
+        clientY: 34,
+      })
+      vi.advanceTimersByTime(550)
+
+      expect(onSecondaryActivate).not.toHaveBeenCalled()
+    })
+
+    it('cancels long-press when the pointer lifts before the delay', () => {
+      vi.useFakeTimers()
+      const onSecondaryActivate = vi.fn()
+      const { container } = render(
+        <BottomBarItem onSecondaryActivate={onSecondaryActivate}>
+          Test Item
+        </BottomBarItem>,
+      )
+
+      const item = container.firstChild as HTMLElement
+      fireEvent.pointerDown(item, {
+        pointerId: 1,
+        pointerType: 'touch',
+        clientX: 12,
+        clientY: 34,
+      })
+      fireEvent.pointerUp(item, { pointerId: 1, pointerType: 'touch' })
+      vi.advanceTimersByTime(550)
+
+      expect(onSecondaryActivate).not.toHaveBeenCalled()
     })
   })
 

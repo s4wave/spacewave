@@ -12,7 +12,11 @@ func (r *AccountResource) StartDesktopPasskeyRegister(
 	ctx context.Context,
 	req *s4wave_account.StartDesktopPasskeyRegisterRequest,
 ) (*s4wave_account.StartDesktopPasskeyRegisterResponse, error) {
-	cli := r.account.GetSessionClient()
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	cli := acc.GetSessionClient()
 	startResp, err := cli.StartDesktopPasskeyRegister(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "start desktop passkey register")
@@ -29,7 +33,11 @@ func (r *AccountResource) PasskeyRegisterOptions(
 	ctx context.Context,
 	req *s4wave_account.PasskeyRegisterOptionsRequest,
 ) (*s4wave_account.PasskeyRegisterOptionsResponse, error) {
-	cli := r.account.GetSessionClient()
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	cli := acc.GetSessionClient()
 	optionsJSON, err := cli.PasskeyRegisterOptions(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "passkey register options")
@@ -45,7 +53,11 @@ func (r *AccountResource) PasskeyRegisterVerify(
 	ctx context.Context,
 	req *s4wave_account.PasskeyRegisterVerifyRequest,
 ) (*s4wave_account.PasskeyRegisterVerifyResponse, error) {
-	cli := r.account.GetSessionClient()
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	cli := acc.GetSessionClient()
 	credID, err := cli.PasskeyRegisterVerify(
 		ctx,
 		req.GetCredentialJson(),
@@ -58,7 +70,7 @@ func (r *AccountResource) PasskeyRegisterVerify(
 	if err != nil {
 		return nil, errors.Wrap(err, "passkey register verify")
 	}
-	r.account.BumpLocalEpoch()
+	acc.BumpLocalEpoch()
 	return &s4wave_account.PasskeyRegisterVerifyResponse{
 		CredentialId: credID,
 	}, nil

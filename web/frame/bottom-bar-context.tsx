@@ -1,5 +1,49 @@
 import React, { createContext, use, useSyncExternalStore } from 'react'
 
+export type BottomBarContextMenuOpenKind = 'mouse' | 'keyboard' | 'touch'
+
+export type BottomBarContextMenuActionVariant = 'default' | 'destructive'
+
+export type BottomBarContextMenuIcon = React.ComponentType<{
+  className?: string
+}>
+
+export interface BottomBarContextMenuActionContext {
+  itemId: string
+  openKind: BottomBarContextMenuOpenKind
+  closeMenu: () => void
+  openPrimaryOverlay: () => void
+}
+
+export interface BottomBarContextMenuAction {
+  type: 'action'
+  id: string
+  label: string
+  icon?: BottomBarContextMenuIcon
+  disabled?: boolean
+  variant?: BottomBarContextMenuActionVariant
+  shortcut?: string
+  onSelect: (context: BottomBarContextMenuActionContext) => void | Promise<void>
+}
+
+export interface BottomBarContextMenuSeparator {
+  type: 'separator'
+  id: string
+}
+
+export interface BottomBarContextMenuGroup {
+  type: 'group'
+  id: string
+  label: string
+  disabled?: boolean
+  items: readonly BottomBarContextMenuItem[]
+}
+
+export type BottomBarContextMenuItem =
+  | BottomBarContextMenuAction
+  | BottomBarContextMenuSeparator
+  | BottomBarContextMenuGroup
+
 /**
  * Represents a single item in the bottom bar.
  * Items are ordered by their nesting depth in the component tree.
@@ -23,6 +67,12 @@ export interface BottomBarItem {
   overlayKey?: React.Key
   /** Optional label used when this item is collapsed into a menu */
   menuLabel?: React.ReactNode
+  /** Optional label for the secondary context menu trigger. */
+  contextMenuLabel?: string
+  /** Optional key that triggers secondary action re-registration when it changes */
+  contextMenuKey?: React.Key
+  /** Typed secondary actions rendered by the frame context-menu owner */
+  contextMenuItems?: readonly BottomBarContextMenuItem[]
   /** Optional handler called when the breadcrumb separator to the right of this item is clicked */
   onBreadcrumbClick?: () => void
   /** Position in the bottom bar. Defaults to 'left'. */

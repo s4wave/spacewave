@@ -2,6 +2,7 @@ import React, { use, useEffect, useMemo } from 'react'
 import {
   BottomBarContext,
   BottomBarContextValue,
+  type BottomBarContextMenuItem,
 } from './bottom-bar-context.js'
 
 export interface BottomBarLevelProps {
@@ -15,6 +16,9 @@ export interface BottomBarLevelProps {
   buttonKey?: React.Key
   overlayKey?: React.Key
   menuLabel?: React.ReactNode
+  contextMenuLabel?: string
+  contextMenuKey?: React.Key
+  contextMenuItems?: readonly BottomBarContextMenuItem[]
   onBreadcrumbClick?: () => void
   position?: 'left' | 'right'
   children: React.ReactNode
@@ -27,6 +31,9 @@ export function BottomBarLevel({
   buttonKey,
   overlayKey,
   menuLabel,
+  contextMenuLabel,
+  contextMenuKey,
+  contextMenuItems,
   onBreadcrumbClick,
   position,
   children,
@@ -49,6 +56,9 @@ export function BottomBarLevel({
       overlay: hasOverlay ? () => overlay : undefined,
       overlayKey,
       menuLabel,
+      contextMenuLabel,
+      contextMenuKey,
+      contextMenuItems,
       onBreadcrumbClick: hasBreadcrumbClick ? onBreadcrumbClick : undefined,
       position,
     }
@@ -61,6 +71,9 @@ export function BottomBarLevel({
     buttonKey,
     overlayKey,
     menuLabel,
+    contextMenuLabel,
+    contextMenuKey,
+    contextMenuItems,
     hasBreadcrumbClick,
     onBreadcrumbClick,
     position,

@@ -80,6 +80,26 @@ import {
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
 
+function logQuickstartSpaceRouteDiagnostic(
+  message: string,
+  fields: Record<string, unknown>,
+): void {
+  if (
+    !(globalThis as { __s4waveLogQuickstartTiming?: boolean })
+      .__s4waveLogQuickstartTiming
+  ) {
+    return
+  }
+  console.log(message + ': ' + JSON.stringify(fields))
+}
+
+function quickstartDiagnosticErrorMessage(error: unknown): string | null {
+  if (error == null) {
+    return null
+  }
+  return error instanceof Error ? error.message : String(error)
+}
+
 // SpaceContainer renders a space shared object body.
 export function SpaceContainer() {
   const rootResource = RootContext.useContext()
@@ -108,22 +128,54 @@ export function SpaceContainer() {
   )
 
   const sharedObjectBodyResource = SharedObjectBodyContext.useContext()
+  logQuickstartSpaceRouteDiagnostic('quickstart space container render', {
+    sessionIndex,
+    sharedObjectId,
+    hasSharedObjectBody: !!sharedObjectBodyResource.value,
+    sharedObjectBodyLoading: sharedObjectBodyResource.loading,
+    sharedObjectBodyError: quickstartDiagnosticErrorMessage(
+      sharedObjectBodyResource.error,
+    ),
+  })
   const spaceResource = useResource(
     sharedObjectBodyResource,
     (parentSharedObjectBody, _signal, cleanup) => {
       if (!parentSharedObjectBody) {
+        logQuickstartSpaceRouteDiagnostic(
+          'quickstart space resource missing body',
+          {
+            sessionIndex,
+            sharedObjectId,
+          },
+        )
         return Promise.resolve(null)
       }
+      logQuickstartSpaceRouteDiagnostic('quickstart space resource start', {
+        sessionIndex,
+        sharedObjectId,
+        bodyResourceId: parentSharedObjectBody.id,
+      })
       const handoff = consumeQuickstartSpaceHandoff(
         sessionIndex,
         sharedObjectId,
       )
       if (handoff) {
+        logQuickstartSpaceRouteDiagnostic('quickstart space handoff found', {
+          sessionIndex,
+          sharedObjectId,
+          spaceResourceId: handoff.id,
+          released: handoff.released,
+        })
         return Promise.resolve(cleanup(handoff))
       }
       const space = new Space(
         parentSharedObjectBody.resourceRef.createRef(parentSharedObjectBody.id),
       )
+      logQuickstartSpaceRouteDiagnostic('quickstart space handoff missed', {
+        sessionIndex,
+        sharedObjectId,
+        bodyResourceId: parentSharedObjectBody.id,
+      })
       return Promise.resolve(cleanup(space))
     },
     [sessionIndex, sharedObjectId],
@@ -134,16 +186,44 @@ export function SpaceContainer() {
     spaceResource,
     async (space, signal, cleanup) => {
       if (!space) {
+        logQuickstartSpaceRouteDiagnostic(
+          'quickstart space world missing space',
+          {
+            sessionIndex,
+            sharedObjectId,
+          },
+        )
         return null
       }
+      logQuickstartSpaceRouteDiagnostic('quickstart space world start', {
+        sessionIndex,
+        sharedObjectId,
+        spaceResourceId: space.id,
+        released: space.released,
+      })
       const handoff = consumeQuickstartSpaceWorldHandoff(
         sessionIndex,
         sharedObjectId,
       )
       if (handoff) {
+        logQuickstartSpaceRouteDiagnostic(
+          'quickstart space world handoff found',
+          {
+            sessionIndex,
+            sharedObjectId,
+          },
+        )
         return cleanup(handoff)
       }
       const state = await space.accessWorldState(true, signal)
+      logQuickstartSpaceRouteDiagnostic(
+        'quickstart space world handoff missed',
+        {
+          sessionIndex,
+          sharedObjectId,
+          spaceResourceId: space.id,
+        },
+      )
       return cleanup(state)
     },
     [sessionIndex, sharedObjectId],
@@ -153,9 +233,20 @@ export function SpaceContainer() {
   // watch the space state
   const spaceState = useWatchStateRpc(
     useCallback(
-      (req: WatchSpaceStateRequest, signal: AbortSignal) =>
-        space?.watchSpaceState(req, signal) ?? null,
-      [space],
+      (req: WatchSpaceStateRequest, signal: AbortSignal) => {
+        logQuickstartSpaceRouteDiagnostic(
+          'quickstart watch space state callback',
+          {
+            sessionIndex,
+            sharedObjectId,
+            hasSpace: !!space,
+            spaceResourceId: space?.id ?? null,
+            released: space?.released ?? null,
+          },
+        )
+        return space?.watchSpaceState(req, signal) ?? null
+      },
+      [space, sessionIndex, sharedObjectId],
     ),
     {},
     WatchSpaceStateRequest.equals,
@@ -169,16 +260,43 @@ export function SpaceContainer() {
     spaceResource,
     async (space, signal, cleanup) => {
       if (!space) {
+        logQuickstartSpaceRouteDiagnostic(
+          'quickstart mount contents missing space',
+          {
+            sessionIndex,
+            sharedObjectId,
+          },
+        )
         return null
       }
+      logQuickstartSpaceRouteDiagnostic('quickstart mount contents start', {
+        sessionIndex,
+        sharedObjectId,
+        spaceResourceId: space.id,
+        released: space.released,
+      })
       const handoff = consumeQuickstartSpaceContentsHandoff(
         sessionIndex,
         sharedObjectId,
       )
       if (handoff) {
+        logQuickstartSpaceRouteDiagnostic(
+          'quickstart mount contents handoff found',
+          {
+            sessionIndex,
+            sharedObjectId,
+            contentsResourceId: handoff.id,
+            released: handoff.released,
+          },
+        )
         return cleanup(handoff)
       }
       const contents = await space.mountSpaceContents(signal)
+      logQuickstartSpaceRouteDiagnostic('quickstart mount contents finish', {
+        sessionIndex,
+        sharedObjectId,
+        contentsResourceId: contents.id,
+      })
       return cleanup(contents)
     },
     [sessionIndex, sharedObjectId],
@@ -197,9 +315,20 @@ export function SpaceContainer() {
   )
   const spaceSharingState = useWatchStateRpc(
     useCallback(
-      (req: WatchSpaceSharingStateRequest, signal: AbortSignal) =>
-        space?.watchSpaceSharingState(req, signal) ?? null,
-      [space],
+      (req: WatchSpaceSharingStateRequest, signal: AbortSignal) => {
+        logQuickstartSpaceRouteDiagnostic(
+          'quickstart watch space sharing callback',
+          {
+            sessionIndex,
+            sharedObjectId,
+            hasSpace: !!space,
+            spaceResourceId: space?.id ?? null,
+            released: space?.released ?? null,
+          },
+        )
+        return space?.watchSpaceSharingState(req, signal) ?? null
+      },
+      [space, sessionIndex, sharedObjectId],
     ),
     {},
     WatchSpaceSharingStateRequest.equals,

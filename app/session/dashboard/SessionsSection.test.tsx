@@ -12,6 +12,10 @@ import type { Account } from '@s4wave/sdk/account/account.js'
 
 import { SessionsSection } from './SessionsSection.js'
 
+const { mockAuthConfirmDialog } = vi.hoisted(() => ({
+  mockAuthConfirmDialog: vi.fn(),
+}))
+
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   useStreamingResource: vi.fn(),
 }))
@@ -63,14 +67,16 @@ vi.mock('./AuthConfirmDialog.js', () => ({
       password: string
     }) => Promise<void>
     account?: unknown
-  }) =>
-    open ? (
+  }) => {
+    mockAuthConfirmDialog({ open })
+    return open ? (
       <button
         onClick={() => void onConfirm({ type: 'password', password: 'secret' })}
       >
         Confirm Session Revoke
       </button>
-    ) : null,
+    ) : null
+  },
 }))
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
@@ -114,6 +120,7 @@ describe('SessionsSection', () => {
     mockNavigate.mockClear()
     mockSession.unlinkDevice.mockClear()
     mockAccountValue.revokeSession.mockClear()
+    mockAuthConfirmDialog.mockClear()
     Object.defineProperty(window, 'confirm', {
       value: vi.fn(() => true),
       writable: true,
@@ -183,6 +190,23 @@ describe('SessionsSection', () => {
     expect(screen.getByText('This device')).toBeDefined()
     expect(screen.getByText('Laptop')).toBeDefined()
     expect(screen.getByText('Linked')).toBeDefined()
+  })
+
+  it('does not mount cloud auth confirmation for local sessions', () => {
+    mockUseStreamingResource.mockReturnValue(
+      sessionsResult({
+        sessions: [
+          {
+            peerId: 'peer-1',
+            label: 'Laptop',
+            kind: AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION,
+          },
+        ],
+      }),
+    )
+    render(<SessionsSection account={mockAccountResource} isLocal />)
+
+    expect(mockAuthConfirmDialog).not.toHaveBeenCalled()
   })
 
   it('unlinks a local non-current session with confirmation', async () => {

@@ -1,10 +1,20 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, cleanup, fireEvent, screen } from '@testing-library/react'
+import {
+  render,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { useBottomBarItems, BottomBarItem } from './bottom-bar-context.js'
 import { BottomBarLevel } from './bottom-bar-level.js'
 import { BottomBarRoot } from './bottom-bar-root.js'
 import { ViewerFrame } from './ViewerFrame.js'
+
+function TestContextMenuIcon({ className }: { className?: string }) {
+  return <span data-testid="test-context-menu-icon" className={className} />
+}
 
 describe('BottomBarContext', () => {
   beforeEach(() => {
@@ -116,6 +126,93 @@ describe('BottomBarContext', () => {
       expect(getByTestId('overlay').textContent).toBe('Test Overlay')
     })
 
+    it('registers typed context menu actions for nested items', () => {
+      const TestComponent = () => {
+        const item = useBottomBarItems().find((entry) => entry.id === 'inner')
+        const action = item?.contextMenuItems?.[0]
+        const separator = item?.contextMenuItems?.[1]
+        const group = item?.contextMenuItems?.[2]
+        const child = group?.type === 'group' ? group.items[0] : undefined
+
+        return (
+          <div>
+            <div data-testid="menu-label">{item?.contextMenuLabel}</div>
+            <div data-testid="action-type">{action?.type}</div>
+            <div data-testid="action-label">
+              {action?.type === 'action' ? action.label : ''}
+            </div>
+            <div data-testid="action-icon">
+              {action?.type === 'action' && action.icon === TestContextMenuIcon
+                ? 'icon'
+                : ''}
+            </div>
+            <div data-testid="separator-type">{separator?.type}</div>
+            <div data-testid="group-label">
+              {group?.type === 'group' ? group.label : ''}
+            </div>
+            <div data-testid="child-flags">
+              {child?.type === 'action'
+                ? `${child.disabled}|${child.variant}|${child.shortcut}`
+                : ''}
+            </div>
+          </div>
+        )
+      }
+
+      render(
+        <BottomBarRoot>
+          <BottomBarLevel id="outer" button={() => <button>Outer</button>}>
+            <BottomBarLevel
+              id="inner"
+              button={() => <button>Inner</button>}
+              contextMenuLabel="Inner actions"
+              contextMenuItems={[
+                {
+                  type: 'action',
+                  id: 'open',
+                  label: 'Open Details',
+                  icon: TestContextMenuIcon,
+                  shortcut: 'Enter',
+                  onSelect: () => {},
+                },
+                { type: 'separator', id: 'divider' },
+                {
+                  type: 'group',
+                  id: 'browse',
+                  label: 'Browse',
+                  items: [
+                    {
+                      type: 'action',
+                      id: 'child',
+                      label: 'Child Object',
+                      disabled: true,
+                      variant: 'destructive',
+                      shortcut: 'B',
+                      onSelect: () => {},
+                    },
+                  ],
+                },
+              ]}
+            >
+              <TestComponent />
+            </BottomBarLevel>
+          </BottomBarLevel>
+        </BottomBarRoot>,
+      )
+
+      expect(screen.getByTestId('menu-label').textContent).toBe('Inner actions')
+      expect(screen.getByTestId('action-type').textContent).toBe('action')
+      expect(screen.getByTestId('action-label').textContent).toBe(
+        'Open Details',
+      )
+      expect(screen.getByTestId('action-icon').textContent).toBe('icon')
+      expect(screen.getByTestId('separator-type').textContent).toBe('separator')
+      expect(screen.getByTestId('group-label').textContent).toBe('Browse')
+      expect(screen.getByTestId('child-flags').textContent).toBe(
+        'true|destructive|B',
+      )
+    })
+
     it('updates the active overlay when child state changes overlay content', () => {
       function TestRoot() {
         const [openMenu, setOpenMenu] = useState('')
@@ -225,6 +322,173 @@ describe('BottomBarContext', () => {
         'Overlay 1',
       )
       expect(lengths).not.toContain(0)
+    })
+
+    it('updates keyed context menu actions without unregistering between item revisions', () => {
+      const lengths: number[] = []
+
+      function RegistryProbe() {
+        lengths.push(useBottomBarItems().length)
+        return null
+      }
+
+      function RegisteredContentProbe() {
+        const item = useBottomBarItems()[0]
+        const action = item?.contextMenuItems?.[0]
+        return (
+          <div data-testid="registered-action">
+            {action?.type === 'action' ? action.label : ''}
+          </div>
+        )
+      }
+
+      function TestItem() {
+        const [count, setCount] = useState(0)
+        const actions = useMemo(
+          () => [
+            {
+              type: 'action' as const,
+              id: 'open',
+              label: `Action ${count}`,
+              onSelect: () => {},
+            },
+          ],
+          [count],
+        )
+
+        return (
+          <BottomBarLevel
+            id="item"
+            button={() => <button>Item</button>}
+            contextMenuItems={actions}
+            contextMenuKey={count}
+          >
+            <button onClick={() => setCount((n) => n + 1)}>Update</button>
+          </BottomBarLevel>
+        )
+      }
+
+      render(
+        <BottomBarRoot>
+          <RegistryProbe />
+          <RegisteredContentProbe />
+          <ViewerFrame>
+            <TestItem />
+          </ViewerFrame>
+        </BottomBarRoot>,
+      )
+
+      expect(screen.getByTestId('registered-action').textContent).toBe(
+        'Action 0',
+      )
+      lengths.length = 0
+
+      fireEvent.click(screen.getByText('Update'))
+      expect(screen.getByTestId('registered-action').textContent).toBe(
+        'Action 1',
+      )
+      expect(lengths).not.toContain(0)
+    })
+
+    it('quietly refreshes unkeyed context menu action contents', async () => {
+      let latestItems: BottomBarItem[] = []
+
+      function RegistryProbe() {
+        latestItems = useBottomBarItems()
+        return <div data-testid="item-count">{latestItems.length}</div>
+      }
+
+      function TestItem() {
+        const [count, setCount] = useState(0)
+        const actions = useMemo(
+          () => [
+            {
+              type: 'action' as const,
+              id: 'open',
+              label: `Action ${count}`,
+              onSelect: () => {},
+            },
+          ],
+          [count],
+        )
+
+        return (
+          <BottomBarLevel
+            id="item"
+            button={() => <button>Item</button>}
+            contextMenuItems={actions}
+          >
+            <button onClick={() => setCount((n) => n + 1)}>Update</button>
+          </BottomBarLevel>
+        )
+      }
+
+      render(
+        <BottomBarRoot>
+          <RegistryProbe />
+          <ViewerFrame>
+            <TestItem />
+          </ViewerFrame>
+        </BottomBarRoot>,
+      )
+
+      expect(screen.getByTestId('item-count').textContent).toBe('1')
+      expect(firstContextMenuActionLabel(latestItems[0])).toBe('Action 0')
+
+      fireEvent.click(screen.getByText('Update'))
+      await waitFor(() => {
+        expect(firstContextMenuActionLabel(latestItems[0])).toBe('Action 1')
+      })
+    })
+
+    it('removes context menu actions from registered items', () => {
+      function RegisteredContentProbe() {
+        const item = useBottomBarItems()[0]
+        return (
+          <div data-testid="has-context-menu">
+            {item?.contextMenuItems ? 'yes' : 'no'}
+          </div>
+        )
+      }
+
+      function TestItem() {
+        const [enabled, setEnabled] = useState(true)
+        const actions = useMemo(
+          () => [
+            {
+              type: 'action' as const,
+              id: 'open',
+              label: 'Open Details',
+              onSelect: () => {},
+            },
+          ],
+          [],
+        )
+
+        return (
+          <BottomBarLevel
+            id="item"
+            button={() => <button>Item</button>}
+            contextMenuItems={enabled ? actions : undefined}
+            contextMenuKey={enabled ? 'enabled' : 'disabled'}
+          >
+            <button onClick={() => setEnabled(false)}>Disable actions</button>
+          </BottomBarLevel>
+        )
+      }
+
+      render(
+        <BottomBarRoot>
+          <RegisteredContentProbe />
+          <ViewerFrame>
+            <TestItem />
+          </ViewerFrame>
+        </BottomBarRoot>,
+      )
+
+      expect(screen.getByTestId('has-context-menu').textContent).toBe('yes')
+      fireEvent.click(screen.getByText('Disable actions'))
+      expect(screen.getByTestId('has-context-menu').textContent).toBe('no')
     })
 
     it('does not update the registry for unchanged inline overlay content', () => {
@@ -558,3 +822,8 @@ describe('BottomBarContext', () => {
     })
   })
 })
+
+function firstContextMenuActionLabel(item: BottomBarItem | undefined) {
+  const action = item?.contextMenuItems?.[0]
+  return action?.type === 'action' ? action.label : undefined
+}

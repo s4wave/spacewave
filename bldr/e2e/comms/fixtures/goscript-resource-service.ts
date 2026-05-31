@@ -1,4 +1,16 @@
-import { ChannelStream, Client as SRPCClient, type PacketStream } from 'starpc'
+import {
+  ChannelStream,
+  Client as SRPCClient,
+  createHandler,
+  createMux,
+  type PacketStream,
+} from 'starpc'
+import {
+  MockClient,
+  MockDefinition,
+  type Mock,
+  type MockMsg,
+} from 'starpc/mock'
 
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
@@ -16,6 +28,10 @@ declare global {
       rootResource: boolean
       registeredViewer: boolean
       releaseRemovedViewer: boolean
+      nestedParentResponse: boolean
+      nestedChildRpc: boolean
+      nestedAfterReleaseEngineRpc: boolean
+      nestedChildReleaseOnce: boolean
       failureReason?: string
     }
   }
@@ -142,17 +158,27 @@ function connectWorkerRuntime(documentPort: MessagePort): {
   }
 }
 
-async function proveResourceService(openStream: () => Promise<PacketStream>): Promise<{
+async function proveResourceService(
+  openStream: () => Promise<PacketStream>,
+): Promise<{
   rootResource: boolean
   registeredViewer: boolean
   releaseRemovedViewer: boolean
+  nestedParentResponse: boolean
+  nestedChildRpc: boolean
+  nestedAfterReleaseEngineRpc: boolean
+  nestedChildReleaseOnce: boolean
 }> {
   const abort = new AbortController()
   const srpc = new SRPCClient(openStream)
   const resourceService = new ResourceServiceClient(srpc)
   const resourceClient = new ResourceClient(resourceService, abort.signal)
-  let rootRef: Awaited<ReturnType<ResourceClient['accessRootResource']>> | undefined
-  let registrationRef: ReturnType<ResourceClient['createResourceReference']> | undefined
+  let rootRef:
+    | Awaited<ReturnType<ResourceClient['accessRootResource']>>
+    | undefined
+  let registrationRef:
+    | ReturnType<ResourceClient['createResourceReference']>
+    | undefined
   try {
     rootRef = await resourceClient.accessRootResource()
     const registry = new ViewerRegistryResourceServiceClient(rootRef.client)
@@ -177,7 +203,9 @@ async function proveResourceService(openStream: () => Promise<PacketStream>): Pr
     const watch = registry.WatchViewers({}, abort.signal)
     const watchIterator = watch[Symbol.asyncIterator]()
     const initial = await watchIterator.next()
-    registrationRef = resourceClient.createResourceReference(response.resourceId ?? 0)
+    registrationRef = resourceClient.createResourceReference(
+      response.resourceId ?? 0,
+    )
     registrationRef.release()
     const released = await watchIterator.next()
     await watchIterator.return?.()
@@ -187,16 +215,95 @@ async function proveResourceService(openStream: () => Promise<PacketStream>): Pr
     const releaseRemovedViewer =
       initialRegistrations.length === 1 && releasedRegistrations.length === 0
 
+    const nested = await proveNestedResourceRpc(resourceClient, rootRef)
+
     return {
       rootResource: rootRef.resourceId > 0,
       registeredViewer,
       releaseRemovedViewer,
+      ...nested,
     }
   } finally {
     registrationRef?.release()
     rootRef?.release()
     abort.abort()
     resourceClient.dispose()
+  }
+}
+
+async function proveNestedResourceRpc(
+  resourceClient: ResourceClient,
+  rootRef: Awaited<ReturnType<ResourceClient['accessRootResource']>>,
+): Promise<{
+  nestedParentResponse: boolean
+  nestedChildRpc: boolean
+  nestedAfterReleaseEngineRpc: boolean
+  nestedChildReleaseOnce: boolean
+}> {
+  let childRpcObserved = false
+  let afterReleaseEngineRpcObserved = false
+  let childReleaseCount = 0
+  let child:
+    | Awaited<ReturnType<ResourceClient['attachResourceTree']>>
+    | undefined
+
+  const engineMux = createMux()
+  const engine: Mock = {
+    async MockRequest(request: MockMsg): Promise<MockMsg> {
+      if (request.body === 'create-child') {
+        const childMux = createMux()
+        const childService: Mock = {
+          async MockRequest(childRequest: MockMsg): Promise<MockMsg> {
+            if (childRequest.body === 'child-check') {
+              childRpcObserved = true
+              return { body: 'child-ok' }
+            }
+            return { body: 'child-unexpected' }
+          },
+        }
+        childMux.register(createHandler(MockDefinition, childService))
+        child = await resourceClient.attachResourceTree(
+          'nested-child',
+          childMux.lookupMethod,
+          undefined,
+          () => {
+            childReleaseCount++
+          },
+        )
+        return { body: `child:${child.resourceId}` }
+      }
+      if (request.body?.startsWith('release-child:')) {
+        child?.cleanup()
+        child = undefined
+        return { body: 'released-ok' }
+      }
+      if (request.body === 'after-release') {
+        afterReleaseEngineRpcObserved = true
+        return { body: 'after-release-ok' }
+      }
+      return { body: 'engine-unexpected' }
+    },
+  }
+  engineMux.register(createHandler(MockDefinition, engine))
+
+  const engineRef = await resourceClient.attachResourceTree(
+    'nested-engine',
+    engineMux.lookupMethod,
+  )
+  try {
+    const rootMock = new MockClient(rootRef.client)
+    const response = await rootMock.MockRequest({
+      body: `run-nested:${engineRef.resourceId}`,
+    })
+    return {
+      nestedParentResponse: response.body === 'seed-ok',
+      nestedChildRpc: childRpcObserved,
+      nestedAfterReleaseEngineRpc: afterReleaseEngineRpcObserved,
+      nestedChildReleaseOnce: childReleaseCount === 1,
+    }
+  } finally {
+    child?.cleanup()
+    engineRef.cleanup()
   }
 }
 
@@ -275,13 +382,16 @@ async function run() {
       resource.rootResource &&
       resource.registeredViewer &&
       resource.releaseRemovedViewer &&
+      resource.nestedParentResponse &&
+      resource.nestedChildRpc &&
+      resource.nestedAfterReleaseEngineRpc &&
+      resource.nestedChildReleaseOnce &&
       !failureReason &&
       errors.length === 0
     window.__results = {
       pass,
-      detail:
-        pass ?
-          'all tests passed'
+      detail: pass
+        ? 'all tests passed'
         : [
             ...errors,
             `workerReady=${workerReady}`,
@@ -289,6 +399,10 @@ async function run() {
             `rootResource=${resource.rootResource}`,
             `registeredViewer=${resource.registeredViewer}`,
             `releaseRemovedViewer=${resource.releaseRemovedViewer}`,
+            `nestedParentResponse=${resource.nestedParentResponse}`,
+            `nestedChildRpc=${resource.nestedChildRpc}`,
+            `nestedAfterReleaseEngineRpc=${resource.nestedAfterReleaseEngineRpc}`,
+            `nestedChildReleaseOnce=${resource.nestedChildReleaseOnce}`,
             `failureReason=${failureReason ?? ''}`,
           ].join('; '),
       workerReady,
@@ -296,6 +410,10 @@ async function run() {
       rootResource: resource.rootResource,
       registeredViewer: resource.registeredViewer,
       releaseRemovedViewer: resource.releaseRemovedViewer,
+      nestedParentResponse: resource.nestedParentResponse,
+      nestedChildRpc: resource.nestedChildRpc,
+      nestedAfterReleaseEngineRpc: resource.nestedAfterReleaseEngineRpc,
+      nestedChildReleaseOnce: resource.nestedChildReleaseOnce,
       failureReason,
     }
   } catch (err) {
@@ -307,6 +425,10 @@ async function run() {
       rootResource: false,
       registeredViewer: false,
       releaseRemovedViewer: false,
+      nestedParentResponse: false,
+      nestedChildRpc: false,
+      nestedAfterReleaseEngineRpc: false,
+      nestedChildReleaseOnce: false,
       failureReason: undefined,
     }
   } finally {
