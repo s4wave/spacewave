@@ -3,11 +3,11 @@
     <img width="324" src="./doc/img/spacewave-github.png" alt="Spacewave">
   </a>
 
-  <h3>Lightning-fast local-first workspaces with peer-to-peer sync</h3>
+  <h3>Your own cloud, built for humans and agents</h3>
 
   <p>
-    Combining the flexibility of cloud apps with the freedom of open-source.<br/>
-    Full-stack for plugins and apps with Go, TypeScript, React, WebAssembly.<br/>
+    Start with a private workspace that runs on your computers, syncs peer-to-peer, and keeps working offline.<br/>
+    Grow it into shared Spaces for apps, devices, workflows, plugins, and automation.<br/>
   </p>
 
   <p>
@@ -25,27 +25,33 @@
 
 ## Overview
 
-**Spacewave** is a full-stack for [local-first] apps with Go and WebAssembly.
+**Spacewave** turns your computers into a local-first cloud you control. Start
+with a private workspace, use it from the browser or desktop app, sync it
+peer-to-peer, and keep working even when you are offline.
 
-The Spacewave app is a cross-platform workspace with multiplayer p2p sync. It
-can run fully offline in the web browser or desktop app and optionally uses the
-cloud for storage and networking with end-to-end encryption.
+As your work grows, that workspace becomes a Space: shared encrypted state for
+files, notes, apps, layouts, devices, workflows, and plugin data without putting
+everything inside someone else's database.
 
-In practical terms: Spacewave enables you to store and collaborate on your data
-with fully open-source software. It combines the convenience of cloud apps with
-the flexibility and freedom of desktop apps.
+People, apps, devices, and AI agents can all work against the same Space. That
+means automation can operate on durable state you can inspect, edit, share, and
+recover, instead of disappearing into a chat transcript or a vendor backend.
+
+Spacewave combines the convenience of cloud apps with the freedom of
+open-source software. The cloud can help with accounts, relay, backup, storage,
+and networking, but it does not become the owner of your work.
+
+When you want to go deeper, Spacewave is also a full-stack for local-first apps
+and plugins, built with Go, TypeScript, React, and WebAssembly.
 
 Features:
 
-- **Workspaces**: Work together seamlessly with live sync
-- **Local-First**: Works offline, sync when online
-- **End-to-End Encrypted**: Private and secure
-
-Spacewave brings several advantages compared to server/client apps:
-
-- **Pluggable Storage**: Store data in any storage backend
-- **Self-Hosted**: No servers or configuration required
-- **Cross-Platform**: One codebase runs everywhere
+- **Spaces**: Shared local-first state for files, apps, devices, and workflows
+- **Peer-to-Peer Sync**: Work offline and sync directly when peers are available
+- **Human and Agent Ready**: Give people, plugins, and AI agents the same durable state
+- **Open-Source Full Stack**: Build apps and plugins with Go, TypeScript, React, and WebAssembly
+- **Pluggable Storage**: Store data in local, browser, cloud, or self-hosted backends
+- **End-to-End Encrypted**: Keep storage, sync, and collaboration private by default
 
 **Plugin Ecosystem**: Extend workspaces with community plugins:
 
@@ -57,10 +63,6 @@ Spacewave brings several advantages compared to server/client apps:
 
 [Spacewave App]: https://spacewave.app
 [SkiffOS]: https://skiffos.com
-
-Most collaborative apps store your data in someone else's database, limiting
-what you can do with it. Spacewave runs the database and applications locally,
-giving you true data ownership and snappier performance.
 
 ## Getting Started
 
