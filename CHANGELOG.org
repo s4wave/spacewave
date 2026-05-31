@@ -1,5 +1,50 @@
 #+TITLE: Spacewave Changelog
 
+* v0.51.8
+<2026-05-31 Sun>
+
+Spacewave 0.51.8 improves browser and desktop update recovery, Drive and
+first-run polish, billing visibility, desktop tray behavior, and file gallery
+refreshes. It also adds experimental Computers, SSH Host, and Terminal surfaces
+for early device workflows.
+
+** Features
+- Billing usage now warns when storage, write operations, or Cloud Reads
+  approach included usage, and shows clearer storage overage estimates.
+- Experimental Computers workspaces can now guide Add Device setup, list Devices
+  and SSH Hosts, and open Terminal tabs when terminal access is available.
+
+** Fixes
+- Fixed stale browser and desktop update state so Spacewave is less likely to
+  open a blank or broken app after an update.
+- Fixed Drive Gallery so image folders update live when files are added,
+  removed, or renamed.
+- Fixed stale split/grid layout tabs so old restored layouts no longer render
+  missing tabs or fall back to the wrong view.
+- Fixed first-run Get Started icon sizing and app font scaling so actions and
+  tabs stay readable in narrow layouts or with larger system text.
+- Fixed crowded bottom bars so overflow actions collapse into a menu instead of
+  squeezing upload progress, breadcrumbs, or viewer controls.
+- Fixed desktop tray/menu bar submenu and keyboard-focus edge cases so tray
+  actions stay reachable.
+
+** Improvements
+- The Drive landing page, demo, and Quickstart copy now explain private browser
+  files, offline work, device sync, and optional cloud backup more clearly.
+- Empty session dashboards now prioritize Create a Drive, blank Space creation,
+  device linking, and invite joining more clearly.
+- Object trees and file rows have cleaner spacing and alignment for easier
+  scanning.
+- Command Line status now includes clearer app recovery details for support when
+  startup or update recovery fails.
+- Desktop tray/menu bar presentation handles long labels, Session and Space
+  navigation, update actions, and fallback menus more reliably.
+
+** Security
+- SSH Host setup keeps private keys, passwords, and passphrases in Secrets and
+  shows only credential-link status in Host, Device, Terminal, and Computers
+  views.
+
 * v0.51.7
 <2026-05-29 Fri>
 
