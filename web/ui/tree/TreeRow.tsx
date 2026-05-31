@@ -119,9 +119,11 @@ export function TreeRow<T = void>({
   return (
     <div
       className={cn(
-        'relative flex cursor-pointer items-center text-xs select-none',
-        'border-foreground/6 border-b transition-colors',
-        isSelected && 'bg-brand/10',
+        'relative flex cursor-pointer items-center gap-1 py-1 text-xs select-none',
+        'border-foreground/6 border-b outline-none transition-colors',
+        'focus-visible:ring-brand/30 focus-visible:ring-1 focus-visible:ring-inset',
+        isSelected &&
+          'bg-brand/10 before:bg-brand/60 before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:rounded-full',
         !isSelected && 'hover:bg-background-card/50',
         !isSelected && index % 2 === 1 && 'bg-background-card/20',
       )}
@@ -129,8 +131,8 @@ export function TreeRow<T = void>({
       onDragStart={nodeOnDragStart ? onDragStart : undefined}
       style={{
         paddingLeft: `${level * levelIndentPx + 4}px`,
-        paddingRight: '4px',
-        height: '20px',
+        paddingRight: '8px',
+        minHeight: '28px',
       }}
       onClick={handleTreeItemSelect}
       onKeyDown={handleTreeItemKeyDown}
@@ -187,17 +189,19 @@ export function TreeRow<T = void>({
           {node.icon}
         </span>
       )}
-      <span className="ml-1 min-w-0 flex-1 truncate">{node.name}</span>
+      <span className="text-foreground min-w-0 flex-1 truncate">
+        {node.name}
+      </span>
       {node.detail && (
         <span
-          className="text-foreground-alt/60 ml-1 max-w-[45%] min-w-0 shrink truncate text-[0.6rem]"
+          className="text-foreground-alt/50 ml-2 max-w-[42%] min-w-0 shrink truncate text-[0.6rem]"
           title={node.detail}
         >
           {node.detail}
         </span>
       )}
       {node.icons && (
-        <div className="mr-2 flex items-center gap-1">
+        <div className="ml-2 flex shrink-0 items-center gap-1">
           {node.icons.map((iconData, iconIndex) => (
             <button
               key={iconIndex}
@@ -207,6 +211,7 @@ export function TreeRow<T = void>({
                 iconData.onClick?.(e)
               }}
               title={iconData.tooltip}
+              aria-label={iconData.tooltip}
               tabIndex={-1}
             >
               {iconData.icon}
