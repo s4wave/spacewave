@@ -921,7 +921,7 @@ func TestAttachSessionSetReleaseAfterCloseRunsRelease(t *testing.T) {
 	}
 }
 
-func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
+func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 	rootMux := srpc.NewMux()
 	server := resource_server.NewResourceServer(rootMux)
 	serverMux := srpc.NewMux()
@@ -936,7 +936,7 @@ func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
 	defer client.Release()
 
 	childReleased := make(chan struct{}, 1)
-	rootID, err := client.AttachResource(t.Context(), "test-root", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	rootID, err := client.AttachResourceTree(t.Context(), "test-root", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 		if serviceID != "test.Root" || methodID != "CreateChild" {
 			return false, nil
 		}
@@ -982,6 +982,7 @@ func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
 	}
 
 	childRef := client.CreateResourceReference(child.GetResourceId())
+	defer childRef.Release()
 	childClient, err := childRef.GetClient()
 	if err != nil {
 		t.Fatalf("child client: %v", err)
@@ -995,6 +996,150 @@ func TestAttachedResourceCanPublishCallableChild(t *testing.T) {
 	case <-childReleased:
 	case <-time.After(time.Second):
 		t.Fatal("attached child release callback was not called")
+	}
+}
+
+func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *testing.T) {
+	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != "test.Root" || methodID != "UseRaw" {
+			return false, nil
+		}
+		req := new(resource.ResourceAttachAddAck)
+		if err := strm.MsgRecv(req); err != nil {
+			return true, err
+		}
+		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+		if err != nil {
+			return true, err
+		}
+		if _, err := owner.GetResourceValue(req.GetResourceId()); err != resource.ErrResourceNotFound {
+			if err == nil {
+				return true, errors.New("raw attached invoker unexpectedly resolved as resource value")
+			}
+			return true, err
+		}
+		rawClient, err := owner.GetAttachedResource(req.GetResourceId())
+		if err != nil {
+			return true, err
+		}
+		if err := rawClient.ExecCall(strm.Context(), "test.Raw", "Ping", &resource.ResourceRefReleaseRequest{}, &resource.ResourceRefReleaseResponse{}); err != nil {
+			return true, err
+		}
+		return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+	}))
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))))
+	client, err := NewClient(t.Context(), service)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer client.Release()
+
+	rawCalled := make(chan struct{}, 1)
+	rawID, err := client.AttachRawInvoker(t.Context(), "raw-callback", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != "test.Raw" || methodID != "Ping" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+			return true, err
+		}
+		select {
+		case rawCalled <- struct{}{}:
+		default:
+		}
+		return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+	}))
+	if err != nil {
+		t.Fatalf("AttachRawInvoker: %v", err)
+	}
+	rawSession := client.attach.currentSession()
+	if rawSession == nil {
+		t.Fatal("expected attach session after raw attach")
+	}
+
+	childReleased := make(chan struct{}, 1)
+	treeID, err := client.AttachResourceTree(t.Context(), "tree-root", srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != "test.Tree" || methodID != "CreateChild" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+			return true, err
+		}
+		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+		if err != nil {
+			return true, err
+		}
+		childID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+			if serviceID != "test.Child" || methodID != "Ping" {
+				return false, nil
+			}
+			if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+		}), func() {
+			childReleased <- struct{}{}
+		})
+		if err != nil {
+			return true, err
+		}
+		return true, strm.MsgSend(&resource.ResourceAttachAddAck{ResourceId: childID})
+	}))
+	if err != nil {
+		t.Fatalf("AttachResourceTree: %v", err)
+	}
+	if got := client.attach.currentSession(); got != rawSession {
+		t.Fatalf("attach session changed between raw and tree attaches: %p != %p", got, rawSession)
+	}
+
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatalf("root client: %v", err)
+	}
+	if err := rootClient.ExecCall(t.Context(), "test.Root", "UseRaw", &resource.ResourceAttachAddAck{ResourceId: rawID}, &resource.ResourceRefReleaseResponse{}); err != nil {
+		t.Fatalf("UseRaw: %v", err)
+	}
+	select {
+	case <-rawCalled:
+	case <-time.After(time.Second):
+		t.Fatal("raw attached invoker was not called")
+	}
+
+	treeRef := client.CreateResourceReference(treeID)
+	defer treeRef.Release()
+	treeClient, err := treeRef.GetClient()
+	if err != nil {
+		t.Fatalf("tree client: %v", err)
+	}
+	child := new(resource.ResourceAttachAddAck)
+	if err := treeClient.ExecCall(t.Context(), "test.Tree", "CreateChild", &resource.ResourceRefReleaseRequest{}, child); err != nil {
+		t.Fatalf("CreateChild: %v", err)
+	}
+	if child.GetResourceId() == 0 {
+		t.Fatal("CreateChild returned empty child resource id")
+	}
+
+	childRef := client.CreateResourceReference(child.GetResourceId())
+	defer childRef.Release()
+	childClient, err := childRef.GetClient()
+	if err != nil {
+		t.Fatalf("child client: %v", err)
+	}
+	if err := childClient.ExecCall(t.Context(), "test.Child", "Ping", &resource.ResourceRefReleaseRequest{}, &resource.ResourceRefReleaseResponse{}); err != nil {
+		t.Fatalf("Ping child: %v", err)
+	}
+
+	childRef.Release()
+	select {
+	case <-childReleased:
+	case <-time.After(time.Second):
+		t.Fatal("attached tree child release callback was not called")
 	}
 }
 
