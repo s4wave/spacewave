@@ -462,6 +462,43 @@ func TestStartupBuildCacheDefaultsToTinyGo(t *testing.T) {
 	}
 }
 
+func TestBuildHarnessStateRootKeepsCachedRunsStable(t *testing.T) {
+	repoRoot := t.TempDir()
+	cached, err := buildHarnessStateRoot(repoRoot, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cachedAgain, err := buildHarnessStateRoot(repoRoot, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cachedAgain != cached {
+		t.Fatalf("cached state root changed: %q != %q", cachedAgain, cached)
+	}
+
+	uncached, err := buildHarnessStateRoot(repoRoot, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if uncached == cached {
+		t.Fatalf("uncached state root reused cached root %q", cached)
+	}
+
+	parent := filepath.Join(repoRoot, ".bldr", "e2e-wasm")
+	if filepath.Dir(cached) != parent {
+		t.Fatalf("cached state parent = %q, want %q", filepath.Dir(cached), parent)
+	}
+	if filepath.Dir(uncached) != parent {
+		t.Fatalf("uncached state parent = %q, want %q", filepath.Dir(uncached), parent)
+	}
+	if !strings.HasPrefix(filepath.Base(cached), "wasm-") {
+		t.Fatalf("cached state leaf = %q, want wasm-*", filepath.Base(cached))
+	}
+	if !strings.HasPrefix(filepath.Base(uncached), "wasm-") {
+		t.Fatalf("uncached state leaf = %q, want wasm-*", filepath.Base(uncached))
+	}
+}
+
 func TestWorkerModeDefaultsToDedicated(t *testing.T) {
 	t.Setenv(E2EWasmWorkerModeEnv, "")
 
