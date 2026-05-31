@@ -57,6 +57,11 @@ func (s *SOHost) GetSharedObjectID() string {
 	return s.sharedObjectID
 }
 
+// CanWatchSOState returns true if the host can watch shared object state.
+func (s *SOHost) CanWatchSOState() bool {
+	return s.watchFn != nil
+}
+
 // GetSOStateCtr watches the shared object state with the refcount container.
 func (s *SOHost) GetSOStateCtr(ctx context.Context, released func()) (ccontainer.Watchable[*SOState], func(), error) {
 	return s.soRc.ResolveWithReleased(ctx, released)

@@ -493,7 +493,7 @@ func (l *LocalSOHost) localOperationInner(
 // Any other error returns 0, false, error
 func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
 	if seqno, rejected, err, resolved := l.localOpResultOutcome(ctx, localID); err != nil || resolved {
-		if err == nil && resolved && !rejected {
+		if err == nil && resolved && !rejected && l.soHost.CanWatchSOState() {
 			seqno, err = l.waitForRootSeqno(ctx, seqno)
 		}
 		return seqno, rejected, err
