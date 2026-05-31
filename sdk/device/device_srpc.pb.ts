@@ -3,6 +3,8 @@
 /* eslint-disable */
 
 import {
+  AccessCheckoutRootRequest,
+  AccessCheckoutRootResponse,
   ReportDeviceStatusRequest,
   ReportDeviceStatusResponse,
   WatchDeviceStateRequest,
@@ -35,6 +37,15 @@ export const DeviceResourceServiceDefinition = {
       O: ReportDeviceStatusResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * @generated from rpc s4wave.device.DeviceResourceService.AccessCheckoutRoot
+     */
+    AccessCheckoutRoot: {
+      name: 'AccessCheckoutRoot',
+      I: AccessCheckoutRootRequest,
+      O: AccessCheckoutRootResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -57,6 +68,14 @@ export interface DeviceResourceService {
     request: ReportDeviceStatusRequest,
     abortSignal?: AbortSignal,
   ): Promise<ReportDeviceStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.device.DeviceResourceService.AccessCheckoutRoot
+   */
+  AccessCheckoutRoot(
+    request: AccessCheckoutRootRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessCheckoutRootResponse>
 }
 
 export const DeviceResourceServiceServiceName =
@@ -70,6 +89,7 @@ export class DeviceResourceServiceClient implements DeviceResourceService {
     this.rpc = rpc
     this.WatchDeviceState = this.WatchDeviceState.bind(this)
     this.ReportDeviceStatus = this.ReportDeviceStatus.bind(this)
+    this.AccessCheckoutRoot = this.AccessCheckoutRoot.bind(this)
   }
   /**
    * @generated from rpc s4wave.device.DeviceResourceService.WatchDeviceState
@@ -103,5 +123,22 @@ export class DeviceResourceServiceClient implements DeviceResourceService {
       abortSignal || undefined,
     )
     return ReportDeviceStatusResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.device.DeviceResourceService.AccessCheckoutRoot
+   */
+  async AccessCheckoutRoot(
+    request: AccessCheckoutRootRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessCheckoutRootResponse> {
+    const requestMsg = AccessCheckoutRootRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      DeviceResourceServiceDefinition.methods.AccessCheckoutRoot.name,
+      AccessCheckoutRootRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AccessCheckoutRootResponse.fromBinary(result)
   }
 }

@@ -5,7 +5,11 @@ import { FitAddon } from '@xterm/addon-fit'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import {
+  useResource,
+  useResourceValue,
+} from '@aptre/bldr-sdk/hooks/useResource.js'
+import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import {
@@ -86,8 +90,11 @@ function vmStateBadgeClass(state: VmState | undefined): string {
 export default function VmV86Viewer({
   objectInfo,
   worldState,
+  spaceContents,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
+  const contentsResource = spaceContents ?? SpaceContentsContext.useContext()
+  const contents = useResourceValue(contentsResource)
 
   // One-shot read of the VmV86 block. Re-runs when the underlying worldState
   // resource rotates.
@@ -122,6 +129,9 @@ export default function VmV86Viewer({
     async (target: VmState) => {
       const world = worldState.value
       if (!world || !objectKey) return
+      if (contents && target === VmState.VmState_STARTING) {
+        await contents.setProcessBinding(objectKey, VmV86TypeID, true)
+      }
       const op = SetV86StateOp.create({
         objectKey,
         state: target,
@@ -129,8 +139,11 @@ export default function VmV86Viewer({
       })
       const data = SetV86StateOp.toBinary(op)
       await world.applyWorldOp(SET_V86_STATE_OP_ID, data, '')
+      if (contents && target === VmState.VmState_STOPPED) {
+        await contents.setProcessBinding(objectKey, VmV86TypeID, false)
+      }
     },
-    [worldState, objectKey],
+    [contents, worldState, objectKey],
   )
 
   // Settings panel toggle.
@@ -241,6 +254,7 @@ export default function VmV86Viewer({
       <VmHeader
         vmStateValue={vmStateValue}
         isRunningLike={isRunningLike}
+        processControlsReady={!!contents}
         showSettings={showSettings}
         errorMessage={vmErrorMessage}
         onStart={handleStart}
@@ -273,6 +287,7 @@ export default function VmV86Viewer({
 function VmHeader({
   vmStateValue,
   isRunningLike,
+  processControlsReady,
   showSettings,
   errorMessage,
   onStart,
@@ -282,6 +297,7 @@ function VmHeader({
 }: {
   vmStateValue: VmState | undefined
   isRunningLike: boolean
+  processControlsReady: boolean
   showSettings: boolean
   errorMessage: string
   onStart: () => void
@@ -290,6 +306,7 @@ function VmHeader({
   onToggleSettings: () => void
 }) {
   const isError = vmStateValue === VmState.VmState_ERROR
+  const startDisabled = !processControlsReady || isRunningLike
   return (
     <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
       <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
@@ -318,10 +335,10 @@ function VmHeader({
           <button
             type="button"
             onClick={onStart}
-            disabled={isRunningLike}
+            disabled={startDisabled}
             className={cn(
               'rounded px-2 py-0.5 transition-colors',
-              isRunningLike
+              startDisabled
                 ? 'bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
                 : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20',
             )}

@@ -9,6 +9,7 @@ import {
   type CanvasNode as ProtoCanvasNode,
   type CanvasEdge as ProtoCanvasEdge,
   type HiddenGraphLink as ProtoHiddenGraphLink,
+  type CanvasLayoutMetadata as ProtoCanvasLayoutMetadata,
 } from '@s4wave/sdk/canvas/canvas.pb.js'
 
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
@@ -25,6 +26,7 @@ import type {
   CanvasNodeData,
   CanvasEdgeData,
   HiddenGraphLinkData,
+  CanvasLayoutMetadataData,
   CanvasCallbacks,
   EphemeralEdge,
   NodeType as CanvasNodeType,
@@ -97,6 +99,7 @@ function protoToCanvasState(
   nodes: Record<string, ProtoCanvasNode>,
   edges: ProtoCanvasEdge[],
   hiddenGraphLinks: ProtoHiddenGraphLink[],
+  layoutMetadata: Record<string, ProtoCanvasLayoutMetadata>,
 ): CanvasStateData {
   const nodeMap = new Map<string, CanvasNodeData>()
   for (const [id, n] of Object.entries(nodes)) {
@@ -130,7 +133,22 @@ function protoToCanvasState(
       label: link.label || undefined,
     }),
   )
-  return { nodes: nodeMap, edges: edgeList, hiddenGraphLinks: hiddenLinkList }
+  const layoutMetadataMap = new Map<string, CanvasLayoutMetadataData>()
+  for (const [id, metadata] of Object.entries(layoutMetadata)) {
+    layoutMetadataMap.set(id, {
+      stableNodeId: metadata.stableNodeId || undefined,
+      lane: metadata.lane || undefined,
+      rank: metadata.rank ?? undefined,
+      group: metadata.group || undefined,
+      projectionOwner: metadata.projectionOwner || undefined,
+    })
+  }
+  return {
+    nodes: nodeMap,
+    edges: edgeList,
+    hiddenGraphLinks: hiddenLinkList,
+    layoutMetadata: layoutMetadataMap,
+  }
 }
 
 // canvasNodeToProto converts a canvas node to proto format.
@@ -160,6 +178,19 @@ function hiddenGraphLinkToProto(
     predicate: link.predicate,
     object: link.object,
     label: link.label ?? '',
+  }
+}
+
+// layoutMetadataToProto converts layout metadata to proto format.
+function layoutMetadataToProto(
+  metadata: CanvasLayoutMetadataData,
+): ProtoCanvasLayoutMetadata {
+  return {
+    stableNodeId: metadata.stableNodeId ?? '',
+    lane: metadata.lane ?? '',
+    rank: metadata.rank ?? 0,
+    group: metadata.group ?? '',
+    projectionOwner: metadata.projectionOwner ?? '',
   }
 }
 
@@ -198,6 +229,7 @@ export function CanvasViewer({
             canvasStateResource.value.nodes ?? {},
             canvasStateResource.value.edges ?? [],
             canvasStateResource.value.hiddenGraphLinks ?? [],
+            canvasStateResource.value.layoutMetadata ?? {},
           )
         : null,
     [canvasStateResource.value],
@@ -267,6 +299,15 @@ export function CanvasViewer({
         removeHiddenGraphLinks: mutation.removeHiddenGraphLinks?.map(
           hiddenGraphLinkToProto,
         ),
+        setLayoutMetadata: mutation.setLayoutMetadata
+          ? Object.fromEntries(
+              [...mutation.setLayoutMetadata].map(([id, metadata]) => [
+                id,
+                layoutMetadataToProto(metadata),
+              ]),
+            )
+          : undefined,
+        removeLayoutMetadataNodeIds: mutation.removeLayoutMetadataNodeIds,
       })
     },
     [canvasResource.value],

@@ -67,6 +67,8 @@ export interface WebDocumentToWebRuntime {
   initWebRuntime?: {
     // webRuntimeId is the web runtime identifier.
     webRuntimeId: string
+    // env is passed to the host Go runtime when it starts.
+    env?: Record<string, string>
   }
   // connectWebRuntime contains a request to connect as a client of WebRuntime.
   connectWebRuntime?: {
@@ -166,6 +168,9 @@ export interface WebDocumentToWorker {
   // workerCommsDetect is the main-thread detection result.
   // Passed so workers use the authoritative config without re-detecting.
   workerCommsDetect?: WorkerCommsDetectResult
+  // runtimeWasmEnv contains environment variables for Go WASM processes
+  // started from this worker.
+  runtimeWasmEnv?: Record<string, string>
   // snapshotNow requests the worker to immediately snapshot WASM memory.
   // Sent from the WebDocument during beforeunload.
   snapshotNow?: true

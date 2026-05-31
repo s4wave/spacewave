@@ -51,9 +51,7 @@ export interface BldrDevtoolStatusService {
 export const BldrDevtoolStatusServiceServiceName =
   BldrDevtoolStatusServiceDefinition.typeName
 
-export class BldrDevtoolStatusServiceClient
-  implements BldrDevtoolStatusService
-{
+export class BldrDevtoolStatusServiceClient implements BldrDevtoolStatusService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {

@@ -63,16 +63,6 @@ const runtimeWasmURL = new URL(
 // Start prefetching the Go WASM module immediately.
 const goWasmModule = loadWebAssemblyModule(runtimeWasmURL.toString())
 
-// construct the go wasm process using the prefetched module
-const goProcess = new GoWasmProcess(() => goWasmModule, {
-  argv: ['runtime.wasm'],
-  retryOpts: {
-    errorCb: (err) => {
-      console.warn('runtime-wasm: error running web runtime', err)
-    },
-  },
-})
-
 // the Go process will open streams with the WebRuntime via this channel and vise-versa.
 const goOpenStreamChannel = new MessageChannel()
 global.BLDR_WEB_RUNTIME_CLIENT_OPEN = goOpenStreamChannel.port2
@@ -100,7 +90,10 @@ function startGoRpcStreams() {
 }
 
 let goStarted = false
-async function startGoRuntime(webRuntimeId: string) {
+async function startGoRuntime(
+  webRuntimeId: string,
+  env?: Record<string, string>,
+) {
   if (goStarted) {
     return
   }
@@ -109,6 +102,17 @@ async function startGoRuntime(webRuntimeId: string) {
   // Configure the BLDR_INIT global
   global.BLDR_INIT = WebRuntimeHostInit.toBinary({
     webRuntimeId,
+  })
+
+  // Construct the Go WASM process after init so callers can pass runtime env.
+  const goProcess = new GoWasmProcess(() => goWasmModule, {
+    argv: ['runtime.wasm'],
+    env,
+    retryOpts: {
+      errorCb: (err) => {
+        console.warn('runtime-wasm: error running web runtime', err)
+      },
+    },
   })
 
   // Start the Go process
@@ -143,7 +147,7 @@ function handlePortMessage(msgEvent: MessageEvent) {
 
   if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
     runtimeStarted = true
-    startGoRuntime(msg.initWebRuntime.webRuntimeId)
+    startGoRuntime(msg.initWebRuntime.webRuntimeId, msg.initWebRuntime.env)
   }
 
   const clientPort = msg.connectWebRuntime?.port ?? msgEvent.ports?.[0]

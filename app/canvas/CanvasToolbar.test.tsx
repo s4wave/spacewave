@@ -21,6 +21,7 @@ function makeActions(): Record<CanvasAction, () => void> {
     'fit-view': vi.fn(),
     'bring-to-front': vi.fn(),
     'send-to-back': vi.fn(),
+    'organize-nodes': vi.fn(),
   }
 }
 
@@ -44,7 +45,7 @@ describe('CanvasToolbar', () => {
     expect(screen.getByLabelText('Object (O)')).toBeTruthy()
   })
 
-  it('renders action buttons for zoom and fit', () => {
+  it('renders action buttons for zoom, fit, and organize', () => {
     render(
       <CanvasToolbar
         tool="select"
@@ -55,6 +56,7 @@ describe('CanvasToolbar', () => {
     expect(screen.getByLabelText('Zoom In (+)')).toBeTruthy()
     expect(screen.getByLabelText('Zoom Out (-)')).toBeTruthy()
     expect(screen.getByLabelText('Fit View')).toBeTruthy()
+    expect(screen.getByLabelText('Organize Nodes')).toBeTruthy()
   })
 
   it('calls onToolChange with correct tool when buttons are clicked', async () => {
@@ -109,6 +111,16 @@ describe('CanvasToolbar', () => {
     )
     await user.click(screen.getByLabelText('Fit View'))
     expect(actions['fit-view']).toHaveBeenCalled()
+  })
+
+  it('calls organize-nodes action when organize button is clicked', async () => {
+    const user = userEvent.setup()
+    const actions = makeActions()
+    render(
+      <CanvasToolbar tool="select" onToolChange={vi.fn()} actions={actions} />,
+    )
+    await user.click(screen.getByLabelText('Organize Nodes'))
+    expect(actions['organize-nodes']).toHaveBeenCalled()
   })
 
   it('highlights the active tool button', () => {

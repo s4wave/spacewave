@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { V86WizardConfig_Source } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 
 import {
+  V86_DEFAULT_CDN_IMAGE_OBJECT_KEY,
   buildV86QuickstartWizardConfig,
   buildV86QuickstartWizardKey,
   compareV86ImageNewestFirst,
@@ -19,7 +20,7 @@ describe('v86 wizard config', () => {
     expect(cfg.vgaMemoryMb).toBe(8)
     expect(cfg.imageObjectKey).toBe('vm-image/default')
     expect(cfg.source).toBe(V86WizardConfig_Source.COPY_FROM_CDN)
-    expect(cfg.cdnSourceObjectKey).toBe('')
+    expect(cfg.cdnSourceObjectKey).toBe(V86_DEFAULT_CDN_IMAGE_OBJECT_KEY)
     expect(cfg.cdnId).toBe('')
   })
 

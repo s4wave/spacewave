@@ -35,6 +35,7 @@ export function parsePluginWorkerName(name: string): string {
 export interface PluginStartOpts {
   startInfo: PluginStartInfo
   workerCommsDetect?: WorkerCommsDetectResult
+  runtimeWasmEnv?: Record<string, string>
 }
 
 // SnapshotNowCallback is called when the WebDocument requests an urgent snapshot.
@@ -182,6 +183,7 @@ export class PluginWorker {
   private async handleStartPlugin(
     startInfoBin: Uint8Array,
     workerCommsDetect?: WorkerCommsDetectResult,
+    runtimeWasmEnv?: Record<string, string>,
   ) {
     if (this.startPluginPromise) {
       await this.startPluginPromise
@@ -192,6 +194,7 @@ export class PluginWorker {
     this.startPluginPromise = this.startPluginImpl(
       startInfoBin,
       workerCommsDetect,
+      runtimeWasmEnv,
     ).catch((err) => {
       this.startPluginPromise = undefined
       throw err
@@ -204,6 +207,7 @@ export class PluginWorker {
   private async startPluginImpl(
     startInfoBin: Uint8Array,
     workerCommsDetect?: WorkerCommsDetectResult,
+    runtimeWasmEnv?: Record<string, string>,
   ) {
     // startInfo is b64 encoded json
     const startInfoJsonB64 = new TextDecoder().decode(startInfoBin)
@@ -225,6 +229,7 @@ export class PluginWorker {
     await this.startPlugin({
       startInfo,
       workerCommsDetect,
+      runtimeWasmEnv,
     })
     this.pluginStarted = true
   }
@@ -283,8 +288,11 @@ export class PluginWorker {
     }
 
     if (data.initData) {
-      this.handleStartPlugin(data.initData, data.workerCommsDetect).catch(
-        (err) => {
+      this.handleStartPlugin(
+        data.initData,
+        data.workerCommsDetect,
+        data.runtimeWasmEnv,
+      ).catch((err) => {
           if (isExpectedPluginWorkerShutdownError(err)) {
             console.warn(
               `PluginWorker: ${this.workerId}: startup canceled because WebDocument closed`,

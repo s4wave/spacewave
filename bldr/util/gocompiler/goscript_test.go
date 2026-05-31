@@ -27,12 +27,13 @@ func TestExecGoScriptCompilePreservesBuildFlags(t *testing.T) {
 	t.Setenv("GOSCRIPT_ARGV_LOG", logPath)
 
 	err := ExecGoScriptCompile(context.Background(), logrus.NewEntry(logrus.New()), GoScriptCompileOptions{
-		WorkDir:         dir,
-		OutputPath:      filepath.Join(dir, "out"),
-		Packages:        []string{"."},
-		BuildFlags:      []string{"-tags=build_type_debug,purego"},
-		OverrideDirs:    []string{"./gs"},
-		AllDependencies: true,
+		WorkDir:                   dir,
+		OutputPath:                filepath.Join(dir, "out"),
+		Packages:                  []string{"."},
+		BuildFlags:                []string{"-tags=build_type_debug,purego"},
+		OverrideDirs:              []string{"./gs"},
+		AllDependencies:           true,
+		ProtobufTypeScriptBinding: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -48,6 +49,7 @@ func TestExecGoScriptCompilePreservesBuildFlags(t *testing.T) {
 		"--build-flags\n-tags=build_type_debug,purego\n",
 		"--gs-path\n./gs\n",
 		"--all-dependencies\n",
+		"--protobuf-ts-binding\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("argv missing %q:\n%s", want, got)

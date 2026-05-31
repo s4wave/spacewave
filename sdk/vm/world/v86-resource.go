@@ -2,13 +2,18 @@ package s4wave_vm_world
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/block"
+	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 	"github.com/s4wave/spacewave/db/world"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
@@ -17,16 +22,19 @@ import (
 // VmV86 object gets its own plugin instance keyed by the object key.
 const defaultVmPluginID = "spacewave-v86"
 
+const v86RuntimeV86fsServicePrefix = "vm/v86-runtime/v86fs/"
+
 // v86Resource implements PersistentExecutionService for a VmV86 object.
 type v86Resource struct {
-	objectKey string
-	ws        world.WorldState
-	b         bus.Bus
+	objectKey   string
+	ws          world.WorldState
+	b           bus.Bus
+	v86fsServer unixfs_v86fs.SRPCV86FsServiceServer
 }
 
 // newV86Resource constructs a new v86Resource.
-func newV86Resource(objectKey string, ws world.WorldState, b bus.Bus) *v86Resource {
-	return &v86Resource{objectKey: objectKey, ws: ws, b: b}
+func newV86Resource(objectKey string, ws world.WorldState, b bus.Bus, v86fsServer unixfs_v86fs.SRPCV86FsServiceServer) *v86Resource {
+	return &v86Resource{objectKey: objectKey, ws: ws, b: b, v86fsServer: v86fsServer}
 }
 
 // Execute implements SRPCPersistentExecutionServiceServer.
@@ -45,9 +53,13 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 	ctx := stream.Context()
 
 	var rpRef directive.Reference
+	var v86fsRouteRelease func()
 	defer func() {
 		if rpRef != nil {
 			rpRef.Release()
+		}
+		if v86fsRouteRelease != nil {
+			v86fsRouteRelease()
 		}
 	}()
 
@@ -77,6 +89,10 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 			if rpRef != nil {
 				rpRef.Release()
 				rpRef = nil
+			}
+			if v86fsRouteRelease != nil {
+				v86fsRouteRelease()
+				v86fsRouteRelease = nil
 			}
 			if err := emit(s4wave_process.ExecutionState_ExecutionState_STOPPED, ""); err != nil {
 				return err
@@ -131,6 +147,13 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 					if err != nil {
 						return err
 					}
+					newV86fsRouteRelease, routeErr := r.exposeV86fsToRuntimePlugin(ctx, runtimePluginID)
+					if routeErr != nil {
+						if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, routeErr.Error()); err != nil {
+							return err
+						}
+						break
+					}
 					// returnIfIdle=true so missing plugin hosts surface as a
 					// nil value rather than blocking the handler forever.
 					plugin, _, newRef, loadErr := bldr_plugin.ExLoadPluginInstanced(ctx, r.b, true, runtimePluginID, r.objectKey, nil)
@@ -138,6 +161,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 						if newRef != nil {
 							newRef.Release()
 						}
+						newV86fsRouteRelease()
 						errMsg := "v86 runtime plugin unavailable"
 						if loadErr != nil {
 							errMsg = loadErr.Error()
@@ -147,6 +171,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 						}
 					} else {
 						rpRef = newRef
+						v86fsRouteRelease = newV86fsRouteRelease
 						loadedState := desired
 						if storedState == s4wave_vm.VmState_VmState_STARTING {
 							loadedState = s4wave_process.ExecutionState_ExecutionState_STARTING
@@ -172,6 +197,10 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 				rpRef.Release()
 				rpRef = nil
 			}
+			if v86fsRouteRelease != nil {
+				v86fsRouteRelease()
+				v86fsRouteRelease = nil
+			}
 			if err := emit(desired, ""); err != nil {
 				return err
 			}
@@ -186,11 +215,45 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 					rpRef.Release()
 					rpRef = nil
 				}
+				if v86fsRouteRelease != nil {
+					v86fsRouteRelease()
+					v86fsRouteRelease = nil
+				}
 				return nil
 			}
 			return err
 		}
 	}
+}
+
+func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID string) (func(), error) {
+	servicePrefix := v86RuntimeV86fsServicePrefix + r.objectKey + "/"
+	mux := srpc.NewMux(nil)
+	if err := unixfs_v86fs.SRPCRegisterV86FsService(mux, r.v86fsServer); err != nil {
+		return nil, err
+	}
+	pluginServerID := bldr_plugin.PluginServerID(pluginID, "")
+	workerServerID := "web-worker/" + bldr_plugin.PluginServerID(pluginID, r.objectKey)
+	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(
+		controller.NewInfo(
+			"sdk/vm/world/v86/"+r.objectKey+"/v86fs-runtime-route",
+			controller.MustParseVersion("0.0.1"),
+			"v86fs route for VmV86 runtime plugin",
+		),
+		func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
+			return mux, nil, nil
+		},
+		[]string{servicePrefix},
+		true,
+		nil,
+		nil,
+		regexp.MustCompile("^(?:"+regexp.QuoteMeta(pluginServerID)+"|"+regexp.QuoteMeta(workerServerID)+")$"),
+	)
+	release, err := r.b.AddController(ctx, rpcServiceCtrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	return release, nil
 }
 
 // verifyRootfsMount confirms the rootfs asset (empty mount name) resolves

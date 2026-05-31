@@ -3,17 +3,20 @@ import { useCallback, useMemo } from 'react'
 import type {
   CanvasAction,
   CanvasCallbacks,
+  CanvasLayoutMetadataData,
   CanvasNodeData,
   Viewport,
 } from './types.js'
 import { MIN_SCALE, MAX_SCALE, ZOOM_STEPS } from './types.js'
 import type { UseCanvasSelectionResult } from './useCanvasSelection.js'
 import type { ContainerSize } from './useVisibleNodes.js'
+import { organizeCanvasNodes } from './canvasLayout.js'
 
 // UseCanvasActionsParams are the parameters for useCanvasActions.
 interface UseCanvasActionsParams {
   selection: UseCanvasSelectionResult
   nodes: Map<string, CanvasNodeData>
+  layoutMetadata: Map<string, CanvasLayoutMetadataData>
   callbacks: CanvasCallbacks
   viewport: Viewport
   setViewport: (v: Viewport) => void
@@ -30,8 +33,15 @@ export interface UseCanvasActionsResult {
 export function useCanvasActions(
   params: UseCanvasActionsParams,
 ): UseCanvasActionsResult {
-  const { selection, nodes, callbacks, viewport, setViewport, containerSize } =
-    params
+  const {
+    selection,
+    nodes,
+    layoutMetadata,
+    callbacks,
+    viewport,
+    setViewport,
+    containerSize,
+  } = params
 
   const deleteSelected = useCallback(() => {
     if (selection.selectedNodeIds.size === 0) return
@@ -192,6 +202,11 @@ export function useCanvasActions(
     if (changed.size > 0) callbacks.onNodesChange?.(changed)
   }, [selection.selectedNodeIds, nodes, callbacks])
 
+  const organizeNodes = useCallback(() => {
+    const changed = organizeCanvasNodes(nodes, layoutMetadata)
+    if (changed.size > 0) callbacks.onNodesChange?.(changed)
+  }, [nodes, layoutMetadata, callbacks])
+
   const actions: Record<CanvasAction, () => void> = useMemo(
     () => ({
       delete: deleteSelected,
@@ -208,6 +223,7 @@ export function useCanvasActions(
       'fit-view': fitView,
       'bring-to-front': bringToFront,
       'send-to-back': sendToBack,
+      'organize-nodes': organizeNodes,
     }),
     [
       deleteSelected,
@@ -221,6 +237,7 @@ export function useCanvasActions(
       fitView,
       bringToFront,
       sendToBack,
+      organizeNodes,
     ],
   )
 

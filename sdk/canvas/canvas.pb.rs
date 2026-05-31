@@ -75,6 +75,25 @@ pub struct HiddenGraphLink {
     #[prost(string, tag="4")]
     pub label: ::prost::alloc::string::String,
 }
+/// CanvasLayoutMetadata stores reusable projection layout metadata for a node.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CanvasLayoutMetadata {
+    /// StableNodeId is the projection-stable node identity across reruns.
+    #[prost(string, tag="1")]
+    pub stable_node_id: ::prost::alloc::string::String,
+    /// Lane is the visual swimlane for the projected node.
+    #[prost(string, tag="2")]
+    pub lane: ::prost::alloc::string::String,
+    /// Rank is the deterministic dependency layer inside the projection.
+    #[prost(int32, tag="3")]
+    pub rank: i32,
+    /// Group is the visual grouping key for related projected nodes.
+    #[prost(string, tag="4")]
+    pub group: ::prost::alloc::string::String,
+    /// ProjectionOwner names the writer that owns this visual projection.
+    #[prost(string, tag="5")]
+    pub projection_owner: ::prost::alloc::string::String,
+}
 /// CanvasState is the full canvas state stored as a world object block.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CanvasState {
@@ -90,6 +109,9 @@ pub struct CanvasState {
     /// HiddenGraphLinks is the set of canvas-scoped hidden world graph links.
     #[prost(message, repeated, tag="4")]
     pub hidden_graph_links: ::prost::alloc::vec::Vec<HiddenGraphLink>,
+    /// LayoutMetadata is projection layout metadata keyed by canvas node ID.
+    #[prost(map="string, message", tag="5")]
+    pub layout_metadata: ::std::collections::HashMap<::prost::alloc::string::String, CanvasLayoutMetadata>,
 }
 /// GetCanvasStateRequest is the request for GetCanvasState.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -123,6 +145,12 @@ pub struct UpdateCanvasRequest {
     /// RemoveHiddenGraphLinks contains graph links to show again.
     #[prost(message, repeated, tag="6")]
     pub remove_hidden_graph_links: ::prost::alloc::vec::Vec<HiddenGraphLink>,
+    /// SetLayoutMetadata contains layout metadata to add or update by node ID.
+    #[prost(map="string, message", tag="7")]
+    pub set_layout_metadata: ::std::collections::HashMap<::prost::alloc::string::String, CanvasLayoutMetadata>,
+    /// RemoveLayoutMetadataNodeIds contains node IDs whose layout metadata is removed.
+    #[prost(string, repeated, tag="8")]
+    pub remove_layout_metadata_node_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// UpdateCanvasResponse is the response for UpdateCanvas.
 #[derive(Clone, PartialEq, ::prost::Message)]

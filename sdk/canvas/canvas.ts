@@ -6,6 +6,7 @@ import type {
   CanvasNode,
   CanvasEdge,
   HiddenGraphLink,
+  CanvasLayoutMetadata,
   UpdateCanvasResponse,
   WatchCanvasStateResponse,
 } from './canvas.pb.js'
@@ -51,6 +52,18 @@ export interface ICanvasHandle {
     abortSignal?: AbortSignal,
   ): Promise<UpdateCanvasResponse>
 
+  // updateLayoutMetadata sets or updates layout metadata keyed by node ID.
+  updateLayoutMetadata(
+    layoutMetadata: Record<string, CanvasLayoutMetadata>,
+    abortSignal?: AbortSignal,
+  ): Promise<UpdateCanvasResponse>
+
+  // removeLayoutMetadata removes layout metadata by node ID.
+  removeLayoutMetadata(
+    nodeIds: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<UpdateCanvasResponse>
+
   // update applies a batch update to the canvas.
   update(
     opts: {
@@ -60,6 +73,8 @@ export interface ICanvasHandle {
       removeEdgeIds?: string[]
       addHiddenGraphLinks?: HiddenGraphLink[]
       removeHiddenGraphLinks?: HiddenGraphLink[]
+      setLayoutMetadata?: Record<string, CanvasLayoutMetadata>
+      removeLayoutMetadataNodeIds?: string[]
     },
     abortSignal?: AbortSignal,
   ): Promise<UpdateCanvasResponse>
@@ -87,7 +102,14 @@ export class CanvasHandle extends Resource implements ICanvasHandle {
   // getState fetches the current canvas state from the server.
   public async getState(abortSignal?: AbortSignal): Promise<CanvasState> {
     const resp = await this.service.GetCanvasState({}, abortSignal)
-    return resp.state ?? { nodes: {}, edges: [], hiddenGraphLinks: [] }
+    return (
+      resp.state ?? {
+        nodes: {},
+        edges: [],
+        hiddenGraphLinks: [],
+        layoutMetadata: {},
+      }
+    )
   }
 
   // updateNodes sets or updates nodes on the canvas.
@@ -144,6 +166,28 @@ export class CanvasHandle extends Resource implements ICanvasHandle {
     )
   }
 
+  // updateLayoutMetadata sets or updates layout metadata keyed by node ID.
+  public async updateLayoutMetadata(
+    layoutMetadata: Record<string, CanvasLayoutMetadata>,
+    abortSignal?: AbortSignal,
+  ): Promise<UpdateCanvasResponse> {
+    return this.service.UpdateCanvas(
+      { setLayoutMetadata: layoutMetadata },
+      abortSignal,
+    )
+  }
+
+  // removeLayoutMetadata removes layout metadata by node ID.
+  public async removeLayoutMetadata(
+    nodeIds: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<UpdateCanvasResponse> {
+    return this.service.UpdateCanvas(
+      { removeLayoutMetadataNodeIds: nodeIds },
+      abortSignal,
+    )
+  }
+
   // update applies a batch update to the canvas.
   public async update(
     opts: {
@@ -153,6 +197,8 @@ export class CanvasHandle extends Resource implements ICanvasHandle {
       removeEdgeIds?: string[]
       addHiddenGraphLinks?: HiddenGraphLink[]
       removeHiddenGraphLinks?: HiddenGraphLink[]
+      setLayoutMetadata?: Record<string, CanvasLayoutMetadata>
+      removeLayoutMetadataNodeIds?: string[]
     },
     abortSignal?: AbortSignal,
   ): Promise<UpdateCanvasResponse> {
@@ -164,6 +210,8 @@ export class CanvasHandle extends Resource implements ICanvasHandle {
         removeEdgeIds: opts.removeEdgeIds ?? [],
         addHiddenGraphLinks: opts.addHiddenGraphLinks ?? [],
         removeHiddenGraphLinks: opts.removeHiddenGraphLinks ?? [],
+        setLayoutMetadata: opts.setLayoutMetadata ?? {},
+        removeLayoutMetadataNodeIds: opts.removeLayoutMetadataNodeIds ?? [],
       },
       abortSignal,
     )

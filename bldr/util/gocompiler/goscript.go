@@ -23,12 +23,13 @@ func GoScriptStartupCacheEnvKeys() []string {
 
 // GoScriptCompileOptions configures one goscript compile invocation.
 type GoScriptCompileOptions struct {
-	WorkDir         string
-	OutputPath      string
-	Packages        []string
-	BuildFlags      []string
-	OverrideDirs    []string
-	AllDependencies bool
+	WorkDir                   string
+	OutputPath                string
+	Packages                  []string
+	BuildFlags                []string
+	OverrideDirs              []string
+	AllDependencies           bool
+	ProtobufTypeScriptBinding bool
 }
 
 // GoListImportPath returns the import path for the package in workDir under the given build flags.
@@ -100,6 +101,9 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 	}
 	if opts.AllDependencies {
 		args = append(args, "--all-dependencies")
+	}
+	if opts.ProtobufTypeScriptBinding {
+		args = append(args, "--protobuf-ts-binding")
 	}
 
 	ecmd := newGoScriptCmd(ctx, args...)

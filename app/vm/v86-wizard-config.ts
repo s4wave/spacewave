@@ -17,6 +17,8 @@ export const V86_WIZARD_TARGET_TYPE_ID = 'vm/v86'
 export const V86_WIZARD_TARGET_KEY_PREFIX = 'vm/v86/'
 
 export const V86_USER_IMAGE_OBJECT_KEY = 'vm-image/default'
+export const V86_DEFAULT_CDN_IMAGE_OBJECT_KEY =
+  'v86image-01kqx490m1sghtcw99sj1wzad9'
 
 export const DEFAULT_V86_MEMORY_MB = 256
 export const DEFAULT_V86_VGA_MEMORY_MB = 8
@@ -32,7 +34,7 @@ export function buildV86QuickstartWizardConfig(): V86WizardConfig {
     networking: false,
     imageObjectKey: V86_USER_IMAGE_OBJECT_KEY,
     source: V86WizardConfig_Source.COPY_FROM_CDN,
-    cdnSourceObjectKey: '',
+    cdnSourceObjectKey: V86_DEFAULT_CDN_IMAGE_OBJECT_KEY,
     cdnId: '',
   }
 }

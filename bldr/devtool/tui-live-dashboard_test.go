@@ -72,8 +72,39 @@ func TestBldrDevtoolTUIDashboardRendersWorkStatus(t *testing.T) {
 	)
 	dashboard := NewBldrDevtoolTUIDashboard(initial, nil)
 	text := dashboard.Render()
-	if !strings.Contains(text, "work: 1 active") {
+	if !strings.Contains(text, "work       1 active") {
 		t.Fatalf("expected work status, got:\n%s", text)
+	}
+}
+
+func TestBldrDevtoolTUIRunnerOpensBrowserURLOnKey(t *testing.T) {
+	var opened []string
+	runner := &BldrDevtoolTUIRunner{
+		openBrowserURL: func(browserURL string) error {
+			opened = append(opened, browserURL)
+			return nil
+		},
+	}
+	snapshot := devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{
+			Name:    "start web",
+			State:   devtool_status.BldrDevtoolCommandStateRunning,
+			Summary: "web runtime active on 127.0.0.1:5593",
+		},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+
+	runner.handleKey(snapshot, 'x')
+	if len(opened) != 0 {
+		t.Fatalf("unexpected browser open for unrelated key: %v", opened)
+	}
+	runner.handleKey(snapshot, 'o')
+	if len(opened) != 1 || opened[0] != "http://127.0.0.1:5593" {
+		t.Fatalf("unexpected browser URL opens: %v", opened)
 	}
 }
 

@@ -33,6 +33,7 @@ function TestCanvas({ initialNodes }: { initialNodes: CanvasNodeData[] }) {
     nodes: new Map(initialNodes.map((n) => [n.id, n])),
     edges: [],
     hiddenGraphLinks: [],
+    layoutMetadata: new Map(),
   }))
 
   const callbacks: CanvasCallbacks = {

@@ -35,6 +35,8 @@ class SRPCDeviceResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCDeviceResourceService_WatchDeviceStateClient>, starpc::Error> WatchDeviceState(const s4wave::device::WatchDeviceStateRequest& in) = 0;
   // ReportDeviceStatus
   virtual starpc::Error ReportDeviceStatus(const s4wave::device::ReportDeviceStatusRequest& in, s4wave::device::ReportDeviceStatusResponse* out) = 0;
+  // AccessCheckoutRoot
+  virtual starpc::Error AccessCheckoutRoot(const s4wave::device::AccessCheckoutRootRequest& in, s4wave::device::AccessCheckoutRootResponse* out) = 0;
 };
 
 // SRPCDeviceResourceServiceClientImpl implements SRPCDeviceResourceServiceClient.
@@ -49,6 +51,8 @@ class SRPCDeviceResourceServiceClientImpl : public SRPCDeviceResourceServiceClie
   virtual std::pair<std::unique_ptr<SRPCDeviceResourceService_WatchDeviceStateClient>, starpc::Error> WatchDeviceState(const s4wave::device::WatchDeviceStateRequest& in) override;
   // ReportDeviceStatus
   virtual starpc::Error ReportDeviceStatus(const s4wave::device::ReportDeviceStatusRequest& in, s4wave::device::ReportDeviceStatusResponse* out) override;
+  // AccessCheckoutRoot
+  virtual starpc::Error AccessCheckoutRoot(const s4wave::device::AccessCheckoutRootRequest& in, s4wave::device::AccessCheckoutRootResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -69,6 +73,8 @@ class SRPCDeviceResourceServiceServer {
   virtual starpc::Error WatchDeviceState(const s4wave::device::WatchDeviceStateRequest& req, SRPCDeviceResourceService_WatchDeviceStateStream* strm) = 0;
   // ReportDeviceStatus
   virtual starpc::Error ReportDeviceStatus(const s4wave::device::ReportDeviceStatusRequest& req, s4wave::device::ReportDeviceStatusResponse* resp) = 0;
+  // AccessCheckoutRoot
+  virtual starpc::Error AccessCheckoutRoot(const s4wave::device::AccessCheckoutRootRequest& req, s4wave::device::AccessCheckoutRootResponse* resp) = 0;
 };
 
 // SRPCDeviceResourceServiceHandler implements starpc::Handler for DeviceResourceService.

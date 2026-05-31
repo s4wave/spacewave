@@ -8,6 +8,7 @@ import {
   LuZoomIn,
   LuZoomOut,
   LuMaximize2,
+  LuLayoutGrid,
 } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -120,6 +121,9 @@ export function CanvasToolbar({
       </ToolButton>
       <ToolButton label="Fit View" onClick={actions['fit-view']}>
         <LuMaximize2 size={16} />
+      </ToolButton>
+      <ToolButton label="Organize Nodes" onClick={actions['organize-nodes']}>
+        <LuLayoutGrid size={16} />
       </ToolButton>
     </div>
   )

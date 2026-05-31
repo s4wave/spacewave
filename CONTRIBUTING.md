@@ -28,5 +28,5 @@ be merged.
 ## Pull Requests
 
 - Keep changes focused. One logical change per PR.
-- Follow the existing code style: `gofmt`, ESLint, Prettier.
+- Follow the existing code style: `gofmt`, Oxlint, Oxfmt.
 - Ensure CI passes (`bun run ci`).

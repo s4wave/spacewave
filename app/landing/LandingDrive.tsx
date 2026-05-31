@@ -20,9 +20,9 @@ import {
 import { UseCaseSection } from './UseCaseSection.js'
 
 export const metadata = {
-  title: 'Spacewave Drive - Your files, your devices, synced.',
+  title: 'Spacewave Drive - Private files in your browser.',
   description:
-    'Offline-first file sync with end-to-end encryption. No file size limits. Any storage backend. Conflict resolution built in.',
+    'Create a private browser file workspace that works offline, syncs through your devices, and uses cloud only when you want backup or reach.',
   canonicalPath: '/landing/drive',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
@@ -74,15 +74,35 @@ export function LandingDrive() {
   return (
     <LegalPageLayout
       icon={<LuHardDrive className="size-8" />}
-      title="Your files, your devices, synced."
-      subtitle="Spacewave Drive gives you file sync that works offline, encrypts everything, and runs on any storage you choose."
+      title="Private files in your browser."
+      subtitle="Create a file workspace that works offline, syncs through your devices, and keeps cloud as an optional backup path."
     >
+      <UseCaseSection>
+        <UseCaseCallout title="The Drive Quickstart creates a real workspace">
+          <p>
+            Start with folders, files, previews, and first actions in the
+            browser. Your laptop can keep working offline, your phone can catch
+            up later, and a server or Spacewave Cloud can join only when you
+            want backup or reach.
+          </p>
+          <p>
+            The page below is a simulated first look at that workspace. Choose
+            Create a Drive when you want the real Quickstart to create the Space
+            and open the current Drive surface.
+          </p>
+        </UseCaseCallout>
+      </UseCaseSection>
+
       <UseCaseSection>
         <UseCaseFeatureGrid features={FEATURES} />
       </UseCaseSection>
 
       <UseCaseSection>
-        <UseCaseCallout title="How Spacewave Drive works">
+        <DriveLandingDemo />
+      </UseCaseSection>
+
+      <UseCaseSection>
+        <UseCaseCallout title="Why the workflow stays yours">
           <p>
             Spacewave Drive uses a content-addressed block DAG (Hydra) to store
             and sync your files. Each file is split into blocks, encrypted, and
@@ -94,10 +114,6 @@ export function LandingDrive() {
             peer-to-peer connections.
           </p>
         </UseCaseCallout>
-      </UseCaseSection>
-
-      <UseCaseSection>
-        <DriveLandingDemo />
       </UseCaseSection>
 
       <UseCaseSection>

@@ -50,6 +50,9 @@ pub struct DeviceCapability {
     /// Policy records the local and Space policy refs used for the effective state.
     #[prost(message, optional, tag="7")]
     pub policy: ::core::option::Option<DeviceCapabilityPolicy>,
+    /// CheckoutRoot records named checkout-root metadata for filesystem capabilities.
+    #[prost(message, optional, tag="8")]
+    pub checkout_root: ::core::option::Option<DeviceCheckoutRootCapability>,
 }
 /// DeviceCapabilityLink points at the capability execution owner.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -79,6 +82,28 @@ pub struct DeviceCapabilityPolicy {
     /// GrantState is the current Space grant projection.
     #[prost(enumeration="DeviceCapabilityGrantState", tag="4")]
     pub grant_state: i32,
+}
+/// DeviceCheckoutRootCapability records selection metadata for a named checkout root.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeviceCheckoutRootCapability {
+    /// Name is the stable checkout-root selector, such as skiffos.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// DisplayPath is a human-readable path or mount label.
+    #[prost(string, tag="2")]
+    pub display_path: ::prost::alloc::string::String,
+    /// SelectionRef is the durable local policy selector for this root.
+    #[prost(string, tag="3")]
+    pub selection_ref: ::prost::alloc::string::String,
+    /// Access is the read/write mode currently exposed by the Device policy.
+    #[prost(enumeration="DeviceCheckoutRootAccess", tag="4")]
+    pub access: i32,
+    /// ReadAvailable reports whether the linked filesystem owner may be opened for reads.
+    #[prost(bool, tag="5")]
+    pub read_available: bool,
+    /// WriteAvailable reports whether the linked filesystem owner may accept writes after approval.
+    #[prost(bool, tag="6")]
+    pub write_available: bool,
 }
 /// Device is the world-block state for a Spacewave-managed Device object.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -177,6 +202,47 @@ pub struct ReportDeviceStatusResponse {
     /// State is the updated Device block state.
     #[prost(message, optional, tag="1")]
     pub state: ::core::option::Option<Device>,
+}
+/// AccessCheckoutRootRequest opens a named checkout root as a filesystem resource.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AccessCheckoutRootRequest {
+    /// Name is the checkout-root selector. Empty selects the first readable root.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// Write requests a write-capable filesystem handle.
+    #[prost(bool, tag="2")]
+    pub write: bool,
+    /// WriteApprovalRef identifies the Decision or equivalent approval for writes.
+    #[prost(string, tag="3")]
+    pub write_approval_ref: ::prost::alloc::string::String,
+}
+/// AccessCheckoutRootResponse contains the mounted filesystem resource.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AccessCheckoutRootResponse {
+    /// ResourceId is the FSHandle resource id.
+    #[prost(uint32, tag="1")]
+    pub resource_id: u32,
+    /// CapabilityId is the selected Device capability id.
+    #[prost(string, tag="2")]
+    pub capability_id: ::prost::alloc::string::String,
+    /// ObjectKey is the linked filesystem owner object key.
+    #[prost(string, tag="3")]
+    pub object_key: ::prost::alloc::string::String,
+    /// TypeId is the linked filesystem ObjectType id.
+    #[prost(string, tag="4")]
+    pub type_id: ::prost::alloc::string::String,
+    /// CheckoutRoot is the selected checkout-root metadata.
+    #[prost(message, optional, tag="5")]
+    pub checkout_root: ::core::option::Option<DeviceCheckoutRootCapability>,
+    /// WriteAvailable reports whether the selected capability can be write-gated.
+    #[prost(bool, tag="6")]
+    pub write_available: bool,
+    /// WriteEnabled reports whether this mounted handle was opened for writes.
+    #[prost(bool, tag="7")]
+    pub write_enabled: bool,
+    /// WriteApprovalRef is the approval ref accepted for a write-enabled handle.
+    #[prost(string, tag="8")]
+    pub write_approval_ref: ::prost::alloc::string::String,
 }
 /// DeviceSetupState is the Space-visible setup lifecycle for a managed Device.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -412,6 +478,39 @@ impl DeviceCapabilityGrantState {
             "DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN" => Some(Self::Unknown),
             "DEVICE_CAPABILITY_GRANT_STATE_ALLOWED" => Some(Self::Allowed),
             "DEVICE_CAPABILITY_GRANT_STATE_BLOCKED" => Some(Self::Blocked),
+            _ => None,
+        }
+    }
+}
+/// DeviceCheckoutRootAccess is the checkout-root access mode advertised by a Device.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DeviceCheckoutRootAccess {
+    /// DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN is unset.
+    Unknown = 0,
+    /// DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY means the checkout root can be read but not mutated.
+    ReadOnly = 1,
+    /// DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE means the checkout root can be read and written after approval.
+    ReadWrite = 2,
+}
+impl DeviceCheckoutRootAccess {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN",
+            Self::ReadOnly => "DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY",
+            Self::ReadWrite => "DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN" => Some(Self::Unknown),
+            "DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY" => Some(Self::ReadOnly),
+            "DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE" => Some(Self::ReadWrite),
             _ => None,
         }
     }

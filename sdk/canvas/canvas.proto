@@ -85,6 +85,20 @@ message HiddenGraphLink {
   string label = 4;
 }
 
+// CanvasLayoutMetadata stores reusable projection layout metadata for a node.
+message CanvasLayoutMetadata {
+  // StableNodeId is the projection-stable node identity across reruns.
+  string stable_node_id = 1;
+  // Lane is the visual swimlane for the projected node.
+  string lane = 2;
+  // Rank is the deterministic dependency layer inside the projection.
+  int32 rank = 3;
+  // Group is the visual grouping key for related projected nodes.
+  string group = 4;
+  // ProjectionOwner names the writer that owns this visual projection.
+  string projection_owner = 5;
+}
+
 // CanvasState is the full canvas state stored as a world object block.
 message CanvasState {
   // Nodes is the set of canvas nodes keyed by ID.
@@ -95,6 +109,8 @@ message CanvasState {
   bytes stroke_tree_ref = 3;
   // HiddenGraphLinks is the set of canvas-scoped hidden world graph links.
   repeated HiddenGraphLink hidden_graph_links = 4;
+  // LayoutMetadata is projection layout metadata keyed by canvas node ID.
+  map<string, CanvasLayoutMetadata> layout_metadata = 5;
 }
 
 // GetCanvasStateRequest is the request for GetCanvasState.
@@ -120,6 +136,10 @@ message UpdateCanvasRequest {
   repeated HiddenGraphLink add_hidden_graph_links = 5;
   // RemoveHiddenGraphLinks contains graph links to show again.
   repeated HiddenGraphLink remove_hidden_graph_links = 6;
+  // SetLayoutMetadata contains layout metadata to add or update by node ID.
+  map<string, CanvasLayoutMetadata> set_layout_metadata = 7;
+  // RemoveLayoutMetadataNodeIds contains node IDs whose layout metadata is removed.
+  repeated string remove_layout_metadata_node_ids = 8;
 }
 
 // UpdateCanvasResponse is the response for UpdateCanvas.

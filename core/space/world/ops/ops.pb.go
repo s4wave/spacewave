@@ -474,7 +474,9 @@ func (m *CanvasAddNodeOp) CloneVT() *CanvasAddNodeOp {
 	}
 	r := new(CanvasAddNodeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Node = m.Node.CloneVT()
+	if rhs := m.Node; rhs != nil {
+		r.Node = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -510,7 +512,9 @@ func (m *CanvasSetNodeOp) CloneVT() *CanvasSetNodeOp {
 	}
 	r := new(CanvasSetNodeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Node = m.Node.CloneVT()
+	if rhs := m.Node; rhs != nil {
+		r.Node = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -527,7 +531,9 @@ func (m *CanvasAddEdgeOp) CloneVT() *CanvasAddEdgeOp {
 	}
 	r := new(CanvasAddEdgeOp)
 	r.ObjectKey = m.ObjectKey
-	r.Edge = m.Edge.CloneVT()
+	if rhs := m.Edge; rhs != nil {
+		r.Edge = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

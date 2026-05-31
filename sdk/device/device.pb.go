@@ -296,6 +296,46 @@ func (x DeviceCapabilityGrantState) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// DeviceCheckoutRootAccess is the checkout-root access mode advertised by a Device.
+type DeviceCheckoutRootAccess int32
+
+const (
+	// DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN is unset.
+	DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN DeviceCheckoutRootAccess = 0
+	// DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY means the checkout root can be read but not mutated.
+	DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY DeviceCheckoutRootAccess = 1
+	// DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE means the checkout root can be read and written after approval.
+	DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE DeviceCheckoutRootAccess = 2
+)
+
+// Enum value maps for DeviceCheckoutRootAccess.
+var (
+	DeviceCheckoutRootAccess_name = map[int32]string{
+		0: "DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN",
+		1: "DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY",
+		2: "DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE",
+	}
+	DeviceCheckoutRootAccess_value = map[string]int32{
+		"DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN":    0,
+		"DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY":  1,
+		"DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE": 2,
+	}
+)
+
+func (x DeviceCheckoutRootAccess) Enum() *DeviceCheckoutRootAccess {
+	p := new(DeviceCheckoutRootAccess)
+	*p = x
+	return p
+}
+
+func (x DeviceCheckoutRootAccess) String() string {
+	name, valid := DeviceCheckoutRootAccess_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // DevicePlatform summarizes the daemon runtime platform.
 type DevicePlatform struct {
 	unknownFields []byte
@@ -389,6 +429,8 @@ type DeviceCapability struct {
 	Link *DeviceCapabilityLink `protobuf:"bytes,6,opt,name=link,proto3" json:"link,omitempty"`
 	// Policy records the local and Space policy refs used for the effective state.
 	Policy *DeviceCapabilityPolicy `protobuf:"bytes,7,opt,name=policy,proto3" json:"policy,omitempty"`
+	// CheckoutRoot records named checkout-root metadata for filesystem capabilities.
+	CheckoutRoot *DeviceCheckoutRootCapability `protobuf:"bytes,8,opt,name=checkout_root,json=checkoutRoot,proto3" json:"checkoutRoot,omitempty"`
 }
 
 func (x *DeviceCapability) Reset() {
@@ -442,6 +484,13 @@ func (x *DeviceCapability) GetLink() *DeviceCapabilityLink {
 func (x *DeviceCapability) GetPolicy() *DeviceCapabilityPolicy {
 	if x != nil {
 		return x.Policy
+	}
+	return nil
+}
+
+func (x *DeviceCapability) GetCheckoutRoot() *DeviceCheckoutRootCapability {
+	if x != nil {
+		return x.CheckoutRoot
 	}
 	return nil
 }
@@ -529,6 +578,71 @@ func (x *DeviceCapabilityPolicy) GetGrantState() DeviceCapabilityGrantState {
 		return x.GrantState
 	}
 	return DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN
+}
+
+// DeviceCheckoutRootCapability records selection metadata for a named checkout root.
+type DeviceCheckoutRootCapability struct {
+	unknownFields []byte
+	// Name is the stable checkout-root selector, such as skiffos.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// DisplayPath is a human-readable path or mount label.
+	DisplayPath string `protobuf:"bytes,2,opt,name=display_path,json=displayPath,proto3" json:"displayPath,omitempty"`
+	// SelectionRef is the durable local policy selector for this root.
+	SelectionRef string `protobuf:"bytes,3,opt,name=selection_ref,json=selectionRef,proto3" json:"selectionRef,omitempty"`
+	// Access is the read/write mode currently exposed by the Device policy.
+	Access DeviceCheckoutRootAccess `protobuf:"varint,4,opt,name=access,proto3" json:"access,omitempty"`
+	// ReadAvailable reports whether the linked filesystem owner may be opened for reads.
+	ReadAvailable bool `protobuf:"varint,5,opt,name=read_available,json=readAvailable,proto3" json:"readAvailable,omitempty"`
+	// WriteAvailable reports whether the linked filesystem owner may accept writes after approval.
+	WriteAvailable bool `protobuf:"varint,6,opt,name=write_available,json=writeAvailable,proto3" json:"writeAvailable,omitempty"`
+}
+
+func (x *DeviceCheckoutRootCapability) Reset() {
+	*x = DeviceCheckoutRootCapability{}
+}
+
+func (*DeviceCheckoutRootCapability) ProtoMessage() {}
+
+func (x *DeviceCheckoutRootCapability) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *DeviceCheckoutRootCapability) GetDisplayPath() string {
+	if x != nil {
+		return x.DisplayPath
+	}
+	return ""
+}
+
+func (x *DeviceCheckoutRootCapability) GetSelectionRef() string {
+	if x != nil {
+		return x.SelectionRef
+	}
+	return ""
+}
+
+func (x *DeviceCheckoutRootCapability) GetAccess() DeviceCheckoutRootAccess {
+	if x != nil {
+		return x.Access
+	}
+	return DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN
+}
+
+func (x *DeviceCheckoutRootCapability) GetReadAvailable() bool {
+	if x != nil {
+		return x.ReadAvailable
+	}
+	return false
+}
+
+func (x *DeviceCheckoutRootCapability) GetWriteAvailable() bool {
+	if x != nil {
+		return x.WriteAvailable
+	}
+	return false
 }
 
 // Device is the world-block state for a Spacewave-managed Device object.
@@ -816,6 +930,127 @@ func (x *ReportDeviceStatusResponse) GetState() *Device {
 	return nil
 }
 
+// AccessCheckoutRootRequest opens a named checkout root as a filesystem resource.
+type AccessCheckoutRootRequest struct {
+	unknownFields []byte
+	// Name is the checkout-root selector. Empty selects the first readable root.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Write requests a write-capable filesystem handle.
+	Write bool `protobuf:"varint,2,opt,name=write,proto3" json:"write,omitempty"`
+	// WriteApprovalRef identifies the Decision or equivalent approval for writes.
+	WriteApprovalRef string `protobuf:"bytes,3,opt,name=write_approval_ref,json=writeApprovalRef,proto3" json:"writeApprovalRef,omitempty"`
+}
+
+func (x *AccessCheckoutRootRequest) Reset() {
+	*x = AccessCheckoutRootRequest{}
+}
+
+func (*AccessCheckoutRootRequest) ProtoMessage() {}
+
+func (x *AccessCheckoutRootRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AccessCheckoutRootRequest) GetWrite() bool {
+	if x != nil {
+		return x.Write
+	}
+	return false
+}
+
+func (x *AccessCheckoutRootRequest) GetWriteApprovalRef() string {
+	if x != nil {
+		return x.WriteApprovalRef
+	}
+	return ""
+}
+
+// AccessCheckoutRootResponse contains the mounted filesystem resource.
+type AccessCheckoutRootResponse struct {
+	unknownFields []byte
+	// ResourceId is the FSHandle resource id.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+	// CapabilityId is the selected Device capability id.
+	CapabilityId string `protobuf:"bytes,2,opt,name=capability_id,json=capabilityId,proto3" json:"capabilityId,omitempty"`
+	// ObjectKey is the linked filesystem owner object key.
+	ObjectKey string `protobuf:"bytes,3,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// TypeId is the linked filesystem ObjectType id.
+	TypeId string `protobuf:"bytes,4,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
+	// CheckoutRoot is the selected checkout-root metadata.
+	CheckoutRoot *DeviceCheckoutRootCapability `protobuf:"bytes,5,opt,name=checkout_root,json=checkoutRoot,proto3" json:"checkoutRoot,omitempty"`
+	// WriteAvailable reports whether the selected capability can be write-gated.
+	WriteAvailable bool `protobuf:"varint,6,opt,name=write_available,json=writeAvailable,proto3" json:"writeAvailable,omitempty"`
+	// WriteEnabled reports whether this mounted handle was opened for writes.
+	WriteEnabled bool `protobuf:"varint,7,opt,name=write_enabled,json=writeEnabled,proto3" json:"writeEnabled,omitempty"`
+	// WriteApprovalRef is the approval ref accepted for a write-enabled handle.
+	WriteApprovalRef string `protobuf:"bytes,8,opt,name=write_approval_ref,json=writeApprovalRef,proto3" json:"writeApprovalRef,omitempty"`
+}
+
+func (x *AccessCheckoutRootResponse) Reset() {
+	*x = AccessCheckoutRootResponse{}
+}
+
+func (*AccessCheckoutRootResponse) ProtoMessage() {}
+
+func (x *AccessCheckoutRootResponse) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
+}
+
+func (x *AccessCheckoutRootResponse) GetCapabilityId() string {
+	if x != nil {
+		return x.CapabilityId
+	}
+	return ""
+}
+
+func (x *AccessCheckoutRootResponse) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *AccessCheckoutRootResponse) GetTypeId() string {
+	if x != nil {
+		return x.TypeId
+	}
+	return ""
+}
+
+func (x *AccessCheckoutRootResponse) GetCheckoutRoot() *DeviceCheckoutRootCapability {
+	if x != nil {
+		return x.CheckoutRoot
+	}
+	return nil
+}
+
+func (x *AccessCheckoutRootResponse) GetWriteAvailable() bool {
+	if x != nil {
+		return x.WriteAvailable
+	}
+	return false
+}
+
+func (x *AccessCheckoutRootResponse) GetWriteEnabled() bool {
+	if x != nil {
+		return x.WriteEnabled
+	}
+	return false
+}
+
+func (x *AccessCheckoutRootResponse) GetWriteApprovalRef() string {
+	if x != nil {
+		return x.WriteApprovalRef
+	}
+	return ""
+}
+
 func (m *DevicePlatform) CloneVT() *DevicePlatform {
 	if m == nil {
 		return (*DevicePlatform)(nil)
@@ -866,6 +1101,7 @@ func (m *DeviceCapability) CloneVT() *DeviceCapability {
 	r.Detail = m.Detail
 	r.Link = m.Link.CloneVT()
 	r.Policy = m.Policy.CloneVT()
+	r.CheckoutRoot = m.CheckoutRoot.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -910,6 +1146,27 @@ func (m *DeviceCapabilityPolicy) CloneVT() *DeviceCapabilityPolicy {
 }
 
 func (m *DeviceCapabilityPolicy) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DeviceCheckoutRootCapability) CloneVT() *DeviceCheckoutRootCapability {
+	if m == nil {
+		return (*DeviceCheckoutRootCapability)(nil)
+	}
+	r := new(DeviceCheckoutRootCapability)
+	r.Name = m.Name
+	r.DisplayPath = m.DisplayPath
+	r.SelectionRef = m.SelectionRef
+	r.Access = m.Access
+	r.ReadAvailable = m.ReadAvailable
+	r.WriteAvailable = m.WriteAvailable
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeviceCheckoutRootCapability) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1059,6 +1316,47 @@ func (m *ReportDeviceStatusResponse) CloneMessageVT() protobuf_go_lite.CloneMess
 	return m.CloneVT()
 }
 
+func (m *AccessCheckoutRootRequest) CloneVT() *AccessCheckoutRootRequest {
+	if m == nil {
+		return (*AccessCheckoutRootRequest)(nil)
+	}
+	r := new(AccessCheckoutRootRequest)
+	r.Name = m.Name
+	r.Write = m.Write
+	r.WriteApprovalRef = m.WriteApprovalRef
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AccessCheckoutRootRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AccessCheckoutRootResponse) CloneVT() *AccessCheckoutRootResponse {
+	if m == nil {
+		return (*AccessCheckoutRootResponse)(nil)
+	}
+	r := new(AccessCheckoutRootResponse)
+	r.ResourceId = m.ResourceId
+	r.CapabilityId = m.CapabilityId
+	r.ObjectKey = m.ObjectKey
+	r.TypeId = m.TypeId
+	r.CheckoutRoot = m.CheckoutRoot.CloneVT()
+	r.WriteAvailable = m.WriteAvailable
+	r.WriteEnabled = m.WriteEnabled
+	r.WriteApprovalRef = m.WriteApprovalRef
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AccessCheckoutRootResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *DevicePlatform) EqualVT(that *DevicePlatform) bool {
 	if this == that {
 		return true
@@ -1138,6 +1436,9 @@ func (this *DeviceCapability) EqualVT(that *DeviceCapability) bool {
 	if !this.Policy.EqualVT(that.Policy) {
 		return false
 	}
+	if !this.CheckoutRoot.EqualVT(that.CheckoutRoot) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1198,6 +1499,41 @@ func (this *DeviceCapabilityPolicy) EqualVT(that *DeviceCapabilityPolicy) bool {
 
 func (this *DeviceCapabilityPolicy) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DeviceCapabilityPolicy)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DeviceCheckoutRootCapability) EqualVT(that *DeviceCheckoutRootCapability) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.DisplayPath != that.DisplayPath {
+		return false
+	}
+	if this.SelectionRef != that.SelectionRef {
+		return false
+	}
+	if this.Access != that.Access {
+		return false
+	}
+	if this.ReadAvailable != that.ReadAvailable {
+		return false
+	}
+	if this.WriteAvailable != that.WriteAvailable {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DeviceCheckoutRootCapability) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeviceCheckoutRootCapability)
 	if !ok {
 		return false
 	}
@@ -1414,6 +1750,73 @@ func (this *ReportDeviceStatusResponse) EqualVT(that *ReportDeviceStatusResponse
 
 func (this *ReportDeviceStatusResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ReportDeviceStatusResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AccessCheckoutRootRequest) EqualVT(that *AccessCheckoutRootRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.Write != that.Write {
+		return false
+	}
+	if this.WriteApprovalRef != that.WriteApprovalRef {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AccessCheckoutRootRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AccessCheckoutRootRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AccessCheckoutRootResponse) EqualVT(that *AccessCheckoutRootResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	if this.CapabilityId != that.CapabilityId {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.TypeId != that.TypeId {
+		return false
+	}
+	if !this.CheckoutRoot.EqualVT(that.CheckoutRoot) {
+		return false
+	}
+	if this.WriteAvailable != that.WriteAvailable {
+		return false
+	}
+	if this.WriteEnabled != that.WriteEnabled {
+		return false
+	}
+	if this.WriteApprovalRef != that.WriteApprovalRef {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AccessCheckoutRootResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AccessCheckoutRootResponse)
 	if !ok {
 		return false
 	}
@@ -1660,6 +2063,46 @@ func (x *DeviceCapabilityGrantState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the DeviceCheckoutRootAccess to JSON.
+func (x DeviceCheckoutRootAccess) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DeviceCheckoutRootAccess_name)
+}
+
+// MarshalText marshals the DeviceCheckoutRootAccess to text.
+func (x DeviceCheckoutRootAccess) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DeviceCheckoutRootAccess_name)), nil
+}
+
+// MarshalJSON marshals the DeviceCheckoutRootAccess to JSON.
+func (x DeviceCheckoutRootAccess) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeviceCheckoutRootAccess from JSON.
+func (x *DeviceCheckoutRootAccess) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DeviceCheckoutRootAccess_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DeviceCheckoutRootAccess enum: %v", err)
+		return
+	}
+	*x = DeviceCheckoutRootAccess(v)
+}
+
+// UnmarshalText unmarshals the DeviceCheckoutRootAccess from text.
+func (x *DeviceCheckoutRootAccess) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DeviceCheckoutRootAccess_value)
+	if err != nil {
+		return err
+	}
+	*x = DeviceCheckoutRootAccess(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DeviceCheckoutRootAccess from JSON.
+func (x *DeviceCheckoutRootAccess) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the DevicePlatform message to JSON.
 func (x *DevicePlatform) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1823,6 +2266,11 @@ func (x *DeviceCapability) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("policy")
 		x.Policy.MarshalProtoJSON(s.WithField("policy"))
 	}
+	if x.CheckoutRoot != nil || s.HasField("checkoutRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkoutRoot")
+		x.CheckoutRoot.MarshalProtoJSON(s.WithField("checkoutRoot"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1869,6 +2317,13 @@ func (x *DeviceCapability) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Policy = &DeviceCapabilityPolicy{}
 			x.Policy.UnmarshalProtoJSON(s.WithField("policy", true))
+		case "checkout_root", "checkoutRoot":
+			if s.ReadNil() {
+				x.CheckoutRoot = nil
+				return
+			}
+			x.CheckoutRoot = &DeviceCheckoutRootCapability{}
+			x.CheckoutRoot.UnmarshalProtoJSON(s.WithField("checkout_root", true))
 		}
 	})
 }
@@ -1999,6 +2454,88 @@ func (x *DeviceCapabilityPolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the DeviceCapabilityPolicy from JSON.
 func (x *DeviceCapabilityPolicy) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DeviceCheckoutRootCapability message to JSON.
+func (x *DeviceCheckoutRootCapability) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.DisplayPath != "" || s.HasField("displayPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("displayPath")
+		s.WriteString(x.DisplayPath)
+	}
+	if x.SelectionRef != "" || s.HasField("selectionRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectionRef")
+		s.WriteString(x.SelectionRef)
+	}
+	if x.Access != 0 || s.HasField("access") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("access")
+		x.Access.MarshalProtoJSON(s)
+	}
+	if x.ReadAvailable || s.HasField("readAvailable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readAvailable")
+		s.WriteBool(x.ReadAvailable)
+	}
+	if x.WriteAvailable || s.HasField("writeAvailable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writeAvailable")
+		s.WriteBool(x.WriteAvailable)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DeviceCheckoutRootCapability to JSON.
+func (x *DeviceCheckoutRootCapability) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeviceCheckoutRootCapability message from JSON.
+func (x *DeviceCheckoutRootCapability) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "display_path", "displayPath":
+			s.AddField("display_path")
+			x.DisplayPath = s.ReadString()
+		case "selection_ref", "selectionRef":
+			s.AddField("selection_ref")
+			x.SelectionRef = s.ReadString()
+		case "access":
+			s.AddField("access")
+			x.Access.UnmarshalProtoJSON(s)
+		case "read_available", "readAvailable":
+			s.AddField("read_available")
+			x.ReadAvailable = s.ReadBool()
+		case "write_available", "writeAvailable":
+			s.AddField("write_available")
+			x.WriteAvailable = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DeviceCheckoutRootCapability from JSON.
+func (x *DeviceCheckoutRootCapability) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2498,6 +3035,166 @@ func (x *ReportDeviceStatusResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the AccessCheckoutRootRequest message to JSON.
+func (x *AccessCheckoutRootRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.Write || s.HasField("write") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("write")
+		s.WriteBool(x.Write)
+	}
+	if x.WriteApprovalRef != "" || s.HasField("writeApprovalRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writeApprovalRef")
+		s.WriteString(x.WriteApprovalRef)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AccessCheckoutRootRequest to JSON.
+func (x *AccessCheckoutRootRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AccessCheckoutRootRequest message from JSON.
+func (x *AccessCheckoutRootRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "write":
+			s.AddField("write")
+			x.Write = s.ReadBool()
+		case "write_approval_ref", "writeApprovalRef":
+			s.AddField("write_approval_ref")
+			x.WriteApprovalRef = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AccessCheckoutRootRequest from JSON.
+func (x *AccessCheckoutRootRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AccessCheckoutRootResponse message to JSON.
+func (x *AccessCheckoutRootResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	if x.CapabilityId != "" || s.HasField("capabilityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("capabilityId")
+		s.WriteString(x.CapabilityId)
+	}
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.TypeId != "" || s.HasField("typeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeId")
+		s.WriteString(x.TypeId)
+	}
+	if x.CheckoutRoot != nil || s.HasField("checkoutRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkoutRoot")
+		x.CheckoutRoot.MarshalProtoJSON(s.WithField("checkoutRoot"))
+	}
+	if x.WriteAvailable || s.HasField("writeAvailable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writeAvailable")
+		s.WriteBool(x.WriteAvailable)
+	}
+	if x.WriteEnabled || s.HasField("writeEnabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writeEnabled")
+		s.WriteBool(x.WriteEnabled)
+	}
+	if x.WriteApprovalRef != "" || s.HasField("writeApprovalRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writeApprovalRef")
+		s.WriteString(x.WriteApprovalRef)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AccessCheckoutRootResponse to JSON.
+func (x *AccessCheckoutRootResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AccessCheckoutRootResponse message from JSON.
+func (x *AccessCheckoutRootResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		case "capability_id", "capabilityId":
+			s.AddField("capability_id")
+			x.CapabilityId = s.ReadString()
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "type_id", "typeId":
+			s.AddField("type_id")
+			x.TypeId = s.ReadString()
+		case "checkout_root", "checkoutRoot":
+			if s.ReadNil() {
+				x.CheckoutRoot = nil
+				return
+			}
+			x.CheckoutRoot = &DeviceCheckoutRootCapability{}
+			x.CheckoutRoot.UnmarshalProtoJSON(s.WithField("checkout_root", true))
+		case "write_available", "writeAvailable":
+			s.AddField("write_available")
+			x.WriteAvailable = s.ReadBool()
+		case "write_enabled", "writeEnabled":
+			s.AddField("write_enabled")
+			x.WriteEnabled = s.ReadBool()
+		case "write_approval_ref", "writeApprovalRef":
+			s.AddField("write_approval_ref")
+			x.WriteApprovalRef = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AccessCheckoutRootResponse from JSON.
+func (x *AccessCheckoutRootResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *DevicePlatform) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2636,6 +3333,16 @@ func (m *DeviceCapability) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CheckoutRoot != nil {
+		size, err := m.CheckoutRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
 	}
 	if m.Policy != nil {
 		size, err := m.Policy.MarshalToSizedBufferVT(dAtA[:i])
@@ -2798,6 +3505,85 @@ func (m *DeviceCapabilityPolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.LocalPolicyRef)
 		copy(dAtA[i:], m.LocalPolicyRef)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LocalPolicyRef)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DeviceCheckoutRootCapability) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeviceCheckoutRootCapability) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DeviceCheckoutRootCapability) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.WriteAvailable {
+		i--
+		if m.WriteAvailable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.ReadAvailable {
+		i--
+		if m.ReadAvailable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Access != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Access))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.SelectionRef) > 0 {
+		i -= len(m.SelectionRef)
+		copy(dAtA[i:], m.SelectionRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SelectionRef)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.DisplayPath) > 0 {
+		i -= len(m.DisplayPath)
+		copy(dAtA[i:], m.DisplayPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DisplayPath)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Name)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -3228,6 +4014,159 @@ func (m *ReportDeviceStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *AccessCheckoutRootRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AccessCheckoutRootRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccessCheckoutRootRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WriteApprovalRef) > 0 {
+		i -= len(m.WriteApprovalRef)
+		copy(dAtA[i:], m.WriteApprovalRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WriteApprovalRef)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Write {
+		i--
+		if m.Write {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AccessCheckoutRootResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AccessCheckoutRootResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccessCheckoutRootResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WriteApprovalRef) > 0 {
+		i -= len(m.WriteApprovalRef)
+		copy(dAtA[i:], m.WriteApprovalRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WriteApprovalRef)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.WriteEnabled {
+		i--
+		if m.WriteEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.WriteAvailable {
+		i--
+		if m.WriteAvailable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.CheckoutRoot != nil {
+		size, err := m.CheckoutRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.TypeId) > 0 {
+		i -= len(m.TypeId)
+		copy(dAtA[i:], m.TypeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TypeId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.CapabilityId) > 0 {
+		i -= len(m.CapabilityId)
+		copy(dAtA[i:], m.CapabilityId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CapabilityId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *DevicePlatform) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3304,6 +4243,10 @@ func (m *DeviceCapability) SizeVT() (n int) {
 		l = m.Policy.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.CheckoutRoot != nil {
+		l = m.CheckoutRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3349,6 +4292,37 @@ func (m *DeviceCapabilityPolicy) SizeVT() (n int) {
 	}
 	if m.GrantState != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.GrantState))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DeviceCheckoutRootCapability) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DisplayPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SelectionRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Access != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Access))
+	}
+	if m.ReadAvailable {
+		n += 2
+	}
+	if m.WriteAvailable {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3515,6 +4489,66 @@ func (m *ReportDeviceStatusResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *AccessCheckoutRootRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Write {
+		n += 2
+	}
+	l = len(m.WriteApprovalRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AccessCheckoutRootResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ResourceId != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ResourceId))
+	}
+	l = len(m.CapabilityId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TypeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.CheckoutRoot != nil {
+		l = m.CheckoutRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WriteAvailable {
+		n += 2
+	}
+	if m.WriteEnabled {
+		n += 2
+	}
+	l = len(m.WriteApprovalRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x DeviceSetupState) MarshalProtoText() string {
 	return x.String()
 }
@@ -3536,6 +4570,10 @@ func (x DeviceCapabilityLocalState) MarshalProtoText() string {
 }
 
 func (x DeviceCapabilityGrantState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DeviceCheckoutRootAccess) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -3659,6 +4697,13 @@ func (x *DeviceCapability) MarshalProtoText() string {
 		sb.WriteString("policy: ")
 		sb.WriteString(x.Policy.MarshalProtoText())
 	}
+	if x.CheckoutRoot != nil {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("checkout_root: ")
+		sb.WriteString(x.CheckoutRoot.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -3739,6 +4784,61 @@ func (x *DeviceCapabilityPolicy) MarshalProtoText() string {
 }
 
 func (x *DeviceCapabilityPolicy) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DeviceCheckoutRootCapability) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DeviceCheckoutRootCapability {")
+	if x.Name != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("name: ")
+		sb.WriteString(strconv.Quote(x.Name))
+	}
+	if x.DisplayPath != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("display_path: ")
+		sb.WriteString(strconv.Quote(x.DisplayPath))
+	}
+	if x.SelectionRef != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selection_ref: ")
+		sb.WriteString(strconv.Quote(x.SelectionRef))
+	}
+	if x.Access != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("access: ")
+		sb.WriteString("\"")
+		sb.WriteString(DeviceCheckoutRootAccess(x.Access).String())
+		sb.WriteString("\"")
+	}
+	if x.ReadAvailable != false {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("read_available: ")
+		sb.WriteString(strconv.FormatBool(x.ReadAvailable))
+	}
+	if x.WriteAvailable != false {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("write_available: ")
+		sb.WriteString(strconv.FormatBool(x.WriteAvailable))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DeviceCheckoutRootCapability) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3997,6 +5097,105 @@ func (x *ReportDeviceStatusResponse) MarshalProtoText() string {
 }
 
 func (x *ReportDeviceStatusResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AccessCheckoutRootRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AccessCheckoutRootRequest {")
+	if x.Name != "" {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("name: ")
+		sb.WriteString(strconv.Quote(x.Name))
+	}
+	if x.Write != false {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("write: ")
+		sb.WriteString(strconv.FormatBool(x.Write))
+	}
+	if x.WriteApprovalRef != "" {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("write_approval_ref: ")
+		sb.WriteString(strconv.Quote(x.WriteApprovalRef))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AccessCheckoutRootRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AccessCheckoutRootResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AccessCheckoutRootResponse {")
+	if x.ResourceId != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("resource_id: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ResourceId), 10))
+	}
+	if x.CapabilityId != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("capability_id: ")
+		sb.WriteString(strconv.Quote(x.CapabilityId))
+	}
+	if x.ObjectKey != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.TypeId != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("type_id: ")
+		sb.WriteString(strconv.Quote(x.TypeId))
+	}
+	if x.CheckoutRoot != nil {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("checkout_root: ")
+		sb.WriteString(x.CheckoutRoot.MarshalProtoText())
+	}
+	if x.WriteAvailable != false {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("write_available: ")
+		sb.WriteString(strconv.FormatBool(x.WriteAvailable))
+	}
+	if x.WriteEnabled != false {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("write_enabled: ")
+		sb.WriteString(strconv.FormatBool(x.WriteEnabled))
+	}
+	if x.WriteApprovalRef != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("write_approval_ref: ")
+		sb.WriteString(strconv.Quote(x.WriteApprovalRef))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AccessCheckoutRootResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4388,6 +5587,34 @@ func (m *DeviceCapability) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckoutRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CheckoutRoot == nil {
+				m.CheckoutRoot = &DeviceCheckoutRootCapability{}
+			}
+			if err := m.CheckoutRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -4606,6 +5833,150 @@ func (m *DeviceCapabilityPolicy) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DeviceCheckoutRootCapability) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeviceCheckoutRootCapability: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeviceCheckoutRootCapability: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DisplayPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectionRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SelectionRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Access", wireType)
+			}
+			m.Access = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Access = DeviceCheckoutRootAccess(_v)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReadAvailable", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.ReadAvailable = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WriteAvailable", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.WriteAvailable = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -5420,6 +6791,297 @@ func (m *ReportDeviceStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err := m.State.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AccessCheckoutRootRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AccessCheckoutRootRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AccessCheckoutRootRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Write", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Write = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WriteApprovalRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WriteApprovalRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AccessCheckoutRootResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AccessCheckoutRootResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AccessCheckoutRootResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CapabilityId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CapabilityId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TypeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckoutRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CheckoutRoot == nil {
+				m.CheckoutRoot = &DeviceCheckoutRootCapability{}
+			}
+			if err := m.CheckoutRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WriteAvailable", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.WriteAvailable = bool(v != 0)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WriteEnabled", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.WriteEnabled = bool(v != 0)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WriteApprovalRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WriteApprovalRef = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

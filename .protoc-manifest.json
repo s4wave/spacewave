@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "8929183743071fadad38ea2ce0c29775da33ba1e05789a782d8d2773a898c8c9",
+  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.13.0,starpc=v0.49.7,protobuf-es-lite=1.0.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -3749,7 +3749,7 @@
       "protoFiles": ["sdk/bucket/lookup/lookup.proto"]
     },
     "github.com/s4wave/spacewave/sdk/canvas": {
-      "hash": "6aa7f717cb8b2c5a041f59ffad60bbcbb5b4c476adad44b0e02f859d1febc2d1",
+      "hash": "ea5a28557460e75539709c74e599aab779fe128ccd6391b74e7af7b707f21d44",
       "generatedFiles": [
         "sdk/canvas/canvas.pb.cc",
         "sdk/canvas/canvas.pb.go",
@@ -3899,7 +3899,7 @@
       "protoFiles": ["sdk/deploy/deploy.proto"]
     },
     "github.com/s4wave/spacewave/sdk/device": {
-      "hash": "0b425bc22cf9a72fc4eee6efecab4684a8d25653e731fdb82456187f3c808c55",
+      "hash": "96476b4e7dc443cb922b11aefea8ad72145740326afd7108f9d01d3250478ebb",
       "generatedFiles": [
         "sdk/device/device.pb.cc",
         "sdk/device/device.pb.go",

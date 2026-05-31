@@ -89,8 +89,8 @@ export function spaceRouteCanRenderBody(
 }
 
 export function spaceRouteShouldMountContents(
-  objectKey: string | undefined,
-  spaceStateReady: boolean,
+  _objectKey: string | undefined,
+  _spaceStateReady: boolean,
 ): boolean {
-  return !objectKey || spaceStateReady
+  return true
 }

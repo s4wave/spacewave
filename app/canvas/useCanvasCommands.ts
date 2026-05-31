@@ -246,10 +246,22 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     label: 'Zoom to 100%',
     menuPath: 'View/Zoom to 100%',
     menuGroup: 10,
-    menuOrder: 4,
+    menuOrder: 5,
     active: isTabActive,
     handler: useCallback(() => {
       actions['zoom-reset']()
+    }, [actions]),
+  })
+
+  useCommand({
+    commandId: 'canvas.organize-nodes',
+    label: 'Organize Nodes',
+    menuPath: 'View/Organize Nodes',
+    menuGroup: 10,
+    menuOrder: 4,
+    active: isTabActive,
+    handler: useCallback(() => {
+      actions['organize-nodes']()
     }, [actions]),
   })
 

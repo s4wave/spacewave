@@ -29,8 +29,8 @@ describe('spaceRouteShouldMountContents', () => {
     expect(spaceRouteShouldMountContents(undefined, false)).toBe(true)
   })
 
-  it('defers contents mounting for deep routes until inventory state is ready', () => {
-    expect(spaceRouteShouldMountContents('files', false)).toBe(false)
+  it('mounts contents for deep routes without blocking object rendering', () => {
+    expect(spaceRouteShouldMountContents('files', false)).toBe(true)
     expect(spaceRouteShouldMountContents('files', true)).toBe(true)
   })
 })

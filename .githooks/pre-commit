@@ -6,7 +6,7 @@ if [ -z "$files" ]; then
 	exit 0
 fi
 
-format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json|eslint\.config\.mjs)$' || true)
+format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' || true)
 if [ -n "$format_files" ]; then
 	printf "%s\n" "$format_files" | xargs bunx oxfmt
 	printf "%s\n" "$format_files" | xargs git add
@@ -14,7 +14,7 @@ fi
 
 js_files=$(printf "%s\n" "$files" | grep -E '\.(js|mjs|ts|tsx)$' || true)
 if [ -n "$js_files" ]; then
-	printf "%s\n" "$js_files" | xargs bunx eslint
+	printf "%s\n" "$js_files" | xargs bunx oxlint
 fi
 
 go_files=$(printf "%s\n" "$files" | grep -E '\.go$' || true)

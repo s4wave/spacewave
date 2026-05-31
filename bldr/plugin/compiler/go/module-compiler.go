@@ -168,12 +168,13 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 		return "", err
 	}
 	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
-		WorkDir:         m.pluginCodegenPath,
-		OutputPath:      outPath,
-		Packages:        []string{"."},
-		BuildFlags:      buildFlags,
-		OverrideDirs:    overrideDirs,
-		AllDependencies: true,
+		WorkDir:                   m.pluginCodegenPath,
+		OutputPath:                outPath,
+		Packages:                  []string{"."},
+		BuildFlags:                buildFlags,
+		OverrideDirs:              overrideDirs,
+		AllDependencies:           true,
+		ProtobufTypeScriptBinding: true,
 	}); err != nil {
 		return "", err
 	}

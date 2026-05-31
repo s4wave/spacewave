@@ -3,7 +3,12 @@ import { renderHook, cleanup, act } from '@testing-library/react'
 
 import { useCanvasActions } from './useCanvasActions.js'
 import { useCanvasSelection } from './useCanvasSelection.js'
-import type { CanvasNodeData, CanvasCallbacks, Viewport } from './types.js'
+import type {
+  CanvasLayoutMetadataData,
+  CanvasNodeData,
+  CanvasCallbacks,
+  Viewport,
+} from './types.js'
 
 function makeNode(overrides: Partial<CanvasNodeData> = {}): CanvasNodeData {
   return {
@@ -21,12 +26,15 @@ function makeNode(overrides: Partial<CanvasNodeData> = {}): CanvasNodeData {
 function setup(
   overrides: {
     nodes?: Map<string, CanvasNodeData>
+    layoutMetadata?: Map<string, CanvasLayoutMetadataData>
     callbacks?: Partial<CanvasCallbacks>
     viewport?: Viewport
     containerSize?: { width: number; height: number }
   } = {},
 ) {
   const nodes = overrides.nodes ?? new Map<string, CanvasNodeData>()
+  const layoutMetadata =
+    overrides.layoutMetadata ?? new Map<string, CanvasLayoutMetadataData>()
   const onNodesChange = vi.fn()
   const onNodesRemove = vi.fn()
   const callbacks: CanvasCallbacks = {
@@ -43,6 +51,7 @@ function setup(
     const actionsResult = useCanvasActions({
       selection,
       nodes,
+      layoutMetadata,
       callbacks,
       viewport,
       setViewport,
@@ -82,6 +91,7 @@ describe('useCanvasActions', () => {
     expect(actionKeys).toContain('fit-view')
     expect(actionKeys).toContain('bring-to-front')
     expect(actionKeys).toContain('send-to-back')
+    expect(actionKeys).toContain('organize-nodes')
   })
 
   it('exposes moveSelected function', () => {
@@ -279,6 +289,33 @@ describe('useCanvasActions', () => {
     // Only the changed node is passed, not the full map.
     expect(updated.size).toBe(1)
     expect(updated.get('a')?.zIndex).toBe(-1)
+  })
+
+  it('organize-nodes applies metadata-backed layout without selection', () => {
+    const source = makeNode({ id: 'source', x: 400, y: 500, height: 100 })
+    const proof = makeNode({ id: 'proof', x: 200, y: 300, height: 100 })
+    const nodes = new Map([
+      ['source', source],
+      ['proof', proof],
+    ])
+    const layoutMetadata = new Map<string, CanvasLayoutMetadataData>([
+      ['proof', { lane: 'proof', rank: 1, stableNodeId: 'proof' }],
+      ['source', { lane: 'source', rank: 0, stableNodeId: 'source' }],
+    ])
+    const { result, onNodesChange } = setup({ nodes, layoutMetadata })
+
+    act(() => {
+      result.current.actions['organize-nodes']()
+    })
+
+    const changed = onNodesChange.mock.calls[0][0] as Map<
+      string,
+      CanvasNodeData
+    >
+    expect(changed.get('source')?.x).toBe(80)
+    expect(changed.get('source')?.y).toBe(80)
+    expect(changed.get('proof')?.x).toBe(380)
+    expect(changed.get('proof')?.y).toBe(360)
   })
 
   it('moveSelected moves selected nodes by given offsets', () => {

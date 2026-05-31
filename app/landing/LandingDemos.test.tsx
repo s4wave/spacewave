@@ -17,6 +17,12 @@ describe('landing demos', () => {
   it('lets the drive demo navigate into folders and update the preview', () => {
     render(<DriveLandingDemo />)
 
+    expect(screen.getByText('Studio laptop')).toBeTruthy()
+    expect(screen.getByText('Offline edits saved locally')).toBeTruthy()
+    expect(screen.getByText('Sync pending')).toBeTruthy()
+    expect(screen.getByText('Optional reach enabled')).toBeTruthy()
+    expect(screen.getByText('offline-ready')).toBeTruthy()
+
     fireEvent.doubleClick(screen.getByText('docs'))
 
     expect(screen.getByText('/docs')).toBeTruthy()

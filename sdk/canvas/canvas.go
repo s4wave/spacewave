@@ -101,6 +101,7 @@ func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequ
 	// Remove nodes.
 	for _, id := range req.GetRemoveNodeIds() {
 		delete(updated.Nodes, id)
+		delete(updated.LayoutMetadata, id)
 	}
 
 	// Add edges.
@@ -154,6 +155,22 @@ func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequ
 			}
 		}
 		updated.HiddenGraphLinks = filtered
+	}
+
+	if setLayout := req.GetSetLayoutMetadata(); len(setLayout) > 0 {
+		if updated.LayoutMetadata == nil {
+			updated.LayoutMetadata = make(map[string]*CanvasLayoutMetadata, len(setLayout))
+		}
+		for id, meta := range setLayout {
+			if meta == nil {
+				continue
+			}
+			updated.LayoutMetadata[id] = meta.CloneVT()
+		}
+	}
+
+	for _, id := range req.GetRemoveLayoutMetadataNodeIds() {
+		delete(updated.LayoutMetadata, id)
 	}
 
 	// Persist to the world if engine is available.

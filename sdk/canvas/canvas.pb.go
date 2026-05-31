@@ -325,6 +325,62 @@ func (x *HiddenGraphLink) GetLabel() string {
 	return ""
 }
 
+// CanvasLayoutMetadata stores reusable projection layout metadata for a node.
+type CanvasLayoutMetadata struct {
+	unknownFields []byte
+	// StableNodeId is the projection-stable node identity across reruns.
+	StableNodeId string `protobuf:"bytes,1,opt,name=stable_node_id,json=stableNodeId,proto3" json:"stableNodeId,omitempty"`
+	// Lane is the visual swimlane for the projected node.
+	Lane string `protobuf:"bytes,2,opt,name=lane,proto3" json:"lane,omitempty"`
+	// Rank is the deterministic dependency layer inside the projection.
+	Rank int32 `protobuf:"varint,3,opt,name=rank,proto3" json:"rank,omitempty"`
+	// Group is the visual grouping key for related projected nodes.
+	Group string `protobuf:"bytes,4,opt,name=group,proto3" json:"group,omitempty"`
+	// ProjectionOwner names the writer that owns this visual projection.
+	ProjectionOwner string `protobuf:"bytes,5,opt,name=projection_owner,json=projectionOwner,proto3" json:"projectionOwner,omitempty"`
+}
+
+func (x *CanvasLayoutMetadata) Reset() {
+	*x = CanvasLayoutMetadata{}
+}
+
+func (*CanvasLayoutMetadata) ProtoMessage() {}
+
+func (x *CanvasLayoutMetadata) GetStableNodeId() string {
+	if x != nil {
+		return x.StableNodeId
+	}
+	return ""
+}
+
+func (x *CanvasLayoutMetadata) GetLane() string {
+	if x != nil {
+		return x.Lane
+	}
+	return ""
+}
+
+func (x *CanvasLayoutMetadata) GetRank() int32 {
+	if x != nil {
+		return x.Rank
+	}
+	return 0
+}
+
+func (x *CanvasLayoutMetadata) GetGroup() string {
+	if x != nil {
+		return x.Group
+	}
+	return ""
+}
+
+func (x *CanvasLayoutMetadata) GetProjectionOwner() string {
+	if x != nil {
+		return x.ProjectionOwner
+	}
+	return ""
+}
+
 // CanvasState is the full canvas state stored as a world object block.
 type CanvasState struct {
 	unknownFields []byte
@@ -336,6 +392,8 @@ type CanvasState struct {
 	StrokeTreeRef []byte `protobuf:"bytes,3,opt,name=stroke_tree_ref,json=strokeTreeRef,proto3" json:"strokeTreeRef,omitempty"`
 	// HiddenGraphLinks is the set of canvas-scoped hidden world graph links.
 	HiddenGraphLinks []*HiddenGraphLink `protobuf:"bytes,4,rep,name=hidden_graph_links,json=hiddenGraphLinks,proto3" json:"hiddenGraphLinks,omitempty"`
+	// LayoutMetadata is projection layout metadata keyed by canvas node ID.
+	LayoutMetadata map[string]*CanvasLayoutMetadata `protobuf:"bytes,5,rep,name=layout_metadata,json=layoutMetadata,proto3" json:"layoutMetadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *CanvasState) Reset() {
@@ -368,6 +426,13 @@ func (x *CanvasState) GetStrokeTreeRef() []byte {
 func (x *CanvasState) GetHiddenGraphLinks() []*HiddenGraphLink {
 	if x != nil {
 		return x.HiddenGraphLinks
+	}
+	return nil
+}
+
+func (x *CanvasState) GetLayoutMetadata() map[string]*CanvasLayoutMetadata {
+	if x != nil {
+		return x.LayoutMetadata
 	}
 	return nil
 }
@@ -418,6 +483,10 @@ type UpdateCanvasRequest struct {
 	AddHiddenGraphLinks []*HiddenGraphLink `protobuf:"bytes,5,rep,name=add_hidden_graph_links,json=addHiddenGraphLinks,proto3" json:"addHiddenGraphLinks,omitempty"`
 	// RemoveHiddenGraphLinks contains graph links to show again.
 	RemoveHiddenGraphLinks []*HiddenGraphLink `protobuf:"bytes,6,rep,name=remove_hidden_graph_links,json=removeHiddenGraphLinks,proto3" json:"removeHiddenGraphLinks,omitempty"`
+	// SetLayoutMetadata contains layout metadata to add or update by node ID.
+	SetLayoutMetadata map[string]*CanvasLayoutMetadata `protobuf:"bytes,7,rep,name=set_layout_metadata,json=setLayoutMetadata,proto3" json:"setLayoutMetadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// RemoveLayoutMetadataNodeIds contains node IDs whose layout metadata is removed.
+	RemoveLayoutMetadataNodeIds []string `protobuf:"bytes,8,rep,name=remove_layout_metadata_node_ids,json=removeLayoutMetadataNodeIds,proto3" json:"removeLayoutMetadataNodeIds,omitempty"`
 }
 
 func (x *UpdateCanvasRequest) Reset() {
@@ -464,6 +533,20 @@ func (x *UpdateCanvasRequest) GetAddHiddenGraphLinks() []*HiddenGraphLink {
 func (x *UpdateCanvasRequest) GetRemoveHiddenGraphLinks() []*HiddenGraphLink {
 	if x != nil {
 		return x.RemoveHiddenGraphLinks
+	}
+	return nil
+}
+
+func (x *UpdateCanvasRequest) GetSetLayoutMetadata() map[string]*CanvasLayoutMetadata {
+	if x != nil {
+		return x.SetLayoutMetadata
+	}
+	return nil
+}
+
+func (x *UpdateCanvasRequest) GetRemoveLayoutMetadataNodeIds() []string {
+	if x != nil {
+		return x.RemoveLayoutMetadataNodeIds
 	}
 	return nil
 }
@@ -545,6 +628,32 @@ func (x *CanvasState_NodesEntry) GetValue() *CanvasNode {
 	return nil
 }
 
+type CanvasState_LayoutMetadataEntry struct {
+	unknownFields []byte
+	Key           string                `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *CanvasLayoutMetadata `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *CanvasState_LayoutMetadataEntry) Reset() {
+	*x = CanvasState_LayoutMetadataEntry{}
+}
+
+func (*CanvasState_LayoutMetadataEntry) ProtoMessage() {}
+
+func (x *CanvasState_LayoutMetadataEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *CanvasState_LayoutMetadataEntry) GetValue() *CanvasLayoutMetadata {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
 type UpdateCanvasRequest_SetNodesEntry struct {
 	unknownFields []byte
 	Key           string      `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -565,6 +674,32 @@ func (x *UpdateCanvasRequest_SetNodesEntry) GetKey() string {
 }
 
 func (x *UpdateCanvasRequest_SetNodesEntry) GetValue() *CanvasNode {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+type UpdateCanvasRequest_SetLayoutMetadataEntry struct {
+	unknownFields []byte
+	Key           string                `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *CanvasLayoutMetadata `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) Reset() {
+	*x = UpdateCanvasRequest_SetLayoutMetadataEntry{}
+}
+
+func (*UpdateCanvasRequest_SetLayoutMetadataEntry) ProtoMessage() {}
+
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) GetValue() *CanvasLayoutMetadata {
 	if x != nil {
 		return x.Value
 	}
@@ -639,6 +774,26 @@ func (m *HiddenGraphLink) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *CanvasLayoutMetadata) CloneVT() *CanvasLayoutMetadata {
+	if m == nil {
+		return (*CanvasLayoutMetadata)(nil)
+	}
+	r := new(CanvasLayoutMetadata)
+	r.StableNodeId = m.StableNodeId
+	r.Lane = m.Lane
+	r.Rank = m.Rank
+	r.Group = m.Group
+	r.ProjectionOwner = m.ProjectionOwner
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CanvasLayoutMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *CanvasState) CloneVT() *CanvasState {
 	if m == nil {
 		return (*CanvasState)(nil)
@@ -663,6 +818,12 @@ func (m *CanvasState) CloneVT() *CanvasState {
 		r.HiddenGraphLinks = make([]*HiddenGraphLink, len(rhs))
 		for k, v := range rhs {
 			r.HiddenGraphLinks[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.LayoutMetadata; rhs != nil {
+		r.LayoutMetadata = make(map[string]*CanvasLayoutMetadata, len(rhs))
+		for k, v := range rhs {
+			r.LayoutMetadata[k] = v.CloneVT()
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -740,6 +901,15 @@ func (m *UpdateCanvasRequest) CloneVT() *UpdateCanvasRequest {
 		for k, v := range rhs {
 			r.RemoveHiddenGraphLinks[k] = v.CloneVT()
 		}
+	}
+	if rhs := m.SetLayoutMetadata; rhs != nil {
+		r.SetLayoutMetadata = make(map[string]*CanvasLayoutMetadata, len(rhs))
+		for k, v := range rhs {
+			r.SetLayoutMetadata[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.RemoveLayoutMetadataNodeIds; rhs != nil {
+		r.RemoveLayoutMetadataNodeIds = slices.Clone(rhs)
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -912,6 +1082,38 @@ func (this *HiddenGraphLink) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *CanvasLayoutMetadata) EqualVT(that *CanvasLayoutMetadata) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.StableNodeId != that.StableNodeId {
+		return false
+	}
+	if this.Lane != that.Lane {
+		return false
+	}
+	if this.Rank != that.Rank {
+		return false
+	}
+	if this.Group != that.Group {
+		return false
+	}
+	if this.ProjectionOwner != that.ProjectionOwner {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CanvasLayoutMetadata) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CanvasLayoutMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *CanvasState) EqualVT(that *CanvasState) bool {
 	if this == that {
 		return true
@@ -969,6 +1171,26 @@ func (this *CanvasState) EqualVT(that *CanvasState) bool {
 			}
 			if q == nil {
 				q = &HiddenGraphLink{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.LayoutMetadata) != len(that.LayoutMetadata) {
+		return false
+	}
+	for i, vx := range this.LayoutMetadata {
+		vy, ok := that.LayoutMetadata[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &CanvasLayoutMetadata{}
+			}
+			if q == nil {
+				q = &CanvasLayoutMetadata{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1116,6 +1338,35 @@ func (this *UpdateCanvasRequest) EqualVT(that *UpdateCanvasRequest) bool {
 			if !p.EqualVT(q) {
 				return false
 			}
+		}
+	}
+	if len(this.SetLayoutMetadata) != len(that.SetLayoutMetadata) {
+		return false
+	}
+	for i, vx := range this.SetLayoutMetadata {
+		vy, ok := that.SetLayoutMetadata[i]
+		if !ok {
+			return false
+		}
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &CanvasLayoutMetadata{}
+			}
+			if q == nil {
+				q = &CanvasLayoutMetadata{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.RemoveLayoutMetadataNodeIds) != len(that.RemoveLayoutMetadataNodeIds) {
+		return false
+	}
+	for i, vx := range this.RemoveLayoutMetadataNodeIds {
+		vy := that.RemoveLayoutMetadataNodeIds[i]
+		if vx != vy {
+			return false
 		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1536,6 +1787,80 @@ func (x *HiddenGraphLink) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CanvasLayoutMetadata message to JSON.
+func (x *CanvasLayoutMetadata) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StableNodeId != "" || s.HasField("stableNodeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stableNodeId")
+		s.WriteString(x.StableNodeId)
+	}
+	if x.Lane != "" || s.HasField("lane") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lane")
+		s.WriteString(x.Lane)
+	}
+	if x.Rank != 0 || s.HasField("rank") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rank")
+		s.WriteInt32(x.Rank)
+	}
+	if x.Group != "" || s.HasField("group") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("group")
+		s.WriteString(x.Group)
+	}
+	if x.ProjectionOwner != "" || s.HasField("projectionOwner") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("projectionOwner")
+		s.WriteString(x.ProjectionOwner)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CanvasLayoutMetadata to JSON.
+func (x *CanvasLayoutMetadata) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CanvasLayoutMetadata message from JSON.
+func (x *CanvasLayoutMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "stable_node_id", "stableNodeId":
+			s.AddField("stable_node_id")
+			x.StableNodeId = s.ReadString()
+		case "lane":
+			s.AddField("lane")
+			x.Lane = s.ReadString()
+		case "rank":
+			s.AddField("rank")
+			x.Rank = s.ReadInt32()
+		case "group":
+			s.AddField("group")
+			x.Group = s.ReadString()
+		case "projection_owner", "projectionOwner":
+			s.AddField("projection_owner")
+			x.ProjectionOwner = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CanvasLayoutMetadata from JSON.
+func (x *CanvasLayoutMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the CanvasState_NodesEntry message to JSON.
 func (x *CanvasState_NodesEntry) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1590,6 +1915,60 @@ func (x *CanvasState_NodesEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CanvasState_LayoutMetadataEntry message to JSON.
+func (x *CanvasState_LayoutMetadataEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != nil || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		x.Value.MarshalProtoJSON(s.WithField("value"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CanvasState_LayoutMetadataEntry to JSON.
+func (x *CanvasState_LayoutMetadataEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CanvasState_LayoutMetadataEntry message from JSON.
+func (x *CanvasState_LayoutMetadataEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			if s.ReadNil() {
+				x.Value = nil
+				return
+			}
+			x.Value = &CanvasLayoutMetadata{}
+			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CanvasState_LayoutMetadataEntry from JSON.
+func (x *CanvasState_LayoutMetadataEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the CanvasState message to JSON.
 func (x *CanvasState) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1636,6 +2015,18 @@ func (x *CanvasState) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("hiddenGraphLinks"))
 		}
 		s.WriteArrayEnd()
+	}
+	if x.LayoutMetadata != nil || s.HasField("layoutMetadata") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("layoutMetadata")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.LayoutMetadata {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			v.MarshalProtoJSON(s.WithField("layoutMetadata"))
+		}
+		s.WriteObjectEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -1704,6 +2095,18 @@ func (x *CanvasState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.HiddenGraphLinks = append(x.HiddenGraphLinks, v)
+			})
+		case "layout_metadata", "layoutMetadata":
+			s.AddField("layout_metadata")
+			if s.ReadNil() {
+				x.LayoutMetadata = nil
+				return
+			}
+			x.LayoutMetadata = make(map[string]*CanvasLayoutMetadata)
+			s.ReadStringMap(func(key string) {
+				var v CanvasLayoutMetadata
+				v.UnmarshalProtoJSON(s)
+				x.LayoutMetadata[key] = &v
 			})
 		}
 	})
@@ -1844,6 +2247,60 @@ func (x *UpdateCanvasRequest_SetNodesEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the UpdateCanvasRequest_SetLayoutMetadataEntry message to JSON.
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != nil || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		x.Value.MarshalProtoJSON(s.WithField("value"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the UpdateCanvasRequest_SetLayoutMetadataEntry to JSON.
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the UpdateCanvasRequest_SetLayoutMetadataEntry message from JSON.
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			if s.ReadNil() {
+				x.Value = nil
+				return
+			}
+			x.Value = &CanvasLayoutMetadata{}
+			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the UpdateCanvasRequest_SetLayoutMetadataEntry from JSON.
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the UpdateCanvasRequest message to JSON.
 func (x *UpdateCanvasRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1906,6 +2363,23 @@ func (x *UpdateCanvasRequest) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("removeHiddenGraphLinks"))
 		}
 		s.WriteArrayEnd()
+	}
+	if x.SetLayoutMetadata != nil || s.HasField("setLayoutMetadata") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("setLayoutMetadata")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.SetLayoutMetadata {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			v.MarshalProtoJSON(s.WithField("setLayoutMetadata"))
+		}
+		s.WriteObjectEnd()
+	}
+	if len(x.RemoveLayoutMetadataNodeIds) > 0 || s.HasField("removeLayoutMetadataNodeIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("removeLayoutMetadataNodeIds")
+		s.WriteStringArray(x.RemoveLayoutMetadataNodeIds)
 	}
 	s.WriteObjectEnd()
 }
@@ -2004,6 +2478,25 @@ func (x *UpdateCanvasRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.RemoveHiddenGraphLinks = append(x.RemoveHiddenGraphLinks, v)
 			})
+		case "set_layout_metadata", "setLayoutMetadata":
+			s.AddField("set_layout_metadata")
+			if s.ReadNil() {
+				x.SetLayoutMetadata = nil
+				return
+			}
+			x.SetLayoutMetadata = make(map[string]*CanvasLayoutMetadata)
+			s.ReadStringMap(func(key string) {
+				var v CanvasLayoutMetadata
+				v.UnmarshalProtoJSON(s)
+				x.SetLayoutMetadata[key] = &v
+			})
+		case "remove_layout_metadata_node_ids", "removeLayoutMetadataNodeIds":
+			s.AddField("remove_layout_metadata_node_ids")
+			if s.ReadNil() {
+				x.RemoveLayoutMetadataNodeIds = nil
+				return
+			}
+			x.RemoveLayoutMetadataNodeIds = s.ReadStringArray()
 		}
 	})
 }
@@ -2374,6 +2867,72 @@ func (m *HiddenGraphLink) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *CanvasLayoutMetadata) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CanvasLayoutMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CanvasLayoutMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ProjectionOwner) > 0 {
+		i -= len(m.ProjectionOwner)
+		copy(dAtA[i:], m.ProjectionOwner)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ProjectionOwner)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Group) > 0 {
+		i -= len(m.Group)
+		copy(dAtA[i:], m.Group)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Group)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Rank != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rank))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Lane) > 0 {
+		i -= len(m.Lane)
+		copy(dAtA[i:], m.Lane)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Lane)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.StableNodeId) > 0 {
+		i -= len(m.StableNodeId)
+		copy(dAtA[i:], m.StableNodeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StableNodeId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CanvasState) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2403,6 +2962,28 @@ func (m *CanvasState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.LayoutMetadata) > 0 {
+		for k := range m.LayoutMetadata {
+			v := m.LayoutMetadata[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x2a
+		}
 	}
 	if len(m.HiddenGraphLinks) > 0 {
 		for iNdEx := len(m.HiddenGraphLinks) - 1; iNdEx >= 0; iNdEx-- {
@@ -2565,6 +3146,37 @@ func (m *UpdateCanvasRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RemoveLayoutMetadataNodeIds) > 0 {
+		for iNdEx := len(m.RemoveLayoutMetadataNodeIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RemoveLayoutMetadataNodeIds[iNdEx])
+			copy(dAtA[i:], m.RemoveLayoutMetadataNodeIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RemoveLayoutMetadataNodeIds[iNdEx])))
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.SetLayoutMetadata) > 0 {
+		for k := range m.SetLayoutMetadata {
+			v := m.SetLayoutMetadata[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x3a
+		}
 	}
 	if len(m.RemoveHiddenGraphLinks) > 0 {
 		for iNdEx := len(m.RemoveHiddenGraphLinks) - 1; iNdEx >= 0; iNdEx-- {
@@ -2870,6 +3482,35 @@ func (m *HiddenGraphLink) SizeVT() (n int) {
 	return n
 }
 
+func (m *CanvasLayoutMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.StableNodeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Lane)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Rank != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Rank))
+	}
+	l = len(m.Group)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ProjectionOwner)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *CanvasState) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2903,6 +3544,19 @@ func (m *CanvasState) SizeVT() (n int) {
 		for _, e := range m.HiddenGraphLinks {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.LayoutMetadata) > 0 {
+		for k, v := range m.LayoutMetadata {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
+			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
 		}
 	}
 	n += len(m.unknownFields)
@@ -2979,6 +3633,25 @@ func (m *UpdateCanvasRequest) SizeVT() (n int) {
 	if len(m.RemoveHiddenGraphLinks) > 0 {
 		for _, e := range m.RemoveHiddenGraphLinks {
 			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.SetLayoutMetadata) > 0 {
+		for k, v := range m.SetLayoutMetadata {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.SizeVT()
+			}
+			l += 1 + protobuf_go_lite.SizeOfVarint(uint64(l))
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + l
+			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		}
+	}
+	if len(m.RemoveLayoutMetadataNodeIds) > 0 {
+		for _, s := range m.RemoveLayoutMetadataNodeIds {
+			l = len(s)
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
@@ -3218,6 +3891,52 @@ func (x *HiddenGraphLink) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *CanvasLayoutMetadata) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CanvasLayoutMetadata {")
+	if x.StableNodeId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("stable_node_id: ")
+		sb.WriteString(strconv.Quote(x.StableNodeId))
+	}
+	if x.Lane != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("lane: ")
+		sb.WriteString(strconv.Quote(x.Lane))
+	}
+	if x.Rank != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("rank: ")
+		sb.WriteString(strconv.FormatInt(int64(x.Rank), 10))
+	}
+	if x.Group != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("group: ")
+		sb.WriteString(strconv.Quote(x.Group))
+	}
+	if x.ProjectionOwner != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("projection_owner: ")
+		sb.WriteString(strconv.Quote(x.ProjectionOwner))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CanvasLayoutMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *CanvasState_NodesEntry) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("NodesEntry {")
@@ -3240,6 +3959,31 @@ func (x *CanvasState_NodesEntry) MarshalProtoText() string {
 }
 
 func (x *CanvasState_NodesEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CanvasState_LayoutMetadataEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("LayoutMetadataEntry {")
+	if x.Key != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.Value != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString(x.Value.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CanvasState_LayoutMetadataEntry) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3294,6 +4038,20 @@ func (x *CanvasState) MarshalProtoText() string {
 			sb.WriteString(v.MarshalProtoText())
 		}
 		sb.WriteString("]")
+	}
+	if len(x.LayoutMetadata) > 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("layout_metadata: {")
+		for _, k := range slices.Sorted(maps.Keys(x.LayoutMetadata)) {
+			v := x.LayoutMetadata[k]
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString(" }")
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3354,6 +4112,31 @@ func (x *UpdateCanvasRequest_SetNodesEntry) MarshalProtoText() string {
 }
 
 func (x *UpdateCanvasRequest_SetNodesEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SetLayoutMetadataEntry {")
+	if x.Key != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.Value != nil {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString(x.Value.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *UpdateCanvasRequest_SetLayoutMetadataEntry) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3436,6 +4219,33 @@ func (x *UpdateCanvasRequest) MarshalProtoText() string {
 				sb.WriteString(", ")
 			}
 			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.SetLayoutMetadata) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("set_layout_metadata: {")
+		for _, k := range slices.Sorted(maps.Keys(x.SetLayoutMetadata)) {
+			v := x.SetLayoutMetadata[k]
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString(" }")
+	}
+	if len(x.RemoveLayoutMetadataNodeIds) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("remove_layout_metadata_node_ids: [")
+		for i, v := range x.RemoveLayoutMetadataNodeIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
 	}
@@ -4004,6 +4814,146 @@ func (m *HiddenGraphLink) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *CanvasLayoutMetadata) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CanvasLayoutMetadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CanvasLayoutMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StableNodeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StableNodeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lane", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Lane = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rank", wireType)
+			}
+			m.Rank = 0
+			m.Rank, iNdEx, err = protobuf_go_lite.DecodeVarintInt32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Group", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Group = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectionOwner", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectionOwner = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *CanvasState) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4194,6 +5144,99 @@ func (m *CanvasState) UnmarshalVT(dAtA []byte) error {
 			if err := m.HiddenGraphLinks[len(m.HiddenGraphLinks)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LayoutMetadata", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LayoutMetadata == nil {
+				m.LayoutMetadata = make(map[string]*CanvasLayoutMetadata)
+			}
+			var mapkey string
+			var mapvalue *CanvasLayoutMetadata
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					var _v uint64
+					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					mapmsglen = int(_v)
+					if err != nil {
+						return err
+					}
+					if mapmsglen < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &CanvasLayoutMetadata{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.LayoutMetadata[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -4566,6 +5609,121 @@ func (m *UpdateCanvasRequest) UnmarshalVT(dAtA []byte) error {
 			if err := m.RemoveHiddenGraphLinks[len(m.RemoveHiddenGraphLinks)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetLayoutMetadata", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.SetLayoutMetadata == nil {
+				m.SetLayoutMetadata = make(map[string]*CanvasLayoutMetadata)
+			}
+			var mapkey string
+			var mapvalue *CanvasLayoutMetadata
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					var _v uint64
+					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					mapmsglen = int(_v)
+					if err != nil {
+						return err
+					}
+					if mapmsglen < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &CanvasLayoutMetadata{}
+					if err := mapvalue.UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.SetLayoutMetadata[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoveLayoutMetadataNodeIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RemoveLayoutMetadataNodeIds = append(m.RemoveLayoutMetadataNodeIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

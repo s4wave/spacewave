@@ -321,6 +321,44 @@ export const DeviceCapabilityGrantState_Enum = createEnumType(
 )
 
 /**
+ * DeviceCheckoutRootAccess is the checkout-root access mode advertised by a Device.
+ *
+ * @generated from enum s4wave.device.DeviceCheckoutRootAccess
+ */
+export enum DeviceCheckoutRootAccess {
+  /**
+   * DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN is unset.
+   *
+   * @generated from enum value: DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY means the checkout root can be read but not mutated.
+   *
+   * @generated from enum value: DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY = 1;
+   */
+  READ_ONLY = 1,
+
+  /**
+   * DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE means the checkout root can be read and written after approval.
+   *
+   * @generated from enum value: DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE = 2;
+   */
+  READ_WRITE = 2,
+}
+
+// DeviceCheckoutRootAccess_Enum is the enum type for DeviceCheckoutRootAccess.
+export const DeviceCheckoutRootAccess_Enum = createEnumType(
+  's4wave.device.DeviceCheckoutRootAccess',
+  [
+    { no: 0, name: 'DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN' },
+    { no: 1, name: 'DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY' },
+    { no: 2, name: 'DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE' },
+  ],
+)
+
+/**
  * DevicePlatform summarizes the daemon runtime platform.
  *
  * @generated from message s4wave.device.DevicePlatform
@@ -488,6 +526,65 @@ export const DeviceCapabilityPolicy: MessageType<DeviceCapabilityPolicy> =
   })
 
 /**
+ * DeviceCheckoutRootCapability records selection metadata for a named checkout root.
+ *
+ * @generated from message s4wave.device.DeviceCheckoutRootCapability
+ */
+export interface DeviceCheckoutRootCapability {
+  /**
+   * Name is the stable checkout-root selector, such as skiffos.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * DisplayPath is a human-readable path or mount label.
+   *
+   * @generated from field: string display_path = 2;
+   */
+  displayPath?: string
+  /**
+   * SelectionRef is the durable local policy selector for this root.
+   *
+   * @generated from field: string selection_ref = 3;
+   */
+  selectionRef?: string
+  /**
+   * Access is the read/write mode currently exposed by the Device policy.
+   *
+   * @generated from field: s4wave.device.DeviceCheckoutRootAccess access = 4;
+   */
+  access?: DeviceCheckoutRootAccess
+  /**
+   * ReadAvailable reports whether the linked filesystem owner may be opened for reads.
+   *
+   * @generated from field: bool read_available = 5;
+   */
+  readAvailable?: boolean
+  /**
+   * WriteAvailable reports whether the linked filesystem owner may accept writes after approval.
+   *
+   * @generated from field: bool write_available = 6;
+   */
+  writeAvailable?: boolean
+}
+
+// DeviceCheckoutRootCapability contains the message type declaration for DeviceCheckoutRootCapability.
+export const DeviceCheckoutRootCapability: MessageType<DeviceCheckoutRootCapability> =
+  createMessageType({
+    typeName: 's4wave.device.DeviceCheckoutRootCapability',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'selection_ref', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'access', kind: 'enum', T: DeviceCheckoutRootAccess_Enum },
+      { no: 5, name: 'read_available', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'write_available', kind: 'scalar', T: ScalarType.BOOL },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * DeviceCapability is a declared capability summary, not the capability owner.
  *
  * @generated from message s4wave.device.DeviceCapability
@@ -535,6 +632,12 @@ export interface DeviceCapability {
    * @generated from field: s4wave.device.DeviceCapabilityPolicy policy = 7;
    */
   policy?: DeviceCapabilityPolicy
+  /**
+   * CheckoutRoot records named checkout-root metadata for filesystem capabilities.
+   *
+   * @generated from field: s4wave.device.DeviceCheckoutRootCapability checkout_root = 8;
+   */
+  checkoutRoot?: DeviceCheckoutRootCapability
 }
 
 // DeviceCapability contains the message type declaration for DeviceCapability.
@@ -553,6 +656,12 @@ export const DeviceCapability: MessageType<DeviceCapability> =
         name: 'policy',
         kind: 'message',
         T: () => DeviceCapabilityPolicy,
+      },
+      {
+        no: 8,
+        name: 'checkout_root',
+        kind: 'message',
+        T: () => DeviceCheckoutRootCapability,
       },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -849,6 +958,132 @@ export const ReportDeviceStatusResponse: MessageType<ReportDeviceStatusResponse>
     typeName: 's4wave.device.ReportDeviceStatusResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => Device },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AccessCheckoutRootRequest opens a named checkout root as a filesystem resource.
+ *
+ * @generated from message s4wave.device.AccessCheckoutRootRequest
+ */
+export interface AccessCheckoutRootRequest {
+  /**
+   * Name is the checkout-root selector. Empty selects the first readable root.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * Write requests a write-capable filesystem handle.
+   *
+   * @generated from field: bool write = 2;
+   */
+  write?: boolean
+  /**
+   * WriteApprovalRef identifies the Decision or equivalent approval for writes.
+   *
+   * @generated from field: string write_approval_ref = 3;
+   */
+  writeApprovalRef?: string
+}
+
+// AccessCheckoutRootRequest contains the message type declaration for AccessCheckoutRootRequest.
+export const AccessCheckoutRootRequest: MessageType<AccessCheckoutRootRequest> =
+  createMessageType({
+    typeName: 's4wave.device.AccessCheckoutRootRequest',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 3,
+        name: 'write_approval_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AccessCheckoutRootResponse contains the mounted filesystem resource.
+ *
+ * @generated from message s4wave.device.AccessCheckoutRootResponse
+ */
+export interface AccessCheckoutRootResponse {
+  /**
+   * ResourceId is the FSHandle resource id.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+  /**
+   * CapabilityId is the selected Device capability id.
+   *
+   * @generated from field: string capability_id = 2;
+   */
+  capabilityId?: string
+  /**
+   * ObjectKey is the linked filesystem owner object key.
+   *
+   * @generated from field: string object_key = 3;
+   */
+  objectKey?: string
+  /**
+   * TypeId is the linked filesystem ObjectType id.
+   *
+   * @generated from field: string type_id = 4;
+   */
+  typeId?: string
+  /**
+   * CheckoutRoot is the selected checkout-root metadata.
+   *
+   * @generated from field: s4wave.device.DeviceCheckoutRootCapability checkout_root = 5;
+   */
+  checkoutRoot?: DeviceCheckoutRootCapability
+  /**
+   * WriteAvailable reports whether the selected capability can be write-gated.
+   *
+   * @generated from field: bool write_available = 6;
+   */
+  writeAvailable?: boolean
+  /**
+   * WriteEnabled reports whether this mounted handle was opened for writes.
+   *
+   * @generated from field: bool write_enabled = 7;
+   */
+  writeEnabled?: boolean
+  /**
+   * WriteApprovalRef is the approval ref accepted for a write-enabled handle.
+   *
+   * @generated from field: string write_approval_ref = 8;
+   */
+  writeApprovalRef?: string
+}
+
+// AccessCheckoutRootResponse contains the message type declaration for AccessCheckoutRootResponse.
+export const AccessCheckoutRootResponse: MessageType<AccessCheckoutRootResponse> =
+  createMessageType({
+    typeName: 's4wave.device.AccessCheckoutRootResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'capability_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'checkout_root',
+        kind: 'message',
+        T: () => DeviceCheckoutRootCapability,
+      },
+      { no: 6, name: 'write_available', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 7, name: 'write_enabled', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 8,
+        name: 'write_approval_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

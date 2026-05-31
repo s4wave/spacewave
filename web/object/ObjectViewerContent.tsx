@@ -6,6 +6,7 @@ import { Button } from '@s4wave/web/ui/button.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { SpaceContents } from '@s4wave/sdk/space/contents.js'
 
 import type {
   ObjectViewerComponent,
@@ -20,6 +21,7 @@ interface ObjectViewerContentProps {
   objectInfo: ObjectInfo
   worldState: Resource<IWorldState>
   objectState?: IObjectState
+  spaceContents?: Resource<SpaceContents>
   typeID: string
   component?: ObjectViewerComponent
   availableComponents?: ObjectViewerComponent[]
@@ -32,6 +34,7 @@ export function ObjectViewerContent({
   objectInfo,
   worldState,
   objectState,
+  spaceContents,
   typeID,
   component,
   availableComponents,
@@ -96,6 +99,7 @@ export function ObjectViewerContent({
     objectInfo,
     worldState,
     objectState,
+    spaceContents,
   }
 
   return (

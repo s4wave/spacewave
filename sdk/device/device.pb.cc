@@ -77,6 +77,42 @@ struct DevicePlatformDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevicePlatformDefaultTypeInternal _DevicePlatform_default_instance_;
 
+inline constexpr DeviceCheckoutRootCapability::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        display_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        selection_ref_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        access_{static_cast< ::s4wave::device::DeviceCheckoutRootAccess >(0)},
+        read_available_{false},
+        write_available_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DeviceCheckoutRootCapability::DeviceCheckoutRootCapability(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DeviceCheckoutRootCapability_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DeviceCheckoutRootCapabilityDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DeviceCheckoutRootCapabilityDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DeviceCheckoutRootCapabilityDefaultTypeInternal() {}
+  union {
+    DeviceCheckoutRootCapability _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeviceCheckoutRootCapabilityDefaultTypeInternal _DeviceCheckoutRootCapability_default_instance_;
+
 inline constexpr DeviceCapabilityPolicy::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -142,6 +178,37 @@ struct DeviceCapabilityLinkDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeviceCapabilityLinkDefaultTypeInternal _DeviceCapabilityLink_default_instance_;
 
+inline constexpr AccessCheckoutRootRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        write_approval_ref_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        write_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AccessCheckoutRootRequest::AccessCheckoutRootRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AccessCheckoutRootRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AccessCheckoutRootRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AccessCheckoutRootRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AccessCheckoutRootRequestDefaultTypeInternal() {}
+  union {
+    AccessCheckoutRootRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AccessCheckoutRootRequestDefaultTypeInternal _AccessCheckoutRootRequest_default_instance_;
+
 inline constexpr DeviceStatus::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -191,6 +258,7 @@ inline constexpr DeviceCapability::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         link_{nullptr},
         policy_{nullptr},
+        checkout_root_{nullptr},
         state_{static_cast< ::s4wave::device::DeviceCapabilityState >(0)} {}
 
 template <typename>
@@ -271,6 +339,46 @@ struct ComputersDashboardDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ComputersDashboardDefaultTypeInternal _ComputersDashboard_default_instance_;
+
+inline constexpr AccessCheckoutRootResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        capability_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        type_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        write_approval_ref_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        checkout_root_{nullptr},
+        resource_id_{0u},
+        write_available_{false},
+        write_enabled_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AccessCheckoutRootResponse::AccessCheckoutRootResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AccessCheckoutRootResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AccessCheckoutRootResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AccessCheckoutRootResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AccessCheckoutRootResponseDefaultTypeInternal() {}
+  union {
+    AccessCheckoutRootResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AccessCheckoutRootResponseDefaultTypeInternal _AccessCheckoutRootResponse_default_instance_;
 
 inline constexpr ReportDeviceStatusRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -396,7 +504,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace device
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto[6];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto[7];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto = nullptr;
 const ::uint32_t
@@ -422,7 +530,7 @@ const ::uint32_t
         2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapability, _impl_._has_bits_),
-        10, // hasbit index offset
+        11, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapability, _impl_.id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapability, _impl_.kind_),
         PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapability, _impl_.label_),
@@ -430,13 +538,15 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapability, _impl_.detail_),
         PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapability, _impl_.link_),
         PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapability, _impl_.policy_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapability, _impl_.checkout_root_),
         0,
         1,
         2,
-        6,
+        7,
         3,
         4,
         5,
+        6,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCapabilityLink, _impl_._has_bits_),
         6, // hasbit index offset
@@ -457,6 +567,21 @@ const ::uint32_t
         1,
         2,
         3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCheckoutRootCapability, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCheckoutRootCapability, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCheckoutRootCapability, _impl_.display_path_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCheckoutRootCapability, _impl_.selection_ref_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCheckoutRootCapability, _impl_.access_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCheckoutRootCapability, _impl_.read_available_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::DeviceCheckoutRootCapability, _impl_.write_available_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::device::Device, _impl_._has_bits_),
         13, // hasbit index offset
@@ -522,6 +647,34 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::device::ReportDeviceStatusResponse, _impl_.state_),
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootRequest, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootRequest, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootRequest, _impl_.write_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootRequest, _impl_.write_approval_ref_),
+        0,
+        2,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_._has_bits_),
+        11, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_.resource_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_.capability_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_.type_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_.checkout_root_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_.write_available_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_.write_enabled_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::device::AccessCheckoutRootResponse, _impl_.write_approval_ref_),
+        5,
+        0,
+        1,
+        2,
+        4,
+        6,
+        7,
+        3,
 };
 
 static const ::_pbi::MigrationSchema
@@ -529,15 +682,18 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::s4wave::device::DevicePlatform)},
         {7, sizeof(::s4wave::device::DeviceStatus)},
         {18, sizeof(::s4wave::device::DeviceCapability)},
-        {35, sizeof(::s4wave::device::DeviceCapabilityLink)},
-        {44, sizeof(::s4wave::device::DeviceCapabilityPolicy)},
-        {55, sizeof(::s4wave::device::Device)},
-        {78, sizeof(::s4wave::device::ComputersDashboard)},
-        {85, sizeof(::s4wave::device::CreateComputersDashboardOp)},
-        {94, sizeof(::s4wave::device::WatchDeviceStateRequest)},
-        {95, sizeof(::s4wave::device::WatchDeviceStateResponse)},
-        {100, sizeof(::s4wave::device::ReportDeviceStatusRequest)},
-        {115, sizeof(::s4wave::device::ReportDeviceStatusResponse)},
+        {37, sizeof(::s4wave::device::DeviceCapabilityLink)},
+        {46, sizeof(::s4wave::device::DeviceCapabilityPolicy)},
+        {57, sizeof(::s4wave::device::DeviceCheckoutRootCapability)},
+        {72, sizeof(::s4wave::device::Device)},
+        {95, sizeof(::s4wave::device::ComputersDashboard)},
+        {102, sizeof(::s4wave::device::CreateComputersDashboardOp)},
+        {111, sizeof(::s4wave::device::WatchDeviceStateRequest)},
+        {112, sizeof(::s4wave::device::WatchDeviceStateResponse)},
+        {117, sizeof(::s4wave::device::ReportDeviceStatusRequest)},
+        {132, sizeof(::s4wave::device::ReportDeviceStatusResponse)},
+        {137, sizeof(::s4wave::device::AccessCheckoutRootRequest)},
+        {146, sizeof(::s4wave::device::AccessCheckoutRootResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::device::_DevicePlatform_default_instance_._instance,
@@ -545,6 +701,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::device::_DeviceCapability_default_instance_._instance,
     &::s4wave::device::_DeviceCapabilityLink_default_instance_._instance,
     &::s4wave::device::_DeviceCapabilityPolicy_default_instance_._instance,
+    &::s4wave::device::_DeviceCheckoutRootCapability_default_instance_._instance,
     &::s4wave::device::_Device_default_instance_._instance,
     &::s4wave::device::_ComputersDashboard_default_instance_._instance,
     &::s4wave::device::_CreateComputersDashboardOp_default_instance_._instance,
@@ -552,6 +709,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::device::_WatchDeviceStateResponse_default_instance_._instance,
     &::s4wave::device::_ReportDeviceStatusRequest_default_instance_._instance,
     &::s4wave::device::_ReportDeviceStatusResponse_default_instance_._instance,
+    &::s4wave::device::_AccessCheckoutRootRequest_default_instance_._instance,
+    &::s4wave::device::_AccessCheckoutRootResponse_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -562,84 +721,106 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fd
     "us\022/\n\010liveness\030\001 \001(\0162\035.s4wave.device.Dev"
     "iceLiveness\022\017\n\007message\030\002 \001(\t\022\r\n\005error\030\003 "
     "\001(\t\022/\n\013observed_at\030\004 \001(\0132\032.google.protob"
-    "uf.Timestamp\"\352\001\n\020DeviceCapability\022\n\n\002id\030"
+    "uf.Timestamp\"\256\002\n\020DeviceCapability\022\n\n\002id\030"
     "\001 \001(\t\022\014\n\004kind\030\002 \001(\t\022\r\n\005label\030\003 \001(\t\0223\n\005st"
     "ate\030\004 \001(\0162$.s4wave.device.DeviceCapabili"
     "tyState\022\016\n\006detail\030\005 \001(\t\0221\n\004link\030\006 \001(\0132#."
     "s4wave.device.DeviceCapabilityLink\0225\n\006po"
     "licy\030\007 \001(\0132%.s4wave.device.DeviceCapabil"
-    "ityPolicy\"P\n\024DeviceCapabilityLink\022\022\n\nobj"
-    "ect_key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t\022\023\n\013protoc"
-    "ol_id\030\003 \001(\t\"\314\001\n\026DeviceCapabilityPolicy\022\030"
-    "\n\020local_policy_ref\030\001 \001(\t\022\030\n\020grant_policy"
-    "_ref\030\002 \001(\t\022>\n\013local_state\030\003 \001(\0162).s4wave"
-    ".device.DeviceCapabilityLocalState\022>\n\013gr"
-    "ant_state\030\004 \001(\0162).s4wave.device.DeviceCa"
-    "pabilityGrantState\"\250\003\n\006Device\022\017\n\007peer_id"
-    "\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022/\n\010platform\030\003 \001(\0132"
-    "\035.s4wave.device.DevicePlatform\022\026\n\016daemon"
-    "_version\030\004 \001(\t\0224\n\013setup_state\030\005 \001(\0162\037.s4"
-    "wave.device.DeviceSetupState\0226\n\014update_s"
-    "tate\030\006 \001(\0162 .s4wave.device.DeviceUpdateS"
-    "tate\0220\n\013last_status\030\007 \001(\0132\033.s4wave.devic"
-    "e.DeviceStatus\0225\n\014capabilities\030\010 \003(\0132\037.s"
-    "4wave.device.DeviceCapability\022.\n\ncreated"
-    "_at\030\t \001(\0132\032.google.protobuf.Timestamp\022.\n"
-    "\nupdated_at\030\n \001(\0132\032.google.protobuf.Time"
-    "stamp\"R\n\022ComputersDashboard\022\014\n\004name\030\001 \001("
-    "\t\022.\n\ncreated_at\030\002 \001(\0132\032.google.protobuf."
-    "Timestamp\"m\n\032CreateComputersDashboardOp\022"
-    "\022\n\nobject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022-\n\ttim"
-    "estamp\030\003 \001(\0132\032.google.protobuf.Timestamp"
-    "\"\031\n\027WatchDeviceStateRequest\"@\n\030WatchDevi"
-    "ceStateResponse\022$\n\005state\030\001 \001(\0132\025.s4wave."
-    "device.Device\"\241\002\n\031ReportDeviceStatusRequ"
-    "est\022\017\n\007peer_id\030\001 \001(\t\0224\n\013setup_state\030\002 \001("
-    "\0162\037.s4wave.device.DeviceSetupState\0226\n\014up"
-    "date_state\030\003 \001(\0162 .s4wave.device.DeviceU"
-    "pdateState\0220\n\013last_status\030\004 \001(\0132\033.s4wave"
-    ".device.DeviceStatus\0225\n\014capabilities\030\005 \003"
-    "(\0132\037.s4wave.device.DeviceCapability\022\034\n\024r"
-    "eplace_capabilities\030\006 \001(\010\"B\n\032ReportDevic"
-    "eStatusResponse\022$\n\005state\030\001 \001(\0132\025.s4wave."
-    "device.Device*\331\001\n\020DeviceSetupState\022\036\n\032DE"
-    "VICE_SETUP_STATE_UNKNOWN\020\000\022-\n)DEVICE_SET"
-    "UP_STATE_WAITING_FOR_COMPLETION\020\001\022*\n&DEV"
-    "ICE_SETUP_STATE_COMPLETION_IMPORTED\020\002\022+\n"
-    "\'DEVICE_SETUP_STATE_DEVICE_SESSION_READY"
-    "\020\003\022\035\n\031DEVICE_SETUP_STATE_FAILED\020\004*\365\001\n\021De"
-    "viceUpdateState\022\037\n\033DEVICE_UPDATE_STATE_U"
-    "NKNOWN\020\000\022\034\n\030DEVICE_UPDATE_STATE_IDLE\020\001\022\035"
-    "\n\031DEVICE_UPDATE_STATE_READY\020\002\022\037\n\033DEVICE_"
-    "UPDATE_STATE_STAGING\020\003\022 \n\034DEVICE_UPDATE_"
-    "STATE_APPLYING\020\004\022\037\n\033DEVICE_UPDATE_STATE_"
-    "UPDATED\020\005\022\036\n\032DEVICE_UPDATE_STATE_FAILED\020"
-    "\006*\204\001\n\016DeviceLiveness\022\033\n\027DEVICE_LIVENESS_"
-    "UNKNOWN\020\000\022\032\n\026DEVICE_LIVENESS_ONLINE\020\001\022\034\n"
-    "\030DEVICE_LIVENESS_DEGRADED\020\002\022\033\n\027DEVICE_LI"
-    "VENESS_OFFLINE\020\003*\376\001\n\025DeviceCapabilitySta"
-    "te\022#\n\037DEVICE_CAPABILITY_STATE_UNKNOWN\020\000\022"
-    "$\n DEVICE_CAPABILITY_STATE_DECLARED\020\001\022$\n"
-    " DEVICE_CAPABILITY_STATE_DISABLED\020\002\022)\n%D"
-    "EVICE_CAPABILITY_STATE_GRANT_BLOCKED\020\003\022%"
-    "\n!DEVICE_CAPABILITY_STATE_AVAILABLE\020\004\022\"\n"
-    "\036DEVICE_CAPABILITY_STATE_ACTIVE\020\005*\236\001\n\032De"
-    "viceCapabilityLocalState\022)\n%DEVICE_CAPAB"
-    "ILITY_LOCAL_STATE_UNKNOWN\020\000\022)\n%DEVICE_CA"
-    "PABILITY_LOCAL_STATE_ENABLED\020\001\022*\n&DEVICE"
-    "_CAPABILITY_LOCAL_STATE_DISABLED\020\002*\235\001\n\032D"
-    "eviceCapabilityGrantState\022)\n%DEVICE_CAPA"
-    "BILITY_GRANT_STATE_UNKNOWN\020\000\022)\n%DEVICE_C"
-    "APABILITY_GRANT_STATE_ALLOWED\020\001\022)\n%DEVIC"
-    "E_CAPABILITY_GRANT_STATE_BLOCKED\020\0022\351\001\n\025D"
-    "eviceResourceService\022e\n\020WatchDeviceState"
-    "\022&.s4wave.device.WatchDeviceStateRequest"
-    "\032\'.s4wave.device.WatchDeviceStateRespons"
-    "e0\001\022i\n\022ReportDeviceStatus\022(.s4wave.devic"
-    "e.ReportDeviceStatusRequest\032).s4wave.dev"
-    "ice.ReportDeviceStatusResponseB6Z4github"
-    ".com/s4wave/spacewave/sdk/device;s4wave_"
-    "deviceb\006proto3"
+    "ityPolicy\022B\n\rcheckout_root\030\010 \001(\0132+.s4wav"
+    "e.device.DeviceCheckoutRootCapability\"P\n"
+    "\024DeviceCapabilityLink\022\022\n\nobject_key\030\001 \001("
+    "\t\022\017\n\007type_id\030\002 \001(\t\022\023\n\013protocol_id\030\003 \001(\t\""
+    "\314\001\n\026DeviceCapabilityPolicy\022\030\n\020local_poli"
+    "cy_ref\030\001 \001(\t\022\030\n\020grant_policy_ref\030\002 \001(\t\022>"
+    "\n\013local_state\030\003 \001(\0162).s4wave.device.Devi"
+    "ceCapabilityLocalState\022>\n\013grant_state\030\004 "
+    "\001(\0162).s4wave.device.DeviceCapabilityGran"
+    "tState\"\303\001\n\034DeviceCheckoutRootCapability\022"
+    "\014\n\004name\030\001 \001(\t\022\024\n\014display_path\030\002 \001(\t\022\025\n\rs"
+    "election_ref\030\003 \001(\t\0227\n\006access\030\004 \001(\0162\'.s4w"
+    "ave.device.DeviceCheckoutRootAccess\022\026\n\016r"
+    "ead_available\030\005 \001(\010\022\027\n\017write_available\030\006"
+    " \001(\010\"\250\003\n\006Device\022\017\n\007peer_id\030\001 \001(\t\022\r\n\005labe"
+    "l\030\002 \001(\t\022/\n\010platform\030\003 \001(\0132\035.s4wave.devic"
+    "e.DevicePlatform\022\026\n\016daemon_version\030\004 \001(\t"
+    "\0224\n\013setup_state\030\005 \001(\0162\037.s4wave.device.De"
+    "viceSetupState\0226\n\014update_state\030\006 \001(\0162 .s"
+    "4wave.device.DeviceUpdateState\0220\n\013last_s"
+    "tatus\030\007 \001(\0132\033.s4wave.device.DeviceStatus"
+    "\0225\n\014capabilities\030\010 \003(\0132\037.s4wave.device.D"
+    "eviceCapability\022.\n\ncreated_at\030\t \001(\0132\032.go"
+    "ogle.protobuf.Timestamp\022.\n\nupdated_at\030\n "
+    "\001(\0132\032.google.protobuf.Timestamp\"R\n\022Compu"
+    "tersDashboard\022\014\n\004name\030\001 \001(\t\022.\n\ncreated_a"
+    "t\030\002 \001(\0132\032.google.protobuf.Timestamp\"m\n\032C"
+    "reateComputersDashboardOp\022\022\n\nobject_key\030"
+    "\001 \001(\t\022\014\n\004name\030\002 \001(\t\022-\n\ttimestamp\030\003 \001(\0132\032"
+    ".google.protobuf.Timestamp\"\031\n\027WatchDevic"
+    "eStateRequest\"@\n\030WatchDeviceStateRespons"
+    "e\022$\n\005state\030\001 \001(\0132\025.s4wave.device.Device\""
+    "\241\002\n\031ReportDeviceStatusRequest\022\017\n\007peer_id"
+    "\030\001 \001(\t\0224\n\013setup_state\030\002 \001(\0162\037.s4wave.dev"
+    "ice.DeviceSetupState\0226\n\014update_state\030\003 \001"
+    "(\0162 .s4wave.device.DeviceUpdateState\0220\n\013"
+    "last_status\030\004 \001(\0132\033.s4wave.device.Device"
+    "Status\0225\n\014capabilities\030\005 \003(\0132\037.s4wave.de"
+    "vice.DeviceCapability\022\034\n\024replace_capabil"
+    "ities\030\006 \001(\010\"B\n\032ReportDeviceStatusRespons"
+    "e\022$\n\005state\030\001 \001(\0132\025.s4wave.device.Device\""
+    "T\n\031AccessCheckoutRootRequest\022\014\n\004name\030\001 \001"
+    "(\t\022\r\n\005write\030\002 \001(\010\022\032\n\022write_approval_ref\030"
+    "\003 \001(\t\"\375\001\n\032AccessCheckoutRootResponse\022\023\n\013"
+    "resource_id\030\001 \001(\r\022\025\n\rcapability_id\030\002 \001(\t"
+    "\022\022\n\nobject_key\030\003 \001(\t\022\017\n\007type_id\030\004 \001(\t\022B\n"
+    "\rcheckout_root\030\005 \001(\0132+.s4wave.device.Dev"
+    "iceCheckoutRootCapability\022\027\n\017write_avail"
+    "able\030\006 \001(\010\022\025\n\rwrite_enabled\030\007 \001(\010\022\032\n\022wri"
+    "te_approval_ref\030\010 \001(\t*\331\001\n\020DeviceSetupSta"
+    "te\022\036\n\032DEVICE_SETUP_STATE_UNKNOWN\020\000\022-\n)DE"
+    "VICE_SETUP_STATE_WAITING_FOR_COMPLETION\020"
+    "\001\022*\n&DEVICE_SETUP_STATE_COMPLETION_IMPOR"
+    "TED\020\002\022+\n\'DEVICE_SETUP_STATE_DEVICE_SESSI"
+    "ON_READY\020\003\022\035\n\031DEVICE_SETUP_STATE_FAILED\020"
+    "\004*\365\001\n\021DeviceUpdateState\022\037\n\033DEVICE_UPDATE"
+    "_STATE_UNKNOWN\020\000\022\034\n\030DEVICE_UPDATE_STATE_"
+    "IDLE\020\001\022\035\n\031DEVICE_UPDATE_STATE_READY\020\002\022\037\n"
+    "\033DEVICE_UPDATE_STATE_STAGING\020\003\022 \n\034DEVICE"
+    "_UPDATE_STATE_APPLYING\020\004\022\037\n\033DEVICE_UPDAT"
+    "E_STATE_UPDATED\020\005\022\036\n\032DEVICE_UPDATE_STATE"
+    "_FAILED\020\006*\204\001\n\016DeviceLiveness\022\033\n\027DEVICE_L"
+    "IVENESS_UNKNOWN\020\000\022\032\n\026DEVICE_LIVENESS_ONL"
+    "INE\020\001\022\034\n\030DEVICE_LIVENESS_DEGRADED\020\002\022\033\n\027D"
+    "EVICE_LIVENESS_OFFLINE\020\003*\376\001\n\025DeviceCapab"
+    "ilityState\022#\n\037DEVICE_CAPABILITY_STATE_UN"
+    "KNOWN\020\000\022$\n DEVICE_CAPABILITY_STATE_DECLA"
+    "RED\020\001\022$\n DEVICE_CAPABILITY_STATE_DISABLE"
+    "D\020\002\022)\n%DEVICE_CAPABILITY_STATE_GRANT_BLO"
+    "CKED\020\003\022%\n!DEVICE_CAPABILITY_STATE_AVAILA"
+    "BLE\020\004\022\"\n\036DEVICE_CAPABILITY_STATE_ACTIVE\020"
+    "\005*\236\001\n\032DeviceCapabilityLocalState\022)\n%DEVI"
+    "CE_CAPABILITY_LOCAL_STATE_UNKNOWN\020\000\022)\n%D"
+    "EVICE_CAPABILITY_LOCAL_STATE_ENABLED\020\001\022*"
+    "\n&DEVICE_CAPABILITY_LOCAL_STATE_DISABLED"
+    "\020\002*\235\001\n\032DeviceCapabilityGrantState\022)\n%DEV"
+    "ICE_CAPABILITY_GRANT_STATE_UNKNOWN\020\000\022)\n%"
+    "DEVICE_CAPABILITY_GRANT_STATE_ALLOWED\020\001\022"
+    ")\n%DEVICE_CAPABILITY_GRANT_STATE_BLOCKED"
+    "\020\002*\232\001\n\030DeviceCheckoutRootAccess\022\'\n#DEVIC"
+    "E_CHECKOUT_ROOT_ACCESS_UNKNOWN\020\000\022)\n%DEVI"
+    "CE_CHECKOUT_ROOT_ACCESS_READ_ONLY\020\001\022*\n&D"
+    "EVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE\020\0022"
+    "\324\002\n\025DeviceResourceService\022e\n\020WatchDevice"
+    "State\022&.s4wave.device.WatchDeviceStateRe"
+    "quest\032\'.s4wave.device.WatchDeviceStateRe"
+    "sponse0\001\022i\n\022ReportDeviceStatus\022(.s4wave."
+    "device.ReportDeviceStatusRequest\032).s4wav"
+    "e.device.ReportDeviceStatusResponse\022i\n\022A"
+    "ccessCheckoutRoot\022(.s4wave.device.Access"
+    "CheckoutRootRequest\032).s4wave.device.Acce"
+    "ssCheckoutRootResponseB6Z4github.com/s4w"
+    "ave/spacewave/sdk/device;s4wave_deviceb\006"
+    "proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto_deps[1] = {
@@ -649,13 +830,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto = {
     false,
     false,
-    3374,
+    4246,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto,
     "github.com/s4wave/spacewave/sdk/device/device.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto_deps,
     1,
-    12,
+    15,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto::offsets,
@@ -699,6 +880,12 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DeviceCapabilityGrant
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto[5];
 }
 PROTOBUF_CONSTINIT const uint32_t DeviceCapabilityGrantState_internal_data_[] = {
+    196608u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DeviceCheckoutRootAccess_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto[6];
+}
+PROTOBUF_CONSTINIT const uint32_t DeviceCheckoutRootAccess_internal_data_[] = {
     196608u, 0u, };
 // ===================================================================
 
@@ -1475,6 +1662,9 @@ DeviceCapability::DeviceCapability(
   _impl_.policy_ = (CheckHasBit(cached_has_bits, 0x00000020U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.policy_)
                 : nullptr;
+  _impl_.checkout_root_ = (CheckHasBit(cached_has_bits, 0x00000040U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.checkout_root_)
+                : nullptr;
   _impl_.state_ = from._impl_.state_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.device.DeviceCapability)
@@ -1514,6 +1704,7 @@ inline void DeviceCapability::SharedDtor(MessageLite& self) {
   this_._impl_.detail_.Destroy();
   delete this_._impl_.link_;
   delete this_._impl_.policy_;
+  delete this_._impl_.checkout_root_;
   this_._impl_.~Impl_();
 }
 
@@ -1560,17 +1751,17 @@ DeviceCapability::GetClassData() const {
   return DeviceCapability_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 7, 2, 56, 2>
+const ::_pbi::TcParseTable<3, 8, 3, 64, 2>
 DeviceCapability::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_._has_bits_),
     0, // no _extensions_
-    7, 56,  // max_field_number, fast_idx_mask
+    8, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967168,  // skipmap
+    4294967040,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    7,  // num_field_entries
-    2,  // num_aux_entries
+    8,  // num_field_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     DeviceCapability_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -1579,7 +1770,10 @@ DeviceCapability::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::device::DeviceCapability>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 8;
+    {::_pbi::TcParser::FastMtS1,
+     {66, 6, 2,
+      PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.checkout_root_)}},
     // string id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -1593,8 +1787,8 @@ DeviceCapability::_table_ = {
      {26, 2, 0,
       PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.label_)}},
     // .s4wave.device.DeviceCapabilityState state = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DeviceCapability, _impl_.state_), 6>(),
-     {32, 6, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DeviceCapability, _impl_.state_), 7>(),
+     {32, 7, 0,
       PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.state_)}},
     // string detail = 5;
     {::_pbi::TcParser::FastUS1,
@@ -1618,20 +1812,23 @@ DeviceCapability::_table_ = {
     // string label = 3;
     {PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.label_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .s4wave.device.DeviceCapabilityState state = 4;
-    {PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.state_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.state_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string detail = 5;
     {PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.detail_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .s4wave.device.DeviceCapabilityLink link = 6;
     {PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.link_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .s4wave.device.DeviceCapabilityPolicy policy = 7;
     {PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.policy_), _Internal::kHasBitsOffset + 5, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 8;
+    {PROTOBUF_FIELD_OFFSET(DeviceCapability, _impl_.checkout_root_), _Internal::kHasBitsOffset + 6, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::s4wave::device::DeviceCapabilityLink>()},
       {::_pbi::TcParser::GetTable<::s4wave::device::DeviceCapabilityPolicy>()},
+      {::_pbi::TcParser::GetTable<::s4wave::device::DeviceCheckoutRootCapability>()},
   }},
   {{
-    "\36\2\4\5\0\6\0\0"
+    "\36\2\4\5\0\6\0\0\0\0\0\0\0\0\0\0"
     "s4wave.device.DeviceCapability"
     "id"
     "kind"
@@ -1647,7 +1844,7 @@ PROTOBUF_NOINLINE void DeviceCapability::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.id_.ClearNonDefaultToEmpty();
     }
@@ -1667,6 +1864,10 @@ PROTOBUF_NOINLINE void DeviceCapability::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(_impl_.policy_ != nullptr);
       _impl_.policy_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(_impl_.checkout_root_ != nullptr);
+      _impl_.checkout_root_->Clear();
     }
   }
   _impl_.state_ = 0;
@@ -1724,7 +1925,7 @@ PROTOBUF_NOINLINE void DeviceCapability::Clear() {
   }
 
   // .s4wave.device.DeviceCapabilityState state = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_state() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -1756,6 +1957,13 @@ PROTOBUF_NOINLINE void DeviceCapability::Clear() {
         stream);
   }
 
+  // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        8, *this_._impl_.checkout_root_, this_._impl_.checkout_root_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1781,7 +1989,7 @@ PROTOBUF_NOINLINE void DeviceCapability::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     // string id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_id().empty()) {
@@ -1820,8 +2028,13 @@ PROTOBUF_NOINLINE void DeviceCapability::Clear() {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.policy_);
     }
-    // .s4wave.device.DeviceCapabilityState state = 4;
+    // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 8;
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.checkout_root_);
+    }
+    // .s4wave.device.DeviceCapabilityState state = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_state() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
@@ -1847,7 +2060,7 @@ void DeviceCapability::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_id().empty()) {
         _this->_internal_set_id(from._internal_id());
@@ -1901,6 +2114,14 @@ void DeviceCapability::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(from._impl_.checkout_root_ != nullptr);
+      if (_this->_impl_.checkout_root_ == nullptr) {
+        _this->_impl_.checkout_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.checkout_root_);
+      } else {
+        _this->_impl_.checkout_root_->MergeFrom(*from._impl_.checkout_root_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_state() != 0) {
         _this->_impl_.state_ = from._impl_.state_;
       }
@@ -2697,6 +2918,471 @@ void DeviceCapabilityPolicy::InternalSwap(DeviceCapabilityPolicy* PROTOBUF_RESTR
 }
 
 ::google::protobuf::Metadata DeviceCapabilityPolicy::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DeviceCheckoutRootCapability::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DeviceCheckoutRootCapability>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_._has_bits_);
+};
+
+DeviceCheckoutRootCapability::DeviceCheckoutRootCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DeviceCheckoutRootCapability_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.device.DeviceCheckoutRootCapability)
+}
+PROTOBUF_NDEBUG_INLINE DeviceCheckoutRootCapability::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::device::DeviceCheckoutRootCapability& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        name_(arena, from.name_),
+        display_path_(arena, from.display_path_),
+        selection_ref_(arena, from.selection_ref_) {}
+
+DeviceCheckoutRootCapability::DeviceCheckoutRootCapability(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DeviceCheckoutRootCapability& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DeviceCheckoutRootCapability_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DeviceCheckoutRootCapability* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, access_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, access_),
+           offsetof(Impl_, write_available_) -
+               offsetof(Impl_, access_) +
+               sizeof(Impl_::write_available_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.device.DeviceCheckoutRootCapability)
+}
+PROTOBUF_NDEBUG_INLINE DeviceCheckoutRootCapability::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        name_(arena),
+        display_path_(arena),
+        selection_ref_(arena) {}
+
+inline void DeviceCheckoutRootCapability::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, access_),
+           0,
+           offsetof(Impl_, write_available_) -
+               offsetof(Impl_, access_) +
+               sizeof(Impl_::write_available_));
+}
+DeviceCheckoutRootCapability::~DeviceCheckoutRootCapability() {
+  // @@protoc_insertion_point(destructor:s4wave.device.DeviceCheckoutRootCapability)
+  SharedDtor(*this);
+}
+inline void DeviceCheckoutRootCapability::SharedDtor(MessageLite& self) {
+  DeviceCheckoutRootCapability& this_ = static_cast<DeviceCheckoutRootCapability&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.name_.Destroy();
+  this_._impl_.display_path_.Destroy();
+  this_._impl_.selection_ref_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DeviceCheckoutRootCapability::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DeviceCheckoutRootCapability(arena);
+}
+constexpr auto DeviceCheckoutRootCapability::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DeviceCheckoutRootCapability),
+                                            alignof(DeviceCheckoutRootCapability));
+}
+constexpr auto DeviceCheckoutRootCapability::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DeviceCheckoutRootCapability_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DeviceCheckoutRootCapability::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DeviceCheckoutRootCapability>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DeviceCheckoutRootCapability::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DeviceCheckoutRootCapability>(), &DeviceCheckoutRootCapability::ByteSizeLong,
+              &DeviceCheckoutRootCapability::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_._cached_size_),
+          false,
+      },
+      &DeviceCheckoutRootCapability::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DeviceCheckoutRootCapability_class_data_ =
+        DeviceCheckoutRootCapability::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DeviceCheckoutRootCapability::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DeviceCheckoutRootCapability_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DeviceCheckoutRootCapability_class_data_.tc_table);
+  return DeviceCheckoutRootCapability_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 0, 80, 2>
+DeviceCheckoutRootCapability::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DeviceCheckoutRootCapability_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::device::DeviceCheckoutRootCapability>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.name_)}},
+    // string display_path = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.display_path_)}},
+    // string selection_ref = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.selection_ref_)}},
+    // .s4wave.device.DeviceCheckoutRootAccess access = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DeviceCheckoutRootCapability, _impl_.access_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.access_)}},
+    // bool read_available = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DeviceCheckoutRootCapability, _impl_.read_available_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.read_available_)}},
+    // bool write_available = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DeviceCheckoutRootCapability, _impl_.write_available_), 5>(),
+     {48, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.write_available_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string name = 1;
+    {PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string display_path = 2;
+    {PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.display_path_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string selection_ref = 3;
+    {PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.selection_ref_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.device.DeviceCheckoutRootAccess access = 4;
+    {PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.access_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bool read_available = 5;
+    {PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.read_available_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool write_available = 6;
+    {PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.write_available_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+    "\52\4\14\15\0\0\0\0"
+    "s4wave.device.DeviceCheckoutRootCapability"
+    "name"
+    "display_path"
+    "selection_ref"
+  }},
+};
+PROTOBUF_NOINLINE void DeviceCheckoutRootCapability::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.device.DeviceCheckoutRootCapability)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.display_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.selection_ref_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000038U)) {
+    ::memset(&_impl_.access_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.write_available_) -
+        reinterpret_cast<char*>(&_impl_.access_)) + sizeof(_impl_.write_available_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DeviceCheckoutRootCapability::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DeviceCheckoutRootCapability& this_ = static_cast<const DeviceCheckoutRootCapability&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DeviceCheckoutRootCapability::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DeviceCheckoutRootCapability& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.device.DeviceCheckoutRootCapability)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string name = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.DeviceCheckoutRootCapability.name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string display_path = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_display_path().empty()) {
+      const ::std::string& _s = this_._internal_display_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.DeviceCheckoutRootCapability.display_path");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string selection_ref = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_selection_ref().empty()) {
+      const ::std::string& _s = this_._internal_selection_ref();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.DeviceCheckoutRootCapability.selection_ref");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // .s4wave.device.DeviceCheckoutRootAccess access = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_access() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          4, this_._internal_access(), target);
+    }
+  }
+
+  // bool read_available = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_read_available() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          5, this_._internal_read_available(), target);
+    }
+  }
+
+  // bool write_available = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_write_available() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          6, this_._internal_write_available(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.device.DeviceCheckoutRootCapability)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DeviceCheckoutRootCapability::ByteSizeLong(const MessageLite& base) {
+  const DeviceCheckoutRootCapability& this_ = static_cast<const DeviceCheckoutRootCapability&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DeviceCheckoutRootCapability::ByteSizeLong() const {
+  const DeviceCheckoutRootCapability& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.device.DeviceCheckoutRootCapability)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // string name = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // string display_path = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_display_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_display_path());
+      }
+    }
+    // string selection_ref = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_selection_ref().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_selection_ref());
+      }
+    }
+    // .s4wave.device.DeviceCheckoutRootAccess access = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_access() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_access());
+      }
+    }
+    // bool read_available = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_read_available() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool write_available = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_write_available() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DeviceCheckoutRootCapability::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DeviceCheckoutRootCapability*>(&to_msg);
+  auto& from = static_cast<const DeviceCheckoutRootCapability&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.device.DeviceCheckoutRootCapability)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_display_path().empty()) {
+        _this->_internal_set_display_path(from._internal_display_path());
+      } else {
+        if (_this->_impl_.display_path_.IsDefault()) {
+          _this->_internal_set_display_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_selection_ref().empty()) {
+        _this->_internal_set_selection_ref(from._internal_selection_ref());
+      } else {
+        if (_this->_impl_.selection_ref_.IsDefault()) {
+          _this->_internal_set_selection_ref("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_access() != 0) {
+        _this->_impl_.access_ = from._impl_.access_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_read_available() != 0) {
+        _this->_impl_.read_available_ = from._impl_.read_available_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_write_available() != 0) {
+        _this->_impl_.write_available_ = from._impl_.write_available_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DeviceCheckoutRootCapability::CopyFrom(const DeviceCheckoutRootCapability& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.device.DeviceCheckoutRootCapability)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DeviceCheckoutRootCapability::InternalSwap(DeviceCheckoutRootCapability* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.display_path_, &other->_impl_.display_path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.selection_ref_, &other->_impl_.selection_ref_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.write_available_)
+      + sizeof(DeviceCheckoutRootCapability::_impl_.write_available_)
+      - PROTOBUF_FIELD_OFFSET(DeviceCheckoutRootCapability, _impl_.access_)>(
+          reinterpret_cast<char*>(&_impl_.access_),
+          reinterpret_cast<char*>(&other->_impl_.access_));
+}
+
+::google::protobuf::Metadata DeviceCheckoutRootCapability::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
@@ -5168,6 +5854,898 @@ void ReportDeviceStatusResponse::InternalSwap(ReportDeviceStatusResponse* PROTOB
 }
 
 ::google::protobuf::Metadata ReportDeviceStatusResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AccessCheckoutRootRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AccessCheckoutRootRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_._has_bits_);
+};
+
+AccessCheckoutRootRequest::AccessCheckoutRootRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AccessCheckoutRootRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.device.AccessCheckoutRootRequest)
+}
+PROTOBUF_NDEBUG_INLINE AccessCheckoutRootRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::device::AccessCheckoutRootRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        name_(arena, from.name_),
+        write_approval_ref_(arena, from.write_approval_ref_) {}
+
+AccessCheckoutRootRequest::AccessCheckoutRootRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AccessCheckoutRootRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AccessCheckoutRootRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AccessCheckoutRootRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.write_ = from._impl_.write_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.device.AccessCheckoutRootRequest)
+}
+PROTOBUF_NDEBUG_INLINE AccessCheckoutRootRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        name_(arena),
+        write_approval_ref_(arena) {}
+
+inline void AccessCheckoutRootRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.write_ = {};
+}
+AccessCheckoutRootRequest::~AccessCheckoutRootRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.device.AccessCheckoutRootRequest)
+  SharedDtor(*this);
+}
+inline void AccessCheckoutRootRequest::SharedDtor(MessageLite& self) {
+  AccessCheckoutRootRequest& this_ = static_cast<AccessCheckoutRootRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.name_.Destroy();
+  this_._impl_.write_approval_ref_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AccessCheckoutRootRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AccessCheckoutRootRequest(arena);
+}
+constexpr auto AccessCheckoutRootRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AccessCheckoutRootRequest),
+                                            alignof(AccessCheckoutRootRequest));
+}
+constexpr auto AccessCheckoutRootRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AccessCheckoutRootRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AccessCheckoutRootRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AccessCheckoutRootRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AccessCheckoutRootRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AccessCheckoutRootRequest>(), &AccessCheckoutRootRequest::ByteSizeLong,
+              &AccessCheckoutRootRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_._cached_size_),
+          false,
+      },
+      &AccessCheckoutRootRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AccessCheckoutRootRequest_class_data_ =
+        AccessCheckoutRootRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AccessCheckoutRootRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AccessCheckoutRootRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AccessCheckoutRootRequest_class_data_.tc_table);
+  return AccessCheckoutRootRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 70, 2>
+AccessCheckoutRootRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AccessCheckoutRootRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::device::AccessCheckoutRootRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_.name_)}},
+    // bool write = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(AccessCheckoutRootRequest, _impl_.write_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_.write_)}},
+    // string write_approval_ref = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_.write_approval_ref_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string name = 1;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_.name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool write = 2;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_.write_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string write_approval_ref = 3;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootRequest, _impl_.write_approval_ref_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\47\4\0\22\0\0\0\0"
+    "s4wave.device.AccessCheckoutRootRequest"
+    "name"
+    "write_approval_ref"
+  }},
+};
+PROTOBUF_NOINLINE void AccessCheckoutRootRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.device.AccessCheckoutRootRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.write_approval_ref_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.write_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AccessCheckoutRootRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AccessCheckoutRootRequest& this_ = static_cast<const AccessCheckoutRootRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AccessCheckoutRootRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AccessCheckoutRootRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.device.AccessCheckoutRootRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string name = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.AccessCheckoutRootRequest.name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bool write = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_write() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          2, this_._internal_write(), target);
+    }
+  }
+
+  // string write_approval_ref = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_write_approval_ref().empty()) {
+      const ::std::string& _s = this_._internal_write_approval_ref();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.AccessCheckoutRootRequest.write_approval_ref");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.device.AccessCheckoutRootRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AccessCheckoutRootRequest::ByteSizeLong(const MessageLite& base) {
+  const AccessCheckoutRootRequest& this_ = static_cast<const AccessCheckoutRootRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AccessCheckoutRootRequest::ByteSizeLong() const {
+  const AccessCheckoutRootRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.device.AccessCheckoutRootRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string name = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // string write_approval_ref = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_write_approval_ref().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_write_approval_ref());
+      }
+    }
+    // bool write = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_write() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AccessCheckoutRootRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<AccessCheckoutRootRequest*>(&to_msg);
+  auto& from = static_cast<const AccessCheckoutRootRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.device.AccessCheckoutRootRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_write_approval_ref().empty()) {
+        _this->_internal_set_write_approval_ref(from._internal_write_approval_ref());
+      } else {
+        if (_this->_impl_.write_approval_ref_.IsDefault()) {
+          _this->_internal_set_write_approval_ref("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_write() != 0) {
+        _this->_impl_.write_ = from._impl_.write_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void AccessCheckoutRootRequest::CopyFrom(const AccessCheckoutRootRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.device.AccessCheckoutRootRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AccessCheckoutRootRequest::InternalSwap(AccessCheckoutRootRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.write_approval_ref_, &other->_impl_.write_approval_ref_, arena);
+  swap(_impl_.write_, other->_impl_.write_);
+}
+
+::google::protobuf::Metadata AccessCheckoutRootRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AccessCheckoutRootResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AccessCheckoutRootResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_._has_bits_);
+};
+
+AccessCheckoutRootResponse::AccessCheckoutRootResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AccessCheckoutRootResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.device.AccessCheckoutRootResponse)
+}
+PROTOBUF_NDEBUG_INLINE AccessCheckoutRootResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::device::AccessCheckoutRootResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        capability_id_(arena, from.capability_id_),
+        object_key_(arena, from.object_key_),
+        type_id_(arena, from.type_id_),
+        write_approval_ref_(arena, from.write_approval_ref_) {}
+
+AccessCheckoutRootResponse::AccessCheckoutRootResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AccessCheckoutRootResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AccessCheckoutRootResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AccessCheckoutRootResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.checkout_root_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.checkout_root_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, resource_id_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, resource_id_),
+           offsetof(Impl_, write_enabled_) -
+               offsetof(Impl_, resource_id_) +
+               sizeof(Impl_::write_enabled_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.device.AccessCheckoutRootResponse)
+}
+PROTOBUF_NDEBUG_INLINE AccessCheckoutRootResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        capability_id_(arena),
+        object_key_(arena),
+        type_id_(arena),
+        write_approval_ref_(arena) {}
+
+inline void AccessCheckoutRootResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, checkout_root_),
+           0,
+           offsetof(Impl_, write_enabled_) -
+               offsetof(Impl_, checkout_root_) +
+               sizeof(Impl_::write_enabled_));
+}
+AccessCheckoutRootResponse::~AccessCheckoutRootResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.device.AccessCheckoutRootResponse)
+  SharedDtor(*this);
+}
+inline void AccessCheckoutRootResponse::SharedDtor(MessageLite& self) {
+  AccessCheckoutRootResponse& this_ = static_cast<AccessCheckoutRootResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.capability_id_.Destroy();
+  this_._impl_.object_key_.Destroy();
+  this_._impl_.type_id_.Destroy();
+  this_._impl_.write_approval_ref_.Destroy();
+  delete this_._impl_.checkout_root_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AccessCheckoutRootResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AccessCheckoutRootResponse(arena);
+}
+constexpr auto AccessCheckoutRootResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AccessCheckoutRootResponse),
+                                            alignof(AccessCheckoutRootResponse));
+}
+constexpr auto AccessCheckoutRootResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AccessCheckoutRootResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AccessCheckoutRootResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AccessCheckoutRootResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AccessCheckoutRootResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AccessCheckoutRootResponse>(), &AccessCheckoutRootResponse::ByteSizeLong,
+              &AccessCheckoutRootResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_._cached_size_),
+          false,
+      },
+      &AccessCheckoutRootResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AccessCheckoutRootResponse_class_data_ =
+        AccessCheckoutRootResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AccessCheckoutRootResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AccessCheckoutRootResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AccessCheckoutRootResponse_class_data_.tc_table);
+  return AccessCheckoutRootResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 8, 1, 105, 2>
+AccessCheckoutRootResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    8, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967040,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    8,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    AccessCheckoutRootResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::device::AccessCheckoutRootResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string write_approval_ref = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 3, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.write_approval_ref_)}},
+    // uint32 resource_id = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AccessCheckoutRootResponse, _impl_.resource_id_), 5>(),
+     {8, 5, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.resource_id_)}},
+    // string capability_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.capability_id_)}},
+    // string object_key = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.object_key_)}},
+    // string type_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.type_id_)}},
+    // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 5;
+    {::_pbi::TcParser::FastMtS1,
+     {42, 4, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.checkout_root_)}},
+    // bool write_available = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(AccessCheckoutRootResponse, _impl_.write_available_), 6>(),
+     {48, 6, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.write_available_)}},
+    // bool write_enabled = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(AccessCheckoutRootResponse, _impl_.write_enabled_), 7>(),
+     {56, 7, 0,
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.write_enabled_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 resource_id = 1;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.resource_id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // string capability_id = 2;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.capability_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string object_key = 3;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.object_key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string type_id = 4;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.type_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 5;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.checkout_root_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bool write_available = 6;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.write_available_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool write_enabled = 7;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.write_enabled_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string write_approval_ref = 8;
+    {PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.write_approval_ref_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::device::DeviceCheckoutRootCapability>()},
+  }},
+  {{
+    "\50\0\15\12\7\0\0\0\22\0\0\0\0\0\0\0"
+    "s4wave.device.AccessCheckoutRootResponse"
+    "capability_id"
+    "object_key"
+    "type_id"
+    "write_approval_ref"
+  }},
+};
+PROTOBUF_NOINLINE void AccessCheckoutRootResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.device.AccessCheckoutRootResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.capability_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.type_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.write_approval_ref_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.checkout_root_ != nullptr);
+      _impl_.checkout_root_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
+    ::memset(&_impl_.resource_id_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.write_enabled_) -
+        reinterpret_cast<char*>(&_impl_.resource_id_)) + sizeof(_impl_.write_enabled_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AccessCheckoutRootResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AccessCheckoutRootResponse& this_ = static_cast<const AccessCheckoutRootResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AccessCheckoutRootResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AccessCheckoutRootResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.device.AccessCheckoutRootResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 resource_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_resource_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_resource_id(), target);
+    }
+  }
+
+  // string capability_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_capability_id().empty()) {
+      const ::std::string& _s = this_._internal_capability_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.AccessCheckoutRootResponse.capability_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string object_key = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.AccessCheckoutRootResponse.object_key");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string type_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_type_id().empty()) {
+      const ::std::string& _s = this_._internal_type_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.AccessCheckoutRootResponse.type_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        5, *this_._impl_.checkout_root_, this_._impl_.checkout_root_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bool write_available = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_write_available() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          6, this_._internal_write_available(), target);
+    }
+  }
+
+  // bool write_enabled = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_write_enabled() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          7, this_._internal_write_enabled(), target);
+    }
+  }
+
+  // string write_approval_ref = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_write_approval_ref().empty()) {
+      const ::std::string& _s = this_._internal_write_approval_ref();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.device.AccessCheckoutRootResponse.write_approval_ref");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.device.AccessCheckoutRootResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AccessCheckoutRootResponse::ByteSizeLong(const MessageLite& base) {
+  const AccessCheckoutRootResponse& this_ = static_cast<const AccessCheckoutRootResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AccessCheckoutRootResponse::ByteSizeLong() const {
+  const AccessCheckoutRootResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.device.AccessCheckoutRootResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string capability_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_capability_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_capability_id());
+      }
+    }
+    // string object_key = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // string type_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_type_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_type_id());
+      }
+    }
+    // string write_approval_ref = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_write_approval_ref().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_write_approval_ref());
+      }
+    }
+    // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.checkout_root_);
+    }
+    // uint32 resource_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_resource_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_resource_id());
+      }
+    }
+    // bool write_available = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_write_available() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool write_enabled = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_write_enabled() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AccessCheckoutRootResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<AccessCheckoutRootResponse*>(&to_msg);
+  auto& from = static_cast<const AccessCheckoutRootResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.device.AccessCheckoutRootResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_capability_id().empty()) {
+        _this->_internal_set_capability_id(from._internal_capability_id());
+      } else {
+        if (_this->_impl_.capability_id_.IsDefault()) {
+          _this->_internal_set_capability_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_type_id().empty()) {
+        _this->_internal_set_type_id(from._internal_type_id());
+      } else {
+        if (_this->_impl_.type_id_.IsDefault()) {
+          _this->_internal_set_type_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_write_approval_ref().empty()) {
+        _this->_internal_set_write_approval_ref(from._internal_write_approval_ref());
+      } else {
+        if (_this->_impl_.write_approval_ref_.IsDefault()) {
+          _this->_internal_set_write_approval_ref("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.checkout_root_ != nullptr);
+      if (_this->_impl_.checkout_root_ == nullptr) {
+        _this->_impl_.checkout_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.checkout_root_);
+      } else {
+        _this->_impl_.checkout_root_->MergeFrom(*from._impl_.checkout_root_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_resource_id() != 0) {
+        _this->_impl_.resource_id_ = from._impl_.resource_id_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_write_available() != 0) {
+        _this->_impl_.write_available_ = from._impl_.write_available_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_write_enabled() != 0) {
+        _this->_impl_.write_enabled_ = from._impl_.write_enabled_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void AccessCheckoutRootResponse::CopyFrom(const AccessCheckoutRootResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.device.AccessCheckoutRootResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AccessCheckoutRootResponse::InternalSwap(AccessCheckoutRootResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.capability_id_, &other->_impl_.capability_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.type_id_, &other->_impl_.type_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.write_approval_ref_, &other->_impl_.write_approval_ref_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.write_enabled_)
+      + sizeof(AccessCheckoutRootResponse::_impl_.write_enabled_)
+      - PROTOBUF_FIELD_OFFSET(AccessCheckoutRootResponse, _impl_.checkout_root_)>(
+          reinterpret_cast<char*>(&_impl_.checkout_root_),
+          reinterpret_cast<char*>(&other->_impl_.checkout_root_));
+}
+
+::google::protobuf::Metadata AccessCheckoutRootResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

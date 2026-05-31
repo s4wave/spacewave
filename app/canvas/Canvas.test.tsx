@@ -54,7 +54,12 @@ function makeState(
   for (const n of nodes) {
     nodeMap.set(n.id, n)
   }
-  return { nodes: nodeMap, edges, hiddenGraphLinks: [] }
+  return {
+    nodes: nodeMap,
+    edges,
+    hiddenGraphLinks: [],
+    layoutMetadata: new Map(),
+  }
 }
 
 function makeCallbacks(

@@ -3,6 +3,7 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { ObjectInfo } from './object.pb.js'
+import type { SpaceContents } from '@s4wave/sdk/space/contents.js'
 
 // ObjectViewerComponentProps are the props passed to object viewer components.
 export interface ObjectViewerComponentProps {
@@ -12,6 +13,11 @@ export interface ObjectViewerComponentProps {
   worldState: Resource<IWorldState>
   // objectState is the world object state, undefined for standalone unixfs.
   objectState?: IObjectState
+  // spaceContents is the mounted Space contents resource when this viewer is
+  // rendered from a Space route. External plugin bundles cannot rely on
+  // app-bundle React contexts being shared, so process-capable viewers receive
+  // the resource through the viewer contract.
+  spaceContents?: Resource<SpaceContents>
 }
 
 // getObjectKey extracts the objectKey from an ObjectInfo.

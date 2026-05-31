@@ -722,6 +722,9 @@ func (c *Controller) performFullRebuild(
 	if err != nil {
 		return nil, err
 	}
+	if isRelease {
+		defer c.stopViteBundlers(distSourcePath, sourcePath, workingPath, bundleList)
+	}
 
 	// Build Vite bundles
 	viteBuildResult, err := c.buildViteBundles(
@@ -814,6 +817,26 @@ func (c *Controller) performFullRebuild(
 		buildCtrlConf.GetViteConfigPaths(),
 		webPkgSrcFiles,
 	)
+}
+
+func (c *Controller) stopViteBundlers(
+	distSourcePath,
+	sourcePath,
+	workingPath string,
+	bundleList []*ViteBundleMeta,
+) {
+	for _, bundle := range bundleList {
+		if bundle == nil {
+			continue
+		}
+		key := newViteBundlerKey(
+			distSourcePath,
+			sourcePath,
+			workingPath,
+			bundle.GetId(),
+		)
+		c.viteBundlers.RemoveKey(key)
+	}
 }
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.

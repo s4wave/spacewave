@@ -89,6 +89,21 @@ describe('quickstart options', () => {
     ).toContain('device')
   })
 
+  it('keeps drive quickstart copy aligned without changing release ordering', () => {
+    const drive = getQuickstartOption('drive')
+
+    expect(drive.description).toBe(
+      'Private browser files with offline work and device sync',
+    )
+    expect(drive.seoDescription).toContain('offline file browsing')
+    expect(drive.seoDescription).toContain(
+      'private sync through your own devices',
+    )
+    expect(
+      getVisibleQuickstartOptions(false).map((option) => option.id),
+    ).toEqual(['account', 'pair', 'space', 'drive', 'git', 'canvas'])
+  })
+
   it('lets release runtime visibility include experimental quickstarts without changing public release pages', () => {
     setExperimentalCreatorsEnabled(true)
     const runtimeEnabled = areExperimentalCreatorsEnabled(false)

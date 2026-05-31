@@ -6,14 +6,13 @@ import {
   type ClientResourceRef,
 } from '@aptre/bldr-sdk/resource/index.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
-import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
-import { SetV86StateOp, VmState } from '@s4wave/sdk/vm/v86.pb.js'
 import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
+import { V86fsServiceServiceName } from '@go/github.com/s4wave/spacewave/db/unixfs/v86fs/v86fs_srpc.pb.js'
 import { startBrowserV86Runtime } from './browser-runner.js'
 import { createV86fsSrpcAdapter, type V86fsAdapter } from './v86fs-bridge.js'
 
-const SET_V86_STATE_OP_ID = 'vm/v86/set-state'
+const V86_RUNTIME_V86FS_SERVICE_PREFIX = 'vm/v86-runtime/v86fs/'
 
 type ViteManifestEntry = {
   file?: string
@@ -125,27 +124,10 @@ function formatErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
-async function setVmRuntimeState(
-  worldState: WorldStateResource,
-  objectKey: string,
-  state: VmState,
-  errorMessage: string,
-  signal: AbortSignal,
-): Promise<void> {
-  const op = SetV86StateOp.create({
-    objectKey,
-    state,
-    errorMessage,
-  })
-  const { sysErr } = await worldState.applyWorldOp(
-    SET_V86_STATE_OP_ID,
-    SetV86StateOp.toBinary(op),
-    '',
-    signal,
+function v86RuntimeV86fsServiceID(objectKey: string): string {
+  return (
+    V86_RUNTIME_V86FS_SERVICE_PREFIX + objectKey + '/' + V86fsServiceServiceName
   )
-  if (sysErr) {
-    throw new Error('set v86 runtime state returned sysErr=true')
-  }
 }
 
 // main is the V86 backend entry point.
@@ -205,21 +187,11 @@ export default async function main(
 
   console.log('[spacewave-v86] booting v86 for instance:', instanceKey)
 
-  // Access the VmV86 world object's typed resource to reach the v86fs service.
-  // The Go-side vmV86Factory registered V86FsService on this resource's mux.
-  const worldState = new WorldStateResource(rootRef)
-  const typedAccess = await worldState.accessTypedObject(instanceKey, signal)
-  if (!typedAccess.resourceId) {
-    throw new Error('failed to access typed VmV86 object: ' + instanceKey)
-  }
-
   let runtime: Awaited<ReturnType<typeof startBrowserV86Runtime>> | undefined
   try {
-    // Create a resource ref to the typed object's mux (has V86FsService).
-    using vmRef = rootRef.createRef(typedAccess.resourceId)
-
-    // Create v86fs SRPC adapter connected to the Go v86fs server via the typed resource.
-    using v86fsBridge = createV86fsSrpcAdapter(vmRef.client)
+    using v86fsBridge = createV86fsSrpcAdapter(coreClient, {
+      service: v86RuntimeV86fsServiceID(instanceKey),
+    })
 
     console.log('[spacewave-v86] loading v86 binaries from UnixFS...')
 
@@ -251,30 +223,9 @@ export default async function main(
       instanceKey,
       v86fsAdapter: v86fsBridge.adapter,
     })
-    await setVmRuntimeState(
-      worldState,
-      instanceKey,
-      VmState.VmState_RUNNING,
-      '',
-      signal,
-    )
   } catch (err) {
     const errorMessage = formatErrorMessage(err)
     console.error('[spacewave-v86] runtime failed:', errorMessage)
-    try {
-      await setVmRuntimeState(
-        worldState,
-        instanceKey,
-        VmState.VmState_ERROR,
-        errorMessage,
-        signal,
-      )
-    } catch (stateErr) {
-      console.error(
-        '[spacewave-v86] failed to report runtime error:',
-        formatErrorMessage(stateErr),
-      )
-    }
     throw err
   }
 

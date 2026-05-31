@@ -215,6 +215,31 @@ describe('GetStarted', () => {
     expect(screen.getByRole('link', { name: /create a drive/i })).toBeTruthy()
   })
 
+  it('keeps the public storage quickstart ordering stable', () => {
+    vi.stubEnv('DEV', false)
+    mockUseIsStaticMode.mockReturnValue(true)
+
+    render(<GetStarted />)
+
+    const storageLinks = screen
+      .getAllByRole('link')
+      .filter((link) =>
+        [
+          'Create an Empty Space',
+          'Create a Drive',
+          'Create/clone a Git Repository',
+          'Create a Canvas',
+        ].some((label) => link.textContent?.includes(label)),
+      )
+
+    expect(storageLinks.map((link) => link.textContent)).toEqual([
+      'Create an Empty SpaceStart with a blank space',
+      'Create a DrivePrivate browser files with offline work and device sync',
+      'Create/clone a Git RepositoryStart fresh or clone an existing Git repository',
+      'Create a CanvasVisual workspace with objects on a canvas',
+    ])
+  })
+
   it('places the local state root action third in the account group', () => {
     render(<GetStarted />)
 

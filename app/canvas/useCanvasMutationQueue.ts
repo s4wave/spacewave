@@ -5,6 +5,7 @@ import type {
   CanvasNodeData,
   CanvasEdgeData,
   HiddenGraphLinkData,
+  CanvasLayoutMetadataData,
 } from './types.js'
 
 // CanvasMutation represents a pending canvas state change.
@@ -17,6 +18,8 @@ interface CanvasMutation {
   removeEdgeIds?: string[]
   addHiddenGraphLinks?: HiddenGraphLinkData[]
   removeHiddenGraphLinks?: HiddenGraphLinkData[]
+  setLayoutMetadata?: Map<string, CanvasLayoutMetadataData>
+  removeLayoutMetadataNodeIds?: string[]
 }
 
 // SendMutationFn sends a mutation to the backend. Resolves on success.
@@ -27,6 +30,8 @@ export type SendMutationFn = (mutation: {
   removeEdgeIds?: string[]
   addHiddenGraphLinks?: HiddenGraphLinkData[]
   removeHiddenGraphLinks?: HiddenGraphLinkData[]
+  setLayoutMetadata?: Map<string, CanvasLayoutMetadataData>
+  removeLayoutMetadataNodeIds?: string[]
 }) => Promise<void>
 
 function graphLinkKey(link: HiddenGraphLinkData): string {
@@ -43,6 +48,7 @@ function applyMutations(
   const nodes = new Map(base.nodes)
   const edges = [...base.edges]
   const hiddenGraphLinks = [...base.hiddenGraphLinks]
+  const layoutMetadata = new Map(base.layoutMetadata)
 
   for (const m of mutations) {
     if (m.setNodes) {
@@ -53,6 +59,7 @@ function applyMutations(
     if (m.removeNodeIds) {
       for (const id of m.removeNodeIds) {
         nodes.delete(id)
+        layoutMetadata.delete(id)
       }
     }
     if (m.addEdges) {
@@ -91,9 +98,19 @@ function applyMutations(
         }
       })
     }
+    if (m.setLayoutMetadata) {
+      for (const [id, metadata] of m.setLayoutMetadata) {
+        layoutMetadata.set(id, metadata)
+      }
+    }
+    if (m.removeLayoutMetadataNodeIds) {
+      for (const id of m.removeLayoutMetadataNodeIds) {
+        layoutMetadata.delete(id)
+      }
+    }
   }
 
-  return { nodes, edges, hiddenGraphLinks }
+  return { nodes, edges, hiddenGraphLinks, layoutMetadata }
 }
 
 // MutationQueueResult is the return type of useCanvasMutationQueue.
@@ -112,6 +129,12 @@ export interface MutationQueueResult {
   enqueueHiddenGraphLinksAdd: (links: HiddenGraphLinkData[]) => void
   // enqueueHiddenGraphLinksRemove queues graph links to show again.
   enqueueHiddenGraphLinksRemove: (links: HiddenGraphLinkData[]) => void
+  // enqueueLayoutMetadataChange queues layout metadata set/update changes.
+  enqueueLayoutMetadataChange: (
+    layoutMetadata: Map<string, CanvasLayoutMetadataData>,
+  ) => void
+  // enqueueLayoutMetadataRemove queues layout metadata removal by node ID.
+  enqueueLayoutMetadataRemove: (nodeIds: string[]) => void
   // pending is the number of pending mutations in the queue.
   pending: number
 }
@@ -229,11 +252,26 @@ export function useCanvasMutationQueue(
     [enqueue],
   )
 
+  const enqueueLayoutMetadataChange = useCallback(
+    (layoutMetadata: Map<string, CanvasLayoutMetadataData>) => {
+      enqueue({ setLayoutMetadata: layoutMetadata })
+    },
+    [enqueue],
+  )
+
+  const enqueueLayoutMetadataRemove = useCallback(
+    (nodeIds: string[]) => {
+      enqueue({ removeLayoutMetadataNodeIds: nodeIds })
+    },
+    [enqueue],
+  )
+
   const effectiveState = useMemo(() => {
     const base = serverState ?? {
       nodes: new Map(),
       edges: [],
       hiddenGraphLinks: [],
+      layoutMetadata: new Map(),
     }
     return applyMutations(base, queue)
   }, [serverState, queue])
@@ -246,6 +284,8 @@ export function useCanvasMutationQueue(
     enqueueEdgesRemove,
     enqueueHiddenGraphLinksAdd,
     enqueueHiddenGraphLinksRemove,
+    enqueueLayoutMetadataChange,
+    enqueueLayoutMetadataRemove,
     pending: queue.length,
   }
 }

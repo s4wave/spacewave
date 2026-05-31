@@ -176,6 +176,7 @@ class WebDocumentWebWorker {
     onWebWorkerMessage: (e: MessageEvent<ClientToWebDocument>) => void,
     // workerCommsDetect is the main-thread detection result.
     workerCommsDetect?: WorkerCommsDetectResult,
+    runtimeWasmEnv?: Record<string, string>,
   ) {
     if (!id) {
       throw new Error('empty web worker id')
@@ -202,6 +203,7 @@ class WebDocumentWebWorker {
       initData,
       initPort: workerPort,
       workerCommsDetect,
+      runtimeWasmEnv,
     }
 
     if (shared) {
@@ -567,6 +569,24 @@ type WebDocumentEvents = {
   runtimeconnected: () => void
   resumeready: () => void
   closed: (err?: Error) => void
+}
+
+interface RuntimeEnvGlobal {
+  BLDR_RUNTIME_WASM_ENV?: Record<string, string>
+}
+
+function readRuntimeWasmEnv(): Record<string, string> | undefined {
+  const raw = (globalThis as RuntimeEnvGlobal).BLDR_RUNTIME_WASM_ENV
+  if (!raw || typeof raw !== 'object') {
+    return undefined
+  }
+  const env: Record<string, string> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof key === 'string' && typeof value === 'string') {
+      env[key] = value
+    }
+  }
+  return Object.keys(env).length > 0 ? env : undefined
 }
 
 export interface WebDocumentResumeReadyState {
@@ -985,10 +1005,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         type: 'module',
       }
 
+      const runtimeWasmEnv = readRuntimeWasmEnv()
       const initMsg: WebDocumentToWebRuntime = {
         from: this.webDocumentUuid,
         initWebRuntime: {
           webRuntimeId: this.webRuntimeId,
+          env: runtimeWasmEnv,
         },
       }
 
@@ -1309,6 +1331,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       shared,
       this.onWebWorkerMessage.bind(this, request.id),
       detect,
+      readRuntimeWasmEnv(),
     )
     this.webWorkers[request.id] = worker
     this.notifyResumeReadyClient(worker.port)

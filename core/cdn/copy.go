@@ -23,6 +23,8 @@ var v86ImageEdgePreds = []string{
 	string(s4wave_vm.PredV86ImageRootfs),
 }
 
+const legacySpacewaveV86ImageTypeID = "spacewave/vm/image/v86"
+
 // CopyV86ImageFromCdn copies a V86Image (metadata block plus the five asset
 // edges) from the CDN WorldState into a user-owned destination WorldState.
 // The caller is responsible for providing WorldState handles already scoped
@@ -77,6 +79,9 @@ func CopyV86ImageFromCdn(
 		if targetKey == "" {
 			continue
 		}
+		if err := ensureCopiedWorldObject(ctx, src, dst, targetKey); err != nil {
+			return errors.Wrapf(err, "copy %s asset object %q to destination", pred, targetKey)
+		}
 		quad := world.NewGraphQuadWithKeys(dstObjectKey, pred, targetKey, "")
 		if err := dst.SetGraphQuad(ctx, quad); err != nil {
 			return errors.Wrapf(err, "set %s edge on destination", pred)
@@ -84,6 +89,62 @@ func CopyV86ImageFromCdn(
 	}
 
 	return nil
+}
+
+// ensureCopiedWorldObject creates objectKey in dst from src when the destination
+// does not already have it. V86Image edges point at UnixFS objects, and the
+// world graph requires both endpoints to exist before SetGraphQuad can link
+// them.
+func ensureCopiedWorldObject(ctx context.Context, src, dst world.WorldState, objectKey string) error {
+	if objectKey == "" {
+		return nil
+	}
+	if _, found, err := dst.GetObject(ctx, objectKey); err != nil {
+		return errors.Wrap(err, "probe destination object")
+	} else if !found {
+		srcObj, srcFound, err := src.GetObject(ctx, objectKey)
+		if err != nil {
+			return errors.Wrap(err, "get source object")
+		}
+		if !srcFound {
+			return errors.Errorf("source object %q not found", objectKey)
+		}
+
+		_, _, err = world.AccessObjectState(ctx, srcObj, false, func(srcCursor *block.Cursor) error {
+			_, _, createErr := world.CreateWorldObject(ctx, dst, objectKey, func(dstCursor *block.Cursor) error {
+				srcCursor.CopyToRecursive(dstCursor, true, true)
+				return nil
+			})
+			return createErr
+		})
+		if err != nil {
+			return errors.Wrap(err, "create destination object")
+		}
+	}
+
+	return ensureCopiedObjectType(ctx, src, dst, objectKey)
+}
+
+func ensureCopiedObjectType(ctx context.Context, src, dst world.WorldState, objectKey string) error {
+	srcType, err := world_types.GetObjectType(ctx, src, objectKey)
+	if err != nil {
+		return errors.Wrap(err, "get source object type")
+	}
+	if srcType == "" {
+		return nil
+	}
+
+	dstType, err := world_types.GetObjectType(ctx, dst, objectKey)
+	if err != nil {
+		return errors.Wrap(err, "get destination object type")
+	}
+	if dstType == srcType {
+		return nil
+	}
+	if dstType != "" {
+		return errors.Errorf("destination object %q has type %q, expected %q", objectKey, dstType, srcType)
+	}
+	return world_types.SetObjectType(ctx, dst, objectKey, srcType)
 }
 
 // readCdnV86Image loads the V86Image block from =ws= at =objKey=, verifying the
@@ -101,7 +162,7 @@ func readCdnV86Image(ctx context.Context, ws world.WorldState, objKey string) (*
 	if err != nil {
 		return nil, errors.Wrap(err, "get object type")
 	}
-	if typeID != s4wave_vm.V86ImageTypeID {
+	if typeID != s4wave_vm.V86ImageTypeID && typeID != legacySpacewaveV86ImageTypeID {
 		return nil, errors.Errorf("object %q is not a V86Image (type=%q)", objKey, typeID)
 	}
 

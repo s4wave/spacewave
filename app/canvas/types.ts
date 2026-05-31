@@ -39,6 +39,15 @@ export interface HiddenGraphLinkData {
   label?: string
 }
 
+// CanvasLayoutMetadataData stores reusable projection layout metadata.
+export interface CanvasLayoutMetadataData {
+  stableNodeId?: string
+  lane?: string
+  rank?: number
+  group?: string
+  projectionOwner?: string
+}
+
 // EphemeralEdge is a world graph edge shown when a node is selected.
 export interface EphemeralEdge {
   renderKey: string
@@ -82,6 +91,7 @@ export interface CanvasStateData {
   nodes: Map<string, CanvasNodeData>
   edges: CanvasEdgeData[]
   hiddenGraphLinks: HiddenGraphLinkData[]
+  layoutMetadata: Map<string, CanvasLayoutMetadataData>
 }
 
 // CanvasTool is the active tool in the toolbar.
@@ -102,6 +112,7 @@ export type CanvasAction =
   | 'fit-view'
   | 'bring-to-front'
   | 'send-to-back'
+  | 'organize-nodes'
 
 // SIZE_THRESHOLD_WIDTH is the minimum unscaled node width for full content.
 export const SIZE_THRESHOLD_WIDTH = 200

@@ -70,6 +70,10 @@ class CanvasEdge;
 struct CanvasEdgeDefaultTypeInternal;
 extern CanvasEdgeDefaultTypeInternal _CanvasEdge_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull CanvasEdge_class_data_;
+class CanvasLayoutMetadata;
+struct CanvasLayoutMetadataDefaultTypeInternal;
+extern CanvasLayoutMetadataDefaultTypeInternal _CanvasLayoutMetadata_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CanvasLayoutMetadata_class_data_;
 class CanvasNode;
 struct CanvasNodeDefaultTypeInternal;
 extern CanvasNodeDefaultTypeInternal _CanvasNode_default_instance_;
@@ -78,6 +82,10 @@ class CanvasState;
 struct CanvasStateDefaultTypeInternal;
 extern CanvasStateDefaultTypeInternal _CanvasState_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull CanvasState_class_data_;
+class CanvasState_LayoutMetadataEntry_DoNotUse;
+struct CanvasState_LayoutMetadataEntry_DoNotUseDefaultTypeInternal;
+extern CanvasState_LayoutMetadataEntry_DoNotUseDefaultTypeInternal _CanvasState_LayoutMetadataEntry_DoNotUse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CanvasState_LayoutMetadataEntry_DoNotUse_class_data_;
 class CanvasState_NodesEntry_DoNotUse;
 struct CanvasState_NodesEntry_DoNotUseDefaultTypeInternal;
 extern CanvasState_NodesEntry_DoNotUseDefaultTypeInternal _CanvasState_NodesEntry_DoNotUse_default_instance_;
@@ -98,6 +106,10 @@ class UpdateCanvasRequest;
 struct UpdateCanvasRequestDefaultTypeInternal;
 extern UpdateCanvasRequestDefaultTypeInternal _UpdateCanvasRequest_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull UpdateCanvasRequest_class_data_;
+class UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse;
+struct UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUseDefaultTypeInternal;
+extern UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUseDefaultTypeInternal _UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse_class_data_;
 class UpdateCanvasRequest_SetNodesEntry_DoNotUse;
 struct UpdateCanvasRequest_SetNodesEntry_DoNotUseDefaultTypeInternal;
 extern UpdateCanvasRequest_SetNodesEntry_DoNotUseDefaultTypeInternal _UpdateCanvasRequest_SetNodesEntry_DoNotUse_default_instance_;
@@ -264,7 +276,7 @@ class WatchCanvasStateRequest final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const WatchCanvasStateRequest*>(
         &_WatchCanvasStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(WatchCanvasStateRequest& a, WatchCanvasStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchCanvasStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -644,7 +656,7 @@ class GetCanvasStateRequest final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const GetCanvasStateRequest*>(
         &_GetCanvasStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(GetCanvasStateRequest& a, GetCanvasStateRequest& b) { a.Swap(&b); }
   inline void Swap(GetCanvasStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1071,6 +1083,264 @@ class CanvasNode final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull CanvasNode_class_data_;
 // -------------------------------------------------------------------
 
+class CanvasLayoutMetadata final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.canvas.CanvasLayoutMetadata) */ {
+ public:
+  inline CanvasLayoutMetadata() : CanvasLayoutMetadata(nullptr) {}
+  ~CanvasLayoutMetadata() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CanvasLayoutMetadata* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CanvasLayoutMetadata));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CanvasLayoutMetadata(::google::protobuf::internal::ConstantInitialized);
+
+  inline CanvasLayoutMetadata(const CanvasLayoutMetadata& from) : CanvasLayoutMetadata(nullptr, from) {}
+  inline CanvasLayoutMetadata(CanvasLayoutMetadata&& from) noexcept
+      : CanvasLayoutMetadata(nullptr, ::std::move(from)) {}
+  inline CanvasLayoutMetadata& operator=(const CanvasLayoutMetadata& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CanvasLayoutMetadata& operator=(CanvasLayoutMetadata&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CanvasLayoutMetadata& default_instance() {
+    return *reinterpret_cast<const CanvasLayoutMetadata*>(
+        &_CanvasLayoutMetadata_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(CanvasLayoutMetadata& a, CanvasLayoutMetadata& b) { a.Swap(&b); }
+  inline void Swap(CanvasLayoutMetadata* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CanvasLayoutMetadata* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CanvasLayoutMetadata* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CanvasLayoutMetadata>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CanvasLayoutMetadata& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CanvasLayoutMetadata& from) { CanvasLayoutMetadata::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CanvasLayoutMetadata* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.canvas.CanvasLayoutMetadata"; }
+
+  explicit CanvasLayoutMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CanvasLayoutMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CanvasLayoutMetadata& from);
+  CanvasLayoutMetadata(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CanvasLayoutMetadata&& from) noexcept
+      : CanvasLayoutMetadata(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStableNodeIdFieldNumber = 1,
+    kLaneFieldNumber = 2,
+    kGroupFieldNumber = 4,
+    kProjectionOwnerFieldNumber = 5,
+    kRankFieldNumber = 3,
+  };
+  // string stable_node_id = 1;
+  void clear_stable_node_id() ;
+  const ::std::string& stable_node_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_stable_node_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_stable_node_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_stable_node_id();
+  void set_allocated_stable_node_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_stable_node_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_stable_node_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_stable_node_id();
+
+  public:
+  // string lane = 2;
+  void clear_lane() ;
+  const ::std::string& lane() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_lane(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_lane();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_lane();
+  void set_allocated_lane(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_lane() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_lane(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_lane();
+
+  public:
+  // string group = 4;
+  void clear_group() ;
+  const ::std::string& group() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_group(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_group();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_group();
+  void set_allocated_group(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_group() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_group(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_group();
+
+  public:
+  // string projection_owner = 5;
+  void clear_projection_owner() ;
+  const ::std::string& projection_owner() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_projection_owner(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_projection_owner();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_projection_owner();
+  void set_allocated_projection_owner(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_projection_owner() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_projection_owner(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_projection_owner();
+
+  public:
+  // int32 rank = 3;
+  void clear_rank() ;
+  ::int32_t rank() const;
+  void set_rank(::int32_t value);
+
+  private:
+  ::int32_t _internal_rank() const;
+  void _internal_set_rank(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.canvas.CanvasLayoutMetadata)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 82,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CanvasLayoutMetadata& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr stable_node_id_;
+    ::google::protobuf::internal::ArenaStringPtr lane_;
+    ::google::protobuf::internal::ArenaStringPtr group_;
+    ::google::protobuf::internal::ArenaStringPtr projection_owner_;
+    ::int32_t rank_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcanvas_2fcanvas_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CanvasLayoutMetadata_class_data_;
+// -------------------------------------------------------------------
+
 class CanvasEdge final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.canvas.CanvasEdge) */ {
  public:
@@ -1368,6 +1638,45 @@ class UpdateCanvasRequest_SetNodesEntry_DoNotUse final
 extern const ::google::protobuf::internal::ClassDataFull UpdateCanvasRequest_SetNodesEntry_DoNotUse_class_data_;
 // -------------------------------------------------------------------
 
+class UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse final
+    : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE> {
+ public:
+  using SuperType =
+      ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>;
+  UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse();
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
+  explicit UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
+    return &_UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse_default_instance_;
+  }
+
+
+  static constexpr auto InternalGenerateClassData_();
+
+ private:
+  friend class ::google::protobuf::MessageLite;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcanvas_2fcanvas_2eproto;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 68,
+                                   2>
+      _table_;
+
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+};
+extern const ::google::protobuf::internal::ClassDataFull UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse_class_data_;
+// -------------------------------------------------------------------
+
 class CanvasState_NodesEntry_DoNotUse final
     : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
                              ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
@@ -1405,6 +1714,45 @@ class CanvasState_NodesEntry_DoNotUse final
   static constexpr auto InternalNewImpl_();
 };
 extern const ::google::protobuf::internal::ClassDataFull CanvasState_NodesEntry_DoNotUse_class_data_;
+// -------------------------------------------------------------------
+
+class CanvasState_LayoutMetadataEntry_DoNotUse final
+    : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE> {
+ public:
+  using SuperType =
+      ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>;
+  CanvasState_LayoutMetadataEntry_DoNotUse();
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CanvasState_LayoutMetadataEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
+  explicit CanvasState_LayoutMetadataEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
+    return &_CanvasState_LayoutMetadataEntry_DoNotUse_default_instance_;
+  }
+
+
+  static constexpr auto InternalGenerateClassData_();
+
+ private:
+  friend class ::google::protobuf::MessageLite;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcanvas_2fcanvas_2eproto;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 57,
+                                   2>
+      _table_;
+
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+};
+extern const ::google::protobuf::internal::ClassDataFull CanvasState_LayoutMetadataEntry_DoNotUse_class_data_;
 // -------------------------------------------------------------------
 
 class UpdateCanvasRequest final : public ::google::protobuf::Message
@@ -1462,7 +1810,7 @@ class UpdateCanvasRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const UpdateCanvasRequest*>(
         &_UpdateCanvasRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(UpdateCanvasRequest& a, UpdateCanvasRequest& b) { a.Swap(&b); }
   inline void Swap(UpdateCanvasRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1554,7 +1902,9 @@ class UpdateCanvasRequest final : public ::google::protobuf::Message
     kRemoveEdgeIdsFieldNumber = 4,
     kAddHiddenGraphLinksFieldNumber = 5,
     kRemoveHiddenGraphLinksFieldNumber = 6,
+    kRemoveLayoutMetadataNodeIdsFieldNumber = 8,
     kSetNodesFieldNumber = 1,
+    kSetLayoutMetadataFieldNumber = 7,
   };
   // repeated string remove_node_ids = 2;
   int remove_node_ids_size() const;
@@ -1651,6 +2001,28 @@ class UpdateCanvasRequest final : public ::google::protobuf::Message
   const ::s4wave::canvas::HiddenGraphLink& remove_hidden_graph_links(int index) const;
   ::s4wave::canvas::HiddenGraphLink* PROTOBUF_NONNULL add_remove_hidden_graph_links();
   const ::google::protobuf::RepeatedPtrField<::s4wave::canvas::HiddenGraphLink>& remove_hidden_graph_links() const;
+  // repeated string remove_layout_metadata_node_ids = 8;
+  int remove_layout_metadata_node_ids_size() const;
+  private:
+  int _internal_remove_layout_metadata_node_ids_size() const;
+
+  public:
+  void clear_remove_layout_metadata_node_ids() ;
+  const ::std::string& remove_layout_metadata_node_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_remove_layout_metadata_node_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_remove_layout_metadata_node_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_remove_layout_metadata_node_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_remove_layout_metadata_node_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& remove_layout_metadata_node_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_remove_layout_metadata_node_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_remove_layout_metadata_node_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_remove_layout_metadata_node_ids();
+
+  public:
   // map<string, .s4wave.canvas.CanvasNode> set_nodes = 1;
   int set_nodes_size() const;
   private:
@@ -1666,12 +2038,27 @@ class UpdateCanvasRequest final : public ::google::protobuf::Message
   ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasNode>* PROTOBUF_NONNULL _internal_mutable_set_nodes();
 
   public:
+  // map<string, .s4wave.canvas.CanvasLayoutMetadata> set_layout_metadata = 7;
+  int set_layout_metadata_size() const;
+  private:
+  int _internal_set_layout_metadata_size() const;
+
+  public:
+  void clear_set_layout_metadata() ;
+  const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>& set_layout_metadata() const;
+  ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>* PROTOBUF_NONNULL mutable_set_layout_metadata();
+
+  private:
+  const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>& _internal_set_layout_metadata() const;
+  ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>* PROTOBUF_NONNULL _internal_mutable_set_layout_metadata();
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.canvas.UpdateCanvasRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   5, 81,
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   7, 139,
                                    2>
       _table_;
 
@@ -1697,10 +2084,15 @@ class UpdateCanvasRequest final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedPtrField<::std::string> remove_edge_ids_;
     ::google::protobuf::RepeatedPtrField< ::s4wave::canvas::HiddenGraphLink > add_hidden_graph_links_;
     ::google::protobuf::RepeatedPtrField< ::s4wave::canvas::HiddenGraphLink > remove_hidden_graph_links_;
+    ::google::protobuf::RepeatedPtrField<::std::string> remove_layout_metadata_node_ids_;
     ::google::protobuf::internal::MapField<UpdateCanvasRequest_SetNodesEntry_DoNotUse, ::std::string, ::s4wave::canvas::CanvasNode,
                       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
                       ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
         set_nodes_;
+    ::google::protobuf::internal::MapField<UpdateCanvasRequest_SetLayoutMetadataEntry_DoNotUse, ::std::string, ::s4wave::canvas::CanvasLayoutMetadata,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
+        set_layout_metadata_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1765,7 +2157,7 @@ class CanvasState final : public ::google::protobuf::Message
     return *reinterpret_cast<const CanvasState*>(
         &_CanvasState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(CanvasState& a, CanvasState& b) { a.Swap(&b); }
   inline void Swap(CanvasState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1856,6 +2248,7 @@ class CanvasState final : public ::google::protobuf::Message
     kHiddenGraphLinksFieldNumber = 4,
     kStrokeTreeRefFieldNumber = 3,
     kNodesFieldNumber = 1,
+    kLayoutMetadataFieldNumber = 5,
   };
   // repeated .s4wave.canvas.CanvasEdge edges = 2;
   int edges_size() const;
@@ -1921,12 +2314,27 @@ class CanvasState final : public ::google::protobuf::Message
   ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasNode>* PROTOBUF_NONNULL _internal_mutable_nodes();
 
   public:
+  // map<string, .s4wave.canvas.CanvasLayoutMetadata> layout_metadata = 5;
+  int layout_metadata_size() const;
+  private:
+  int _internal_layout_metadata_size() const;
+
+  public:
+  void clear_layout_metadata() ;
+  const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>& layout_metadata() const;
+  ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>* PROTOBUF_NONNULL mutable_layout_metadata();
+
+  private:
+  const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>& _internal_layout_metadata() const;
+  ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>* PROTOBUF_NONNULL _internal_mutable_layout_metadata();
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.canvas.CanvasState)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   4, 39,
+  static const ::google::protobuf::internal::TcParseTable<2, 5,
+                                   6, 54,
                                    2>
       _table_;
 
@@ -1954,6 +2362,10 @@ class CanvasState final : public ::google::protobuf::Message
                       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
                       ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
         nodes_;
+    ::google::protobuf::internal::MapField<CanvasState_LayoutMetadataEntry_DoNotUse, ::std::string, ::s4wave::canvas::CanvasLayoutMetadata,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
+        layout_metadata_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2018,7 +2430,7 @@ class WatchCanvasStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchCanvasStateResponse*>(
         &_WatchCanvasStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(WatchCanvasStateResponse& a, WatchCanvasStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchCanvasStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2213,7 +2625,7 @@ class UpdateCanvasResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const UpdateCanvasResponse*>(
         &_UpdateCanvasResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(UpdateCanvasResponse& a, UpdateCanvasResponse& b) { a.Swap(&b); }
   inline void Swap(UpdateCanvasResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2408,7 +2820,7 @@ class GetCanvasStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetCanvasStateResponse*>(
         &_GetCanvasStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(GetCanvasStateResponse& a, GetCanvasStateResponse& b) { a.Swap(&b); }
   inline void Swap(GetCanvasStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3618,6 +4030,297 @@ inline void HiddenGraphLink::set_allocated_label(::std::string* PROTOBUF_NULLABL
 
 // -------------------------------------------------------------------
 
+// CanvasLayoutMetadata
+
+// string stable_node_id = 1;
+inline void CanvasLayoutMetadata::clear_stable_node_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.stable_node_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CanvasLayoutMetadata::stable_node_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.canvas.CanvasLayoutMetadata.stable_node_id)
+  return _internal_stable_node_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CanvasLayoutMetadata::set_stable_node_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.stable_node_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.canvas.CanvasLayoutMetadata.stable_node_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CanvasLayoutMetadata::mutable_stable_node_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_stable_node_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.canvas.CanvasLayoutMetadata.stable_node_id)
+  return _s;
+}
+inline const ::std::string& CanvasLayoutMetadata::_internal_stable_node_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.stable_node_id_.Get();
+}
+inline void CanvasLayoutMetadata::_internal_set_stable_node_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.stable_node_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CanvasLayoutMetadata::_internal_mutable_stable_node_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.stable_node_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CanvasLayoutMetadata::release_stable_node_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.canvas.CanvasLayoutMetadata.stable_node_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.stable_node_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.stable_node_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CanvasLayoutMetadata::set_allocated_stable_node_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.stable_node_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.stable_node_id_.IsDefault()) {
+    _impl_.stable_node_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.canvas.CanvasLayoutMetadata.stable_node_id)
+}
+
+// string lane = 2;
+inline void CanvasLayoutMetadata::clear_lane() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lane_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CanvasLayoutMetadata::lane() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.canvas.CanvasLayoutMetadata.lane)
+  return _internal_lane();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CanvasLayoutMetadata::set_lane(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.lane_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.canvas.CanvasLayoutMetadata.lane)
+}
+inline ::std::string* PROTOBUF_NONNULL CanvasLayoutMetadata::mutable_lane()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_lane();
+  // @@protoc_insertion_point(field_mutable:s4wave.canvas.CanvasLayoutMetadata.lane)
+  return _s;
+}
+inline const ::std::string& CanvasLayoutMetadata::_internal_lane() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.lane_.Get();
+}
+inline void CanvasLayoutMetadata::_internal_set_lane(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lane_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CanvasLayoutMetadata::_internal_mutable_lane() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.lane_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CanvasLayoutMetadata::release_lane() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.canvas.CanvasLayoutMetadata.lane)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.lane_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.lane_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CanvasLayoutMetadata::set_allocated_lane(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.lane_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.lane_.IsDefault()) {
+    _impl_.lane_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.canvas.CanvasLayoutMetadata.lane)
+}
+
+// int32 rank = 3;
+inline void CanvasLayoutMetadata::clear_rank() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rank_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::int32_t CanvasLayoutMetadata::rank() const {
+  // @@protoc_insertion_point(field_get:s4wave.canvas.CanvasLayoutMetadata.rank)
+  return _internal_rank();
+}
+inline void CanvasLayoutMetadata::set_rank(::int32_t value) {
+  _internal_set_rank(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.canvas.CanvasLayoutMetadata.rank)
+}
+inline ::int32_t CanvasLayoutMetadata::_internal_rank() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.rank_;
+}
+inline void CanvasLayoutMetadata::_internal_set_rank(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rank_ = value;
+}
+
+// string group = 4;
+inline void CanvasLayoutMetadata::clear_group() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.group_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CanvasLayoutMetadata::group() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.canvas.CanvasLayoutMetadata.group)
+  return _internal_group();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CanvasLayoutMetadata::set_group(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.group_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.canvas.CanvasLayoutMetadata.group)
+}
+inline ::std::string* PROTOBUF_NONNULL CanvasLayoutMetadata::mutable_group()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_group();
+  // @@protoc_insertion_point(field_mutable:s4wave.canvas.CanvasLayoutMetadata.group)
+  return _s;
+}
+inline const ::std::string& CanvasLayoutMetadata::_internal_group() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.group_.Get();
+}
+inline void CanvasLayoutMetadata::_internal_set_group(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.group_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CanvasLayoutMetadata::_internal_mutable_group() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.group_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CanvasLayoutMetadata::release_group() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.canvas.CanvasLayoutMetadata.group)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.group_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.group_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CanvasLayoutMetadata::set_allocated_group(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.group_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.group_.IsDefault()) {
+    _impl_.group_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.canvas.CanvasLayoutMetadata.group)
+}
+
+// string projection_owner = 5;
+inline void CanvasLayoutMetadata::clear_projection_owner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.projection_owner_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CanvasLayoutMetadata::projection_owner() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.canvas.CanvasLayoutMetadata.projection_owner)
+  return _internal_projection_owner();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CanvasLayoutMetadata::set_projection_owner(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.projection_owner_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.canvas.CanvasLayoutMetadata.projection_owner)
+}
+inline ::std::string* PROTOBUF_NONNULL CanvasLayoutMetadata::mutable_projection_owner()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_projection_owner();
+  // @@protoc_insertion_point(field_mutable:s4wave.canvas.CanvasLayoutMetadata.projection_owner)
+  return _s;
+}
+inline const ::std::string& CanvasLayoutMetadata::_internal_projection_owner() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.projection_owner_.Get();
+}
+inline void CanvasLayoutMetadata::_internal_set_projection_owner(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.projection_owner_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CanvasLayoutMetadata::_internal_mutable_projection_owner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.projection_owner_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CanvasLayoutMetadata::release_projection_owner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.canvas.CanvasLayoutMetadata.projection_owner)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.projection_owner_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.projection_owner_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CanvasLayoutMetadata::set_allocated_projection_owner(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.projection_owner_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.projection_owner_.IsDefault()) {
+    _impl_.projection_owner_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.canvas.CanvasLayoutMetadata.projection_owner)
+}
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // CanvasState
@@ -3831,6 +4534,38 @@ CanvasState::_internal_mutable_hidden_graph_links() {
   return &_impl_.hidden_graph_links_;
 }
 
+// map<string, .s4wave.canvas.CanvasLayoutMetadata> layout_metadata = 5;
+inline int CanvasState::_internal_layout_metadata_size() const {
+  return _internal_layout_metadata().size();
+}
+inline int CanvasState::layout_metadata_size() const {
+  return _internal_layout_metadata_size();
+}
+inline void CanvasState::clear_layout_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.layout_metadata_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>& CanvasState::_internal_layout_metadata() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.layout_metadata_.GetMap();
+}
+inline const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>& CanvasState::layout_metadata() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_map:s4wave.canvas.CanvasState.layout_metadata)
+  return _internal_layout_metadata();
+}
+inline ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>* PROTOBUF_NONNULL CanvasState::_internal_mutable_layout_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.layout_metadata_.MutableMap();
+}
+inline ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>* PROTOBUF_NONNULL CanvasState::mutable_layout_metadata()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_mutable_map:s4wave.canvas.CanvasState.layout_metadata)
+  return _internal_mutable_layout_metadata();
+}
+
 // -------------------------------------------------------------------
 
 // GetCanvasStateRequest
@@ -3942,6 +4677,8 @@ inline void GetCanvasStateResponse::set_allocated_state(::s4wave::canvas::Canvas
 
 // -------------------------------------------------------------------
 
+// -------------------------------------------------------------------
+
 // UpdateCanvasRequest
 
 // map<string, .s4wave.canvas.CanvasNode> set_nodes = 1;
@@ -3955,7 +4692,7 @@ inline void UpdateCanvasRequest::clear_set_nodes() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.set_nodes_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasNode>& UpdateCanvasRequest::_internal_set_nodes() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -3971,7 +4708,7 @@ inline ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasNode>* PRO
 }
 inline ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasNode>* PROTOBUF_NONNULL UpdateCanvasRequest::mutable_set_nodes()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_mutable_map:s4wave.canvas.UpdateCanvasRequest.set_nodes)
   return _internal_mutable_set_nodes();
 }
@@ -4286,6 +5023,110 @@ inline ::google::protobuf::RepeatedPtrField<::s4wave::canvas::HiddenGraphLink>* 
 UpdateCanvasRequest::_internal_mutable_remove_hidden_graph_links() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.remove_hidden_graph_links_;
+}
+
+// map<string, .s4wave.canvas.CanvasLayoutMetadata> set_layout_metadata = 7;
+inline int UpdateCanvasRequest::_internal_set_layout_metadata_size() const {
+  return _internal_set_layout_metadata().size();
+}
+inline int UpdateCanvasRequest::set_layout_metadata_size() const {
+  return _internal_set_layout_metadata_size();
+}
+inline void UpdateCanvasRequest::clear_set_layout_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.set_layout_metadata_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>& UpdateCanvasRequest::_internal_set_layout_metadata() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.set_layout_metadata_.GetMap();
+}
+inline const ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>& UpdateCanvasRequest::set_layout_metadata() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_map:s4wave.canvas.UpdateCanvasRequest.set_layout_metadata)
+  return _internal_set_layout_metadata();
+}
+inline ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>* PROTOBUF_NONNULL UpdateCanvasRequest::_internal_mutable_set_layout_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.set_layout_metadata_.MutableMap();
+}
+inline ::google::protobuf::Map<::std::string, ::s4wave::canvas::CanvasLayoutMetadata>* PROTOBUF_NONNULL UpdateCanvasRequest::mutable_set_layout_metadata()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_mutable_map:s4wave.canvas.UpdateCanvasRequest.set_layout_metadata)
+  return _internal_mutable_set_layout_metadata();
+}
+
+// repeated string remove_layout_metadata_node_ids = 8;
+inline int UpdateCanvasRequest::_internal_remove_layout_metadata_node_ids_size() const {
+  return _internal_remove_layout_metadata_node_ids().size();
+}
+inline int UpdateCanvasRequest::remove_layout_metadata_node_ids_size() const {
+  return _internal_remove_layout_metadata_node_ids_size();
+}
+inline void UpdateCanvasRequest::clear_remove_layout_metadata_node_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remove_layout_metadata_node_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::std::string* PROTOBUF_NONNULL UpdateCanvasRequest::add_remove_layout_metadata_node_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_remove_layout_metadata_node_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.canvas.UpdateCanvasRequest.remove_layout_metadata_node_ids)
+  return _s;
+}
+inline const ::std::string& UpdateCanvasRequest::remove_layout_metadata_node_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.canvas.UpdateCanvasRequest.remove_layout_metadata_node_ids)
+  return _internal_remove_layout_metadata_node_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL UpdateCanvasRequest::mutable_remove_layout_metadata_node_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.canvas.UpdateCanvasRequest.remove_layout_metadata_node_ids)
+  return _internal_mutable_remove_layout_metadata_node_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void UpdateCanvasRequest::set_remove_layout_metadata_node_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_remove_layout_metadata_node_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.canvas.UpdateCanvasRequest.remove_layout_metadata_node_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void UpdateCanvasRequest::add_remove_layout_metadata_node_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_remove_layout_metadata_node_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_add:s4wave.canvas.UpdateCanvasRequest.remove_layout_metadata_node_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& UpdateCanvasRequest::remove_layout_metadata_node_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.canvas.UpdateCanvasRequest.remove_layout_metadata_node_ids)
+  return _internal_remove_layout_metadata_node_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+UpdateCanvasRequest::mutable_remove_layout_metadata_node_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.canvas.UpdateCanvasRequest.remove_layout_metadata_node_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_remove_layout_metadata_node_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+UpdateCanvasRequest::_internal_remove_layout_metadata_node_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.remove_layout_metadata_node_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+UpdateCanvasRequest::_internal_mutable_remove_layout_metadata_node_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.remove_layout_metadata_node_ids_;
 }
 
 // -------------------------------------------------------------------

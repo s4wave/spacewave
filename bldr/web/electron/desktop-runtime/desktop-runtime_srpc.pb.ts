@@ -120,9 +120,7 @@ export interface DesktopRuntimeResourceService {
 export const DesktopRuntimeResourceServiceServiceName =
   DesktopRuntimeResourceServiceDefinition.typeName
 
-export class DesktopRuntimeResourceServiceClient
-  implements DesktopRuntimeResourceService
-{
+export class DesktopRuntimeResourceServiceClient implements DesktopRuntimeResourceService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {

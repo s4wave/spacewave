@@ -59,17 +59,20 @@ func TestBuildDevtoolTUIDashboardIncludesDashboardSections(t *testing.T) {
 
 	text := BuildDevtoolTUIDashboard(snapshot)
 	for _, want := range []string{
-		"devtool",
-		"command: start web (run)",
-		"work: 4 active",
-		"manifest 0/1 fetched, 1/1 built | active 4 | plugins 1 ok, 0 err | attention 1",
-		"activity",
-		"controls",
+		"DEVTOOL",
+		"command    start web",
+		"state      RUN",
+		"work       4 active",
+		"manifest   fetched 0/1   built 1/1",
+		"plugins    ok 1   err 0",
+		"attention  1",
+		"ACTIVITY",
+		"CONTROLS",
 		"port already in use",
-		"run command start web serving web runtime",
-		"run fetch app fetching manifest",
-		"run plugin web/default plugin running",
-		"ctrl-c stop",
+		"RUN    command    start web",
+		"RUN    fetch      app",
+		"RUN    plugin     web/default",
+		"ctrl-c     stop",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dashboard text missing %q:\n%s", want, text)
@@ -159,10 +162,12 @@ func TestBuildDevtoolTUIDashboardPolishesStatusDetails(t *testing.T) {
 
 	text := BuildDevtoolTUIDashboard(snapshot)
 	for _, want := range []string{
-		"work: 6 active",
-		"manifest 0/2 fetched, 1/2 built | active 6 | plugins 1 ok, 1 err | attention 2",
-		"logs .bldr/logs/20260508.log",
-		"download plugin manifest: copy failed",
+		"work       6 active",
+		"manifest   fetched 0/2   built 1/2",
+		"plugins    ok 1   err 1",
+		"attention  2",
+		"logs       .bldr/logs/20260508.log",
+		"download plugin manifest: copy",
 		"controller load failed",
 		"plugin needs attention",
 	} {
@@ -171,7 +176,7 @@ func TestBuildDevtoolTUIDashboardPolishesStatusDetails(t *testing.T) {
 		}
 	}
 
-	assertTextOrder(t, text, "download plugin manifest: copy failed", "controller load failed")
+	assertTextOrder(t, text, "download plugin manifest: copy", "controller load failed")
 }
 
 func TestBuildDevtoolTUIDashboardRendersWorkStatus(t *testing.T) {
@@ -195,8 +200,9 @@ func TestBuildDevtoolTUIDashboardRendersWorkStatus(t *testing.T) {
 	second := buildDevtoolTUIDashboard(snapshot, 3)
 	text := first + second
 	for _, want := range []string{
-		"command: build (run)",
-		"work: 2 active",
+		"command    build",
+		"state      RUN",
+		"work       2 active",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dashboard text missing work status %q:\n%s", want, text)
@@ -215,8 +221,93 @@ func TestBuildDevtoolTUIDashboardRendersWorkStatus(t *testing.T) {
 		nil,
 	)
 	doneText := buildDevtoolTUIDashboard(done, 3)
-	if !strings.Contains(doneText, "work: done") {
+	if !strings.Contains(doneText, "work       done") {
 		t.Fatalf("dashboard text missing done status:\n%s", doneText)
+	}
+}
+
+func TestBuildDevtoolTUIDashboardAlignsRowsForFastScan(t *testing.T) {
+	snapshot := devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{
+			Name:    "start web",
+			State:   devtool_status.BldrDevtoolCommandStateStarting,
+			Summary: "initializing web runtime",
+			LogFile: ".bldr/logs/20260531-035147.log",
+		},
+		nil,
+		[]devtool_status.BldrDevtoolManifestBuildRow{{
+			ID:           "build:web",
+			BuildTargets: "web",
+			State:        devtool_status.BldrDevtoolManifestStateRunning,
+			FullRebuild:  true,
+		}, {
+			ID:           "build:app",
+			BuildTargets: "app",
+			State:        devtool_status.BldrDevtoolManifestStateReady,
+		}, {
+			ID:           "build:core",
+			BuildTargets: "core",
+			State:        devtool_status.BldrDevtoolManifestStateReady,
+		}},
+		nil,
+		[]devtool_status.BldrDevtoolControllerRow{{
+			ID:           "controller:bldr/manifest/builder/controller",
+			ControllerID: "bldr/manifest/builder/controller",
+			State:        devtool_status.BldrDevtoolControllerStateRunning,
+			Summary:      "1 controller value",
+		}, {
+			ID:           "controller:bldr/plugin/compiler/go",
+			ControllerID: "bldr/plugin/compiler/go",
+			State:        devtool_status.BldrDevtoolControllerStateRunning,
+			Summary:      "1 controller value",
+		}},
+		nil,
+	)
+
+	text := BuildDevtoolTUIDashboard(snapshot)
+	for _, want := range []string{
+		"command    start web",
+		"state      WAIT",
+		"manifest   fetched 0/0   built 2/3",
+		"summary    initializing web runtime",
+		"RUN    build      web",
+		"RUN    controller bldr/manifest/builder",
+		"logs       .bldr/logs/20260531-035147.log",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("dashboard text missing aligned row %q:\n%s", want, text)
+		}
+	}
+	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
+		if len([]rune(line)) > 80 {
+			t.Fatalf("dashboard line too wide (%d): %q\n%s", len([]rune(line)), line, text)
+		}
+	}
+}
+
+func TestBuildDevtoolTUIDashboardNormalizesBrowserURL(t *testing.T) {
+	snapshot := devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{
+			Name:    "start web",
+			State:   devtool_status.BldrDevtoolCommandStateRunning,
+			Summary: "web runtime active on 127.0.0.1:5593",
+		},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+
+	text := BuildDevtoolTUIDashboard(snapshot)
+	for _, want := range []string{
+		"summary    web runtime active on http://127.0.0.1:5593",
+		"RUN    command    start web                web runtime active on http://127...",
+		"o          open http://127.0.0.1:5593",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("dashboard text missing normalized URL %q:\n%s", want, text)
+		}
 	}
 }
 
@@ -263,11 +354,11 @@ func TestBuildDevtoolTUIDashboardRendersLiveSections(t *testing.T) {
 
 	text := BuildDevtoolTUIDashboard(snapshot)
 	for _, want := range []string{
-		"devtool",
-		"activity",
+		"DEVTOOL",
+		"ACTIVITY",
 		"web-controller",
 		"controller failed",
-		"logs .bldr/logs/20260508.log",
+		"logs       .bldr/logs/20260508.log",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("rendered dashboard missing %q:\n%s", want, text)
@@ -278,11 +369,13 @@ func TestBuildDevtoolTUIDashboardRendersLiveSections(t *testing.T) {
 func TestBuildDevtoolTUIDashboardShowsEmptyStates(t *testing.T) {
 	text := BuildDevtoolTUIDashboard(nil)
 	for _, want := range []string{
-		"state: ?",
-		"work: idle",
-		"manifest 0/0 fetched, 0/0 built | active 0 | plugins 0 ok, 0 err | attention 0",
+		"state      ?",
+		"work       idle",
+		"manifest   fetched 0/0   built 0/0",
+		"plugins    ok 0   err 0",
+		"attention  0",
 		"clean - waiting for work",
-		"ctrl-c stop",
+		"ctrl-c     stop",
 		".bldr/logs",
 	} {
 		if !strings.Contains(text, want) {

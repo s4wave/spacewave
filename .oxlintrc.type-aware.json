@@ -287,7 +287,6 @@
         "react-doctor/no-disabled-zoom": "warn",
         "react-doctor/no-outline-none": "warn",
         "react-doctor/no-long-transition-duration": "warn",
-        "react-doctor/design-no-bold-heading": "warn",
         "react-doctor/design-no-redundant-padding-axes": "warn",
         "react-doctor/design-no-redundant-size-axes": "warn",
         "react-doctor/design-no-space-on-flex-children": "warn",

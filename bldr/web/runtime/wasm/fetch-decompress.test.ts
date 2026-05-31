@@ -51,4 +51,24 @@ describe('fetchWithDecompress', () => {
 
     await expect(response.text()).resolves.toBe('decoded wasm')
   })
+
+  it('decompresses gzip bodies even when the response advertises gzip encoding', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(await gzipText('wasm-bytes'), {
+          status: 200,
+          headers: {
+            'content-encoding': 'gzip',
+            'content-type': 'application/wasm',
+          },
+        }),
+      ),
+    )
+
+    const response = await fetchWithDecompress('/entrypoint/runtime.wasm.gz')
+
+    expect(response.headers.get('content-encoding')).toBeNull()
+    await expect(response.text()).resolves.toBe('wasm-bytes')
+  })
 })

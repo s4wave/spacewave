@@ -65,12 +65,22 @@ enum DeviceCapabilityLocalState : int;
 extern const uint32_t DeviceCapabilityLocalState_internal_data_[];
 enum DeviceCapabilityState : int;
 extern const uint32_t DeviceCapabilityState_internal_data_[];
+enum DeviceCheckoutRootAccess : int;
+extern const uint32_t DeviceCheckoutRootAccess_internal_data_[];
 enum DeviceLiveness : int;
 extern const uint32_t DeviceLiveness_internal_data_[];
 enum DeviceSetupState : int;
 extern const uint32_t DeviceSetupState_internal_data_[];
 enum DeviceUpdateState : int;
 extern const uint32_t DeviceUpdateState_internal_data_[];
+class AccessCheckoutRootRequest;
+struct AccessCheckoutRootRequestDefaultTypeInternal;
+extern AccessCheckoutRootRequestDefaultTypeInternal _AccessCheckoutRootRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AccessCheckoutRootRequest_class_data_;
+class AccessCheckoutRootResponse;
+struct AccessCheckoutRootResponseDefaultTypeInternal;
+extern AccessCheckoutRootResponseDefaultTypeInternal _AccessCheckoutRootResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AccessCheckoutRootResponse_class_data_;
 class ComputersDashboard;
 struct ComputersDashboardDefaultTypeInternal;
 extern ComputersDashboardDefaultTypeInternal _ComputersDashboard_default_instance_;
@@ -95,6 +105,10 @@ class DeviceCapabilityPolicy;
 struct DeviceCapabilityPolicyDefaultTypeInternal;
 extern DeviceCapabilityPolicyDefaultTypeInternal _DeviceCapabilityPolicy_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull DeviceCapabilityPolicy_class_data_;
+class DeviceCheckoutRootCapability;
+struct DeviceCheckoutRootCapabilityDefaultTypeInternal;
+extern DeviceCheckoutRootCapabilityDefaultTypeInternal _DeviceCheckoutRootCapability_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DeviceCheckoutRootCapability_class_data_;
 class DevicePlatform;
 struct DevicePlatformDefaultTypeInternal;
 extern DevicePlatformDefaultTypeInternal _DevicePlatform_default_instance_;
@@ -132,6 +146,9 @@ internal::EnumTraitsT<::s4wave::device::DeviceCapabilityLocalState_internal_data
 template <>
 internal::EnumTraitsT<::s4wave::device::DeviceCapabilityState_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::device::DeviceCapabilityState>;
+template <>
+internal::EnumTraitsT<::s4wave::device::DeviceCheckoutRootAccess_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::device::DeviceCheckoutRootAccess>;
 template <>
 internal::EnumTraitsT<::s4wave::device::DeviceLiveness_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::device::DeviceLiveness>;
@@ -378,6 +395,43 @@ inline bool DeviceCapabilityGrantState_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<DeviceCapabilityGrantState>(DeviceCapabilityGrantState_descriptor(), name,
                                            value);
 }
+enum DeviceCheckoutRootAccess : int {
+  DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN = 0,
+  DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY = 1,
+  DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE = 2,
+  DeviceCheckoutRootAccess_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DeviceCheckoutRootAccess_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DeviceCheckoutRootAccess_internal_data_[];
+inline constexpr DeviceCheckoutRootAccess DeviceCheckoutRootAccess_MIN =
+    static_cast<DeviceCheckoutRootAccess>(0);
+inline constexpr DeviceCheckoutRootAccess DeviceCheckoutRootAccess_MAX =
+    static_cast<DeviceCheckoutRootAccess>(2);
+inline bool DeviceCheckoutRootAccess_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int DeviceCheckoutRootAccess_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DeviceCheckoutRootAccess_descriptor();
+template <typename T>
+const ::std::string& DeviceCheckoutRootAccess_Name(T value) {
+  static_assert(::std::is_same<T, DeviceCheckoutRootAccess>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DeviceCheckoutRootAccess_Name().");
+  return DeviceCheckoutRootAccess_Name(static_cast<DeviceCheckoutRootAccess>(value));
+}
+template <>
+inline const ::std::string& DeviceCheckoutRootAccess_Name(DeviceCheckoutRootAccess value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DeviceCheckoutRootAccess_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool DeviceCheckoutRootAccess_Parse(
+    ::absl::string_view name, DeviceCheckoutRootAccess* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DeviceCheckoutRootAccess>(DeviceCheckoutRootAccess_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -438,7 +492,7 @@ class WatchDeviceStateRequest final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const WatchDeviceStateRequest*>(
         &_WatchDeviceStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(WatchDeviceStateRequest& a, WatchDeviceStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchDeviceStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -728,6 +782,271 @@ class DevicePlatform final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull DevicePlatform_class_data_;
+// -------------------------------------------------------------------
+
+class DeviceCheckoutRootCapability final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.device.DeviceCheckoutRootCapability) */ {
+ public:
+  inline DeviceCheckoutRootCapability() : DeviceCheckoutRootCapability(nullptr) {}
+  ~DeviceCheckoutRootCapability() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DeviceCheckoutRootCapability* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DeviceCheckoutRootCapability));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DeviceCheckoutRootCapability(::google::protobuf::internal::ConstantInitialized);
+
+  inline DeviceCheckoutRootCapability(const DeviceCheckoutRootCapability& from) : DeviceCheckoutRootCapability(nullptr, from) {}
+  inline DeviceCheckoutRootCapability(DeviceCheckoutRootCapability&& from) noexcept
+      : DeviceCheckoutRootCapability(nullptr, ::std::move(from)) {}
+  inline DeviceCheckoutRootCapability& operator=(const DeviceCheckoutRootCapability& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DeviceCheckoutRootCapability& operator=(DeviceCheckoutRootCapability&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DeviceCheckoutRootCapability& default_instance() {
+    return *reinterpret_cast<const DeviceCheckoutRootCapability*>(
+        &_DeviceCheckoutRootCapability_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(DeviceCheckoutRootCapability& a, DeviceCheckoutRootCapability& b) { a.Swap(&b); }
+  inline void Swap(DeviceCheckoutRootCapability* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DeviceCheckoutRootCapability* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DeviceCheckoutRootCapability* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DeviceCheckoutRootCapability>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DeviceCheckoutRootCapability& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DeviceCheckoutRootCapability& from) { DeviceCheckoutRootCapability::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DeviceCheckoutRootCapability* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.device.DeviceCheckoutRootCapability"; }
+
+  explicit DeviceCheckoutRootCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DeviceCheckoutRootCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DeviceCheckoutRootCapability& from);
+  DeviceCheckoutRootCapability(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DeviceCheckoutRootCapability&& from) noexcept
+      : DeviceCheckoutRootCapability(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kNameFieldNumber = 1,
+    kDisplayPathFieldNumber = 2,
+    kSelectionRefFieldNumber = 3,
+    kAccessFieldNumber = 4,
+    kReadAvailableFieldNumber = 5,
+    kWriteAvailableFieldNumber = 6,
+  };
+  // string name = 1;
+  void clear_name() ;
+  const ::std::string& name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_name();
+  void set_allocated_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_name();
+
+  public:
+  // string display_path = 2;
+  void clear_display_path() ;
+  const ::std::string& display_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_display_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_display_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_display_path();
+  void set_allocated_display_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_display_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_display_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_display_path();
+
+  public:
+  // string selection_ref = 3;
+  void clear_selection_ref() ;
+  const ::std::string& selection_ref() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_selection_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_selection_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_selection_ref();
+  void set_allocated_selection_ref(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_selection_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_selection_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_selection_ref();
+
+  public:
+  // .s4wave.device.DeviceCheckoutRootAccess access = 4;
+  void clear_access() ;
+  ::s4wave::device::DeviceCheckoutRootAccess access() const;
+  void set_access(::s4wave::device::DeviceCheckoutRootAccess value);
+
+  private:
+  ::s4wave::device::DeviceCheckoutRootAccess _internal_access() const;
+  void _internal_set_access(::s4wave::device::DeviceCheckoutRootAccess value);
+
+  public:
+  // bool read_available = 5;
+  void clear_read_available() ;
+  bool read_available() const;
+  void set_read_available(bool value);
+
+  private:
+  bool _internal_read_available() const;
+  void _internal_set_read_available(bool value);
+
+  public:
+  // bool write_available = 6;
+  void clear_write_available() ;
+  bool write_available() const;
+  void set_write_available(bool value);
+
+  private:
+  bool _internal_write_available() const;
+  void _internal_set_write_available(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.device.DeviceCheckoutRootCapability)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 80,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DeviceCheckoutRootCapability& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr name_;
+    ::google::protobuf::internal::ArenaStringPtr display_path_;
+    ::google::protobuf::internal::ArenaStringPtr selection_ref_;
+    int access_;
+    bool read_available_;
+    bool write_available_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DeviceCheckoutRootCapability_class_data_;
 // -------------------------------------------------------------------
 
 class DeviceCapabilityPolicy final : public ::google::protobuf::Message
@@ -1195,6 +1514,230 @@ class DeviceCapabilityLink final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull DeviceCapabilityLink_class_data_;
 // -------------------------------------------------------------------
 
+class AccessCheckoutRootRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.device.AccessCheckoutRootRequest) */ {
+ public:
+  inline AccessCheckoutRootRequest() : AccessCheckoutRootRequest(nullptr) {}
+  ~AccessCheckoutRootRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AccessCheckoutRootRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AccessCheckoutRootRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AccessCheckoutRootRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline AccessCheckoutRootRequest(const AccessCheckoutRootRequest& from) : AccessCheckoutRootRequest(nullptr, from) {}
+  inline AccessCheckoutRootRequest(AccessCheckoutRootRequest&& from) noexcept
+      : AccessCheckoutRootRequest(nullptr, ::std::move(from)) {}
+  inline AccessCheckoutRootRequest& operator=(const AccessCheckoutRootRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AccessCheckoutRootRequest& operator=(AccessCheckoutRootRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AccessCheckoutRootRequest& default_instance() {
+    return *reinterpret_cast<const AccessCheckoutRootRequest*>(
+        &_AccessCheckoutRootRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 13;
+  friend void swap(AccessCheckoutRootRequest& a, AccessCheckoutRootRequest& b) { a.Swap(&b); }
+  inline void Swap(AccessCheckoutRootRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AccessCheckoutRootRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AccessCheckoutRootRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AccessCheckoutRootRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AccessCheckoutRootRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AccessCheckoutRootRequest& from) { AccessCheckoutRootRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AccessCheckoutRootRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.device.AccessCheckoutRootRequest"; }
+
+  explicit AccessCheckoutRootRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AccessCheckoutRootRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AccessCheckoutRootRequest& from);
+  AccessCheckoutRootRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AccessCheckoutRootRequest&& from) noexcept
+      : AccessCheckoutRootRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kNameFieldNumber = 1,
+    kWriteApprovalRefFieldNumber = 3,
+    kWriteFieldNumber = 2,
+  };
+  // string name = 1;
+  void clear_name() ;
+  const ::std::string& name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_name();
+  void set_allocated_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_name();
+
+  public:
+  // string write_approval_ref = 3;
+  void clear_write_approval_ref() ;
+  const ::std::string& write_approval_ref() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_write_approval_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_write_approval_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_write_approval_ref();
+  void set_allocated_write_approval_ref(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_write_approval_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_write_approval_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_write_approval_ref();
+
+  public:
+  // bool write = 2;
+  void clear_write() ;
+  bool write() const;
+  void set_write(bool value);
+
+  private:
+  bool _internal_write() const;
+  void _internal_set_write(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.device.AccessCheckoutRootRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 70,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AccessCheckoutRootRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr name_;
+    ::google::protobuf::internal::ArenaStringPtr write_approval_ref_;
+    bool write_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AccessCheckoutRootRequest_class_data_;
+// -------------------------------------------------------------------
+
 class DeviceStatus final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.device.DeviceStatus) */ {
  public:
@@ -1584,6 +2127,7 @@ class DeviceCapability final : public ::google::protobuf::Message
     kDetailFieldNumber = 5,
     kLinkFieldNumber = 6,
     kPolicyFieldNumber = 7,
+    kCheckoutRootFieldNumber = 8,
     kStateFieldNumber = 4,
   };
   // string id = 1;
@@ -1676,6 +2220,21 @@ class DeviceCapability final : public ::google::protobuf::Message
   ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NONNULL _internal_mutable_policy();
 
   public:
+  // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 8;
+  bool has_checkout_root() const;
+  void clear_checkout_root() ;
+  const ::s4wave::device::DeviceCheckoutRootCapability& checkout_root() const;
+  [[nodiscard]] ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE release_checkout_root();
+  ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NONNULL mutable_checkout_root();
+  void set_allocated_checkout_root(::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_checkout_root(::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE value);
+  ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE unsafe_arena_release_checkout_root();
+
+  private:
+  const ::s4wave::device::DeviceCheckoutRootCapability& _internal_checkout_root() const;
+  ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NONNULL _internal_mutable_checkout_root();
+
+  public:
   // .s4wave.device.DeviceCapabilityState state = 4;
   void clear_state() ;
   ::s4wave::device::DeviceCapabilityState state() const;
@@ -1690,8 +2249,8 @@ class DeviceCapability final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 7,
-                                   2, 56,
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   3, 64,
                                    2>
       _table_;
 
@@ -1718,6 +2277,7 @@ class DeviceCapability final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr detail_;
     ::s4wave::device::DeviceCapabilityLink* PROTOBUF_NULLABLE link_;
     ::s4wave::device::DeviceCapabilityPolicy* PROTOBUF_NULLABLE policy_;
+    ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE checkout_root_;
     int state_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1783,7 +2343,7 @@ class CreateComputersDashboardOp final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateComputersDashboardOp*>(
         &_CreateComputersDashboardOp_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(CreateComputersDashboardOp& a, CreateComputersDashboardOp& b) { a.Swap(&b); }
   inline void Swap(CreateComputersDashboardOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2012,7 +2572,7 @@ class ComputersDashboard final : public ::google::protobuf::Message
     return *reinterpret_cast<const ComputersDashboard*>(
         &_ComputersDashboard_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(ComputersDashboard& a, ComputersDashboard& b) { a.Swap(&b); }
   inline void Swap(ComputersDashboard* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2169,6 +2729,305 @@ class ComputersDashboard final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ComputersDashboard_class_data_;
 // -------------------------------------------------------------------
 
+class AccessCheckoutRootResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.device.AccessCheckoutRootResponse) */ {
+ public:
+  inline AccessCheckoutRootResponse() : AccessCheckoutRootResponse(nullptr) {}
+  ~AccessCheckoutRootResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AccessCheckoutRootResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AccessCheckoutRootResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AccessCheckoutRootResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline AccessCheckoutRootResponse(const AccessCheckoutRootResponse& from) : AccessCheckoutRootResponse(nullptr, from) {}
+  inline AccessCheckoutRootResponse(AccessCheckoutRootResponse&& from) noexcept
+      : AccessCheckoutRootResponse(nullptr, ::std::move(from)) {}
+  inline AccessCheckoutRootResponse& operator=(const AccessCheckoutRootResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AccessCheckoutRootResponse& operator=(AccessCheckoutRootResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AccessCheckoutRootResponse& default_instance() {
+    return *reinterpret_cast<const AccessCheckoutRootResponse*>(
+        &_AccessCheckoutRootResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 14;
+  friend void swap(AccessCheckoutRootResponse& a, AccessCheckoutRootResponse& b) { a.Swap(&b); }
+  inline void Swap(AccessCheckoutRootResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AccessCheckoutRootResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AccessCheckoutRootResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AccessCheckoutRootResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AccessCheckoutRootResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AccessCheckoutRootResponse& from) { AccessCheckoutRootResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AccessCheckoutRootResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.device.AccessCheckoutRootResponse"; }
+
+  explicit AccessCheckoutRootResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AccessCheckoutRootResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AccessCheckoutRootResponse& from);
+  AccessCheckoutRootResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AccessCheckoutRootResponse&& from) noexcept
+      : AccessCheckoutRootResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCapabilityIdFieldNumber = 2,
+    kObjectKeyFieldNumber = 3,
+    kTypeIdFieldNumber = 4,
+    kWriteApprovalRefFieldNumber = 8,
+    kCheckoutRootFieldNumber = 5,
+    kResourceIdFieldNumber = 1,
+    kWriteAvailableFieldNumber = 6,
+    kWriteEnabledFieldNumber = 7,
+  };
+  // string capability_id = 2;
+  void clear_capability_id() ;
+  const ::std::string& capability_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_capability_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_capability_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_capability_id();
+  void set_allocated_capability_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_capability_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_capability_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_capability_id();
+
+  public:
+  // string object_key = 3;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // string type_id = 4;
+  void clear_type_id() ;
+  const ::std::string& type_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_type_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_type_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_type_id();
+  void set_allocated_type_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_type_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_type_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_type_id();
+
+  public:
+  // string write_approval_ref = 8;
+  void clear_write_approval_ref() ;
+  const ::std::string& write_approval_ref() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_write_approval_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_write_approval_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_write_approval_ref();
+  void set_allocated_write_approval_ref(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_write_approval_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_write_approval_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_write_approval_ref();
+
+  public:
+  // .s4wave.device.DeviceCheckoutRootCapability checkout_root = 5;
+  bool has_checkout_root() const;
+  void clear_checkout_root() ;
+  const ::s4wave::device::DeviceCheckoutRootCapability& checkout_root() const;
+  [[nodiscard]] ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE release_checkout_root();
+  ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NONNULL mutable_checkout_root();
+  void set_allocated_checkout_root(::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_checkout_root(::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE value);
+  ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE unsafe_arena_release_checkout_root();
+
+  private:
+  const ::s4wave::device::DeviceCheckoutRootCapability& _internal_checkout_root() const;
+  ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NONNULL _internal_mutable_checkout_root();
+
+  public:
+  // uint32 resource_id = 1;
+  void clear_resource_id() ;
+  ::uint32_t resource_id() const;
+  void set_resource_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_resource_id() const;
+  void _internal_set_resource_id(::uint32_t value);
+
+  public:
+  // bool write_available = 6;
+  void clear_write_available() ;
+  bool write_available() const;
+  void set_write_available(bool value);
+
+  private:
+  bool _internal_write_available() const;
+  void _internal_set_write_available(bool value);
+
+  public:
+  // bool write_enabled = 7;
+  void clear_write_enabled() ;
+  bool write_enabled() const;
+  void set_write_enabled(bool value);
+
+  private:
+  bool _internal_write_enabled() const;
+  void _internal_set_write_enabled(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.device.AccessCheckoutRootResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   1, 105,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AccessCheckoutRootResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr capability_id_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr type_id_;
+    ::google::protobuf::internal::ArenaStringPtr write_approval_ref_;
+    ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE checkout_root_;
+    ::uint32_t resource_id_;
+    bool write_available_;
+    bool write_enabled_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdevice_2fdevice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AccessCheckoutRootResponse_class_data_;
+// -------------------------------------------------------------------
+
 class ReportDeviceStatusRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.device.ReportDeviceStatusRequest) */ {
  public:
@@ -2224,7 +3083,7 @@ class ReportDeviceStatusRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReportDeviceStatusRequest*>(
         &_ReportDeviceStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(ReportDeviceStatusRequest& a, ReportDeviceStatusRequest& b) { a.Swap(&b); }
   inline void Swap(ReportDeviceStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2491,7 +3350,7 @@ class Device final : public ::google::protobuf::Message
     return *reinterpret_cast<const Device*>(
         &_Device_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(Device& a, Device& b) { a.Swap(&b); }
   inline void Swap(Device* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2831,7 +3690,7 @@ class WatchDeviceStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchDeviceStateResponse*>(
         &_WatchDeviceStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(WatchDeviceStateResponse& a, WatchDeviceStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchDeviceStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3026,7 +3885,7 @@ class ReportDeviceStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReportDeviceStatusResponse*>(
         &_ReportDeviceStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(ReportDeviceStatusResponse& a, ReportDeviceStatusResponse& b) { a.Swap(&b); }
   inline void Swap(ReportDeviceStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3767,7 +4626,7 @@ inline void DeviceCapability::clear_state() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline ::s4wave::device::DeviceCapabilityState DeviceCapability::state() const {
   // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapability.state)
@@ -3775,7 +4634,7 @@ inline ::s4wave::device::DeviceCapabilityState DeviceCapability::state() const {
 }
 inline void DeviceCapability::set_state(::s4wave::device::DeviceCapabilityState value) {
   _internal_set_state(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:s4wave.device.DeviceCapability.state)
 }
 inline ::s4wave::device::DeviceCapabilityState DeviceCapability::_internal_state() const {
@@ -4048,6 +4907,105 @@ inline void DeviceCapability::set_allocated_policy(::s4wave::device::DeviceCapab
 
   _impl_.policy_ = reinterpret_cast<::s4wave::device::DeviceCapabilityPolicy*>(value);
   // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapability.policy)
+}
+
+// .s4wave.device.DeviceCheckoutRootCapability checkout_root = 8;
+inline bool DeviceCapability::has_checkout_root() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  PROTOBUF_ASSUME(!value || _impl_.checkout_root_ != nullptr);
+  return value;
+}
+inline void DeviceCapability::clear_checkout_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.checkout_root_ != nullptr) _impl_.checkout_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::s4wave::device::DeviceCheckoutRootCapability& DeviceCapability::_internal_checkout_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::device::DeviceCheckoutRootCapability* p = _impl_.checkout_root_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::device::DeviceCheckoutRootCapability&>(::s4wave::device::_DeviceCheckoutRootCapability_default_instance_);
+}
+inline const ::s4wave::device::DeviceCheckoutRootCapability& DeviceCapability::checkout_root() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCapability.checkout_root)
+  return _internal_checkout_root();
+}
+inline void DeviceCapability::unsafe_arena_set_allocated_checkout_root(
+    ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.checkout_root_);
+  }
+  _impl_.checkout_root_ = reinterpret_cast<::s4wave::device::DeviceCheckoutRootCapability*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.device.DeviceCapability.checkout_root)
+}
+inline ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE DeviceCapability::release_checkout_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::s4wave::device::DeviceCheckoutRootCapability* released = _impl_.checkout_root_;
+  _impl_.checkout_root_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE DeviceCapability::unsafe_arena_release_checkout_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCapability.checkout_root)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::s4wave::device::DeviceCheckoutRootCapability* temp = _impl_.checkout_root_;
+  _impl_.checkout_root_ = nullptr;
+  return temp;
+}
+inline ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NONNULL DeviceCapability::_internal_mutable_checkout_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.checkout_root_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::device::DeviceCheckoutRootCapability>(GetArena());
+    _impl_.checkout_root_ = reinterpret_cast<::s4wave::device::DeviceCheckoutRootCapability*>(p);
+  }
+  return _impl_.checkout_root_;
+}
+inline ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NONNULL DeviceCapability::mutable_checkout_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::s4wave::device::DeviceCheckoutRootCapability* _msg = _internal_mutable_checkout_root();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCapability.checkout_root)
+  return _msg;
+}
+inline void DeviceCapability::set_allocated_checkout_root(::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.checkout_root_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+
+  _impl_.checkout_root_ = reinterpret_cast<::s4wave::device::DeviceCheckoutRootCapability*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCapability.checkout_root)
 }
 
 // -------------------------------------------------------------------
@@ -4431,6 +5389,280 @@ inline ::s4wave::device::DeviceCapabilityGrantState DeviceCapabilityPolicy::_int
 inline void DeviceCapabilityPolicy::_internal_set_grant_state(::s4wave::device::DeviceCapabilityGrantState value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.grant_state_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// DeviceCheckoutRootCapability
+
+// string name = 1;
+inline void DeviceCheckoutRootCapability::clear_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DeviceCheckoutRootCapability::name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCheckoutRootCapability.name)
+  return _internal_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeviceCheckoutRootCapability::set_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCheckoutRootCapability.name)
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCheckoutRootCapability::mutable_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_name();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCheckoutRootCapability.name)
+  return _s;
+}
+inline const ::std::string& DeviceCheckoutRootCapability::_internal_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.name_.Get();
+}
+inline void DeviceCheckoutRootCapability::_internal_set_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCheckoutRootCapability::_internal_mutable_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeviceCheckoutRootCapability::release_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCheckoutRootCapability.name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeviceCheckoutRootCapability::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.name_.IsDefault()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCheckoutRootCapability.name)
+}
+
+// string display_path = 2;
+inline void DeviceCheckoutRootCapability::clear_display_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.display_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DeviceCheckoutRootCapability::display_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCheckoutRootCapability.display_path)
+  return _internal_display_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeviceCheckoutRootCapability::set_display_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.display_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCheckoutRootCapability.display_path)
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCheckoutRootCapability::mutable_display_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_display_path();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCheckoutRootCapability.display_path)
+  return _s;
+}
+inline const ::std::string& DeviceCheckoutRootCapability::_internal_display_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.display_path_.Get();
+}
+inline void DeviceCheckoutRootCapability::_internal_set_display_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.display_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCheckoutRootCapability::_internal_mutable_display_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.display_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeviceCheckoutRootCapability::release_display_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCheckoutRootCapability.display_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.display_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.display_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeviceCheckoutRootCapability::set_allocated_display_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.display_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.display_path_.IsDefault()) {
+    _impl_.display_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCheckoutRootCapability.display_path)
+}
+
+// string selection_ref = 3;
+inline void DeviceCheckoutRootCapability::clear_selection_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selection_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DeviceCheckoutRootCapability::selection_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCheckoutRootCapability.selection_ref)
+  return _internal_selection_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeviceCheckoutRootCapability::set_selection_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.selection_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCheckoutRootCapability.selection_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCheckoutRootCapability::mutable_selection_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_selection_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.DeviceCheckoutRootCapability.selection_ref)
+  return _s;
+}
+inline const ::std::string& DeviceCheckoutRootCapability::_internal_selection_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selection_ref_.Get();
+}
+inline void DeviceCheckoutRootCapability::_internal_set_selection_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selection_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeviceCheckoutRootCapability::_internal_mutable_selection_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.selection_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeviceCheckoutRootCapability::release_selection_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.DeviceCheckoutRootCapability.selection_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.selection_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.selection_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeviceCheckoutRootCapability::set_allocated_selection_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.selection_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.selection_ref_.IsDefault()) {
+    _impl_.selection_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.DeviceCheckoutRootCapability.selection_ref)
+}
+
+// .s4wave.device.DeviceCheckoutRootAccess access = 4;
+inline void DeviceCheckoutRootCapability::clear_access() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.access_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::s4wave::device::DeviceCheckoutRootAccess DeviceCheckoutRootCapability::access() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCheckoutRootCapability.access)
+  return _internal_access();
+}
+inline void DeviceCheckoutRootCapability::set_access(::s4wave::device::DeviceCheckoutRootAccess value) {
+  _internal_set_access(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCheckoutRootCapability.access)
+}
+inline ::s4wave::device::DeviceCheckoutRootAccess DeviceCheckoutRootCapability::_internal_access() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::device::DeviceCheckoutRootAccess>(_impl_.access_);
+}
+inline void DeviceCheckoutRootCapability::_internal_set_access(::s4wave::device::DeviceCheckoutRootAccess value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.access_ = value;
+}
+
+// bool read_available = 5;
+inline void DeviceCheckoutRootCapability::clear_read_available() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.read_available_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline bool DeviceCheckoutRootCapability::read_available() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCheckoutRootCapability.read_available)
+  return _internal_read_available();
+}
+inline void DeviceCheckoutRootCapability::set_read_available(bool value) {
+  _internal_set_read_available(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCheckoutRootCapability.read_available)
+}
+inline bool DeviceCheckoutRootCapability::_internal_read_available() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.read_available_;
+}
+inline void DeviceCheckoutRootCapability::_internal_set_read_available(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.read_available_ = value;
+}
+
+// bool write_available = 6;
+inline void DeviceCheckoutRootCapability::clear_write_available() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_available_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool DeviceCheckoutRootCapability::write_available() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.DeviceCheckoutRootCapability.write_available)
+  return _internal_write_available();
+}
+inline void DeviceCheckoutRootCapability::set_write_available(bool value) {
+  _internal_set_write_available(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.device.DeviceCheckoutRootCapability.write_available)
+}
+inline bool DeviceCheckoutRootCapability::_internal_write_available() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.write_available_;
+}
+inline void DeviceCheckoutRootCapability::_internal_set_write_available(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_available_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -6020,6 +7252,603 @@ inline void ReportDeviceStatusResponse::set_allocated_state(::s4wave::device::De
   // @@protoc_insertion_point(field_set_allocated:s4wave.device.ReportDeviceStatusResponse.state)
 }
 
+// -------------------------------------------------------------------
+
+// AccessCheckoutRootRequest
+
+// string name = 1;
+inline void AccessCheckoutRootRequest::clear_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AccessCheckoutRootRequest::name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootRequest.name)
+  return _internal_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AccessCheckoutRootRequest::set_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootRequest.name)
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootRequest::mutable_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_name();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.AccessCheckoutRootRequest.name)
+  return _s;
+}
+inline const ::std::string& AccessCheckoutRootRequest::_internal_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.name_.Get();
+}
+inline void AccessCheckoutRootRequest::_internal_set_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootRequest::_internal_mutable_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AccessCheckoutRootRequest::release_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.AccessCheckoutRootRequest.name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AccessCheckoutRootRequest::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.name_.IsDefault()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.AccessCheckoutRootRequest.name)
+}
+
+// bool write = 2;
+inline void AccessCheckoutRootRequest::clear_write() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline bool AccessCheckoutRootRequest::write() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootRequest.write)
+  return _internal_write();
+}
+inline void AccessCheckoutRootRequest::set_write(bool value) {
+  _internal_set_write(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootRequest.write)
+}
+inline bool AccessCheckoutRootRequest::_internal_write() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.write_;
+}
+inline void AccessCheckoutRootRequest::_internal_set_write(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_ = value;
+}
+
+// string write_approval_ref = 3;
+inline void AccessCheckoutRootRequest::clear_write_approval_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_approval_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& AccessCheckoutRootRequest::write_approval_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootRequest.write_approval_ref)
+  return _internal_write_approval_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AccessCheckoutRootRequest::set_write_approval_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.write_approval_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootRequest.write_approval_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootRequest::mutable_write_approval_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_write_approval_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.AccessCheckoutRootRequest.write_approval_ref)
+  return _s;
+}
+inline const ::std::string& AccessCheckoutRootRequest::_internal_write_approval_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.write_approval_ref_.Get();
+}
+inline void AccessCheckoutRootRequest::_internal_set_write_approval_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_approval_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootRequest::_internal_mutable_write_approval_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.write_approval_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AccessCheckoutRootRequest::release_write_approval_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.AccessCheckoutRootRequest.write_approval_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.write_approval_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.write_approval_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AccessCheckoutRootRequest::set_allocated_write_approval_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.write_approval_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.write_approval_ref_.IsDefault()) {
+    _impl_.write_approval_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.AccessCheckoutRootRequest.write_approval_ref)
+}
+
+// -------------------------------------------------------------------
+
+// AccessCheckoutRootResponse
+
+// uint32 resource_id = 1;
+inline void AccessCheckoutRootResponse::clear_resource_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::uint32_t AccessCheckoutRootResponse::resource_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootResponse.resource_id)
+  return _internal_resource_id();
+}
+inline void AccessCheckoutRootResponse::set_resource_id(::uint32_t value) {
+  _internal_set_resource_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootResponse.resource_id)
+}
+inline ::uint32_t AccessCheckoutRootResponse::_internal_resource_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.resource_id_;
+}
+inline void AccessCheckoutRootResponse::_internal_set_resource_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = value;
+}
+
+// string capability_id = 2;
+inline void AccessCheckoutRootResponse::clear_capability_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.capability_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AccessCheckoutRootResponse::capability_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootResponse.capability_id)
+  return _internal_capability_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AccessCheckoutRootResponse::set_capability_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.capability_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootResponse.capability_id)
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootResponse::mutable_capability_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_capability_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.AccessCheckoutRootResponse.capability_id)
+  return _s;
+}
+inline const ::std::string& AccessCheckoutRootResponse::_internal_capability_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.capability_id_.Get();
+}
+inline void AccessCheckoutRootResponse::_internal_set_capability_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.capability_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootResponse::_internal_mutable_capability_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.capability_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AccessCheckoutRootResponse::release_capability_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.AccessCheckoutRootResponse.capability_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.capability_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.capability_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AccessCheckoutRootResponse::set_allocated_capability_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.capability_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.capability_id_.IsDefault()) {
+    _impl_.capability_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.AccessCheckoutRootResponse.capability_id)
+}
+
+// string object_key = 3;
+inline void AccessCheckoutRootResponse::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& AccessCheckoutRootResponse::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootResponse.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AccessCheckoutRootResponse::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootResponse.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootResponse::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.AccessCheckoutRootResponse.object_key)
+  return _s;
+}
+inline const ::std::string& AccessCheckoutRootResponse::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void AccessCheckoutRootResponse::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootResponse::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AccessCheckoutRootResponse::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.AccessCheckoutRootResponse.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AccessCheckoutRootResponse::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.AccessCheckoutRootResponse.object_key)
+}
+
+// string type_id = 4;
+inline void AccessCheckoutRootResponse::clear_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.type_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& AccessCheckoutRootResponse::type_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootResponse.type_id)
+  return _internal_type_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AccessCheckoutRootResponse::set_type_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.type_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootResponse.type_id)
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootResponse::mutable_type_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_type_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.AccessCheckoutRootResponse.type_id)
+  return _s;
+}
+inline const ::std::string& AccessCheckoutRootResponse::_internal_type_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.type_id_.Get();
+}
+inline void AccessCheckoutRootResponse::_internal_set_type_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.type_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootResponse::_internal_mutable_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.type_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AccessCheckoutRootResponse::release_type_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.AccessCheckoutRootResponse.type_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.type_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.type_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AccessCheckoutRootResponse::set_allocated_type_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.type_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.type_id_.IsDefault()) {
+    _impl_.type_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.AccessCheckoutRootResponse.type_id)
+}
+
+// .s4wave.device.DeviceCheckoutRootCapability checkout_root = 5;
+inline bool AccessCheckoutRootResponse::has_checkout_root() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.checkout_root_ != nullptr);
+  return value;
+}
+inline void AccessCheckoutRootResponse::clear_checkout_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.checkout_root_ != nullptr) _impl_.checkout_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::s4wave::device::DeviceCheckoutRootCapability& AccessCheckoutRootResponse::_internal_checkout_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::device::DeviceCheckoutRootCapability* p = _impl_.checkout_root_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::device::DeviceCheckoutRootCapability&>(::s4wave::device::_DeviceCheckoutRootCapability_default_instance_);
+}
+inline const ::s4wave::device::DeviceCheckoutRootCapability& AccessCheckoutRootResponse::checkout_root() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootResponse.checkout_root)
+  return _internal_checkout_root();
+}
+inline void AccessCheckoutRootResponse::unsafe_arena_set_allocated_checkout_root(
+    ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.checkout_root_);
+  }
+  _impl_.checkout_root_ = reinterpret_cast<::s4wave::device::DeviceCheckoutRootCapability*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.device.AccessCheckoutRootResponse.checkout_root)
+}
+inline ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE AccessCheckoutRootResponse::release_checkout_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::device::DeviceCheckoutRootCapability* released = _impl_.checkout_root_;
+  _impl_.checkout_root_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE AccessCheckoutRootResponse::unsafe_arena_release_checkout_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.AccessCheckoutRootResponse.checkout_root)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::device::DeviceCheckoutRootCapability* temp = _impl_.checkout_root_;
+  _impl_.checkout_root_ = nullptr;
+  return temp;
+}
+inline ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NONNULL AccessCheckoutRootResponse::_internal_mutable_checkout_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.checkout_root_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::device::DeviceCheckoutRootCapability>(GetArena());
+    _impl_.checkout_root_ = reinterpret_cast<::s4wave::device::DeviceCheckoutRootCapability*>(p);
+  }
+  return _impl_.checkout_root_;
+}
+inline ::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NONNULL AccessCheckoutRootResponse::mutable_checkout_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::device::DeviceCheckoutRootCapability* _msg = _internal_mutable_checkout_root();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.AccessCheckoutRootResponse.checkout_root)
+  return _msg;
+}
+inline void AccessCheckoutRootResponse::set_allocated_checkout_root(::s4wave::device::DeviceCheckoutRootCapability* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.checkout_root_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.checkout_root_ = reinterpret_cast<::s4wave::device::DeviceCheckoutRootCapability*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.AccessCheckoutRootResponse.checkout_root)
+}
+
+// bool write_available = 6;
+inline void AccessCheckoutRootResponse::clear_write_available() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_available_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline bool AccessCheckoutRootResponse::write_available() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootResponse.write_available)
+  return _internal_write_available();
+}
+inline void AccessCheckoutRootResponse::set_write_available(bool value) {
+  _internal_set_write_available(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootResponse.write_available)
+}
+inline bool AccessCheckoutRootResponse::_internal_write_available() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.write_available_;
+}
+inline void AccessCheckoutRootResponse::_internal_set_write_available(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_available_ = value;
+}
+
+// bool write_enabled = 7;
+inline void AccessCheckoutRootResponse::clear_write_enabled() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_enabled_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline bool AccessCheckoutRootResponse::write_enabled() const {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootResponse.write_enabled)
+  return _internal_write_enabled();
+}
+inline void AccessCheckoutRootResponse::set_write_enabled(bool value) {
+  _internal_set_write_enabled(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootResponse.write_enabled)
+}
+inline bool AccessCheckoutRootResponse::_internal_write_enabled() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.write_enabled_;
+}
+inline void AccessCheckoutRootResponse::_internal_set_write_enabled(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_enabled_ = value;
+}
+
+// string write_approval_ref = 8;
+inline void AccessCheckoutRootResponse::clear_write_approval_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_approval_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& AccessCheckoutRootResponse::write_approval_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.device.AccessCheckoutRootResponse.write_approval_ref)
+  return _internal_write_approval_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AccessCheckoutRootResponse::set_write_approval_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.write_approval_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.device.AccessCheckoutRootResponse.write_approval_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootResponse::mutable_write_approval_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_write_approval_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.device.AccessCheckoutRootResponse.write_approval_ref)
+  return _s;
+}
+inline const ::std::string& AccessCheckoutRootResponse::_internal_write_approval_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.write_approval_ref_.Get();
+}
+inline void AccessCheckoutRootResponse::_internal_set_write_approval_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.write_approval_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AccessCheckoutRootResponse::_internal_mutable_write_approval_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.write_approval_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AccessCheckoutRootResponse::release_write_approval_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.device.AccessCheckoutRootResponse.write_approval_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.write_approval_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.write_approval_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AccessCheckoutRootResponse::set_allocated_write_approval_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.write_approval_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.write_approval_ref_.IsDefault()) {
+    _impl_.write_approval_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.device.AccessCheckoutRootResponse.write_approval_ref)
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -6067,6 +7896,12 @@ struct is_proto_enum<::s4wave::device::DeviceCapabilityGrantState> : std::true_t
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::device::DeviceCapabilityGrantState>() {
   return ::s4wave::device::DeviceCapabilityGrantState_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::device::DeviceCheckoutRootAccess> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::device::DeviceCheckoutRootAccess>() {
+  return ::s4wave::device::DeviceCheckoutRootAccess_descriptor();
 }
 
 }  // namespace protobuf

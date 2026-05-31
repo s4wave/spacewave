@@ -15,6 +15,7 @@ import (
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
+	"github.com/sirupsen/logrus"
 )
 
 const fsHandleMaxReadSize = 64 * 1024
@@ -150,22 +151,33 @@ func (r *FSHandleResource) reloadHandle(ctx context.Context) error {
 	if r.ws == nil || r.objKey == "" {
 		return nil
 	}
-	fsCursor, _ := unixfs_world.NewFSCursorWithWriter(
-		ctx,
-		nil,
-		r.ws,
-		r.objKey,
-		r.fsType,
-		"",
-	)
+	nextHandle, err := r.newObjectFSHandle(ctx)
+	if err != nil {
+		return err
+	}
+	r.handle.Release()
+	r.handle = nextHandle
+	return nil
+}
 
-	var err error
+func (r *FSHandleResource) newObjectFSHandle(ctx context.Context) (*unixfs.FSHandle, error) {
+	if r.ws == nil || r.objKey == "" {
+		return nil, errors.New("object-backed filesystem handle unavailable")
+	}
+
+	le := logrus.NewEntry(logrus.StandardLogger())
+	var fsCursor *unixfs_world.FSCursor
+	if r.ws.GetReadOnly() {
+		fsCursor = unixfs_world.NewFSCursor(le, r.ws, r.objKey, r.fsType, nil, true)
+	} else {
+		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, le, r.ws, r.objKey, r.fsType, "")
+	}
 	var nextHandle *unixfs.FSHandle
+	var err error
 	if len(r.path) == 0 {
 		nextHandle, err = unixfs.NewFSHandle(fsCursor)
 		if err != nil {
-			fsCursor.Release()
-			return err
+			return nil, err
 		}
 	} else {
 		nextHandle, err = unixfs.NewFSHandleWithPrefix(
@@ -176,14 +188,11 @@ func (r *FSHandleResource) reloadHandle(ctx context.Context) error {
 			time.Now(),
 		)
 		if err != nil {
-			fsCursor.Release()
-			return err
+			return nil, err
 		}
 	}
 
-	r.handle.Release()
-	r.handle = nextHandle
-	return nil
+	return nextHandle, nil
 }
 
 // resolveDestParentHandle resolves a destination parent resource ID to a FSHandle.
@@ -673,9 +682,9 @@ func dirEntryFromCursor(ent unixfs.FSCursorDirent) *s4wave_unixfs.DirEntry {
 }
 
 // readWatchEntries reads all directory entries for WatchReaddir.
-func (r *FSHandleResource) readWatchEntries(ctx context.Context) ([]*s4wave_unixfs.DirEntry, error) {
+func readWatchEntries(ctx context.Context, handle *unixfs.FSHandle) ([]*s4wave_unixfs.DirEntry, error) {
 	var entries []*s4wave_unixfs.DirEntry
-	err := r.handle.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+	err := handle.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
 		entries = append(entries, dirEntryFromCursor(ent))
 		return nil
 	})
@@ -690,13 +699,36 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 	ctx := strm.Context()
 
 	var prev *s4wave_unixfs.HandleWatchReaddirResponse
+	var lastObjRev uint64
+	var haveObjRev bool
+	watchHandle := r.handle
+	if r.ws != nil && r.objKey != "" {
+		var err error
+		watchHandle, err = r.newObjectFSHandle(ctx)
+		if err != nil {
+			return err
+		}
+		defer watchHandle.Release()
+	}
 	for {
 		var ch <-chan struct{}
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
 		})
+		objState, objRev, err := r.watchObjectRev(ctx)
+		if err != nil {
+			return err
+		}
+		if haveObjRev && objState != nil && objRev != lastObjRev {
+			nextWatchHandle, err := r.newObjectFSHandle(ctx)
+			if err != nil {
+				return err
+			}
+			watchHandle.Release()
+			watchHandle = nextWatchHandle
+		}
 
-		entries, err := r.readWatchEntries(ctx)
+		entries, err := readWatchEntries(ctx, watchHandle)
 		if err != nil {
 			return err
 		}
@@ -710,12 +742,65 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			}
 			prev = resp
 		}
+		if objState != nil {
+			lastObjRev = objRev
+			haveObjRev = true
+		}
 
+		if err := r.waitReaddirChange(ctx, ch, objState, objRev); err != nil {
+			return err
+		}
+	}
+}
+
+func (r *FSHandleResource) watchObjectRev(ctx context.Context) (world.ObjectState, uint64, error) {
+	if r.ws == nil || r.objKey == "" {
+		return nil, 0, nil
+	}
+	objState, found, err := r.ws.GetObject(ctx, r.objKey)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !found {
+		return nil, 0, world.ErrObjectNotFound
+	}
+	_, rev, err := objState.GetRootRef(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	return objState, rev, nil
+}
+
+func (r *FSHandleResource) waitReaddirChange(
+	ctx context.Context,
+	localChange <-chan struct{},
+	objState world.ObjectState,
+	objRev uint64,
+) error {
+	if objState == nil {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-ch:
+		case <-localChange:
+			return nil
 		}
+	}
+
+	waitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	objChange := make(chan error, 1)
+	go func() {
+		_, err := objState.WaitRev(waitCtx, objRev+1, false)
+		objChange <- err
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-localChange:
+		return nil
+	case err := <-objChange:
+		return err
 	}
 }
 

@@ -141,6 +141,35 @@ async function loadCdnV86ImagesFromSpace(
   return out
 }
 
+async function loadCdnV86ImageFromSpace(
+  space: Space,
+  objectKey: string,
+  signal: AbortSignal,
+): Promise<CdnV86ImageEntry | undefined> {
+  if (!objectKey) return undefined
+  const world = await space.accessWorldState(false, signal)
+  using obj = await world.getObject(objectKey, signal)
+  if (!obj) return undefined
+  using cursor = await obj.accessWorldState(undefined, signal)
+  const resp = await cursor.unmarshal({}, signal)
+  if (!resp.found || !resp.data?.length) return undefined
+  try {
+    return { objectKey, image: V86Image.fromBinary(resp.data) }
+  } catch (err) {
+    return {
+      objectKey,
+      image: {
+        name: objectKey,
+        platform: 'v86',
+        description: 'Metadata could not be decoded.',
+        tags: [],
+      },
+      metadataError:
+        err instanceof Error ? err.message : 'metadata decode failed',
+    }
+  }
+}
+
 async function loadCdnV86Images(
   root: Root,
   cdnId: string,
@@ -148,6 +177,16 @@ async function loadCdnV86Images(
 ): Promise<CdnV86ImageEntry[]> {
   using handle = await mountCdnImageSpace(root, cdnId, signal)
   return loadCdnV86ImagesFromSpace(handle.space, signal)
+}
+
+async function loadCdnV86Image(
+  root: Root,
+  cdnId: string,
+  objectKey: string,
+  signal: AbortSignal,
+): Promise<CdnV86ImageEntry | undefined> {
+  using handle = await mountCdnImageSpace(root, cdnId, signal)
+  return loadCdnV86ImageFromSpace(handle.space, objectKey, signal)
 }
 
 async function discoverDefaultCdnV86Image(
@@ -373,7 +412,12 @@ export function VmV86WizardViewer({
         return Promise.resolve(undefined)
       }
       if (cfg.cdnSourceObjectKey) {
-        return Promise.resolve(undefined)
+        return loadCdnV86Image(
+          nextRoot,
+          cfg.cdnId ?? '',
+          cfg.cdnSourceObjectKey,
+          signal,
+        )
       }
       return discoverDefaultCdnV86Image(nextRoot, cfg.cdnId ?? '', signal)
     },
@@ -519,6 +563,7 @@ export function VmV86WizardViewer({
       toast.success(`Created ${localName}`)
       navigateToObjects([vmKey])
     } catch (err) {
+      console.error('v86 finalize: failed', err)
       toast.error(
         err instanceof Error ? err.message : 'Failed to create V86 VM',
       )

@@ -26,6 +26,8 @@ pub trait DeviceResourceServiceClient: Send + Sync {
     async fn watch_device_state(&self, request: &WatchDeviceStateRequest) -> starpc::Result<Box<dyn DeviceResourceServiceWatchDeviceStateStream>>;
     /// ReportDeviceStatus.
     async fn report_device_status(&self, request: &ReportDeviceStatusRequest) -> starpc::Result<ReportDeviceStatusResponse>;
+    /// AccessCheckoutRoot.
+    async fn access_checkout_root(&self, request: &AccessCheckoutRootRequest) -> starpc::Result<AccessCheckoutRootResponse>;
 }
 
 /// Client implementation for DeviceResourceService.
@@ -51,6 +53,9 @@ impl<C: starpc::Client + 'static> DeviceResourceServiceClient for DeviceResource
     }
     async fn report_device_status(&self, request: &ReportDeviceStatusRequest) -> starpc::Result<ReportDeviceStatusResponse> {
         self.client.exec_call("s4wave.device.DeviceResourceService", "ReportDeviceStatus", request).await
+    }
+    async fn access_checkout_root(&self, request: &AccessCheckoutRootRequest) -> starpc::Result<AccessCheckoutRootResponse> {
+        self.client.exec_call("s4wave.device.DeviceResourceService", "AccessCheckoutRoot", request).await
     }
 }
 
@@ -78,11 +83,14 @@ pub trait DeviceResourceServiceServer: Send + Sync {
     async fn watch_device_state(&self, request: WatchDeviceStateRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// ReportDeviceStatus.
     async fn report_device_status(&self, request: ReportDeviceStatusRequest) -> starpc::Result<ReportDeviceStatusResponse>;
+    /// AccessCheckoutRoot.
+    async fn access_checkout_root(&self, request: AccessCheckoutRootRequest) -> starpc::Result<AccessCheckoutRootResponse>;
 }
 
 const DEVICE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchDeviceState",
     "ReportDeviceStatus",
+    "AccessCheckoutRoot",
 ];
 
 /// Handler for DeviceResourceService.
@@ -124,6 +132,21 @@ impl<S: DeviceResourceServiceServer + 'static> starpc::Invoker for DeviceResourc
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.report_device_status(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "AccessCheckoutRoot" => {
+                let request: AccessCheckoutRootRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.access_checkout_root(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

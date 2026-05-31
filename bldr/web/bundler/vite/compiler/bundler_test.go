@@ -10,6 +10,7 @@ import (
 
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	srpc "github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/keyed"
 	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
@@ -163,5 +164,26 @@ func TestBuildViteBundlePropagatesJavaScriptPolicy(t *testing.T) {
 	}
 	if !client.buildRequest.GetJsSourcemaps() {
 		t.Fatal("request did not enable JavaScript sourcemaps")
+	}
+}
+
+func TestStopViteBundlersRemovesReleaseKeys(t *testing.T) {
+	controller := &Controller{}
+	controller.viteBundlers = keyed.NewKeyedRefCount(
+		func(viteBundlerKey) (keyed.Routine, *viteBundlerTracker) {
+			return nil, &viteBundlerTracker{}
+		},
+	)
+
+	key := newViteBundlerKey("/dist", "/src", "/work", "fe")
+	ref, _, _ := controller.viteBundlers.AddKeyRef(key)
+
+	controller.stopViteBundlers("/dist", "/src", "/work", []*ViteBundleMeta{{
+		Id: "fe",
+	}})
+	ref.Release()
+
+	if got := len(controller.viteBundlers.GetKeys()); got != 0 {
+		t.Fatalf("vite bundler keys after release cleanup=%d want 0", got)
 	}
 }

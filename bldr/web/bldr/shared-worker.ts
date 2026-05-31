@@ -155,7 +155,7 @@ if (isPlugin) {
           `shared-worker: Imported module "${scriptPath}" does not have a default export function.`,
         )
       }
-      await pluginModule.default(backendAPI, abortSignal)
+      await pluginModule.default(backendAPI, abortSignal, opts.runtimeWasmEnv)
     }
   }
 

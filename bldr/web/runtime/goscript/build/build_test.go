@@ -99,6 +99,49 @@ export const Present = 1
 	}
 }
 
+func TestBuildWebGoScriptPluginScriptShimsNodeEvents(t *testing.T) {
+	root := t.TempDir()
+	bldrDistRoot := filepath.Join(root, "dist")
+	workDir := filepath.Join(root, "work")
+	goScriptOutputRoot := filepath.Join(root, "goscript")
+	outPath := filepath.Join(root, "out", "plugin.mjs")
+
+	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
+export default async function runGoScriptPlugin(_api, pluginMain) {
+  await pluginMain()
+}
+`)
+	writeTestFile(t, filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts"), `
+import { setMaxListeners } from "node:events"
+
+export async function main() {
+  setMaxListeners(Infinity)
+}
+`)
+
+	_, err := BuildWebGoScriptPluginScript(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		bldrDistRoot,
+		workDir,
+		goScriptOutputRoot,
+		outPath,
+		"example/main",
+		false,
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), `from "node:events"`) || strings.Contains(string(out), `from 'node:events'`) {
+		t.Fatalf("node:events should be shimmed out of browser bundle:\n%s", out)
+	}
+}
+
 func writeTestFile(t *testing.T, path, contents string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

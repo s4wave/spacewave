@@ -285,6 +285,58 @@ export const HiddenGraphLink: MessageType<HiddenGraphLink> = createMessageType({
 })
 
 /**
+ * CanvasLayoutMetadata stores reusable projection layout metadata for a node.
+ *
+ * @generated from message s4wave.canvas.CanvasLayoutMetadata
+ */
+export interface CanvasLayoutMetadata {
+  /**
+   * StableNodeId is the projection-stable node identity across reruns.
+   *
+   * @generated from field: string stable_node_id = 1;
+   */
+  stableNodeId?: string
+  /**
+   * Lane is the visual swimlane for the projected node.
+   *
+   * @generated from field: string lane = 2;
+   */
+  lane?: string
+  /**
+   * Rank is the deterministic dependency layer inside the projection.
+   *
+   * @generated from field: int32 rank = 3;
+   */
+  rank?: number
+  /**
+   * Group is the visual grouping key for related projected nodes.
+   *
+   * @generated from field: string group = 4;
+   */
+  group?: string
+  /**
+   * ProjectionOwner names the writer that owns this visual projection.
+   *
+   * @generated from field: string projection_owner = 5;
+   */
+  projectionOwner?: string
+}
+
+// CanvasLayoutMetadata contains the message type declaration for CanvasLayoutMetadata.
+export const CanvasLayoutMetadata: MessageType<CanvasLayoutMetadata> =
+  createMessageType({
+    typeName: 's4wave.canvas.CanvasLayoutMetadata',
+    fields: [
+      { no: 1, name: 'stable_node_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'lane', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'rank', kind: 'scalar', T: ScalarType.INT32 },
+      { no: 4, name: 'group', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'projection_owner', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * CanvasState is the full canvas state stored as a world object block.
  *
  * @generated from message s4wave.canvas.CanvasState
@@ -314,6 +366,12 @@ export interface CanvasState {
    * @generated from field: repeated s4wave.canvas.HiddenGraphLink hidden_graph_links = 4;
    */
   hiddenGraphLinks?: HiddenGraphLink[]
+  /**
+   * LayoutMetadata is projection layout metadata keyed by canvas node ID.
+   *
+   * @generated from field: map<string, s4wave.canvas.CanvasLayoutMetadata> layout_metadata = 5;
+   */
+  layoutMetadata?: { [key: string]: CanvasLayoutMetadata }
 }
 
 // CanvasState contains the message type declaration for CanvasState.
@@ -341,6 +399,13 @@ export const CanvasState: MessageType<CanvasState> = createMessageType({
       kind: 'message',
       T: () => HiddenGraphLink,
       repeated: true,
+    },
+    {
+      no: 5,
+      name: 'layout_metadata',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'message', T: () => CanvasLayoutMetadata },
     },
   ] as readonly PartialFieldInfo[],
   packedByDefault: true,
@@ -427,6 +492,18 @@ export interface UpdateCanvasRequest {
    * @generated from field: repeated s4wave.canvas.HiddenGraphLink remove_hidden_graph_links = 6;
    */
   removeHiddenGraphLinks?: HiddenGraphLink[]
+  /**
+   * SetLayoutMetadata contains layout metadata to add or update by node ID.
+   *
+   * @generated from field: map<string, s4wave.canvas.CanvasLayoutMetadata> set_layout_metadata = 7;
+   */
+  setLayoutMetadata?: { [key: string]: CanvasLayoutMetadata }
+  /**
+   * RemoveLayoutMetadataNodeIds contains node IDs whose layout metadata is removed.
+   *
+   * @generated from field: repeated string remove_layout_metadata_node_ids = 8;
+   */
+  removeLayoutMetadataNodeIds?: string[]
 }
 
 // UpdateCanvasRequest contains the message type declaration for UpdateCanvasRequest.
@@ -474,6 +551,20 @@ export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
         name: 'remove_hidden_graph_links',
         kind: 'message',
         T: () => HiddenGraphLink,
+        repeated: true,
+      },
+      {
+        no: 7,
+        name: 'set_layout_metadata',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => CanvasLayoutMetadata },
+      },
+      {
+        no: 8,
+        name: 'remove_layout_metadata_node_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] as readonly PartialFieldInfo[],

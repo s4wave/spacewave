@@ -17,6 +17,8 @@ type SRPCDeviceResourceServiceClient interface {
 	WatchDeviceState(ctx context.Context, in *WatchDeviceStateRequest) (SRPCDeviceResourceService_WatchDeviceStateClient, error)
 
 	ReportDeviceStatus(ctx context.Context, in *ReportDeviceStatusRequest) (*ReportDeviceStatusResponse, error)
+
+	AccessCheckoutRoot(ctx context.Context, in *AccessCheckoutRootRequest) (*AccessCheckoutRootResponse, error)
 }
 
 type srpcDeviceResourceServiceClient struct {
@@ -80,10 +82,21 @@ func (c *srpcDeviceResourceServiceClient) ReportDeviceStatus(ctx context.Context
 	return out, nil
 }
 
+func (c *srpcDeviceResourceServiceClient) AccessCheckoutRoot(ctx context.Context, in *AccessCheckoutRootRequest) (*AccessCheckoutRootResponse, error) {
+	out := new(AccessCheckoutRootResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "AccessCheckoutRoot", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCDeviceResourceServiceServer interface {
 	WatchDeviceState(*WatchDeviceStateRequest, SRPCDeviceResourceService_WatchDeviceStateStream) error
 
 	ReportDeviceStatus(context.Context, *ReportDeviceStatusRequest) (*ReportDeviceStatusResponse, error)
+
+	AccessCheckoutRoot(context.Context, *AccessCheckoutRootRequest) (*AccessCheckoutRootResponse, error)
 }
 
 const SRPCDeviceResourceServiceServiceID = "s4wave.device.DeviceResourceService"
@@ -114,6 +127,7 @@ func (SRPCDeviceResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchDeviceState",
 		"ReportDeviceStatus",
+		"AccessCheckoutRoot",
 	}
 }
 
@@ -130,6 +144,8 @@ func (d *SRPCDeviceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchDeviceState(d.impl, strm)
 	case "ReportDeviceStatus":
 		return true, d.InvokeMethod_ReportDeviceStatus(d.impl, strm)
+	case "AccessCheckoutRoot":
+		return true, d.InvokeMethod_AccessCheckoutRoot(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -150,6 +166,18 @@ func (SRPCDeviceResourceServiceHandler) InvokeMethod_ReportDeviceStatus(impl SRP
 		return err
 	}
 	out, err := impl.ReportDeviceStatus(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCDeviceResourceServiceHandler) InvokeMethod_AccessCheckoutRoot(impl SRPCDeviceResourceServiceServer, strm srpc.Stream) error {
+	req := new(AccessCheckoutRootRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.AccessCheckoutRoot(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -184,5 +212,13 @@ type SRPCDeviceResourceService_ReportDeviceStatusStream interface {
 }
 
 type srpcDeviceResourceService_ReportDeviceStatusStream struct {
+	srpc.Stream
+}
+
+type SRPCDeviceResourceService_AccessCheckoutRootStream interface {
+	srpc.Stream
+}
+
+type srpcDeviceResourceService_AccessCheckoutRootStream struct {
 	srpc.Stream
 }

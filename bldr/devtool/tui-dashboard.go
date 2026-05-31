@@ -3,12 +3,20 @@
 package devtool
 
 import (
+	"fmt"
+	"net"
+	"net/url"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
+)
+
+const (
+	devtoolTUIActivityTargetWidth = 24
+	devtoolTUIActivityDetailWidth = 35
 )
 
 // BuildDevtoolTUIDashboard constructs the static Bldr devtool dashboard text.
@@ -29,20 +37,17 @@ func buildDevtoolTUIDashboard(snapshot *devtool_status.BldrDevtoolStatus, frame 
 
 func devtoolTUICommandHeaderLines(snapshot *devtool_status.BldrDevtoolStatus, frame int) []string {
 	command := snapshot.GetCommand()
-	stateText := "state: " + devtoolTUIStatusMark(command.State)
-	if command.Name != "" {
-		stateText = "command: " + command.Name + " (" + devtoolTUIStatusMark(command.State) + ")"
-	}
 	lines := []string{
-		stateText,
-		devtoolTUIProgressText(snapshot, frame),
-		devtoolTUISummaryText(snapshot),
+		devtoolTUIFieldLine("command", firstNonEmpty(command.Name, "-")),
+		devtoolTUIFieldLine("state", devtoolTUIStatusText(devtoolTUIStatusMark(command.State))),
+		devtoolTUIFieldLine("work", devtoolTUIProgressText(snapshot, frame)),
 	}
+	lines = append(lines, devtoolTUISummaryLines(snapshot)...)
 	if command.Summary != "" {
-		lines = append(lines, "summary: "+cleanTUIText(command.Summary))
+		lines = append(lines, devtoolTUIFieldLine("summary", devtoolTUIFormatSummaryText(command.Summary)))
 	}
 	if command.Error != "" {
-		lines = append(lines, "error: "+cleanTUIText(command.Error))
+		lines = append(lines, devtoolTUIFieldLine("error", cleanTUIText(command.Error)))
 	}
 	return lines
 }
@@ -60,16 +65,21 @@ func devtoolTUIFooterLines(snapshot *devtool_status.BldrDevtoolStatus) []string 
 	if logFile == "" {
 		logFile = ".bldr/logs"
 	}
-	return []string{
-		"ctrl-c stop  logs " + compactDevtoolTUILogFile(logFile),
+	lines := []string{
+		devtoolTUIFieldLine("ctrl-c", "stop"),
+		devtoolTUIFieldLine("logs", compactDevtoolTUILogFile(logFile)),
 	}
+	if openURL := devtoolTUIBrowserURL(snapshot); openURL != "" {
+		lines = append(lines, devtoolTUIFieldLine("o", "open "+openURL))
+	}
+	return lines
 }
 
 func appendDevtoolTUISection(dst []string, title string, lines []string) []string {
 	if len(dst) > 0 {
 		dst = append(dst, "")
 	}
-	dst = append(dst, title)
+	dst = append(dst, strings.ToUpper(title))
 	for _, line := range lines {
 		dst = append(dst, "  "+line)
 	}
@@ -173,25 +183,34 @@ func devtoolTUIStatusMark(state devtool_status.BldrDevtoolCommandState) string {
 func devtoolTUIProgressText(snapshot *devtool_status.BldrDevtoolStatus, frame int) string {
 	command := snapshot.GetCommand()
 	if command.IsTerminal() {
-		return "work: " + command.State.String()
+		return command.State.String()
 	}
 	entries := activeDevtoolTUIWorkEntries(snapshot)
 	if len(entries) > 0 {
-		return "work: " + strconv.Itoa(len(entries)) + " active"
+		return strconv.Itoa(len(entries)) + " active"
 	}
-	return "work: idle"
+	return "idle"
 }
 
-func devtoolTUISummaryText(snapshot *devtool_status.BldrDevtoolStatus) string {
+func devtoolTUISummaryLines(snapshot *devtool_status.BldrDevtoolStatus) []string {
 	fetchReady, _, fetchErr := manifestFetchStateCounts(snapshot.GetManifestFetchRows())
 	buildReady, _, buildErr := manifestBuildStateCounts(snapshot.GetManifestBuildRows())
 	pluginRun, _, pluginErr := pluginStateCounts(snapshot.GetPluginRows())
-	return "manifest " + strconv.Itoa(fetchReady) + "/" + strconv.Itoa(len(snapshot.GetManifestFetchRows())) +
-		" fetched, " + strconv.Itoa(buildReady) + "/" + strconv.Itoa(len(snapshot.GetManifestBuildRows())) +
-		" built" +
-		" | active " + strconv.Itoa(len(activeDevtoolTUIWorkEntries(snapshot))) +
-		" | plugins " + strconv.Itoa(pluginRun) + " ok, " + strconv.Itoa(pluginErr) + " err" +
-		" | attention " + strconv.Itoa(len(snapshot.GetAttentionRows())+fetchErr+buildErr)
+	return []string{
+		devtoolTUIFieldLine(
+			"manifest",
+			"fetched "+strconv.Itoa(fetchReady)+"/"+strconv.Itoa(len(snapshot.GetManifestFetchRows()))+
+				"   built "+strconv.Itoa(buildReady)+"/"+strconv.Itoa(len(snapshot.GetManifestBuildRows())),
+		),
+		devtoolTUIFieldLine(
+			"plugins",
+			"ok "+strconv.Itoa(pluginRun)+"   err "+strconv.Itoa(pluginErr),
+		),
+		devtoolTUIFieldLine(
+			"attention",
+			strconv.Itoa(len(snapshot.GetAttentionRows())+fetchErr+buildErr),
+		),
+	}
 }
 
 func manifestFetchStateCounts(rows []devtool_status.BldrDevtoolManifestFetchRow) (ready, active, errored int) {
@@ -256,30 +275,30 @@ func devtoolTUIImportantLines(snapshot *devtool_status.BldrDevtoolStatus) []stri
 func devtoolTUIErrorLines(snapshot *devtool_status.BldrDevtoolStatus) []string {
 	var lines []string
 	if command := snapshot.GetCommand(); command.Error != "" {
-		lines = append(lines, "err command "+shortTUIText(command.Error, 84))
+		lines = append(lines, devtoolTUIActivityLine("err", "command", firstNonEmpty(command.Name, "-"), command.Error))
 	}
 	for _, row := range sortedDevtoolTUIManifestFetchRows(snapshot) {
 		if row.Error != "" {
-			lines = append(lines, "err fetch "+shortTUIText(firstNonEmpty(row.ManifestID, row.ID)+" "+row.Error, 84))
+			lines = append(lines, devtoolTUIActivityLine("err", "fetch", firstNonEmpty(row.ManifestID, row.ID), row.Error))
 		}
 	}
 	for _, row := range sortedDevtoolTUIManifestBuildRows(snapshot) {
 		if row.Error != "" {
-			lines = append(lines, "err build "+shortTUIText(firstNonEmpty(row.BuildTargets, row.ManifestID, row.ID)+" "+row.Error, 84))
+			lines = append(lines, devtoolTUIActivityLine("err", "build", firstNonEmpty(row.BuildTargets, row.ManifestID, row.ID), row.Error))
 		}
 	}
 	for _, row := range sortedDevtoolTUIPluginRows(snapshot) {
 		if row.Error != "" {
-			lines = append(lines, "err plugin "+shortTUIText(pluginTargetText(row)+" "+pluginSummaryText(row), 84))
+			lines = append(lines, devtoolTUIActivityLine("err", "plugin", pluginTargetText(row), pluginSummaryText(row)))
 		}
 	}
 	for _, row := range sortedDevtoolTUIControllerRows(snapshot) {
 		if row.Error != "" {
-			lines = append(lines, "err controller "+shortTUIText(firstNonEmpty(row.ControllerID, row.ID)+" "+row.Error, 84))
+			lines = append(lines, devtoolTUIActivityLine("err", "controller", firstNonEmpty(row.ControllerID, row.ID), row.Error))
 		}
 	}
 	for _, row := range sortedDevtoolTUIAttentionRows(snapshot) {
-		lines = append(lines, row.Severity.String()+" "+shortTUIText(firstNonEmpty(row.Source, "attention")+" "+firstNonEmpty(row.Message, row.Detail), 84))
+		lines = append(lines, devtoolTUIActivityLine(row.Severity.String(), "attention", firstNonEmpty(row.Source, "attention"), firstNonEmpty(row.Message, row.Detail)))
 	}
 	return lines
 }
@@ -287,33 +306,109 @@ func devtoolTUIErrorLines(snapshot *devtool_status.BldrDevtoolStatus) []string {
 func devtoolTUIActiveLines(snapshot *devtool_status.BldrDevtoolStatus) []string {
 	var lines []string
 	if command := snapshot.GetCommand(); command.Name != "" && !command.IsTerminal() {
-		lines = append(lines, devtoolTUIStatusMark(command.State)+" command "+shortTUIText(command.Name+" "+command.Summary, 84))
+		lines = append(lines, devtoolTUIActivityLine(devtoolTUIStatusMark(command.State), "command", command.Name, devtoolTUIFormatSummaryText(command.Summary)))
 	}
 	for _, row := range sortedDevtoolTUIManifestBuildRows(snapshot) {
 		if row.State == devtool_status.BldrDevtoolManifestStateQueued ||
 			row.State == devtool_status.BldrDevtoolManifestStateRunning {
-			lines = append(lines, manifestStateMark(row.State)+" build "+shortTUIText(firstNonEmpty(row.BuildTargets, row.ManifestID, row.ID)+" "+manifestBuildReasonText(row), 84))
+			lines = append(lines, devtoolTUIActivityLine(manifestStateMark(row.State), "build", firstNonEmpty(row.BuildTargets, row.ManifestID, row.ID), manifestBuildReasonText(row)))
 		}
 	}
 	for _, row := range sortedDevtoolTUIManifestFetchRows(snapshot) {
 		if row.State == devtool_status.BldrDevtoolManifestStateQueued ||
 			row.State == devtool_status.BldrDevtoolManifestStateRunning {
-			lines = append(lines, manifestStateMark(row.State)+" fetch "+shortTUIText(firstNonEmpty(row.ManifestID, row.ID)+" "+firstNonEmpty(row.Summary, row.PlatformID), 84))
+			lines = append(lines, devtoolTUIActivityLine(manifestStateMark(row.State), "fetch", firstNonEmpty(row.ManifestID, row.ID), firstNonEmpty(row.Summary, row.PlatformID)))
 		}
 	}
 	for _, row := range sortedDevtoolTUIPluginRows(snapshot) {
 		if row.State == devtool_status.BldrDevtoolPluginStateRequested ||
 			row.State == devtool_status.BldrDevtoolPluginStateRunning {
-			lines = append(lines, pluginStateMark(row.State)+" plugin "+shortTUIText(pluginTargetText(row)+" "+row.Summary, 84))
+			lines = append(lines, devtoolTUIActivityLine(pluginStateMark(row.State), "plugin", pluginTargetText(row), row.Summary))
 		}
 	}
 	for _, row := range sortedDevtoolTUIControllerRows(snapshot) {
 		if row.State == devtool_status.BldrDevtoolControllerStateRequested ||
 			row.State == devtool_status.BldrDevtoolControllerStateRunning {
-			lines = append(lines, controllerStateMark(row.State)+" controller "+shortTUIText(firstNonEmpty(row.ControllerID, row.ID)+" "+row.Summary, 84))
+			lines = append(lines, devtoolTUIActivityLine(controllerStateMark(row.State), "controller", firstNonEmpty(row.ControllerID, row.ID), row.Summary))
 		}
 	}
 	return lines
+}
+
+func devtoolTUIFieldLine(label, value string) string {
+	return fmt.Sprintf("%-10s %s", label, firstNonEmpty(value, "-"))
+}
+
+func devtoolTUIActivityLine(mark, kind, target, detail string) string {
+	return fmt.Sprintf(
+		"%-6s %-10s %-*s %s",
+		devtoolTUIStatusText(mark),
+		kind,
+		devtoolTUIActivityTargetWidth,
+		shortTUIText(firstNonEmpty(target, "-"), devtoolTUIActivityTargetWidth),
+		shortTUIText(firstNonEmpty(detail, "-"), devtoolTUIActivityDetailWidth),
+	)
+}
+
+func devtoolTUIStatusText(mark string) string {
+	switch strings.ToLower(mark) {
+	case "?":
+		return mark
+	case "warning":
+		return "WARN"
+	default:
+		return strings.ToUpper(mark)
+	}
+}
+
+func devtoolTUIBrowserURL(snapshot *devtool_status.BldrDevtoolStatus) string {
+	if snapshot == nil {
+		return ""
+	}
+	for _, field := range strings.Fields(cleanTUIText(snapshot.GetCommand().Summary)) {
+		if browserURL := devtoolTUIBrowserURLToken(field); browserURL != "" {
+			return browserURL
+		}
+	}
+	return ""
+}
+
+func devtoolTUIFormatSummaryText(summary string) string {
+	fields := strings.Fields(cleanTUIText(summary))
+	for i, field := range fields {
+		browserURL := devtoolTUIBrowserURLToken(field)
+		if browserURL == "" {
+			continue
+		}
+		fields[i] = strings.Replace(field, trimTUITokenPunctuation(field), browserURL, 1)
+	}
+	return strings.Join(fields, " ")
+}
+
+func devtoolTUIBrowserURLToken(token string) string {
+	token = trimTUITokenPunctuation(token)
+	if token == "" {
+		return ""
+	}
+	if strings.HasPrefix(token, "http://") || strings.HasPrefix(token, "https://") {
+		if parsed, err := url.Parse(token); err == nil && parsed.Host != "" {
+			return token
+		}
+		return ""
+	}
+	host, port, err := net.SplitHostPort(token)
+	if err != nil || port == "" {
+		return ""
+	}
+	host = strings.Trim(host, "[]")
+	if host != "localhost" && net.ParseIP(host) == nil {
+		return ""
+	}
+	return "http://" + token
+}
+
+func trimTUITokenPunctuation(token string) string {
+	return strings.Trim(token, ".,;:()[]{}<>\"'")
 }
 
 func activeDevtoolTUIWorkEntries(snapshot *devtool_status.BldrDevtoolStatus) []string {
@@ -412,7 +507,7 @@ func compactDevtoolTUILogFile(logFile string) string {
 	if strings.HasPrefix(cleaned, ".bldr"+string(filepath.Separator)) {
 		return cleaned
 	}
-	return shortTUIText(cleaned, 72)
+	return shortTUIText(cleaned, 64)
 }
 
 func shortTUIText(value string, maxLen int) string {

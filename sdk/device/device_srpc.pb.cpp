@@ -24,10 +24,15 @@ starpc::Error SRPCDeviceResourceServiceClientImpl::ReportDeviceStatus(const s4wa
   return cc_->ExecCall(service_id_, "ReportDeviceStatus", in, out);
 }
 
+starpc::Error SRPCDeviceResourceServiceClientImpl::AccessCheckoutRoot(const s4wave::device::AccessCheckoutRootRequest& in, s4wave::device::AccessCheckoutRootResponse* out) {
+  return cc_->ExecCall(service_id_, "AccessCheckoutRoot", in, out);
+}
+
 std::vector<std::string> SRPCDeviceResourceServiceHandler::GetMethodIDs() const {
   return {
     "WatchDeviceState",
     "ReportDeviceStatus",
+    "AccessCheckoutRoot",
   };
 }
 
@@ -51,6 +56,14 @@ std::pair<bool, starpc::Error> SRPCDeviceResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     s4wave::device::ReportDeviceStatusResponse resp;
     err = impl_->ReportDeviceStatus(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "AccessCheckoutRoot") {
+    s4wave::device::AccessCheckoutRootRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::device::AccessCheckoutRootResponse resp;
+    err = impl_->AccessCheckoutRoot(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

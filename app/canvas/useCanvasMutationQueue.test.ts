@@ -7,6 +7,7 @@ import type {
   CanvasNodeData,
   CanvasEdgeData,
   HiddenGraphLinkData,
+  CanvasLayoutMetadataData,
 } from './types.js'
 
 function makeNode(overrides: Partial<CanvasNodeData> = {}): CanvasNodeData {
@@ -26,8 +27,14 @@ function makeState(
   nodes: [string, CanvasNodeData][],
   edges: CanvasEdgeData[] = [],
   hiddenGraphLinks: HiddenGraphLinkData[] = [],
+  layoutMetadata: [string, CanvasLayoutMetadataData][] = [],
 ): CanvasStateData {
-  return { nodes: new Map(nodes), edges, hiddenGraphLinks }
+  return {
+    nodes: new Map(nodes),
+    edges,
+    hiddenGraphLinks,
+    layoutMetadata: new Map(layoutMetadata),
+  }
 }
 
 describe('useCanvasMutationQueue', () => {
@@ -49,6 +56,7 @@ describe('useCanvasMutationQueue', () => {
     expect(result.current.effectiveState.nodes.size).toBe(0)
     expect(result.current.effectiveState.edges.length).toBe(0)
     expect(result.current.effectiveState.hiddenGraphLinks.length).toBe(0)
+    expect(result.current.effectiveState.layoutMetadata.size).toBe(0)
   })
 
   it('applies node change mutation on top of server state', () => {
@@ -114,6 +122,7 @@ describe('useCanvasMutationQueue', () => {
       nodes: new Map(),
       edges: [edge],
       hiddenGraphLinks: [],
+      layoutMetadata: new Map(),
     }
     const send = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() => useCanvasMutationQueue(state, send))
@@ -137,6 +146,7 @@ describe('useCanvasMutationQueue', () => {
       nodes: new Map(),
       edges: [edge],
       hiddenGraphLinks: [],
+      layoutMetadata: new Map(),
     }
     const send = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() => useCanvasMutationQueue(state, send))
@@ -226,6 +236,133 @@ describe('useCanvasMutationQueue', () => {
 
     expect(result.current.pending).toBe(0)
     expect(result.current.effectiveState.hiddenGraphLinks).toEqual([link])
+  })
+
+  it('applies layout metadata change mutation', () => {
+    const state = makeState([['a', makeNode({ id: 'a' })]])
+    const send = vi.fn().mockResolvedValue(undefined)
+    const { result } = renderHook(() => useCanvasMutationQueue(state, send))
+
+    act(() => {
+      result.current.enqueueLayoutMetadataChange(
+        new Map([
+          [
+            'a',
+            {
+              stableNodeId: 'spell-run:a',
+              lane: 'source',
+              rank: 1,
+              group: 'workflow',
+              projectionOwner: 'glados/workflow',
+            },
+          ],
+        ]),
+      )
+    })
+
+    expect(result.current.pending).toBe(1)
+    expect(result.current.effectiveState.layoutMetadata.get('a')).toEqual({
+      stableNodeId: 'spell-run:a',
+      lane: 'source',
+      rank: 1,
+      group: 'workflow',
+      projectionOwner: 'glados/workflow',
+    })
+    expect(send).toHaveBeenCalledWith({
+      setLayoutMetadata: expect.any(Map),
+    })
+  })
+
+  it('removes layout metadata explicitly and when removing a node', () => {
+    const state = makeState(
+      [
+        ['a', makeNode({ id: 'a' })],
+        ['b', makeNode({ id: 'b' })],
+      ],
+      [],
+      [],
+      [
+        ['a', { stableNodeId: 'spell-run:a', lane: 'source' }],
+        ['b', { stableNodeId: 'spell-run:b', lane: 'proof' }],
+      ],
+    )
+    const send = vi.fn().mockResolvedValue(undefined)
+    const { result } = renderHook(() => useCanvasMutationQueue(state, send))
+
+    act(() => {
+      result.current.enqueueLayoutMetadataRemove(['a'])
+      result.current.enqueueNodesRemove(['b'])
+    })
+
+    expect(result.current.effectiveState.layoutMetadata.has('a')).toBe(false)
+    expect(result.current.effectiveState.layoutMetadata.has('b')).toBe(false)
+    expect(result.current.effectiveState.nodes.has('b')).toBe(false)
+  })
+
+  it('preserves manual nodes without metadata during metadata updates', () => {
+    const state = makeState([
+      ['manual', makeNode({ id: 'manual', x: 42, y: 43 })],
+    ])
+    const send = vi.fn().mockResolvedValue(undefined)
+    const { result } = renderHook(() => useCanvasMutationQueue(state, send))
+
+    act(() => {
+      result.current.enqueueLayoutMetadataChange(
+        new Map([['workflow', { stableNodeId: 'workflow', lane: 'source' }]]),
+      )
+    })
+
+    expect(result.current.effectiveState.nodes.get('manual')?.x).toBe(42)
+    expect(result.current.effectiveState.nodes.get('manual')?.y).toBe(43)
+    expect(
+      result.current.effectiveState.layoutMetadata.get('workflow'),
+    ).toEqual({
+      stableNodeId: 'workflow',
+      lane: 'source',
+    })
+  })
+
+  it('drops confirmed layout metadata mutation after server state updates', async () => {
+    const metadata = {
+      stableNodeId: 'spell-run:a',
+      lane: 'source',
+      rank: 2,
+      group: 'workflow',
+      projectionOwner: 'glados/workflow',
+    }
+    const send = vi.fn().mockResolvedValue(undefined)
+    const { result, rerender } = renderHook(
+      ({ serverState }) => useCanvasMutationQueue(serverState, send),
+      {
+        initialProps: {
+          serverState: makeState([['a', makeNode({ id: 'a' })]]),
+        },
+      },
+    )
+
+    act(() => {
+      result.current.enqueueLayoutMetadataChange(new Map([['a', metadata]]))
+    })
+    expect(result.current.pending).toBe(1)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(result.current.pending).toBe(1)
+
+    rerender({
+      serverState: makeState(
+        [['a', makeNode({ id: 'a' })]],
+        [],
+        [],
+        [['a', metadata]],
+      ),
+    })
+
+    expect(result.current.pending).toBe(0)
+    expect(result.current.effectiveState.layoutMetadata.get('a')).toEqual(
+      metadata,
+    )
   })
 
   it('converges persisted hidden graph links across viewers', async () => {

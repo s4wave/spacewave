@@ -9,6 +9,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SetV86StateOp, VmState, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'
 
+const mockContents = vi.hoisted(() => ({
+  setProcessBinding: vi.fn().mockResolvedValue({}),
+}))
+const mockContentsResourceState = vi.hoisted(() => ({
+  value: mockContents as typeof mockContents | null,
+}))
+
+vi.mock('@aptre/bldr-sdk/hooks/useResource.js', async () => {
+  const actual = await vi.importActual<
+    typeof import('@aptre/bldr-sdk/hooks/useResource.js')
+  >('@aptre/bldr-sdk/hooks/useResource.js')
+  return {
+    ...actual,
+    useResourceValue: () => mockContentsResourceState.value,
+  }
+})
+
+vi.mock('@s4wave/web/contexts/contexts.js', () => ({
+  SpaceContentsContext: {
+    useContext: () => mockContents,
+  },
+}))
+
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
     loadAddon = vi.fn()
@@ -71,6 +94,7 @@ function buildWorld(vm: VmV86) {
 
 describe('VmV86Viewer', () => {
   beforeEach(() => {
+    mockContentsResourceState.value = mockContents
     vi.stubGlobal(
       'BroadcastChannel',
       class {
@@ -126,5 +150,82 @@ describe('VmV86Viewer', () => {
     const op = SetV86StateOp.fromBinary(opData)
     expect(op.objectKey).toBe('vm/v86/test')
     expect(op.state ?? VmState.VmState_STOPPED).toBe(VmState.VmState_STOPPED)
+  })
+
+  it('approves the process binding before requesting start', async () => {
+    const { world, applyWorldOp } = buildWorld(
+      VmV86.create({
+        state: VmState.VmState_STOPPED,
+      }),
+    )
+
+    render(
+      <VmV86Viewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: { objectKey: 'vm/v86/test', objectType: 'vm/v86' },
+          },
+        }}
+        worldState={{
+          value: world,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Start' }))
+
+    await waitFor(() => {
+      expect(mockContents.setProcessBinding).toHaveBeenCalledWith(
+        'vm/v86/test',
+        'vm/v86',
+        true,
+      )
+      expect(applyWorldOp).toHaveBeenCalled()
+    })
+    const [, opData] = applyWorldOp.mock.calls[0] as [string, Uint8Array]
+    const op = SetV86StateOp.fromBinary(opData)
+    expect(op.objectKey).toBe('vm/v86/test')
+    expect(op.state ?? VmState.VmState_STOPPED).toBe(VmState.VmState_STARTING)
+    expect(
+      mockContents.setProcessBinding.mock.invocationCallOrder[0],
+    ).toBeLessThan(applyWorldOp.mock.invocationCallOrder[0] ?? 0)
+  })
+
+  it('keeps start unavailable until process controls are ready', async () => {
+    mockContentsResourceState.value = null
+    const { world, applyWorldOp } = buildWorld(
+      VmV86.create({
+        state: VmState.VmState_STOPPED,
+      }),
+    )
+
+    render(
+      <VmV86Viewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: { objectKey: 'vm/v86/test', objectType: 'vm/v86' },
+          },
+        }}
+        worldState={{
+          value: world,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    const start = (await screen.findByRole('button', {
+      name: 'Start',
+    })) as HTMLButtonElement
+    expect(start.disabled).toBe(true)
+    fireEvent.click(start)
+    expect(mockContents.setProcessBinding).not.toHaveBeenCalled()
+    expect(applyWorldOp).not.toHaveBeenCalled()
   })
 })

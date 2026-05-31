@@ -1,7 +1,10 @@
 import { useMemo, useCallback } from 'react'
 import { resolvePath, type To } from '@s4wave/web/router/router.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
+import {
+  SpaceContentsContext,
+  useSessionIndex,
+} from '@s4wave/web/contexts/contexts.js'
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
 import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
@@ -19,6 +22,7 @@ export function SpaceObjectContainer() {
     navigateToSubPath,
   } = SpaceContainerContext.useContext()
   const sessionIndex = useSessionIndex()
+  const spaceContentsResource = SpaceContentsContext.useContext()
 
   const routerPath = '/' + (objectPath || '')
 
@@ -73,6 +77,7 @@ export function SpaceObjectContainer() {
     <ObjectViewer
       objectInfo={objectInfo}
       worldState={spaceWorldResource}
+      spaceContents={spaceContentsResource}
       path={routerPath}
       exportUrl={exportUrl}
       onNavigate={handleViewerNavigate}

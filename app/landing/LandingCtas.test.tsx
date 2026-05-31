@@ -4,6 +4,7 @@ import { renderToString } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { StaticProvider } from '@s4wave/app/prerender/StaticContext.js'
+import { getQuickstartOption } from '@s4wave/app/quickstart/options.js'
 import { RouterProvider } from '@s4wave/web/router/router.js'
 import { LandingChat } from './LandingChat.js'
 import { LandingCli } from './LandingCli.js'
@@ -93,6 +94,33 @@ describe('use-case landing CTAs', () => {
         .getByRole('link', { name: 'See all features' })
         .getAttribute('href'),
     ).toBe('/landing')
+  })
+
+  it('states the drive content contract before stack proof', () => {
+    const html = renderToString(
+      <RouterProvider path="/landing/drive" onNavigate={() => {}}>
+        <StaticProvider>
+          <LandingDrive />
+        </StaticProvider>
+      </RouterProvider>,
+    )
+    const quickstart = getQuickstartOption('drive')
+
+    expect(html).toContain('Private files in your browser.')
+    expect(html).toContain('works offline')
+    expect(html).toContain('syncs through your devices')
+    expect(html).toContain('optional backup path')
+    expect(html).toContain('Create a Drive')
+    expect(quickstart.description).toContain('offline work')
+    expect(quickstart.description).toContain('device sync')
+
+    expect(
+      html.indexOf('The Drive Quickstart creates a real workspace'),
+    ).toBeLessThan(html.indexOf('content-addressed block DAG'))
+    expect(html).toContain('Hydra')
+    expect(html).toContain('Bifrost')
+    expect(html).not.toContain('SpaceSettings')
+    expect(html).not.toContain('release-WASM')
   })
 
   it('server-renders the drive landing page without falling back to client-only state', () => {

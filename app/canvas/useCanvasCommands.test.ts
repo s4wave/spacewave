@@ -46,6 +46,7 @@ describe('useCanvasCommands', () => {
           'fit-view': vi.fn(),
           'bring-to-front': vi.fn(),
           'send-to-back': vi.fn(),
+          'organize-nodes': vi.fn(),
         },
         moveSelected: vi.fn(),
         selectionFocus: 'border',
@@ -61,6 +62,7 @@ describe('useCanvasCommands', () => {
 
     const commandIds = registeredCommands.map((cmd) => cmd.commandId)
     expect(commandIds).toContain('canvas.zoom-reset')
+    expect(commandIds).toContain('canvas.organize-nodes')
     expect(commandIds).toContain('canvas.add-text')
     expect(commandIds).toContain('canvas.add-object')
 

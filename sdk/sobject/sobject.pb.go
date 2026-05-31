@@ -135,9 +135,7 @@ func (m *WatchSharedObjectHealthResponse) CloneVT() *WatchSharedObjectHealthResp
 		return (*WatchSharedObjectHealthResponse)(nil)
 	}
 	r := new(WatchSharedObjectHealthResponse)
-	if rhs := m.Health; rhs != nil {
-		r.Health = rhs.CloneVT()
-	}
+	r.Health = m.Health.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

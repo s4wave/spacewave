@@ -57,6 +57,7 @@ class WasmPluginGeneration {
   public constructor(
     private readonly api: BackendAPI,
     private readonly abortSignal?: AbortSignal,
+    private readonly runtimeWasmEnv?: Record<string, string>,
   ) {}
 
   public start(startInfo: PluginStartInfo) {
@@ -71,6 +72,7 @@ class WasmPluginGeneration {
       {
         argv: ['plugin.wasm'],
         env: {
+          ...this.runtimeWasmEnv,
           BLDR_PLUGIN_START_INFO: pluginStartInfoJsonB64,
         },
         abortSignal: this.abortSignal,
@@ -495,8 +497,9 @@ type TinyGoPluginDelivery = {
 export default async function main(
   api: BackendAPI,
   abortSignal?: AbortSignal,
+  runtimeWasmEnv?: Record<string, string>,
 ): Promise<void> {
-  const generation = new WasmPluginGeneration(api, abortSignal)
+  const generation = new WasmPluginGeneration(api, abortSignal, runtimeWasmEnv)
 
   // The Go runtime will call this function to open outgoing streams.
   globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = (

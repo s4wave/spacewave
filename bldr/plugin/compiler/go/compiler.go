@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -56,6 +57,8 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "go plugin compiler controller"
+
+var goScriptWebPluginBuildMu sync.Mutex
 
 // Controller is the compiler controller.
 type Controller struct {
@@ -856,38 +859,46 @@ func (c *Controller) BuildPlugin(
 	compileDevWrapper := !useGoScript && !compilePluginBinary
 
 	if useGoScript {
-		le.Info("compiling plugin TypeScript package tree")
-		goScriptBuildFlags = newGoScriptBuildFlags(buildType, enableCgo)
-		goScriptOverrideDirs, goScriptOverrideDirRels = existingSourceDirs(sourcePath, "gs")
-		mainPackagePath, err := mc.CompilePluginGoScript(
-			ctx,
-			le,
-			outDistPath,
-			goScriptBuildFlags,
-			goScriptOverrideDirs,
-		)
-		if err != nil {
+		if err := func() error {
+			goScriptWebPluginBuildMu.Lock()
+			defer goScriptWebPluginBuildMu.Unlock()
+
+			le.Info("compiling plugin TypeScript package tree")
+			goScriptBuildFlags = newGoScriptBuildFlags(buildType, enableCgo)
+			goScriptOverrideDirs, goScriptOverrideDirRels = existingSourceDirs(sourcePath, "gs")
+			mainPackagePath, err := mc.CompilePluginGoScript(
+				ctx,
+				le,
+				outDistPath,
+				goScriptBuildFlags,
+				goScriptOverrideDirs,
+			)
+			if err != nil {
+				return err
+			}
+			outScriptPath := filepath.Join(outDistPath, pluginID+".mjs")
+			timeStart := time.Now()
+			webRuntimeSrcFiles, err = web_runtime_goscript_build.BuildWebGoScriptPluginScript(
+				ctx,
+				le,
+				distSourcePath,
+				mc.pluginCodegenPath,
+				outDistPath,
+				outScriptPath,
+				mainPackagePath,
+				jsMinification,
+				jsSourcemaps,
+			)
+			if err != nil {
+				return err
+			}
+			le.
+				WithField("dur", time.Since(timeStart).String()).
+				Info("compiled GoScript web plugin entrypoint")
+			return nil
+		}(); err != nil {
 			return nil, nil, err
 		}
-		outScriptPath := filepath.Join(outDistPath, pluginID+".mjs")
-		timeStart := time.Now()
-		webRuntimeSrcFiles, err = web_runtime_goscript_build.BuildWebGoScriptPluginScript(
-			ctx,
-			le,
-			distSourcePath,
-			mc.pluginCodegenPath,
-			outDistPath,
-			outScriptPath,
-			mainPackagePath,
-			jsMinification,
-			jsSourcemaps,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-		le.
-			WithField("dur", time.Since(timeStart).String()).
-			Info("compiled GoScript web plugin entrypoint")
 	}
 	if compilePluginBinary {
 		le.Info("compiling plugin binary")

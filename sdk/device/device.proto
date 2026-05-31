@@ -85,6 +85,16 @@ enum DeviceCapabilityGrantState {
   DEVICE_CAPABILITY_GRANT_STATE_BLOCKED = 2;
 }
 
+// DeviceCheckoutRootAccess is the checkout-root access mode advertised by a Device.
+enum DeviceCheckoutRootAccess {
+  // DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN is unset.
+  DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN = 0;
+  // DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY means the checkout root can be read but not mutated.
+  DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY = 1;
+  // DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE means the checkout root can be read and written after approval.
+  DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE = 2;
+}
+
 // DevicePlatform summarizes the daemon runtime platform.
 message DevicePlatform {
   // Os is the daemon operating system.
@@ -121,6 +131,8 @@ message DeviceCapability {
   DeviceCapabilityLink link = 6;
   // Policy records the local and Space policy refs used for the effective state.
   DeviceCapabilityPolicy policy = 7;
+  // CheckoutRoot records named checkout-root metadata for filesystem capabilities.
+  DeviceCheckoutRootCapability checkout_root = 8;
 }
 
 // DeviceCapabilityLink points at the capability execution owner.
@@ -143,6 +155,22 @@ message DeviceCapabilityPolicy {
   DeviceCapabilityLocalState local_state = 3;
   // GrantState is the current Space grant projection.
   DeviceCapabilityGrantState grant_state = 4;
+}
+
+// DeviceCheckoutRootCapability records selection metadata for a named checkout root.
+message DeviceCheckoutRootCapability {
+  // Name is the stable checkout-root selector, such as skiffos.
+  string name = 1;
+  // DisplayPath is a human-readable path or mount label.
+  string display_path = 2;
+  // SelectionRef is the durable local policy selector for this root.
+  string selection_ref = 3;
+  // Access is the read/write mode currently exposed by the Device policy.
+  DeviceCheckoutRootAccess access = 4;
+  // ReadAvailable reports whether the linked filesystem owner may be opened for reads.
+  bool read_available = 5;
+  // WriteAvailable reports whether the linked filesystem owner may accept writes after approval.
+  bool write_available = 6;
 }
 
 // Device is the world-block state for a Spacewave-managed Device object.
@@ -191,6 +219,7 @@ message CreateComputersDashboardOp {
 service DeviceResourceService {
   rpc WatchDeviceState(WatchDeviceStateRequest) returns (stream WatchDeviceStateResponse);
   rpc ReportDeviceStatus(ReportDeviceStatusRequest) returns (ReportDeviceStatusResponse);
+  rpc AccessCheckoutRoot(AccessCheckoutRootRequest) returns (AccessCheckoutRootResponse);
 }
 
 // WatchDeviceStateRequest is a request to watch Device state.
@@ -222,4 +251,34 @@ message ReportDeviceStatusRequest {
 message ReportDeviceStatusResponse {
   // State is the updated Device block state.
   Device state = 1;
+}
+
+// AccessCheckoutRootRequest opens a named checkout root as a filesystem resource.
+message AccessCheckoutRootRequest {
+  // Name is the checkout-root selector. Empty selects the first readable root.
+  string name = 1;
+  // Write requests a write-capable filesystem handle.
+  bool write = 2;
+  // WriteApprovalRef identifies the Decision or equivalent approval for writes.
+  string write_approval_ref = 3;
+}
+
+// AccessCheckoutRootResponse contains the mounted filesystem resource.
+message AccessCheckoutRootResponse {
+  // ResourceId is the FSHandle resource id.
+  uint32 resource_id = 1;
+  // CapabilityId is the selected Device capability id.
+  string capability_id = 2;
+  // ObjectKey is the linked filesystem owner object key.
+  string object_key = 3;
+  // TypeId is the linked filesystem ObjectType id.
+  string type_id = 4;
+  // CheckoutRoot is the selected checkout-root metadata.
+  DeviceCheckoutRootCapability checkout_root = 5;
+  // WriteAvailable reports whether the selected capability can be write-gated.
+  bool write_available = 6;
+  // WriteEnabled reports whether this mounted handle was opened for writes.
+  bool write_enabled = 7;
+  // WriteApprovalRef is the approval ref accepted for a write-enabled handle.
+  string write_approval_ref = 8;
 }

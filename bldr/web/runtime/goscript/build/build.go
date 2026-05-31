@@ -13,6 +13,8 @@ import (
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
+	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
@@ -22,7 +24,7 @@ const webRuntimeGoScriptDir = "web/runtime/goscript"
 
 // BuildWebGoScriptPluginScript builds the web plugin runtime entrypoint script.
 func BuildWebGoScriptPluginScript(
-	_ context.Context,
+	ctx context.Context,
 	le *logrus.Entry,
 	bldrDistRoot,
 	workDir,
@@ -57,9 +59,17 @@ func BuildWebGoScriptPluginScript(
 
 	le.Infof("building plugin-goscript-entrypoint.ts to %v", filepath.Base(outPath))
 
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(workDir, minify, sourcemaps)
+	useOxcMinify := minify
+	esbuildOutPath := outPath
+	if useOxcMinify {
+		esbuildOutPath = filepath.Join(workDir, filepath.Base(outPath)+".esbuild.mjs")
+		defer os.Remove(esbuildOutPath)
+		defer os.Remove(esbuildOutPath + ".map")
+	}
+
+	opts := entrypoint_browser_bundle.BrowserBuildOpts(workDir, minify && !useOxcMinify, sourcemaps && !useOxcMinify)
 	opts.EntryPoints = []string{"plugin-goscript-entrypoint.ts"}
-	opts.Outfile = outPath
+	opts.Outfile = esbuildOutPath
 	opts.Define["BLDR_IS_PLUGIN"] = "true"
 	opts.Metafile = true
 	opts.Write = true
@@ -81,7 +91,39 @@ func BuildWebGoScriptPluginScript(
 	if err != nil {
 		return nil, err
 	}
+	if useOxcMinify {
+		if err := runRolldownOxcMinify(ctx, le, workDir, esbuildOutPath, outPath, sourcemaps); err != nil {
+			return nil, err
+		}
+	}
 	return inputPaths, nil
+}
+
+func runRolldownOxcMinify(ctx context.Context, le *logrus.Entry, workDir, inPath, outPath string, sourcemaps bool) error {
+	le.Infof("minifying plugin-goscript bundle with Rolldown/Oxc to %v", filepath.Base(outPath))
+	stateDir := filepath.Join(workDir, "..", "..", "bun")
+	args := []string{
+		inPath,
+		"--file", outPath,
+		"--format", "esm",
+		"--platform", "browser",
+		"--minify",
+		"--log-level", "warn",
+	}
+	if sourcemaps {
+		args = append(args, "--sourcemap")
+	}
+	cmd, err := npm.BunX(ctx, le, stateDir, "rolldown", args...)
+	if err != nil {
+		return err
+	}
+	cmd.Dir = workDir
+	cmd.Env = append(os.Environ(),
+		"NO_COLOR=1",
+		"NODE_DISABLE_COLORS=1",
+		"CI=1",
+	)
+	return bldr_exec.StartAndWait(ctx, le, cmd)
 }
 
 func buildResultUndefinedImportToErr(warnings []esbuild_api.Message) error {
@@ -118,6 +160,18 @@ func goScriptImportResolverPlugin(outputRoot string) esbuild_api.Plugin {
 	return esbuild_api.Plugin{
 		Name: "goscript-import-resolver",
 		Setup: func(build esbuild_api.PluginBuild) {
+			build.OnResolve(esbuild_api.OnResolveOptions{Filter: `^node:events$`}, func(args esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
+				return esbuild_api.OnResolveResult{
+					Path:      args.Path,
+					Namespace: "goscript-node-events",
+				}, nil
+			})
+			build.OnLoad(esbuild_api.OnLoadOptions{Filter: `.*`, Namespace: "goscript-node-events"}, func(args esbuild_api.OnLoadArgs) (esbuild_api.OnLoadResult, error) {
+				return esbuild_api.OnLoadResult{
+					Contents: ptrString("export function setMaxListeners() {}\n"),
+					Loader:   esbuild_api.LoaderJS,
+				}, nil
+			})
 			build.OnResolve(esbuild_api.OnResolveOptions{Filter: `^@goscript/.+`}, func(args esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
 				rel := strings.TrimPrefix(args.Path, "@goscript/")
 				return resolveGoScriptImport(outputRoot, rel)
@@ -134,6 +188,10 @@ func goScriptImportResolverPlugin(outputRoot string) esbuild_api.Plugin {
 			})
 		},
 	}
+}
+
+func ptrString(value string) *string {
+	return &value
 }
 
 func resolveGoScriptImport(outputRoot, rel string) (esbuild_api.OnResolveResult, error) {

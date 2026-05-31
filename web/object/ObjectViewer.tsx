@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import type { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
@@ -22,6 +23,7 @@ const noopNavigate = () => {}
 export interface ObjectViewerProps {
   objectInfo: ObjectInfo
   worldState: Resource<IWorldState>
+  spaceContents?: Resource<SpaceContents>
   standalone?: boolean
   bottomBarId?: string
   path?: string
@@ -35,6 +37,7 @@ export interface ObjectViewerProps {
 export function ObjectViewer({
   objectInfo,
   worldState,
+  spaceContents,
   standalone,
   bottomBarId,
   path,
@@ -86,6 +89,7 @@ export function ObjectViewer({
         <ObjectViewerContent
           objectInfo={objectInfo}
           worldState={worldState}
+          spaceContents={spaceContents}
           objectState={viewer.objectState.value ?? undefined}
           typeID={viewer.typeID}
           component={viewer.selectedComponent}

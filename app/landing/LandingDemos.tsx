@@ -9,11 +9,15 @@ import Markdown from 'markdown-to-jsx'
 import {
   LuArrowLeft,
   LuChevronRight,
+  LuCloud,
   LuCode,
   LuFileText,
   LuHardDrive,
+  LuLaptop,
   LuPlay,
   LuServer,
+  LuSmartphone,
+  LuWifiOff,
 } from 'react-icons/lu'
 
 import { MessageInput } from '@s4wave/app/chat/MessageInput.js'
@@ -313,10 +317,35 @@ export function DriveLandingDemo() {
     <DemoFrame
       icon={LuHardDrive}
       title="Live file browser"
-      subtitle="Open folders, inspect files, and keep the preview in sync."
+      subtitle="Open folders, inspect files, and see how the workspace moves through your devices."
     >
       <div className="grid gap-0 @lg:grid-cols-[1.2fr_1fr]">
-        <div className="border-foreground/8 border-b @lg:border-r @lg:border-b-0">
+        <div className="border-foreground/8 min-w-0 border-b @lg:border-r @lg:border-b-0">
+          <div className="border-foreground/8 grid gap-2 border-b p-3 text-xs @lg:grid-cols-3">
+            <div className="border-foreground/8 bg-background/40 rounded-md border px-2.5 py-2">
+              <div className="text-foreground mb-1 flex items-center gap-1.5 font-medium">
+                <LuLaptop className="size-3.5" />
+                Studio laptop
+              </div>
+              <div className="text-foreground-alt">
+                Offline edits saved locally
+              </div>
+            </div>
+            <div className="border-warning/20 bg-warning/8 rounded-md border px-2.5 py-2">
+              <div className="text-foreground mb-1 flex items-center gap-1.5 font-medium">
+                <LuSmartphone className="size-3.5" />
+                Phone
+              </div>
+              <div className="text-foreground-alt">Sync pending</div>
+            </div>
+            <div className="border-success/20 bg-success/8 rounded-md border px-2.5 py-2">
+              <div className="text-foreground mb-1 flex items-center gap-1.5 font-medium">
+                <LuCloud className="size-3.5" />
+                Backup node
+              </div>
+              <div className="text-foreground-alt">Optional reach enabled</div>
+            </div>
+          </div>
           <div className="border-foreground/8 flex items-center gap-2 border-b px-3 py-2 text-xs">
             <button
               type="button"
@@ -330,6 +359,10 @@ export function DriveLandingDemo() {
             <span className="text-foreground-alt">swarm://team-space</span>
             <LuChevronRight className="text-foreground-alt size-3" />
             <span className="text-foreground truncate">{currentPath}</span>
+            <span className="text-foreground-alt ml-auto hidden items-center gap-1 @md:flex">
+              <LuWifiOff className="size-3" />
+              offline-ready
+            </span>
           </div>
           <div className="h-72 overflow-hidden">
             <FileList
@@ -341,7 +374,7 @@ export function DriveLandingDemo() {
             />
           </div>
         </div>
-        <div className="flex min-h-72 flex-col">
+        <div className="flex min-h-72 min-w-0 flex-col">
           <div className="border-foreground/8 border-b px-3 py-2 text-xs">
             <span className="text-foreground">{selectedPath}</span>
           </div>

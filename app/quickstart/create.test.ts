@@ -20,6 +20,7 @@ import {
   V86WizardConfig,
   V86WizardConfig_Source,
 } from '@s4wave/sdk/vm/v86-wizard.pb.js'
+import { V86_DEFAULT_CDN_IMAGE_OBJECT_KEY } from '@s4wave/app/vm/v86-wizard-config.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
@@ -1207,7 +1208,7 @@ describe('quickstart create', () => {
     expect(cfg.name ?? '').toBe('')
     expect(cfg.imageObjectKey).toBe('vm-image/default')
     expect(cfg.source).toBe(V86WizardConfig_Source.COPY_FROM_CDN)
-    expect(cfg.cdnSourceObjectKey ?? '').toBe('')
+    expect(cfg.cdnSourceObjectKey ?? '').toBe(V86_DEFAULT_CDN_IMAGE_OBJECT_KEY)
     expect(cfg.cdnId ?? '').toBe('')
     expect(cfg.memoryMb).toBe(256)
     expect(cfg.vgaMemoryMb).toBe(8)
@@ -1222,6 +1223,7 @@ describe('quickstart create', () => {
       throw new Error('expected settings')
     }
     expect(settings.indexPath).toBe(op.objectKey)
+    expect(settings.pluginIds).toEqual(['spacewave-v86'])
   })
 
   it('seeds the Device quickstart with Computers and the Add Device wizard', async () => {

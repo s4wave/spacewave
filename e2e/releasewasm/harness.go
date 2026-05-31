@@ -466,9 +466,14 @@ func releaseHandler(distDir, staticDir string) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
-		if strings.HasSuffix(req.URL.Path, ".wasm.gz") {
+		if strings.HasSuffix(req.URL.Path, ".wasm.gz") || strings.HasSuffix(req.URL.Path, ".mjs.gz") {
 			rw.Header().Set("Content-Encoding", "gzip")
+		}
+		if strings.HasSuffix(req.URL.Path, ".wasm.gz") {
 			rw.Header().Set("Content-Type", "application/wasm")
+		}
+		if strings.HasSuffix(req.URL.Path, ".mjs.gz") {
+			rw.Header().Set("Content-Type", "application/javascript")
 		}
 		if after, ok := strings.CutPrefix(req.URL.Path, "/static/"); ok {
 			http.ServeFile(rw, req, filepath.Join(staticDir, after))

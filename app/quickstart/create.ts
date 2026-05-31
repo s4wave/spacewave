@@ -75,6 +75,7 @@ import {
 import { type QuickstartSpaceCreateId } from './options.js'
 
 const NOTES_PLUGIN_ID = 'spacewave-notes'
+const V86_PLUGIN_ID = 'spacewave-v86'
 const QUICKSTART_REGISTRATION_TIMEOUT_MS = import.meta.env?.DEV ? 240000 : 30000
 const QUICKSTART_LOCAL_PROVIDER_READY_TIMEOUT_MS = 120000
 const QUICKSTART_CREATE_LOCAL_ACCOUNT_TIMEOUT_MS = import.meta.env?.DEV
@@ -1283,7 +1284,9 @@ async function initV86Quickstart(
     '',
     abortSignal,
   )
-  await createSpaceSettingsObject(setup.spaceWorld, abortSignal, wizardKey)
+  await createSpaceSettingsObject(setup.spaceWorld, abortSignal, wizardKey, [
+    V86_PLUGIN_ID,
+  ])
 }
 
 async function initDeviceQuickstart(

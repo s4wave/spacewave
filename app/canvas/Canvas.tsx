@@ -255,6 +255,7 @@ export function Canvas({
   const { actions, moveSelected } = useCanvasActions({
     selection,
     nodes: state.nodes,
+    layoutMetadata: state.layoutMetadata,
     callbacks,
     viewport,
     setViewport,

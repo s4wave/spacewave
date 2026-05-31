@@ -4,16 +4,6 @@ const h = vi.hoisted(() => ({
   buildPluginOpenStream: vi.fn(),
   pluginAssetHttpPath: vi.fn(),
   viewerRegistrations: [] as Array<Record<string, unknown>>,
-  accessTypedObjectKeys: [] as string[],
-  appliedWorldOps: [] as Array<{
-    opData: Uint8Array
-    opSender: string
-    opTypeId: string
-  }>,
-  appliedWorldOpWaiters: [] as Array<{
-    count: number
-    resolve(): void
-  }>,
   mountNames: [] as string[],
   v86Constructors: [] as Array<Record<string, unknown>>,
   v86Instances: [] as Array<{
@@ -33,6 +23,7 @@ const h = vi.hoisted(() => ({
   }>,
   v86fsBridges: [] as Array<{
     adapter: Record<string, unknown>
+    service?: string
     close: ReturnType<typeof vi.fn>
     [Symbol.dispose](): void
   }>,
@@ -80,32 +71,8 @@ vi.mock('@s4wave/sdk/viewer/registry/registry_srpc.pb.js', () => ({
   },
 }))
 
-vi.mock('@s4wave/sdk/world/world-state.js', () => ({
-  WorldStateResource: class {
-    constructor(_rootRef: unknown) {}
-
-    accessTypedObject(objectKey: string) {
-      h.accessTypedObjectKeys.push(objectKey)
-      return Promise.resolve({ resourceId: 500 })
-    }
-
-    applyWorldOp(opTypeId: string, opData: Uint8Array, opSender: string) {
-      h.appliedWorldOps.push({ opTypeId, opData, opSender })
-      for (let i = h.appliedWorldOpWaiters.length - 1; i >= 0; i -= 1) {
-        const waiter = h.appliedWorldOpWaiters[i]
-        if (!waiter) continue
-        if (h.appliedWorldOps.length >= waiter.count) {
-          h.appliedWorldOpWaiters.splice(i, 1)
-          waiter.resolve()
-        }
-      }
-      return Promise.resolve({ seqno: 1n, sysErr: false })
-    }
-  },
-}))
-
 vi.mock('./v86fs-bridge.js', () => ({
-  createV86fsSrpcAdapter: vi.fn(() => {
+  createV86fsSrpcAdapter: vi.fn((_rpc: unknown, opts?: { service?: string }) => {
     const adapter = {
       onMount(
         name: string,
@@ -141,6 +108,7 @@ vi.mock('./v86fs-bridge.js', () => ({
     }
     const bridge = {
       adapter,
+      service: opts?.service,
       close: vi.fn(),
       [Symbol.dispose]() {
         bridge.close()
@@ -199,7 +167,6 @@ vi.mock(
   }),
 )
 
-import { SetV86StateOp, VmState } from '@s4wave/sdk/vm/v86.pb.js'
 import main from './backend.js'
 
 class FakeBroadcastChannel {
@@ -238,23 +205,6 @@ function waitForV86Boot(): Promise<void> {
   })
 }
 
-function waitForAppliedWorldOps(count: number): Promise<void> {
-  if (h.appliedWorldOps.length >= count) {
-    return Promise.resolve()
-  }
-  return new Promise((resolve) => {
-    h.appliedWorldOpWaiters.push({ count, resolve })
-  })
-}
-
-function appliedWorldOpAt(index: number): (typeof h.appliedWorldOps)[number] {
-  const op = h.appliedWorldOps[index]
-  if (!op) {
-    throw new Error(`missing applied world op ${index}`)
-  }
-  return op
-}
-
 describe('v86 backend registration', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -263,9 +213,6 @@ describe('v86 backend registration', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     h.viewerRegistrations.length = 0
-    h.accessTypedObjectKeys.length = 0
-    h.appliedWorldOps.length = 0
-    h.appliedWorldOpWaiters.length = 0
     h.mountNames.length = 0
     h.v86Constructors.length = 0
     h.v86Instances.length = 0
@@ -298,20 +245,11 @@ describe('v86 backend registration', () => {
       abort.signal,
     )
     await waitForV86Boot()
-    await waitForAppliedWorldOps(1)
 
-    expect(h.accessTypedObjectKeys).toEqual(['vm/v86/test'])
-    expect(h.appliedWorldOps[0]?.opTypeId).toBe('vm/v86/set-state')
-    expect(h.appliedWorldOps[0]?.opSender).toBe('')
-    const runningState = SetV86StateOp.fromBinary(appliedWorldOpAt(0).opData)
-    expect(runningState).toEqual(
-      expect.objectContaining({
-        objectKey: 'vm/v86/test',
-        state: VmState.VmState_RUNNING,
-      }),
+    expect(h.v86fsBridges[0]?.service).toBe(
+      'vm/v86-runtime/v86fs/vm/v86/test/unixfs.v86fs.V86fsService',
     )
-    expect(runningState.errorMessage ?? '').toBe('')
-    expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([1, 500])
+    expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([1])
     expect(h.mountNames).toEqual(['wasm', 'seabios', 'vgabios', 'kernel'])
     expect(h.v86Constructors).toHaveLength(1)
     expect(h.v86Constructors[0]).toEqual(
@@ -337,7 +275,6 @@ describe('v86 backend registration', () => {
     expect(h.v86Instances[0]?.destroy).toHaveBeenCalledTimes(1)
     expect(h.v86fsBridges[0]?.close).toHaveBeenCalledTimes(1)
     expect(h.retainedRefs[0]?.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
-    expect(h.retainedRefs[1]?.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
     expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
   })
 
@@ -352,15 +289,10 @@ describe('v86 backend registration', () => {
     ).rejects.toThrow('requires BroadcastChannel')
 
     expect(h.v86Constructors).toHaveLength(0)
-    expect(h.appliedWorldOps[0]?.opTypeId).toBe('vm/v86/set-state')
-    const op = SetV86StateOp.fromBinary(appliedWorldOpAt(0).opData)
-    expect(op).toEqual(
-      expect.objectContaining({
-        objectKey: 'vm/v86/test',
-        state: VmState.VmState_ERROR,
-      }),
+    expect(h.v86fsBridges[0]?.service).toBe(
+      'vm/v86-runtime/v86fs/vm/v86/test/unixfs.v86fs.V86fsService',
     )
-    expect(op.errorMessage).toContain('requires BroadcastChannel')
+    expect(h.v86fsBridges[0]?.close).toHaveBeenCalledTimes(1)
   })
 
   it('registers the clean v86 viewer with the startInfo plugin id and retained lifetime', async () => {

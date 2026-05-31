@@ -154,6 +154,15 @@ func requireCanvasNode(t *testing.T, state *CanvasState, id string) {
 	}
 }
 
+func requireCanvasLayoutMetadata(t *testing.T, state *CanvasState, id string) *CanvasLayoutMetadata {
+	t.Helper()
+	meta := state.GetLayoutMetadata()[id]
+	if meta == nil {
+		t.Fatalf("expected canvas layout metadata %q in %#v", id, state.GetLayoutMetadata())
+	}
+	return meta
+}
+
 func requireCanvasNodeEventually(
 	t *testing.T,
 	ch <-chan *WatchCanvasStateResponse,
@@ -188,6 +197,15 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 		Nodes: map[string]*CanvasNode{
 			"initial": &CanvasNode{Id: "initial", TextContent: "initial"},
 		},
+		LayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"initial": &CanvasLayoutMetadata{
+				StableNodeId:    "spell-run:initial",
+				Lane:            "source",
+				Rank:            1,
+				Group:           "intent",
+				ProjectionOwner: "glados/workflow",
+			},
+		},
 	}
 	ws, cleanup := setupCanvasWatchWorld(t, ctx, objKey, initial)
 	t.Cleanup(cleanup)
@@ -209,17 +227,42 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 		doneB <- resource.WatchCanvasState(&WatchCanvasStateRequest{}, strmB)
 	}()
 
-	requireCanvasNode(t, recvCanvasTestValue(t, strmA.sent, "stream A initial").GetState(), "initial")
-	requireCanvasNode(t, recvCanvasTestValue(t, strmB.sent, "stream B initial").GetState(), "initial")
+	initialA := recvCanvasTestValue(t, strmA.sent, "stream A initial").GetState()
+	requireCanvasNode(t, initialA, "initial")
+	if got := requireCanvasLayoutMetadata(t, initialA, "initial").GetLane(); got != "source" {
+		t.Fatalf("expected stream A initial layout lane source, got %q", got)
+	}
+	initialB := recvCanvasTestValue(t, strmB.sent, "stream B initial").GetState()
+	requireCanvasNode(t, initialB, "initial")
+	if got := requireCanvasLayoutMetadata(t, initialB, "initial").GetStableNodeId(); got != "spell-run:initial" {
+		t.Fatalf("expected stream B initial stable node id, got %q", got)
+	}
 
 	updated := &CanvasState{
 		Nodes: map[string]*CanvasNode{
 			"updated": &CanvasNode{Id: "updated", TextContent: "updated"},
 		},
+		LayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"updated": &CanvasLayoutMetadata{
+				StableNodeId:    "spell-run:updated",
+				Lane:            "proof",
+				Rank:            7,
+				Group:           "evidence",
+				ProjectionOwner: "glados/workflow",
+			},
+		},
 	}
 	setCanvasWatchWorldState(t, ctx, ws, objKey, updated)
-	requireCanvasNode(t, recvCanvasTestValue(t, strmA.sent, "stream A update").GetState(), "updated")
-	requireCanvasNode(t, recvCanvasTestValue(t, strmB.sent, "stream B update").GetState(), "updated")
+	updateA := recvCanvasTestValue(t, strmA.sent, "stream A update").GetState()
+	requireCanvasNode(t, updateA, "updated")
+	if got := requireCanvasLayoutMetadata(t, updateA, "updated").GetRank(); got != 7 {
+		t.Fatalf("expected stream A updated rank 7, got %d", got)
+	}
+	updateB := recvCanvasTestValue(t, strmB.sent, "stream B update").GetState()
+	requireCanvasNode(t, updateB, "updated")
+	if got := requireCanvasLayoutMetadata(t, updateB, "updated").GetProjectionOwner(); got != "glados/workflow" {
+		t.Fatalf("expected stream B updated projection owner, got %q", got)
+	}
 
 	burstA := &CanvasState{
 		Nodes: map[string]*CanvasNode{
@@ -345,6 +388,172 @@ func TestUpdateCanvasHiddenGraphLinksPreservesManualEdges(t *testing.T) {
 	}
 }
 
+func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
+	ctx := context.Background()
+	resource := NewCanvasResource(nil, nil, "", &CanvasState{
+		Nodes: map[string]*CanvasNode{
+			"source": &CanvasNode{Id: "source", TextContent: "source"},
+		},
+		Edges: []*CanvasEdge{
+			{
+				Id:           "edge-1",
+				SourceNodeId: "source",
+				TargetNodeId: "proof",
+				Style:        EdgeStyle_EDGE_STYLE_STRAIGHT,
+			},
+		},
+		HiddenGraphLinks: []*HiddenGraphLink{
+			{
+				Subject:   "<objects/source>",
+				Predicate: "<dependsOn>",
+				Object:    "<objects/proof>",
+			},
+		},
+		LayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"source": &CanvasLayoutMetadata{
+				StableNodeId:    "spell-run:source",
+				Lane:            "source",
+				Rank:            1,
+				Group:           "workflow",
+				ProjectionOwner: "glados/workflow",
+			},
+		},
+	})
+
+	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
+		SetNodes: map[string]*CanvasNode{
+			"proof": &CanvasNode{Id: "proof", TextContent: "proof"},
+		},
+		AddEdges: []*CanvasEdge{
+			{
+				Id:           "edge-2",
+				SourceNodeId: "source",
+				TargetNodeId: "proof",
+				Style:        EdgeStyle_EDGE_STYLE_BEZIER,
+			},
+		},
+		AddHiddenGraphLinks: []*HiddenGraphLink{
+			{
+				Subject:   "<objects/proof>",
+				Predicate: "<summarizes>",
+				Object:    "<objects/source>",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := resp.GetState()
+	requireCanvasNode(t, state, "source")
+	requireCanvasNode(t, state, "proof")
+	if got := len(state.GetEdges()); got != 2 {
+		t.Fatalf("expected existing and added visual edges, got %d", got)
+	}
+	if got := len(state.GetHiddenGraphLinks()); got != 2 {
+		t.Fatalf("expected existing and added hidden graph links, got %d", got)
+	}
+	meta := requireCanvasLayoutMetadata(t, state, "source")
+	if got := meta.GetStableNodeId(); got != "spell-run:source" {
+		t.Fatalf("expected stable node id to be preserved, got %q", got)
+	}
+	if got := meta.GetLane(); got != "source" {
+		t.Fatalf("expected lane to be preserved, got %q", got)
+	}
+	if got := meta.GetRank(); got != 1 {
+		t.Fatalf("expected rank to be preserved, got %d", got)
+	}
+	if got := meta.GetGroup(); got != "workflow" {
+		t.Fatalf("expected group to be preserved, got %q", got)
+	}
+	if got := meta.GetProjectionOwner(); got != "glados/workflow" {
+		t.Fatalf("expected projection owner to be preserved, got %q", got)
+	}
+}
+
+func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
+	ctx := context.Background()
+	resource := NewCanvasResource(nil, nil, "", &CanvasState{
+		Nodes: map[string]*CanvasNode{
+			"old":  &CanvasNode{Id: "old", TextContent: "old"},
+			"keep": &CanvasNode{Id: "keep", TextContent: "keep"},
+		},
+		LayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"old": &CanvasLayoutMetadata{
+				StableNodeId:    "spell-run:old",
+				Lane:            "audit",
+				Rank:            1,
+				Group:           "workflow",
+				ProjectionOwner: "glados/workflow",
+			},
+			"keep": &CanvasLayoutMetadata{
+				StableNodeId:    "spell-run:keep",
+				Lane:            "proof",
+				Rank:            2,
+				Group:           "workflow",
+				ProjectionOwner: "glados/workflow",
+			},
+		},
+	})
+
+	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
+		SetLayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"new": &CanvasLayoutMetadata{
+				StableNodeId:    "spell-run:new",
+				Lane:            "source",
+				Rank:            0,
+				Group:           "workflow",
+				ProjectionOwner: "glados/workflow",
+			},
+		},
+		RemoveLayoutMetadataNodeIds: []string{"old"},
+		RemoveNodeIds:               []string{"keep"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := resp.GetState()
+	if state.GetNodes()["keep"] != nil {
+		t.Fatal("expected removed node to be absent")
+	}
+	if state.GetLayoutMetadata()["old"] != nil {
+		t.Fatal("expected explicitly removed layout metadata to be absent")
+	}
+	if state.GetLayoutMetadata()["keep"] != nil {
+		t.Fatal("expected removed node layout metadata to be absent")
+	}
+	if got := requireCanvasLayoutMetadata(t, state, "new").GetLane(); got != "source" {
+		t.Fatalf("expected new layout metadata lane source, got %q", got)
+	}
+}
+
+func TestUpdateCanvasAcceptsEmptyLegacyLayoutMetadata(t *testing.T) {
+	ctx := context.Background()
+	resource := NewCanvasResource(nil, nil, "", &CanvasState{
+		Nodes: map[string]*CanvasNode{
+			"manual": &CanvasNode{Id: "manual", TextContent: "manual"},
+		},
+	})
+
+	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
+		SetLayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"workflow": &CanvasLayoutMetadata{
+				StableNodeId:    "spell-run:workflow",
+				Lane:            "source",
+				Rank:            0,
+				Group:           "workflow",
+				ProjectionOwner: "glados/workflow",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requireCanvasNode(t, resp.GetState(), "manual")
+	if got := requireCanvasLayoutMetadata(t, resp.GetState(), "workflow").GetStableNodeId(); got != "spell-run:workflow" {
+		t.Fatalf("expected metadata to be added to legacy empty map, got %q", got)
+	}
+}
+
 func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 	link := &HiddenGraphLink{
 		Subject:   "<objects/a>",
@@ -354,6 +563,15 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 	}
 	state := &CanvasState{
 		HiddenGraphLinks: []*HiddenGraphLink{link},
+		LayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"node-a": &CanvasLayoutMetadata{
+				StableNodeId:    "stable-a",
+				Lane:            "audit",
+				Rank:            3,
+				Group:           "checks",
+				ProjectionOwner: "glados/workflow",
+			},
+		},
 	}
 
 	data, err := state.MarshalJSON()
@@ -365,12 +583,22 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !state.EqualVT(&decoded) {
-		t.Fatal("canvas state hidden graph links did not round trip through JSON")
+		t.Fatal("canvas state hidden graph links and layout metadata did not round trip through JSON")
 	}
 
 	req := &UpdateCanvasRequest{
 		AddHiddenGraphLinks:    []*HiddenGraphLink{link},
 		RemoveHiddenGraphLinks: []*HiddenGraphLink{link.CloneVT()},
+		SetLayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"node-a": &CanvasLayoutMetadata{
+				StableNodeId:    "stable-a",
+				Lane:            "audit",
+				Rank:            3,
+				Group:           "checks",
+				ProjectionOwner: "glados/workflow",
+			},
+		},
+		RemoveLayoutMetadataNodeIds: []string{"node-b"},
 	}
 	data, err = req.MarshalJSON()
 	if err != nil {
