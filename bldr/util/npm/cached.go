@@ -16,16 +16,20 @@ import (
 // installHashFile is the filename used to cache the install hash.
 const installHashFile = ".bldr-install-hash"
 
-// EnsureBunInstall copies srcPackageJson to targetDir/package.json and runs
-// bun install, skipping the install if the package.json contents have not
-// changed since the last successful install.
+// EnsureBunInstall copies srcPackageJson and its sibling bun.lock, when
+// present, to targetDir and runs bun install, skipping the install if the
+// package manifest contents have not changed since the last successful install.
 func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackageJson, targetDir string) error {
 	data, err := os.ReadFile(srcPackageJson)
 	if err != nil {
 		return err
 	}
+	lockData, lockFound, err := readSiblingBunLock(srcPackageJson)
+	if err != nil {
+		return err
+	}
 
-	hash := sha256Hex(data)
+	hash := bunInstallHash(data, lockData)
 	if installCurrent(targetDir, hash) {
 		le.Debug("bun install cached, skipping")
 		return nil
@@ -38,8 +42,18 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 	if err := os.WriteFile(filepath.Join(targetDir, "package.json"), data, 0o644); err != nil {
 		return err
 	}
+	if lockFound {
+		// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
+		if err := os.WriteFile(filepath.Join(targetDir, "bun.lock"), lockData, 0o644); err != nil {
+			return err
+		}
+	}
 
-	cmd, err := BunInstall(ctx, le, stateDir, "--cwd", targetDir)
+	installArgs := []string{"--cwd", targetDir}
+	if lockFound {
+		installArgs = append(installArgs, "--frozen-lockfile")
+	}
+	cmd, err := BunInstall(ctx, le, stateDir, installArgs...)
 	if err != nil {
 		return err
 	}
@@ -48,6 +62,29 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 	}
 
 	return writeInstallHash(targetDir, hash)
+}
+
+func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {
+	lockPath := filepath.Join(filepath.Dir(srcPackageJson), "bun.lock")
+	data, err := os.ReadFile(lockPath)
+	if err == nil {
+		return data, true, nil
+	}
+	if os.IsNotExist(err) {
+		return nil, false, nil
+	}
+	return nil, false, err
+}
+
+func bunInstallHash(packageJSON, bunLock []byte) string {
+	if bunLock == nil {
+		return sha256Hex(packageJSON)
+	}
+	data := make([]byte, 0, len(packageJSON)+len(bunLock)+len("\x00bun.lock\x00"))
+	data = append(data, packageJSON...)
+	data = append(data, "\x00bun.lock\x00"...)
+	data = append(data, bunLock...)
+	return sha256Hex(data)
 }
 
 // EnsureBunAdd runs bun add for pkg in targetDir, skipping the install if the
