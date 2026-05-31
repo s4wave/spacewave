@@ -4,6 +4,7 @@ import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { SessionDetails } from './SessionDetails.js'
 import {
   SessionContext,
+  SessionIndexContext,
   SessionRouteContext,
 } from '@s4wave/web/contexts/contexts.js'
 import { Session } from '@s4wave/sdk/session/session.js'
@@ -220,8 +221,20 @@ describe('SessionDetails', () => {
     peerId: 'test-peer-id-123456',
     sessionRef: {
       providerResourceRef: {
+        providerId: 'spacewave',
         id: 'test-session-id',
         providerAccountId: 'test-account-id',
+      },
+    },
+  }
+
+  const mockLocalSessionInfo = {
+    ...mockSessionInfo,
+    sessionRef: {
+      providerResourceRef: {
+        providerId: 'local',
+        id: 'test-local-session-id',
+        providerAccountId: 'test-local-account-id',
       },
     },
   }
@@ -238,6 +251,9 @@ describe('SessionDetails', () => {
     createSpace: vi.fn(),
     watchResourcesList: vi.fn(),
     mountSharedObject: vi.fn(),
+    localProvider: {
+      watchDisplayName: vi.fn(() => null),
+    },
   } as unknown as Session
 
   const mockClipboard = {
@@ -282,7 +298,9 @@ describe('SessionDetails', () => {
             retry: mockRetry,
           }}
         >
-          {component}
+          <SessionIndexContext.Provider value={1}>
+            {component}
+          </SessionIndexContext.Provider>
         </SessionContext.Provider>
       </SessionRouteContext.Provider>,
     )
@@ -480,6 +498,21 @@ describe('SessionDetails', () => {
       fireEvent.click(screen.getByText('Delete a Space'))
 
       expect(screen.getByText('Delete Space Dialog')).toBeDefined()
+    })
+
+    it('closes the overlay before navigating to cloud upgrade', () => {
+      const onCloseClick = vi.fn()
+      mockUsePromise.mockReturnValue({
+        data: mockLocalSessionInfo,
+        loading: false,
+        error: null,
+      })
+      renderWithContext(<SessionDetails onCloseClick={onCloseClick} />)
+
+      fireEvent.click(screen.getByText('Upgrade to Cloud'))
+
+      expect(onCloseClick).toHaveBeenCalledTimes(1)
+      expect(mockNavigate).toHaveBeenCalledWith({ path: 'plan' })
     })
 
     it('reveals destructive actions when the danger zone expands', () => {
