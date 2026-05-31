@@ -836,17 +836,33 @@ func TestWritePolicy(t *testing.T) {
 }
 
 func TestAsyncIOPutComparison(t *testing.T) {
-	if !opfs.SyncAvailable() {
-		t.Skip("sync access handles not available")
-	}
-
 	ctx := context.Background()
-	syncSettings := DefaultSettings()
-	syncSettings.ShardCount = 4
-
 	asyncSettings := DefaultSettings()
 	asyncSettings.ShardCount = 4
 	asyncSettings.AsyncIO = true
+
+	if !opfs.SyncAvailable() {
+		asyncSingle := measureSinglePutLatency(t, ctx, "test-blockshard-compare-async-single", asyncSettings, 24)
+		asyncBatch := measureBatchPutLatency(t, ctx, "test-blockshard-compare-async-batch", asyncSettings, 12, 32)
+		t.Logf(
+			"single put sync unavailable | async avg=%s p50=%s p95=%s max=%s",
+			asyncSingle.avg,
+			asyncSingle.p50,
+			asyncSingle.p95,
+			asyncSingle.max,
+		)
+		t.Logf(
+			"batch put sync unavailable | async avg=%s p50=%s p95=%s max=%s",
+			asyncBatch.avg,
+			asyncBatch.p50,
+			asyncBatch.p95,
+			asyncBatch.max,
+		)
+		return
+	}
+
+	syncSettings := DefaultSettings()
+	syncSettings.ShardCount = 4
 
 	syncSingle := measureSinglePutLatency(t, ctx, "test-blockshard-compare-sync-single", syncSettings, 24)
 	asyncSingle := measureSinglePutLatency(t, ctx, "test-blockshard-compare-async-single", asyncSettings, 24)

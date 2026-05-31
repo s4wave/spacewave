@@ -32,12 +32,35 @@ type compactReq struct {
 	err chan error
 }
 
+type shardActor struct {
+	shardIdx   int
+	shard      *Shard
+	foreground chan writeReq
+	background chan writeReq
+	compaction chan compactReq
+}
+
+func newShardActor(shardIdx int, shard *Shard) *shardActor {
+	return &shardActor{
+		shardIdx:   shardIdx,
+		shard:      shard,
+		foreground: make(chan writeReq, 64),
+		background: make(chan writeReq, 64),
+		compaction: make(chan compactReq, 1),
+	}
+}
+
+func (a *shardActor) writeCh(background bool) chan writeReq {
+	if background {
+		return a.background
+	}
+	return a.foreground
+}
+
 // Engine is the multi-shard block store engine.
 type Engine struct {
 	shards      []*Shard
-	actors      []chan writeReq
-	bgActors    []chan writeReq
-	compactors  []chan compactReq
+	actors      []*shardActor
 	ctx         context.Context
 	cancel      context.CancelFunc
 	wg          sync.WaitGroup
@@ -65,9 +88,7 @@ func NewEngineWithSettings(
 	ctx, cancel := context.WithCancel(ctx)
 	e := &Engine{
 		shards:      make([]*Shard, settings.ShardCount),
-		actors:      make([]chan writeReq, settings.ShardCount),
-		bgActors:    make([]chan writeReq, settings.ShardCount),
-		compactors:  make([]chan compactReq, settings.ShardCount),
+		actors:      make([]*shardActor, settings.ShardCount),
 		ctx:         ctx,
 		cancel:      cancel,
 		compactionN: settings.CompactionTrigger,
@@ -104,12 +125,10 @@ func NewEngineWithSettings(
 		}
 		release()
 		e.shards[i] = shard
-		e.actors[i] = make(chan writeReq, 64)
-		e.bgActors[i] = make(chan writeReq, 64)
-		e.compactors[i] = make(chan compactReq, 1)
+		e.actors[i] = newShardActor(i, shard)
 
 		e.wg.Add(1)
-		go e.runActor(ctx, i)
+		go e.runActor(ctx, e.actors[i])
 	}
 
 	// Start invalidation listener.
@@ -137,14 +156,14 @@ func (e *Engine) ShardForKey(key []byte) int {
 // Put enqueues entries to the appropriate shard write actor.
 // Blocks until the entries are flushed to OPFS.
 func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
-	return e.putToActors(ctx, e.actors, "hydra/opfs-blockshard/put", entries, false)
+	return e.putToActors(ctx, "hydra/opfs-blockshard/put", entries, false)
 }
 
 // PutBackground enqueues entries to the low-priority background channel.
 // Background requests are processed only when no foreground work is pending.
 // Used for GC block writes and other non-latency-sensitive operations.
 func (e *Engine) PutBackground(ctx context.Context, entries []segment.Entry) error {
-	return e.putToActors(ctx, e.bgActors, "hydra/opfs-blockshard/put-background", entries, true)
+	return e.putToActors(ctx, "hydra/opfs-blockshard/put-background", entries, true)
 }
 
 // CompactOnce runs at most one compaction plan per shard.
@@ -160,7 +179,7 @@ func (e *Engine) CompactOnce(ctx context.Context) error {
 		ch := make(chan error, 1)
 		req := compactReq{ctx: ctx, err: ch}
 		select {
-		case e.compactors[shardIdx] <- req:
+		case e.actors[shardIdx].compaction <- req:
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-e.ctx.Done():
@@ -207,13 +226,11 @@ func (e *Engine) compactShardOnce(ctx context.Context, shardIdx int, shard *Shar
 	return true, nil
 }
 
-// putToActors partitions entries by shard, dispatches them to dest, and waits
-// for all replies. dest must be one of e.actors or e.bgActors and have the
-// same length as e.shards. tracePrefix is the trace task name prefix used for
+// putToActors partitions entries by shard, dispatches them to each shard actor,
+// and waits for all replies. tracePrefix is the trace task name prefix used for
 // all sub-spans emitted by this call.
 func (e *Engine) putToActors(
 	ctx context.Context,
-	dest []chan writeReq,
 	tracePrefix string,
 	entries []segment.Entry,
 	background bool,
@@ -244,8 +261,9 @@ func (e *Engine) putToActors(
 			defer wg.Done()
 			ch := make(chan error, 1)
 			reqCtx, reqTask := trace.NewTask(taskCtx, tracePrefix+"/queue-request")
+			actor := e.actors[idx]
 			select {
-			case dest[idx] <- writeReq{entries: b, background: background, err: ch}:
+			case actor.writeCh(background) <- writeReq{entries: b, background: background, err: ch}:
 				reqTask.End()
 			case <-ctx.Done():
 				reqTask.End()
@@ -620,21 +638,22 @@ const bgStarvationLimit = 4
 // round. Singleton writes pay only publish cost (no idle wait). Bursty writes
 // batch naturally because entries collect while I/O is in flight.
 //
-// Priority channels: foreground requests (actors[i]) are always drained
-// before background requests (bgActors[i]). Background requests are only
-// processed when the foreground channel is empty, or when bgStarvationLimit
-// consecutive foreground-only cycles have occurred.
+// Priority channels: foreground requests are always drained before background
+// requests. Background requests are only processed when the foreground channel
+// is empty, or when bgStarvationLimit consecutive foreground-only cycles have
+// occurred.
 //
 // Coalescing: after the first request, the actor yields and drains repeatedly
 // until no new requests arrive or maxCoalesceRounds is reached. This collapses
 // commit-burst traffic into fewer, larger publishes without adding latency to
 // singleton puts.
-func (e *Engine) runActor(ctx context.Context, shardIdx int) {
+func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 	defer e.wg.Done()
-	fgCh := e.actors[shardIdx]
-	bgCh := e.bgActors[shardIdx]
-	compactCh := e.compactors[shardIdx]
-	shard := e.shards[shardIdx]
+	shardIdx := actor.shardIdx
+	fgCh := actor.foreground
+	bgCh := actor.background
+	compactCh := actor.compaction
+	shard := actor.shard
 
 	var reqs []writeReq
 	var fgOnly int // consecutive foreground-only cycles
