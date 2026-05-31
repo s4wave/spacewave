@@ -35,14 +35,15 @@ everything inside someone else's database.
 
 People, apps, devices, and AI agents can all work against the same Space. That
 means automation can operate on durable state you can inspect, edit, share, and
-recover, instead of disappearing into a chat transcript or a vendor backend.
+recover, instead of disappearing into a chat transcript.
 
 Spacewave combines the convenience of cloud apps with the freedom of
 open-source software. The cloud can help with accounts, relay, backup, storage,
 and networking, but it does not become the owner of your work.
 
 When you want to go deeper, Spacewave is also a full-stack for local-first apps
-and plugins, built with Go, TypeScript, React, and WebAssembly.
+and plugins, built with Go, TypeScript, React, and WebAssembly - a home for your
+personal operating system.
 
 Features:
 
