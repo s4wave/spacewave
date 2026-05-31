@@ -261,10 +261,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			// update restartFn on any existing manifest trackers
 			for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
 				tkr := prevSubManifestTracker.Data
-				tkr.mtx.Lock()
-				tkr.restartFn = attempt.restart
-				tkr.resultPcObserved = false // flag that we shouldn't call restart() if the value changes (yet)
-				tkr.mtx.Unlock()
+				tkr.build.prepareParentAttempt(attempt.restart)
 			}
 
 			// Call the builder controller BuildManifest function.
@@ -288,10 +285,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		var subManifestCount int
 		for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
 			tkr := prevSubManifestTracker.Data
-			tkr.mtx.Lock()
-			resultPcObserved := tkr.resultPcObserved
-			tkr.mtx.Unlock()
-			if !resultPcObserved {
+			if !tkr.build.observedInParentAttempt() {
 				c.subManifestBuilderTrackers.RemoveKey(prevSubManifestTracker.Key)
 				continue
 			}

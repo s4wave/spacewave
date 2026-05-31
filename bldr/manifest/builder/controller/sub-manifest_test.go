@@ -28,9 +28,7 @@ func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *test
 		t.Fatalf("set manifest config: %v", err)
 	}
 	first := newSubManifestTrackerTestResult("bucket-a")
-	tracker.mtx.Lock()
-	tracker.setResultLocked(first, nil)
-	tracker.mtx.Unlock()
+	tracker.build.setResult(first, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -56,9 +54,7 @@ func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *test
 	}
 
 	second := newSubManifestTrackerTestResult("bucket-b")
-	tracker.mtx.Lock()
-	tracker.setResultLocked(second, nil)
-	tracker.mtx.Unlock()
+	tracker.build.setResult(second, nil)
 
 	select {
 	case reason := <-restartReasons:
@@ -78,6 +74,72 @@ func TestSubManifestTrackerPublishesResultsThroughStablePromiseContainer(t *test
 	select {
 	case reason := <-restartReasons:
 		t.Fatalf("unexpected duplicate restart reason: %q", reason)
+	default:
+	}
+}
+
+func TestSubManifestBuildOwnerParentAttemptObservationLifecycle(t *testing.T) {
+	ctrl := &Controller{le: logrus.NewEntry(logrus.New())}
+	_, tracker := ctrl.newSubManifestBuilderTracker("child")
+	manifestConfig := &bldr_project.ManifestConfig{}
+	restartReasons := make(chan string, 2)
+	restart := func(reason string) {
+		restartReasons <- reason
+	}
+
+	resultPromise, err := tracker.setManifestConfig(manifestConfig, restart)
+	if err != nil {
+		t.Fatalf("set manifest config: %v", err)
+	}
+	tracker.build.setResult(newSubManifestTrackerTestResult("bucket-a"), nil)
+	if !tracker.build.observedInParentAttempt() {
+		t.Fatal("sub-manifest should be observed after BuildSubManifest returns its promise")
+	}
+
+	tracker.build.prepareParentAttempt(restart)
+	if tracker.build.observedInParentAttempt() {
+		t.Fatal("new parent attempt should start with child unobserved")
+	}
+	tracker.build.setResult(newSubManifestTrackerTestResult("bucket-b"), nil)
+	select {
+	case reason := <-restartReasons:
+		t.Fatalf("unexpected restart for unobserved child result change: %q", reason)
+	default:
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	got, err := resultPromise.Await(ctx)
+	if err != nil {
+		t.Fatalf("await unobserved child result: %v", err)
+	}
+	if got.GetManifestRef().GetManifestRef().GetBucketId() != "bucket-b" {
+		t.Fatalf("unobserved child bucket = %q, want bucket-b", got.GetManifestRef().GetManifestRef().GetBucketId())
+	}
+
+	if _, err := tracker.setManifestConfig(manifestConfig, restart); err != nil {
+		t.Fatalf("set same manifest config: %v", err)
+	}
+	if !tracker.build.observedInParentAttempt() {
+		t.Fatal("sub-manifest should be observed after parent calls BuildSubManifest")
+	}
+	tracker.build.setResult(newSubManifestTrackerTestResult("bucket-c"), nil)
+	select {
+	case reason := <-restartReasons:
+		if reason != "sub-manifest changed: child" {
+			t.Fatalf("restart reason = %q, want child sub-manifest change", reason)
+		}
+	case <-ctx.Done():
+		t.Fatal("expected observed child result change to request parent restart")
+	}
+	if tracker.build.observedInParentAttempt() {
+		t.Fatal("child should become unobserved after its result changes and restarts the parent")
+	}
+
+	tracker.build.setResult(newSubManifestTrackerTestResult("bucket-d"), nil)
+	select {
+	case reason := <-restartReasons:
+		t.Fatalf("unexpected duplicate restart while child is unobserved: %q", reason)
 	default:
 	}
 }
