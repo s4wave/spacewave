@@ -21,6 +21,7 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -489,6 +490,340 @@ func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *
 	}
 }
 
+func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	releaseRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 10)
+	const releaseKey = "release/manifests/spacewave-web/js"
+	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), releaseKey, []string{storeKey}, releaseRef); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	buildRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 9)
+	const buildKey = "project/build/spacewave-web/js"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), buildKey, buildRef.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := createStartupGraphBuildResultMarker(ctx, ws, buildKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, buildKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	spaceLocalRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 8)
+	const spaceLocalKey = "spaces/test-space/plugins/generated/manifest"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), spaceLocalKey, spaceLocalRef.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, spaceLocalKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	unknownRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const unknownKey = "plugin-host/ref/unknown"
+	storeTestManifestRefObject(t, ctx, ws, unknownKey, unknownRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, unknownKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	dump, err := DumpStartupManifestGraphForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	assertStartupGraphDumpLine(t, dump, "candidate "+releaseKey, "provenance=global-release", "derived=true", "protected=false")
+	assertStartupGraphDumpLine(t, dump, "candidate "+buildKey, "provenance=project-build", "derived=true", "protected=false")
+	assertStartupGraphDumpLine(t, dump, "candidate "+spaceLocalKey, "provenance=space-local-or-ephemeral", "derived=false", "protected=true")
+	assertStartupGraphDumpLine(t, dump, "candidate "+unknownKey, "provenance=unknown", "derived=false", "protected=true")
+}
+
+func TestPruneStartupManifestCandidateRemovesOnlyProofGatedDerivedCandidate(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 99)
+	const wrongIDKey = "release/manifests/other-plugin/js"
+	storeTestManifestRefObject(t, ctx, ws, wrongIDKey, wrongIDRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, wrongIDKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	candidate := findStartupCandidateByKey(t, candidates, wrongIDKey)
+	if candidate.Eligibility != StartupManifestEligibilityQuarantined {
+		t.Fatalf("candidate eligibility = %q, want quarantined", candidate.Eligibility)
+	}
+
+	res, err := PruneStartupManifestCandidate(
+		ctx,
+		ws,
+		candidate,
+		StartupManifestPruneProof{
+			Reachability:        true,
+			Quarantine:          true,
+			CopiedStateRelaunch: true,
+		},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !res.Pruned || !res.DeletedObject || res.DeletedEdges != 1 {
+		t.Fatalf("prune result = %+v, want one edge and object deleted", res)
+	}
+	if _, ok, err := ws.GetObject(ctx, wrongIDKey); err != nil {
+		t.Fatal(err.Error())
+	} else if ok {
+		t.Fatal("expected proof-gated derived candidate object to be deleted")
+	}
+	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(storeKey, PredManifest.String(), wrongIDKey, ""), 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(quads) != 0 {
+		t.Fatalf("expected startup graph edge to be deleted, got %d", len(quads))
+	}
+}
+
+func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	spaceLocalRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 8)
+	const spaceLocalKey = "spaces/test-space/plugins/generated/manifest"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), spaceLocalKey, spaceLocalRef.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, spaceLocalKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	derivedRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 9)
+	const derivedKey = "release/manifests/other-plugin/js"
+	storeTestManifestRefObject(t, ctx, ws, derivedKey, derivedRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, derivedKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	spaceLocalCandidate := findStartupCandidateByKey(t, candidates, spaceLocalKey)
+	derivedCandidate := findStartupCandidateByKey(t, candidates, derivedKey)
+
+	res, err := PruneStartupManifestCandidate(
+		ctx,
+		ws,
+		spaceLocalCandidate,
+		StartupManifestPruneProof{
+			Reachability:        true,
+			Quarantine:          true,
+			CopiedStateRelaunch: true,
+		},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if res.Pruned || res.Reason != "source-protected:space-local-or-ephemeral" {
+		t.Fatalf("space-local prune result = %+v, want protected no-op", res)
+	}
+
+	res, err = PruneStartupManifestCandidate(
+		ctx,
+		ws,
+		derivedCandidate,
+		StartupManifestPruneProof{
+			Reachability: true,
+			Quarantine:   true,
+		},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if res.Pruned || res.Reason != "missing-copied-state-relaunch-proof" {
+		t.Fatalf("unproven derived prune result = %+v, want relaunch-proof no-op", res)
+	}
+
+	unsafeCandidate := &StartupManifestCandidateEligibility{
+		ObjectKey:   derivedKey,
+		Eligibility: StartupManifestEligibilityUnsafe,
+	}
+	res, err = PruneStartupManifestCandidate(
+		ctx,
+		ws,
+		unsafeCandidate,
+		StartupManifestPruneProof{
+			Reachability:        true,
+			Quarantine:          true,
+			CopiedStateRelaunch: true,
+		},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if res.Pruned || res.Reason != "not-quarantined:unsafe" {
+		t.Fatalf("unsafe prune result = %+v, want unsafe no-op", res)
+	}
+
+	for _, key := range []string{spaceLocalKey, derivedKey} {
+		if _, ok, err := ws.GetObject(ctx, key); err != nil {
+			t.Fatal(err.Error())
+		} else if !ok {
+			t.Fatalf("expected protected/unproven candidate %q to remain", key)
+		}
+	}
+}
+
+func TestPruneStartupManifestCandidateRequiresExclusiveReachability(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	const otherStoreKey = "other-plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, otherStoreKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 99)
+	const wrongIDKey = "release/manifests/shared-other-plugin/js"
+	storeTestManifestRefObject(t, ctx, ws, wrongIDKey, wrongIDRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, wrongIDKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(otherStoreKey, wrongIDKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	candidate := findStartupCandidateByKey(t, candidates, wrongIDKey)
+	res, err := PruneStartupManifestCandidate(
+		ctx,
+		ws,
+		candidate,
+		StartupManifestPruneProof{
+			Reachability:        true,
+			Quarantine:          true,
+			CopiedStateRelaunch: true,
+		},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if res.Pruned || !strings.HasPrefix(res.Reason, "reachable-from-other-root:") {
+		t.Fatalf("shared candidate prune result = %+v, want reachability no-op", res)
+	}
+	if _, ok, err := ws.GetObject(ctx, wrongIDKey); err != nil {
+		t.Fatal(err.Error())
+	} else if !ok {
+		t.Fatal("expected shared reachable candidate object to remain")
+	}
+}
+
 func TestCollectStartupManifestsForManifestIDNarrowsLabelsAndKeepsLegacyEmpty(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -837,6 +1172,106 @@ func TestCollectStartupManifestsForManifestIDSkipsRefMetadataMismatchesBeforeOpe
 	}
 }
 
+func TestCollectStartupManifestEligibilityClassifiesRetainedCandidates(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	const nestedStoreKey = "plugin-host/retained-store"
+	if _, err := CreateManifestStore(ctx, ws, nestedStoreKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, nestedStoreKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	exactRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	const exactRefKey = "plugin-host/ref/exact"
+	storeTestManifestRefObject(t, ctx, ws, exactRefKey, exactRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, exactRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	legacyRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 6)
+	const legacyRefKey = "plugin-host/ref/legacy"
+	storeTestManifestRefObject(t, ctx, ws, legacyRefKey, legacyRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, legacyRefKey, "")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 5)
+	const wrongIDRefKey = "plugin-host/ref/wrong-id"
+	storeTestManifestRefObject(t, ctx, ws, wrongIDRefKey, wrongIDRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, wrongIDRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wrongPlatformRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "desktop/linux/amd64", 4)
+	const wrongPlatformRefKey = "plugin-host/ref/wrong-platform"
+	storeTestManifestRefObject(t, ctx, ws, wrongPlatformRefKey, wrongPlatformRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, wrongPlatformRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	missingBucketRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 3)
+	missingBucketRef.ManifestRef.BucketId = "missing-retained-bucket"
+	const missingBucketRefKey = "plugin-host/ref/missing-bucket"
+	storeTestManifestRefObject(t, ctx, ws, missingBucketRefKey, missingBucketRef)
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, missingBucketRefKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, err := CollectStartupManifestEligibilityForManifestID(
+		ctx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	byKey := make(map[string]*StartupManifestCandidateEligibility, len(got))
+	for _, candidate := range got {
+		byKey[candidate.ObjectKey] = candidate
+	}
+	assertStartupEligibility(t, byKey, exactRefKey, StartupManifestEligibilityEligible, "exact-label")
+	assertStartupEligibility(t, byKey, legacyRefKey, StartupManifestEligibilityCompatibleLegacy, "legacy-empty-label")
+	assertStartupEligibility(t, byKey, wrongIDRefKey, StartupManifestEligibilityQuarantined, "manifest-id-mismatch:other-plugin")
+	assertStartupEligibility(t, byKey, wrongPlatformRefKey, StartupManifestEligibilityIgnored, "platform-filtered:desktop/linux/amd64")
+	assertStartupEligibility(t, byKey, nestedStoreKey, StartupManifestEligibilityIgnored, "intermediate:bldr/manifest-store")
+	assertStartupEligibility(t, byKey, missingBucketRefKey, StartupManifestEligibilityUnsafe, "manifest-ref-unreadable:")
+
+	summary := SummarizeStartupManifestEligibility(got, 3)
+	if !strings.Contains(summary, "eligible exact-label") {
+		t.Fatalf("summary missing eligible item: %q", summary)
+	}
+	if !strings.Contains(summary, "+3 more") {
+		t.Fatalf("summary missing truncation: %q", summary)
+	}
+}
+
 func TestCollectStartupManifestsForManifestIDRejectsDecodedMetadataMismatch(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -1133,6 +1568,73 @@ func storeTestManifestRefObject(
 		return nil
 	}); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func createStartupGraphBuildResultMarker(ctx context.Context, ws world.WorldState, manifestKey string) error {
+	ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+		bcs.SetBlock(manifest.NewManifest(manifest.NewManifestMeta("build-result-marker", manifest.BuildType_DEV, "js", 1), "entrypoint"), true)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	objKey := manifestKey + "/build-result"
+	if _, err := ws.CreateObject(ctx, objKey, ref); err != nil {
+		return err
+	}
+	return world_types.SetObjectType(ctx, ws, objKey, "bldr/manifest-build-result")
+}
+
+func assertStartupGraphDumpLine(t *testing.T, dump string, prefix string, parts ...string) {
+	t.Helper()
+	for _, line := range strings.Split(dump, "\n") {
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		for _, part := range parts {
+			if !strings.Contains(line, part) {
+				t.Fatalf("dump line %q missing %q", line, part)
+			}
+		}
+		return
+	}
+	t.Fatalf("dump missing line prefix %q:\n%s", prefix, dump)
+}
+
+func findStartupCandidateByKey(
+	t *testing.T,
+	candidates []*StartupManifestCandidateEligibility,
+	key string,
+) *StartupManifestCandidateEligibility {
+	t.Helper()
+	for _, candidate := range candidates {
+		if candidate != nil && candidate.ObjectKey == key {
+			return candidate
+		}
+	}
+	t.Fatalf("missing startup manifest candidate %q", key)
+	return nil
+}
+
+func assertStartupEligibility(
+	t *testing.T,
+	byKey map[string]*StartupManifestCandidateEligibility,
+	key string,
+	want StartupManifestEligibility,
+	reasonPrefix string,
+) {
+	t.Helper()
+
+	candidate := byKey[key]
+	if candidate == nil {
+		t.Fatalf("missing startup manifest candidate %q", key)
+	}
+	if candidate.Eligibility != want {
+		t.Fatalf("candidate %q eligibility = %q, want %q", key, candidate.Eligibility, want)
+	}
+	if !strings.HasPrefix(candidate.Reason, reasonPrefix) {
+		t.Fatalf("candidate %q reason = %q, want prefix %q", key, candidate.Reason, reasonPrefix)
 	}
 }
 

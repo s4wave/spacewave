@@ -11,6 +11,7 @@ import (
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	resource_cdn "github.com/s4wave/spacewave/core/resource/cdn"
 	resource_debugdb "github.com/s4wave/spacewave/core/resource/debugdb"
+	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	"github.com/sirupsen/logrus"
@@ -38,6 +39,9 @@ type CoreRootServer struct {
 	cdnRegistry *resource_cdn.Registry
 	// webListeners owns daemon-background localhost web listeners.
 	webListeners *webListenerRegistry
+	// recoveryStatusRegistry owns volatile renderer recovery facts by logical
+	// session across separately mounted SessionResources.
+	recoveryStatusRegistry *resource_session.RecoveryStatusRegistry
 }
 
 // NewCoreRootServer creates a new CoreRootServer.
@@ -49,6 +53,7 @@ func NewCoreRootServer(le *logrus.Entry, b bus.Bus) *CoreRootServer {
 	s.stateAtomMgr = newStateAtomManager(s)
 	s.cdnRegistry = resource_cdn.NewRegistry(le, b)
 	s.webListeners = newWebListenerRegistry(le)
+	s.recoveryStatusRegistry = resource_session.NewRecoveryStatusRegistry()
 	return s
 }
 

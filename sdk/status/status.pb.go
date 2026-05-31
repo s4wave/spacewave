@@ -120,6 +120,394 @@ func (x *PluginInfo) GetState() string {
 	return ""
 }
 
+// LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
+type LauncherRecoveryStatus struct {
+	unknownFields          []byte
+	SelectedConfigRev      uint64 `protobuf:"varint,1,opt,name=selected_config_rev,json=selectedConfigRev,proto3" json:"selectedConfigRev,omitempty"`
+	SelectedConfigSource   string `protobuf:"bytes,2,opt,name=selected_config_source,json=selectedConfigSource,proto3" json:"selectedConfigSource,omitempty"`
+	FetchedConfigRev       uint64 `protobuf:"varint,3,opt,name=fetched_config_rev,json=fetchedConfigRev,proto3" json:"fetchedConfigRev,omitempty"`
+	FetchedConfigSource    string `protobuf:"bytes,4,opt,name=fetched_config_source,json=fetchedConfigSource,proto3" json:"fetchedConfigSource,omitempty"`
+	ReleaseMetadataOutcome string `protobuf:"bytes,5,opt,name=release_metadata_outcome,json=releaseMetadataOutcome,proto3" json:"releaseMetadataOutcome,omitempty"`
+}
+
+func (x *LauncherRecoveryStatus) Reset() {
+	*x = LauncherRecoveryStatus{}
+}
+
+func (*LauncherRecoveryStatus) ProtoMessage() {}
+
+func (x *LauncherRecoveryStatus) GetSelectedConfigRev() uint64 {
+	if x != nil {
+		return x.SelectedConfigRev
+	}
+	return 0
+}
+
+func (x *LauncherRecoveryStatus) GetSelectedConfigSource() string {
+	if x != nil {
+		return x.SelectedConfigSource
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetFetchedConfigRev() uint64 {
+	if x != nil {
+		return x.FetchedConfigRev
+	}
+	return 0
+}
+
+func (x *LauncherRecoveryStatus) GetFetchedConfigSource() string {
+	if x != nil {
+		return x.FetchedConfigSource
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetReleaseMetadataOutcome() string {
+	if x != nil {
+		return x.ReleaseMetadataOutcome
+	}
+	return ""
+}
+
+// PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.
+type PluginManifestRecoveryStatus struct {
+	unknownFields               []byte
+	PluginId                    string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	InstanceKey                 string `protobuf:"bytes,2,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
+	ExecuteManifestRef          string `protobuf:"bytes,3,opt,name=execute_manifest_ref,json=executeManifestRef,proto3" json:"executeManifestRef,omitempty"`
+	DownloadManifestRef         string `protobuf:"bytes,4,opt,name=download_manifest_ref,json=downloadManifestRef,proto3" json:"downloadManifestRef,omitempty"`
+	SkippedCandidateCount       uint32 `protobuf:"varint,5,opt,name=skipped_candidate_count,json=skippedCandidateCount,proto3" json:"skippedCandidateCount,omitempty"`
+	SkippedCandidateSummary     string `protobuf:"bytes,6,opt,name=skipped_candidate_summary,json=skippedCandidateSummary,proto3" json:"skippedCandidateSummary,omitempty"`
+	IgnoredCandidateCount       uint32 `protobuf:"varint,7,opt,name=ignored_candidate_count,json=ignoredCandidateCount,proto3" json:"ignoredCandidateCount,omitempty"`
+	IgnoredCandidateSummary     string `protobuf:"bytes,8,opt,name=ignored_candidate_summary,json=ignoredCandidateSummary,proto3" json:"ignoredCandidateSummary,omitempty"`
+	QuarantinedCandidateCount   uint32 `protobuf:"varint,9,opt,name=quarantined_candidate_count,json=quarantinedCandidateCount,proto3" json:"quarantinedCandidateCount,omitempty"`
+	QuarantinedCandidateSummary string `protobuf:"bytes,10,opt,name=quarantined_candidate_summary,json=quarantinedCandidateSummary,proto3" json:"quarantinedCandidateSummary,omitempty"`
+}
+
+func (x *PluginManifestRecoveryStatus) Reset() {
+	*x = PluginManifestRecoveryStatus{}
+}
+
+func (*PluginManifestRecoveryStatus) ProtoMessage() {}
+
+func (x *PluginManifestRecoveryStatus) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *PluginManifestRecoveryStatus) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
+	}
+	return ""
+}
+
+func (x *PluginManifestRecoveryStatus) GetExecuteManifestRef() string {
+	if x != nil {
+		return x.ExecuteManifestRef
+	}
+	return ""
+}
+
+func (x *PluginManifestRecoveryStatus) GetDownloadManifestRef() string {
+	if x != nil {
+		return x.DownloadManifestRef
+	}
+	return ""
+}
+
+func (x *PluginManifestRecoveryStatus) GetSkippedCandidateCount() uint32 {
+	if x != nil {
+		return x.SkippedCandidateCount
+	}
+	return 0
+}
+
+func (x *PluginManifestRecoveryStatus) GetSkippedCandidateSummary() string {
+	if x != nil {
+		return x.SkippedCandidateSummary
+	}
+	return ""
+}
+
+func (x *PluginManifestRecoveryStatus) GetIgnoredCandidateCount() uint32 {
+	if x != nil {
+		return x.IgnoredCandidateCount
+	}
+	return 0
+}
+
+func (x *PluginManifestRecoveryStatus) GetIgnoredCandidateSummary() string {
+	if x != nil {
+		return x.IgnoredCandidateSummary
+	}
+	return ""
+}
+
+func (x *PluginManifestRecoveryStatus) GetQuarantinedCandidateCount() uint32 {
+	if x != nil {
+		return x.QuarantinedCandidateCount
+	}
+	return 0
+}
+
+func (x *PluginManifestRecoveryStatus) GetQuarantinedCandidateSummary() string {
+	if x != nil {
+		return x.QuarantinedCandidateSummary
+	}
+	return ""
+}
+
+// NativePackageRecoveryStatus reports process-host dist materialization facts.
+type NativePackageRecoveryStatus struct {
+	unknownFields []byte
+	PluginId      string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	DistDir       string `protobuf:"bytes,2,opt,name=dist_dir,json=distDir,proto3" json:"distDir,omitempty"`
+	Materialized  bool   `protobuf:"varint,3,opt,name=materialized,proto3" json:"materialized,omitempty"`
+	Invalidated   bool   `protobuf:"varint,4,opt,name=invalidated,proto3" json:"invalidated,omitempty"`
+	LastAction    string `protobuf:"bytes,5,opt,name=last_action,json=lastAction,proto3" json:"lastAction,omitempty"`
+	LastError     string `protobuf:"bytes,6,opt,name=last_error,json=lastError,proto3" json:"lastError,omitempty"`
+	UpdatedAt     string `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+}
+
+func (x *NativePackageRecoveryStatus) Reset() {
+	*x = NativePackageRecoveryStatus{}
+}
+
+func (*NativePackageRecoveryStatus) ProtoMessage() {}
+
+func (x *NativePackageRecoveryStatus) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *NativePackageRecoveryStatus) GetDistDir() string {
+	if x != nil {
+		return x.DistDir
+	}
+	return ""
+}
+
+func (x *NativePackageRecoveryStatus) GetMaterialized() bool {
+	if x != nil {
+		return x.Materialized
+	}
+	return false
+}
+
+func (x *NativePackageRecoveryStatus) GetInvalidated() bool {
+	if x != nil {
+		return x.Invalidated
+	}
+	return false
+}
+
+func (x *NativePackageRecoveryStatus) GetLastAction() string {
+	if x != nil {
+		return x.LastAction
+	}
+	return ""
+}
+
+func (x *NativePackageRecoveryStatus) GetLastError() string {
+	if x != nil {
+		return x.LastError
+	}
+	return ""
+}
+
+func (x *NativePackageRecoveryStatus) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+// BrowserBootRecoveryStatus reports browser/desktop boot compatibility facts
+// when a renderer has published them to the daemon status owner.
+type BrowserBootRecoveryStatus struct {
+	unknownFields        []byte
+	CompatibilityVersion string `protobuf:"bytes,1,opt,name=compatibility_version,json=compatibilityVersion,proto3" json:"compatibilityVersion,omitempty"`
+	LastResetDecision    string `protobuf:"bytes,2,opt,name=last_reset_decision,json=lastResetDecision,proto3" json:"lastResetDecision,omitempty"`
+	Status               string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *BrowserBootRecoveryStatus) Reset() {
+	*x = BrowserBootRecoveryStatus{}
+}
+
+func (*BrowserBootRecoveryStatus) ProtoMessage() {}
+
+func (x *BrowserBootRecoveryStatus) GetCompatibilityVersion() string {
+	if x != nil {
+		return x.CompatibilityVersion
+	}
+	return ""
+}
+
+func (x *BrowserBootRecoveryStatus) GetLastResetDecision() string {
+	if x != nil {
+		return x.LastResetDecision
+	}
+	return ""
+}
+
+func (x *BrowserBootRecoveryStatus) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+// RuntimeAssetRecoveryStatus reports the latest typed root plugin asset result
+// when a renderer has published it to the daemon status owner.
+type RuntimeAssetRecoveryStatus struct {
+	unknownFields     []byte
+	ScriptPath        string `protobuf:"bytes,1,opt,name=script_path,json=scriptPath,proto3" json:"scriptPath,omitempty"`
+	StatusCode        uint32 `protobuf:"varint,2,opt,name=status_code,json=statusCode,proto3" json:"statusCode,omitempty"`
+	Ok                bool   `protobuf:"varint,3,opt,name=ok,proto3" json:"ok,omitempty"`
+	Classification    string `protobuf:"bytes,4,opt,name=classification,proto3" json:"classification,omitempty"`
+	FetchSource       string `protobuf:"bytes,5,opt,name=fetch_source,json=fetchSource,proto3" json:"fetchSource,omitempty"`
+	RuntimeError      string `protobuf:"bytes,6,opt,name=runtime_error,json=runtimeError,proto3" json:"runtimeError,omitempty"`
+	PluginAssetResult string `protobuf:"bytes,7,opt,name=plugin_asset_result,json=pluginAssetResult,proto3" json:"pluginAssetResult,omitempty"`
+	ContentType       string `protobuf:"bytes,8,opt,name=content_type,json=contentType,proto3" json:"contentType,omitempty"`
+	BodyPrefix        string `protobuf:"bytes,9,opt,name=body_prefix,json=bodyPrefix,proto3" json:"bodyPrefix,omitempty"`
+	Status            string `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *RuntimeAssetRecoveryStatus) Reset() {
+	*x = RuntimeAssetRecoveryStatus{}
+}
+
+func (*RuntimeAssetRecoveryStatus) ProtoMessage() {}
+
+func (x *RuntimeAssetRecoveryStatus) GetScriptPath() string {
+	if x != nil {
+		return x.ScriptPath
+	}
+	return ""
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetStatusCode() uint32 {
+	if x != nil {
+		return x.StatusCode
+	}
+	return 0
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetClassification() string {
+	if x != nil {
+		return x.Classification
+	}
+	return ""
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetFetchSource() string {
+	if x != nil {
+		return x.FetchSource
+	}
+	return ""
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetRuntimeError() string {
+	if x != nil {
+		return x.RuntimeError
+	}
+	return ""
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetPluginAssetResult() string {
+	if x != nil {
+		return x.PluginAssetResult
+	}
+	return ""
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetBodyPrefix() string {
+	if x != nil {
+		return x.BodyPrefix
+	}
+	return ""
+}
+
+func (x *RuntimeAssetRecoveryStatus) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+// RecoveryStatus composes runtime recovery facts without owning decisions.
+type RecoveryStatus struct {
+	unknownFields  []byte
+	Launcher       *LauncherRecoveryStatus         `protobuf:"bytes,1,opt,name=launcher,proto3" json:"launcher,omitempty"`
+	Plugins        []*PluginManifestRecoveryStatus `protobuf:"bytes,2,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	NativePackages []*NativePackageRecoveryStatus  `protobuf:"bytes,3,rep,name=native_packages,json=nativePackages,proto3" json:"nativePackages,omitempty"`
+	Boot           *BrowserBootRecoveryStatus      `protobuf:"bytes,4,opt,name=boot,proto3" json:"boot,omitempty"`
+	RuntimeAsset   *RuntimeAssetRecoveryStatus     `protobuf:"bytes,5,opt,name=runtime_asset,json=runtimeAsset,proto3" json:"runtimeAsset,omitempty"`
+}
+
+func (x *RecoveryStatus) Reset() {
+	*x = RecoveryStatus{}
+}
+
+func (*RecoveryStatus) ProtoMessage() {}
+
+func (x *RecoveryStatus) GetLauncher() *LauncherRecoveryStatus {
+	if x != nil {
+		return x.Launcher
+	}
+	return nil
+}
+
+func (x *RecoveryStatus) GetPlugins() []*PluginManifestRecoveryStatus {
+	if x != nil {
+		return x.Plugins
+	}
+	return nil
+}
+
+func (x *RecoveryStatus) GetNativePackages() []*NativePackageRecoveryStatus {
+	if x != nil {
+		return x.NativePackages
+	}
+	return nil
+}
+
+func (x *RecoveryStatus) GetBoot() *BrowserBootRecoveryStatus {
+	if x != nil {
+		return x.Boot
+	}
+	return nil
+}
+
+func (x *RecoveryStatus) GetRuntimeAsset() *RuntimeAssetRecoveryStatus {
+	if x != nil {
+		return x.RuntimeAsset
+	}
+	return nil
+}
+
 // WatchControllersRequest is the request type for WatchControllers.
 type WatchControllersRequest struct {
 	unknownFields []byte
@@ -240,6 +628,74 @@ func (x *WatchPluginsResponse) GetPluginCount() uint32 {
 	return 0
 }
 
+// WatchRecoveryStatusRequest is the request type for WatchRecoveryStatus.
+type WatchRecoveryStatusRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchRecoveryStatusRequest) Reset() {
+	*x = WatchRecoveryStatusRequest{}
+}
+
+func (*WatchRecoveryStatusRequest) ProtoMessage() {}
+
+// ReportRecoveryStatusRequest publishes renderer-owned recovery facts.
+type ReportRecoveryStatusRequest struct {
+	unknownFields []byte
+	Boot          *BrowserBootRecoveryStatus  `protobuf:"bytes,1,opt,name=boot,proto3" json:"boot,omitempty"`
+	RuntimeAsset  *RuntimeAssetRecoveryStatus `protobuf:"bytes,2,opt,name=runtime_asset,json=runtimeAsset,proto3" json:"runtimeAsset,omitempty"`
+}
+
+func (x *ReportRecoveryStatusRequest) Reset() {
+	*x = ReportRecoveryStatusRequest{}
+}
+
+func (*ReportRecoveryStatusRequest) ProtoMessage() {}
+
+func (x *ReportRecoveryStatusRequest) GetBoot() *BrowserBootRecoveryStatus {
+	if x != nil {
+		return x.Boot
+	}
+	return nil
+}
+
+func (x *ReportRecoveryStatusRequest) GetRuntimeAsset() *RuntimeAssetRecoveryStatus {
+	if x != nil {
+		return x.RuntimeAsset
+	}
+	return nil
+}
+
+// ReportRecoveryStatusResponse is the response type for ReportRecoveryStatus.
+type ReportRecoveryStatusResponse struct {
+	unknownFields []byte
+}
+
+func (x *ReportRecoveryStatusResponse) Reset() {
+	*x = ReportRecoveryStatusResponse{}
+}
+
+func (*ReportRecoveryStatusResponse) ProtoMessage() {}
+
+// WatchRecoveryStatusResponse is the response type for WatchRecoveryStatus.
+type WatchRecoveryStatusResponse struct {
+	unknownFields []byte
+	Status        *RecoveryStatus `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *WatchRecoveryStatusResponse) Reset() {
+	*x = WatchRecoveryStatusResponse{}
+}
+
+func (*WatchRecoveryStatusResponse) ProtoMessage() {}
+
+func (x *WatchRecoveryStatusResponse) GetStatus() *RecoveryStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 func (m *ControllerInfo) CloneVT() *ControllerInfo {
 	if m == nil {
 		return (*ControllerInfo)(nil)
@@ -290,6 +746,146 @@ func (m *PluginInfo) CloneVT() *PluginInfo {
 }
 
 func (m *PluginInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LauncherRecoveryStatus) CloneVT() *LauncherRecoveryStatus {
+	if m == nil {
+		return (*LauncherRecoveryStatus)(nil)
+	}
+	r := new(LauncherRecoveryStatus)
+	r.SelectedConfigRev = m.SelectedConfigRev
+	r.SelectedConfigSource = m.SelectedConfigSource
+	r.FetchedConfigRev = m.FetchedConfigRev
+	r.FetchedConfigSource = m.FetchedConfigSource
+	r.ReleaseMetadataOutcome = m.ReleaseMetadataOutcome
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LauncherRecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PluginManifestRecoveryStatus) CloneVT() *PluginManifestRecoveryStatus {
+	if m == nil {
+		return (*PluginManifestRecoveryStatus)(nil)
+	}
+	r := new(PluginManifestRecoveryStatus)
+	r.PluginId = m.PluginId
+	r.InstanceKey = m.InstanceKey
+	r.ExecuteManifestRef = m.ExecuteManifestRef
+	r.DownloadManifestRef = m.DownloadManifestRef
+	r.SkippedCandidateCount = m.SkippedCandidateCount
+	r.SkippedCandidateSummary = m.SkippedCandidateSummary
+	r.IgnoredCandidateCount = m.IgnoredCandidateCount
+	r.IgnoredCandidateSummary = m.IgnoredCandidateSummary
+	r.QuarantinedCandidateCount = m.QuarantinedCandidateCount
+	r.QuarantinedCandidateSummary = m.QuarantinedCandidateSummary
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginManifestRecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NativePackageRecoveryStatus) CloneVT() *NativePackageRecoveryStatus {
+	if m == nil {
+		return (*NativePackageRecoveryStatus)(nil)
+	}
+	r := new(NativePackageRecoveryStatus)
+	r.PluginId = m.PluginId
+	r.DistDir = m.DistDir
+	r.Materialized = m.Materialized
+	r.Invalidated = m.Invalidated
+	r.LastAction = m.LastAction
+	r.LastError = m.LastError
+	r.UpdatedAt = m.UpdatedAt
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NativePackageRecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BrowserBootRecoveryStatus) CloneVT() *BrowserBootRecoveryStatus {
+	if m == nil {
+		return (*BrowserBootRecoveryStatus)(nil)
+	}
+	r := new(BrowserBootRecoveryStatus)
+	r.CompatibilityVersion = m.CompatibilityVersion
+	r.LastResetDecision = m.LastResetDecision
+	r.Status = m.Status
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BrowserBootRecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RuntimeAssetRecoveryStatus) CloneVT() *RuntimeAssetRecoveryStatus {
+	if m == nil {
+		return (*RuntimeAssetRecoveryStatus)(nil)
+	}
+	r := new(RuntimeAssetRecoveryStatus)
+	r.ScriptPath = m.ScriptPath
+	r.StatusCode = m.StatusCode
+	r.Ok = m.Ok
+	r.Classification = m.Classification
+	r.FetchSource = m.FetchSource
+	r.RuntimeError = m.RuntimeError
+	r.PluginAssetResult = m.PluginAssetResult
+	r.ContentType = m.ContentType
+	r.BodyPrefix = m.BodyPrefix
+	r.Status = m.Status
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RuntimeAssetRecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RecoveryStatus) CloneVT() *RecoveryStatus {
+	if m == nil {
+		return (*RecoveryStatus)(nil)
+	}
+	r := new(RecoveryStatus)
+	r.Launcher = m.Launcher.CloneVT()
+	r.Boot = m.Boot.CloneVT()
+	r.RuntimeAsset = m.RuntimeAsset.CloneVT()
+	if rhs := m.Plugins; rhs != nil {
+		r.Plugins = make([]*PluginManifestRecoveryStatus, len(rhs))
+		for k, v := range rhs {
+			r.Plugins[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.NativePackages; rhs != nil {
+		r.NativePackages = make([]*NativePackageRecoveryStatus, len(rhs))
+		for k, v := range rhs {
+			r.NativePackages[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -404,6 +1000,69 @@ func (m *WatchPluginsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *WatchRecoveryStatusRequest) CloneVT() *WatchRecoveryStatusRequest {
+	if m == nil {
+		return (*WatchRecoveryStatusRequest)(nil)
+	}
+	r := new(WatchRecoveryStatusRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchRecoveryStatusRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReportRecoveryStatusRequest) CloneVT() *ReportRecoveryStatusRequest {
+	if m == nil {
+		return (*ReportRecoveryStatusRequest)(nil)
+	}
+	r := new(ReportRecoveryStatusRequest)
+	r.Boot = m.Boot.CloneVT()
+	r.RuntimeAsset = m.RuntimeAsset.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportRecoveryStatusRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReportRecoveryStatusResponse) CloneVT() *ReportRecoveryStatusResponse {
+	if m == nil {
+		return (*ReportRecoveryStatusResponse)(nil)
+	}
+	r := new(ReportRecoveryStatusResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportRecoveryStatusResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchRecoveryStatusResponse) CloneVT() *WatchRecoveryStatusResponse {
+	if m == nil {
+		return (*WatchRecoveryStatusResponse)(nil)
+	}
+	r := new(WatchRecoveryStatusResponse)
+	r.Status = m.Status.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchRecoveryStatusResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *ControllerInfo) EqualVT(that *ControllerInfo) bool {
 	if this == that {
 		return true
@@ -473,6 +1132,256 @@ func (this *PluginInfo) EqualVT(that *PluginInfo) bool {
 
 func (this *PluginInfo) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PluginInfo)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LauncherRecoveryStatus) EqualVT(that *LauncherRecoveryStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SelectedConfigRev != that.SelectedConfigRev {
+		return false
+	}
+	if this.SelectedConfigSource != that.SelectedConfigSource {
+		return false
+	}
+	if this.FetchedConfigRev != that.FetchedConfigRev {
+		return false
+	}
+	if this.FetchedConfigSource != that.FetchedConfigSource {
+		return false
+	}
+	if this.ReleaseMetadataOutcome != that.ReleaseMetadataOutcome {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LauncherRecoveryStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LauncherRecoveryStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginManifestRecoveryStatus) EqualVT(that *PluginManifestRecoveryStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.InstanceKey != that.InstanceKey {
+		return false
+	}
+	if this.ExecuteManifestRef != that.ExecuteManifestRef {
+		return false
+	}
+	if this.DownloadManifestRef != that.DownloadManifestRef {
+		return false
+	}
+	if this.SkippedCandidateCount != that.SkippedCandidateCount {
+		return false
+	}
+	if this.SkippedCandidateSummary != that.SkippedCandidateSummary {
+		return false
+	}
+	if this.IgnoredCandidateCount != that.IgnoredCandidateCount {
+		return false
+	}
+	if this.IgnoredCandidateSummary != that.IgnoredCandidateSummary {
+		return false
+	}
+	if this.QuarantinedCandidateCount != that.QuarantinedCandidateCount {
+		return false
+	}
+	if this.QuarantinedCandidateSummary != that.QuarantinedCandidateSummary {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginManifestRecoveryStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginManifestRecoveryStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NativePackageRecoveryStatus) EqualVT(that *NativePackageRecoveryStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.DistDir != that.DistDir {
+		return false
+	}
+	if this.Materialized != that.Materialized {
+		return false
+	}
+	if this.Invalidated != that.Invalidated {
+		return false
+	}
+	if this.LastAction != that.LastAction {
+		return false
+	}
+	if this.LastError != that.LastError {
+		return false
+	}
+	if this.UpdatedAt != that.UpdatedAt {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NativePackageRecoveryStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NativePackageRecoveryStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BrowserBootRecoveryStatus) EqualVT(that *BrowserBootRecoveryStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CompatibilityVersion != that.CompatibilityVersion {
+		return false
+	}
+	if this.LastResetDecision != that.LastResetDecision {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BrowserBootRecoveryStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BrowserBootRecoveryStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RuntimeAssetRecoveryStatus) EqualVT(that *RuntimeAssetRecoveryStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ScriptPath != that.ScriptPath {
+		return false
+	}
+	if this.StatusCode != that.StatusCode {
+		return false
+	}
+	if this.Ok != that.Ok {
+		return false
+	}
+	if this.Classification != that.Classification {
+		return false
+	}
+	if this.FetchSource != that.FetchSource {
+		return false
+	}
+	if this.RuntimeError != that.RuntimeError {
+		return false
+	}
+	if this.PluginAssetResult != that.PluginAssetResult {
+		return false
+	}
+	if this.ContentType != that.ContentType {
+		return false
+	}
+	if this.BodyPrefix != that.BodyPrefix {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RuntimeAssetRecoveryStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RuntimeAssetRecoveryStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RecoveryStatus) EqualVT(that *RecoveryStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Launcher.EqualVT(that.Launcher) {
+		return false
+	}
+	if len(this.Plugins) != len(that.Plugins) {
+		return false
+	}
+	for i, vx := range this.Plugins {
+		vy := that.Plugins[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &PluginManifestRecoveryStatus{}
+			}
+			if q == nil {
+				q = &PluginManifestRecoveryStatus{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.NativePackages) != len(that.NativePackages) {
+		return false
+	}
+	for i, vx := range this.NativePackages {
+		vy := that.NativePackages[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &NativePackageRecoveryStatus{}
+			}
+			if q == nil {
+				q = &NativePackageRecoveryStatus{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if !this.Boot.EqualVT(that.Boot) {
+		return false
+	}
+	if !this.RuntimeAsset.EqualVT(that.RuntimeAsset) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RecoveryStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RecoveryStatus)
 	if !ok {
 		return false
 	}
@@ -635,6 +1544,83 @@ func (this *WatchPluginsResponse) EqualVT(that *WatchPluginsResponse) bool {
 
 func (this *WatchPluginsResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchPluginsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchRecoveryStatusRequest) EqualVT(that *WatchRecoveryStatusRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchRecoveryStatusRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchRecoveryStatusRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReportRecoveryStatusRequest) EqualVT(that *ReportRecoveryStatusRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Boot.EqualVT(that.Boot) {
+		return false
+	}
+	if !this.RuntimeAsset.EqualVT(that.RuntimeAsset) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportRecoveryStatusRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportRecoveryStatusRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReportRecoveryStatusResponse) EqualVT(that *ReportRecoveryStatusResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportRecoveryStatusResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportRecoveryStatusResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchRecoveryStatusResponse) EqualVT(that *WatchRecoveryStatusResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Status.EqualVT(that.Status) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchRecoveryStatusResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchRecoveryStatusResponse)
 	if !ok {
 		return false
 	}
@@ -804,6 +1790,584 @@ func (x *PluginInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the PluginInfo from JSON.
 func (x *PluginInfo) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LauncherRecoveryStatus message to JSON.
+func (x *LauncherRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SelectedConfigRev != 0 || s.HasField("selectedConfigRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedConfigRev")
+		s.WriteUint64(x.SelectedConfigRev)
+	}
+	if x.SelectedConfigSource != "" || s.HasField("selectedConfigSource") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedConfigSource")
+		s.WriteString(x.SelectedConfigSource)
+	}
+	if x.FetchedConfigRev != 0 || s.HasField("fetchedConfigRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fetchedConfigRev")
+		s.WriteUint64(x.FetchedConfigRev)
+	}
+	if x.FetchedConfigSource != "" || s.HasField("fetchedConfigSource") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fetchedConfigSource")
+		s.WriteString(x.FetchedConfigSource)
+	}
+	if x.ReleaseMetadataOutcome != "" || s.HasField("releaseMetadataOutcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("releaseMetadataOutcome")
+		s.WriteString(x.ReleaseMetadataOutcome)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LauncherRecoveryStatus to JSON.
+func (x *LauncherRecoveryStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LauncherRecoveryStatus message from JSON.
+func (x *LauncherRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "selected_config_rev", "selectedConfigRev":
+			s.AddField("selected_config_rev")
+			x.SelectedConfigRev = s.ReadUint64()
+		case "selected_config_source", "selectedConfigSource":
+			s.AddField("selected_config_source")
+			x.SelectedConfigSource = s.ReadString()
+		case "fetched_config_rev", "fetchedConfigRev":
+			s.AddField("fetched_config_rev")
+			x.FetchedConfigRev = s.ReadUint64()
+		case "fetched_config_source", "fetchedConfigSource":
+			s.AddField("fetched_config_source")
+			x.FetchedConfigSource = s.ReadString()
+		case "release_metadata_outcome", "releaseMetadataOutcome":
+			s.AddField("release_metadata_outcome")
+			x.ReleaseMetadataOutcome = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LauncherRecoveryStatus from JSON.
+func (x *LauncherRecoveryStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginManifestRecoveryStatus message to JSON.
+func (x *PluginManifestRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	if x.InstanceKey != "" || s.HasField("instanceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("instanceKey")
+		s.WriteString(x.InstanceKey)
+	}
+	if x.ExecuteManifestRef != "" || s.HasField("executeManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("executeManifestRef")
+		s.WriteString(x.ExecuteManifestRef)
+	}
+	if x.DownloadManifestRef != "" || s.HasField("downloadManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("downloadManifestRef")
+		s.WriteString(x.DownloadManifestRef)
+	}
+	if x.SkippedCandidateCount != 0 || s.HasField("skippedCandidateCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("skippedCandidateCount")
+		s.WriteUint32(x.SkippedCandidateCount)
+	}
+	if x.SkippedCandidateSummary != "" || s.HasField("skippedCandidateSummary") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("skippedCandidateSummary")
+		s.WriteString(x.SkippedCandidateSummary)
+	}
+	if x.IgnoredCandidateCount != 0 || s.HasField("ignoredCandidateCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ignoredCandidateCount")
+		s.WriteUint32(x.IgnoredCandidateCount)
+	}
+	if x.IgnoredCandidateSummary != "" || s.HasField("ignoredCandidateSummary") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ignoredCandidateSummary")
+		s.WriteString(x.IgnoredCandidateSummary)
+	}
+	if x.QuarantinedCandidateCount != 0 || s.HasField("quarantinedCandidateCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quarantinedCandidateCount")
+		s.WriteUint32(x.QuarantinedCandidateCount)
+	}
+	if x.QuarantinedCandidateSummary != "" || s.HasField("quarantinedCandidateSummary") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("quarantinedCandidateSummary")
+		s.WriteString(x.QuarantinedCandidateSummary)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginManifestRecoveryStatus to JSON.
+func (x *PluginManifestRecoveryStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginManifestRecoveryStatus message from JSON.
+func (x *PluginManifestRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		case "instance_key", "instanceKey":
+			s.AddField("instance_key")
+			x.InstanceKey = s.ReadString()
+		case "execute_manifest_ref", "executeManifestRef":
+			s.AddField("execute_manifest_ref")
+			x.ExecuteManifestRef = s.ReadString()
+		case "download_manifest_ref", "downloadManifestRef":
+			s.AddField("download_manifest_ref")
+			x.DownloadManifestRef = s.ReadString()
+		case "skipped_candidate_count", "skippedCandidateCount":
+			s.AddField("skipped_candidate_count")
+			x.SkippedCandidateCount = s.ReadUint32()
+		case "skipped_candidate_summary", "skippedCandidateSummary":
+			s.AddField("skipped_candidate_summary")
+			x.SkippedCandidateSummary = s.ReadString()
+		case "ignored_candidate_count", "ignoredCandidateCount":
+			s.AddField("ignored_candidate_count")
+			x.IgnoredCandidateCount = s.ReadUint32()
+		case "ignored_candidate_summary", "ignoredCandidateSummary":
+			s.AddField("ignored_candidate_summary")
+			x.IgnoredCandidateSummary = s.ReadString()
+		case "quarantined_candidate_count", "quarantinedCandidateCount":
+			s.AddField("quarantined_candidate_count")
+			x.QuarantinedCandidateCount = s.ReadUint32()
+		case "quarantined_candidate_summary", "quarantinedCandidateSummary":
+			s.AddField("quarantined_candidate_summary")
+			x.QuarantinedCandidateSummary = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginManifestRecoveryStatus from JSON.
+func (x *PluginManifestRecoveryStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NativePackageRecoveryStatus message to JSON.
+func (x *NativePackageRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	if x.DistDir != "" || s.HasField("distDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("distDir")
+		s.WriteString(x.DistDir)
+	}
+	if x.Materialized || s.HasField("materialized") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("materialized")
+		s.WriteBool(x.Materialized)
+	}
+	if x.Invalidated || s.HasField("invalidated") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("invalidated")
+		s.WriteBool(x.Invalidated)
+	}
+	if x.LastAction != "" || s.HasField("lastAction") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastAction")
+		s.WriteString(x.LastAction)
+	}
+	if x.LastError != "" || s.HasField("lastError") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastError")
+		s.WriteString(x.LastError)
+	}
+	if x.UpdatedAt != "" || s.HasField("updatedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updatedAt")
+		s.WriteString(x.UpdatedAt)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NativePackageRecoveryStatus to JSON.
+func (x *NativePackageRecoveryStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NativePackageRecoveryStatus message from JSON.
+func (x *NativePackageRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		case "dist_dir", "distDir":
+			s.AddField("dist_dir")
+			x.DistDir = s.ReadString()
+		case "materialized":
+			s.AddField("materialized")
+			x.Materialized = s.ReadBool()
+		case "invalidated":
+			s.AddField("invalidated")
+			x.Invalidated = s.ReadBool()
+		case "last_action", "lastAction":
+			s.AddField("last_action")
+			x.LastAction = s.ReadString()
+		case "last_error", "lastError":
+			s.AddField("last_error")
+			x.LastError = s.ReadString()
+		case "updated_at", "updatedAt":
+			s.AddField("updated_at")
+			x.UpdatedAt = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NativePackageRecoveryStatus from JSON.
+func (x *NativePackageRecoveryStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BrowserBootRecoveryStatus message to JSON.
+func (x *BrowserBootRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CompatibilityVersion != "" || s.HasField("compatibilityVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("compatibilityVersion")
+		s.WriteString(x.CompatibilityVersion)
+	}
+	if x.LastResetDecision != "" || s.HasField("lastResetDecision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastResetDecision")
+		s.WriteString(x.LastResetDecision)
+	}
+	if x.Status != "" || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		s.WriteString(x.Status)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BrowserBootRecoveryStatus to JSON.
+func (x *BrowserBootRecoveryStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BrowserBootRecoveryStatus message from JSON.
+func (x *BrowserBootRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "compatibility_version", "compatibilityVersion":
+			s.AddField("compatibility_version")
+			x.CompatibilityVersion = s.ReadString()
+		case "last_reset_decision", "lastResetDecision":
+			s.AddField("last_reset_decision")
+			x.LastResetDecision = s.ReadString()
+		case "status":
+			s.AddField("status")
+			x.Status = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BrowserBootRecoveryStatus from JSON.
+func (x *BrowserBootRecoveryStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RuntimeAssetRecoveryStatus message to JSON.
+func (x *RuntimeAssetRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ScriptPath != "" || s.HasField("scriptPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("scriptPath")
+		s.WriteString(x.ScriptPath)
+	}
+	if x.StatusCode != 0 || s.HasField("statusCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("statusCode")
+		s.WriteUint32(x.StatusCode)
+	}
+	if x.Ok || s.HasField("ok") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ok")
+		s.WriteBool(x.Ok)
+	}
+	if x.Classification != "" || s.HasField("classification") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("classification")
+		s.WriteString(x.Classification)
+	}
+	if x.FetchSource != "" || s.HasField("fetchSource") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fetchSource")
+		s.WriteString(x.FetchSource)
+	}
+	if x.RuntimeError != "" || s.HasField("runtimeError") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runtimeError")
+		s.WriteString(x.RuntimeError)
+	}
+	if x.PluginAssetResult != "" || s.HasField("pluginAssetResult") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginAssetResult")
+		s.WriteString(x.PluginAssetResult)
+	}
+	if x.ContentType != "" || s.HasField("contentType") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("contentType")
+		s.WriteString(x.ContentType)
+	}
+	if x.BodyPrefix != "" || s.HasField("bodyPrefix") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bodyPrefix")
+		s.WriteString(x.BodyPrefix)
+	}
+	if x.Status != "" || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		s.WriteString(x.Status)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RuntimeAssetRecoveryStatus to JSON.
+func (x *RuntimeAssetRecoveryStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RuntimeAssetRecoveryStatus message from JSON.
+func (x *RuntimeAssetRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "script_path", "scriptPath":
+			s.AddField("script_path")
+			x.ScriptPath = s.ReadString()
+		case "status_code", "statusCode":
+			s.AddField("status_code")
+			x.StatusCode = s.ReadUint32()
+		case "ok":
+			s.AddField("ok")
+			x.Ok = s.ReadBool()
+		case "classification":
+			s.AddField("classification")
+			x.Classification = s.ReadString()
+		case "fetch_source", "fetchSource":
+			s.AddField("fetch_source")
+			x.FetchSource = s.ReadString()
+		case "runtime_error", "runtimeError":
+			s.AddField("runtime_error")
+			x.RuntimeError = s.ReadString()
+		case "plugin_asset_result", "pluginAssetResult":
+			s.AddField("plugin_asset_result")
+			x.PluginAssetResult = s.ReadString()
+		case "content_type", "contentType":
+			s.AddField("content_type")
+			x.ContentType = s.ReadString()
+		case "body_prefix", "bodyPrefix":
+			s.AddField("body_prefix")
+			x.BodyPrefix = s.ReadString()
+		case "status":
+			s.AddField("status")
+			x.Status = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RuntimeAssetRecoveryStatus from JSON.
+func (x *RuntimeAssetRecoveryStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RecoveryStatus message to JSON.
+func (x *RecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Launcher != nil || s.HasField("launcher") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("launcher")
+		x.Launcher.MarshalProtoJSON(s.WithField("launcher"))
+	}
+	if len(x.Plugins) > 0 || s.HasField("plugins") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("plugins")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Plugins {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("plugins"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.NativePackages) > 0 || s.HasField("nativePackages") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nativePackages")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.NativePackages {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("nativePackages"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Boot != nil || s.HasField("boot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("boot")
+		x.Boot.MarshalProtoJSON(s.WithField("boot"))
+	}
+	if x.RuntimeAsset != nil || s.HasField("runtimeAsset") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runtimeAsset")
+		x.RuntimeAsset.MarshalProtoJSON(s.WithField("runtimeAsset"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RecoveryStatus to JSON.
+func (x *RecoveryStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RecoveryStatus message from JSON.
+func (x *RecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "launcher":
+			if s.ReadNil() {
+				x.Launcher = nil
+				return
+			}
+			x.Launcher = &LauncherRecoveryStatus{}
+			x.Launcher.UnmarshalProtoJSON(s.WithField("launcher", true))
+		case "plugins":
+			s.AddField("plugins")
+			if s.ReadNil() {
+				x.Plugins = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Plugins = append(x.Plugins, nil)
+					return
+				}
+				v := &PluginManifestRecoveryStatus{}
+				v.UnmarshalProtoJSON(s.WithField("plugins", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Plugins = append(x.Plugins, v)
+			})
+		case "native_packages", "nativePackages":
+			s.AddField("native_packages")
+			if s.ReadNil() {
+				x.NativePackages = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.NativePackages = append(x.NativePackages, nil)
+					return
+				}
+				v := &NativePackageRecoveryStatus{}
+				v.UnmarshalProtoJSON(s.WithField("native_packages", false))
+				if s.Err() != nil {
+					return
+				}
+				x.NativePackages = append(x.NativePackages, v)
+			})
+		case "boot":
+			if s.ReadNil() {
+				x.Boot = nil
+				return
+			}
+			x.Boot = &BrowserBootRecoveryStatus{}
+			x.Boot.UnmarshalProtoJSON(s.WithField("boot", true))
+		case "runtime_asset", "runtimeAsset":
+			if s.ReadNil() {
+				x.RuntimeAsset = nil
+				return
+			}
+			x.RuntimeAsset = &RuntimeAssetRecoveryStatus{}
+			x.RuntimeAsset.UnmarshalProtoJSON(s.WithField("runtime_asset", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RecoveryStatus from JSON.
+func (x *RecoveryStatus) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1110,6 +2674,170 @@ func (x *WatchPluginsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchRecoveryStatusRequest message to JSON.
+func (x *WatchRecoveryStatusRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchRecoveryStatusRequest to JSON.
+func (x *WatchRecoveryStatusRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchRecoveryStatusRequest message from JSON.
+func (x *WatchRecoveryStatusRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchRecoveryStatusRequest from JSON.
+func (x *WatchRecoveryStatusRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportRecoveryStatusRequest message to JSON.
+func (x *ReportRecoveryStatusRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Boot != nil || s.HasField("boot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("boot")
+		x.Boot.MarshalProtoJSON(s.WithField("boot"))
+	}
+	if x.RuntimeAsset != nil || s.HasField("runtimeAsset") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runtimeAsset")
+		x.RuntimeAsset.MarshalProtoJSON(s.WithField("runtimeAsset"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportRecoveryStatusRequest to JSON.
+func (x *ReportRecoveryStatusRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportRecoveryStatusRequest message from JSON.
+func (x *ReportRecoveryStatusRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "boot":
+			if s.ReadNil() {
+				x.Boot = nil
+				return
+			}
+			x.Boot = &BrowserBootRecoveryStatus{}
+			x.Boot.UnmarshalProtoJSON(s.WithField("boot", true))
+		case "runtime_asset", "runtimeAsset":
+			if s.ReadNil() {
+				x.RuntimeAsset = nil
+				return
+			}
+			x.RuntimeAsset = &RuntimeAssetRecoveryStatus{}
+			x.RuntimeAsset.UnmarshalProtoJSON(s.WithField("runtime_asset", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportRecoveryStatusRequest from JSON.
+func (x *ReportRecoveryStatusRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportRecoveryStatusResponse message to JSON.
+func (x *ReportRecoveryStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportRecoveryStatusResponse to JSON.
+func (x *ReportRecoveryStatusResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportRecoveryStatusResponse message from JSON.
+func (x *ReportRecoveryStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportRecoveryStatusResponse from JSON.
+func (x *ReportRecoveryStatusResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchRecoveryStatusResponse message to JSON.
+func (x *WatchRecoveryStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != nil || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s.WithField("status"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchRecoveryStatusResponse to JSON.
+func (x *WatchRecoveryStatusResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchRecoveryStatusResponse message from JSON.
+func (x *WatchRecoveryStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			if s.ReadNil() {
+				x.Status = nil
+				return
+			}
+			x.Status = &RecoveryStatus{}
+			x.Status.UnmarshalProtoJSON(s.WithField("status", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchRecoveryStatusResponse from JSON.
+func (x *WatchRecoveryStatusResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *ControllerInfo) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1259,6 +2987,500 @@ func (m *PluginInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.Id)
 		copy(dAtA[i:], m.Id)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LauncherRecoveryStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LauncherRecoveryStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LauncherRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ReleaseMetadataOutcome) > 0 {
+		i -= len(m.ReleaseMetadataOutcome)
+		copy(dAtA[i:], m.ReleaseMetadataOutcome)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ReleaseMetadataOutcome)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.FetchedConfigSource) > 0 {
+		i -= len(m.FetchedConfigSource)
+		copy(dAtA[i:], m.FetchedConfigSource)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.FetchedConfigSource)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.FetchedConfigRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FetchedConfigRev))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.SelectedConfigSource) > 0 {
+		i -= len(m.SelectedConfigSource)
+		copy(dAtA[i:], m.SelectedConfigSource)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SelectedConfigSource)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.SelectedConfigRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SelectedConfigRev))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginManifestRecoveryStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginManifestRecoveryStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginManifestRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.QuarantinedCandidateSummary) > 0 {
+		i -= len(m.QuarantinedCandidateSummary)
+		copy(dAtA[i:], m.QuarantinedCandidateSummary)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.QuarantinedCandidateSummary)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.QuarantinedCandidateCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.QuarantinedCandidateCount))
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.IgnoredCandidateSummary) > 0 {
+		i -= len(m.IgnoredCandidateSummary)
+		copy(dAtA[i:], m.IgnoredCandidateSummary)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.IgnoredCandidateSummary)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.IgnoredCandidateCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IgnoredCandidateCount))
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.SkippedCandidateSummary) > 0 {
+		i -= len(m.SkippedCandidateSummary)
+		copy(dAtA[i:], m.SkippedCandidateSummary)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SkippedCandidateSummary)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.SkippedCandidateCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SkippedCandidateCount))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.DownloadManifestRef) > 0 {
+		i -= len(m.DownloadManifestRef)
+		copy(dAtA[i:], m.DownloadManifestRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DownloadManifestRef)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.ExecuteManifestRef) > 0 {
+		i -= len(m.ExecuteManifestRef)
+		copy(dAtA[i:], m.ExecuteManifestRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ExecuteManifestRef)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.InstanceKey) > 0 {
+		i -= len(m.InstanceKey)
+		copy(dAtA[i:], m.InstanceKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.InstanceKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PluginId) > 0 {
+		i -= len(m.PluginId)
+		copy(dAtA[i:], m.PluginId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PluginId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NativePackageRecoveryStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NativePackageRecoveryStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NativePackageRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.UpdatedAt) > 0 {
+		i -= len(m.UpdatedAt)
+		copy(dAtA[i:], m.UpdatedAt)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.UpdatedAt)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.LastError) > 0 {
+		i -= len(m.LastError)
+		copy(dAtA[i:], m.LastError)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LastError)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.LastAction) > 0 {
+		i -= len(m.LastAction)
+		copy(dAtA[i:], m.LastAction)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LastAction)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Invalidated {
+		i--
+		if m.Invalidated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Materialized {
+		i--
+		if m.Materialized {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.DistDir) > 0 {
+		i -= len(m.DistDir)
+		copy(dAtA[i:], m.DistDir)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.DistDir)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PluginId) > 0 {
+		i -= len(m.PluginId)
+		copy(dAtA[i:], m.PluginId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PluginId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BrowserBootRecoveryStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BrowserBootRecoveryStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BrowserBootRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Status) > 0 {
+		i -= len(m.Status)
+		copy(dAtA[i:], m.Status)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Status)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.LastResetDecision) > 0 {
+		i -= len(m.LastResetDecision)
+		copy(dAtA[i:], m.LastResetDecision)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LastResetDecision)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.CompatibilityVersion) > 0 {
+		i -= len(m.CompatibilityVersion)
+		copy(dAtA[i:], m.CompatibilityVersion)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CompatibilityVersion)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RuntimeAssetRecoveryStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RuntimeAssetRecoveryStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RuntimeAssetRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Status) > 0 {
+		i -= len(m.Status)
+		copy(dAtA[i:], m.Status)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Status)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.BodyPrefix) > 0 {
+		i -= len(m.BodyPrefix)
+		copy(dAtA[i:], m.BodyPrefix)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BodyPrefix)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.ContentType) > 0 {
+		i -= len(m.ContentType)
+		copy(dAtA[i:], m.ContentType)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ContentType)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.PluginAssetResult) > 0 {
+		i -= len(m.PluginAssetResult)
+		copy(dAtA[i:], m.PluginAssetResult)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PluginAssetResult)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.RuntimeError) > 0 {
+		i -= len(m.RuntimeError)
+		copy(dAtA[i:], m.RuntimeError)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RuntimeError)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.FetchSource) > 0 {
+		i -= len(m.FetchSource)
+		copy(dAtA[i:], m.FetchSource)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.FetchSource)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Classification) > 0 {
+		i -= len(m.Classification)
+		copy(dAtA[i:], m.Classification)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Classification)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Ok {
+		i--
+		if m.Ok {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.StatusCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StatusCode))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ScriptPath) > 0 {
+		i -= len(m.ScriptPath)
+		copy(dAtA[i:], m.ScriptPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ScriptPath)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RecoveryStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RecoveryStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.RuntimeAsset != nil {
+		size, err := m.RuntimeAsset.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Boot != nil {
+		size, err := m.Boot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.NativePackages) > 0 {
+		for iNdEx := len(m.NativePackages) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.NativePackages[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Plugins) > 0 {
+		for iNdEx := len(m.Plugins) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Plugins[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Launcher != nil {
+		size, err := m.Launcher.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -1514,6 +3736,168 @@ func (m *WatchPluginsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchRecoveryStatusRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchRecoveryStatusRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchRecoveryStatusRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportRecoveryStatusRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportRecoveryStatusRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportRecoveryStatusRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.RuntimeAsset != nil {
+		size, err := m.RuntimeAsset.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Boot != nil {
+		size, err := m.Boot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportRecoveryStatusResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportRecoveryStatusResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportRecoveryStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchRecoveryStatusResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchRecoveryStatusResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchRecoveryStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Status != nil {
+		size, err := m.Status.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ControllerInfo) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1570,6 +3954,221 @@ func (m *PluginInfo) SizeVT() (n int) {
 	}
 	l = len(m.State)
 	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LauncherRecoveryStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SelectedConfigRev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.SelectedConfigRev))
+	}
+	l = len(m.SelectedConfigSource)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.FetchedConfigRev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.FetchedConfigRev))
+	}
+	l = len(m.FetchedConfigSource)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ReleaseMetadataOutcome)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PluginManifestRecoveryStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PluginId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.InstanceKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ExecuteManifestRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DownloadManifestRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.SkippedCandidateCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.SkippedCandidateCount))
+	}
+	l = len(m.SkippedCandidateSummary)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.IgnoredCandidateCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.IgnoredCandidateCount))
+	}
+	l = len(m.IgnoredCandidateSummary)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.QuarantinedCandidateCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.QuarantinedCandidateCount))
+	}
+	l = len(m.QuarantinedCandidateSummary)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NativePackageRecoveryStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PluginId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DistDir)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Materialized {
+		n += 2
+	}
+	if m.Invalidated {
+		n += 2
+	}
+	l = len(m.LastAction)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.LastError)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.UpdatedAt)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BrowserBootRecoveryStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.CompatibilityVersion)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.LastResetDecision)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Status)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RuntimeAssetRecoveryStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ScriptPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.StatusCode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.StatusCode))
+	}
+	if m.Ok {
+		n += 2
+	}
+	l = len(m.Classification)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.FetchSource)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RuntimeError)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.PluginAssetResult)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ContentType)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.BodyPrefix)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Status)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RecoveryStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Launcher != nil {
+		l = m.Launcher.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Plugins) > 0 {
+		for _, e := range m.Plugins {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.NativePackages) > 0 {
+		for _, e := range m.NativePackages {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Boot != nil {
+		l = m.Boot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.RuntimeAsset != nil {
+		l = m.RuntimeAsset.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1663,6 +4262,58 @@ func (m *WatchPluginsResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *WatchRecoveryStatusRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReportRecoveryStatusRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Boot != nil {
+		l = m.Boot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.RuntimeAsset != nil {
+		l = m.RuntimeAsset.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReportRecoveryStatusResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchRecoveryStatusResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != nil {
+		l = m.Status.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x *ControllerInfo) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("ControllerInfo {")
@@ -1749,6 +4400,364 @@ func (x *PluginInfo) MarshalProtoText() string {
 }
 
 func (x *PluginInfo) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LauncherRecoveryStatus) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("LauncherRecoveryStatus {")
+	if x.SelectedConfigRev != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected_config_rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.SelectedConfigRev), 10))
+	}
+	if x.SelectedConfigSource != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected_config_source: ")
+		sb.WriteString(strconv.Quote(x.SelectedConfigSource))
+	}
+	if x.FetchedConfigRev != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("fetched_config_rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.FetchedConfigRev), 10))
+	}
+	if x.FetchedConfigSource != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("fetched_config_source: ")
+		sb.WriteString(strconv.Quote(x.FetchedConfigSource))
+	}
+	if x.ReleaseMetadataOutcome != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("release_metadata_outcome: ")
+		sb.WriteString(strconv.Quote(x.ReleaseMetadataOutcome))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *LauncherRecoveryStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginManifestRecoveryStatus) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PluginManifestRecoveryStatus {")
+	if x.PluginId != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugin_id: ")
+		sb.WriteString(strconv.Quote(x.PluginId))
+	}
+	if x.InstanceKey != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("instance_key: ")
+		sb.WriteString(strconv.Quote(x.InstanceKey))
+	}
+	if x.ExecuteManifestRef != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("execute_manifest_ref: ")
+		sb.WriteString(strconv.Quote(x.ExecuteManifestRef))
+	}
+	if x.DownloadManifestRef != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("download_manifest_ref: ")
+		sb.WriteString(strconv.Quote(x.DownloadManifestRef))
+	}
+	if x.SkippedCandidateCount != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("skipped_candidate_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.SkippedCandidateCount), 10))
+	}
+	if x.SkippedCandidateSummary != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("skipped_candidate_summary: ")
+		sb.WriteString(strconv.Quote(x.SkippedCandidateSummary))
+	}
+	if x.IgnoredCandidateCount != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ignored_candidate_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.IgnoredCandidateCount), 10))
+	}
+	if x.IgnoredCandidateSummary != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ignored_candidate_summary: ")
+		sb.WriteString(strconv.Quote(x.IgnoredCandidateSummary))
+	}
+	if x.QuarantinedCandidateCount != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("quarantined_candidate_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.QuarantinedCandidateCount), 10))
+	}
+	if x.QuarantinedCandidateSummary != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("quarantined_candidate_summary: ")
+		sb.WriteString(strconv.Quote(x.QuarantinedCandidateSummary))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PluginManifestRecoveryStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NativePackageRecoveryStatus) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("NativePackageRecoveryStatus {")
+	if x.PluginId != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugin_id: ")
+		sb.WriteString(strconv.Quote(x.PluginId))
+	}
+	if x.DistDir != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("dist_dir: ")
+		sb.WriteString(strconv.Quote(x.DistDir))
+	}
+	if x.Materialized != false {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("materialized: ")
+		sb.WriteString(strconv.FormatBool(x.Materialized))
+	}
+	if x.Invalidated != false {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("invalidated: ")
+		sb.WriteString(strconv.FormatBool(x.Invalidated))
+	}
+	if x.LastAction != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("last_action: ")
+		sb.WriteString(strconv.Quote(x.LastAction))
+	}
+	if x.LastError != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("last_error: ")
+		sb.WriteString(strconv.Quote(x.LastError))
+	}
+	if x.UpdatedAt != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("updated_at: ")
+		sb.WriteString(strconv.Quote(x.UpdatedAt))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *NativePackageRecoveryStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BrowserBootRecoveryStatus) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("BrowserBootRecoveryStatus {")
+	if x.CompatibilityVersion != "" {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("compatibility_version: ")
+		sb.WriteString(strconv.Quote(x.CompatibilityVersion))
+	}
+	if x.LastResetDecision != "" {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("last_reset_decision: ")
+		sb.WriteString(strconv.Quote(x.LastResetDecision))
+	}
+	if x.Status != "" {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString(strconv.Quote(x.Status))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *BrowserBootRecoveryStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RuntimeAssetRecoveryStatus) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RuntimeAssetRecoveryStatus {")
+	if x.ScriptPath != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("script_path: ")
+		sb.WriteString(strconv.Quote(x.ScriptPath))
+	}
+	if x.StatusCode != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status_code: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.StatusCode), 10))
+	}
+	if x.Ok != false {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ok: ")
+		sb.WriteString(strconv.FormatBool(x.Ok))
+	}
+	if x.Classification != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("classification: ")
+		sb.WriteString(strconv.Quote(x.Classification))
+	}
+	if x.FetchSource != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("fetch_source: ")
+		sb.WriteString(strconv.Quote(x.FetchSource))
+	}
+	if x.RuntimeError != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("runtime_error: ")
+		sb.WriteString(strconv.Quote(x.RuntimeError))
+	}
+	if x.PluginAssetResult != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugin_asset_result: ")
+		sb.WriteString(strconv.Quote(x.PluginAssetResult))
+	}
+	if x.ContentType != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("content_type: ")
+		sb.WriteString(strconv.Quote(x.ContentType))
+	}
+	if x.BodyPrefix != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("body_prefix: ")
+		sb.WriteString(strconv.Quote(x.BodyPrefix))
+	}
+	if x.Status != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString(strconv.Quote(x.Status))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RuntimeAssetRecoveryStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RecoveryStatus) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("RecoveryStatus {")
+	if x.Launcher != nil {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("launcher: ")
+		sb.WriteString(x.Launcher.MarshalProtoText())
+	}
+	if len(x.Plugins) > 0 {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugins: [")
+		for i, v := range x.Plugins {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if len(x.NativePackages) > 0 {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("native_packages: [")
+		for i, v := range x.NativePackages {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(v.MarshalProtoText())
+		}
+		sb.WriteString("]")
+	}
+	if x.Boot != nil {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("boot: ")
+		sb.WriteString(x.Boot.MarshalProtoText())
+	}
+	if x.RuntimeAsset != nil {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("runtime_asset: ")
+		sb.WriteString(x.RuntimeAsset.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *RecoveryStatus) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1875,6 +4884,71 @@ func (x *WatchPluginsResponse) MarshalProtoText() string {
 }
 
 func (x *WatchPluginsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchRecoveryStatusRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchRecoveryStatusRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchRecoveryStatusRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportRecoveryStatusRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReportRecoveryStatusRequest {")
+	if x.Boot != nil {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("boot: ")
+		sb.WriteString(x.Boot.MarshalProtoText())
+	}
+	if x.RuntimeAsset != nil {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("runtime_asset: ")
+		sb.WriteString(x.RuntimeAsset.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReportRecoveryStatusRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportRecoveryStatusResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReportRecoveryStatusResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReportRecoveryStatusResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchRecoveryStatusResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchRecoveryStatusResponse {")
+	if x.Status != nil {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString(x.Status.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchRecoveryStatusResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2159,6 +5233,1062 @@ func (m *PluginInfo) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.State = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LauncherRecoveryStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LauncherRecoveryStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LauncherRecoveryStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedConfigRev", wireType)
+			}
+			m.SelectedConfigRev = 0
+			m.SelectedConfigRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedConfigSource", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SelectedConfigSource = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchedConfigRev", wireType)
+			}
+			m.FetchedConfigRev = 0
+			m.FetchedConfigRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchedConfigSource", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FetchedConfigSource = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReleaseMetadataOutcome", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReleaseMetadataOutcome = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginManifestRecoveryStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginManifestRecoveryStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginManifestRecoveryStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstanceKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InstanceKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExecuteManifestRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExecuteManifestRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DownloadManifestRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DownloadManifestRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SkippedCandidateCount", wireType)
+			}
+			m.SkippedCandidateCount = 0
+			m.SkippedCandidateCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SkippedCandidateSummary", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SkippedCandidateSummary = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IgnoredCandidateCount", wireType)
+			}
+			m.IgnoredCandidateCount = 0
+			m.IgnoredCandidateCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IgnoredCandidateSummary", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.IgnoredCandidateSummary = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field QuarantinedCandidateCount", wireType)
+			}
+			m.QuarantinedCandidateCount = 0
+			m.QuarantinedCandidateCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field QuarantinedCandidateSummary", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.QuarantinedCandidateSummary = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NativePackageRecoveryStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NativePackageRecoveryStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NativePackageRecoveryStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DistDir", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DistDir = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Materialized", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Materialized = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Invalidated", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Invalidated = bool(v != 0)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastAction", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastAction = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastError", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastError = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatedAt", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.UpdatedAt = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BrowserBootRecoveryStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BrowserBootRecoveryStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BrowserBootRecoveryStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompatibilityVersion", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CompatibilityVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastResetDecision", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastResetDecision = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Status = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RuntimeAssetRecoveryStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RuntimeAssetRecoveryStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RuntimeAssetRecoveryStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ScriptPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ScriptPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StatusCode", wireType)
+			}
+			m.StatusCode = 0
+			m.StatusCode, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ok", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Ok = bool(v != 0)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Classification", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Classification = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FetchSource", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FetchSource = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuntimeError", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuntimeError = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginAssetResult", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginAssetResult = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ContentType", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ContentType = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BodyPrefix", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BodyPrefix = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Status = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RecoveryStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RecoveryStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RecoveryStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Launcher", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Launcher == nil {
+				m.Launcher = &LauncherRecoveryStatus{}
+			}
+			if err := m.Launcher.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Plugins", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Plugins = append(m.Plugins, &PluginManifestRecoveryStatus{})
+			if err := m.Plugins[len(m.Plugins)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NativePackages", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NativePackages = append(m.NativePackages, &NativePackageRecoveryStatus{})
+			if err := m.NativePackages[len(m.NativePackages)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Boot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Boot == nil {
+				m.Boot = &BrowserBootRecoveryStatus{}
+			}
+			if err := m.Boot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuntimeAsset", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RuntimeAsset == nil {
+				m.RuntimeAsset = &RuntimeAssetRecoveryStatus{}
+			}
+			if err := m.RuntimeAsset.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -2523,6 +6653,262 @@ func (m *WatchPluginsResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchRecoveryStatusRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchRecoveryStatusRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchRecoveryStatusRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportRecoveryStatusRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportRecoveryStatusRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportRecoveryStatusRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Boot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Boot == nil {
+				m.Boot = &BrowserBootRecoveryStatus{}
+			}
+			if err := m.Boot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuntimeAsset", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RuntimeAsset == nil {
+				m.RuntimeAsset = &RuntimeAssetRecoveryStatus{}
+			}
+			if err := m.RuntimeAsset.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportRecoveryStatusResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportRecoveryStatusResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportRecoveryStatusResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchRecoveryStatusResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchRecoveryStatusResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchRecoveryStatusResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Status == nil {
+				m.Status = &RecoveryStatus{}
+			}
+			if err := m.Status.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

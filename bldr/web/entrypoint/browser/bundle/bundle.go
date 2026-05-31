@@ -44,6 +44,7 @@ type BuildManifest struct {
 	SharedWorker  string   `json:"sharedWorker"`
 	Wasm          string   `json:"wasm"`
 	CSS           []string `json:"css"`
+	AutoStart     bool     `json:"autoStart,omitempty"`
 }
 
 const stableBootFilename = "boot.mjs"
@@ -74,6 +75,9 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 	obj := a.NewObject()
 	obj.Set("schemaVersion", a.NewNumberInt(1))
 	obj.Set("generationId", a.NewString(manifest.ServiceWorker))
+	if manifest.AutoStart {
+		obj.Set("autoStart", a.NewTrue())
+	}
 
 	shellAssets := a.NewObject()
 	shellAssets.Set("entrypoint", a.NewString(manifest.Entrypoint))
@@ -103,13 +107,34 @@ const bootStateVersion='1000000';
 const bootStateVersionKey='spacewave-browser-app-state-version';
 const bootSessionStateVersionKey='spacewave-browser-tab-state-version';
 const bootStateResetAttemptKey='spacewave-browser-app-state-reset-attempted';
-const bootLocalStorageKeys=['spacewave-has-session','app-persistent','spacewave-has-interacted','spacewave-state-devtools','spacewave-devtools-state'];
-const bootLocalStoragePrefixes=['tab-state-'];
-const bootSessionStorageKeys=['shell-tabs-state','shell-tabs-layout','spacewave-sso-start-provider','spacewave-sso-return-to','spacewave-pending-join','spacewave-auth-handoff-payload'];
 const g=globalThis;
+const bootStorageResetRules=[
+  {area:'localStorage',kind:'key',key:'spacewave-has-session',owner:'browser-boot-session-hint',durability:'derived-shell-hint',resetPolicy:'reset',migrationPolicy:'recompute-from-session-list'},
+  {area:'localStorage',kind:'key',key:'spacewave-has-interacted',owner:'landing-ui',durability:'derived-ui-hint',resetPolicy:'reset',migrationPolicy:'recompute-from-interaction'},
+  {area:'localStorage',kind:'key',key:'spacewave-state-devtools',owner:'devtools-ui',durability:'developer-ui-preference',resetPolicy:'reset',migrationPolicy:'recreate-default-devtools-state'},
+  {area:'localStorage',kind:'key',key:'spacewave-devtools-state',owner:'devtools-ui',durability:'developer-ui-preference',resetPolicy:'reset',migrationPolicy:'recreate-default-devtools-state'},
+  {area:'localStorage',kind:'key',key:'app-persistent',owner:'web-state-atom',durability:'unknown-persistent-state',resetPolicy:'preserve',migrationPolicy:'owner-audit-required-before-reset'},
+  {area:'localStorage',kind:'prefix',key:'tab-state-',owner:'shell-tab-state-atom',durability:'unknown-tab-scoped-state',resetPolicy:'preserve',migrationPolicy:'call-site-audit-required-before-reset'},
+  {area:'sessionStorage',kind:'key',key:'shell-tabs-state',owner:'shell-tabs-ui',durability:'session-ui-state',resetPolicy:'reset',migrationPolicy:'recreate-default-home-tab'},
+  {area:'sessionStorage',kind:'key',key:'shell-tabs-layout',owner:'shell-tabs-ui',durability:'session-ui-state',resetPolicy:'reset',migrationPolicy:'recreate-default-layout'},
+  {area:'sessionStorage',kind:'key',key:'spacewave-sso-start-provider',owner:'sso-start-flow',durability:'transient-auth-workflow-state',resetPolicy:'preserve',migrationPolicy:'auth-flow-owner-reset-only'},
+  {area:'sessionStorage',kind:'key',key:'spacewave-sso-return-to',owner:'sso-start-flow',durability:'transient-auth-workflow-state',resetPolicy:'preserve',migrationPolicy:'auth-flow-owner-reset-only'},
+  {area:'sessionStorage',kind:'key',key:'spacewave-pending-join',owner:'join-flow',durability:'transient-join-workflow-state',resetPolicy:'preserve',migrationPolicy:'join-flow-owner-reset-only'},
+  {area:'sessionStorage',kind:'key',key:'spacewave-auth-handoff-payload',owner:'auth-handoff-flow',durability:'transient-auth-workflow-state',resetPolicy:'preserve',migrationPolicy:'auth-flow-owner-reset-only'}
+];
+g.__swBootStorageResetRules=bootStorageResetRules.map(function(rule){return Object.assign({},rule)});
+function storageResetKeys(area,kind){
+  return bootStorageResetRules
+    .filter(function(rule){return rule.area===area&&rule.kind===kind&&rule.resetPolicy==='reset'})
+    .map(function(rule){return rule.key});
+}
+const bootLocalStorageKeys=storageResetKeys('localStorage','key');
+const bootLocalStoragePrefixes=storageResetKeys('localStorage','prefix');
+const bootSessionStorageKeys=storageResetKeys('sessionStorage','key');
 const bootStatusEvent='spacewave:boot-status';
 const startupMarkPrefix='spacewave.startup.';
 const startupMarkEvent='spacewave-startup-mark';
+let bootLastResetDecision='unknown';
 let releasePromise;
 let primePromise;
 let nextStartupMarkSequence=1;
@@ -143,7 +168,7 @@ function markStartupBoundary(label,detail){
 }
 function setBootStatus(phase,detail,state){
   const progress=phaseProgress[phase];
-  const status={phase,detail:detail||phase,state:state||'loading'};
+  const status={phase,detail:detail||phase,state:state||'loading',compatibilityVersion:bootStateVersion,lastResetDecision:bootLastResetDecision};
   const display=startupDisplayForBootPhase(phase,status.state);
   if(progress!==undefined)status.progress=progress;
   g.__swBootStatus=status;
@@ -172,6 +197,11 @@ function setBootStatus(phase,detail,state){
   updateStaticPhaseRail(display.id,status.state);
   markStartupBoundary('boot-status.'+phase,{source:'boot',phase:phase,state:status.state,progress:status.progress});
   window.dispatchEvent(new CustomEvent(bootStatusEvent,{detail:status}));
+}
+function setBootResetDecision(decision,detail){
+  bootLastResetDecision=decision;
+  g.__swBootRecoveryStatus={compatibilityVersion:bootStateVersion,lastResetDecision:decision,detail:detail||''};
+  if(g.__swBootStatus)g.__swBootStatus=Object.assign({},g.__swBootStatus,{compatibilityVersion:bootStateVersion,lastResetDecision:decision});
 }
 function updateStaticPhaseRail(currentID,bootState){
   const currentIdx=startupPhaseOrder.indexOf(currentID);
@@ -239,8 +269,14 @@ async function clearCachesForBootReset(){
   await Promise.all(cacheNames.map(function(cacheName){return g.caches.delete(cacheName)}));
 }
 function reloadAfterBootStateReset(){
-  try{window.location.reload();return}catch(_){}
-  window.location.href=window.location.href;
+  try{window.location.reload()}catch(_){}
+  try{
+    const next=new URL(window.location.href);
+    next.searchParams.set('bootResetReload',String(Date.now()));
+    window.location.replace(next.toString());
+    return;
+  }catch(_){}
+  try{window.location.href=window.location.href}catch(_){}
 }
 function settledAllFulfilled(results){
   return results.every(function(result){return result.status==='fulfilled'});
@@ -252,14 +288,21 @@ function clearBootSessionState(){
 async function resetHistoricalStateForBoot(){
   const storedVersion=storageGet(localStorage,bootStateVersionKey);
   if(storedVersion===bootStateVersion){
-    if(storageGet(sessionStorage,bootSessionStateVersionKey)!==bootStateVersion)clearBootSessionState();
+    if(storageGet(sessionStorage,bootSessionStateVersionKey)!==bootStateVersion){
+      clearBootSessionState();
+      setBootResetDecision('tab-session-state-reset','tab session version mismatch');
+    }else{
+      setBootResetDecision('current','stored compatibility version current');
+    }
     storageRemove(sessionStorage,bootStateResetAttemptKey);
     return false;
   }
   if(storageGet(sessionStorage,bootStateResetAttemptKey)===bootStateVersion){
     clearBootSessionState();
+    setBootResetDecision('attempt-guard','reset already attempted in this tab');
     return false;
   }
+  setBootResetDecision('reset-started','stored compatibility version mismatch');
   setBootStatus('loading','Updating Spacewave app shell...');
   clearBootSessionState();
   storageRemoveKnown(localStorage,bootLocalStorageKeys,bootLocalStoragePrefixes);
@@ -268,12 +311,18 @@ async function resetHistoricalStateForBoot(){
     unregisterServiceWorkersForBootReset(),
     clearCachesForBootReset()
   ]);
-  if(settledAllFulfilled(cleanupResults))storageSet(localStorage,bootStateVersionKey,bootStateVersion);
+  if(settledAllFulfilled(cleanupResults)){
+    storageSet(localStorage,bootStateVersionKey,bootStateVersion);
+    setBootResetDecision('reset-complete','shell cleanup completed');
+  }else{
+    setBootResetDecision('reset-cleanup-failed','shell cleanup did not fully complete');
+  }
   reloadAfterBootStateReset();
   return true;
 }
 function absPath(path){
   if(!path)return'';
+  if(/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path))return path;
   return path.startsWith('/')?path:'/'+path;
 }
 function loadRelease(){
@@ -293,7 +342,7 @@ function loadRelease(){
     g.__swServiceWorker=serviceWorker;
     g.__swGenerationId=release.generationId||'';
     setBootStatus('manifest-ready','Browser release found.');
-    return {entrypoint,wasm,serviceWorker};
+    return {entrypoint,wasm,serviceWorker,autoStart:release.autoStart===true};
   });
   return releasePromise;
 }
@@ -323,7 +372,7 @@ function startBoot(){
   }
   void primeRelease()
     .then(function(release){
-      if(window.location.hash.length>1||localStorage.getItem('spacewave-has-session')){
+      if(release.autoStart||window.location.hash.length>1||localStorage.getItem('spacewave-has-session')){
         const landing=document.getElementById('sw-landing');
         const loading=document.getElementById('sw-loading');
         if(landing)landing.style.display='none';

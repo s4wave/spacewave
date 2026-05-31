@@ -5,9 +5,12 @@ import {
   SystemStatusServiceClient,
 } from './status_srpc.pb.js'
 import type {
+  ReportRecoveryStatusRequest,
+  ReportRecoveryStatusResponse,
   WatchControllersResponse,
   WatchDirectivesResponse,
   WatchPluginsResponse,
+  WatchRecoveryStatusResponse,
 } from './status.pb.js'
 
 // SystemStatus wraps the SystemStatusService on a session resource.
@@ -37,5 +40,21 @@ export class SystemStatus {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchPluginsResponse> {
     return this.service.WatchPlugins({}, abortSignal)
+  }
+
+  // reportRecoveryStatus publishes renderer-owned recovery facts to the
+  // session-local status owner.
+  public async reportRecoveryStatus(
+    req: ReportRecoveryStatusRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportRecoveryStatusResponse> {
+    return await this.service.ReportRecoveryStatus(req, abortSignal)
+  }
+
+  // watchRecoveryStatus streams composed runtime recovery status snapshots.
+  public watchRecoveryStatus(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchRecoveryStatusResponse> {
+    return this.service.WatchRecoveryStatus({}, abortSignal)
   }
 }

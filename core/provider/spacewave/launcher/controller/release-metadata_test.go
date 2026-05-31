@@ -135,6 +135,9 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 				},
 			},
 		),
+		fetchStatusCtr: ccontainer.NewCContainer[*spacewave_launcher.FetchStatus](
+			&spacewave_launcher.FetchStatus{},
+		),
 		stagingDirFunc: func() (string, error) { return stagingDir, nil },
 	}
 	ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig())
@@ -152,6 +155,9 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	}
 	if string(got) != "binary" {
 		t.Fatalf("staged binary = %q", string(got))
+	}
+	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "staged" {
+		t.Fatalf("release metadata outcome = %q, want staged", outcome)
 	}
 }
 
@@ -278,6 +284,9 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 	if !strings.Contains(state.GetErrorMessage(), want) {
 		t.Fatalf("error message = %q, want %q", state.GetErrorMessage(), want)
 	}
+	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "error" {
+		t.Fatalf("release metadata outcome = %q, want error", outcome)
+	}
 }
 
 func buildReleaseMetadataTestWorld(
@@ -331,6 +340,9 @@ func newReleaseMetadataRoutineTestController(
 					ChannelKey: "stable",
 				},
 			},
+		),
+		fetchStatusCtr: ccontainer.NewCContainer[*spacewave_launcher.FetchStatus](
+			&spacewave_launcher.FetchStatus{},
 		),
 		stagingDirFunc: func() (string, error) { return stagingDir, nil },
 	}

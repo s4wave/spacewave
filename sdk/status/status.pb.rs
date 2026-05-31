@@ -36,6 +36,112 @@ pub struct PluginInfo {
     #[prost(string, tag="3")]
     pub state: ::prost::alloc::string::String,
 }
+/// LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LauncherRecoveryStatus {
+    #[prost(uint64, tag="1")]
+    pub selected_config_rev: u64,
+    #[prost(string, tag="2")]
+    pub selected_config_source: ::prost::alloc::string::String,
+    #[prost(uint64, tag="3")]
+    pub fetched_config_rev: u64,
+    #[prost(string, tag="4")]
+    pub fetched_config_source: ::prost::alloc::string::String,
+    #[prost(string, tag="5")]
+    pub release_metadata_outcome: ::prost::alloc::string::String,
+}
+/// PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PluginManifestRecoveryStatus {
+    #[prost(string, tag="1")]
+    pub plugin_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub instance_key: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub execute_manifest_ref: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub download_manifest_ref: ::prost::alloc::string::String,
+    #[prost(uint32, tag="5")]
+    pub skipped_candidate_count: u32,
+    #[prost(string, tag="6")]
+    pub skipped_candidate_summary: ::prost::alloc::string::String,
+    #[prost(uint32, tag="7")]
+    pub ignored_candidate_count: u32,
+    #[prost(string, tag="8")]
+    pub ignored_candidate_summary: ::prost::alloc::string::String,
+    #[prost(uint32, tag="9")]
+    pub quarantined_candidate_count: u32,
+    #[prost(string, tag="10")]
+    pub quarantined_candidate_summary: ::prost::alloc::string::String,
+}
+/// NativePackageRecoveryStatus reports process-host dist materialization facts.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct NativePackageRecoveryStatus {
+    #[prost(string, tag="1")]
+    pub plugin_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub dist_dir: ::prost::alloc::string::String,
+    #[prost(bool, tag="3")]
+    pub materialized: bool,
+    #[prost(bool, tag="4")]
+    pub invalidated: bool,
+    #[prost(string, tag="5")]
+    pub last_action: ::prost::alloc::string::String,
+    #[prost(string, tag="6")]
+    pub last_error: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+/// BrowserBootRecoveryStatus reports browser/desktop boot compatibility facts
+/// when a renderer has published them to the daemon status owner.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BrowserBootRecoveryStatus {
+    #[prost(string, tag="1")]
+    pub compatibility_version: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub last_reset_decision: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub status: ::prost::alloc::string::String,
+}
+/// RuntimeAssetRecoveryStatus reports the latest typed root plugin asset result
+/// when a renderer has published it to the daemon status owner.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeAssetRecoveryStatus {
+    #[prost(string, tag="1")]
+    pub script_path: ::prost::alloc::string::String,
+    #[prost(uint32, tag="2")]
+    pub status_code: u32,
+    #[prost(bool, tag="3")]
+    pub ok: bool,
+    #[prost(string, tag="4")]
+    pub classification: ::prost::alloc::string::String,
+    #[prost(string, tag="5")]
+    pub fetch_source: ::prost::alloc::string::String,
+    #[prost(string, tag="6")]
+    pub runtime_error: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub plugin_asset_result: ::prost::alloc::string::String,
+    #[prost(string, tag="8")]
+    pub content_type: ::prost::alloc::string::String,
+    #[prost(string, tag="9")]
+    pub body_prefix: ::prost::alloc::string::String,
+    #[prost(string, tag="10")]
+    pub status: ::prost::alloc::string::String,
+}
+/// RecoveryStatus composes runtime recovery facts without owning decisions.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RecoveryStatus {
+    #[prost(message, optional, tag="1")]
+    pub launcher: ::core::option::Option<LauncherRecoveryStatus>,
+    #[prost(message, repeated, tag="2")]
+    pub plugins: ::prost::alloc::vec::Vec<PluginManifestRecoveryStatus>,
+    #[prost(message, repeated, tag="3")]
+    pub native_packages: ::prost::alloc::vec::Vec<NativePackageRecoveryStatus>,
+    #[prost(message, optional, tag="4")]
+    pub boot: ::core::option::Option<BrowserBootRecoveryStatus>,
+    #[prost(message, optional, tag="5")]
+    pub runtime_asset: ::core::option::Option<RuntimeAssetRecoveryStatus>,
+}
 /// WatchControllersRequest is the request type for WatchControllers.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchControllersRequest {
@@ -77,5 +183,27 @@ pub struct WatchPluginsResponse {
     /// PluginCount is the total number of plugin load requests.
     #[prost(uint32, tag="2")]
     pub plugin_count: u32,
+}
+/// WatchRecoveryStatusRequest is the request type for WatchRecoveryStatus.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchRecoveryStatusRequest {
+}
+/// ReportRecoveryStatusRequest publishes renderer-owned recovery facts.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReportRecoveryStatusRequest {
+    #[prost(message, optional, tag="1")]
+    pub boot: ::core::option::Option<BrowserBootRecoveryStatus>,
+    #[prost(message, optional, tag="2")]
+    pub runtime_asset: ::core::option::Option<RuntimeAssetRecoveryStatus>,
+}
+/// ReportRecoveryStatusResponse is the response type for ReportRecoveryStatus.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReportRecoveryStatusResponse {
+}
+/// WatchRecoveryStatusResponse is the response type for WatchRecoveryStatus.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchRecoveryStatusResponse {
+    #[prost(message, optional, tag="1")]
+    pub status: ::core::option::Option<RecoveryStatus>,
 }
 // @@protoc_insertion_point(module)

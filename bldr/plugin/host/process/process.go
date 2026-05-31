@@ -8,11 +8,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/pipesock"
 	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -41,6 +44,30 @@ type ProcessHost struct {
 	distDir string
 	// pluginPlatformID is the plugin platform to use
 	pluginPlatformID string
+	// packageStatusMtx guards packageStatus.
+	packageStatusMtx sync.Mutex
+	// packageStatus stores read-only dist materialization facts by plugin ID.
+	packageStatus map[string]PluginPackageStatus
+	// packageStatusCtr publishes packageStatus snapshots.
+	packageStatusCtr *ccontainer.CContainer[*PluginPackageStatusSnapshot]
+}
+
+// PluginPackageStatus describes native dist materialization state for one
+// plugin. It deliberately excludes plugin state-dir contents.
+type PluginPackageStatus struct {
+	PluginID     string
+	DistDir      string
+	Materialized bool
+	Invalidated  bool
+	LastAction   string
+	LastError    string
+	UpdatedAt    time.Time
+}
+
+// PluginPackageStatusSnapshot is the read-only native package recovery status
+// snapshot.
+type PluginPackageStatusSnapshot struct {
+	Packages []PluginPackageStatus
 }
 
 // NewProcessHost constructs a new ProcessHost.
@@ -59,6 +86,8 @@ func NewProcessHost(le *logrus.Entry, stateDir, distDir string) (*ProcessHost, e
 		stateDir:         stateDir,
 		distDir:          distDir,
 		pluginPlatformID: platformID,
+		packageStatus:    make(map[string]PluginPackageStatus),
+		packageStatusCtr: ccontainer.NewCContainerWithEqual(nil, pluginPackageStatusSnapshotEqual),
 	}, nil
 }
 
@@ -165,32 +194,15 @@ func (h *ProcessHost) ExecutePlugin(
 		return errors.Errorf("entrypoint must be an executable regular file: %s", entrypointFiMode.String())
 	}
 
-	// create the plugin bin and state dir
-	pluginDistDir := filepath.Join(h.distDir, pluginID)
-	if err := os.MkdirAll(pluginDistDir, 0o755); err != nil {
-		return err
-	}
-	pluginStateDir := filepath.Join(h.stateDir, pluginID)
-	if err := os.MkdirAll(pluginStateDir, 0o755); err != nil {
+	pluginStateDir, err := h.ensurePluginStateDir(pluginID)
+	if err != nil {
 		return err
 	}
 
-	// checkout the plugin dist unixfs to the disk.
-	le.
-		WithField("dist-dir", pluginDistDir).
-		Debug("syncing native plugin dist to disk")
-	if err := unixfs_sync.Sync(
-		ctx,
-		pluginDistDir,
-		pluginDist,
-		unixfs_sync.DeleteMode_DeleteMode_BEFORE,
-		nil,
-	); err != nil {
+	pluginDistDir, err := h.syncPluginDist(ctx, pluginID, pluginDist)
+	if err != nil {
 		return err
 	}
-	le.
-		WithField("dist-dir", pluginDistDir).
-		Debug("native plugin dist sync complete")
 
 	// the "embed" io/fs will clear the permissions bits
 	// set the executable to chmod +x
@@ -367,11 +379,149 @@ func (h *ProcessHost) execPluginIPC(
 	return srv.AcceptMuxedConn(ctx, muxedConn)
 }
 
+func (h *ProcessHost) pluginDistDir(pluginID string) string {
+	return filepath.Join(h.distDir, pluginID)
+}
+
+func (h *ProcessHost) pluginStateDir(pluginID string) string {
+	return filepath.Join(h.stateDir, pluginID)
+}
+
+func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
+	pluginStateDir := h.pluginStateDir(pluginID)
+	if err := os.MkdirAll(pluginStateDir, 0o755); err != nil {
+		return "", err
+	}
+	return pluginStateDir, nil
+}
+
+func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID string, pluginDist *unixfs.FSHandle) (string, error) {
+	pluginDistDir := h.pluginDistDir(pluginID)
+	if err := os.MkdirAll(pluginDistDir, 0o755); err != nil {
+		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
+		return "", err
+	}
+
+	h.le.
+		WithField("plugin-id", pluginID).
+		WithField("dist-dir", pluginDistDir).
+		Debug("syncing native plugin dist to disk")
+	if err := unixfs_sync.Sync(
+		ctx,
+		pluginDistDir,
+		pluginDist,
+		unixfs_sync.DeleteMode_DeleteMode_BEFORE,
+		nil,
+	); err != nil {
+		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
+		return "", err
+	}
+	h.le.
+		WithField("plugin-id", pluginID).
+		WithField("dist-dir", pluginDistDir).
+		Debug("native plugin dist sync complete")
+	h.recordPluginPackageStatus(pluginID, pluginDistDir, true, false, "sync", nil)
+	return pluginDistDir, nil
+}
+
+// InvalidatePluginDist clears only the derived native plugin dist checkout.
+// Plugin-owned state under the state directory is a separate protected surface.
+func (h *ProcessHost) InvalidatePluginDist(ctx context.Context, pluginID string) error {
+	if err := ctx.Err(); err != nil {
+		h.recordPluginPackageStatus(pluginID, h.pluginDistDir(pluginID), false, false, "invalidate", err)
+		return err
+	}
+	if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
+		h.recordPluginPackageStatus(pluginID, h.pluginDistDir(pluginID), false, false, "invalidate", err)
+		return err
+	}
+	pluginDistDir := h.pluginDistDir(pluginID)
+	err := os.RemoveAll(pluginDistDir)
+	h.recordPluginPackageStatus(pluginID, pluginDistDir, false, err == nil, "invalidate", err)
+	return err
+}
+
+// PackageStatusSnapshot returns a read-only copy of native dist
+// materialization status. It never inspects or exposes plugin-owned state.
+func (h *ProcessHost) PackageStatusSnapshot() []PluginPackageStatus {
+	h.packageStatusMtx.Lock()
+	defer h.packageStatusMtx.Unlock()
+	return h.packageStatusSnapshotLocked()
+}
+
+// GetPackageStatusCtr returns native package recovery status changes.
+func (h *ProcessHost) GetPackageStatusCtr() ccontainer.Watchable[*PluginPackageStatusSnapshot] {
+	return h.packageStatusCtr
+}
+
+func (h *ProcessHost) recordPluginPackageStatus(
+	pluginID,
+	distDir string,
+	materialized,
+	invalidated bool,
+	action string,
+	err error,
+) {
+	h.packageStatusMtx.Lock()
+	if h.packageStatus == nil {
+		h.packageStatus = make(map[string]PluginPackageStatus)
+	}
+	status := PluginPackageStatus{
+		PluginID:     pluginID,
+		DistDir:      distDir,
+		Materialized: materialized,
+		Invalidated:  invalidated,
+		LastAction:   action,
+		UpdatedAt:    time.Now().UTC(),
+	}
+	if err != nil {
+		status.LastError = err.Error()
+	}
+	h.packageStatus[pluginID] = status
+	snapshot := h.packageStatusSnapshotLocked()
+	h.packageStatusMtx.Unlock()
+	if h.packageStatusCtr != nil {
+		h.packageStatusCtr.SetValue(&PluginPackageStatusSnapshot{Packages: snapshot})
+	}
+}
+
+func (h *ProcessHost) packageStatusSnapshotLocked() []PluginPackageStatus {
+	out := make([]PluginPackageStatus, 0, len(h.packageStatus))
+	for _, status := range h.packageStatus {
+		out = append(out, status)
+	}
+	slices.SortFunc(out, func(a, b PluginPackageStatus) int {
+		if a.PluginID < b.PluginID {
+			return -1
+		}
+		if a.PluginID > b.PluginID {
+			return 1
+		}
+		return 0
+	})
+	return out
+}
+
+func pluginPackageStatusSnapshotEqual(a, b *PluginPackageStatusSnapshot) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return slices.EqualFunc(a.Packages, b.Packages, func(a, b PluginPackageStatus) bool {
+		return a.PluginID == b.PluginID &&
+			a.DistDir == b.DistDir &&
+			a.Materialized == b.Materialized &&
+			a.Invalidated == b.Invalidated &&
+			a.LastAction == b.LastAction &&
+			a.LastError == b.LastError &&
+			a.UpdatedAt.Equal(b.UpdatedAt)
+	})
+}
+
 // DeletePlugin clears cached plugin data for the given plugin ID.
 func (h *ProcessHost) DeletePlugin(ctx context.Context, pluginID string) error {
-	pluginDistDir := filepath.Join(h.distDir, pluginID)
+	pluginDistDir := h.pluginDistDir(pluginID)
 	e1 := os.RemoveAll(pluginDistDir)
-	pluginStateDir := filepath.Join(h.stateDir, pluginID)
+	pluginStateDir := h.pluginStateDir(pluginID)
 	e2 := os.RemoveAll(pluginStateDir)
 	if e1 != nil {
 		return e1

@@ -38,21 +38,26 @@ func (c *Controller) refreshCurrentReleaseMetadataStatus(ctx context.Context) er
 func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf *spacewave_launcher.DistConfig) error {
 	if distConf.GetRev() == 0 {
 		c.clearUpdateState()
+		c.setReleaseMetadataOutcome("idle")
 		return nil
 	}
+	c.setReleaseMetadataOutcome("resolving")
 	metadata, err := c.resolveReleaseMetadata(ctx, distConf.ResolvedChannelKey())
 	if err != nil {
 		c.setUpdateError(err)
+		c.setReleaseMetadataOutcome("error")
 		return err
 	}
 	platformID, err := nativeDesktopPlatformID()
 	if err != nil {
 		c.setUpdateError(err)
+		c.setReleaseMetadataOutcome("error")
 		return err
 	}
 	manifestRef := selectReleaseManifestRef(metadata, platformID)
 	if err := c.stageReleaseManifestUpdate(ctx, metadata, platformID, manifestRef); err != nil {
 		c.setUpdateError(err)
+		c.setReleaseMetadataOutcome("error")
 		return err
 	}
 	return nil
@@ -140,6 +145,7 @@ func (c *Controller) setUpdateDownloading(version string) {
 		}
 		return true, nil
 	})
+	c.setReleaseMetadataOutcome("downloading")
 }
 
 func (c *Controller) setUpdateStaged(version, stagedPath string) {
@@ -151,6 +157,13 @@ func (c *Controller) setUpdateStaged(version, stagedPath string) {
 			StagedPath:       stagedPath,
 		}
 		return true, nil
+	})
+	c.setReleaseMetadataOutcome("staged")
+}
+
+func (c *Controller) setReleaseMetadataOutcome(outcome string) {
+	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+		next.ReleaseMetadataOutcome = outcome
 	})
 }
 

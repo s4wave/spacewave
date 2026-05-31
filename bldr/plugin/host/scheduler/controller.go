@@ -78,6 +78,9 @@ type Controller struct {
 	pluginStatusMtx sync.Mutex
 	// pluginStatus stores live plugin instance states by pluginInstanceKey.
 	pluginStatus map[string]*bldr_plugin.PluginStatus
+	// pluginManifestRecoveryStatus stores owner-owned retained Manifest
+	// selection and eligibility facts by pluginInstanceKey.
+	pluginManifestRecoveryStatus map[string]*PluginManifestRecoveryStatus
 }
 
 // hostVol contains a snapshot of the host volume.
@@ -160,7 +163,8 @@ func NewController(
 			&PluginStatusSnapshot{},
 			pluginStatusSnapshotEqual,
 		),
-		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+		pluginStatus:                 make(map[string]*bldr_plugin.PluginStatus),
+		pluginManifestRecoveryStatus: make(map[string]*PluginManifestRecoveryStatus),
 	}
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newPluginInstance, le.WithField("tracker", "running-plugin"))
 	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))

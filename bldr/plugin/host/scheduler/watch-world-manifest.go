@@ -72,8 +72,8 @@ func (t *pluginInstance) processManifestWorldState(
 		"host-object-key": t.c.objKey,
 	})
 
-	// collect manifests
-	manifests, manifestErrs, err := bldr_manifest_world.CollectStartupManifestsForManifestID(
+	// collect and classify retained startup manifest candidates
+	candidateEligibility, err := bldr_manifest_world.CollectStartupManifestEligibilityForManifestID(
 		ctx,
 		ws,
 		t.pluginID,
@@ -86,7 +86,8 @@ func (t *pluginInstance) processManifestWorldState(
 	if ctx.Err() != nil {
 		return true, context.Canceled
 	}
-	skipSummary := summarizeStartupManifestSkips(manifestErrs)
+	manifests := bldr_manifest_world.SelectableStartupManifests(candidateEligibility)
+	skipSummary := summarizeStartupManifestEligibilitySkips(candidateEligibility)
 	if skipSummary != "" {
 		logEntry := le.WithField("skipped-startup-manifest-refs", skipSummary)
 		graphDump, dumpErr := bldr_manifest_world.DumpStartupManifestGraphForManifestID(
@@ -113,6 +114,7 @@ func (t *pluginInstance) processManifestWorldState(
 		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, "startup manifest refs")
 	}
 	if len(manifests) == 0 {
+		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, nil, candidateEligibility)
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
 		// Don't clear states that the fetch handler set.
@@ -215,6 +217,13 @@ func (t *pluginInstance) processManifestWorldState(
 			if executeManifest != nil || downloadManifest != nil {
 				t.loggedNotFound.Store(false)
 			}
+			t.c.recordPluginManifestRecoveryStatus(
+				t.pluginID,
+				t.instanceKey,
+				executeManifest,
+				downloadManifest,
+				candidateEligibility,
+			)
 
 			var anyChanged bool
 
@@ -254,47 +263,48 @@ func (t *pluginInstance) processManifestWorldState(
 
 const maxStartupManifestSkipSummaryItems = 3
 
-func summarizeStartupManifestSkips(errs []error) string {
-	if len(errs) == 0 {
+func summarizeStartupManifestEligibilitySkips(candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) string {
+	if len(candidates) == 0 {
 		return ""
 	}
 
-	items := make([]string, 0, min(len(errs), maxStartupManifestSkipSummaryItems))
-	for _, err := range errs {
+	items := make([]string, 0, maxStartupManifestSkipSummaryItems)
+	for _, candidate := range candidates {
 		if len(items) >= maxStartupManifestSkipSummaryItems {
 			break
 		}
-		items = append(items, startupManifestSkipSummaryItem(err))
+		if !startupManifestEligibilitySkipCandidate(candidate) {
+			continue
+		}
+		items = append(items, candidate.Summary())
+	}
+	if len(items) == 0 {
+		return ""
 	}
 
 	summary := strings.Join(items, "; ")
-	if remaining := len(errs) - len(items); remaining > 0 {
+	if remaining := countStartupManifestEligibilitySkips(candidates) - len(items); remaining > 0 {
 		summary += "; +" + strconv.Itoa(remaining) + " more"
 	}
-	return strconv.Itoa(len(errs)) + " skipped startup manifest ref(s): " + summary
+	return strconv.Itoa(countStartupManifestEligibilitySkips(candidates)) + " skipped startup manifest ref(s): " + summary
 }
 
-func startupManifestSkipSummaryItem(err error) string {
-	var skipErr *bldr_manifest_world.StartupManifestSkipError
-	if errors.As(err, &skipErr) && skipErr != nil {
-		parts := []string{skipErr.ObjectKey}
-		if skipErr.ObjectRef != nil {
-			if bucketID := skipErr.ObjectRef.GetBucketId(); bucketID != "" {
-				parts = append(parts, "bucket="+bucketID)
-			}
-			if rootRef := skipErr.ObjectRef.GetRootRef(); rootRef != nil && !rootRef.GetEmpty() {
-				parts = append(parts, "root="+rootRef.MarshalString())
-			}
+func countStartupManifestEligibilitySkips(candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) int {
+	var count int
+	for _, candidate := range candidates {
+		if startupManifestEligibilitySkipCandidate(candidate) {
+			count++
 		}
-		if skipErr.Err != nil {
-			parts = append(parts, "err="+skipErr.Err.Error())
-		}
-		return strings.Join(parts, " ")
 	}
-	if err == nil {
-		return "<nil>"
+	return count
+}
+
+func startupManifestEligibilitySkipCandidate(candidate *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+	if candidate == nil {
+		return false
 	}
-	return err.Error()
+	return candidate.Eligibility == bldr_manifest_world.StartupManifestEligibilityUnsafe ||
+		candidate.Eligibility == bldr_manifest_world.StartupManifestEligibilityQuarantined
 }
 
 func addManifestSelectionFields(

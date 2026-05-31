@@ -41,6 +41,17 @@ pub trait SystemStatusServiceWatchPluginsStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for SystemStatusService.WatchRecoveryStatus.
+#[starpc::async_trait]
+pub trait SystemStatusServiceWatchRecoveryStatusStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchRecoveryStatusResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for SystemStatusService.
 #[starpc::async_trait]
 pub trait SystemStatusServiceClient: Send + Sync {
@@ -50,6 +61,10 @@ pub trait SystemStatusServiceClient: Send + Sync {
     async fn watch_directives(&self, request: &WatchDirectivesRequest) -> starpc::Result<Box<dyn SystemStatusServiceWatchDirectivesStream>>;
     /// WatchPlugins.
     async fn watch_plugins(&self, request: &WatchPluginsRequest) -> starpc::Result<Box<dyn SystemStatusServiceWatchPluginsStream>>;
+    /// ReportRecoveryStatus.
+    async fn report_recovery_status(&self, request: &ReportRecoveryStatusRequest) -> starpc::Result<ReportRecoveryStatusResponse>;
+    /// WatchRecoveryStatus.
+    async fn watch_recovery_status(&self, request: &WatchRecoveryStatusRequest) -> starpc::Result<Box<dyn SystemStatusServiceWatchRecoveryStatusStream>>;
 }
 
 /// Client implementation for SystemStatusService.
@@ -86,6 +101,16 @@ impl<C: starpc::Client + 'static> SystemStatusServiceClient for SystemStatusServ
         let stream = self.client.new_stream("s4wave.status.SystemStatusService", "WatchPlugins", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(SystemStatusServiceWatchPluginsStreamImpl { stream }))
+    }
+    async fn report_recovery_status(&self, request: &ReportRecoveryStatusRequest) -> starpc::Result<ReportRecoveryStatusResponse> {
+        self.client.exec_call("s4wave.status.SystemStatusService", "ReportRecoveryStatus", request).await
+    }
+    async fn watch_recovery_status(&self, request: &WatchRecoveryStatusRequest) -> starpc::Result<Box<dyn SystemStatusServiceWatchRecoveryStatusStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.status.SystemStatusService", "WatchRecoveryStatus", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(SystemStatusServiceWatchRecoveryStatusStreamImpl { stream }))
     }
 }
 
@@ -140,6 +165,23 @@ impl SystemStatusServiceWatchPluginsStream for SystemStatusServiceWatchPluginsSt
     }
 }
 
+struct SystemStatusServiceWatchRecoveryStatusStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl SystemStatusServiceWatchRecoveryStatusStream for SystemStatusServiceWatchRecoveryStatusStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchRecoveryStatusResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for SystemStatusService.
 #[starpc::async_trait]
 pub trait SystemStatusServiceServer: Send + Sync {
@@ -149,12 +191,18 @@ pub trait SystemStatusServiceServer: Send + Sync {
     async fn watch_directives(&self, request: WatchDirectivesRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// WatchPlugins.
     async fn watch_plugins(&self, request: WatchPluginsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// ReportRecoveryStatus.
+    async fn report_recovery_status(&self, request: ReportRecoveryStatusRequest) -> starpc::Result<ReportRecoveryStatusResponse>;
+    /// WatchRecoveryStatus.
+    async fn watch_recovery_status(&self, request: WatchRecoveryStatusRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const SYSTEM_STATUS_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchControllers",
     "WatchDirectives",
     "WatchPlugins",
+    "ReportRecoveryStatus",
+    "WatchRecoveryStatus",
 ];
 
 /// Handler for SystemStatusService.
@@ -203,6 +251,28 @@ impl<S: SystemStatusServiceServer + 'static> starpc::Invoker for SystemStatusSer
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_plugins(request, stream).await)
+            }
+            "ReportRecoveryStatus" => {
+                let request: ReportRecoveryStatusRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.report_recovery_status(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "WatchRecoveryStatus" => {
+                let request: WatchRecoveryStatusRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_recovery_status(request, stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

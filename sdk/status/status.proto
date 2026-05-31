@@ -9,6 +9,10 @@ service SystemStatusService {
   rpc WatchDirectives(WatchDirectivesRequest) returns (stream WatchDirectivesResponse);
 
   rpc WatchPlugins(WatchPluginsRequest) returns (stream WatchPluginsResponse);
+
+  rpc ReportRecoveryStatus(ReportRecoveryStatusRequest) returns (ReportRecoveryStatusResponse);
+
+  rpc WatchRecoveryStatus(WatchRecoveryStatusRequest) returns (stream WatchRecoveryStatusResponse);
 }
 
 // ControllerInfo describes a running controller.
@@ -37,6 +41,72 @@ message PluginInfo {
   string instance_key = 2;
   // State is the plugin runtime state.
   string state = 3;
+}
+
+// LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
+message LauncherRecoveryStatus {
+  uint64 selected_config_rev = 1;
+  string selected_config_source = 2;
+  uint64 fetched_config_rev = 3;
+  string fetched_config_source = 4;
+  string release_metadata_outcome = 5;
+}
+
+// PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.
+message PluginManifestRecoveryStatus {
+  string plugin_id = 1;
+  string instance_key = 2;
+  string execute_manifest_ref = 3;
+  string download_manifest_ref = 4;
+  uint32 skipped_candidate_count = 5;
+  string skipped_candidate_summary = 6;
+  uint32 ignored_candidate_count = 7;
+  string ignored_candidate_summary = 8;
+  uint32 quarantined_candidate_count = 9;
+  string quarantined_candidate_summary = 10;
+}
+
+// NativePackageRecoveryStatus reports process-host dist materialization facts.
+message NativePackageRecoveryStatus {
+  string plugin_id = 1;
+  string dist_dir = 2;
+  bool materialized = 3;
+  bool invalidated = 4;
+  string last_action = 5;
+  string last_error = 6;
+  string updated_at = 7;
+}
+
+// BrowserBootRecoveryStatus reports browser/desktop boot compatibility facts
+// when a renderer has published them to the daemon status owner.
+message BrowserBootRecoveryStatus {
+  string compatibility_version = 1;
+  string last_reset_decision = 2;
+  string status = 3;
+}
+
+// RuntimeAssetRecoveryStatus reports the latest typed root plugin asset result
+// when a renderer has published it to the daemon status owner.
+message RuntimeAssetRecoveryStatus {
+  string script_path = 1;
+  uint32 status_code = 2;
+  bool ok = 3;
+  string classification = 4;
+  string fetch_source = 5;
+  string runtime_error = 6;
+  string plugin_asset_result = 7;
+  string content_type = 8;
+  string body_prefix = 9;
+  string status = 10;
+}
+
+// RecoveryStatus composes runtime recovery facts without owning decisions.
+message RecoveryStatus {
+  LauncherRecoveryStatus launcher = 1;
+  repeated PluginManifestRecoveryStatus plugins = 2;
+  repeated NativePackageRecoveryStatus native_packages = 3;
+  BrowserBootRecoveryStatus boot = 4;
+  RuntimeAssetRecoveryStatus runtime_asset = 5;
 }
 
 // WatchControllersRequest is the request type for WatchControllers.
@@ -70,4 +140,21 @@ message WatchPluginsResponse {
   repeated PluginInfo plugins = 1;
   // PluginCount is the total number of plugin load requests.
   uint32 plugin_count = 2;
+}
+
+// WatchRecoveryStatusRequest is the request type for WatchRecoveryStatus.
+message WatchRecoveryStatusRequest {}
+
+// ReportRecoveryStatusRequest publishes renderer-owned recovery facts.
+message ReportRecoveryStatusRequest {
+  BrowserBootRecoveryStatus boot = 1;
+  RuntimeAssetRecoveryStatus runtime_asset = 2;
+}
+
+// ReportRecoveryStatusResponse is the response type for ReportRecoveryStatus.
+message ReportRecoveryStatusResponse {}
+
+// WatchRecoveryStatusResponse is the response type for WatchRecoveryStatus.
+message WatchRecoveryStatusResponse {
+  RecoveryStatus status = 1;
 }

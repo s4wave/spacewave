@@ -686,6 +686,35 @@ describe('service worker fetch release cache routing', () => {
     })
   })
 
+  it('returns a typed owner result for stale advertised frontend assets against a newer mount', async () => {
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response('404 page not found', { status: 404 }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pa/spacewave-app/v/b/fe/app/App-oldhash.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(404)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBe(
+      'plugin-asset-missing',
+    )
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'missing',
+    )
+    expect(await response.json()).toMatchObject({
+      code: 'plugin-asset-missing',
+      source: 'plugin-assets',
+      path: '/b/pa/spacewave-app/v/b/fe/app/App-oldhash.mjs',
+      pluginAssetFetchResult: 'missing',
+    })
+  })
+
   it('returns a typed plugin asset unavailable response for non-missing failures', async () => {
     vi.mocked(proxyFetch).mockResolvedValue(
       new Response('plugin asset unavailable', { status: 503 }),
@@ -707,6 +736,33 @@ describe('service worker fetch release cache routing', () => {
     expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
       'unavailable',
     )
+  })
+
+  it('returns a typed generation-closed response for closed plugin asset generations', async () => {
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response('WebRuntimeClientInstance is closed', { status: 500 }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pa/spacewave-app/style.css',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(410)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBe(
+      'generation-closed',
+    )
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'generation-closed',
+    )
+    expect(await response.json()).toMatchObject({
+      code: 'generation-closed',
+      pluginAssetFetchResult: 'generation-closed',
+    })
   })
 
   it('classifies retained runtime and cancellation failures with bounded codes', () => {

@@ -120,6 +120,34 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
+// GetFetchStatusCtr returns launcher-owned DistConfig/release recovery status.
+func (c *Controller) GetFetchStatusCtr() ccontainer.Watchable[*spacewave_launcher.FetchStatus] {
+	return c.fetchStatusCtr
+}
+
+// FindControllerOnBus returns the first launcher controller on b.
+func FindControllerOnBus(b bus.Bus) *Controller {
+	for _, ctrl := range b.GetControllers() {
+		launcher, ok := ctrl.(*Controller)
+		if ok {
+			return launcher
+		}
+	}
+	return nil
+}
+
+func (c *Controller) updateFetchStatus(update func(*spacewave_launcher.FetchStatus)) {
+	if c.fetchStatusCtr == nil {
+		return
+	}
+	next := &spacewave_launcher.FetchStatus{}
+	if current := c.fetchStatusCtr.GetValue(); current != nil {
+		*next = *current
+	}
+	update(next)
+	c.fetchStatusCtr.SetValue(next)
+}
+
 // Execute executes the controller.
 // Returning nil ends execution.
 func (c *Controller) Execute(ctx context.Context) (rerr error) {
@@ -136,12 +164,16 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// load the initial app dist config
 	var distConf *spacewave_launcher.DistConfig
+	distConfSource := "none"
 	loadedPackageDistConf := false
 	distConfDat, err := c.loadDistConf(ctx)
 	if err != nil {
 		c.le.WithError(err).Warn("cannot load stored dist config")
 		distConfDat = nil
 		distConf = nil
+	}
+	if len(distConfDat) != 0 {
+		distConfSource = "stored"
 	}
 	if len(distConfDat) == 0 {
 		localDistConfDat, localDistConfPath, localErr := c.loadLocalDistConf()
@@ -151,6 +183,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		if len(localDistConfDat) != 0 {
 			distConfDat = localDistConfDat
 			loadedPackageDistConf = true
+			distConfSource = "package"
 			c.le.WithField("path", localDistConfPath).Info("loaded package dist config")
 		}
 	}
@@ -179,6 +212,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	if defDistConf != nil && distConfRev < defDistConf.GetRev() {
 		distConf = defDistConf
+		distConfSource = "embedded-default"
 		c.le.
 			WithField("defconf-rev", defDistConf.GetRev()).
 			WithField("defconf-signer", defDistConfSigner.String()).
@@ -198,7 +232,10 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	// or in the embedded default so downstream watchers start in the right
 	// state (has-config -> skip retry UI; no-config -> show connecting).
 	c.fetchStatusCtr.SetValue(&spacewave_launcher.FetchStatus{
-		HasConfig: distConf.GetRev() != 0,
+		HasConfig:              distConf.GetRev() != 0,
+		SelectedConfigRev:      distConf.GetRev(),
+		SelectedConfigSource:   distConfSource,
+		ReleaseMetadataOutcome: "pending",
 	})
 
 	// start the dist conf update fetcher

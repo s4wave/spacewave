@@ -1,4 +1,5 @@
 import React from 'react'
+import { getWebViewRootAssetLoadError } from './web-view-module-loader.js'
 
 export interface IWebViewErrorBoundaryProps {
   // children are children elements
@@ -16,6 +17,16 @@ interface IWebViewErrorBoundaryState {
 
 // isRecoverableError checks if the error is a transient error that can be recovered by retrying.
 function isRecoverableError(error: Error): boolean {
+  const rootAssetError = getWebViewRootAssetLoadError(error)
+  if (rootAssetError) {
+    return (
+      rootAssetError.rootAsset.classification === 'runtime-unavailable' ||
+      rootAssetError.rootAsset.classification === 'generation-closed' ||
+      rootAssetError.rootAsset.classification === 'bypass' ||
+      rootAssetError.rootAsset.status >= 500
+    )
+  }
+
   const message = error.message || ''
   return (
     message.includes('Failed to fetch dynamically imported module') ||
@@ -39,6 +50,35 @@ function truncateModuleUrl(message: string): string {
     return match[1]
   }
   return message
+}
+
+function renderErrorDetails(error: Error): {
+  title: string
+  detail: string
+} {
+  const rootAssetError = getWebViewRootAssetLoadError(error)
+  if (rootAssetError) {
+    const result = rootAssetError.rootAsset
+    const parts = [
+      result.scriptPath,
+      String(result.status),
+      result.classification,
+      result.fetchSource ? `source=${result.fetchSource}` : undefined,
+      result.runtimeError ? `runtime=${result.runtimeError}` : undefined,
+      result.pluginAssetResult
+        ? `plugin=${result.pluginAssetResult}`
+        : undefined,
+    ].filter((part): part is string => !!part)
+    return {
+      title: 'Failed to load plugin asset',
+      detail: parts.join(' '),
+    }
+  }
+
+  return {
+    title: 'Failed to load module',
+    detail: truncateModuleUrl(error.message),
+  }
 }
 
 const containerStyle: React.CSSProperties = {
@@ -158,12 +198,12 @@ export class WebViewErrorBoundary extends React.Component<
     }
 
     const recoverable = isRecoverableError(caughtError)
-    const modulePath = truncateModuleUrl(caughtError.message)
+    const errorDetails = renderErrorDetails(caughtError)
 
     return (
       <div style={containerStyle}>
-        <div>Failed to load module</div>
-        <div style={errorTextStyle}>{modulePath}</div>
+        <div>{errorDetails.title}</div>
+        <div style={errorTextStyle}>{errorDetails.detail}</div>
         {recoverable && countdown > 0 && <div>Retrying in {countdown}s…</div>}
         <div style={buttonRowStyle}>
           {recoverable && (

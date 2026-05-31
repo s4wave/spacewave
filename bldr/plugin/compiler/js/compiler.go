@@ -362,6 +362,10 @@ func (c *Controller) BuildManifest(
 		)
 	}
 
+	if err := ValidateFrontendEntrypointAssetClosure(outAssetsPath, frontendEntrypoints); err != nil {
+		return nil, err
+	}
+
 	// Filter out excluded web package references (another plugin provides these).
 	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(webPkgs)
 	allWebPkgRefs = allWebPkgRefs.FilterExcluded(excludedIDs)
@@ -656,6 +660,73 @@ func CreateEntrypointsFromViteOutputs(
 	}
 
 	return backendEntrypoints, frontendEntrypoints
+}
+
+func ValidateFrontendEntrypointAssetClosure(
+	assetsDir string,
+	frontendEntrypoints []*FrontendEntrypoint,
+) error {
+	for idx, entrypoint := range frontendEntrypoints {
+		if setRenderMode := entrypoint.GetSetRenderMode(); setRenderMode != nil {
+			if err := validateFrontendAssetPath(
+				assetsDir,
+				setRenderMode.GetScriptPath(),
+				"frontend entrypoint script",
+				idx,
+			); err != nil {
+				return err
+			}
+		}
+		if setHTMLLinks := entrypoint.GetSetHtmlLinks(); setHTMLLinks != nil {
+			for key, link := range setHTMLLinks.GetSetLinks() {
+				if err := validateFrontendAssetPath(
+					assetsDir,
+					link.GetHref(),
+					"frontend html link "+key,
+					idx,
+				); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func validateFrontendAssetPath(assetsDir, assetPath, label string, entrypointIdx int) error {
+	cleanPath, ok, err := normalizeFrontendAssetPath(assetPath)
+	if err != nil {
+		return errors.Wrapf(err, "%s[%d]", label, entrypointIdx)
+	}
+	if !ok {
+		return nil
+	}
+	statPath := filepath.Join(assetsDir, filepath.FromSlash(cleanPath))
+	info, err := os.Stat(statPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return errors.Errorf("%s[%d] advertises missing asset %q in assets filesystem", label, entrypointIdx, cleanPath)
+		}
+		return errors.Wrapf(err, "%s[%d] stat advertised asset %q", label, entrypointIdx, cleanPath)
+	}
+	if info.IsDir() {
+		return errors.Errorf("%s[%d] advertises directory %q as asset", label, entrypointIdx, cleanPath)
+	}
+	return nil
+}
+
+func normalizeFrontendAssetPath(assetPath string) (string, bool, error) {
+	if assetPath == "" {
+		return "", false, nil
+	}
+	if strings.Contains(assetPath, ":") || strings.HasPrefix(assetPath, "/") {
+		return "", false, nil
+	}
+	cleanPath := path.Clean(assetPath)
+	if cleanPath == "." || cleanPath == ".." || strings.HasPrefix(cleanPath, "../") {
+		return "", false, errors.Errorf("invalid local plugin asset path %q", assetPath)
+	}
+	return cleanPath, true, nil
 }
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.

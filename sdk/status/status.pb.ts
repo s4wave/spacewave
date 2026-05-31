@@ -112,6 +112,416 @@ export const PluginInfo: MessageType<PluginInfo> = createMessageType({
 })
 
 /**
+ * LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
+ *
+ * @generated from message s4wave.status.LauncherRecoveryStatus
+ */
+export interface LauncherRecoveryStatus {
+  /**
+   * @generated from field: uint64 selected_config_rev = 1;
+   */
+  selectedConfigRev?: bigint
+  /**
+   * @generated from field: string selected_config_source = 2;
+   */
+  selectedConfigSource?: string
+  /**
+   * @generated from field: uint64 fetched_config_rev = 3;
+   */
+  fetchedConfigRev?: bigint
+  /**
+   * @generated from field: string fetched_config_source = 4;
+   */
+  fetchedConfigSource?: string
+  /**
+   * @generated from field: string release_metadata_outcome = 5;
+   */
+  releaseMetadataOutcome?: string
+}
+
+// LauncherRecoveryStatus contains the message type declaration for LauncherRecoveryStatus.
+export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
+  createMessageType({
+    typeName: 's4wave.status.LauncherRecoveryStatus',
+    fields: [
+      {
+        no: 1,
+        name: 'selected_config_rev',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 2,
+        name: 'selected_config_source',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 3,
+        name: 'fetched_config_rev',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 4,
+        name: 'fetched_config_source',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 5,
+        name: 'release_metadata_outcome',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.
+ *
+ * @generated from message s4wave.status.PluginManifestRecoveryStatus
+ */
+export interface PluginManifestRecoveryStatus {
+  /**
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId?: string
+  /**
+   * @generated from field: string instance_key = 2;
+   */
+  instanceKey?: string
+  /**
+   * @generated from field: string execute_manifest_ref = 3;
+   */
+  executeManifestRef?: string
+  /**
+   * @generated from field: string download_manifest_ref = 4;
+   */
+  downloadManifestRef?: string
+  /**
+   * @generated from field: uint32 skipped_candidate_count = 5;
+   */
+  skippedCandidateCount?: number
+  /**
+   * @generated from field: string skipped_candidate_summary = 6;
+   */
+  skippedCandidateSummary?: string
+  /**
+   * @generated from field: uint32 ignored_candidate_count = 7;
+   */
+  ignoredCandidateCount?: number
+  /**
+   * @generated from field: string ignored_candidate_summary = 8;
+   */
+  ignoredCandidateSummary?: string
+  /**
+   * @generated from field: uint32 quarantined_candidate_count = 9;
+   */
+  quarantinedCandidateCount?: number
+  /**
+   * @generated from field: string quarantined_candidate_summary = 10;
+   */
+  quarantinedCandidateSummary?: string
+}
+
+// PluginManifestRecoveryStatus contains the message type declaration for PluginManifestRecoveryStatus.
+export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoveryStatus> =
+  createMessageType({
+    typeName: 's4wave.status.PluginManifestRecoveryStatus',
+    fields: [
+      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'execute_manifest_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 4,
+        name: 'download_manifest_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 5,
+        name: 'skipped_candidate_count',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 6,
+        name: 'skipped_candidate_summary',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 7,
+        name: 'ignored_candidate_count',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 8,
+        name: 'ignored_candidate_summary',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 9,
+        name: 'quarantined_candidate_count',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 10,
+        name: 'quarantined_candidate_summary',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * NativePackageRecoveryStatus reports process-host dist materialization facts.
+ *
+ * @generated from message s4wave.status.NativePackageRecoveryStatus
+ */
+export interface NativePackageRecoveryStatus {
+  /**
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId?: string
+  /**
+   * @generated from field: string dist_dir = 2;
+   */
+  distDir?: string
+  /**
+   * @generated from field: bool materialized = 3;
+   */
+  materialized?: boolean
+  /**
+   * @generated from field: bool invalidated = 4;
+   */
+  invalidated?: boolean
+  /**
+   * @generated from field: string last_action = 5;
+   */
+  lastAction?: string
+  /**
+   * @generated from field: string last_error = 6;
+   */
+  lastError?: string
+  /**
+   * @generated from field: string updated_at = 7;
+   */
+  updatedAt?: string
+}
+
+// NativePackageRecoveryStatus contains the message type declaration for NativePackageRecoveryStatus.
+export const NativePackageRecoveryStatus: MessageType<NativePackageRecoveryStatus> =
+  createMessageType({
+    typeName: 's4wave.status.NativePackageRecoveryStatus',
+    fields: [
+      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'dist_dir', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'materialized', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'invalidated', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'last_action', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'last_error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'updated_at', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * BrowserBootRecoveryStatus reports browser/desktop boot compatibility facts
+ * when a renderer has published them to the daemon status owner.
+ *
+ * @generated from message s4wave.status.BrowserBootRecoveryStatus
+ */
+export interface BrowserBootRecoveryStatus {
+  /**
+   * @generated from field: string compatibility_version = 1;
+   */
+  compatibilityVersion?: string
+  /**
+   * @generated from field: string last_reset_decision = 2;
+   */
+  lastResetDecision?: string
+  /**
+   * @generated from field: string status = 3;
+   */
+  status?: string
+}
+
+// BrowserBootRecoveryStatus contains the message type declaration for BrowserBootRecoveryStatus.
+export const BrowserBootRecoveryStatus: MessageType<BrowserBootRecoveryStatus> =
+  createMessageType({
+    typeName: 's4wave.status.BrowserBootRecoveryStatus',
+    fields: [
+      {
+        no: 1,
+        name: 'compatibility_version',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 2,
+        name: 'last_reset_decision',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 3, name: 'status', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RuntimeAssetRecoveryStatus reports the latest typed root plugin asset result
+ * when a renderer has published it to the daemon status owner.
+ *
+ * @generated from message s4wave.status.RuntimeAssetRecoveryStatus
+ */
+export interface RuntimeAssetRecoveryStatus {
+  /**
+   * @generated from field: string script_path = 1;
+   */
+  scriptPath?: string
+  /**
+   * @generated from field: uint32 status_code = 2;
+   */
+  statusCode?: number
+  /**
+   * @generated from field: bool ok = 3;
+   */
+  ok?: boolean
+  /**
+   * @generated from field: string classification = 4;
+   */
+  classification?: string
+  /**
+   * @generated from field: string fetch_source = 5;
+   */
+  fetchSource?: string
+  /**
+   * @generated from field: string runtime_error = 6;
+   */
+  runtimeError?: string
+  /**
+   * @generated from field: string plugin_asset_result = 7;
+   */
+  pluginAssetResult?: string
+  /**
+   * @generated from field: string content_type = 8;
+   */
+  contentType?: string
+  /**
+   * @generated from field: string body_prefix = 9;
+   */
+  bodyPrefix?: string
+  /**
+   * @generated from field: string status = 10;
+   */
+  status?: string
+}
+
+// RuntimeAssetRecoveryStatus contains the message type declaration for RuntimeAssetRecoveryStatus.
+export const RuntimeAssetRecoveryStatus: MessageType<RuntimeAssetRecoveryStatus> =
+  createMessageType({
+    typeName: 's4wave.status.RuntimeAssetRecoveryStatus',
+    fields: [
+      { no: 1, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'status_code', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'ok', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'classification', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'fetch_source', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'runtime_error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'plugin_asset_result',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 8, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'body_prefix', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'status', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RecoveryStatus composes runtime recovery facts without owning decisions.
+ *
+ * @generated from message s4wave.status.RecoveryStatus
+ */
+export interface RecoveryStatus {
+  /**
+   * @generated from field: s4wave.status.LauncherRecoveryStatus launcher = 1;
+   */
+  launcher?: LauncherRecoveryStatus
+  /**
+   * @generated from field: repeated s4wave.status.PluginManifestRecoveryStatus plugins = 2;
+   */
+  plugins?: PluginManifestRecoveryStatus[]
+  /**
+   * @generated from field: repeated s4wave.status.NativePackageRecoveryStatus native_packages = 3;
+   */
+  nativePackages?: NativePackageRecoveryStatus[]
+  /**
+   * @generated from field: s4wave.status.BrowserBootRecoveryStatus boot = 4;
+   */
+  boot?: BrowserBootRecoveryStatus
+  /**
+   * @generated from field: s4wave.status.RuntimeAssetRecoveryStatus runtime_asset = 5;
+   */
+  runtimeAsset?: RuntimeAssetRecoveryStatus
+}
+
+// RecoveryStatus contains the message type declaration for RecoveryStatus.
+export const RecoveryStatus: MessageType<RecoveryStatus> = createMessageType({
+  typeName: 's4wave.status.RecoveryStatus',
+  fields: [
+    {
+      no: 1,
+      name: 'launcher',
+      kind: 'message',
+      T: () => LauncherRecoveryStatus,
+    },
+    {
+      no: 2,
+      name: 'plugins',
+      kind: 'message',
+      T: () => PluginManifestRecoveryStatus,
+      repeated: true,
+    },
+    {
+      no: 3,
+      name: 'native_packages',
+      kind: 'message',
+      T: () => NativePackageRecoveryStatus,
+      repeated: true,
+    },
+    {
+      no: 4,
+      name: 'boot',
+      kind: 'message',
+      T: () => BrowserBootRecoveryStatus,
+    },
+    {
+      no: 5,
+      name: 'runtime_asset',
+      kind: 'message',
+      T: () => RuntimeAssetRecoveryStatus,
+    },
+  ] as readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * WatchControllersRequest is the request type for WatchControllers.
  *
  * @generated from message s4wave.status.WatchControllersRequest
@@ -263,6 +673,95 @@ export const WatchPluginsResponse: MessageType<WatchPluginsResponse> =
         repeated: true,
       },
       { no: 2, name: 'plugin_count', kind: 'scalar', T: ScalarType.UINT32 },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchRecoveryStatusRequest is the request type for WatchRecoveryStatus.
+ *
+ * @generated from message s4wave.status.WatchRecoveryStatusRequest
+ */
+export interface WatchRecoveryStatusRequest {}
+
+// WatchRecoveryStatusRequest contains the message type declaration for WatchRecoveryStatusRequest.
+export const WatchRecoveryStatusRequest: MessageType<WatchRecoveryStatusRequest> =
+  createMessageType({
+    typeName: 's4wave.status.WatchRecoveryStatusRequest',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReportRecoveryStatusRequest publishes renderer-owned recovery facts.
+ *
+ * @generated from message s4wave.status.ReportRecoveryStatusRequest
+ */
+export interface ReportRecoveryStatusRequest {
+  /**
+   * @generated from field: s4wave.status.BrowserBootRecoveryStatus boot = 1;
+   */
+  boot?: BrowserBootRecoveryStatus
+  /**
+   * @generated from field: s4wave.status.RuntimeAssetRecoveryStatus runtime_asset = 2;
+   */
+  runtimeAsset?: RuntimeAssetRecoveryStatus
+}
+
+// ReportRecoveryStatusRequest contains the message type declaration for ReportRecoveryStatusRequest.
+export const ReportRecoveryStatusRequest: MessageType<ReportRecoveryStatusRequest> =
+  createMessageType({
+    typeName: 's4wave.status.ReportRecoveryStatusRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'boot',
+        kind: 'message',
+        T: () => BrowserBootRecoveryStatus,
+      },
+      {
+        no: 2,
+        name: 'runtime_asset',
+        kind: 'message',
+        T: () => RuntimeAssetRecoveryStatus,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReportRecoveryStatusResponse is the response type for ReportRecoveryStatus.
+ *
+ * @generated from message s4wave.status.ReportRecoveryStatusResponse
+ */
+export interface ReportRecoveryStatusResponse {}
+
+// ReportRecoveryStatusResponse contains the message type declaration for ReportRecoveryStatusResponse.
+export const ReportRecoveryStatusResponse: MessageType<ReportRecoveryStatusResponse> =
+  createMessageType({
+    typeName: 's4wave.status.ReportRecoveryStatusResponse',
+    fields: [] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchRecoveryStatusResponse is the response type for WatchRecoveryStatus.
+ *
+ * @generated from message s4wave.status.WatchRecoveryStatusResponse
+ */
+export interface WatchRecoveryStatusResponse {
+  /**
+   * @generated from field: s4wave.status.RecoveryStatus status = 1;
+   */
+  status?: RecoveryStatus
+}
+
+// WatchRecoveryStatusResponse contains the message type declaration for WatchRecoveryStatusResponse.
+export const WatchRecoveryStatusResponse: MessageType<WatchRecoveryStatusResponse> =
+  createMessageType({
+    typeName: 's4wave.status.WatchRecoveryStatusResponse',
+    fields: [
+      { no: 1, name: 'status', kind: 'message', T: () => RecoveryStatus },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

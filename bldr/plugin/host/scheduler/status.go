@@ -9,12 +9,30 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // PluginStatusSnapshot describes the scheduler's current plugin instances.
 type PluginStatusSnapshot struct {
-	Plugins []*bldr_plugin.PluginStatus
+	Plugins          []*bldr_plugin.PluginStatus
+	ManifestRecovery []*PluginManifestRecoveryStatus
+}
+
+// PluginManifestRecoveryStatus describes the scheduler-owned retained Manifest
+// selection and eligibility facts for one plugin instance.
+type PluginManifestRecoveryStatus struct {
+	PluginID                    string
+	InstanceKey                 string
+	ExecuteManifestRef          string
+	DownloadManifestRef         string
+	SkippedCandidateCount       int
+	SkippedCandidateSummary     string
+	IgnoredCandidateCount       int
+	IgnoredCandidateSummary     string
+	QuarantinedCandidateCount   int
+	QuarantinedCandidateSummary string
 }
 
 // GetPluginStatusCtr returns the scheduler's live plugin-status snapshot.
@@ -187,6 +205,37 @@ func (c *Controller) clearPluginStatusErrorStage(pluginID, instanceKey, stage st
 	c.clearPluginStatusError(pluginID, instanceKey)
 }
 
+func (c *Controller) recordPluginManifestRecoveryStatus(
+	pluginID,
+	instanceKey string,
+	executeManifest,
+	downloadManifest *bldr_manifest.ManifestSnapshot,
+	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
+) {
+	key := pluginInstanceKey(pluginID, instanceKey)
+	c.pluginStatusMtx.Lock()
+	if c.pluginManifestRecoveryStatus == nil {
+		c.pluginManifestRecoveryStatus = make(map[string]*PluginManifestRecoveryStatus)
+	}
+	c.pluginManifestRecoveryStatus[key] = &PluginManifestRecoveryStatus{
+		PluginID:                    pluginID,
+		InstanceKey:                 instanceKey,
+		ExecuteManifestRef:          manifestSnapshotRefString(executeManifest),
+		DownloadManifestRef:         manifestSnapshotRefString(downloadManifest),
+		SkippedCandidateCount:       countStartupManifestEligibility(candidates, startupManifestEligibilitySkipCandidate),
+		SkippedCandidateSummary:     summarizeStartupManifestEligibility(candidates, startupManifestEligibilitySkipCandidate),
+		IgnoredCandidateCount:       countStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityIgnored),
+		IgnoredCandidateSummary:     summarizeStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityIgnored),
+		QuarantinedCandidateCount:   countStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityQuarantined),
+		QuarantinedCandidateSummary: summarizeStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityQuarantined),
+	}
+	snapshot := c.buildPluginStatusSnapshotLocked()
+	c.pluginStatusMtx.Unlock()
+	if c.pluginStatusCtr != nil {
+		c.pluginStatusCtr.SetValue(snapshot)
+	}
+}
+
 func (c *Controller) updatePluginStatus(
 	pluginID,
 	instanceKey string,
@@ -204,6 +253,7 @@ func (c *Controller) updatePluginStatus(
 	current := c.pluginStatus[key]
 	if state == bldr_plugin.PluginState_PluginState_UNKNOWN && !recordError && !clearError {
 		delete(c.pluginStatus, key)
+		delete(c.pluginManifestRecoveryStatus, key)
 	} else if state == bldr_plugin.PluginState_PluginState_UNKNOWN && clearError && current == nil {
 		// Successful completion can race with plugin reference cleanup. If the
 		// instance is already gone, clearing metadata should not recreate it.
@@ -269,7 +319,29 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *PluginStatusSnapshot {
 		}
 		return 0
 	})
-	return &PluginStatusSnapshot{Plugins: plugins}
+	recovery := make([]*PluginManifestRecoveryStatus, 0, len(c.pluginManifestRecoveryStatus))
+	for _, row := range c.pluginManifestRecoveryStatus {
+		if row == nil {
+			continue
+		}
+		recovery = append(recovery, clonePluginManifestRecoveryStatus(row))
+	}
+	slices.SortFunc(recovery, func(a, b *PluginManifestRecoveryStatus) int {
+		if a.PluginID < b.PluginID {
+			return -1
+		}
+		if a.PluginID > b.PluginID {
+			return 1
+		}
+		if a.InstanceKey < b.InstanceKey {
+			return -1
+		}
+		if a.InstanceKey > b.InstanceKey {
+			return 1
+		}
+		return 0
+	})
+	return &PluginStatusSnapshot{Plugins: plugins, ManifestRecovery: recovery}
 }
 
 func pluginStatusSnapshotEqual(a, b *PluginStatusSnapshot) bool {
@@ -290,7 +362,85 @@ func pluginStatusSnapshotEqual(a, b *PluginStatusSnapshot) bool {
 			return false
 		}
 	}
-	return true
+	return slices.EqualFunc(a.ManifestRecovery, b.ManifestRecovery, pluginManifestRecoveryStatusEqual)
+}
+
+func clonePluginManifestRecoveryStatus(row *PluginManifestRecoveryStatus) *PluginManifestRecoveryStatus {
+	if row == nil {
+		return nil
+	}
+	next := *row
+	return &next
+}
+
+func pluginManifestRecoveryStatusEqual(a, b *PluginManifestRecoveryStatus) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.PluginID == b.PluginID &&
+		a.InstanceKey == b.InstanceKey &&
+		a.ExecuteManifestRef == b.ExecuteManifestRef &&
+		a.DownloadManifestRef == b.DownloadManifestRef &&
+		a.SkippedCandidateCount == b.SkippedCandidateCount &&
+		a.SkippedCandidateSummary == b.SkippedCandidateSummary &&
+		a.IgnoredCandidateCount == b.IgnoredCandidateCount &&
+		a.IgnoredCandidateSummary == b.IgnoredCandidateSummary &&
+		a.QuarantinedCandidateCount == b.QuarantinedCandidateCount &&
+		a.QuarantinedCandidateSummary == b.QuarantinedCandidateSummary
+}
+
+func manifestSnapshotRefString(snapshot *bldr_manifest.ManifestSnapshot) string {
+	if snapshot == nil || snapshot.GetManifestRef() == nil {
+		return ""
+	}
+	return snapshot.GetManifestRef().MarshalB58()
+}
+
+func summarizeStartupManifestEligibilityKind(
+	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
+	eligibility bldr_manifest_world.StartupManifestEligibility,
+) string {
+	return summarizeStartupManifestEligibility(candidates, func(candidate *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+		return candidate != nil && candidate.Eligibility == eligibility
+	})
+}
+
+func summarizeStartupManifestEligibility(
+	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
+	match func(*bldr_manifest_world.StartupManifestCandidateEligibility) bool,
+) string {
+	if len(candidates) == 0 {
+		return ""
+	}
+	filtered := make([]*bldr_manifest_world.StartupManifestCandidateEligibility, 0, len(candidates))
+	for _, candidate := range candidates {
+		if match(candidate) {
+			filtered = append(filtered, candidate)
+		}
+	}
+	return bldr_manifest_world.SummarizeStartupManifestEligibility(filtered, maxStartupManifestSkipSummaryItems)
+}
+
+func countStartupManifestEligibilityKind(
+	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
+	eligibility bldr_manifest_world.StartupManifestEligibility,
+) int {
+	return countStartupManifestEligibility(candidates, func(candidate *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+		return candidate != nil && candidate.Eligibility == eligibility
+	})
+}
+
+func countStartupManifestEligibility(
+	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
+	match func(*bldr_manifest_world.StartupManifestCandidateEligibility) bool,
+) int {
+	var count int
+	for _, candidate := range candidates {
+		if match(candidate) {
+			count++
+		}
+	}
+	return count
 }
 
 func cloneTimestamp(ts *timestamp.Timestamp) *timestamp.Timestamp {

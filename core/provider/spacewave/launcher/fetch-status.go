@@ -15,6 +15,18 @@ type FetchStatus struct {
 	// HasConfig is true once the controller has a non-empty DistConfig
 	// (either loaded from disk, the built-in default, or a successful fetch).
 	HasConfig bool
+	// SelectedConfigRev is the revision currently selected by the launcher.
+	SelectedConfigRev uint64
+	// SelectedConfigSource names the owner/source of the selected DistConfig.
+	SelectedConfigSource string
+	// FetchedConfigRev is the most recent valid endpoint DistConfig revision.
+	FetchedConfigRev uint64
+	// FetchedConfigSource names the endpoint/source that produced
+	// FetchedConfigRev.
+	FetchedConfigSource string
+	// ReleaseMetadataOutcome describes the latest release metadata resolution
+	// result for the selected DistConfig.
+	ReleaseMetadataOutcome string
 	// LastErr is the most recent endpoint-fetch error string, or empty when
 	// the last attempt succeeded or no fetch has run yet.
 	LastErr string

@@ -175,6 +175,7 @@ func describeStartupManifestGraphCandidate(
 	defaultBucketID string,
 ) string {
 	parts := describeStartupManifestGraphObjectParts(ctx, ws, "candidate", objKey, defaultBucketID)
+	parts = append(parts, startupManifestGraphProvenanceParts(ctx, ws, objKey)...)
 	if startupManifestGraphPartHasPrefix(parts, "skip=") {
 		return strings.Join(parts, " ")
 	}
@@ -333,6 +334,58 @@ func startupManifestGraphLabel(label string) string {
 		return "<empty>"
 	}
 	return label
+}
+
+func startupManifestGraphProvenanceParts(ctx context.Context, ws world.WorldState, objKey string) []string {
+	provenance := classifyStartupManifestGraphProvenance(ctx, ws, objKey)
+	return []string{
+		"provenance=" + provenance.source,
+		"derived=" + strconv.FormatBool(provenance.derived),
+		"protected=" + strconv.FormatBool(provenance.protected),
+	}
+}
+
+type startupManifestGraphProvenance struct {
+	source    string
+	derived   bool
+	protected bool
+}
+
+func classifyStartupManifestGraphProvenance(ctx context.Context, ws world.WorldState, objKey string) startupManifestGraphProvenance {
+	provenance := startupManifestGraphProvenance{
+		source:    "unknown",
+		protected: true,
+	}
+	if startupManifestGraphObjectKeyIsReleaseSource(objKey) {
+		provenance.source = "global-release"
+		provenance.derived = true
+		provenance.protected = false
+	} else if startupManifestGraphHasBuildResult(ctx, ws, objKey) {
+		provenance.source = "project-build"
+		provenance.derived = true
+		provenance.protected = false
+	} else if startupManifestGraphObjectKeyIsSpaceLocalOrEphemeral(objKey) {
+		provenance.source = "space-local-or-ephemeral"
+	}
+	return provenance
+}
+
+func startupManifestGraphObjectKeyIsReleaseSource(objKey string) bool {
+	return strings.HasPrefix(objKey, "release/manifests/") ||
+		strings.HasPrefix(objKey, "spacewave/release/manifests/")
+}
+
+func startupManifestGraphObjectKeyIsSpaceLocalOrEphemeral(objKey string) bool {
+	return strings.HasPrefix(objKey, "spaces/") ||
+		strings.HasPrefix(objKey, "space/") ||
+		strings.HasPrefix(objKey, "shared-object/") ||
+		strings.HasPrefix(objKey, "ephemeral/") ||
+		strings.Contains(objKey, "/ephemeral/")
+}
+
+func startupManifestGraphHasBuildResult(ctx context.Context, ws world.WorldState, objKey string) bool {
+	objType, err := world_types.GetObjectType(ctx, ws, objKey+"/build-result")
+	return err == nil && objType == "bldr/manifest-build-result"
 }
 
 func startupManifestGraphPartHasPrefix(parts []string, prefix string) bool {

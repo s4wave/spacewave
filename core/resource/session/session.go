@@ -95,6 +95,24 @@ func NewSessionResourceWithHostPluginID(
 	sess session.Session,
 	hostPluginID string,
 ) *SessionResource {
+	return NewSessionResourceWithHostPluginIDAndRecoveryStatus(
+		le,
+		b,
+		sess,
+		hostPluginID,
+		nil,
+	)
+}
+
+// NewSessionResourceWithHostPluginIDAndRecoveryStatus creates a new
+// SessionResource with an explicit recovery status registry.
+func NewSessionResourceWithHostPluginIDAndRecoveryStatus(
+	le *logrus.Entry,
+	b bus.Bus,
+	sess session.Session,
+	hostPluginID string,
+	recoveryStatusRegistry *RecoveryStatusRegistry,
+) *SessionResource {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	sessResource := &SessionResource{
 		le:           le,
@@ -105,7 +123,10 @@ func NewSessionResourceWithHostPluginID(
 		ctxCancel:    ctxCancel,
 	}
 
-	statusRes := NewStatusResource(b)
+	statusRes := NewStatusResource(
+		b,
+		recoveryStatusRegistry.GetSessionRecoveryStatusCtr(sess),
+	)
 	registrations := []func(srpc.Mux) error{
 		func(mux srpc.Mux) error {
 			return s4wave_session.SRPCRegisterSessionResourceService(mux, sessResource)

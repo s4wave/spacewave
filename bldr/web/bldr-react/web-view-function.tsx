@@ -3,6 +3,7 @@ import { castToError } from 'starpc'
 import { constantBackoff, retryWithAbort } from '@aptre/bldr'
 import { BldrComponent } from './bldr-component.js'
 import { FunctionComponent } from './function-component.js'
+import { loadWebViewScriptModule } from './web-view-module-loader.js'
 
 // IFunctionComponentContainerProps are props for FunctionComponentContainer.
 export interface IFunctionComponentContainerProps {
@@ -61,7 +62,9 @@ export class FunctionComponentContainer extends BldrComponent<
     retryWithAbort(
       this.abortController.signal,
       async () => {
-        const script = await import(this.scriptPath)
+        const script = await loadWebViewScriptModule<{
+          default?: unknown
+        }>(this.scriptPath)
         let functionComponent: FunctionComponent | undefined
         if (script?.default && typeof script.default === 'function') {
           functionComponent = script.default as FunctionComponent

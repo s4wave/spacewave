@@ -768,6 +768,211 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	}
 }
 
+func TestWatchWorldManifestIgnoresWrongPlatformRetainedRefAndSelectsCurrent(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	currentRef, currentRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "desktop/darwin/arm64", 7)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, currentRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ignoredRef := newTestStoredManifestRef(t, ctx, tb, "spacewave-core", "desktop/linux/amd64", 99)
+	const ignoredRefKey = "plugin-host/ref/wrong-platform"
+	storeTestManifestRefObject(t, ctx, ws, ignoredRefKey, ignoredRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, ignoredRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	ctrl := &Controller{
+		conf:   &Config{},
+		objKey: objKey,
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+	pi := &pluginInstance{
+		c:                       ctrl,
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state from current platform candidate")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(currentRef.GetManifestRef()) {
+		t.Fatal("expected wrong-platform retained ref to be ignored during execute selection")
+	}
+	if downloadState := pi.downloadManifestRoutine.GetState(); downloadState != nil &&
+		downloadState.GetManifestRef().EqualVT(ignoredRef.GetManifestRef()) {
+		t.Fatal("expected wrong-platform retained ref not to be scheduled for download")
+	}
+
+	status := ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 0 {
+		t.Fatalf("expected ignored retained ref not to surface as a skip error, got %+v", status.Plugins)
+	}
+	if _, ok, err := ws.GetObject(ctx, ignoredRefKey); err != nil {
+		t.Fatal(err.Error())
+	} else if !ok {
+		t.Fatal("expected ignored retained ref to remain in the graph")
+	}
+}
+
+func TestWatchWorldManifestQuarantinesWrongManifestIDRetainedRef(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	currentRef, currentRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "desktop/darwin/arm64", 7)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, currentRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	quarantinedRef := newTestStoredManifestRef(t, ctx, tb, "other-plugin", "desktop/darwin/arm64", 99)
+	const quarantinedRefKey = "plugin-host/ref/wrong-manifest-id"
+	storeTestManifestRefObject(t, ctx, ws, quarantinedRefKey, quarantinedRef)
+	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, quarantinedRefKey, "spacewave-core")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	ctrl := &Controller{
+		conf:   &Config{},
+		objKey: objKey,
+		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
+			&PluginStatusSnapshot{},
+			pluginStatusSnapshotEqual,
+		),
+		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
+	}
+	pi := &pluginInstance{
+		c:                       ctrl,
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+
+	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !wait {
+		t.Fatal("expected watch loop to wait for changes")
+	}
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected execute state from compatible current candidate")
+	}
+	if !execState.manifestSnapshot.GetManifestRef().EqualVT(currentRef.GetManifestRef()) {
+		t.Fatal("expected quarantined retained ref not to replace current execute candidate")
+	}
+	if downloadState := pi.downloadManifestRoutine.GetState(); downloadState != nil &&
+		downloadState.GetManifestRef().EqualVT(quarantinedRef.GetManifestRef()) {
+		t.Fatal("expected quarantined retained ref not to be scheduled for download")
+	}
+
+	status := ctrl.GetPluginStatusCtr().GetValue()
+	if len(status.Plugins) != 1 {
+		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
+	}
+	lastError := status.Plugins[0].GetLastErrorMessage()
+	for _, want := range []string{
+		"startup manifest refs: 1 skipped startup manifest ref(s)",
+		quarantinedRefKey,
+		"quarantined",
+		"manifest-id-mismatch:other-plugin",
+	} {
+		if !strings.Contains(lastError, want) {
+			t.Fatalf("quarantine diagnostic %q does not contain %q", lastError, want)
+		}
+	}
+	if _, ok, err := ws.GetObject(ctx, quarantinedRefKey); err != nil {
+		t.Fatal(err.Error())
+	} else if !ok {
+		t.Fatal("expected quarantined retained ref to remain in the graph")
+	}
+}
+
 func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())

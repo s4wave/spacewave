@@ -18,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
+	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	"github.com/sirupsen/logrus"
 )
@@ -34,6 +35,11 @@ func ElectronDefine(devMode bool) map[string]string {
 
 // EsbuildLogLevel is the log level when bundling the electron entrypoint_browser_bundle.
 var EsbuildLogLevel = esbuild.LogLevelWarning
+
+const (
+	electronStableBootEntrypointPath = "./boot.mjs"
+	electronRendererEntrypointPath   = "entrypoint/entrypoint.mjs"
+)
 
 // ElectronBuildOpts are general options for building for Electron.
 func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildOptions {
@@ -162,6 +168,30 @@ func BuildRendererBundle(
 	return bldr_esbuild_build.BuildResultToErr(res)
 }
 
+func BuildElectronRendererIndex(buildDir string, importMap web_entrypoint_index.ImportMap) error {
+	return entrypoint_browser_bundle.BuildRendererIndex(
+		buildDir,
+		electronStableBootEntrypointPath,
+		importMap,
+	)
+}
+
+func WriteElectronStableBootFiles(buildDir, serviceWorkerFilename, sharedWorkerFilename string) error {
+	if err := entrypoint_browser_bundle.WriteStableBootAsset(buildDir); err != nil {
+		return err
+	}
+	return entrypoint_browser_bundle.WriteBuildManifest(
+		buildDir,
+		&entrypoint_browser_bundle.BuildManifest{
+			Entrypoint:    electronRendererEntrypointPath,
+			ServiceWorker: serviceWorkerFilename,
+			SharedWorker:  sharedWorkerFilename,
+			Wasm:          electronRendererEntrypointPath,
+			AutoStart:     true,
+		},
+	)
+}
+
 // FixEsbuildIssue1921 fixes dynamic esbuild imports failing under node.js.
 
 // https://github.com/evanw/esbuild/issues/1921
@@ -237,12 +267,12 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
+	if err := WriteElectronStableBootFiles(buildDir, swFilename, shwFilename); err != nil {
+		return err
+	}
+
 	// Render index.html with the import map from the web pkg build.
-	if err := entrypoint_browser_bundle.BuildRendererIndex(
-		buildDir,
-		"./entrypoint/entrypoint.mjs",
-		webPkgImportMap,
-	); err != nil {
+	if err := BuildElectronRendererIndex(buildDir, webPkgImportMap); err != nil {
 		return err
 	}
 

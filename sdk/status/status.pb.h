@@ -57,6 +57,10 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace status {
+class BrowserBootRecoveryStatus;
+struct BrowserBootRecoveryStatusDefaultTypeInternal;
+extern BrowserBootRecoveryStatusDefaultTypeInternal _BrowserBootRecoveryStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull BrowserBootRecoveryStatus_class_data_;
 class ControllerInfo;
 struct ControllerInfoDefaultTypeInternal;
 extern ControllerInfoDefaultTypeInternal _ControllerInfo_default_instance_;
@@ -65,10 +69,38 @@ class DirectiveInfo;
 struct DirectiveInfoDefaultTypeInternal;
 extern DirectiveInfoDefaultTypeInternal _DirectiveInfo_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull DirectiveInfo_class_data_;
+class LauncherRecoveryStatus;
+struct LauncherRecoveryStatusDefaultTypeInternal;
+extern LauncherRecoveryStatusDefaultTypeInternal _LauncherRecoveryStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull LauncherRecoveryStatus_class_data_;
+class NativePackageRecoveryStatus;
+struct NativePackageRecoveryStatusDefaultTypeInternal;
+extern NativePackageRecoveryStatusDefaultTypeInternal _NativePackageRecoveryStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull NativePackageRecoveryStatus_class_data_;
 class PluginInfo;
 struct PluginInfoDefaultTypeInternal;
 extern PluginInfoDefaultTypeInternal _PluginInfo_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull PluginInfo_class_data_;
+class PluginManifestRecoveryStatus;
+struct PluginManifestRecoveryStatusDefaultTypeInternal;
+extern PluginManifestRecoveryStatusDefaultTypeInternal _PluginManifestRecoveryStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull PluginManifestRecoveryStatus_class_data_;
+class RecoveryStatus;
+struct RecoveryStatusDefaultTypeInternal;
+extern RecoveryStatusDefaultTypeInternal _RecoveryStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RecoveryStatus_class_data_;
+class ReportRecoveryStatusRequest;
+struct ReportRecoveryStatusRequestDefaultTypeInternal;
+extern ReportRecoveryStatusRequestDefaultTypeInternal _ReportRecoveryStatusRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReportRecoveryStatusRequest_class_data_;
+class ReportRecoveryStatusResponse;
+struct ReportRecoveryStatusResponseDefaultTypeInternal;
+extern ReportRecoveryStatusResponseDefaultTypeInternal _ReportRecoveryStatusResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReportRecoveryStatusResponse_class_data_;
+class RuntimeAssetRecoveryStatus;
+struct RuntimeAssetRecoveryStatusDefaultTypeInternal;
+extern RuntimeAssetRecoveryStatusDefaultTypeInternal _RuntimeAssetRecoveryStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RuntimeAssetRecoveryStatus_class_data_;
 class WatchControllersRequest;
 struct WatchControllersRequestDefaultTypeInternal;
 extern WatchControllersRequestDefaultTypeInternal _WatchControllersRequest_default_instance_;
@@ -93,6 +125,14 @@ class WatchPluginsResponse;
 struct WatchPluginsResponseDefaultTypeInternal;
 extern WatchPluginsResponseDefaultTypeInternal _WatchPluginsResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull WatchPluginsResponse_class_data_;
+class WatchRecoveryStatusRequest;
+struct WatchRecoveryStatusRequestDefaultTypeInternal;
+extern WatchRecoveryStatusRequestDefaultTypeInternal _WatchRecoveryStatusRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchRecoveryStatusRequest_class_data_;
+class WatchRecoveryStatusResponse;
+struct WatchRecoveryStatusResponseDefaultTypeInternal;
+extern WatchRecoveryStatusResponseDefaultTypeInternal _WatchRecoveryStatusResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchRecoveryStatusResponse_class_data_;
 }  // namespace status
 }  // namespace s4wave
 namespace google {
@@ -106,6 +146,140 @@ namespace status {
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class WatchRecoveryStatusRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.status.WatchRecoveryStatusRequest) */ {
+ public:
+  inline WatchRecoveryStatusRequest() : WatchRecoveryStatusRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchRecoveryStatusRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchRecoveryStatusRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchRecoveryStatusRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchRecoveryStatusRequest(const WatchRecoveryStatusRequest& from) : WatchRecoveryStatusRequest(nullptr, from) {}
+  inline WatchRecoveryStatusRequest(WatchRecoveryStatusRequest&& from) noexcept
+      : WatchRecoveryStatusRequest(nullptr, ::std::move(from)) {}
+  inline WatchRecoveryStatusRequest& operator=(const WatchRecoveryStatusRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchRecoveryStatusRequest& operator=(WatchRecoveryStatusRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchRecoveryStatusRequest& default_instance() {
+    return *reinterpret_cast<const WatchRecoveryStatusRequest*>(
+        &_WatchRecoveryStatusRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 15;
+  friend void swap(WatchRecoveryStatusRequest& a, WatchRecoveryStatusRequest& b) { a.Swap(&b); }
+  inline void Swap(WatchRecoveryStatusRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchRecoveryStatusRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchRecoveryStatusRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchRecoveryStatusRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const WatchRecoveryStatusRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const WatchRecoveryStatusRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.WatchRecoveryStatusRequest"; }
+
+  explicit WatchRecoveryStatusRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchRecoveryStatusRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchRecoveryStatusRequest& from);
+  WatchRecoveryStatusRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchRecoveryStatusRequest&& from) noexcept
+      : WatchRecoveryStatusRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.status.WatchRecoveryStatusRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchRecoveryStatusRequest_class_data_;
 // -------------------------------------------------------------------
 
 class WatchPluginsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
@@ -162,7 +336,7 @@ class WatchPluginsRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const WatchPluginsRequest*>(
         &_WatchPluginsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(WatchPluginsRequest& a, WatchPluginsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchPluginsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -296,7 +470,7 @@ class WatchDirectivesRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const WatchDirectivesRequest*>(
         &_WatchDirectivesRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(WatchDirectivesRequest& a, WatchDirectivesRequest& b) { a.Swap(&b); }
   inline void Swap(WatchDirectivesRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -430,7 +604,7 @@ class WatchControllersRequest final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const WatchControllersRequest*>(
         &_WatchControllersRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(WatchControllersRequest& a, WatchControllersRequest& b) { a.Swap(&b); }
   inline void Swap(WatchControllersRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -508,6 +682,811 @@ class WatchControllersRequest final : public ::google::protobuf::internal::ZeroF
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WatchControllersRequest_class_data_;
+// -------------------------------------------------------------------
+
+class RuntimeAssetRecoveryStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.RuntimeAssetRecoveryStatus) */ {
+ public:
+  inline RuntimeAssetRecoveryStatus() : RuntimeAssetRecoveryStatus(nullptr) {}
+  ~RuntimeAssetRecoveryStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RuntimeAssetRecoveryStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RuntimeAssetRecoveryStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline RuntimeAssetRecoveryStatus(const RuntimeAssetRecoveryStatus& from) : RuntimeAssetRecoveryStatus(nullptr, from) {}
+  inline RuntimeAssetRecoveryStatus(RuntimeAssetRecoveryStatus&& from) noexcept
+      : RuntimeAssetRecoveryStatus(nullptr, ::std::move(from)) {}
+  inline RuntimeAssetRecoveryStatus& operator=(const RuntimeAssetRecoveryStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RuntimeAssetRecoveryStatus& operator=(RuntimeAssetRecoveryStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RuntimeAssetRecoveryStatus& default_instance() {
+    return *reinterpret_cast<const RuntimeAssetRecoveryStatus*>(
+        &_RuntimeAssetRecoveryStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(RuntimeAssetRecoveryStatus& a, RuntimeAssetRecoveryStatus& b) { a.Swap(&b); }
+  inline void Swap(RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RuntimeAssetRecoveryStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RuntimeAssetRecoveryStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RuntimeAssetRecoveryStatus& from) { RuntimeAssetRecoveryStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.RuntimeAssetRecoveryStatus"; }
+
+  explicit RuntimeAssetRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RuntimeAssetRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RuntimeAssetRecoveryStatus& from);
+  RuntimeAssetRecoveryStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RuntimeAssetRecoveryStatus&& from) noexcept
+      : RuntimeAssetRecoveryStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kScriptPathFieldNumber = 1,
+    kClassificationFieldNumber = 4,
+    kFetchSourceFieldNumber = 5,
+    kRuntimeErrorFieldNumber = 6,
+    kPluginAssetResultFieldNumber = 7,
+    kContentTypeFieldNumber = 8,
+    kBodyPrefixFieldNumber = 9,
+    kStatusFieldNumber = 10,
+    kStatusCodeFieldNumber = 2,
+    kOkFieldNumber = 3,
+  };
+  // string script_path = 1;
+  void clear_script_path() ;
+  const ::std::string& script_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_script_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_script_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_script_path();
+  void set_allocated_script_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_script_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_script_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_script_path();
+
+  public:
+  // string classification = 4;
+  void clear_classification() ;
+  const ::std::string& classification() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_classification(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_classification();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_classification();
+  void set_allocated_classification(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_classification() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_classification(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_classification();
+
+  public:
+  // string fetch_source = 5;
+  void clear_fetch_source() ;
+  const ::std::string& fetch_source() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_fetch_source(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_fetch_source();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_fetch_source();
+  void set_allocated_fetch_source(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_fetch_source() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_fetch_source(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_fetch_source();
+
+  public:
+  // string runtime_error = 6;
+  void clear_runtime_error() ;
+  const ::std::string& runtime_error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_runtime_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_runtime_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_runtime_error();
+  void set_allocated_runtime_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_runtime_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_runtime_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_runtime_error();
+
+  public:
+  // string plugin_asset_result = 7;
+  void clear_plugin_asset_result() ;
+  const ::std::string& plugin_asset_result() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_plugin_asset_result(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_plugin_asset_result();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_plugin_asset_result();
+  void set_allocated_plugin_asset_result(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_plugin_asset_result() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_plugin_asset_result(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_asset_result();
+
+  public:
+  // string content_type = 8;
+  void clear_content_type() ;
+  const ::std::string& content_type() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_content_type(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_content_type();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_content_type();
+  void set_allocated_content_type(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_content_type() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_content_type(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_content_type();
+
+  public:
+  // string body_prefix = 9;
+  void clear_body_prefix() ;
+  const ::std::string& body_prefix() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_body_prefix(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_body_prefix();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_body_prefix();
+  void set_allocated_body_prefix(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_body_prefix() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_body_prefix(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_body_prefix();
+
+  public:
+  // string status = 10;
+  void clear_status() ;
+  const ::std::string& status() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_status(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_status();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_status();
+  void set_allocated_status(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_status() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_status(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_status();
+
+  public:
+  // uint32 status_code = 2;
+  void clear_status_code() ;
+  ::uint32_t status_code() const;
+  void set_status_code(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_status_code() const;
+  void _internal_set_status_code(::uint32_t value);
+
+  public:
+  // bool ok = 3;
+  void clear_ok() ;
+  bool ok() const;
+  void set_ok(bool value);
+
+  private:
+  bool _internal_ok() const;
+  void _internal_set_ok(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.RuntimeAssetRecoveryStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
+                                   0, 155,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RuntimeAssetRecoveryStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr script_path_;
+    ::google::protobuf::internal::ArenaStringPtr classification_;
+    ::google::protobuf::internal::ArenaStringPtr fetch_source_;
+    ::google::protobuf::internal::ArenaStringPtr runtime_error_;
+    ::google::protobuf::internal::ArenaStringPtr plugin_asset_result_;
+    ::google::protobuf::internal::ArenaStringPtr content_type_;
+    ::google::protobuf::internal::ArenaStringPtr body_prefix_;
+    ::google::protobuf::internal::ArenaStringPtr status_;
+    ::uint32_t status_code_;
+    bool ok_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RuntimeAssetRecoveryStatus_class_data_;
+// -------------------------------------------------------------------
+
+class ReportRecoveryStatusResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.status.ReportRecoveryStatusResponse) */ {
+ public:
+  inline ReportRecoveryStatusResponse() : ReportRecoveryStatusResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReportRecoveryStatusResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReportRecoveryStatusResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReportRecoveryStatusResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReportRecoveryStatusResponse(const ReportRecoveryStatusResponse& from) : ReportRecoveryStatusResponse(nullptr, from) {}
+  inline ReportRecoveryStatusResponse(ReportRecoveryStatusResponse&& from) noexcept
+      : ReportRecoveryStatusResponse(nullptr, ::std::move(from)) {}
+  inline ReportRecoveryStatusResponse& operator=(const ReportRecoveryStatusResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReportRecoveryStatusResponse& operator=(ReportRecoveryStatusResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReportRecoveryStatusResponse& default_instance() {
+    return *reinterpret_cast<const ReportRecoveryStatusResponse*>(
+        &_ReportRecoveryStatusResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 17;
+  friend void swap(ReportRecoveryStatusResponse& a, ReportRecoveryStatusResponse& b) { a.Swap(&b); }
+  inline void Swap(ReportRecoveryStatusResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReportRecoveryStatusResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReportRecoveryStatusResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<ReportRecoveryStatusResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const ReportRecoveryStatusResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const ReportRecoveryStatusResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.ReportRecoveryStatusResponse"; }
+
+  explicit ReportRecoveryStatusResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReportRecoveryStatusResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReportRecoveryStatusResponse& from);
+  ReportRecoveryStatusResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReportRecoveryStatusResponse&& from) noexcept
+      : ReportRecoveryStatusResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.status.ReportRecoveryStatusResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReportRecoveryStatusResponse_class_data_;
+// -------------------------------------------------------------------
+
+class PluginManifestRecoveryStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.PluginManifestRecoveryStatus) */ {
+ public:
+  inline PluginManifestRecoveryStatus() : PluginManifestRecoveryStatus(nullptr) {}
+  ~PluginManifestRecoveryStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(PluginManifestRecoveryStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(PluginManifestRecoveryStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR PluginManifestRecoveryStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline PluginManifestRecoveryStatus(const PluginManifestRecoveryStatus& from) : PluginManifestRecoveryStatus(nullptr, from) {}
+  inline PluginManifestRecoveryStatus(PluginManifestRecoveryStatus&& from) noexcept
+      : PluginManifestRecoveryStatus(nullptr, ::std::move(from)) {}
+  inline PluginManifestRecoveryStatus& operator=(const PluginManifestRecoveryStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline PluginManifestRecoveryStatus& operator=(PluginManifestRecoveryStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const PluginManifestRecoveryStatus& default_instance() {
+    return *reinterpret_cast<const PluginManifestRecoveryStatus*>(
+        &_PluginManifestRecoveryStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(PluginManifestRecoveryStatus& a, PluginManifestRecoveryStatus& b) { a.Swap(&b); }
+  inline void Swap(PluginManifestRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(PluginManifestRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  PluginManifestRecoveryStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<PluginManifestRecoveryStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const PluginManifestRecoveryStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const PluginManifestRecoveryStatus& from) { PluginManifestRecoveryStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(PluginManifestRecoveryStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.PluginManifestRecoveryStatus"; }
+
+  explicit PluginManifestRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  PluginManifestRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const PluginManifestRecoveryStatus& from);
+  PluginManifestRecoveryStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, PluginManifestRecoveryStatus&& from) noexcept
+      : PluginManifestRecoveryStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPluginIdFieldNumber = 1,
+    kInstanceKeyFieldNumber = 2,
+    kExecuteManifestRefFieldNumber = 3,
+    kDownloadManifestRefFieldNumber = 4,
+    kSkippedCandidateSummaryFieldNumber = 6,
+    kIgnoredCandidateSummaryFieldNumber = 8,
+    kQuarantinedCandidateSummaryFieldNumber = 10,
+    kSkippedCandidateCountFieldNumber = 5,
+    kIgnoredCandidateCountFieldNumber = 7,
+    kQuarantinedCandidateCountFieldNumber = 9,
+  };
+  // string plugin_id = 1;
+  void clear_plugin_id() ;
+  const ::std::string& plugin_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_plugin_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_plugin_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_plugin_id();
+  void set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_plugin_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_plugin_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_id();
+
+  public:
+  // string instance_key = 2;
+  void clear_instance_key() ;
+  const ::std::string& instance_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_instance_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_instance_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_instance_key();
+  void set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_instance_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_instance_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_instance_key();
+
+  public:
+  // string execute_manifest_ref = 3;
+  void clear_execute_manifest_ref() ;
+  const ::std::string& execute_manifest_ref() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_execute_manifest_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_execute_manifest_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_execute_manifest_ref();
+  void set_allocated_execute_manifest_ref(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_execute_manifest_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_execute_manifest_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_execute_manifest_ref();
+
+  public:
+  // string download_manifest_ref = 4;
+  void clear_download_manifest_ref() ;
+  const ::std::string& download_manifest_ref() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_download_manifest_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_download_manifest_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_download_manifest_ref();
+  void set_allocated_download_manifest_ref(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_download_manifest_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_download_manifest_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_download_manifest_ref();
+
+  public:
+  // string skipped_candidate_summary = 6;
+  void clear_skipped_candidate_summary() ;
+  const ::std::string& skipped_candidate_summary() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_skipped_candidate_summary(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_skipped_candidate_summary();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_skipped_candidate_summary();
+  void set_allocated_skipped_candidate_summary(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_skipped_candidate_summary() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_skipped_candidate_summary(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_skipped_candidate_summary();
+
+  public:
+  // string ignored_candidate_summary = 8;
+  void clear_ignored_candidate_summary() ;
+  const ::std::string& ignored_candidate_summary() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ignored_candidate_summary(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ignored_candidate_summary();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ignored_candidate_summary();
+  void set_allocated_ignored_candidate_summary(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ignored_candidate_summary() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ignored_candidate_summary(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ignored_candidate_summary();
+
+  public:
+  // string quarantined_candidate_summary = 10;
+  void clear_quarantined_candidate_summary() ;
+  const ::std::string& quarantined_candidate_summary() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_quarantined_candidate_summary(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_quarantined_candidate_summary();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_quarantined_candidate_summary();
+  void set_allocated_quarantined_candidate_summary(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_quarantined_candidate_summary() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_quarantined_candidate_summary(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_quarantined_candidate_summary();
+
+  public:
+  // uint32 skipped_candidate_count = 5;
+  void clear_skipped_candidate_count() ;
+  ::uint32_t skipped_candidate_count() const;
+  void set_skipped_candidate_count(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_skipped_candidate_count() const;
+  void _internal_set_skipped_candidate_count(::uint32_t value);
+
+  public:
+  // uint32 ignored_candidate_count = 7;
+  void clear_ignored_candidate_count() ;
+  ::uint32_t ignored_candidate_count() const;
+  void set_ignored_candidate_count(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_ignored_candidate_count() const;
+  void _internal_set_ignored_candidate_count(::uint32_t value);
+
+  public:
+  // uint32 quarantined_candidate_count = 9;
+  void clear_quarantined_candidate_count() ;
+  ::uint32_t quarantined_candidate_count() const;
+  void set_quarantined_candidate_count(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_quarantined_candidate_count() const;
+  void _internal_set_quarantined_candidate_count(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.PluginManifestRecoveryStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
+                                   0, 200,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const PluginManifestRecoveryStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr plugin_id_;
+    ::google::protobuf::internal::ArenaStringPtr instance_key_;
+    ::google::protobuf::internal::ArenaStringPtr execute_manifest_ref_;
+    ::google::protobuf::internal::ArenaStringPtr download_manifest_ref_;
+    ::google::protobuf::internal::ArenaStringPtr skipped_candidate_summary_;
+    ::google::protobuf::internal::ArenaStringPtr ignored_candidate_summary_;
+    ::google::protobuf::internal::ArenaStringPtr quarantined_candidate_summary_;
+    ::uint32_t skipped_candidate_count_;
+    ::uint32_t ignored_candidate_count_;
+    ::uint32_t quarantined_candidate_count_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull PluginManifestRecoveryStatus_class_data_;
 // -------------------------------------------------------------------
 
 class PluginInfo final : public ::google::protobuf::Message
@@ -737,6 +1716,546 @@ class PluginInfo final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PluginInfo_class_data_;
+// -------------------------------------------------------------------
+
+class NativePackageRecoveryStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.NativePackageRecoveryStatus) */ {
+ public:
+  inline NativePackageRecoveryStatus() : NativePackageRecoveryStatus(nullptr) {}
+  ~NativePackageRecoveryStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(NativePackageRecoveryStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(NativePackageRecoveryStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR NativePackageRecoveryStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline NativePackageRecoveryStatus(const NativePackageRecoveryStatus& from) : NativePackageRecoveryStatus(nullptr, from) {}
+  inline NativePackageRecoveryStatus(NativePackageRecoveryStatus&& from) noexcept
+      : NativePackageRecoveryStatus(nullptr, ::std::move(from)) {}
+  inline NativePackageRecoveryStatus& operator=(const NativePackageRecoveryStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NativePackageRecoveryStatus& operator=(NativePackageRecoveryStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NativePackageRecoveryStatus& default_instance() {
+    return *reinterpret_cast<const NativePackageRecoveryStatus*>(
+        &_NativePackageRecoveryStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(NativePackageRecoveryStatus& a, NativePackageRecoveryStatus& b) { a.Swap(&b); }
+  inline void Swap(NativePackageRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NativePackageRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NativePackageRecoveryStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<NativePackageRecoveryStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const NativePackageRecoveryStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const NativePackageRecoveryStatus& from) { NativePackageRecoveryStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(NativePackageRecoveryStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.NativePackageRecoveryStatus"; }
+
+  explicit NativePackageRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  NativePackageRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const NativePackageRecoveryStatus& from);
+  NativePackageRecoveryStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, NativePackageRecoveryStatus&& from) noexcept
+      : NativePackageRecoveryStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPluginIdFieldNumber = 1,
+    kDistDirFieldNumber = 2,
+    kLastActionFieldNumber = 5,
+    kLastErrorFieldNumber = 6,
+    kUpdatedAtFieldNumber = 7,
+    kMaterializedFieldNumber = 3,
+    kInvalidatedFieldNumber = 4,
+  };
+  // string plugin_id = 1;
+  void clear_plugin_id() ;
+  const ::std::string& plugin_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_plugin_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_plugin_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_plugin_id();
+  void set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_plugin_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_plugin_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_id();
+
+  public:
+  // string dist_dir = 2;
+  void clear_dist_dir() ;
+  const ::std::string& dist_dir() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_dist_dir(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_dist_dir();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_dist_dir();
+  void set_allocated_dist_dir(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_dist_dir() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_dist_dir(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_dist_dir();
+
+  public:
+  // string last_action = 5;
+  void clear_last_action() ;
+  const ::std::string& last_action() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_last_action(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_last_action();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_last_action();
+  void set_allocated_last_action(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_last_action() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_last_action(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_last_action();
+
+  public:
+  // string last_error = 6;
+  void clear_last_error() ;
+  const ::std::string& last_error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_last_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_last_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_last_error();
+  void set_allocated_last_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_last_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_last_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_last_error();
+
+  public:
+  // string updated_at = 7;
+  void clear_updated_at() ;
+  const ::std::string& updated_at() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_updated_at(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_updated_at();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_updated_at();
+  void set_allocated_updated_at(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_updated_at() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_updated_at(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_updated_at();
+
+  public:
+  // bool materialized = 3;
+  void clear_materialized() ;
+  bool materialized() const;
+  void set_materialized(bool value);
+
+  private:
+  bool _internal_materialized() const;
+  void _internal_set_materialized(bool value);
+
+  public:
+  // bool invalidated = 4;
+  void clear_invalidated() ;
+  bool invalidated() const;
+  void set_invalidated(bool value);
+
+  private:
+  bool _internal_invalidated() const;
+  void _internal_set_invalidated(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.NativePackageRecoveryStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 98,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const NativePackageRecoveryStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr plugin_id_;
+    ::google::protobuf::internal::ArenaStringPtr dist_dir_;
+    ::google::protobuf::internal::ArenaStringPtr last_action_;
+    ::google::protobuf::internal::ArenaStringPtr last_error_;
+    ::google::protobuf::internal::ArenaStringPtr updated_at_;
+    bool materialized_;
+    bool invalidated_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull NativePackageRecoveryStatus_class_data_;
+// -------------------------------------------------------------------
+
+class LauncherRecoveryStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.LauncherRecoveryStatus) */ {
+ public:
+  inline LauncherRecoveryStatus() : LauncherRecoveryStatus(nullptr) {}
+  ~LauncherRecoveryStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LauncherRecoveryStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LauncherRecoveryStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LauncherRecoveryStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline LauncherRecoveryStatus(const LauncherRecoveryStatus& from) : LauncherRecoveryStatus(nullptr, from) {}
+  inline LauncherRecoveryStatus(LauncherRecoveryStatus&& from) noexcept
+      : LauncherRecoveryStatus(nullptr, ::std::move(from)) {}
+  inline LauncherRecoveryStatus& operator=(const LauncherRecoveryStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LauncherRecoveryStatus& operator=(LauncherRecoveryStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LauncherRecoveryStatus& default_instance() {
+    return *reinterpret_cast<const LauncherRecoveryStatus*>(
+        &_LauncherRecoveryStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(LauncherRecoveryStatus& a, LauncherRecoveryStatus& b) { a.Swap(&b); }
+  inline void Swap(LauncherRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LauncherRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LauncherRecoveryStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LauncherRecoveryStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LauncherRecoveryStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LauncherRecoveryStatus& from) { LauncherRecoveryStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LauncherRecoveryStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.LauncherRecoveryStatus"; }
+
+  explicit LauncherRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LauncherRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LauncherRecoveryStatus& from);
+  LauncherRecoveryStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LauncherRecoveryStatus&& from) noexcept
+      : LauncherRecoveryStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSelectedConfigSourceFieldNumber = 2,
+    kFetchedConfigSourceFieldNumber = 4,
+    kReleaseMetadataOutcomeFieldNumber = 5,
+    kSelectedConfigRevFieldNumber = 1,
+    kFetchedConfigRevFieldNumber = 3,
+  };
+  // string selected_config_source = 2;
+  void clear_selected_config_source() ;
+  const ::std::string& selected_config_source() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_selected_config_source(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_selected_config_source();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_selected_config_source();
+  void set_allocated_selected_config_source(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_selected_config_source() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_selected_config_source(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_selected_config_source();
+
+  public:
+  // string fetched_config_source = 4;
+  void clear_fetched_config_source() ;
+  const ::std::string& fetched_config_source() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_fetched_config_source(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_fetched_config_source();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_fetched_config_source();
+  void set_allocated_fetched_config_source(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_fetched_config_source() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_fetched_config_source(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_fetched_config_source();
+
+  public:
+  // string release_metadata_outcome = 5;
+  void clear_release_metadata_outcome() ;
+  const ::std::string& release_metadata_outcome() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_release_metadata_outcome(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_release_metadata_outcome();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_release_metadata_outcome();
+  void set_allocated_release_metadata_outcome(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_release_metadata_outcome() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_release_metadata_outcome(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_release_metadata_outcome();
+
+  public:
+  // uint64 selected_config_rev = 1;
+  void clear_selected_config_rev() ;
+  ::uint64_t selected_config_rev() const;
+  void set_selected_config_rev(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_selected_config_rev() const;
+  void _internal_set_selected_config_rev(::uint64_t value);
+
+  public:
+  // uint64 fetched_config_rev = 3;
+  void clear_fetched_config_rev() ;
+  ::uint64_t fetched_config_rev() const;
+  void set_fetched_config_rev(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_fetched_config_rev() const;
+  void _internal_set_fetched_config_rev(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.LauncherRecoveryStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 112,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LauncherRecoveryStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr selected_config_source_;
+    ::google::protobuf::internal::ArenaStringPtr fetched_config_source_;
+    ::google::protobuf::internal::ArenaStringPtr release_metadata_outcome_;
+    ::uint64_t selected_config_rev_;
+    ::uint64_t fetched_config_rev_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LauncherRecoveryStatus_class_data_;
 // -------------------------------------------------------------------
 
 class DirectiveInfo final : public ::google::protobuf::Message
@@ -1180,6 +2699,235 @@ class ControllerInfo final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ControllerInfo_class_data_;
 // -------------------------------------------------------------------
 
+class BrowserBootRecoveryStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.BrowserBootRecoveryStatus) */ {
+ public:
+  inline BrowserBootRecoveryStatus() : BrowserBootRecoveryStatus(nullptr) {}
+  ~BrowserBootRecoveryStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(BrowserBootRecoveryStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(BrowserBootRecoveryStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR BrowserBootRecoveryStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline BrowserBootRecoveryStatus(const BrowserBootRecoveryStatus& from) : BrowserBootRecoveryStatus(nullptr, from) {}
+  inline BrowserBootRecoveryStatus(BrowserBootRecoveryStatus&& from) noexcept
+      : BrowserBootRecoveryStatus(nullptr, ::std::move(from)) {}
+  inline BrowserBootRecoveryStatus& operator=(const BrowserBootRecoveryStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline BrowserBootRecoveryStatus& operator=(BrowserBootRecoveryStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const BrowserBootRecoveryStatus& default_instance() {
+    return *reinterpret_cast<const BrowserBootRecoveryStatus*>(
+        &_BrowserBootRecoveryStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(BrowserBootRecoveryStatus& a, BrowserBootRecoveryStatus& b) { a.Swap(&b); }
+  inline void Swap(BrowserBootRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(BrowserBootRecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  BrowserBootRecoveryStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<BrowserBootRecoveryStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const BrowserBootRecoveryStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const BrowserBootRecoveryStatus& from) { BrowserBootRecoveryStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(BrowserBootRecoveryStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.BrowserBootRecoveryStatus"; }
+
+  explicit BrowserBootRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  BrowserBootRecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const BrowserBootRecoveryStatus& from);
+  BrowserBootRecoveryStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, BrowserBootRecoveryStatus&& from) noexcept
+      : BrowserBootRecoveryStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCompatibilityVersionFieldNumber = 1,
+    kLastResetDecisionFieldNumber = 2,
+    kStatusFieldNumber = 3,
+  };
+  // string compatibility_version = 1;
+  void clear_compatibility_version() ;
+  const ::std::string& compatibility_version() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_compatibility_version(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_compatibility_version();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_compatibility_version();
+  void set_allocated_compatibility_version(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_compatibility_version() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_compatibility_version(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_compatibility_version();
+
+  public:
+  // string last_reset_decision = 2;
+  void clear_last_reset_decision() ;
+  const ::std::string& last_reset_decision() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_last_reset_decision(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_last_reset_decision();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_last_reset_decision();
+  void set_allocated_last_reset_decision(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_last_reset_decision() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_last_reset_decision(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_last_reset_decision();
+
+  public:
+  // string status = 3;
+  void clear_status() ;
+  const ::std::string& status() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_status(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_status();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_status();
+  void set_allocated_status(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_status() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_status(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_status();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.BrowserBootRecoveryStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 94,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const BrowserBootRecoveryStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr compatibility_version_;
+    ::google::protobuf::internal::ArenaStringPtr last_reset_decision_;
+    ::google::protobuf::internal::ArenaStringPtr status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull BrowserBootRecoveryStatus_class_data_;
+// -------------------------------------------------------------------
+
 class WatchPluginsResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.status.WatchPluginsResponse) */ {
  public:
@@ -1235,7 +2983,7 @@ class WatchPluginsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchPluginsResponse*>(
         &_WatchPluginsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(WatchPluginsResponse& a, WatchPluginsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchPluginsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1444,7 +3192,7 @@ class WatchDirectivesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchDirectivesResponse*>(
         &_WatchDirectivesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(WatchDirectivesResponse& a, WatchDirectivesResponse& b) { a.Swap(&b); }
   inline void Swap(WatchDirectivesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1653,7 +3401,7 @@ class WatchControllersResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchControllersResponse*>(
         &_WatchControllersResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(WatchControllersResponse& a, WatchControllersResponse& b) { a.Swap(&b); }
   inline void Swap(WatchControllersResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1805,6 +3553,680 @@ class WatchControllersResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WatchControllersResponse_class_data_;
+// -------------------------------------------------------------------
+
+class ReportRecoveryStatusRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.ReportRecoveryStatusRequest) */ {
+ public:
+  inline ReportRecoveryStatusRequest() : ReportRecoveryStatusRequest(nullptr) {}
+  ~ReportRecoveryStatusRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReportRecoveryStatusRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReportRecoveryStatusRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReportRecoveryStatusRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReportRecoveryStatusRequest(const ReportRecoveryStatusRequest& from) : ReportRecoveryStatusRequest(nullptr, from) {}
+  inline ReportRecoveryStatusRequest(ReportRecoveryStatusRequest&& from) noexcept
+      : ReportRecoveryStatusRequest(nullptr, ::std::move(from)) {}
+  inline ReportRecoveryStatusRequest& operator=(const ReportRecoveryStatusRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReportRecoveryStatusRequest& operator=(ReportRecoveryStatusRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReportRecoveryStatusRequest& default_instance() {
+    return *reinterpret_cast<const ReportRecoveryStatusRequest*>(
+        &_ReportRecoveryStatusRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 16;
+  friend void swap(ReportRecoveryStatusRequest& a, ReportRecoveryStatusRequest& b) { a.Swap(&b); }
+  inline void Swap(ReportRecoveryStatusRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReportRecoveryStatusRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReportRecoveryStatusRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ReportRecoveryStatusRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReportRecoveryStatusRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ReportRecoveryStatusRequest& from) { ReportRecoveryStatusRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ReportRecoveryStatusRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.ReportRecoveryStatusRequest"; }
+
+  explicit ReportRecoveryStatusRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReportRecoveryStatusRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReportRecoveryStatusRequest& from);
+  ReportRecoveryStatusRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReportRecoveryStatusRequest&& from) noexcept
+      : ReportRecoveryStatusRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kBootFieldNumber = 1,
+    kRuntimeAssetFieldNumber = 2,
+  };
+  // .s4wave.status.BrowserBootRecoveryStatus boot = 1;
+  bool has_boot() const;
+  void clear_boot() ;
+  const ::s4wave::status::BrowserBootRecoveryStatus& boot() const;
+  [[nodiscard]] ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE release_boot();
+  ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NONNULL mutable_boot();
+  void set_allocated_boot(::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_boot(::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE value);
+  ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE unsafe_arena_release_boot();
+
+  private:
+  const ::s4wave::status::BrowserBootRecoveryStatus& _internal_boot() const;
+  ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NONNULL _internal_mutable_boot();
+
+  public:
+  // .s4wave.status.RuntimeAssetRecoveryStatus runtime_asset = 2;
+  bool has_runtime_asset() const;
+  void clear_runtime_asset() ;
+  const ::s4wave::status::RuntimeAssetRecoveryStatus& runtime_asset() const;
+  [[nodiscard]] ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE release_runtime_asset();
+  ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL mutable_runtime_asset();
+  void set_allocated_runtime_asset(::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_runtime_asset(::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE value);
+  ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE unsafe_arena_release_runtime_asset();
+
+  private:
+  const ::s4wave::status::RuntimeAssetRecoveryStatus& _internal_runtime_asset() const;
+  ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL _internal_mutable_runtime_asset();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.ReportRecoveryStatusRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   2, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ReportRecoveryStatusRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE boot_;
+    ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE runtime_asset_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReportRecoveryStatusRequest_class_data_;
+// -------------------------------------------------------------------
+
+class RecoveryStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.RecoveryStatus) */ {
+ public:
+  inline RecoveryStatus() : RecoveryStatus(nullptr) {}
+  ~RecoveryStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RecoveryStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RecoveryStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RecoveryStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline RecoveryStatus(const RecoveryStatus& from) : RecoveryStatus(nullptr, from) {}
+  inline RecoveryStatus(RecoveryStatus&& from) noexcept
+      : RecoveryStatus(nullptr, ::std::move(from)) {}
+  inline RecoveryStatus& operator=(const RecoveryStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RecoveryStatus& operator=(RecoveryStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RecoveryStatus& default_instance() {
+    return *reinterpret_cast<const RecoveryStatus*>(
+        &_RecoveryStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(RecoveryStatus& a, RecoveryStatus& b) { a.Swap(&b); }
+  inline void Swap(RecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RecoveryStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RecoveryStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RecoveryStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RecoveryStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RecoveryStatus& from) { RecoveryStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RecoveryStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.RecoveryStatus"; }
+
+  explicit RecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RecoveryStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RecoveryStatus& from);
+  RecoveryStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RecoveryStatus&& from) noexcept
+      : RecoveryStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPluginsFieldNumber = 2,
+    kNativePackagesFieldNumber = 3,
+    kLauncherFieldNumber = 1,
+    kBootFieldNumber = 4,
+    kRuntimeAssetFieldNumber = 5,
+  };
+  // repeated .s4wave.status.PluginManifestRecoveryStatus plugins = 2;
+  int plugins_size() const;
+  private:
+  int _internal_plugins_size() const;
+
+  public:
+  void clear_plugins() ;
+  ::s4wave::status::PluginManifestRecoveryStatus* PROTOBUF_NONNULL mutable_plugins(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::status::PluginManifestRecoveryStatus>* PROTOBUF_NONNULL mutable_plugins();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::status::PluginManifestRecoveryStatus>& _internal_plugins() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::status::PluginManifestRecoveryStatus>* PROTOBUF_NONNULL _internal_mutable_plugins();
+  public:
+  const ::s4wave::status::PluginManifestRecoveryStatus& plugins(int index) const;
+  ::s4wave::status::PluginManifestRecoveryStatus* PROTOBUF_NONNULL add_plugins();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::status::PluginManifestRecoveryStatus>& plugins() const;
+  // repeated .s4wave.status.NativePackageRecoveryStatus native_packages = 3;
+  int native_packages_size() const;
+  private:
+  int _internal_native_packages_size() const;
+
+  public:
+  void clear_native_packages() ;
+  ::s4wave::status::NativePackageRecoveryStatus* PROTOBUF_NONNULL mutable_native_packages(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::status::NativePackageRecoveryStatus>* PROTOBUF_NONNULL mutable_native_packages();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::status::NativePackageRecoveryStatus>& _internal_native_packages() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::status::NativePackageRecoveryStatus>* PROTOBUF_NONNULL _internal_mutable_native_packages();
+  public:
+  const ::s4wave::status::NativePackageRecoveryStatus& native_packages(int index) const;
+  ::s4wave::status::NativePackageRecoveryStatus* PROTOBUF_NONNULL add_native_packages();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::status::NativePackageRecoveryStatus>& native_packages() const;
+  // .s4wave.status.LauncherRecoveryStatus launcher = 1;
+  bool has_launcher() const;
+  void clear_launcher() ;
+  const ::s4wave::status::LauncherRecoveryStatus& launcher() const;
+  [[nodiscard]] ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE release_launcher();
+  ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NONNULL mutable_launcher();
+  void set_allocated_launcher(::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_launcher(::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE value);
+  ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE unsafe_arena_release_launcher();
+
+  private:
+  const ::s4wave::status::LauncherRecoveryStatus& _internal_launcher() const;
+  ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NONNULL _internal_mutable_launcher();
+
+  public:
+  // .s4wave.status.BrowserBootRecoveryStatus boot = 4;
+  bool has_boot() const;
+  void clear_boot() ;
+  const ::s4wave::status::BrowserBootRecoveryStatus& boot() const;
+  [[nodiscard]] ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE release_boot();
+  ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NONNULL mutable_boot();
+  void set_allocated_boot(::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_boot(::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE value);
+  ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE unsafe_arena_release_boot();
+
+  private:
+  const ::s4wave::status::BrowserBootRecoveryStatus& _internal_boot() const;
+  ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NONNULL _internal_mutable_boot();
+
+  public:
+  // .s4wave.status.RuntimeAssetRecoveryStatus runtime_asset = 5;
+  bool has_runtime_asset() const;
+  void clear_runtime_asset() ;
+  const ::s4wave::status::RuntimeAssetRecoveryStatus& runtime_asset() const;
+  [[nodiscard]] ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE release_runtime_asset();
+  ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL mutable_runtime_asset();
+  void set_allocated_runtime_asset(::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_runtime_asset(::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE value);
+  ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE unsafe_arena_release_runtime_asset();
+
+  private:
+  const ::s4wave::status::RuntimeAssetRecoveryStatus& _internal_runtime_asset() const;
+  ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL _internal_mutable_runtime_asset();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.RecoveryStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   5, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RecoveryStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::status::PluginManifestRecoveryStatus > plugins_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::status::NativePackageRecoveryStatus > native_packages_;
+    ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE launcher_;
+    ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE boot_;
+    ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE runtime_asset_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RecoveryStatus_class_data_;
+// -------------------------------------------------------------------
+
+class WatchRecoveryStatusResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.WatchRecoveryStatusResponse) */ {
+ public:
+  inline WatchRecoveryStatusResponse() : WatchRecoveryStatusResponse(nullptr) {}
+  ~WatchRecoveryStatusResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchRecoveryStatusResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchRecoveryStatusResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchRecoveryStatusResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchRecoveryStatusResponse(const WatchRecoveryStatusResponse& from) : WatchRecoveryStatusResponse(nullptr, from) {}
+  inline WatchRecoveryStatusResponse(WatchRecoveryStatusResponse&& from) noexcept
+      : WatchRecoveryStatusResponse(nullptr, ::std::move(from)) {}
+  inline WatchRecoveryStatusResponse& operator=(const WatchRecoveryStatusResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchRecoveryStatusResponse& operator=(WatchRecoveryStatusResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchRecoveryStatusResponse& default_instance() {
+    return *reinterpret_cast<const WatchRecoveryStatusResponse*>(
+        &_WatchRecoveryStatusResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(WatchRecoveryStatusResponse& a, WatchRecoveryStatusResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchRecoveryStatusResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchRecoveryStatusResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchRecoveryStatusResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchRecoveryStatusResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchRecoveryStatusResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchRecoveryStatusResponse& from) { WatchRecoveryStatusResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchRecoveryStatusResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.WatchRecoveryStatusResponse"; }
+
+  explicit WatchRecoveryStatusResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchRecoveryStatusResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchRecoveryStatusResponse& from);
+  WatchRecoveryStatusResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchRecoveryStatusResponse&& from) noexcept
+      : WatchRecoveryStatusResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStatusFieldNumber = 1,
+  };
+  // .s4wave.status.RecoveryStatus status = 1;
+  bool has_status() const;
+  void clear_status() ;
+  const ::s4wave::status::RecoveryStatus& status() const;
+  [[nodiscard]] ::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE release_status();
+  ::s4wave::status::RecoveryStatus* PROTOBUF_NONNULL mutable_status();
+  void set_allocated_status(::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_status(::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE value);
+  ::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE unsafe_arena_release_status();
+
+  private:
+  const ::s4wave::status::RecoveryStatus& _internal_status() const;
+  ::s4wave::status::RecoveryStatus* PROTOBUF_NONNULL _internal_mutable_status();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.WatchRecoveryStatusResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchRecoveryStatusResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchRecoveryStatusResponse_class_data_;
 
 // ===================================================================
 
@@ -2352,6 +4774,2354 @@ inline void PluginInfo::set_allocated_state(::std::string* PROTOBUF_NULLABLE val
 
 // -------------------------------------------------------------------
 
+// LauncherRecoveryStatus
+
+// uint64 selected_config_rev = 1;
+inline void LauncherRecoveryStatus::clear_selected_config_rev() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_config_rev_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint64_t LauncherRecoveryStatus::selected_config_rev() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.selected_config_rev)
+  return _internal_selected_config_rev();
+}
+inline void LauncherRecoveryStatus::set_selected_config_rev(::uint64_t value) {
+  _internal_set_selected_config_rev(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.selected_config_rev)
+}
+inline ::uint64_t LauncherRecoveryStatus::_internal_selected_config_rev() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_config_rev_;
+}
+inline void LauncherRecoveryStatus::_internal_set_selected_config_rev(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_config_rev_ = value;
+}
+
+// string selected_config_source = 2;
+inline void LauncherRecoveryStatus::clear_selected_config_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_config_source_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& LauncherRecoveryStatus::selected_config_source() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.selected_config_source)
+  return _internal_selected_config_source();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_selected_config_source(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.selected_config_source_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.selected_config_source)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_selected_config_source()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_selected_config_source();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.selected_config_source)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_selected_config_source() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_config_source_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_selected_config_source(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_config_source_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_selected_config_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.selected_config_source_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_selected_config_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.selected_config_source)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.selected_config_source_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.selected_config_source_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_selected_config_source(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.selected_config_source_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.selected_config_source_.IsDefault()) {
+    _impl_.selected_config_source_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.selected_config_source)
+}
+
+// uint64 fetched_config_rev = 3;
+inline void LauncherRecoveryStatus::clear_fetched_config_rev() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fetched_config_rev_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint64_t LauncherRecoveryStatus::fetched_config_rev() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.fetched_config_rev)
+  return _internal_fetched_config_rev();
+}
+inline void LauncherRecoveryStatus::set_fetched_config_rev(::uint64_t value) {
+  _internal_set_fetched_config_rev(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.fetched_config_rev)
+}
+inline ::uint64_t LauncherRecoveryStatus::_internal_fetched_config_rev() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.fetched_config_rev_;
+}
+inline void LauncherRecoveryStatus::_internal_set_fetched_config_rev(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fetched_config_rev_ = value;
+}
+
+// string fetched_config_source = 4;
+inline void LauncherRecoveryStatus::clear_fetched_config_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fetched_config_source_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& LauncherRecoveryStatus::fetched_config_source() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.fetched_config_source)
+  return _internal_fetched_config_source();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_fetched_config_source(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.fetched_config_source_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.fetched_config_source)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_fetched_config_source()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_fetched_config_source();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.fetched_config_source)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_fetched_config_source() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.fetched_config_source_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_fetched_config_source(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fetched_config_source_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_fetched_config_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.fetched_config_source_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_fetched_config_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.fetched_config_source)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.fetched_config_source_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.fetched_config_source_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_fetched_config_source(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.fetched_config_source_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.fetched_config_source_.IsDefault()) {
+    _impl_.fetched_config_source_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.fetched_config_source)
+}
+
+// string release_metadata_outcome = 5;
+inline void LauncherRecoveryStatus::clear_release_metadata_outcome() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.release_metadata_outcome_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& LauncherRecoveryStatus::release_metadata_outcome() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.release_metadata_outcome)
+  return _internal_release_metadata_outcome();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_release_metadata_outcome(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.release_metadata_outcome_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.release_metadata_outcome)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_release_metadata_outcome()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_release_metadata_outcome();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.release_metadata_outcome)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_release_metadata_outcome() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.release_metadata_outcome_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_release_metadata_outcome(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.release_metadata_outcome_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_release_metadata_outcome() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.release_metadata_outcome_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_release_metadata_outcome() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.release_metadata_outcome)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.release_metadata_outcome_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.release_metadata_outcome_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_release_metadata_outcome(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.release_metadata_outcome_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.release_metadata_outcome_.IsDefault()) {
+    _impl_.release_metadata_outcome_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.release_metadata_outcome)
+}
+
+// -------------------------------------------------------------------
+
+// PluginManifestRecoveryStatus
+
+// string plugin_id = 1;
+inline void PluginManifestRecoveryStatus::clear_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& PluginManifestRecoveryStatus::plugin_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.plugin_id)
+  return _internal_plugin_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginManifestRecoveryStatus::set_plugin_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.plugin_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.plugin_id)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::mutable_plugin_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_plugin_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.PluginManifestRecoveryStatus.plugin_id)
+  return _s;
+}
+inline const ::std::string& PluginManifestRecoveryStatus::_internal_plugin_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.plugin_id_.Get();
+}
+inline void PluginManifestRecoveryStatus::_internal_set_plugin_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::_internal_mutable_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.plugin_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginManifestRecoveryStatus::release_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.PluginManifestRecoveryStatus.plugin_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.plugin_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.plugin_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginManifestRecoveryStatus::set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.plugin_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.plugin_id_.IsDefault()) {
+    _impl_.plugin_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.PluginManifestRecoveryStatus.plugin_id)
+}
+
+// string instance_key = 2;
+inline void PluginManifestRecoveryStatus::clear_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& PluginManifestRecoveryStatus::instance_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.instance_key)
+  return _internal_instance_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginManifestRecoveryStatus::set_instance_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.instance_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.instance_key)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::mutable_instance_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_instance_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.PluginManifestRecoveryStatus.instance_key)
+  return _s;
+}
+inline const ::std::string& PluginManifestRecoveryStatus::_internal_instance_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.instance_key_.Get();
+}
+inline void PluginManifestRecoveryStatus::_internal_set_instance_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::_internal_mutable_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.instance_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginManifestRecoveryStatus::release_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.PluginManifestRecoveryStatus.instance_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.instance_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginManifestRecoveryStatus::set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.instance_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.instance_key_.IsDefault()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.PluginManifestRecoveryStatus.instance_key)
+}
+
+// string execute_manifest_ref = 3;
+inline void PluginManifestRecoveryStatus::clear_execute_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.execute_manifest_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& PluginManifestRecoveryStatus::execute_manifest_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.execute_manifest_ref)
+  return _internal_execute_manifest_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginManifestRecoveryStatus::set_execute_manifest_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.execute_manifest_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.execute_manifest_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::mutable_execute_manifest_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_execute_manifest_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.PluginManifestRecoveryStatus.execute_manifest_ref)
+  return _s;
+}
+inline const ::std::string& PluginManifestRecoveryStatus::_internal_execute_manifest_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.execute_manifest_ref_.Get();
+}
+inline void PluginManifestRecoveryStatus::_internal_set_execute_manifest_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.execute_manifest_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::_internal_mutable_execute_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.execute_manifest_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginManifestRecoveryStatus::release_execute_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.PluginManifestRecoveryStatus.execute_manifest_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.execute_manifest_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.execute_manifest_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginManifestRecoveryStatus::set_allocated_execute_manifest_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.execute_manifest_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.execute_manifest_ref_.IsDefault()) {
+    _impl_.execute_manifest_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.PluginManifestRecoveryStatus.execute_manifest_ref)
+}
+
+// string download_manifest_ref = 4;
+inline void PluginManifestRecoveryStatus::clear_download_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.download_manifest_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& PluginManifestRecoveryStatus::download_manifest_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.download_manifest_ref)
+  return _internal_download_manifest_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginManifestRecoveryStatus::set_download_manifest_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.download_manifest_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.download_manifest_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::mutable_download_manifest_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_download_manifest_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.PluginManifestRecoveryStatus.download_manifest_ref)
+  return _s;
+}
+inline const ::std::string& PluginManifestRecoveryStatus::_internal_download_manifest_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.download_manifest_ref_.Get();
+}
+inline void PluginManifestRecoveryStatus::_internal_set_download_manifest_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.download_manifest_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::_internal_mutable_download_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.download_manifest_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginManifestRecoveryStatus::release_download_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.PluginManifestRecoveryStatus.download_manifest_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.download_manifest_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.download_manifest_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginManifestRecoveryStatus::set_allocated_download_manifest_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.download_manifest_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.download_manifest_ref_.IsDefault()) {
+    _impl_.download_manifest_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.PluginManifestRecoveryStatus.download_manifest_ref)
+}
+
+// uint32 skipped_candidate_count = 5;
+inline void PluginManifestRecoveryStatus::clear_skipped_candidate_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.skipped_candidate_count_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::uint32_t PluginManifestRecoveryStatus::skipped_candidate_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.skipped_candidate_count)
+  return _internal_skipped_candidate_count();
+}
+inline void PluginManifestRecoveryStatus::set_skipped_candidate_count(::uint32_t value) {
+  _internal_set_skipped_candidate_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.skipped_candidate_count)
+}
+inline ::uint32_t PluginManifestRecoveryStatus::_internal_skipped_candidate_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.skipped_candidate_count_;
+}
+inline void PluginManifestRecoveryStatus::_internal_set_skipped_candidate_count(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.skipped_candidate_count_ = value;
+}
+
+// string skipped_candidate_summary = 6;
+inline void PluginManifestRecoveryStatus::clear_skipped_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.skipped_candidate_summary_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& PluginManifestRecoveryStatus::skipped_candidate_summary() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.skipped_candidate_summary)
+  return _internal_skipped_candidate_summary();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginManifestRecoveryStatus::set_skipped_candidate_summary(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.skipped_candidate_summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.skipped_candidate_summary)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::mutable_skipped_candidate_summary()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_skipped_candidate_summary();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.PluginManifestRecoveryStatus.skipped_candidate_summary)
+  return _s;
+}
+inline const ::std::string& PluginManifestRecoveryStatus::_internal_skipped_candidate_summary() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.skipped_candidate_summary_.Get();
+}
+inline void PluginManifestRecoveryStatus::_internal_set_skipped_candidate_summary(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.skipped_candidate_summary_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::_internal_mutable_skipped_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.skipped_candidate_summary_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginManifestRecoveryStatus::release_skipped_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.PluginManifestRecoveryStatus.skipped_candidate_summary)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.skipped_candidate_summary_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.skipped_candidate_summary_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginManifestRecoveryStatus::set_allocated_skipped_candidate_summary(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.skipped_candidate_summary_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.skipped_candidate_summary_.IsDefault()) {
+    _impl_.skipped_candidate_summary_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.PluginManifestRecoveryStatus.skipped_candidate_summary)
+}
+
+// uint32 ignored_candidate_count = 7;
+inline void PluginManifestRecoveryStatus::clear_ignored_candidate_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ignored_candidate_count_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::uint32_t PluginManifestRecoveryStatus::ignored_candidate_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.ignored_candidate_count)
+  return _internal_ignored_candidate_count();
+}
+inline void PluginManifestRecoveryStatus::set_ignored_candidate_count(::uint32_t value) {
+  _internal_set_ignored_candidate_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.ignored_candidate_count)
+}
+inline ::uint32_t PluginManifestRecoveryStatus::_internal_ignored_candidate_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ignored_candidate_count_;
+}
+inline void PluginManifestRecoveryStatus::_internal_set_ignored_candidate_count(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ignored_candidate_count_ = value;
+}
+
+// string ignored_candidate_summary = 8;
+inline void PluginManifestRecoveryStatus::clear_ignored_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ignored_candidate_summary_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& PluginManifestRecoveryStatus::ignored_candidate_summary() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.ignored_candidate_summary)
+  return _internal_ignored_candidate_summary();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginManifestRecoveryStatus::set_ignored_candidate_summary(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.ignored_candidate_summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.ignored_candidate_summary)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::mutable_ignored_candidate_summary()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_ignored_candidate_summary();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.PluginManifestRecoveryStatus.ignored_candidate_summary)
+  return _s;
+}
+inline const ::std::string& PluginManifestRecoveryStatus::_internal_ignored_candidate_summary() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ignored_candidate_summary_.Get();
+}
+inline void PluginManifestRecoveryStatus::_internal_set_ignored_candidate_summary(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ignored_candidate_summary_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::_internal_mutable_ignored_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ignored_candidate_summary_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginManifestRecoveryStatus::release_ignored_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.PluginManifestRecoveryStatus.ignored_candidate_summary)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.ignored_candidate_summary_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ignored_candidate_summary_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginManifestRecoveryStatus::set_allocated_ignored_candidate_summary(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.ignored_candidate_summary_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ignored_candidate_summary_.IsDefault()) {
+    _impl_.ignored_candidate_summary_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.PluginManifestRecoveryStatus.ignored_candidate_summary)
+}
+
+// uint32 quarantined_candidate_count = 9;
+inline void PluginManifestRecoveryStatus::clear_quarantined_candidate_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quarantined_candidate_count_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::uint32_t PluginManifestRecoveryStatus::quarantined_candidate_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.quarantined_candidate_count)
+  return _internal_quarantined_candidate_count();
+}
+inline void PluginManifestRecoveryStatus::set_quarantined_candidate_count(::uint32_t value) {
+  _internal_set_quarantined_candidate_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.quarantined_candidate_count)
+}
+inline ::uint32_t PluginManifestRecoveryStatus::_internal_quarantined_candidate_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.quarantined_candidate_count_;
+}
+inline void PluginManifestRecoveryStatus::_internal_set_quarantined_candidate_count(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quarantined_candidate_count_ = value;
+}
+
+// string quarantined_candidate_summary = 10;
+inline void PluginManifestRecoveryStatus::clear_quarantined_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quarantined_candidate_summary_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& PluginManifestRecoveryStatus::quarantined_candidate_summary() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.PluginManifestRecoveryStatus.quarantined_candidate_summary)
+  return _internal_quarantined_candidate_summary();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void PluginManifestRecoveryStatus::set_quarantined_candidate_summary(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.quarantined_candidate_summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.PluginManifestRecoveryStatus.quarantined_candidate_summary)
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::mutable_quarantined_candidate_summary()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_quarantined_candidate_summary();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.PluginManifestRecoveryStatus.quarantined_candidate_summary)
+  return _s;
+}
+inline const ::std::string& PluginManifestRecoveryStatus::_internal_quarantined_candidate_summary() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.quarantined_candidate_summary_.Get();
+}
+inline void PluginManifestRecoveryStatus::_internal_set_quarantined_candidate_summary(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.quarantined_candidate_summary_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL PluginManifestRecoveryStatus::_internal_mutable_quarantined_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.quarantined_candidate_summary_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE PluginManifestRecoveryStatus::release_quarantined_candidate_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.PluginManifestRecoveryStatus.quarantined_candidate_summary)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.quarantined_candidate_summary_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.quarantined_candidate_summary_.Set("", GetArena());
+  }
+  return released;
+}
+inline void PluginManifestRecoveryStatus::set_allocated_quarantined_candidate_summary(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.quarantined_candidate_summary_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.quarantined_candidate_summary_.IsDefault()) {
+    _impl_.quarantined_candidate_summary_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.PluginManifestRecoveryStatus.quarantined_candidate_summary)
+}
+
+// -------------------------------------------------------------------
+
+// NativePackageRecoveryStatus
+
+// string plugin_id = 1;
+inline void NativePackageRecoveryStatus::clear_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& NativePackageRecoveryStatus::plugin_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NativePackageRecoveryStatus.plugin_id)
+  return _internal_plugin_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativePackageRecoveryStatus::set_plugin_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.plugin_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.NativePackageRecoveryStatus.plugin_id)
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::mutable_plugin_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_plugin_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NativePackageRecoveryStatus.plugin_id)
+  return _s;
+}
+inline const ::std::string& NativePackageRecoveryStatus::_internal_plugin_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.plugin_id_.Get();
+}
+inline void NativePackageRecoveryStatus::_internal_set_plugin_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::_internal_mutable_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.plugin_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativePackageRecoveryStatus::release_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.NativePackageRecoveryStatus.plugin_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.plugin_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.plugin_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativePackageRecoveryStatus::set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.plugin_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.plugin_id_.IsDefault()) {
+    _impl_.plugin_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.NativePackageRecoveryStatus.plugin_id)
+}
+
+// string dist_dir = 2;
+inline void NativePackageRecoveryStatus::clear_dist_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.dist_dir_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& NativePackageRecoveryStatus::dist_dir() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NativePackageRecoveryStatus.dist_dir)
+  return _internal_dist_dir();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativePackageRecoveryStatus::set_dist_dir(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.dist_dir_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.NativePackageRecoveryStatus.dist_dir)
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::mutable_dist_dir()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_dist_dir();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NativePackageRecoveryStatus.dist_dir)
+  return _s;
+}
+inline const ::std::string& NativePackageRecoveryStatus::_internal_dist_dir() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.dist_dir_.Get();
+}
+inline void NativePackageRecoveryStatus::_internal_set_dist_dir(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.dist_dir_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::_internal_mutable_dist_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.dist_dir_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativePackageRecoveryStatus::release_dist_dir() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.NativePackageRecoveryStatus.dist_dir)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.dist_dir_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.dist_dir_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativePackageRecoveryStatus::set_allocated_dist_dir(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.dist_dir_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.dist_dir_.IsDefault()) {
+    _impl_.dist_dir_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.NativePackageRecoveryStatus.dist_dir)
+}
+
+// bool materialized = 3;
+inline void NativePackageRecoveryStatus::clear_materialized() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.materialized_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool NativePackageRecoveryStatus::materialized() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.NativePackageRecoveryStatus.materialized)
+  return _internal_materialized();
+}
+inline void NativePackageRecoveryStatus::set_materialized(bool value) {
+  _internal_set_materialized(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.status.NativePackageRecoveryStatus.materialized)
+}
+inline bool NativePackageRecoveryStatus::_internal_materialized() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.materialized_;
+}
+inline void NativePackageRecoveryStatus::_internal_set_materialized(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.materialized_ = value;
+}
+
+// bool invalidated = 4;
+inline void NativePackageRecoveryStatus::clear_invalidated() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.invalidated_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline bool NativePackageRecoveryStatus::invalidated() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.NativePackageRecoveryStatus.invalidated)
+  return _internal_invalidated();
+}
+inline void NativePackageRecoveryStatus::set_invalidated(bool value) {
+  _internal_set_invalidated(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.status.NativePackageRecoveryStatus.invalidated)
+}
+inline bool NativePackageRecoveryStatus::_internal_invalidated() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.invalidated_;
+}
+inline void NativePackageRecoveryStatus::_internal_set_invalidated(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.invalidated_ = value;
+}
+
+// string last_action = 5;
+inline void NativePackageRecoveryStatus::clear_last_action() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_action_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& NativePackageRecoveryStatus::last_action() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NativePackageRecoveryStatus.last_action)
+  return _internal_last_action();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativePackageRecoveryStatus::set_last_action(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.last_action_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.NativePackageRecoveryStatus.last_action)
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::mutable_last_action()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_last_action();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NativePackageRecoveryStatus.last_action)
+  return _s;
+}
+inline const ::std::string& NativePackageRecoveryStatus::_internal_last_action() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.last_action_.Get();
+}
+inline void NativePackageRecoveryStatus::_internal_set_last_action(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_action_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::_internal_mutable_last_action() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.last_action_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativePackageRecoveryStatus::release_last_action() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.NativePackageRecoveryStatus.last_action)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.last_action_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.last_action_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativePackageRecoveryStatus::set_allocated_last_action(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.last_action_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.last_action_.IsDefault()) {
+    _impl_.last_action_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.NativePackageRecoveryStatus.last_action)
+}
+
+// string last_error = 6;
+inline void NativePackageRecoveryStatus::clear_last_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& NativePackageRecoveryStatus::last_error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NativePackageRecoveryStatus.last_error)
+  return _internal_last_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativePackageRecoveryStatus::set_last_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.last_error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.NativePackageRecoveryStatus.last_error)
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::mutable_last_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_last_error();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NativePackageRecoveryStatus.last_error)
+  return _s;
+}
+inline const ::std::string& NativePackageRecoveryStatus::_internal_last_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.last_error_.Get();
+}
+inline void NativePackageRecoveryStatus::_internal_set_last_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::_internal_mutable_last_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.last_error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativePackageRecoveryStatus::release_last_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.NativePackageRecoveryStatus.last_error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.last_error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.last_error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativePackageRecoveryStatus::set_allocated_last_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.last_error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.last_error_.IsDefault()) {
+    _impl_.last_error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.NativePackageRecoveryStatus.last_error)
+}
+
+// string updated_at = 7;
+inline void NativePackageRecoveryStatus::clear_updated_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.updated_at_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& NativePackageRecoveryStatus::updated_at() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NativePackageRecoveryStatus.updated_at)
+  return _internal_updated_at();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NativePackageRecoveryStatus::set_updated_at(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.updated_at_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.NativePackageRecoveryStatus.updated_at)
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::mutable_updated_at()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_updated_at();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NativePackageRecoveryStatus.updated_at)
+  return _s;
+}
+inline const ::std::string& NativePackageRecoveryStatus::_internal_updated_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.updated_at_.Get();
+}
+inline void NativePackageRecoveryStatus::_internal_set_updated_at(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.updated_at_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NativePackageRecoveryStatus::_internal_mutable_updated_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.updated_at_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NativePackageRecoveryStatus::release_updated_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.NativePackageRecoveryStatus.updated_at)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.updated_at_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.updated_at_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NativePackageRecoveryStatus::set_allocated_updated_at(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.updated_at_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.updated_at_.IsDefault()) {
+    _impl_.updated_at_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.NativePackageRecoveryStatus.updated_at)
+}
+
+// -------------------------------------------------------------------
+
+// BrowserBootRecoveryStatus
+
+// string compatibility_version = 1;
+inline void BrowserBootRecoveryStatus::clear_compatibility_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.compatibility_version_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& BrowserBootRecoveryStatus::compatibility_version() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.BrowserBootRecoveryStatus.compatibility_version)
+  return _internal_compatibility_version();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BrowserBootRecoveryStatus::set_compatibility_version(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.compatibility_version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.BrowserBootRecoveryStatus.compatibility_version)
+}
+inline ::std::string* PROTOBUF_NONNULL BrowserBootRecoveryStatus::mutable_compatibility_version()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_compatibility_version();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.BrowserBootRecoveryStatus.compatibility_version)
+  return _s;
+}
+inline const ::std::string& BrowserBootRecoveryStatus::_internal_compatibility_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.compatibility_version_.Get();
+}
+inline void BrowserBootRecoveryStatus::_internal_set_compatibility_version(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.compatibility_version_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BrowserBootRecoveryStatus::_internal_mutable_compatibility_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.compatibility_version_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BrowserBootRecoveryStatus::release_compatibility_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.BrowserBootRecoveryStatus.compatibility_version)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.compatibility_version_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.compatibility_version_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BrowserBootRecoveryStatus::set_allocated_compatibility_version(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.compatibility_version_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.compatibility_version_.IsDefault()) {
+    _impl_.compatibility_version_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.BrowserBootRecoveryStatus.compatibility_version)
+}
+
+// string last_reset_decision = 2;
+inline void BrowserBootRecoveryStatus::clear_last_reset_decision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_reset_decision_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& BrowserBootRecoveryStatus::last_reset_decision() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.BrowserBootRecoveryStatus.last_reset_decision)
+  return _internal_last_reset_decision();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BrowserBootRecoveryStatus::set_last_reset_decision(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.last_reset_decision_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.BrowserBootRecoveryStatus.last_reset_decision)
+}
+inline ::std::string* PROTOBUF_NONNULL BrowserBootRecoveryStatus::mutable_last_reset_decision()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_last_reset_decision();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.BrowserBootRecoveryStatus.last_reset_decision)
+  return _s;
+}
+inline const ::std::string& BrowserBootRecoveryStatus::_internal_last_reset_decision() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.last_reset_decision_.Get();
+}
+inline void BrowserBootRecoveryStatus::_internal_set_last_reset_decision(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_reset_decision_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BrowserBootRecoveryStatus::_internal_mutable_last_reset_decision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.last_reset_decision_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BrowserBootRecoveryStatus::release_last_reset_decision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.BrowserBootRecoveryStatus.last_reset_decision)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.last_reset_decision_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.last_reset_decision_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BrowserBootRecoveryStatus::set_allocated_last_reset_decision(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.last_reset_decision_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.last_reset_decision_.IsDefault()) {
+    _impl_.last_reset_decision_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.BrowserBootRecoveryStatus.last_reset_decision)
+}
+
+// string status = 3;
+inline void BrowserBootRecoveryStatus::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& BrowserBootRecoveryStatus::status() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.BrowserBootRecoveryStatus.status)
+  return _internal_status();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void BrowserBootRecoveryStatus::set_status(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.status_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.BrowserBootRecoveryStatus.status)
+}
+inline ::std::string* PROTOBUF_NONNULL BrowserBootRecoveryStatus::mutable_status()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_status();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.BrowserBootRecoveryStatus.status)
+  return _s;
+}
+inline const ::std::string& BrowserBootRecoveryStatus::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.status_.Get();
+}
+inline void BrowserBootRecoveryStatus::_internal_set_status(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL BrowserBootRecoveryStatus::_internal_mutable_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.status_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE BrowserBootRecoveryStatus::release_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.BrowserBootRecoveryStatus.status)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.status_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.status_.Set("", GetArena());
+  }
+  return released;
+}
+inline void BrowserBootRecoveryStatus::set_allocated_status(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.status_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.status_.IsDefault()) {
+    _impl_.status_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.BrowserBootRecoveryStatus.status)
+}
+
+// -------------------------------------------------------------------
+
+// RuntimeAssetRecoveryStatus
+
+// string script_path = 1;
+inline void RuntimeAssetRecoveryStatus::clear_script_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.script_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::script_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.script_path)
+  return _internal_script_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RuntimeAssetRecoveryStatus::set_script_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.script_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.script_path)
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::mutable_script_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_script_path();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RuntimeAssetRecoveryStatus.script_path)
+  return _s;
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::_internal_script_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.script_path_.Get();
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_script_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.script_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::_internal_mutable_script_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.script_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RuntimeAssetRecoveryStatus::release_script_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RuntimeAssetRecoveryStatus.script_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.script_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.script_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RuntimeAssetRecoveryStatus::set_allocated_script_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.script_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.script_path_.IsDefault()) {
+    _impl_.script_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RuntimeAssetRecoveryStatus.script_path)
+}
+
+// uint32 status_code = 2;
+inline void RuntimeAssetRecoveryStatus::clear_status_code() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_code_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::uint32_t RuntimeAssetRecoveryStatus::status_code() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.status_code)
+  return _internal_status_code();
+}
+inline void RuntimeAssetRecoveryStatus::set_status_code(::uint32_t value) {
+  _internal_set_status_code(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.status_code)
+}
+inline ::uint32_t RuntimeAssetRecoveryStatus::_internal_status_code() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.status_code_;
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_status_code(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_code_ = value;
+}
+
+// bool ok = 3;
+inline void RuntimeAssetRecoveryStatus::clear_ok() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ok_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline bool RuntimeAssetRecoveryStatus::ok() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.ok)
+  return _internal_ok();
+}
+inline void RuntimeAssetRecoveryStatus::set_ok(bool value) {
+  _internal_set_ok(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.ok)
+}
+inline bool RuntimeAssetRecoveryStatus::_internal_ok() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ok_;
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_ok(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ok_ = value;
+}
+
+// string classification = 4;
+inline void RuntimeAssetRecoveryStatus::clear_classification() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.classification_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::classification() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.classification)
+  return _internal_classification();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RuntimeAssetRecoveryStatus::set_classification(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.classification_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.classification)
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::mutable_classification()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_classification();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RuntimeAssetRecoveryStatus.classification)
+  return _s;
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::_internal_classification() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.classification_.Get();
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_classification(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.classification_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::_internal_mutable_classification() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.classification_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RuntimeAssetRecoveryStatus::release_classification() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RuntimeAssetRecoveryStatus.classification)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.classification_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.classification_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RuntimeAssetRecoveryStatus::set_allocated_classification(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.classification_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.classification_.IsDefault()) {
+    _impl_.classification_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RuntimeAssetRecoveryStatus.classification)
+}
+
+// string fetch_source = 5;
+inline void RuntimeAssetRecoveryStatus::clear_fetch_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fetch_source_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::fetch_source() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.fetch_source)
+  return _internal_fetch_source();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RuntimeAssetRecoveryStatus::set_fetch_source(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.fetch_source_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.fetch_source)
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::mutable_fetch_source()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_fetch_source();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RuntimeAssetRecoveryStatus.fetch_source)
+  return _s;
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::_internal_fetch_source() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.fetch_source_.Get();
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_fetch_source(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fetch_source_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::_internal_mutable_fetch_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.fetch_source_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RuntimeAssetRecoveryStatus::release_fetch_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RuntimeAssetRecoveryStatus.fetch_source)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.fetch_source_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.fetch_source_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RuntimeAssetRecoveryStatus::set_allocated_fetch_source(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.fetch_source_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.fetch_source_.IsDefault()) {
+    _impl_.fetch_source_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RuntimeAssetRecoveryStatus.fetch_source)
+}
+
+// string runtime_error = 6;
+inline void RuntimeAssetRecoveryStatus::clear_runtime_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.runtime_error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::runtime_error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.runtime_error)
+  return _internal_runtime_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RuntimeAssetRecoveryStatus::set_runtime_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.runtime_error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.runtime_error)
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::mutable_runtime_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_runtime_error();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RuntimeAssetRecoveryStatus.runtime_error)
+  return _s;
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::_internal_runtime_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.runtime_error_.Get();
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_runtime_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.runtime_error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::_internal_mutable_runtime_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.runtime_error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RuntimeAssetRecoveryStatus::release_runtime_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RuntimeAssetRecoveryStatus.runtime_error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.runtime_error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.runtime_error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RuntimeAssetRecoveryStatus::set_allocated_runtime_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.runtime_error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.runtime_error_.IsDefault()) {
+    _impl_.runtime_error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RuntimeAssetRecoveryStatus.runtime_error)
+}
+
+// string plugin_asset_result = 7;
+inline void RuntimeAssetRecoveryStatus::clear_plugin_asset_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_asset_result_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::plugin_asset_result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.plugin_asset_result)
+  return _internal_plugin_asset_result();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RuntimeAssetRecoveryStatus::set_plugin_asset_result(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.plugin_asset_result_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.plugin_asset_result)
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::mutable_plugin_asset_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_plugin_asset_result();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RuntimeAssetRecoveryStatus.plugin_asset_result)
+  return _s;
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::_internal_plugin_asset_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.plugin_asset_result_.Get();
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_plugin_asset_result(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_asset_result_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::_internal_mutable_plugin_asset_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.plugin_asset_result_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RuntimeAssetRecoveryStatus::release_plugin_asset_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RuntimeAssetRecoveryStatus.plugin_asset_result)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.plugin_asset_result_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.plugin_asset_result_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RuntimeAssetRecoveryStatus::set_allocated_plugin_asset_result(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.plugin_asset_result_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.plugin_asset_result_.IsDefault()) {
+    _impl_.plugin_asset_result_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RuntimeAssetRecoveryStatus.plugin_asset_result)
+}
+
+// string content_type = 8;
+inline void RuntimeAssetRecoveryStatus::clear_content_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_type_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::content_type() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.content_type)
+  return _internal_content_type();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RuntimeAssetRecoveryStatus::set_content_type(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.content_type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.content_type)
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::mutable_content_type()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_content_type();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RuntimeAssetRecoveryStatus.content_type)
+  return _s;
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::_internal_content_type() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.content_type_.Get();
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_content_type(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_type_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::_internal_mutable_content_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.content_type_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RuntimeAssetRecoveryStatus::release_content_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RuntimeAssetRecoveryStatus.content_type)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.content_type_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.content_type_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RuntimeAssetRecoveryStatus::set_allocated_content_type(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.content_type_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.content_type_.IsDefault()) {
+    _impl_.content_type_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RuntimeAssetRecoveryStatus.content_type)
+}
+
+// string body_prefix = 9;
+inline void RuntimeAssetRecoveryStatus::clear_body_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.body_prefix_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::body_prefix() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.body_prefix)
+  return _internal_body_prefix();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RuntimeAssetRecoveryStatus::set_body_prefix(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.body_prefix_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.body_prefix)
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::mutable_body_prefix()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_body_prefix();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RuntimeAssetRecoveryStatus.body_prefix)
+  return _s;
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::_internal_body_prefix() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.body_prefix_.Get();
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_body_prefix(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.body_prefix_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::_internal_mutable_body_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.body_prefix_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RuntimeAssetRecoveryStatus::release_body_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RuntimeAssetRecoveryStatus.body_prefix)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.body_prefix_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.body_prefix_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RuntimeAssetRecoveryStatus::set_allocated_body_prefix(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.body_prefix_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.body_prefix_.IsDefault()) {
+    _impl_.body_prefix_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RuntimeAssetRecoveryStatus.body_prefix)
+}
+
+// string status = 10;
+inline void RuntimeAssetRecoveryStatus::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::status() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RuntimeAssetRecoveryStatus.status)
+  return _internal_status();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RuntimeAssetRecoveryStatus::set_status(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.status_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.RuntimeAssetRecoveryStatus.status)
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::mutable_status()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_status();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RuntimeAssetRecoveryStatus.status)
+  return _s;
+}
+inline const ::std::string& RuntimeAssetRecoveryStatus::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.status_.Get();
+}
+inline void RuntimeAssetRecoveryStatus::_internal_set_status(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RuntimeAssetRecoveryStatus::_internal_mutable_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.status_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RuntimeAssetRecoveryStatus::release_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RuntimeAssetRecoveryStatus.status)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.status_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.status_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RuntimeAssetRecoveryStatus::set_allocated_status(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.status_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.status_.IsDefault()) {
+    _impl_.status_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RuntimeAssetRecoveryStatus.status)
+}
+
+// -------------------------------------------------------------------
+
+// RecoveryStatus
+
+// .s4wave.status.LauncherRecoveryStatus launcher = 1;
+inline bool RecoveryStatus::has_launcher() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.launcher_ != nullptr);
+  return value;
+}
+inline void RecoveryStatus::clear_launcher() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.launcher_ != nullptr) _impl_.launcher_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::s4wave::status::LauncherRecoveryStatus& RecoveryStatus::_internal_launcher() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::status::LauncherRecoveryStatus* p = _impl_.launcher_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::status::LauncherRecoveryStatus&>(::s4wave::status::_LauncherRecoveryStatus_default_instance_);
+}
+inline const ::s4wave::status::LauncherRecoveryStatus& RecoveryStatus::launcher() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RecoveryStatus.launcher)
+  return _internal_launcher();
+}
+inline void RecoveryStatus::unsafe_arena_set_allocated_launcher(
+    ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.launcher_);
+  }
+  _impl_.launcher_ = reinterpret_cast<::s4wave::status::LauncherRecoveryStatus*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.status.RecoveryStatus.launcher)
+}
+inline ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE RecoveryStatus::release_launcher() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::status::LauncherRecoveryStatus* released = _impl_.launcher_;
+  _impl_.launcher_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE RecoveryStatus::unsafe_arena_release_launcher() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RecoveryStatus.launcher)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::status::LauncherRecoveryStatus* temp = _impl_.launcher_;
+  _impl_.launcher_ = nullptr;
+  return temp;
+}
+inline ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::_internal_mutable_launcher() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.launcher_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::status::LauncherRecoveryStatus>(GetArena());
+    _impl_.launcher_ = reinterpret_cast<::s4wave::status::LauncherRecoveryStatus*>(p);
+  }
+  return _impl_.launcher_;
+}
+inline ::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::mutable_launcher()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::status::LauncherRecoveryStatus* _msg = _internal_mutable_launcher();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RecoveryStatus.launcher)
+  return _msg;
+}
+inline void RecoveryStatus::set_allocated_launcher(::s4wave::status::LauncherRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.launcher_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.launcher_ = reinterpret_cast<::s4wave::status::LauncherRecoveryStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RecoveryStatus.launcher)
+}
+
+// repeated .s4wave.status.PluginManifestRecoveryStatus plugins = 2;
+inline int RecoveryStatus::_internal_plugins_size() const {
+  return _internal_plugins().size();
+}
+inline int RecoveryStatus::plugins_size() const {
+  return _internal_plugins_size();
+}
+inline void RecoveryStatus::clear_plugins() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugins_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::status::PluginManifestRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::mutable_plugins(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RecoveryStatus.plugins)
+  return _internal_mutable_plugins()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::status::PluginManifestRecoveryStatus>* PROTOBUF_NONNULL RecoveryStatus::mutable_plugins()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.status.RecoveryStatus.plugins)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_plugins();
+}
+inline const ::s4wave::status::PluginManifestRecoveryStatus& RecoveryStatus::plugins(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RecoveryStatus.plugins)
+  return _internal_plugins().Get(index);
+}
+inline ::s4wave::status::PluginManifestRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::add_plugins()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::status::PluginManifestRecoveryStatus* _add =
+      _internal_mutable_plugins()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.status.RecoveryStatus.plugins)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::status::PluginManifestRecoveryStatus>& RecoveryStatus::plugins() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.status.RecoveryStatus.plugins)
+  return _internal_plugins();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::status::PluginManifestRecoveryStatus>&
+RecoveryStatus::_internal_plugins() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.plugins_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::status::PluginManifestRecoveryStatus>* PROTOBUF_NONNULL
+RecoveryStatus::_internal_mutable_plugins() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.plugins_;
+}
+
+// repeated .s4wave.status.NativePackageRecoveryStatus native_packages = 3;
+inline int RecoveryStatus::_internal_native_packages_size() const {
+  return _internal_native_packages().size();
+}
+inline int RecoveryStatus::native_packages_size() const {
+  return _internal_native_packages_size();
+}
+inline void RecoveryStatus::clear_native_packages() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.native_packages_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::s4wave::status::NativePackageRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::mutable_native_packages(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RecoveryStatus.native_packages)
+  return _internal_mutable_native_packages()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::status::NativePackageRecoveryStatus>* PROTOBUF_NONNULL RecoveryStatus::mutable_native_packages()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.status.RecoveryStatus.native_packages)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_native_packages();
+}
+inline const ::s4wave::status::NativePackageRecoveryStatus& RecoveryStatus::native_packages(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RecoveryStatus.native_packages)
+  return _internal_native_packages().Get(index);
+}
+inline ::s4wave::status::NativePackageRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::add_native_packages()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::status::NativePackageRecoveryStatus* _add =
+      _internal_mutable_native_packages()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:s4wave.status.RecoveryStatus.native_packages)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::status::NativePackageRecoveryStatus>& RecoveryStatus::native_packages() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.status.RecoveryStatus.native_packages)
+  return _internal_native_packages();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::status::NativePackageRecoveryStatus>&
+RecoveryStatus::_internal_native_packages() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.native_packages_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::status::NativePackageRecoveryStatus>* PROTOBUF_NONNULL
+RecoveryStatus::_internal_mutable_native_packages() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.native_packages_;
+}
+
+// .s4wave.status.BrowserBootRecoveryStatus boot = 4;
+inline bool RecoveryStatus::has_boot() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.boot_ != nullptr);
+  return value;
+}
+inline void RecoveryStatus::clear_boot() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.boot_ != nullptr) _impl_.boot_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::s4wave::status::BrowserBootRecoveryStatus& RecoveryStatus::_internal_boot() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::status::BrowserBootRecoveryStatus* p = _impl_.boot_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::status::BrowserBootRecoveryStatus&>(::s4wave::status::_BrowserBootRecoveryStatus_default_instance_);
+}
+inline const ::s4wave::status::BrowserBootRecoveryStatus& RecoveryStatus::boot() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RecoveryStatus.boot)
+  return _internal_boot();
+}
+inline void RecoveryStatus::unsafe_arena_set_allocated_boot(
+    ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.boot_);
+  }
+  _impl_.boot_ = reinterpret_cast<::s4wave::status::BrowserBootRecoveryStatus*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.status.RecoveryStatus.boot)
+}
+inline ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE RecoveryStatus::release_boot() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::status::BrowserBootRecoveryStatus* released = _impl_.boot_;
+  _impl_.boot_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE RecoveryStatus::unsafe_arena_release_boot() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RecoveryStatus.boot)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::status::BrowserBootRecoveryStatus* temp = _impl_.boot_;
+  _impl_.boot_ = nullptr;
+  return temp;
+}
+inline ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::_internal_mutable_boot() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.boot_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::status::BrowserBootRecoveryStatus>(GetArena());
+    _impl_.boot_ = reinterpret_cast<::s4wave::status::BrowserBootRecoveryStatus*>(p);
+  }
+  return _impl_.boot_;
+}
+inline ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::mutable_boot()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::s4wave::status::BrowserBootRecoveryStatus* _msg = _internal_mutable_boot();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RecoveryStatus.boot)
+  return _msg;
+}
+inline void RecoveryStatus::set_allocated_boot(::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.boot_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.boot_ = reinterpret_cast<::s4wave::status::BrowserBootRecoveryStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RecoveryStatus.boot)
+}
+
+// .s4wave.status.RuntimeAssetRecoveryStatus runtime_asset = 5;
+inline bool RecoveryStatus::has_runtime_asset() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.runtime_asset_ != nullptr);
+  return value;
+}
+inline void RecoveryStatus::clear_runtime_asset() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.runtime_asset_ != nullptr) _impl_.runtime_asset_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::s4wave::status::RuntimeAssetRecoveryStatus& RecoveryStatus::_internal_runtime_asset() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::status::RuntimeAssetRecoveryStatus* p = _impl_.runtime_asset_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::status::RuntimeAssetRecoveryStatus&>(::s4wave::status::_RuntimeAssetRecoveryStatus_default_instance_);
+}
+inline const ::s4wave::status::RuntimeAssetRecoveryStatus& RecoveryStatus::runtime_asset() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.RecoveryStatus.runtime_asset)
+  return _internal_runtime_asset();
+}
+inline void RecoveryStatus::unsafe_arena_set_allocated_runtime_asset(
+    ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.runtime_asset_);
+  }
+  _impl_.runtime_asset_ = reinterpret_cast<::s4wave::status::RuntimeAssetRecoveryStatus*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.status.RecoveryStatus.runtime_asset)
+}
+inline ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE RecoveryStatus::release_runtime_asset() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::status::RuntimeAssetRecoveryStatus* released = _impl_.runtime_asset_;
+  _impl_.runtime_asset_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE RecoveryStatus::unsafe_arena_release_runtime_asset() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.RecoveryStatus.runtime_asset)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::status::RuntimeAssetRecoveryStatus* temp = _impl_.runtime_asset_;
+  _impl_.runtime_asset_ = nullptr;
+  return temp;
+}
+inline ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::_internal_mutable_runtime_asset() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.runtime_asset_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::status::RuntimeAssetRecoveryStatus>(GetArena());
+    _impl_.runtime_asset_ = reinterpret_cast<::s4wave::status::RuntimeAssetRecoveryStatus*>(p);
+  }
+  return _impl_.runtime_asset_;
+}
+inline ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL RecoveryStatus::mutable_runtime_asset()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::s4wave::status::RuntimeAssetRecoveryStatus* _msg = _internal_mutable_runtime_asset();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.RecoveryStatus.runtime_asset)
+  return _msg;
+}
+inline void RecoveryStatus::set_allocated_runtime_asset(::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.runtime_asset_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.runtime_asset_ = reinterpret_cast<::s4wave::status::RuntimeAssetRecoveryStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.RecoveryStatus.runtime_asset)
+}
+
+// -------------------------------------------------------------------
+
 // WatchControllersRequest
 
 // -------------------------------------------------------------------
@@ -2615,6 +7385,319 @@ inline ::uint32_t WatchPluginsResponse::_internal_plugin_count() const {
 inline void WatchPluginsResponse::_internal_set_plugin_count(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.plugin_count_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// WatchRecoveryStatusRequest
+
+// -------------------------------------------------------------------
+
+// ReportRecoveryStatusRequest
+
+// .s4wave.status.BrowserBootRecoveryStatus boot = 1;
+inline bool ReportRecoveryStatusRequest::has_boot() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.boot_ != nullptr);
+  return value;
+}
+inline void ReportRecoveryStatusRequest::clear_boot() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.boot_ != nullptr) _impl_.boot_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::status::BrowserBootRecoveryStatus& ReportRecoveryStatusRequest::_internal_boot() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::status::BrowserBootRecoveryStatus* p = _impl_.boot_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::status::BrowserBootRecoveryStatus&>(::s4wave::status::_BrowserBootRecoveryStatus_default_instance_);
+}
+inline const ::s4wave::status::BrowserBootRecoveryStatus& ReportRecoveryStatusRequest::boot() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.ReportRecoveryStatusRequest.boot)
+  return _internal_boot();
+}
+inline void ReportRecoveryStatusRequest::unsafe_arena_set_allocated_boot(
+    ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.boot_);
+  }
+  _impl_.boot_ = reinterpret_cast<::s4wave::status::BrowserBootRecoveryStatus*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.status.ReportRecoveryStatusRequest.boot)
+}
+inline ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE ReportRecoveryStatusRequest::release_boot() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::status::BrowserBootRecoveryStatus* released = _impl_.boot_;
+  _impl_.boot_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE ReportRecoveryStatusRequest::unsafe_arena_release_boot() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.ReportRecoveryStatusRequest.boot)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::status::BrowserBootRecoveryStatus* temp = _impl_.boot_;
+  _impl_.boot_ = nullptr;
+  return temp;
+}
+inline ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NONNULL ReportRecoveryStatusRequest::_internal_mutable_boot() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.boot_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::status::BrowserBootRecoveryStatus>(GetArena());
+    _impl_.boot_ = reinterpret_cast<::s4wave::status::BrowserBootRecoveryStatus*>(p);
+  }
+  return _impl_.boot_;
+}
+inline ::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NONNULL ReportRecoveryStatusRequest::mutable_boot()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::status::BrowserBootRecoveryStatus* _msg = _internal_mutable_boot();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.ReportRecoveryStatusRequest.boot)
+  return _msg;
+}
+inline void ReportRecoveryStatusRequest::set_allocated_boot(::s4wave::status::BrowserBootRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.boot_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.boot_ = reinterpret_cast<::s4wave::status::BrowserBootRecoveryStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.ReportRecoveryStatusRequest.boot)
+}
+
+// .s4wave.status.RuntimeAssetRecoveryStatus runtime_asset = 2;
+inline bool ReportRecoveryStatusRequest::has_runtime_asset() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.runtime_asset_ != nullptr);
+  return value;
+}
+inline void ReportRecoveryStatusRequest::clear_runtime_asset() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.runtime_asset_ != nullptr) _impl_.runtime_asset_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::s4wave::status::RuntimeAssetRecoveryStatus& ReportRecoveryStatusRequest::_internal_runtime_asset() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::status::RuntimeAssetRecoveryStatus* p = _impl_.runtime_asset_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::status::RuntimeAssetRecoveryStatus&>(::s4wave::status::_RuntimeAssetRecoveryStatus_default_instance_);
+}
+inline const ::s4wave::status::RuntimeAssetRecoveryStatus& ReportRecoveryStatusRequest::runtime_asset() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.ReportRecoveryStatusRequest.runtime_asset)
+  return _internal_runtime_asset();
+}
+inline void ReportRecoveryStatusRequest::unsafe_arena_set_allocated_runtime_asset(
+    ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.runtime_asset_);
+  }
+  _impl_.runtime_asset_ = reinterpret_cast<::s4wave::status::RuntimeAssetRecoveryStatus*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.status.ReportRecoveryStatusRequest.runtime_asset)
+}
+inline ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE ReportRecoveryStatusRequest::release_runtime_asset() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::status::RuntimeAssetRecoveryStatus* released = _impl_.runtime_asset_;
+  _impl_.runtime_asset_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE ReportRecoveryStatusRequest::unsafe_arena_release_runtime_asset() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.ReportRecoveryStatusRequest.runtime_asset)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::status::RuntimeAssetRecoveryStatus* temp = _impl_.runtime_asset_;
+  _impl_.runtime_asset_ = nullptr;
+  return temp;
+}
+inline ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL ReportRecoveryStatusRequest::_internal_mutable_runtime_asset() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.runtime_asset_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::status::RuntimeAssetRecoveryStatus>(GetArena());
+    _impl_.runtime_asset_ = reinterpret_cast<::s4wave::status::RuntimeAssetRecoveryStatus*>(p);
+  }
+  return _impl_.runtime_asset_;
+}
+inline ::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL ReportRecoveryStatusRequest::mutable_runtime_asset()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::status::RuntimeAssetRecoveryStatus* _msg = _internal_mutable_runtime_asset();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.ReportRecoveryStatusRequest.runtime_asset)
+  return _msg;
+}
+inline void ReportRecoveryStatusRequest::set_allocated_runtime_asset(::s4wave::status::RuntimeAssetRecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.runtime_asset_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.runtime_asset_ = reinterpret_cast<::s4wave::status::RuntimeAssetRecoveryStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.ReportRecoveryStatusRequest.runtime_asset)
+}
+
+// -------------------------------------------------------------------
+
+// ReportRecoveryStatusResponse
+
+// -------------------------------------------------------------------
+
+// WatchRecoveryStatusResponse
+
+// .s4wave.status.RecoveryStatus status = 1;
+inline bool WatchRecoveryStatusResponse::has_status() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.status_ != nullptr);
+  return value;
+}
+inline void WatchRecoveryStatusResponse::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.status_ != nullptr) _impl_.status_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::status::RecoveryStatus& WatchRecoveryStatusResponse::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::status::RecoveryStatus* p = _impl_.status_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::status::RecoveryStatus&>(::s4wave::status::_RecoveryStatus_default_instance_);
+}
+inline const ::s4wave::status::RecoveryStatus& WatchRecoveryStatusResponse::status() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.WatchRecoveryStatusResponse.status)
+  return _internal_status();
+}
+inline void WatchRecoveryStatusResponse::unsafe_arena_set_allocated_status(
+    ::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.status_);
+  }
+  _impl_.status_ = reinterpret_cast<::s4wave::status::RecoveryStatus*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.status.WatchRecoveryStatusResponse.status)
+}
+inline ::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE WatchRecoveryStatusResponse::release_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::status::RecoveryStatus* released = _impl_.status_;
+  _impl_.status_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE WatchRecoveryStatusResponse::unsafe_arena_release_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.WatchRecoveryStatusResponse.status)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::status::RecoveryStatus* temp = _impl_.status_;
+  _impl_.status_ = nullptr;
+  return temp;
+}
+inline ::s4wave::status::RecoveryStatus* PROTOBUF_NONNULL WatchRecoveryStatusResponse::_internal_mutable_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.status_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::status::RecoveryStatus>(GetArena());
+    _impl_.status_ = reinterpret_cast<::s4wave::status::RecoveryStatus*>(p);
+  }
+  return _impl_.status_;
+}
+inline ::s4wave::status::RecoveryStatus* PROTOBUF_NONNULL WatchRecoveryStatusResponse::mutable_status()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::status::RecoveryStatus* _msg = _internal_mutable_status();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.WatchRecoveryStatusResponse.status)
+  return _msg;
+}
+inline void WatchRecoveryStatusResponse::set_allocated_status(::s4wave::status::RecoveryStatus* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.status_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.status_ = reinterpret_cast<::s4wave::status::RecoveryStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.WatchRecoveryStatusResponse.status)
 }
 
 #ifdef __GNUC__

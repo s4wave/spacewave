@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -258,5 +259,45 @@ func TestCreateEntrypointsFromViteOutputsFrontendIsIdempotent(t *testing.T) {
 	}
 	if setRenderMode.GetRefresh() {
 		t.Fatal("frontend entrypoints should not force refresh for idempotent handler reattachment")
+	}
+}
+
+func TestValidateFrontendEntrypointAssetClosure(t *testing.T) {
+	dir := t.TempDir()
+	for _, relPath := range []string{
+		"v/b/fe/app/App-abc123.mjs",
+		"v/b/fe/app/App-abc123.css",
+	} {
+		fullPath := filepath.Join(dir, filepath.FromSlash(relPath))
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(fullPath, []byte("asset"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	frontend := []*bldr_plugin_compiler_js.FrontendEntrypoint{{
+		SetRenderMode: &web_view.SetRenderModeRequest{
+			RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
+			ScriptPath: "v/b/fe/app/App-abc123.mjs",
+		},
+		SetHtmlLinks: &web_view.SetHtmlLinksRequest{
+			SetLinks: map[string]*web_view.HtmlLink{
+				"css": {Rel: "stylesheet", Href: "v/b/fe/app/App-abc123.css"},
+			},
+		},
+	}}
+	if err := bldr_plugin_compiler_js.ValidateFrontendEntrypointAssetClosure(dir, frontend); err != nil {
+		t.Fatal(err)
+	}
+
+	frontend[0].SetRenderMode.ScriptPath = "v/b/fe/app/Missing-abc123.mjs"
+	err := bldr_plugin_compiler_js.ValidateFrontendEntrypointAssetClosure(dir, frontend)
+	if err == nil {
+		t.Fatal("expected missing frontend asset validation error")
+	}
+	if !strings.Contains(err.Error(), `v/b/fe/app/Missing-abc123.mjs`) {
+		t.Fatalf("missing asset error did not name path: %v", err)
 	}
 }

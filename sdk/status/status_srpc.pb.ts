@@ -3,12 +3,16 @@
 /* eslint-disable */
 
 import {
+  ReportRecoveryStatusRequest,
+  ReportRecoveryStatusResponse,
   WatchControllersRequest,
   WatchControllersResponse,
   WatchDirectivesRequest,
   WatchDirectivesResponse,
   WatchPluginsRequest,
   WatchPluginsResponse,
+  WatchRecoveryStatusRequest,
+  WatchRecoveryStatusResponse,
 } from './status.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
@@ -46,6 +50,24 @@ export const SystemStatusServiceDefinition = {
       O: WatchPluginsResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * @generated from rpc s4wave.status.SystemStatusService.ReportRecoveryStatus
+     */
+    ReportRecoveryStatus: {
+      name: 'ReportRecoveryStatus',
+      I: ReportRecoveryStatusRequest,
+      O: ReportRecoveryStatusResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.status.SystemStatusService.WatchRecoveryStatus
+     */
+    WatchRecoveryStatus: {
+      name: 'WatchRecoveryStatus',
+      I: WatchRecoveryStatusRequest,
+      O: WatchRecoveryStatusResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -76,6 +98,22 @@ export interface SystemStatusService {
     request: WatchPluginsRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchPluginsResponse>
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.ReportRecoveryStatus
+   */
+  ReportRecoveryStatus(
+    request: ReportRecoveryStatusRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportRecoveryStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchRecoveryStatus
+   */
+  WatchRecoveryStatus(
+    request: WatchRecoveryStatusRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchRecoveryStatusResponse>
 }
 
 export const SystemStatusServiceServiceName =
@@ -90,6 +128,8 @@ export class SystemStatusServiceClient implements SystemStatusService {
     this.WatchControllers = this.WatchControllers.bind(this)
     this.WatchDirectives = this.WatchDirectives.bind(this)
     this.WatchPlugins = this.WatchPlugins.bind(this)
+    this.ReportRecoveryStatus = this.ReportRecoveryStatus.bind(this)
+    this.WatchRecoveryStatus = this.WatchRecoveryStatus.bind(this)
   }
   /**
    * @generated from rpc s4wave.status.SystemStatusService.WatchControllers
@@ -140,5 +180,39 @@ export class SystemStatusServiceClient implements SystemStatusService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchPluginsResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.ReportRecoveryStatus
+   */
+  async ReportRecoveryStatus(
+    request: ReportRecoveryStatusRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportRecoveryStatusResponse> {
+    const requestMsg = ReportRecoveryStatusRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SystemStatusServiceDefinition.methods.ReportRecoveryStatus.name,
+      ReportRecoveryStatusRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReportRecoveryStatusResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchRecoveryStatus
+   */
+  WatchRecoveryStatus(
+    request: WatchRecoveryStatusRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchRecoveryStatusResponse> {
+    const requestMsg = WatchRecoveryStatusRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SystemStatusServiceDefinition.methods.WatchRecoveryStatus.name,
+      WatchRecoveryStatusRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchRecoveryStatusResponse)(result)
   }
 }

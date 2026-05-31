@@ -80,6 +80,7 @@ import {
   type EntityCredential,
 } from '@s4wave/core/session/session.pb.js'
 import { SystemStatusButton } from '@s4wave/app/system/SystemStatusButton.js'
+import { RecoveryStatusPublisher } from '@s4wave/app/system/RecoveryStatusPublisher.js'
 import { SessionSyncStatusButton } from './SessionSyncStatusButton.js'
 import { SessionSyncStatusProvider } from './SessionSyncStatusContext.js'
 import { SessionSelfEnrollmentStatusButton } from './SessionSelfEnrollmentStatusButton.js'
@@ -375,6 +376,7 @@ export function SessionContainer(props: {
   return (
     <SessionContext.Provider resource={props.sessionResource}>
       <SessionCommands />
+      {session ? <RecoveryStatusPublisher session={session} /> : null}
       <StateNamespaceProvider
         stateNamespace={stateNamespace}
         stateAtomAccessor={sessionStateAccessor}

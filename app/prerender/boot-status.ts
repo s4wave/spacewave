@@ -22,8 +22,15 @@ const defaultStatus: BrowserBootStatus = {
 
 declare global {
   var __swBootStatus: BrowserBootStatus | undefined
+  var __swBootRecoveryStatus: BrowserBootRecoveryStatusSnapshot | undefined
   var __swStartupMarks: BrowserStartupMark[] | undefined
   var __swStartupMarkSequence: number | undefined
+}
+
+export interface BrowserBootRecoveryStatusSnapshot {
+  compatibilityVersion: string
+  lastResetDecision: string
+  detail?: string
 }
 
 let nextBrowserStartupMarkSequence = 1
@@ -31,6 +38,12 @@ let browserStartupRevision = 0
 
 export function readBrowserBootStatus(): BrowserBootStatus {
   return globalThis.__swBootStatus ?? defaultStatus
+}
+
+export function readBrowserBootRecoveryStatus():
+  | BrowserBootRecoveryStatusSnapshot
+  | undefined {
+  return globalThis.__swBootRecoveryStatus
 }
 
 export function readBrowserStartupRevision(): number {

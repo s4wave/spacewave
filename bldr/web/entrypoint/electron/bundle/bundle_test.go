@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	bldr "github.com/s4wave/spacewave/bldr"
+	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	"github.com/sirupsen/logrus"
 )
 
@@ -60,6 +61,69 @@ func TestBuildRendererBundleUsesSelfContainedDistEntrypoint(t *testing.T) {
 	} {
 		if strings.Contains(string(out), unexpected) {
 			t.Fatalf("output still contains unresolved import %q", unexpected)
+		}
+	}
+}
+
+func TestBuildElectronRendererIndexUsesStableBoot(t *testing.T) {
+	dir := t.TempDir()
+	importMap := web_entrypoint_index.ImportMap{
+		Imports: map[string]string{
+			"react": "/entrypoint/react/index.mjs",
+		},
+	}
+	if err := BuildElectronRendererIndex(dir, importMap); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := os.ReadFile(filepath.Join(dir, "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(out)
+	if !strings.Contains(html, `<script type="module" src="./boot.mjs"></script>`) {
+		t.Fatalf("renderer index missing stable boot path: %s", html)
+	}
+	if strings.Contains(html, `src="./entrypoint/entrypoint.mjs"`) {
+		t.Fatalf("renderer index bypassed stable boot: %s", html)
+	}
+}
+
+func TestWriteElectronStableBootFiles(t *testing.T) {
+	dir := t.TempDir()
+	if err := WriteElectronStableBootFiles(dir, "sw-electron.mjs", "shw-electron.mjs"); err != nil {
+		t.Fatal(err)
+	}
+
+	boot, err := os.ReadFile(filepath.Join(dir, "boot.mjs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bootScript := string(boot)
+	for _, want := range []string{
+		"spacewave-browser-app-state-version",
+		"resetHistoricalStateForBoot",
+		".then(function(resetStarted){if(!resetStarted)startBoot()})",
+	} {
+		if !strings.Contains(bootScript, want) {
+			t.Fatalf("electron stable boot missing %q: %s", want, bootScript)
+		}
+	}
+
+	release, err := os.ReadFile(filepath.Join(dir, "browser-release.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	releaseJSON := string(release)
+	for _, want := range []string{
+		`"entrypoint":"entrypoint/entrypoint.mjs"`,
+		`"wasm":"entrypoint/entrypoint.mjs"`,
+		`"serviceWorker":"sw-electron.mjs"`,
+		`"sharedWorker":"shw-electron.mjs"`,
+		`"autoStart":true`,
+	} {
+		if !strings.Contains(releaseJSON, want) {
+			t.Fatalf("electron boot release missing %q: %s", want, releaseJSON)
 		}
 	}
 }

@@ -5,6 +5,7 @@ import type {
   ProtoComponentType,
 } from './react-component.js'
 import { useMemoUint8Array } from './hooks.js'
+import { loadWebViewScriptModule } from './web-view-module-loader.js'
 
 interface InnerComponentProps {
   componentProps?: Uint8Array
@@ -41,7 +42,7 @@ export function ReactComponentContainer(props: IReactComponentContainerProps) {
     () =>
       React.lazy(
         async (): Promise<{ default: LoadedProtoComponent }> =>
-          import(props.scriptPath),
+          loadWebViewScriptModule(props.scriptPath),
       ),
     [props.scriptPath],
   )

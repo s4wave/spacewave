@@ -43,21 +43,32 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 		attempts = prevStatus.Attempts
 	}
 	attempts++
-	c.fetchStatusCtr.SetValue(&spacewave_launcher.FetchStatus{
-		Fetching:  true,
-		HasConfig: currRev != 0,
-		Attempts:  attempts,
+	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+		next.Fetching = true
+		next.HasConfig = currRev != 0
+		next.Attempts = attempts
+		next.NextRetryAt = time.Time{}
 	})
+	var fetchedRev uint64
+	var fetchedSource string
 	defer func() {
 		info := c.launcherInfoCtr.GetValue()
-		finalStatus := &spacewave_launcher.FetchStatus{
-			HasConfig: info.GetDistConfig().GetRev() != 0,
-		}
-		if rerr != nil {
-			finalStatus.LastErr = rerr.Error()
-			finalStatus.Attempts = attempts
-		}
-		c.fetchStatusCtr.SetValue(finalStatus)
+		c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+			next.Fetching = false
+			next.HasConfig = info.GetDistConfig().GetRev() != 0
+			next.SelectedConfigRev = info.GetDistConfig().GetRev()
+			if fetchedRev != 0 {
+				next.FetchedConfigRev = fetchedRev
+				next.FetchedConfigSource = fetchedSource
+			}
+			if rerr != nil {
+				next.LastErr = rerr.Error()
+				next.Attempts = attempts
+			} else {
+				next.LastErr = ""
+				next.Attempts = 0
+			}
+		})
 	}()
 
 	var failErr error
@@ -106,6 +117,8 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 			setFailErr(err)
 			continue
 		}
+		fetchedRev = rev
+		fetchedSource = endpURLStr
 		// config is valid: check if newer
 		if rev == currRev {
 			c.le.Debugf("found valid config with rev equal to current: %d", rev)
@@ -123,6 +136,12 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 			c.le.WithError(err).Warn("failed to store updated app dist config")
 		}
 		_, _ = c.swapDistConf(updatedAppDistConf)
+		c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+			next.SelectedConfigRev = rev
+			next.SelectedConfigSource = "endpoint"
+			next.FetchedConfigRev = fetchedRev
+			next.FetchedConfigSource = fetchedSource
+		})
 		c.RecheckReleaseMetadata()
 		c.le.
 			WithField("prev-conf-rev", currRev).

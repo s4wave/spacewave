@@ -242,6 +242,24 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "bootSessionStorageKeys") {
 		t.Fatalf("boot asset missing sessionStorage shell key list: %s", script)
 	}
+	if !strings.Contains(script, "bootStorageResetRules") {
+		t.Fatalf("boot asset missing storage reset classification registry: %s", script)
+	}
+	if !strings.Contains(script, "owner:'web-state-atom'") ||
+		!strings.Contains(script, "key:'app-persistent'") ||
+		!strings.Contains(script, "resetPolicy:'preserve'") {
+		t.Fatalf("boot asset missing app-persistent preserve classification: %s", script)
+	}
+	if !strings.Contains(script, "owner:'shell-tab-state-atom'") ||
+		!strings.Contains(script, "key:'tab-state-'") ||
+		!strings.Contains(script, "call-site-audit-required-before-reset'") {
+		t.Fatalf("boot asset missing tab-state preserve classification: %s", script)
+	}
+	if !strings.Contains(script, "owner:'auth-handoff-flow'") ||
+		!strings.Contains(script, "key:'spacewave-auth-handoff-payload'") ||
+		!strings.Contains(script, "auth-flow-owner-reset-only'") {
+		t.Fatalf("boot asset missing auth handoff preserve classification: %s", script)
+	}
 	if !strings.Contains(script, "navigator.serviceWorker.getRegistrations") {
 		t.Fatalf("boot asset missing ServiceWorker registration reset: %s", script)
 	}
@@ -254,7 +272,8 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "storageRemoveKnown(sessionStorage,bootSessionStorageKeys,[])") {
 		t.Fatalf("boot asset missing targeted sessionStorage shell reset: %s", script)
 	}
-	if !strings.Contains(script, "if(settledAllFulfilled(cleanupResults))storageSet(localStorage,bootStateVersionKey,bootStateVersion)") {
+	if !strings.Contains(script, "if(settledAllFulfilled(cleanupResults)){") ||
+		!strings.Contains(script, "storageSet(localStorage,bootStateVersionKey,bootStateVersion)") {
 		t.Fatalf("boot asset must record durable version only after cleanup succeeds: %s", script)
 	}
 	if !strings.Contains(script, ".then(function(resetStarted){if(!resetStarted)startBoot()})") {
@@ -277,6 +296,11 @@ func TestWriteStableBootAsset(t *testing.T) {
 	}
 	if !strings.Contains(script, "__swBootStatus") {
 		t.Fatalf("boot asset missing boot status global: %s", script)
+	}
+	if !strings.Contains(script, "__swBootRecoveryStatus") ||
+		!strings.Contains(script, "compatibilityVersion:bootStateVersion") ||
+		!strings.Contains(script, "lastResetDecision") {
+		t.Fatalf("boot asset missing boot recovery status fields: %s", script)
 	}
 	if !strings.Contains(script, "data-sw-boot-progress") {
 		t.Fatalf("boot asset missing progress target support: %s", script)
