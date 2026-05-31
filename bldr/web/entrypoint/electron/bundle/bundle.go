@@ -54,7 +54,11 @@ func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildO
 //
 // Returns the path to the service worker .mjs file
 func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
-	return entrypoint_browser_bundle.BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, !minify, devMode)
+	return BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, "", minify, devMode)
+}
+
+func BuildServiceWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, devMode bool) (string, error) {
+	return entrypoint_browser_bundle.BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, !minify, devMode)
 }
 
 // BuildPreloadBundle builds the web renderer bundle files.
@@ -220,14 +224,19 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
+	buildPkgsDir, err := entrypoint_browser_bundle.EnsureBldrDistDepsInstall(ctx, le, stateDir, bldrDistRoot)
+	if err != nil {
+		return err
+	}
+
 	// service worker
-	swFilename, err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, devMode)
+	swFilename, err := BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, devMode)
 	if err != nil {
 		return err
 	}
 
 	// shared worker
-	shwFilename, err := entrypoint_browser_bundle.BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, !minify, devMode)
+	shwFilename, err := entrypoint_browser_bundle.BuildSharedWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, !minify, devMode)
 	if err != nil {
 		return err
 	}

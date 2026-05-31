@@ -525,9 +525,40 @@ func BrowserEntrypointBuildOpts(bldrDistRoot string, minify, sourcemaps bool) es
 	return buildOpts
 }
 
+const quickJSWASIReactorModule = "quickjs-wasi-reactor"
+
+func RuntimeDistDepsResolverPlugin(buildPkgsDir string) esbuild.Plugin {
+	return esbuild.Plugin{
+		Name: "bldr-runtime-dist-deps-resolver",
+		Setup: func(build esbuild.PluginBuild) {
+			build.OnResolve(esbuild.OnResolveOptions{
+				Filter: `^quickjs-wasi-reactor$`,
+			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+				modulePath := filepath.Join(buildPkgsDir, "node_modules", quickJSWASIReactorModule, "dist", "index.js")
+				if _, err := os.Stat(modulePath); err != nil {
+					return esbuild.OnResolveResult{}, errors.Wrapf(err, "resolve %s from bldr dist deps", quickJSWASIReactorModule)
+				}
+				return esbuild.OnResolveResult{Path: modulePath}, nil
+			})
+		},
+	}
+}
+
+func ApplyRuntimeDistDepsResolver(opts *esbuild.BuildOptions, buildPkgsDir string) {
+	if buildPkgsDir == "" {
+		return
+	}
+	opts.Plugins = append(opts.Plugins, RuntimeDistDepsResolverPlugin(buildPkgsDir))
+}
+
 // ServiceWorkerBuildOpts creates the BuildOpts for the service worker
 func ServiceWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
+	return ServiceWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, "", minify, sourcemaps, hash)
+}
+
+func ServiceWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
 	baseConfig := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
+	ApplyRuntimeDistDepsResolver(&baseConfig, buildPkgsDir)
 	baseConfig.Format = esbuild.FormatIIFE
 	if hash {
 		baseConfig.EntryNames = "sw-[hash]"
@@ -541,7 +572,12 @@ func ServiceWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) 
 
 // SharedWorkerBuildOpts creates the BuildOpts for the shared worker
 func SharedWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
+	return SharedWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, "", minify, sourcemaps, hash)
+}
+
+func SharedWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
 	baseConfig := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
+	ApplyRuntimeDistDepsResolver(&baseConfig, buildPkgsDir)
 	if hash {
 		baseConfig.EntryNames = "shw-[hash]"
 	} else {
@@ -556,9 +592,13 @@ func SharedWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) e
 //
 // Returns the filename of the service worker output file (including the hash).
 func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps, devMode bool) (string, error) {
+	return BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, "", minify, sourcemaps, devMode)
+}
+
+func BuildServiceWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
 	le.Debug("generating service-worker bundle")
 
-	swOpts := ServiceWorkerBuildOpts(bldrDistRoot, minify, sourcemaps, !devMode)
+	swOpts := ServiceWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
 	swOpts.Outdir = buildDir
 	swOpts.Write = true
 	if sourcemaps {
@@ -579,9 +619,13 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 //
 // Returns the filename of the shared worker output file (including the hash).
 func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps, devMode bool) (string, error) {
+	return BuildSharedWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, "", minify, sourcemaps, devMode)
+}
+
+func BuildSharedWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
 	le.Debug("generating shared-worker bundle")
 
-	shwOpts := SharedWorkerBuildOpts(bldrDistRoot, minify, sourcemaps, !devMode)
+	shwOpts := SharedWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
 	shwOpts.Outdir = buildDir
 	shwOpts.Write = true
 	if sourcemaps {
@@ -744,14 +788,19 @@ func BuildBrowserBundle(
 		return nil, err
 	}
 
+	buildPkgsDir, err := EnsureBldrDistDepsInstall(ctx, le, stateDir, bldrDistRoot)
+	if err != nil {
+		return nil, err
+	}
+
 	// service worker
-	swFilename, err := BuildServiceWorkerBundle(le, bldrDistRoot, buildDir, minify, sourcemaps, devMode)
+	swFilename, err := BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
 
 	// shared worker
-	shwFilename, err := BuildSharedWorkerBundle(le, bldrDistRoot, buildDir, minify, sourcemaps, devMode)
+	shwFilename, err := BuildSharedWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
@@ -818,8 +867,8 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 
 	// install dist deps (cached: skips if package.json unchanged)
 	// Use stateDir (not buildDir) so the cache survives CleanCreateDir on the build output.
-	buildPkgsDir, _ := filepath.Abs(filepath.Join(stateDir, "build-web-pkgs"))
-	if err := npm.EnsureBunInstall(ctx, le, stateDir, bldr.ResolveDistSourcePath(bldrDistRoot, "dist", "deps", "package.json"), buildPkgsDir); err != nil {
+	buildPkgsDir, err := EnsureBldrDistDepsInstall(ctx, le, stateDir, bldrDistRoot)
+	if err != nil {
 		return web_entrypoint_index.ImportMap{}, err
 	}
 
@@ -837,7 +886,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 
 	var importMap web_entrypoint_index.ImportMap
 	viteWorkingPath := filepath.Join(stateDir, "vite-web-pkgs")
-	err := web_pkg_vite.RunOneShot(ctx, le, bldrDistRoot, bldrDistRoot, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+	err = web_pkg_vite.RunOneShot(ctx, le, bldrDistRoot, bldrDistRoot, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
 		_, _, mapEntries, buildErr := web_pkg_vite.BuildWebPkgsVite(
 			ctx,
 			le,
@@ -857,4 +906,13 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 		return buildErr
 	})
 	return importMap, err
+}
+
+func EnsureBldrDistDepsInstall(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {
+	buildPkgsDir, _ := filepath.Abs(filepath.Join(stateDir, "build-web-pkgs"))
+	err := npm.EnsureBunInstall(ctx, le, stateDir, bldr.ResolveDistSourcePath(bldrDistRoot, "dist", "deps", "package.json"), buildPkgsDir)
+	if err != nil {
+		return "", err
+	}
+	return buildPkgsDir, nil
 }
