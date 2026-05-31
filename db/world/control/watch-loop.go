@@ -21,12 +21,20 @@ type WatchLoop struct {
 	// handler is the watch loop handler
 	handler WatchLoopHandler
 
+	wake watchLoopWakeState
+}
+
+type watchLoopWakeState struct {
 	// mtx guards below fields
 	mtx sync.Mutex
-	// wake can be called to force re-scan
-	// may be nil
-	wake        func()
-	pendingWake bool
+	// waiter cancels the active world wait when one is registered.
+	waiter *watchLoopWaiter
+	// pending records a Wake call made while no world wait is registered.
+	pending bool
+}
+
+type watchLoopWaiter struct {
+	cancel context.CancelFunc
 }
 
 // WatchLoopHandler is the callback function for the WatchLoop.
@@ -85,15 +93,41 @@ func ExecuteBusWatchLoop(
 
 // Wake forces the control loop to re-process the latest object state.
 func (c *WatchLoop) Wake() {
-	c.mtx.Lock()
-	if wake := c.wake; wake != nil {
-		wake()
-		c.wake = nil
-		c.mtx.Unlock()
+	c.wake.Wake()
+}
+
+func (w *watchLoopWakeState) Wake() {
+	w.mtx.Lock()
+	if waiter := w.waiter; waiter != nil {
+		waiter.cancel()
+		w.waiter = nil
+		w.mtx.Unlock()
 		return
 	}
-	c.pendingWake = true
-	c.mtx.Unlock()
+	w.pending = true
+	w.mtx.Unlock()
+}
+
+func (w *watchLoopWakeState) beginWait(ctx context.Context) (context.Context, func(), bool) {
+	waitCtx, cancel := context.WithCancel(ctx)
+	w.mtx.Lock()
+	if w.pending {
+		w.pending = false
+		w.mtx.Unlock()
+		cancel()
+		return waitCtx, func() {}, true
+	}
+	waiter := &watchLoopWaiter{cancel: cancel}
+	w.waiter = waiter
+	w.mtx.Unlock()
+	return waitCtx, func() {
+		cancel()
+		w.mtx.Lock()
+		if w.waiter == waiter {
+			w.waiter = nil
+		}
+		w.mtx.Unlock()
+	}, false
 }
 
 // Execute runs the ControlLoop execution loop.
@@ -157,16 +191,10 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			return err
 		}
 
-		wakeCtx, wakeCtxCancel := context.WithCancel(ctx)
-		c.mtx.Lock()
-		if c.pendingWake {
-			c.pendingWake = false
-			c.mtx.Unlock()
-			wakeCtxCancel()
+		wakeCtx, finishWake, skipWait := c.wake.beginWait(ctx)
+		if skipWait {
 			continue
 		}
-		c.wake = wakeCtxCancel
-		c.mtx.Unlock()
 
 		if objState != nil {
 			_, err = objState.WaitRev(wakeCtx, rev+1, !objFound)
@@ -178,10 +206,7 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 		} else {
 			_, err = ws.WaitSeqno(wakeCtx, seqno+1)
 		}
-		wakeCtxCancel()
-		c.mtx.Lock()
-		c.wake = nil
-		c.mtx.Unlock()
+		finishWake()
 		if err != nil && err != context.Canceled {
 			return err
 		}
