@@ -13,6 +13,7 @@ var BldrExternal = []string{
 	"@aptre/bldr",
 	"@aptre/bldr-react",
 	"@aptre/protobuf-es-lite",
+	"quickjs-wasi-reactor",
 }
 
 // GetBldrExternalWebPkgRefs returns the web pkg refs for BldrExternal.
@@ -45,5 +46,9 @@ func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgR
 			"google/protobuf/empty.pb.js",
 			"google/protobuf/timestamp.pb.js",
 		},
+	}, {
+		WebPkgId:   "quickjs-wasi-reactor",
+		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/quickjs-wasi-reactor/dist"),
+		Imports:    []string{"index.js"},
 	}}
 }

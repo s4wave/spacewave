@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "1.1.0",
+    "quickjs-wasi-reactor": "0.15.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "ulid": "^3.0.2",
