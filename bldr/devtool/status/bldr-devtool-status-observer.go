@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/keyed"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
 
@@ -28,7 +29,7 @@ type BldrDevtoolStatusObserver struct {
 
 	mtx      sync.Mutex
 	closed   bool
-	observed map[string]*observedDirective
+	observed *keyed.Keyed[string, *observedDirective]
 
 	manifestFetchRows map[string]BldrDevtoolManifestFetchRow
 	controllerRows    map[string]BldrDevtoolControllerRow
@@ -42,13 +43,14 @@ func NewBldrDevtoolStatusObserver(
 	if producer == nil {
 		producer = NewBldrDevtoolStatusProducer(nil)
 	}
-	return &BldrDevtoolStatusObserver{
+	o := &BldrDevtoolStatusObserver{
 		b:                 b,
 		producer:          producer,
-		observed:          make(map[string]*observedDirective),
 		manifestFetchRows: make(map[string]BldrDevtoolManifestFetchRow),
 		controllerRows:    make(map[string]BldrDevtoolControllerRow),
 	}
+	o.observed = keyed.NewKeyed(o.newObservedDirective)
+	return o
 }
 
 // GetControllerInfo returns information about the controller.
@@ -101,8 +103,8 @@ func (o *BldrDevtoolStatusObserver) Close() error {
 		return nil
 	}
 	o.closed = true
-	observed := o.observed
-	o.observed = make(map[string]*observedDirective)
+	observed := o.observedDataByKeyLocked()
+	o.observed.SyncKeys(nil, false)
 	o.manifestFetchRows = make(map[string]BldrDevtoolManifestFetchRow)
 	o.controllerRows = make(map[string]BldrDevtoolControllerRow)
 	o.mtx.Unlock()
@@ -114,6 +116,10 @@ func (o *BldrDevtoolStatusObserver) Close() error {
 	return nil
 }
 
+func (o *BldrDevtoolStatusObserver) newObservedDirective(key string) (keyed.Routine, *observedDirective) {
+	return nil, &observedDirective{key: key}
+}
+
 func (o *BldrDevtoolStatusObserver) rescanDirectives() {
 	o.mtx.Lock()
 	if o.closed {
@@ -122,70 +128,64 @@ func (o *BldrDevtoolStatusObserver) rescanDirectives() {
 	}
 	o.mtx.Unlock()
 
-	activeKeys := make(map[string]struct{})
+	specs := make(map[string]observedDirectiveSpec)
+	var activeKeys []string
 	for _, di := range o.b.GetDirectives() {
-		obs, ok := o.buildObservedDirective(di)
+		spec, ok := o.buildObservedDirective(di)
 		if !ok {
 			continue
 		}
-		activeKeys[obs.key] = struct{}{}
-
-		o.mtx.Lock()
-		if o.closed {
-			o.mtx.Unlock()
-			return
-		}
-		_, exists := o.observed[obs.key]
-		if exists {
-			o.mtx.Unlock()
+		if _, exists := specs[spec.key]; exists {
 			continue
 		}
-		o.mtx.Unlock()
-
-		obs.attach(di)
-
-		o.mtx.Lock()
-		if o.closed {
-			o.mtx.Unlock()
-			obs.release()
-			return
-		}
-		if _, exists := o.observed[obs.key]; exists {
-			o.mtx.Unlock()
-			obs.release()
-			continue
-		}
-		o.observed[obs.key] = obs
-		o.mtx.Unlock()
+		specs[spec.key] = spec
+		activeKeys = append(activeKeys, spec.key)
 	}
 
-	var release []*observedDirective
 	o.mtx.Lock()
-	for key, obs := range o.observed {
-		if _, ok := activeKeys[key]; ok {
-			continue
+	if o.closed {
+		o.mtx.Unlock()
+		return
+	}
+	previous := o.observedDataByKeyLocked()
+	added, removed := o.observed.SyncKeys(activeKeys, false)
+	release := make([]*observedDirective, 0, len(removed))
+	for _, key := range removed {
+		if obs := previous[key]; obs != nil {
+			o.deleteRowLocked(obs)
+			release = append(release, obs)
 		}
-		delete(o.observed, key)
-		o.deleteRowLocked(obs)
-		release = append(release, obs)
 	}
 	o.mtx.Unlock()
 
 	for _, obs := range release {
 		obs.release()
 	}
+	for _, key := range added {
+		spec := specs[key]
+		obs, exists := o.observed.GetKey(key)
+		if !exists {
+			continue
+		}
+		obs.configure(spec)
+		obs.attach(spec.di)
+		if !o.observedStillActive(key, obs) {
+			obs.release()
+		}
+	}
 	o.publishSnapshot()
 }
 
 func (o *BldrDevtoolStatusObserver) buildObservedDirective(
 	di directive.Instance,
-) (*observedDirective, bool) {
+) (observedDirectiveSpec, bool) {
 	switch dir := di.GetDirective().(type) {
 	case bldr_manifest.FetchManifest:
 		key := "fetch:" + di.GetDirectiveIdent()
-		return &observedDirective{
+		return observedDirectiveSpec{
 			key:  key,
 			kind: observedDirectiveKindManifestFetch,
+			di:   di,
 			update: func(isIdle bool, errs []error, vals []directive.AttachedValue) {
 				o.setManifestFetchRow(buildManifestFetchRow(key, dir, isIdle, errs, vals))
 			},
@@ -195,9 +195,10 @@ func (o *BldrDevtoolStatusObserver) buildObservedDirective(
 		}, true
 	case resolver.LoadControllerWithConfig:
 		key := "controller:load:" + di.GetDirectiveIdent()
-		return &observedDirective{
+		return observedDirectiveSpec{
 			key:  key,
 			kind: observedDirectiveKindController,
+			di:   di,
 			update: func(isIdle bool, errs []error, vals []directive.AttachedValue) {
 				o.setControllerRow(buildLoadControllerRow(key, dir, isIdle, errs, vals))
 			},
@@ -207,9 +208,10 @@ func (o *BldrDevtoolStatusObserver) buildObservedDirective(
 		}, true
 	case loader.ExecController:
 		key := "controller:exec:" + di.GetDirectiveIdent()
-		return &observedDirective{
+		return observedDirectiveSpec{
 			key:  key,
 			kind: observedDirectiveKindController,
+			di:   di,
 			update: func(isIdle bool, errs []error, vals []directive.AttachedValue) {
 				o.setControllerRow(buildExecControllerRow(key, dir, isIdle, errs, vals))
 			},
@@ -218,7 +220,7 @@ func (o *BldrDevtoolStatusObserver) buildObservedDirective(
 			},
 		}, true
 	default:
-		return nil, false
+		return observedDirectiveSpec{}, false
 	}
 }
 
@@ -251,16 +253,35 @@ func (o *BldrDevtoolStatusObserver) disposeObservedDirective(key string) {
 		o.mtx.Unlock()
 		return
 	}
-	if found := o.observed[key]; found != nil {
+	if found, exists := o.observed.GetKey(key); exists {
 		obs = found
-		delete(o.observed, key)
-		o.deleteRowLocked(found)
+		if o.observed.RemoveKey(key) {
+			o.deleteRowLocked(found)
+		}
 	}
 	o.mtx.Unlock()
 	if obs != nil {
 		obs.release()
 	}
 	o.publishSnapshot()
+}
+
+func (o *BldrDevtoolStatusObserver) observedDataByKeyLocked() map[string]*observedDirective {
+	observed := make(map[string]*observedDirective)
+	for _, keyedObs := range o.observed.GetKeysWithData() {
+		observed[keyedObs.Key] = keyedObs.Data
+	}
+	return observed
+}
+
+func (o *BldrDevtoolStatusObserver) observedStillActive(key string, obs *observedDirective) bool {
+	o.mtx.Lock()
+	defer o.mtx.Unlock()
+	if o.closed {
+		return false
+	}
+	current, exists := o.observed.GetKey(key)
+	return exists && current == obs
 }
 
 func (o *BldrDevtoolStatusObserver) deleteRowLocked(obs *observedDirective) {

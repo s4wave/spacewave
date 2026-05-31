@@ -830,6 +830,50 @@ func TestBldrDevtoolStatusObserverCloseReleasesStateCallbacks(t *testing.T) {
 	}
 }
 
+func TestBldrDevtoolStatusObserverDisposeCallbackRemovesKeyedDirective(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	b := newStatusObserverTestBus(t, ctx)
+	producer := NewBldrDevtoolStatusProducer(nil)
+
+	di, fetchRef, err := b.AddDirective(
+		bldr_manifest.NewFetchManifest(
+			"web",
+			[]bldr_manifest.BuildType{bldr_manifest.BuildType_DEV},
+			[]string{"browser"},
+			0,
+		),
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	observer := NewBldrDevtoolStatusObserver(b, producer)
+	releaseObserver, err := b.AddController(ctx, observer, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseObserver()
+
+	waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
+		return len(status.GetManifestFetchRows()) == 1
+	})
+
+	fetchRef.Release()
+	if !di.CloseIfUnreferenced(false) {
+		t.Fatal("expected directive to close after releasing its strong ref")
+	}
+
+	waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
+		return len(status.GetManifestFetchRows()) == 0
+	})
+	if keys := observer.observed.GetKeys(); len(keys) != 0 {
+		t.Fatalf("expected dispose callback to remove keyed observer, got %v", keys)
+	}
+}
+
 type testFetchManifestController struct{}
 
 func (c *testFetchManifestController) GetControllerInfo() *cb_controller.Info {
