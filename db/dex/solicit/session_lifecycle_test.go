@@ -181,6 +181,35 @@ func TestLookupResolverQueryPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 	})
 }
 
+func TestLookupResolverQueryPeersDeadlineClearsPendingRequests(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+	defer cancel()
+
+	c := newTestDexSolicitController()
+	ref := testDexBlockRef(t, "deadline")
+	slow, slowRemote, slowCleanup := newTestPeerSessionPair(c, peer.ID("slow"))
+	defer slowCleanup()
+	slow.start(ctx)
+
+	received := make(chan struct{})
+	go func() {
+		var req DexMessage
+		if err := slowRemote.RecvMsg(&req); err == nil {
+			close(received)
+		}
+	}()
+
+	resolver := &lookupResolver{c: c, ref: ref}
+	data, found := resolver.queryPeers(ctx, []*peerSession{slow})
+	if found {
+		t.Fatalf("queryPeers returned data after caller deadline: %q", data)
+	}
+	recvTestDexValue(t, received, "deadline request")
+	waitTestDexCondition(t, "slow pending request to clear after caller deadline", func() bool {
+		return testDexPendingLen(slow) == 0
+	})
+}
+
 func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()

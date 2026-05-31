@@ -2,7 +2,6 @@ package dex_solicit
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -151,40 +150,7 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 		return nil, false
 	}
 
-	type result struct {
-		data  []byte
-		found bool
-	}
-
-	reqCtx, reqCancel := context.WithTimeout(ctx, requestTimeout)
-	defer reqCancel()
-
-	results := make(chan result, len(sessions))
-	var wg sync.WaitGroup
-	wg.Add(len(sessions))
-	for _, sess := range sessions {
-		go func() {
-			defer wg.Done()
-			data, found, err := sess.requestBlock(reqCtx, ref, hops)
-			if err != nil || !found {
-				results <- result{}
-				return
-			}
-			results <- result{data: data, found: true}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-	for res := range results {
-		if res.found {
-			reqCancel()
-			return res.data, true
-		}
-	}
-	return nil, false
+	return peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -256,35 +222,42 @@ func (r *lookupResolver) queryPeers(ctx context.Context, sessions []*peerSession
 		return nil, false
 	}
 
-	type result struct {
-		data  []byte
-		found bool
-	}
+	return peerBlockFanout{
+		sessions: sessions,
+		ref:      r.ref,
+		hops:     r.c.cc.GetMaxForwardHops(),
+	}.run(ctx)
+}
 
+type peerBlockFanout struct {
+	sessions []*peerSession
+	ref      *block.BlockRef
+	hops     uint32
+}
+
+type peerBlockFanoutResult struct {
+	data  []byte
+	found bool
+}
+
+func (f peerBlockFanout) run(ctx context.Context) ([]byte, bool) {
 	reqCtx, reqCancel := context.WithTimeout(ctx, requestTimeout)
 	defer reqCancel()
 
-	results := make(chan result, len(sessions))
-	var wg sync.WaitGroup
-	wg.Add(len(sessions))
-	for _, sess := range sessions {
-		go func() {
-			defer wg.Done()
-			data, found, err := sess.requestBlock(reqCtx, r.ref, r.c.cc.GetMaxForwardHops())
+	results := make(chan peerBlockFanoutResult, len(f.sessions))
+	for _, sess := range f.sessions {
+		go func(sess *peerSession) {
+			data, found, err := sess.requestBlock(reqCtx, f.ref, f.hops)
 			if err != nil || !found {
-				results <- result{}
+				results <- peerBlockFanoutResult{}
 				return
 			}
-			results <- result{data: data, found: true}
-		}()
+			results <- peerBlockFanoutResult{data: data, found: true}
+		}(sess)
 	}
 
-	// Collect results; return early on first found.
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-	for res := range results {
+	for range f.sessions {
+		res := <-results
 		if res.found {
 			reqCancel()
 			return res.data, true
