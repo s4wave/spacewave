@@ -99,6 +99,13 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 // WriteStableBootAsset writes the stable browser boot asset at the build root.
 func WriteStableBootAsset(dir string) error {
 	const bootAsset = `const releasePath='/browser-release.json';
+const bootStateVersion='1000000';
+const bootStateVersionKey='spacewave-browser-app-state-version';
+const bootSessionStateVersionKey='spacewave-browser-tab-state-version';
+const bootStateResetAttemptKey='spacewave-browser-app-state-reset-attempted';
+const bootLocalStorageKeys=['spacewave-has-session','app-persistent','spacewave-has-interacted','spacewave-state-devtools','spacewave-devtools-state'];
+const bootLocalStoragePrefixes=['tab-state-'];
+const bootSessionStorageKeys=['shell-tabs-state','shell-tabs-layout','spacewave-sso-start-provider','spacewave-sso-return-to','spacewave-pending-join','spacewave-auth-handoff-payload'];
 const g=globalThis;
 const bootStatusEvent='spacewave:boot-status';
 const startupMarkPrefix='spacewave.startup.';
@@ -199,6 +206,72 @@ function setBootError(phase,err){
   const msg=err&&err.message?err.message:String(err);
   setBootStatus(phase,msg,'error');
 }
+function storageGet(storage,key){
+  try{return storage&&storage.getItem?storage.getItem(key):null}catch(_){return null}
+}
+function storageSet(storage,key,value){
+  try{if(storage&&storage.setItem)storage.setItem(key,value)}catch(_){}
+}
+function storageRemove(storage,key){
+  try{if(storage&&storage.removeItem)storage.removeItem(key)}catch(_){}
+}
+function storageRemoveKnown(storage,keys,prefixes){
+  try{
+    if(!storage||!storage.removeItem)return;
+    for(const key of keys)storage.removeItem(key);
+    if(!prefixes||!storage.key)return;
+    const matched=[];
+    for(let i=0;i<storage.length;i++){
+      const key=storage.key(i);
+      if(key&&prefixes.some(function(prefix){return key.startsWith(prefix)}))matched.push(key);
+    }
+    for(const key of matched)storage.removeItem(key);
+  }catch(_){}
+}
+async function unregisterServiceWorkersForBootReset(){
+  if(!navigator.serviceWorker||typeof navigator.serviceWorker.getRegistrations!=='function')return;
+  const registrations=await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map(function(registration){return registration.unregister()}));
+}
+async function clearCachesForBootReset(){
+  if(!g.caches||typeof g.caches.keys!=='function')return;
+  const cacheNames=await g.caches.keys();
+  await Promise.all(cacheNames.map(function(cacheName){return g.caches.delete(cacheName)}));
+}
+function reloadAfterBootStateReset(){
+  try{window.location.reload();return}catch(_){}
+  window.location.href=window.location.href;
+}
+function settledAllFulfilled(results){
+  return results.every(function(result){return result.status==='fulfilled'});
+}
+function clearBootSessionState(){
+  storageRemoveKnown(sessionStorage,bootSessionStorageKeys,[]);
+  storageSet(sessionStorage,bootSessionStateVersionKey,bootStateVersion);
+}
+async function resetHistoricalStateForBoot(){
+  const storedVersion=storageGet(localStorage,bootStateVersionKey);
+  if(storedVersion===bootStateVersion){
+    if(storageGet(sessionStorage,bootSessionStateVersionKey)!==bootStateVersion)clearBootSessionState();
+    storageRemove(sessionStorage,bootStateResetAttemptKey);
+    return false;
+  }
+  if(storageGet(sessionStorage,bootStateResetAttemptKey)===bootStateVersion){
+    clearBootSessionState();
+    return false;
+  }
+  setBootStatus('loading','Updating Spacewave app shell...');
+  clearBootSessionState();
+  storageRemoveKnown(localStorage,bootLocalStorageKeys,bootLocalStoragePrefixes);
+  storageSet(sessionStorage,bootStateResetAttemptKey,bootStateVersion);
+  const cleanupResults=await Promise.allSettled([
+    unregisterServiceWorkersForBootReset(),
+    clearCachesForBootReset()
+  ]);
+  if(settledAllFulfilled(cleanupResults))storageSet(localStorage,bootStateVersionKey,bootStateVersion);
+  reloadAfterBootStateReset();
+  return true;
+}
 function absPath(path){
   if(!path)return'';
   return path.startsWith('/')?path:'/'+path;
@@ -233,7 +306,7 @@ function primeRelease(){
   });
   return primePromise;
 }
-(function(){
+function startBoot(){
   rewriteStaticHandoffLinks();
   let readyResolve;
   g.__swReady=new Promise(function(resolve){readyResolve=resolve});
@@ -271,6 +344,11 @@ function primeRelease(){
       window.addEventListener('load',function(){setTimeout(doImport,1000)});
     })
     .catch(function(err){setBootError('manifest-error',err);console.error('boot.mjs: failed to load release manifest',err)});
+}
+(function(){
+  void resetHistoricalStateForBoot()
+    .then(function(resetStarted){if(!resetStarted)startBoot()})
+    .catch(function(err){console.error('boot.mjs: failed to reset historical browser state',err);startBoot()});
 })();`
 
 	return os.WriteFile(filepath.Join(dir, stableBootFilename), []byte(bootAsset), 0o644)

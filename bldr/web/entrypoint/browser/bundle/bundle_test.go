@@ -224,6 +224,42 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "/browser-release.json") {
 		t.Fatalf("boot asset missing stable release manifest path: %s", script)
 	}
+	if !strings.Contains(script, "bootStateVersion='1000000'") {
+		t.Fatalf("boot asset missing major browser app state version: %s", script)
+	}
+	if !strings.Contains(script, "spacewave-browser-app-state-version") {
+		t.Fatalf("boot asset missing durable browser app state version key: %s", script)
+	}
+	if !strings.Contains(script, "spacewave-browser-tab-state-version") {
+		t.Fatalf("boot asset missing per-tab browser app state version key: %s", script)
+	}
+	if !strings.Contains(script, "spacewave-browser-app-state-reset-attempted") {
+		t.Fatalf("boot asset missing reset attempt guard key: %s", script)
+	}
+	if !strings.Contains(script, "bootLocalStorageKeys") {
+		t.Fatalf("boot asset missing localStorage shell key list: %s", script)
+	}
+	if !strings.Contains(script, "bootSessionStorageKeys") {
+		t.Fatalf("boot asset missing sessionStorage shell key list: %s", script)
+	}
+	if !strings.Contains(script, "navigator.serviceWorker.getRegistrations") {
+		t.Fatalf("boot asset missing ServiceWorker registration reset: %s", script)
+	}
+	if !strings.Contains(script, "g.caches.keys") {
+		t.Fatalf("boot asset missing CacheStorage reset: %s", script)
+	}
+	if !strings.Contains(script, "storageRemoveKnown(localStorage,bootLocalStorageKeys,bootLocalStoragePrefixes)") {
+		t.Fatalf("boot asset missing targeted localStorage shell reset: %s", script)
+	}
+	if !strings.Contains(script, "storageRemoveKnown(sessionStorage,bootSessionStorageKeys,[])") {
+		t.Fatalf("boot asset missing targeted sessionStorage shell reset: %s", script)
+	}
+	if !strings.Contains(script, "if(settledAllFulfilled(cleanupResults))storageSet(localStorage,bootStateVersionKey,bootStateVersion)") {
+		t.Fatalf("boot asset must record durable version only after cleanup succeeds: %s", script)
+	}
+	if !strings.Contains(script, ".then(function(resetStarted){if(!resetStarted)startBoot()})") {
+		t.Fatalf("boot asset must reset historical state before starting boot: %s", script)
+	}
 	if !strings.Contains(script, "__swGenerationId") {
 		t.Fatalf("boot asset missing generation exposure: %s", script)
 	}
