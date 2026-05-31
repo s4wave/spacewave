@@ -208,7 +208,10 @@ export class DesktopTrayController {
     for (const entry of entries) {
       const level = this.getMenuLevel(root, submenus, entry.path ?? [])
       if (entry.kind === DesktopTrayEntryKind.SUBMENU) {
-        this.getMenuLevel(level, submenus, [entry.label || ''])
+        this.getMenuLevel(root, submenus, [
+          ...(entry.path ?? []),
+          entry.label || '',
+        ])
         continue
       }
       level.push(this.buildMenuItem(entry))

@@ -1027,6 +1027,51 @@ describe('DesktopTrayController', () => {
     ).toEqual(['Copy Socket'])
   })
 
+  it('reuses explicit submenu entries when children target the same path', async () => {
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    const buildMenuTemplate = (
+      controller as unknown as {
+        buildMenuTemplate: (
+          entries: DesktopTrayEntry[],
+        ) => Electron.MenuItemConstructorOptions[]
+      }
+    ).buildMenuTemplate.bind(controller)
+
+    const template = buildMenuTemplate([
+      {
+        id: 'tools',
+        kind: DesktopTrayEntryKind.SUBMENU,
+        path: ['Diagnostics'],
+        label: 'Tools',
+      },
+      {
+        id: 'copy-socket',
+        kind: DesktopTrayEntryKind.ACTION,
+        path: ['Diagnostics', 'Tools'],
+        label: 'Copy Socket',
+        enabled: true,
+        action: {
+          kind: DesktopTrayActionKind.COPY_TEXT,
+          value: '/tmp/spacewave.sock',
+        },
+      },
+    ])
+
+    expect(templateLabels(template)).toEqual(['Diagnostics'])
+    const diagnostics = template[0]
+      ?.submenu as Electron.MenuItemConstructorOptions[]
+    expect(templateLabels(diagnostics)).toEqual(['Tools'])
+    expect(
+      templateLabels(
+        diagnostics[0]?.submenu as Electron.MenuItemConstructorOptions[],
+      ),
+    ).toEqual(['Copy Socket'])
+  })
+
   it('shows the dev popover from DesktopTrayEntry state while keeping native menu fallback', async () => {
     process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER = '1'
     const state = {
