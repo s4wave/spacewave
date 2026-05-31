@@ -26,6 +26,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import {
@@ -50,6 +51,10 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { applySpaceIndexPath } from '../space/space-settings.js'
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from '../wizard/useWizardState.js'
+import {
+  wizardInputClassName,
+  wizardTextareaClassName,
+} from '../wizard/wizard-field-styles.js'
 import { WizardShell } from '../wizard/WizardShell.js'
 import { ComputersDashboardTypeID } from './computers.js'
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
@@ -682,7 +687,7 @@ function SshHostSetupForm({
             value={config.host ?? ''}
             onChange={(e) => onConfigChange({ host: e.target.value })}
             placeholder="host.example.com"
-            className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
+            className={wizardInputClassName}
           />
           <Input
             type="number"
@@ -693,13 +698,13 @@ function SshHostSetupForm({
               onConfigChange({ port: parsePortInput(e.target.value) })
             }
             aria-label="SSH port"
-            className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
+            className={wizardInputClassName}
           />
           <Input
             value={config.username ?? ''}
             onChange={(e) => onConfigChange({ username: e.target.value })}
             placeholder="user"
-            className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
+            className={wizardInputClassName}
           />
         </div>
       </div>
@@ -750,7 +755,7 @@ function SshHostSetupForm({
             value={credentialDraft.password}
             onChange={(e) => onCredentialChange({ password: e.target.value })}
             placeholder="SSH password"
-            className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
+            className={wizardInputClassName}
           />
         ) : (
           <div className="space-y-2">
@@ -760,7 +765,7 @@ function SshHostSetupForm({
                 onCredentialChange({ privateKey: e.target.value })
               }
               placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-              className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 min-h-28 w-full rounded-md border p-2 font-mono text-xs outline-none"
+              className={cn(wizardTextareaClassName, 'min-h-28')}
             />
             <Input
               type="password"
@@ -768,25 +773,33 @@ function SshHostSetupForm({
               onChange={(e) =>
                 onCredentialChange({ passphrase: e.target.value })
               }
-              placeholder="Private key passphrase"
-              className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
+              placeholder="Private key passphrase (optional)"
+              className={wizardInputClassName}
             />
           </div>
         )}
       </div>
 
-      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground mb-2 text-xs font-medium">
-          Host Key Trust
-        </div>
-        <div className="grid gap-2 sm:grid-cols-[8rem_1fr]">
+      <details className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <summary className="text-foreground flex cursor-pointer items-center justify-between text-xs font-medium select-none">
+          <span>Advanced host key trust</span>
+          <span className="text-foreground-alt/50 text-[0.65rem]">
+            optional
+          </span>
+        </summary>
+        <p className="text-foreground-alt/60 mt-2 text-xs leading-relaxed">
+          Leave this empty to review and trust the host key on first connection,
+          like SSH does. Paste a known key or fingerprint only when you already
+          have trusted host-key material.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-[8rem_1fr]">
           <Input
             value={config.hostKeyAlgorithm ?? 'ssh-ed25519'}
             onChange={(e) =>
               onConfigChange({ hostKeyAlgorithm: e.target.value })
             }
             placeholder="ssh-ed25519"
-            className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
+            className={wizardInputClassName}
           />
           <Input
             value={config.hostKeyFingerprint ?? ''}
@@ -794,16 +807,16 @@ function SshHostSetupForm({
               onConfigChange({ hostKeyFingerprint: e.target.value })
             }
             placeholder="SHA256:..."
-            className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
+            className={wizardInputClassName}
           />
         </div>
         <textarea
           value={config.hostKeyPublicKey ?? ''}
           onChange={(e) => onConfigChange({ hostKeyPublicKey: e.target.value })}
-          placeholder="ssh-ed25519 AAAA..."
-          className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 mt-2 min-h-16 w-full rounded-md border p-2 font-mono text-xs outline-none"
+          placeholder="[host]:22 ssh-ed25519 AAAA... or ssh-ed25519 AAAA..."
+          className={cn(wizardTextareaClassName, 'mt-2 min-h-16')}
         />
-      </div>
+      </details>
     </section>
   )
 }
@@ -1097,11 +1110,16 @@ function buildSshHostKeyPins(
   acceptedByPeerId: string,
   acceptedAt: Date,
 ): SshHostKeyPin[] {
+  const publicKey = normalizeSshHostPublicKey(config.hostKeyPublicKey)
+  const fingerprint = config.hostKeyFingerprint?.trim()
+  if (!publicKey && !fingerprint) return []
+  const publicKeyAlgorithm = getSshPublicKeyAlgorithm(publicKey)
   return [
     {
-      algorithm: (config.hostKeyAlgorithm ?? 'ssh-ed25519').trim(),
-      publicKey: config.hostKeyPublicKey?.trim(),
-      sha256Fingerprint: config.hostKeyFingerprint?.trim(),
+      algorithm:
+        publicKeyAlgorithm || (config.hostKeyAlgorithm ?? 'ssh-ed25519').trim(),
+      publicKey,
+      sha256Fingerprint: fingerprint,
       acceptedByPeerId,
       acceptedAt,
     },
@@ -1134,13 +1152,42 @@ function getSshCreateError(
   if (authMode === 'password' && !draft.password) {
     return 'SSH password is required'
   }
-  if (!config.hostKeyFingerprint?.trim() && !config.hostKeyPublicKey?.trim()) {
-    return 'SSH host key fingerprint or public key is required'
-  }
-  if (!(config.hostKeyAlgorithm ?? 'ssh-ed25519').trim()) {
+  const publicKey = normalizeSshHostPublicKey(config.hostKeyPublicKey)
+  const hasManualTrust = !!publicKey || !!config.hostKeyFingerprint?.trim()
+  const publicKeyAlgorithm = getSshPublicKeyAlgorithm(publicKey)
+  if (
+    hasManualTrust &&
+    !publicKeyAlgorithm &&
+    !(config.hostKeyAlgorithm ?? 'ssh-ed25519').trim()
+  ) {
     return 'SSH host key algorithm is required'
   }
   return ''
+}
+
+function normalizeSshHostPublicKey(value: string | undefined): string {
+  const raw = value?.trim()
+  if (!raw) return ''
+  const fields = raw.split(/\s+/)
+  const keyIndex = fields.findIndex(isSshPublicKeyAlgorithm)
+  if (keyIndex >= 0 && fields[keyIndex + 1]) {
+    return `${fields[keyIndex]} ${fields[keyIndex + 1]}`
+  }
+  return raw
+}
+
+function getSshPublicKeyAlgorithm(publicKey: string): string {
+  const fields = publicKey.trim().split(/\s+/)
+  return isSshPublicKeyAlgorithm(fields[0] ?? '') ? fields[0] : ''
+}
+
+function isSshPublicKeyAlgorithm(value: string): boolean {
+  return (
+    value.startsWith('ssh-') ||
+    value.startsWith('ecdsa-') ||
+    value.startsWith('sk-ssh-') ||
+    value.startsWith('sk-ecdsa-')
+  )
 }
 
 function normalizeSshPort(port: number | undefined): number {

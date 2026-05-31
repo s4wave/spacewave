@@ -17,6 +17,8 @@ import {
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import {
   SecretKindSSHPassword,
+  SecretKindSSHPrivateKey,
+  SSHPrivateKeyContentType,
   SSHTextCredentialContentType,
 } from '@s4wave/sdk/secret/secret.js'
 import { CREATE_SSH_HOST_OP_ID } from '@s4wave/sdk/sshhost/create-ssh-host.js'
@@ -318,6 +320,118 @@ describe('AddDeviceWizardViewer', () => {
     ).toBe(false)
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+  })
+
+  it('allows private-key auth without passphrase or prefilled host key trust', async () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: '192.168.1.15',
+          port: 1940,
+          username: 'root',
+          authMode: 'private-key',
+          hostKeyAlgorithm: '',
+        },
+      }),
+    )
+    renderViewer()
+
+    const privateKey =
+      '-----BEGIN OPENSSH PRIVATE KEY-----\nmock-key\n-----END OPENSSH PRIVATE KEY-----'
+    fireEvent.change(
+      screen.getByPlaceholderText('-----BEGIN OPENSSH PRIVATE KEY-----'),
+      {
+        target: { value: privateKey },
+      },
+    )
+    const openButton = screen.getByRole('button', { name: /open terminal/i })
+    expect(openButton).toHaveProperty('disabled', false)
+    fireEvent.click(openButton)
+
+    await waitFor(() => expect(h.createSecret).toHaveBeenCalledTimes(1))
+    expect(h.createSecret).toHaveBeenCalledWith({
+      objectKey: 'build-host-ssh-private-key-1',
+      displayName: 'Build Host SSH private key',
+      kind: SecretKindSSHPrivateKey,
+      contentType: SSHPrivateKeyContentType,
+      value: new TextEncoder().encode(privateKey),
+      readerPublicKeyPem: new TextEncoder().encode(
+        '-----BEGIN PUBLIC KEY-----\nmock\n-----END PUBLIC KEY-----',
+      ),
+    })
+
+    const hostCall = h.applyWorldOp.mock.calls.find(
+      ([opId]) => opId === CREATE_SSH_HOST_OP_ID,
+    )
+    if (!hostCall) throw new Error('expected SSH Host create op')
+    const hostOpData: unknown = hostCall[1]
+    if (!(hostOpData instanceof Uint8Array)) {
+      throw new Error('expected SSH Host op bytes')
+    }
+    const hostOp = CreateSshHostOp.fromBinary(hostOpData)
+    expect(hostOp.endpoint).toEqual({
+      host: '192.168.1.15',
+      port: 1940,
+      username: 'root',
+    })
+    expect(hostOp.credentials).toEqual({
+      privateKeySecretObjectKey: 'build-host-ssh-private-key-1',
+    })
+    expect(hostOp.hostKeyPins ?? []).toHaveLength(0)
+  })
+
+  it('normalizes ssh-keyscan host key lines when creating an SSH Host', async () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: '192.168.1.15',
+          port: 1940,
+          username: 'root',
+          authMode: 'password',
+          hostKeyPublicKey:
+            '[192.168.1.15]:1940 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtrusted',
+        },
+      }),
+    )
+    renderViewer()
+
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'raw-secret-value' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+
+    await waitFor(() =>
+      expect(h.applyWorldOp).toHaveBeenCalledWith(
+        CREATE_SSH_HOST_OP_ID,
+        expect.any(Uint8Array),
+        '12D3KooWSession',
+      ),
+    )
+
+    const hostCall = h.applyWorldOp.mock.calls.find(
+      ([opId]) => opId === CREATE_SSH_HOST_OP_ID,
+    )
+    if (!hostCall) throw new Error('expected SSH Host create op')
+    const hostOpData: unknown = hostCall[1]
+    if (!(hostOpData instanceof Uint8Array)) {
+      throw new Error('expected SSH Host op bytes')
+    }
+    const hostOp = CreateSshHostOp.fromBinary(hostOpData)
+    expect(hostOp.endpoint).toEqual({
+      host: '192.168.1.15',
+      port: 1940,
+      username: 'root',
+    })
+    const pins = hostOp.hostKeyPins ?? []
+    expect(pins).toHaveLength(1)
+    expect(pins[0]?.algorithm).toBe('ssh-rsa')
+    expect(pins[0]?.publicKey).toBe(
+      'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDtrusted',
+    )
   })
 
   it('opens an SSH installer terminal without creating a Device object', async () => {
