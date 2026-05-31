@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -96,6 +97,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 	streamCtx, cancelStream := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelStream()
 	strm := newBlockingTerminalConnectStream(streamCtx)
+	strm.sendDelay = 10 * time.Millisecond
 	err = NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", state).
 		ConnectTerminal(strm)
 	strm.closeRecv()
@@ -123,6 +125,43 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 	}
 	if updated.GetStatus() != "exited" {
 		t.Fatalf("status = %q", updated.GetStatus())
+	}
+}
+
+func TestDialSshClientHonorsContextDuringHandshake(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	accepted := make(chan net.Conn, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err == nil {
+			accepted <- conn
+		}
+		close(accepted)
+	}()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	client, err := dialSshClient(ctx, listener.Addr().String(), &ssh.ClientConfig{
+		User:            "deploy",
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	})
+	if client != nil {
+		_ = client.Close()
+	}
+	if err == nil {
+		t.Fatal("expected stalled SSH handshake to fail")
+	}
+	if elapsed := time.Since(start); elapsed > time.Second {
+		t.Fatalf("stalled SSH handshake returned after %s", elapsed)
+	}
+	if conn := <-accepted; conn != nil {
+		_ = conn.Close()
 	}
 }
 
@@ -201,11 +240,9 @@ func startTerminalTestSSHServer(t *testing.T, password string) (string, ssh.Publ
 			if err != nil {
 				return
 			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				handleTerminalTestSSHConn(conn, config)
-			}()
+			})
 		}
 	}()
 	return listener.Addr().String(), signer.PublicKey(), func() {
@@ -263,10 +300,12 @@ func handleTerminalTestSSHSession(ch ssh.Channel, requests <-chan *ssh.Request) 
 }
 
 type blockingTerminalConnectStream struct {
-	ctx    context.Context
-	recv   chan *TerminalFrame
-	sentMu sync.Mutex
-	sent   []*TerminalFrame
+	ctx        context.Context
+	recv       chan *TerminalFrame
+	sendDelay  time.Duration
+	sendActive atomic.Bool
+	sentMu     sync.Mutex
+	sent       []*TerminalFrame
 }
 
 func newBlockingTerminalConnectStream(ctx context.Context) *blockingTerminalConnectStream {
@@ -305,6 +344,13 @@ func (s *blockingTerminalConnectStream) Close() error {
 }
 
 func (s *blockingTerminalConnectStream) Send(frame *TerminalFrame) error {
+	if !s.sendActive.CompareAndSwap(false, true) {
+		return errors.New("concurrent terminal Send")
+	}
+	defer s.sendActive.Store(false)
+	if s.sendDelay != 0 {
+		time.Sleep(s.sendDelay)
+	}
 	s.sentMu.Lock()
 	defer s.sentMu.Unlock()
 	s.sent = append(s.sent, frame.CloneVT())

@@ -1,11 +1,7 @@
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
 import { DeviceResourceServiceClient } from './device_srpc.pb.js'
-import type {
-  Device,
-  ReportDeviceStatusRequest,
-  WatchDeviceStateResponse,
-} from './device.pb.js'
+import type { Device, WatchDeviceStateResponse } from './device.pb.js'
 
 // DeviceTypeID is the type identifier for Spacewave-managed Device objects.
 export const DeviceTypeID = 'spacewave/device'
@@ -14,9 +10,6 @@ export const DeviceTypeID = 'spacewave/device'
 export interface IDeviceHandle {
   // watchDeviceState streams Device state changes.
   watchDeviceState(abortSignal?: AbortSignal): AsyncIterable<Device | undefined>
-
-  // reportDeviceStatus updates daemon-authored status fields.
-  reportDeviceStatus(request: ReportDeviceStatusRequest): Promise<Device>
 
   // release releases the resource.
   release(): void
@@ -42,13 +35,5 @@ export class DeviceHandle extends Resource implements IDeviceHandle {
     for await (const resp of stream as AsyncIterable<WatchDeviceStateResponse>) {
       yield resp.state
     }
-  }
-
-  // reportDeviceStatus updates daemon-authored status fields.
-  public async reportDeviceStatus(
-    request: ReportDeviceStatusRequest,
-  ): Promise<Device> {
-    const resp = await this.service.ReportDeviceStatus(request)
-    return resp.state ?? {}
   }
 }

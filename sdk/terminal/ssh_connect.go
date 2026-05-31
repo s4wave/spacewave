@@ -10,7 +10,9 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
@@ -19,6 +21,13 @@ import (
 	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
 	"golang.org/x/crypto/ssh"
 )
+
+const sshClientHandshakeTimeout = 30 * time.Second
+
+type terminalFrameSend struct {
+	frame *TerminalFrame
+	ack   chan error
+}
 
 func (r *TerminalResource) connectSshHostTerminal(
 	ctx context.Context,
@@ -108,11 +117,26 @@ func (r *TerminalResource) connectSshHostTerminal(
 	}
 
 	errCh := make(chan terminalConnectResult, 4)
+	terminalFrames := make(chan terminalFrameSend, 32)
 	var clientClosed atomic.Bool
+	var outputWG sync.WaitGroup
+	outputWG.Add(2)
+	outputDone := make(chan struct{})
+	go func() {
+		outputWG.Wait()
+		close(outputDone)
+	}()
+	go forwardTerminalFramesToClient(ctx, strm, terminalFrames, errCh)
 	go r.forwardClientFramesToSSH(ctx, strm, session, stdin, &clientClosed, errCh)
-	go r.forwardSSHOutput(ctx, strm, stdout, errCh)
-	go r.forwardSSHOutput(ctx, strm, stderr, errCh)
-	go r.waitSSHSession(session, strm, &clientClosed, errCh)
+	go func() {
+		defer outputWG.Done()
+		r.forwardSSHOutput(ctx, terminalFrames, stdout, errCh)
+	}()
+	go func() {
+		defer outputWG.Done()
+		r.forwardSSHOutput(ctx, terminalFrames, stderr, errCh)
+	}()
+	go r.waitSSHSession(ctx, session, terminalFrames, outputDone, &clientClosed, errCh)
 
 	result := <-errCh
 	cancel()
@@ -252,12 +276,71 @@ func dialSshClient(ctx context.Context, address string, config *ssh.ClientConfig
 	if err != nil {
 		return nil, err
 	}
-	clientConn, chans, reqs, err := ssh.NewClientConn(conn, address, config)
-	if err != nil {
+	if err := conn.SetDeadline(sshHandshakeDeadline(ctx)); err != nil {
 		_ = conn.Close()
 		return nil, err
 	}
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-done:
+		}
+	}()
+	clientConn, chans, reqs, err := ssh.NewClientConn(conn, address, config)
+	close(done)
+	if err != nil {
+		_ = conn.Close()
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
+		return nil, err
+	}
+	if err := conn.SetDeadline(time.Time{}); err != nil {
+		_ = clientConn.Close()
+		return nil, err
+	}
 	return ssh.NewClient(clientConn, chans, reqs), nil
+}
+
+func sshHandshakeDeadline(ctx context.Context) time.Time {
+	deadline := time.Now().Add(sshClientHandshakeTimeout)
+	if ctxDeadline, ok := ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
+		return ctxDeadline
+	}
+	return deadline
+}
+
+func forwardTerminalFramesToClient(
+	ctx context.Context,
+	strm SRPCTerminalResourceService_ConnectTerminalStream,
+	frames <-chan terminalFrameSend,
+	errCh chan<- terminalConnectResult,
+) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case send := <-frames:
+			if send.frame == nil {
+				if send.ack != nil {
+					send.ack <- nil
+					close(send.ack)
+				}
+				continue
+			}
+			err := strm.Send(send.frame)
+			if send.ack != nil {
+				send.ack <- err
+				close(send.ack)
+			}
+			if err != nil {
+				errCh <- terminalConnectResult{err: err}
+				return
+			}
+		}
+	}
 }
 
 func (r *TerminalResource) forwardClientFramesToSSH(
@@ -319,7 +402,7 @@ func (r *TerminalResource) forwardClientFramesToSSH(
 
 func (r *TerminalResource) forwardSSHOutput(
 	ctx context.Context,
-	strm SRPCTerminalResourceService_ConnectTerminalStream,
+	terminalFrames chan<- terminalFrameSend,
 	reader io.Reader,
 	errCh chan<- terminalConnectResult,
 ) {
@@ -327,11 +410,10 @@ func (r *TerminalResource) forwardSSHOutput(
 	for {
 		n, err := reader.Read(buf)
 		if n > 0 {
-			if serr := strm.Send(&TerminalFrame{
+			if !queueTerminalFrame(ctx, terminalFrames, &TerminalFrame{
 				Kind: TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT,
 				Data: bytes.Clone(buf[:n]),
-			}); serr != nil {
-				errCh <- terminalConnectResult{err: serr}
+			}) {
 				return
 			}
 		}
@@ -346,8 +428,10 @@ func (r *TerminalResource) forwardSSHOutput(
 }
 
 func (r *TerminalResource) waitSSHSession(
+	ctx context.Context,
 	session *ssh.Session,
-	strm SRPCTerminalResourceService_ConnectTerminalStream,
+	terminalFrames chan<- terminalFrameSend,
+	outputDone <-chan struct{},
 	clientClosed *atomic.Bool,
 	errCh chan<- terminalConnectResult,
 ) {
@@ -362,7 +446,12 @@ func (r *TerminalResource) waitSSHSession(
 			return
 		}
 	}
-	if err := strm.Send(&TerminalFrame{
+	select {
+	case <-outputDone:
+	case <-ctx.Done():
+		return
+	}
+	if err := queueTerminalFrameAndWait(ctx, terminalFrames, &TerminalFrame{
 		Kind:     TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT,
 		ExitCode: int32(exitCode),
 		Error:    sshTerminalErrorString(waitErr),
@@ -376,6 +465,30 @@ func (r *TerminalResource) waitSSHSession(
 		finalState:   finalState,
 		status:       status,
 		errorMessage: errMessage,
+	}
+}
+
+func queueTerminalFrame(ctx context.Context, terminalFrames chan<- terminalFrameSend, frame *TerminalFrame) bool {
+	select {
+	case terminalFrames <- terminalFrameSend{frame: frame}:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+func queueTerminalFrameAndWait(ctx context.Context, terminalFrames chan<- terminalFrameSend, frame *TerminalFrame) error {
+	ack := make(chan error, 1)
+	select {
+	case terminalFrames <- terminalFrameSend{frame: frame, ack: ack}:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	select {
+	case err := <-ack:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 

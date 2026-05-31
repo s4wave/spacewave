@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 

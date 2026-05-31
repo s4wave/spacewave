@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { getMimeType } from '@s4wave/web/hooks/useUnixFSHandle.js'
 

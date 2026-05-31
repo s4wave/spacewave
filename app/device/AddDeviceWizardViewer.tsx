@@ -13,10 +13,6 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import {
   SpaceLinkCallback,
   SpaceLinkCompletionMode,
-  type ApproveSpaceLinkRequest,
-  type ApproveSpaceLinkResponse,
-  type PreviewSpaceLinkRequest,
-  type PreviewSpaceLinkResponse,
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import {
@@ -39,6 +35,7 @@ import {
   SSHPrivateKeyContentType,
   SSHTextCredentialContentType,
 } from '@s4wave/sdk/secret/secret.js'
+import type { Session } from '@s4wave/sdk/session/session.js'
 import type { Space } from '@s4wave/sdk/space/space.js'
 import { CREATE_SSH_HOST_OP_ID } from '@s4wave/sdk/sshhost/create-ssh-host.js'
 import {
@@ -103,19 +100,6 @@ interface AddDeviceWizardConfig {
   ssh?: SshHostWizardConfig
 }
 
-interface SpaceLinkSession {
-  spacewave: {
-    previewSpaceLink: (
-      request: PreviewSpaceLinkRequest,
-      abortSignal?: AbortSignal,
-    ) => Promise<PreviewSpaceLinkResponse>
-    approveSpaceLink: (
-      request: ApproveSpaceLinkRequest,
-      abortSignal?: AbortSignal,
-    ) => Promise<ApproveSpaceLinkResponse>
-  }
-}
-
 export { AddDeviceWizardTypeID } from './add-device-wizard.js'
 
 export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
@@ -124,9 +108,9 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
   const currentStep = state?.step ?? 0
   const space = useResourceValue(SpaceContext.useContext())
   const session = useResourceValue(SessionContext.useContext()) as
-    | SpaceLinkSession
+    | Session
     | undefined
-  const { sessionInfo } = useSessionInfo(session as never)
+  const { sessionInfo } = useSessionInfo(session)
   const sharedObject = useResourceValue(SharedObjectContext.useContext())
   const sharedObjectId = sharedObject?.meta.sharedObjectId ?? ''
   const { spaceState } = SpaceContainerContext.useContext()
@@ -936,7 +920,7 @@ async function approveTicket({
   sharedObjectId: string
   ticket: string
   config: AddDeviceWizardConfig
-  session: SpaceLinkSession | undefined
+  session: Session | undefined
   setBusy: (busy: boolean) => void
   persist: (config: AddDeviceWizardConfig, step?: number) => Promise<void>
   nextStep?: number
@@ -1221,9 +1205,7 @@ function base64ToBytes(value: string): Uint8Array {
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary)
+  return btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))
 }
 
 function bytesToDisplay(bytes: Uint8Array | undefined): string {

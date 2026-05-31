@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import {
   useCallback,
   useDeferredValue,

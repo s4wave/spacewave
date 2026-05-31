@@ -118,15 +118,6 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 	}
 
 	if _, err := deviceSvc.ReportDeviceStatus(ctx, &s4wave_device.ReportDeviceStatusRequest{
-		PeerId: "12D3KooWOther",
-		LastStatus: &s4wave_device.DeviceStatus{
-			Message: "wrong peer",
-		},
-	}); err == nil {
-		t.Fatal("expected mismatched peer_id to fail status report")
-	}
-
-	updateResp, err := deviceSvc.ReportDeviceStatus(ctx, &s4wave_device.ReportDeviceStatusRequest{
 		PeerId:      "12D3KooWDevice",
 		UpdateState: s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_READY,
 		LastStatus: &s4wave_device.DeviceStatus{
@@ -175,14 +166,90 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 				},
 			},
 		},
+	}); err == nil {
+		t.Fatal("expected browser-visible Device resource to reject status reports")
+	}
+
+	directUpdate := device.CloneVT()
+	directUpdate.UpdateState = s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_READY
+	directUpdate.LastStatus = &s4wave_device.DeviceStatus{
+		Liveness:   s4wave_device.DeviceLiveness_DEVICE_LIVENESS_DEGRADED,
+		Message:    "network limited",
+		ObservedAt: timestamppb.New(time.Unix(120, 0)),
+	}
+	directUpdate.Capabilities = []*s4wave_device.DeviceCapability{
+		{
+			Id:    "filesystem",
+			Kind:  "filesystem",
+			Label: "Files",
+			State: s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE,
+			Link: &s4wave_device.DeviceCapabilityLink{
+				ObjectKey: "files/device-root",
+				TypeId:    s4wave_unixfs_world.UnixFSTypeID,
+			},
+			Policy: &s4wave_device.DeviceCapabilityPolicy{
+				LocalState: s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
+				GrantState: s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED,
+			},
+		},
+		{
+			Id:     "forge-worker",
+			Kind:   "forge-worker",
+			Label:  "Forge Worker",
+			State:  s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED,
+			Detail: "blocked by Space grant",
+			Link: &s4wave_device.DeviceCapabilityLink{
+				ObjectKey: "forge/worker/device",
+				TypeId:    forge_worker.WorkerTypeID,
+			},
+			Policy: &s4wave_device.DeviceCapabilityPolicy{
+				LocalState: s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
+				GrantState: s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED,
+			},
+		},
+		{
+			Id:     "terminal",
+			Kind:   "terminal",
+			Label:  "Terminal",
+			State:  s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DISABLED,
+			Detail: "disabled by local policy",
+			Link: &s4wave_device.DeviceCapabilityLink{
+				ProtocolId: "alpha/remote-shell/v0",
+			},
+			Policy: &s4wave_device.DeviceCapabilityPolicy{
+				LocalState: s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_DISABLED,
+				GrantState: s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED,
+			},
+		},
+	}
+	tx2, err := worldEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("NewTransaction(update) failed: %v", err)
+	}
+	updateState, found, err := tx2.GetObject(ctx, objectKey)
+	if err != nil {
+		tx2.Discard()
+		t.Fatalf("GetObject(update) failed: %v", err)
+	}
+	if !found {
+		tx2.Discard()
+		t.Fatal("device object missing for direct update")
+	}
+	_, _, err = world.AccessObjectState(ctx, updateState, true, func(bcs *block.Cursor) error {
+		bcs.SetBlock(directUpdate, true)
+		return nil
 	})
 	if err != nil {
-		t.Fatalf("ReportDeviceStatus failed: %v", err)
+		tx2.Discard()
+		t.Fatalf("AccessObjectState(update) failed: %v", err)
 	}
-	if updateResp.GetState().GetUpdateState() != s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_READY {
-		t.Fatalf("update state = %v", updateResp.GetState().GetUpdateState())
+	if err := tx2.Commit(ctx); err != nil {
+		tx2.Discard()
+		t.Fatalf("Commit(update) failed: %v", err)
 	}
-	caps := updateResp.GetState().GetCapabilities()
+	tx2.Discard()
+
+	caps := directUpdate.GetCapabilities()
 	if len(caps) != 3 {
 		t.Fatalf("capabilities = %d, want 3", len(caps))
 	}

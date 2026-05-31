@@ -26,3 +26,18 @@ func TestDeviceValidatePinsIdentityAndCapabilityIds(t *testing.T) {
 		t.Fatal("expected duplicate capability id to fail validation")
 	}
 }
+
+func TestDeviceValidateCapabilityLinkRequiresType(t *testing.T) {
+	err := (&Device{
+		PeerId: "peer-device",
+		Label:  "Device",
+		Capabilities: []*DeviceCapability{{
+			Id:   "filesystem",
+			Kind: "filesystem",
+			Link: &DeviceCapabilityLink{ObjectKey: "files/root"},
+		}},
+	}).Validate()
+	if err == nil {
+		t.Fatal("Validate accepted capability object link without type_id")
+	}
+}
