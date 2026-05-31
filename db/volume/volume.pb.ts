@@ -5,8 +5,10 @@
 import { Info } from '@go/github.com/aperturerobotics/controllerbus/controller/controller.pb.js'
 import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BucketInfo } from '../bucket/bucket.pb.js'
 
 export const protobufPackage = 'volume'
@@ -51,18 +53,18 @@ export interface VolumeInfo {
   hashType?: HashType
 }
 
-// VolumeInfo contains the message type declaration for VolumeInfo.
-export const VolumeInfo: MessageType<VolumeInfo> = createMessageType({
-  typeName: 'volume.VolumeInfo',
-  fields: [
-    { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'peer_pub', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'controller_info', kind: 'message', T: () => Info },
-    { no: 5, name: 'hash_type', kind: 'enum', T: HashType_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const VolumeInfo: MessageType<VolumeInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.VolumeInfo',
+    fields: [
+      { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'peer_pub', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'controller_info', kind: 'message', T: () => Info },
+      { no: 5, name: 'hash_type', kind: 'enum', T: HashType_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * StorageStats contains storage usage statistics for a volume.
@@ -84,15 +86,15 @@ export interface StorageStats {
   blockCount?: bigint
 }
 
-// StorageStats contains the message type declaration for StorageStats.
-export const StorageStats: MessageType<StorageStats> = createMessageType({
-  typeName: 'volume.StorageStats',
-  fields: [
-    { no: 1, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StorageStats: MessageType<StorageStats> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.StorageStats',
+    fields: [
+      { no: 1, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * VolumeBucketInfo is information about a bucket in a volume.
@@ -114,14 +116,13 @@ export interface VolumeBucketInfo {
   volumeInfo?: VolumeInfo
 }
 
-// VolumeBucketInfo contains the message type declaration for VolumeBucketInfo.
 export const VolumeBucketInfo: MessageType<VolumeBucketInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'volume.VolumeBucketInfo',
     fields: [
       { no: 1, name: 'bucket_info', kind: 'message', T: () => BucketInfo },
       { no: 2, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -156,9 +157,8 @@ export interface ListBucketsRequest {
   volumeIdList?: string[]
 }
 
-// ListBucketsRequest contains the message type declaration for ListBucketsRequest.
 export const ListBucketsRequest: MessageType<ListBucketsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'volume.ListBucketsRequest',
     fields: [
       { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
@@ -170,6 +170,6 @@ export const ListBucketsRequest: MessageType<ListBucketsRequest> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

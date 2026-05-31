@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/plugin/saucer/saucer.proto (package saucer, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'saucer'
 
@@ -32,11 +31,13 @@ export enum ExternalLinks {
   DENY = 1,
 }
 
-// ExternalLinks_Enum is the enum type for ExternalLinks.
-export const ExternalLinks_Enum = createEnumType('saucer.ExternalLinks', [
-  { no: 0, name: 'EXTERNAL_LINKS_OS_BROWSER' },
-  { no: 1, name: 'EXTERNAL_LINKS_DENY' },
-])
+export const ExternalLinks_Enum = /* @__PURE__ */ createEnumType(
+  'saucer.ExternalLinks',
+  [
+    [0, 'EXTERNAL_LINKS_OS_BROWSER'],
+    [1, 'EXTERNAL_LINKS_DENY'],
+  ],
+)
 
 /**
  * SaucerInit is passed from Go to the Saucer C++ process on startup.
@@ -112,28 +113,33 @@ export interface SaucerInit {
   windowHeight?: number
 }
 
-// SaucerInit contains the message type declaration for SaucerInit.
-export const SaucerInit: MessageType<SaucerInit> = createMessageType({
-  typeName: 'saucer.SaucerInit',
-  fields: [
-    { no: 1, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 2, name: 'bootstrap_html', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'external_links', kind: 'enum', T: ExternalLinks_Enum },
-    {
-      no: 4,
-      name: 'bootstrap_html_path',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    { no: 5, name: 'entrypoint_js', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'entrypoint_js_path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 7, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 10, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SaucerInit: MessageType<SaucerInit> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'saucer.SaucerInit',
+    fields: [
+      { no: 1, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'bootstrap_html', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'external_links', kind: 'enum', T: ExternalLinks_Enum },
+      {
+        no: 4,
+        name: 'bootstrap_html_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 5, name: 'entrypoint_js', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'entrypoint_js_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 7, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 10, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EvalJSRequest is a request to evaluate JavaScript code.
@@ -149,14 +155,14 @@ export interface EvalJSRequest {
   code?: string
 }
 
-// EvalJSRequest contains the message type declaration for EvalJSRequest.
-export const EvalJSRequest: MessageType<EvalJSRequest> = createMessageType({
-  typeName: 'saucer.EvalJSRequest',
-  fields: [
-    { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EvalJSRequest: MessageType<EvalJSRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'saucer.EvalJSRequest',
+    fields: [
+      { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EvalJSResponse is the response from evaluating JavaScript code.
@@ -178,15 +184,15 @@ export interface EvalJSResponse {
   error?: string
 }
 
-// EvalJSResponse contains the message type declaration for EvalJSResponse.
-export const EvalJSResponse: MessageType<EvalJSResponse> = createMessageType({
-  typeName: 'saucer.EvalJSResponse',
-  fields: [
-    { no: 1, name: 'result', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EvalJSResponse: MessageType<EvalJSResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'saucer.EvalJSResponse',
+    fields: [
+      { no: 1, name: 'result', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config is the configuration for the saucer runtime.
@@ -273,8 +279,7 @@ export interface Config {
   windowHeight?: number
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'saucer.Config',
   fields: [
     { no: 1, name: 'saucer_path', kind: 'scalar', T: ScalarType.STRING },
@@ -295,6 +300,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 10, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
     { no: 11, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 12, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

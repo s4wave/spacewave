@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { WebBundlerOutput } from '../../web/bundler/bundler.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.plugin.vardef'
 
@@ -57,29 +59,29 @@ export interface PluginVar {
       }
 }
 
-// PluginVar contains the message type declaration for PluginVar.
-export const PluginVar: MessageType<PluginVar> = createMessageType({
-  typeName: 'bldr.plugin.vardef.PluginVar',
-  fields: [
-    { no: 1, name: 'pkg_import_path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'pkg_var', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'string_value',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      oneof: 'body',
-    },
-    {
-      no: 4,
-      name: 'web_bundler_output',
-      kind: 'message',
-      T: () => WebBundlerOutput,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PluginVar: MessageType<PluginVar> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.vardef.PluginVar',
+    fields: [
+      { no: 1, name: 'pkg_import_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'pkg_var', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'string_value',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'web_bundler_output',
+        kind: 'message',
+        T: () => WebBundlerOutput,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PluginDevInfo is information passed as a .bin file as part of the development plugin entrypoint.
@@ -95,17 +97,17 @@ export interface PluginDevInfo {
   pluginVars?: PluginVar[]
 }
 
-// PluginDevInfo contains the message type declaration for PluginDevInfo.
-export const PluginDevInfo: MessageType<PluginDevInfo> = createMessageType({
-  typeName: 'bldr.plugin.vardef.PluginDevInfo',
-  fields: [
-    {
-      no: 1,
-      name: 'plugin_vars',
-      kind: 'message',
-      T: () => PluginVar,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PluginDevInfo: MessageType<PluginDevInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.vardef.PluginDevInfo',
+    fields: [
+      {
+        no: 1,
+        name: 'plugin_vars',
+        kind: 'message',
+        T: () => PluginVar,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

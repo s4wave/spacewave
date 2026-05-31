@@ -2,9 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/sobject/sobject.proto (package s4wave.sobject, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { SharedObjectHealth } from '../../core/sobject/sobject.pb.js'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 's4wave.sobject'
 
@@ -15,13 +20,11 @@ export const protobufPackage = 's4wave.sobject'
  */
 export interface WatchSharedObjectHealthRequest {}
 
-// WatchSharedObjectHealthRequest contains the message type declaration for WatchSharedObjectHealthRequest.
 export const WatchSharedObjectHealthRequest: MessageType<WatchSharedObjectHealthRequest> =
-  createMessageType({
-    typeName: 's4wave.sobject.WatchSharedObjectHealthRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchSharedObjectHealthRequest>(
+    's4wave.sobject.WatchSharedObjectHealthRequest',
+    true,
+  )
 
 /**
  * WatchSharedObjectHealthResponse is the response type for WatchSharedObjectHealth.
@@ -37,13 +40,12 @@ export interface WatchSharedObjectHealthResponse {
   health?: SharedObjectHealth
 }
 
-// WatchSharedObjectHealthResponse contains the message type declaration for WatchSharedObjectHealthResponse.
 export const WatchSharedObjectHealthResponse: MessageType<WatchSharedObjectHealthResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sobject.WatchSharedObjectHealthResponse',
     fields: [
       { no: 1, name: 'health', kind: 'message', T: () => SharedObjectHealth },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -54,13 +56,11 @@ export const WatchSharedObjectHealthResponse: MessageType<WatchSharedObjectHealt
  */
 export interface MountSharedObjectBodyRequest {}
 
-// MountSharedObjectBodyRequest contains the message type declaration for MountSharedObjectBodyRequest.
 export const MountSharedObjectBodyRequest: MessageType<MountSharedObjectBodyRequest> =
-  createMessageType({
-    typeName: 's4wave.sobject.MountSharedObjectBodyRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<MountSharedObjectBodyRequest>(
+    's4wave.sobject.MountSharedObjectBodyRequest',
+    true,
+  )
 
 /**
  * MountSharedObjectBodyResponse is the response type for MountSharedObjectBody.
@@ -98,9 +98,8 @@ export interface MountSharedObjectBodyResponse {
       }
 }
 
-// MountSharedObjectBodyResponse contains the message type declaration for MountSharedObjectBodyResponse.
 export const MountSharedObjectBodyResponse: MessageType<MountSharedObjectBodyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sobject.MountSharedObjectBodyResponse',
     fields: [
       {
@@ -117,6 +116,6 @@ export const MountSharedObjectBodyResponse: MessageType<MountSharedObjectBodyRes
         T: () => SharedObjectHealth,
         oneof: 'result',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

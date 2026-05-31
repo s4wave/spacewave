@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/session/shared-object-self-enrollment.proto (package s4wave.session, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.session'
 
@@ -46,16 +48,16 @@ export enum SharedObjectSelfEnrollmentErrorCategory {
   REPORT = 3,
 }
 
-// SharedObjectSelfEnrollmentErrorCategory_Enum is the enum type for SharedObjectSelfEnrollmentErrorCategory.
-export const SharedObjectSelfEnrollmentErrorCategory_Enum = createEnumType(
-  's4wave.session.SharedObjectSelfEnrollmentErrorCategory',
-  [
-    { no: 0, name: 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_UNKNOWN' },
-    { no: 1, name: 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_RETRY' },
-    { no: 2, name: 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_OPEN_OBJECT' },
-    { no: 3, name: 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_REPORT' },
-  ],
-)
+export const SharedObjectSelfEnrollmentErrorCategory_Enum =
+  /* @__PURE__ */ createEnumType(
+    's4wave.session.SharedObjectSelfEnrollmentErrorCategory',
+    [
+      [0, 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_UNKNOWN'],
+      [1, 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_RETRY'],
+      [2, 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_OPEN_OBJECT'],
+      [3, 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_REPORT'],
+    ],
+  )
 
 /**
  * WatchSharedObjectSelfEnrollmentStateRequest is the request for WatchState.
@@ -64,13 +66,11 @@ export const SharedObjectSelfEnrollmentErrorCategory_Enum = createEnumType(
  */
 export interface WatchSharedObjectSelfEnrollmentStateRequest {}
 
-// WatchSharedObjectSelfEnrollmentStateRequest contains the message type declaration for WatchSharedObjectSelfEnrollmentStateRequest.
 export const WatchSharedObjectSelfEnrollmentStateRequest: MessageType<WatchSharedObjectSelfEnrollmentStateRequest> =
-  createMessageType({
-    typeName: 's4wave.session.WatchSharedObjectSelfEnrollmentStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchSharedObjectSelfEnrollmentStateRequest>(
+    's4wave.session.WatchSharedObjectSelfEnrollmentStateRequest',
+    true,
+  )
 
 /**
  * SharedObjectSelfEnrollmentFailure describes a failed per-object enrollment.
@@ -98,9 +98,8 @@ export interface SharedObjectSelfEnrollmentFailure {
   message?: string
 }
 
-// SharedObjectSelfEnrollmentFailure contains the message type declaration for SharedObjectSelfEnrollmentFailure.
 export const SharedObjectSelfEnrollmentFailure: MessageType<SharedObjectSelfEnrollmentFailure> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.SharedObjectSelfEnrollmentFailure',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
@@ -111,7 +110,7 @@ export const SharedObjectSelfEnrollmentFailure: MessageType<SharedObjectSelfEnro
         T: SharedObjectSelfEnrollmentErrorCategory_Enum,
       },
       { no: 3, name: 'message', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -185,9 +184,8 @@ export interface WatchSharedObjectSelfEnrollmentStateResponse {
   failures?: SharedObjectSelfEnrollmentFailure[]
 }
 
-// WatchSharedObjectSelfEnrollmentStateResponse contains the message type declaration for WatchSharedObjectSelfEnrollmentStateResponse.
 export const WatchSharedObjectSelfEnrollmentStateResponse: MessageType<WatchSharedObjectSelfEnrollmentStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.WatchSharedObjectSelfEnrollmentStateResponse',
     fields: [
       {
@@ -233,7 +231,7 @@ export const WatchSharedObjectSelfEnrollmentStateResponse: MessageType<WatchShar
         T: () => SharedObjectSelfEnrollmentFailure,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -244,13 +242,11 @@ export const WatchSharedObjectSelfEnrollmentStateResponse: MessageType<WatchShar
  */
 export interface StartSharedObjectSelfEnrollmentRequest {}
 
-// StartSharedObjectSelfEnrollmentRequest contains the message type declaration for StartSharedObjectSelfEnrollmentRequest.
 export const StartSharedObjectSelfEnrollmentRequest: MessageType<StartSharedObjectSelfEnrollmentRequest> =
-  createMessageType({
-    typeName: 's4wave.session.StartSharedObjectSelfEnrollmentRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<StartSharedObjectSelfEnrollmentRequest>(
+    's4wave.session.StartSharedObjectSelfEnrollmentRequest',
+    true,
+  )
 
 /**
  * StartSharedObjectSelfEnrollmentResponse is the response for Start.
@@ -259,13 +255,11 @@ export const StartSharedObjectSelfEnrollmentRequest: MessageType<StartSharedObje
  */
 export interface StartSharedObjectSelfEnrollmentResponse {}
 
-// StartSharedObjectSelfEnrollmentResponse contains the message type declaration for StartSharedObjectSelfEnrollmentResponse.
 export const StartSharedObjectSelfEnrollmentResponse: MessageType<StartSharedObjectSelfEnrollmentResponse> =
-  createMessageType({
-    typeName: 's4wave.session.StartSharedObjectSelfEnrollmentResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<StartSharedObjectSelfEnrollmentResponse>(
+    's4wave.session.StartSharedObjectSelfEnrollmentResponse',
+    true,
+  )
 
 /**
  * SkipSharedObjectSelfEnrollmentRequest is the request for Skip.
@@ -281,13 +275,12 @@ export interface SkipSharedObjectSelfEnrollmentRequest {
   generationKey?: string
 }
 
-// SkipSharedObjectSelfEnrollmentRequest contains the message type declaration for SkipSharedObjectSelfEnrollmentRequest.
 export const SkipSharedObjectSelfEnrollmentRequest: MessageType<SkipSharedObjectSelfEnrollmentRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.SkipSharedObjectSelfEnrollmentRequest',
     fields: [
       { no: 1, name: 'generation_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -298,10 +291,8 @@ export const SkipSharedObjectSelfEnrollmentRequest: MessageType<SkipSharedObject
  */
 export interface SkipSharedObjectSelfEnrollmentResponse {}
 
-// SkipSharedObjectSelfEnrollmentResponse contains the message type declaration for SkipSharedObjectSelfEnrollmentResponse.
 export const SkipSharedObjectSelfEnrollmentResponse: MessageType<SkipSharedObjectSelfEnrollmentResponse> =
-  createMessageType({
-    typeName: 's4wave.session.SkipSharedObjectSelfEnrollmentResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SkipSharedObjectSelfEnrollmentResponse>(
+    's4wave.session.SkipSharedObjectSelfEnrollmentResponse',
+    true,
+  )

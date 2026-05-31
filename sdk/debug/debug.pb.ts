@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/debug/debug.proto (package s4wave.debug, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.debug'
 
@@ -35,16 +40,16 @@ export interface EvalJSRequest {
   isModule?: boolean
 }
 
-// EvalJSRequest contains the message type declaration for EvalJSRequest.
-export const EvalJSRequest: MessageType<EvalJSRequest> = createMessageType({
-  typeName: 's4wave.debug.EvalJSRequest',
-  fields: [
-    { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'is_module', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EvalJSRequest: MessageType<EvalJSRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.debug.EvalJSRequest',
+    fields: [
+      { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'is_module', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EvalJSResponse is the response from evaluating JavaScript code.
@@ -66,15 +71,15 @@ export interface EvalJSResponse {
   error?: string
 }
 
-// EvalJSResponse contains the message type declaration for EvalJSResponse.
-export const EvalJSResponse: MessageType<EvalJSResponse> = createMessageType({
-  typeName: 's4wave.debug.EvalJSResponse',
-  fields: [
-    { no: 1, name: 'result', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EvalJSResponse: MessageType<EvalJSResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.debug.EvalJSResponse',
+    fields: [
+      { no: 1, name: 'result', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetPageInfoRequest is a request to get page information.
@@ -83,13 +88,11 @@ export const EvalJSResponse: MessageType<EvalJSResponse> = createMessageType({
  */
 export interface GetPageInfoRequest {}
 
-// GetPageInfoRequest contains the message type declaration for GetPageInfoRequest.
 export const GetPageInfoRequest: MessageType<GetPageInfoRequest> =
-  createMessageType({
-    typeName: 's4wave.debug.GetPageInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetPageInfoRequest>(
+    's4wave.debug.GetPageInfoRequest',
+    true,
+  )
 
 /**
  * GetPageInfoResponse is the response containing page information.
@@ -123,15 +126,14 @@ export interface GetPageInfoResponse {
   documentId?: string
 }
 
-// GetPageInfoResponse contains the message type declaration for GetPageInfoResponse.
 export const GetPageInfoResponse: MessageType<GetPageInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debug.GetPageInfoResponse',
     fields: [
       { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'title', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'web_view_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'document_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

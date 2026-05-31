@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/forge/lib/kvtx/config.proto (package forge.lib.kvtx, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { Value } from '../../value/value.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'forge.lib.kvtx'
 
@@ -96,19 +95,21 @@ export enum OpType {
   OpType_DELETE = 9,
 }
 
-// OpType_Enum is the enum type for OpType.
-export const OpType_Enum = createEnumType('forge.lib.kvtx.OpType', [
-  { no: 0, name: 'OpType_NONE' },
-  { no: 1, name: 'OpType_GET' },
-  { no: 2, name: 'OpType_GET_EXISTS' },
-  { no: 3, name: 'OpType_CHECK' },
-  { no: 4, name: 'OpType_CHECK_BLOB' },
-  { no: 5, name: 'OpType_CHECK_EXISTS' },
-  { no: 6, name: 'OpType_CHECK_NOT_EXISTS' },
-  { no: 7, name: 'OpType_SET' },
-  { no: 8, name: 'OpType_SET_BLOB' },
-  { no: 9, name: 'OpType_DELETE' },
-])
+export const OpType_Enum = /* @__PURE__ */ createEnumType(
+  'forge.lib.kvtx.OpType',
+  [
+    [0, 'OpType_NONE'],
+    [1, 'OpType_GET'],
+    [2, 'OpType_GET_EXISTS'],
+    [3, 'OpType_CHECK'],
+    [4, 'OpType_CHECK_BLOB'],
+    [5, 'OpType_CHECK_EXISTS'],
+    [6, 'OpType_CHECK_NOT_EXISTS'],
+    [7, 'OpType_SET'],
+    [8, 'OpType_SET_BLOB'],
+    [9, 'OpType_DELETE'],
+  ],
+)
 
 /**
  * Op is an operation definition.
@@ -190,8 +191,7 @@ export interface Op {
   ops?: Op[]
 }
 
-// Op contains the message type declaration for Op.
-export const Op: MessageType<Op> = createMessageType({
+export const Op: MessageType<Op> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.lib.kvtx.Op',
   fields: [
     { no: 1, name: 'op_type', kind: 'enum', T: OpType_Enum },
@@ -202,7 +202,7 @@ export const Op: MessageType<Op> = createMessageType({
     { no: 8, name: 'value_string', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'output', kind: 'scalar', T: ScalarType.STRING },
     { no: 10, name: 'ops', kind: 'message', T: () => Op, repeated: true },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -243,14 +243,13 @@ export interface Config {
   ignoreErrors?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.lib.kvtx.Config',
   fields: [
     { no: 1, name: 'ops', kind: 'message', T: () => Op, repeated: true },
     { no: 2, name: 'config_input', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'ignore_errors', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -268,11 +267,11 @@ export interface ConfigInput {
   ops?: Op[]
 }
 
-// ConfigInput contains the message type declaration for ConfigInput.
-export const ConfigInput: MessageType<ConfigInput> = createMessageType({
-  typeName: 'forge.lib.kvtx.ConfigInput',
-  fields: [
-    { no: 1, name: 'ops', kind: 'message', T: () => Op, repeated: true },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ConfigInput: MessageType<ConfigInput> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.lib.kvtx.ConfigInput',
+    fields: [
+      { no: 1, name: 'ops', kind: 'message', T: () => Op, repeated: true },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

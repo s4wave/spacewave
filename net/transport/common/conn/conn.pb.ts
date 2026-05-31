@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { Opts as Opts$1 } from '../quic/quic.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'conn'
 
@@ -44,14 +46,13 @@ export interface Opts {
   bufSize?: number
 }
 
-// Opts contains the message type declaration for Opts.
-export const Opts: MessageType<Opts> = createMessageType({
+export const Opts: MessageType<Opts> = /* @__PURE__ */ createMessageType({
   typeName: 'conn.Opts',
   fields: [
     { no: 1, name: 'quic', kind: 'message', T: () => Opts$1 },
     { no: 2, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'mtu', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 4, name: 'buf_size', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

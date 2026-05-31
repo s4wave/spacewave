@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/db/store/kvtx/redis/redis.proto (package store.kvtx.redis, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'store.kvtx.redis'
 
@@ -21,11 +23,11 @@ export interface ClientConfig {
   url?: string
 }
 
-// ClientConfig contains the message type declaration for ClientConfig.
-export const ClientConfig: MessageType<ClientConfig> = createMessageType({
-  typeName: 'store.kvtx.redis.ClientConfig',
-  fields: [
-    { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ClientConfig: MessageType<ClientConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'store.kvtx.redis.ClientConfig',
+    fields: [
+      { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

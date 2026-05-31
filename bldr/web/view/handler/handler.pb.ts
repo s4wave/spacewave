@@ -4,8 +4,9 @@
 
 import { StringFilter } from '@go/github.com/aperturerobotics/util/filter/filter.pb.js'
 import { SetHtmlLinksRequest, SetRenderModeRequest } from '../view.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'web.view.handler'
 
@@ -58,9 +59,8 @@ export interface WebViewHandlerConfig {
       }
 }
 
-// WebViewHandlerConfig contains the message type declaration for WebViewHandlerConfig.
 export const WebViewHandlerConfig: MessageType<WebViewHandlerConfig> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.view.handler.WebViewHandlerConfig',
     fields: [
       { no: 1, name: 'web_view_id', kind: 'message', T: () => StringFilter },
@@ -84,7 +84,7 @@ export const WebViewHandlerConfig: MessageType<WebViewHandlerConfig> =
         T: () => SetHtmlLinksRequest,
         oneof: 'handler',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -114,9 +114,8 @@ export interface WebViewHandlersConfig {
   webViewParentId?: StringFilter
 }
 
-// WebViewHandlersConfig contains the message type declaration for WebViewHandlersConfig.
 export const WebViewHandlersConfig: MessageType<WebViewHandlersConfig> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.view.handler.WebViewHandlersConfig',
     fields: [
       {
@@ -133,6 +132,6 @@ export const WebViewHandlersConfig: MessageType<WebViewHandlersConfig> =
         kind: 'message',
         T: () => StringFilter,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

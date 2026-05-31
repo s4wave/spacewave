@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/runtime/runtime.proto (package web.runtime, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'web.runtime'
 
@@ -46,14 +48,13 @@ export enum WebRuntimeClientType {
   WebRuntimeClientType_WEB_WORKER = 3,
 }
 
-// WebRuntimeClientType_Enum is the enum type for WebRuntimeClientType.
-export const WebRuntimeClientType_Enum = createEnumType(
+export const WebRuntimeClientType_Enum = /* @__PURE__ */ createEnumType(
   'web.runtime.WebRuntimeClientType',
   [
-    { no: 0, name: 'WebRuntimeClientType_UNKNOWN' },
-    { no: 1, name: 'WebRuntimeClientType_WEB_DOCUMENT' },
-    { no: 2, name: 'WebRuntimeClientType_SERVICE_WORKER' },
-    { no: 3, name: 'WebRuntimeClientType_WEB_WORKER' },
+    [0, 'WebRuntimeClientType_UNKNOWN'],
+    [1, 'WebRuntimeClientType_WEB_DOCUMENT'],
+    [2, 'WebRuntimeClientType_SERVICE_WORKER'],
+    [3, 'WebRuntimeClientType_WEB_WORKER'],
   ],
 )
 
@@ -85,12 +86,14 @@ export enum WebRenderer {
   SAUCER = 2,
 }
 
-// WebRenderer_Enum is the enum type for WebRenderer.
-export const WebRenderer_Enum = createEnumType('web.runtime.WebRenderer', [
-  { no: 0, name: 'WEB_RENDERER_DEFAULT' },
-  { no: 1, name: 'WEB_RENDERER_ELECTRON' },
-  { no: 2, name: 'WEB_RENDERER_SAUCER' },
-])
+export const WebRenderer_Enum = /* @__PURE__ */ createEnumType(
+  'web.runtime.WebRenderer',
+  [
+    [0, 'WEB_RENDERER_DEFAULT'],
+    [1, 'WEB_RENDERER_ELECTRON'],
+    [2, 'WEB_RENDERER_SAUCER'],
+  ],
+)
 
 /**
  * WebRuntimeHostInit initializes the WebRuntimeHost.
@@ -110,13 +113,12 @@ export interface WebRuntimeHostInit {
   webRuntimeId?: string
 }
 
-// WebRuntimeHostInit contains the message type declaration for WebRuntimeHostInit.
 export const WebRuntimeHostInit: MessageType<WebRuntimeHostInit> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.runtime.WebRuntimeHostInit',
     fields: [
       { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -127,13 +129,11 @@ export const WebRuntimeHostInit: MessageType<WebRuntimeHostInit> =
  */
 export interface RequestRuntimeQuitRequest {}
 
-// RequestRuntimeQuitRequest contains the message type declaration for RequestRuntimeQuitRequest.
 export const RequestRuntimeQuitRequest: MessageType<RequestRuntimeQuitRequest> =
-  createMessageType({
-    typeName: 'web.runtime.RequestRuntimeQuitRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RequestRuntimeQuitRequest>(
+    'web.runtime.RequestRuntimeQuitRequest',
+    true,
+  )
 
 /**
  * RequestRuntimeQuitResponse is the response to RequestRuntimeQuit.
@@ -142,13 +142,11 @@ export const RequestRuntimeQuitRequest: MessageType<RequestRuntimeQuitRequest> =
  */
 export interface RequestRuntimeQuitResponse {}
 
-// RequestRuntimeQuitResponse contains the message type declaration for RequestRuntimeQuitResponse.
 export const RequestRuntimeQuitResponse: MessageType<RequestRuntimeQuitResponse> =
-  createMessageType({
-    typeName: 'web.runtime.RequestRuntimeQuitResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RequestRuntimeQuitResponse>(
+    'web.runtime.RequestRuntimeQuitResponse',
+    true,
+  )
 
 /**
  * WatchWebRuntimeStatusRequest is the body of the WatchWebRuntimeStatus request.
@@ -157,13 +155,11 @@ export const RequestRuntimeQuitResponse: MessageType<RequestRuntimeQuitResponse>
  */
 export interface WatchWebRuntimeStatusRequest {}
 
-// WatchWebRuntimeStatusRequest contains the message type declaration for WatchWebRuntimeStatusRequest.
 export const WatchWebRuntimeStatusRequest: MessageType<WatchWebRuntimeStatusRequest> =
-  createMessageType({
-    typeName: 'web.runtime.WatchWebRuntimeStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchWebRuntimeStatusRequest>(
+    'web.runtime.WatchWebRuntimeStatusRequest',
+    true,
+  )
 
 /**
  * WebDocumentStatus contains status for a WebDocument.
@@ -192,15 +188,14 @@ export interface WebDocumentStatus {
   permanent?: boolean
 }
 
-// WebDocumentStatus contains the message type declaration for WebDocumentStatus.
 export const WebDocumentStatus: MessageType<WebDocumentStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.runtime.WebDocumentStatus',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -230,9 +225,8 @@ export interface WebRuntimeStatus {
   closed?: boolean
 }
 
-// WebRuntimeStatus contains the message type declaration for WebRuntimeStatus.
 export const WebRuntimeStatus: MessageType<WebRuntimeStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.runtime.WebRuntimeStatus',
     fields: [
       { no: 1, name: 'snapshot', kind: 'scalar', T: ScalarType.BOOL },
@@ -244,7 +238,7 @@ export const WebRuntimeStatus: MessageType<WebRuntimeStatus> =
         repeated: true,
       },
       { no: 3, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -262,13 +256,12 @@ export interface CreateWebDocumentRequest {
   id?: string
 }
 
-// CreateWebDocumentRequest contains the message type declaration for CreateWebDocumentRequest.
 export const CreateWebDocumentRequest: MessageType<CreateWebDocumentRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.runtime.CreateWebDocumentRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -287,13 +280,12 @@ export interface CreateWebDocumentResponse {
   created?: boolean
 }
 
-// CreateWebDocumentResponse contains the message type declaration for CreateWebDocumentResponse.
 export const CreateWebDocumentResponse: MessageType<CreateWebDocumentResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.runtime.CreateWebDocumentResponse',
     fields: [
       { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -311,13 +303,12 @@ export interface RemoveWebDocumentRequest {
   id?: string
 }
 
-// RemoveWebDocumentRequest contains the message type declaration for RemoveWebDocumentRequest.
 export const RemoveWebDocumentRequest: MessageType<RemoveWebDocumentRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.runtime.RemoveWebDocumentRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -336,13 +327,12 @@ export interface RemoveWebDocumentResponse {
   removed?: boolean
 }
 
-// RemoveWebDocumentResponse contains the message type declaration for RemoveWebDocumentResponse.
 export const RemoveWebDocumentResponse: MessageType<RemoveWebDocumentResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.runtime.RemoveWebDocumentResponse',
     fields: [
       { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -353,13 +343,11 @@ export const RemoveWebDocumentResponse: MessageType<RemoveWebDocumentResponse> =
  */
 export interface FlushIndexCacheRequest {}
 
-// FlushIndexCacheRequest contains the message type declaration for FlushIndexCacheRequest.
 export const FlushIndexCacheRequest: MessageType<FlushIndexCacheRequest> =
-  createMessageType({
-    typeName: 'web.runtime.FlushIndexCacheRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<FlushIndexCacheRequest>(
+    'web.runtime.FlushIndexCacheRequest',
+    true,
+  )
 
 /**
  * FlushIndexCacheResponse is the response to FlushIndexCache.
@@ -368,13 +356,11 @@ export const FlushIndexCacheRequest: MessageType<FlushIndexCacheRequest> =
  */
 export interface FlushIndexCacheResponse {}
 
-// FlushIndexCacheResponse contains the message type declaration for FlushIndexCacheResponse.
 export const FlushIndexCacheResponse: MessageType<FlushIndexCacheResponse> =
-  createMessageType({
-    typeName: 'web.runtime.FlushIndexCacheResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<FlushIndexCacheResponse>(
+    'web.runtime.FlushIndexCacheResponse',
+    true,
+  )
 
 /**
  * WebRuntimeClientInit is a message sent by a client of a WebRuntime.
@@ -420,9 +406,8 @@ export interface WebRuntimeClientInit {
   disableWebLocks?: boolean
 }
 
-// WebRuntimeClientInit contains the message type declaration for WebRuntimeClientInit.
 export const WebRuntimeClientInit: MessageType<WebRuntimeClientInit> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.runtime.WebRuntimeClientInit',
     fields: [
       { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
@@ -440,6 +425,6 @@ export const WebRuntimeClientInit: MessageType<WebRuntimeClientInit> =
         T: WebRuntimeClientType_Enum,
       },
       { no: 4, name: 'disable_web_locks', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

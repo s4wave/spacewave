@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/bldr/project/project.proto (package bldr.project, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { BuildPolicy } from '../manifest/build/policy.pb.js'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
@@ -42,22 +44,22 @@ export interface StartConfig {
   loadWebStartup?: string
 }
 
-// StartConfig contains the message type declaration for StartConfig.
-export const StartConfig: MessageType<StartConfig> = createMessageType({
-  typeName: 'bldr.project.StartConfig',
-  fields: [
-    {
-      no: 1,
-      name: 'plugins',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 2, name: 'disable_build', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'load_web_startup', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StartConfig: MessageType<StartConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.project.StartConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'plugins',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'disable_build', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'load_web_startup', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ManifestConfig is a configuration for building a manifest.
@@ -93,16 +95,16 @@ export interface ManifestConfig {
   description?: string
 }
 
-// ManifestConfig contains the message type declaration for ManifestConfig.
-export const ManifestConfig: MessageType<ManifestConfig> = createMessageType({
-  typeName: 'bldr.project.ManifestConfig',
-  fields: [
-    { no: 1, name: 'builder', kind: 'message', T: () => ControllerConfig },
-    { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ManifestConfig: MessageType<ManifestConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.project.ManifestConfig',
+    fields: [
+      { no: 1, name: 'builder', kind: 'message', T: () => ControllerConfig },
+      { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BuildConfig configures a build target.
@@ -158,42 +160,42 @@ export interface BuildConfig {
   buildPolicy?: BuildPolicy
 }
 
-// BuildConfig contains the message type declaration for BuildConfig.
-export const BuildConfig: MessageType<BuildConfig> = createMessageType({
-  typeName: 'bldr.project.BuildConfig',
-  fields: [
-    {
-      no: 1,
-      name: 'manifests',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'platform_ids',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 3,
-      name: 'targets',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 4,
-      name: 'manifest_overrides',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ControllerConfig },
-    },
-    { no: 5, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BuildConfig: MessageType<BuildConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.project.BuildConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'manifests',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'platform_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'targets',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'manifest_overrides',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => ControllerConfig },
+      },
+      { no: 5, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RemoteConfig configures a location where manifests and source can be stored.
@@ -236,30 +238,30 @@ export interface RemoteConfig {
   linkObjectKeys?: string[]
 }
 
-// RemoteConfig contains the message type declaration for RemoteConfig.
-export const RemoteConfig: MessageType<RemoteConfig> = createMessageType({
-  typeName: 'bldr.project.RemoteConfig',
-  fields: [
-    {
-      no: 1,
-      name: 'host_config_set',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ControllerConfig },
-    },
-    { no: 2, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 5,
-      name: 'link_object_keys',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RemoteConfig: MessageType<RemoteConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.project.RemoteConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'host_config_set',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => ControllerConfig },
+      },
+      { no: 2, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'link_object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PublishStorageConfig configures adjusting the storage transform config for an asset.
@@ -302,9 +304,8 @@ export interface PublishStorageConfig {
   timestamp?: Date
 }
 
-// PublishStorageConfig contains the message type declaration for PublishStorageConfig.
 export const PublishStorageConfig: MessageType<PublishStorageConfig> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.project.PublishStorageConfig',
     fields: [
       {
@@ -315,7 +316,7 @@ export const PublishStorageConfig: MessageType<PublishStorageConfig> =
       },
       { no: 2, name: 'transform_conf', kind: 'message', T: () => Config },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -385,51 +386,56 @@ export interface PublishConfig {
   manifestStorage?: { [key: string]: PublishStorageConfig }
 }
 
-// PublishConfig contains the message type declaration for PublishConfig.
-export const PublishConfig: MessageType<PublishConfig> = createMessageType({
-  typeName: 'bldr.project.PublishConfig',
-  fields: [
-    {
-      no: 1,
-      name: 'source_object_keys',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'manifests',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 3, name: 'all_manifest_revs', kind: 'scalar', T: ScalarType.BOOL },
-    {
-      no: 4,
-      name: 'platform_ids',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 5,
-      name: 'remotes',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 6, name: 'dest_object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 7, name: 'storage', kind: 'message', T: () => PublishStorageConfig },
-    {
-      no: 8,
-      name: 'manifest_storage',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => PublishStorageConfig },
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PublishConfig: MessageType<PublishConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.project.PublishConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'source_object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'manifests',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 3, name: 'all_manifest_revs', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 4,
+        name: 'platform_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'remotes',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 6, name: 'dest_object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'storage',
+        kind: 'message',
+        T: () => PublishStorageConfig,
+      },
+      {
+        no: 8,
+        name: 'manifest_storage',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => PublishStorageConfig },
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ProjectConfig is a bldr project configuration.
@@ -491,47 +497,47 @@ export interface ProjectConfig {
   extends?: string[]
 }
 
-// ProjectConfig contains the message type declaration for ProjectConfig.
-export const ProjectConfig: MessageType<ProjectConfig> = createMessageType({
-  typeName: 'bldr.project.ProjectConfig',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'start', kind: 'message', T: () => StartConfig },
-    {
-      no: 3,
-      name: 'manifests',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ManifestConfig },
-    },
-    {
-      no: 4,
-      name: 'build',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => BuildConfig },
-    },
-    {
-      no: 5,
-      name: 'remotes',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => RemoteConfig },
-    },
-    {
-      no: 6,
-      name: 'publish',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => PublishConfig },
-    },
-    {
-      no: 7,
-      name: 'extends',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ProjectConfig: MessageType<ProjectConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.project.ProjectConfig',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'start', kind: 'message', T: () => StartConfig },
+      {
+        no: 3,
+        name: 'manifests',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => ManifestConfig },
+      },
+      {
+        no: 4,
+        name: 'build',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => BuildConfig },
+      },
+      {
+        no: 5,
+        name: 'remotes',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => RemoteConfig },
+      },
+      {
+        no: 6,
+        name: 'publish',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => PublishConfig },
+      },
+      {
+        no: 7,
+        name: 'extends',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BlockRef } from '../block.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Blob } from '../blob/blob.pb.js'
 
 export const protobufPackage = 'file'
@@ -45,15 +47,14 @@ export interface Range {
   ref?: BlockRef
 }
 
-// Range contains the message type declaration for Range.
-export const Range: MessageType<Range> = createMessageType({
+export const Range: MessageType<Range> = /* @__PURE__ */ createMessageType({
   typeName: 'file.Range',
   fields: [
     { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 2, name: 'start', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 3, name: 'length', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 4, name: 'ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -100,14 +101,13 @@ export interface File {
   ranges?: Range[]
 }
 
-// File contains the message type declaration for File.
-export const File: MessageType<File> = createMessageType({
+export const File: MessageType<File> = /* @__PURE__ */ createMessageType({
   typeName: 'file.File',
   fields: [
     { no: 1, name: 'total_size', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 2, name: 'root_blob', kind: 'message', T: () => Blob },
     { no: 3, name: 'range_nonce', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 4, name: 'ranges', kind: 'message', T: () => Range, repeated: true },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

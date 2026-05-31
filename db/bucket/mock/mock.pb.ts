@@ -3,8 +3,9 @@
 /* eslint-disable */
 
 import { ObjectRef } from '../bucket.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bucket.mock'
 
@@ -22,11 +23,10 @@ export interface Root {
   examplePtr?: ObjectRef
 }
 
-// Root contains the message type declaration for Root.
-export const Root: MessageType<Root> = createMessageType({
+export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
   typeName: 'bucket.mock.Root',
   fields: [
     { no: 1, name: 'example_ptr', kind: 'message', T: () => ObjectRef },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -2,9 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/core/forge/task/task.proto (package s4wave.forge.task, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.forge.task'
 
@@ -42,15 +44,14 @@ export interface ForgeTaskCreateOp {
   timestamp?: Date
 }
 
-// ForgeTaskCreateOp contains the message type declaration for ForgeTaskCreateOp.
 export const ForgeTaskCreateOp: MessageType<ForgeTaskCreateOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.forge.task.ForgeTaskCreateOp',
     fields: [
       { no: 1, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

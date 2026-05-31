@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/forge/target/target.proto (package forge.target, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Value } from '../value/value.pb.js'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 
@@ -56,14 +55,16 @@ export enum InputType {
   InputType_WORLD_OBJECT = 4,
 }
 
-// InputType_Enum is the enum type for InputType.
-export const InputType_Enum = createEnumType('forge.target.InputType', [
-  { no: 0, name: 'InputType_UNKNOWN' },
-  { no: 1, name: 'InputType_VALUE' },
-  { no: 2, name: 'InputType_ALIAS' },
-  { no: 3, name: 'InputType_WORLD' },
-  { no: 4, name: 'InputType_WORLD_OBJECT' },
-])
+export const InputType_Enum = /* @__PURE__ */ createEnumType(
+  'forge.target.InputType',
+  [
+    [0, 'InputType_UNKNOWN'],
+    [1, 'InputType_VALUE'],
+    [2, 'InputType_ALIAS'],
+    [3, 'InputType_WORLD'],
+    [4, 'InputType_WORLD_OBJECT'],
+  ],
+)
 
 /**
  * OutputType is the list of possible output types.
@@ -93,12 +94,14 @@ export enum OutputType {
   OutputType_VALUE = 2,
 }
 
-// OutputType_Enum is the enum type for OutputType.
-export const OutputType_Enum = createEnumType('forge.target.OutputType', [
-  { no: 0, name: 'OutputType_UNKNOWN' },
-  { no: 1, name: 'OutputType_EXEC' },
-  { no: 2, name: 'OutputType_VALUE' },
-])
+export const OutputType_Enum = /* @__PURE__ */ createEnumType(
+  'forge.target.OutputType',
+  [
+    [0, 'OutputType_UNKNOWN'],
+    [1, 'OutputType_EXEC'],
+    [2, 'OutputType_VALUE'],
+  ],
+)
 
 /**
  * InputWorld are args for the world input type.
@@ -124,15 +127,15 @@ export interface InputWorld {
   lookupImmediate?: boolean
 }
 
-// InputWorld contains the message type declaration for InputWorld.
-export const InputWorld: MessageType<InputWorld> = createMessageType({
-  typeName: 'forge.target.InputWorld',
-  fields: [
-    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'lookup_immediate', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const InputWorld: MessageType<InputWorld> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.target.InputWorld',
+    fields: [
+      { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'lookup_immediate', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * InputWorldObject are args for the world object input type.
@@ -164,15 +167,14 @@ export interface InputWorldObject {
   objectRev?: bigint
 }
 
-// InputWorldObject contains the message type declaration for InputWorldObject.
 export const InputWorldObject: MessageType<InputWorldObject> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'forge.target.InputWorldObject',
     fields: [
       { no: 1, name: 'world', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'object_rev', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -231,8 +233,7 @@ export interface Input {
   worldObject?: InputWorldObject
 }
 
-// Input contains the message type declaration for Input.
-export const Input: MessageType<Input> = createMessageType({
+export const Input: MessageType<Input> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.target.Input',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
@@ -242,7 +243,7 @@ export const Input: MessageType<Input> = createMessageType({
     { no: 4, name: 'value', kind: 'message', T: () => Value },
     { no: 5, name: 'world', kind: 'message', T: () => InputWorld },
     { no: 6, name: 'world_object', kind: 'message', T: () => InputWorldObject },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -281,15 +282,14 @@ export interface Output {
   value?: Value
 }
 
-// Output contains the message type declaration for Output.
-export const Output: MessageType<Output> = createMessageType({
+export const Output: MessageType<Output> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.target.Output',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'output_type', kind: 'enum', T: OutputType_Enum },
     { no: 3, name: 'exec_output', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'value', kind: 'message', T: () => Value },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -313,13 +313,12 @@ export interface Exec {
   controller?: ControllerConfig
 }
 
-// Exec contains the message type declaration for Exec.
-export const Exec: MessageType<Exec> = createMessageType({
+export const Exec: MessageType<Exec> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.target.Exec',
   fields: [
     { no: 1, name: 'disable', kind: 'scalar', T: ScalarType.BOOL },
     { no: 2, name: 'controller', kind: 'message', T: () => ControllerConfig },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -351,8 +350,7 @@ export interface Target {
   exec?: Exec
 }
 
-// Target contains the message type declaration for Target.
-export const Target: MessageType<Target> = createMessageType({
+export const Target: MessageType<Target> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.target.Target',
   fields: [
     { no: 1, name: 'inputs', kind: 'message', T: () => Input, repeated: true },
@@ -364,7 +362,7 @@ export const Target: MessageType<Target> = createMessageType({
       repeated: true,
     },
     { no: 3, name: 'exec', kind: 'message', T: () => Exec },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -392,12 +390,24 @@ export interface ValueSet {
   outputs?: Value[]
 }
 
-// ValueSet contains the message type declaration for ValueSet.
-export const ValueSet: MessageType<ValueSet> = createMessageType({
-  typeName: 'forge.target.ValueSet',
-  fields: [
-    { no: 1, name: 'inputs', kind: 'message', T: () => Value, repeated: true },
-    { no: 2, name: 'outputs', kind: 'message', T: () => Value, repeated: true },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ValueSet: MessageType<ValueSet> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.target.ValueSet',
+    fields: [
+      {
+        no: 1,
+        name: 'inputs',
+        kind: 'message',
+        T: () => Value,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'outputs',
+        kind: 'message',
+        T: () => Value,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

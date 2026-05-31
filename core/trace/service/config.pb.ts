@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/core/trace/service/config.proto (package trace.service, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
 export const protobufPackage = 'trace.service'
 
@@ -14,9 +14,5 @@ export const protobufPackage = 'trace.service'
  */
 export interface Config {}
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'trace.service.Config',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createEmptyMessageType<Config>('trace.service.Config', true)

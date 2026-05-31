@@ -130,16 +130,16 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		}
 	}
 
-	stateRoot, err := buildHarnessStateRoot(repoRoot)
-	if err != nil {
-		return nil, err
-	}
 	preserveStartupBuildCache, err := ResolveE2EWasmStartupBuildCacheEnabled()
 	if err != nil {
 		return nil, err
 	}
 	if o.preserveStartupBuildCache != nil {
 		preserveStartupBuildCache = *o.preserveStartupBuildCache
+	}
+	stateRoot, err := buildHarnessStateRoot(repoRoot, preserveStartupBuildCache)
+	if err != nil {
+		return nil, err
 	}
 	workerMode, err := ResolveE2EWasmWorkerMode(o.workerMode)
 	if err != nil {
@@ -952,7 +952,7 @@ func resolveLocalModulePath(repoRoot, path string) (string, bool) {
 // Recursive `go test ./e2e/wasm/...` runs boot multiple test binaries in
 // parallel. They must not share the same `.bldr/e2e-wasm` directory or one
 // package can delete `src/` while another is syncing it.
-func buildHarnessStateRoot(repoRoot string) (string, error) {
+func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (string, error) {
 	stateRoot := filepath.Join(repoRoot, ".bldr", "e2e-wasm")
 	scope := "default"
 	label := "wasm"
@@ -969,7 +969,13 @@ func buildHarnessStateRoot(repoRoot string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "get executable path")
 	}
-	sum := sha1.Sum([]byte(scope + "|" + filepath.Base(exe)))
+	tokenInput := scope + "|" + filepath.Base(exe)
+	if !preserveStartupBuildCache {
+		// Cache-disabled runs should not share a devtool DB. Concurrent same
+		// package e2e boots otherwise delete or close each other's state root.
+		tokenInput += "|" + exe + "|" + strconv.Itoa(os.Getpid())
+	}
+	sum := sha1.Sum([]byte(tokenInput))
 	token := hex.EncodeToString(sum[:4])
 	return filepath.Join(stateRoot, label+"-"+token), nil
 }

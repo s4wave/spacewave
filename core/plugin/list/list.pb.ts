@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/plugin/list/list.proto (package plugin.list, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'plugin.list'
 
@@ -39,20 +41,20 @@ export interface ManifestInfo {
   buildTypes?: string[]
 }
 
-// ManifestInfo contains the message type declaration for ManifestInfo.
-export const ManifestInfo: MessageType<ManifestInfo> = createMessageType({
-  typeName: 'plugin.list.ManifestInfo',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 4,
-      name: 'build_types',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ManifestInfo: MessageType<ManifestInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'plugin.list.ManifestInfo',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'version', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'build_types',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

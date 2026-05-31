@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.cli.compiler'
 
@@ -46,8 +48,7 @@ export interface Config {
   projectId?: string
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bldr.cli.compiler.Config',
   fields: [
     {
@@ -72,6 +73,6 @@ export const Config: MessageType<Config> = createMessageType({
       V: { kind: 'message', T: () => ControllerConfig },
     },
     { no: 4, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

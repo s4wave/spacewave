@@ -3,8 +3,9 @@
 /* eslint-disable */
 
 import { BlockTransfer } from '../session/session.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'psecho'
 
@@ -22,11 +23,11 @@ export interface SyncMessage {
   transfer?: BlockTransfer
 }
 
-// SyncMessage contains the message type declaration for SyncMessage.
-export const SyncMessage: MessageType<SyncMessage> = createMessageType({
-  typeName: 'psecho.SyncMessage',
-  fields: [
-    { no: 1, name: 'transfer', kind: 'message', T: () => BlockTransfer },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SyncMessage: MessageType<SyncMessage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'psecho.SyncMessage',
+    fields: [
+      { no: 1, name: 'transfer', kind: 'message', T: () => BlockTransfer },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

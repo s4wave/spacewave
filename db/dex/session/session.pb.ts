@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BlockRef } from '../../block/block.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'dex.session'
 
@@ -60,17 +62,17 @@ export interface BlockTransfer {
   cancel?: boolean
 }
 
-// BlockTransfer contains the message type declaration for BlockTransfer.
-export const BlockTransfer: MessageType<BlockTransfer> = createMessageType({
-  typeName: 'dex.session.BlockTransfer',
-  fields: [
-    { no: 1, name: 'request_id', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
-    { no: 3, name: 'total_size', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 5, name: 'complete', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    { no: 7, name: 'cancel', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BlockTransfer: MessageType<BlockTransfer> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'dex.session.BlockTransfer',
+    fields: [
+      { no: 1, name: 'request_id', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
+      { no: 3, name: 'total_size', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 5, name: 'complete', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'cancel', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { Config as Config$1 } from '../client.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'stream.srpc.client.controller'
 
@@ -41,8 +43,7 @@ export interface Config {
   serviceIdPrefixes?: string[]
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'stream.srpc.client.controller.Config',
   fields: [
     { no: 1, name: 'client', kind: 'message', T: () => Config$1 },
@@ -54,6 +55,6 @@ export const Config: MessageType<Config> = createMessageType({
       T: ScalarType.STRING,
       repeated: true,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

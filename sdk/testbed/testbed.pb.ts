@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/testbed/testbed.proto (package s4wave.testbed, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.testbed'
 
@@ -21,13 +26,12 @@ export interface CreateWorldRequest {
   engineId?: string
 }
 
-// CreateWorldRequest contains the message type declaration for CreateWorldRequest.
 export const CreateWorldRequest: MessageType<CreateWorldRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.testbed.CreateWorldRequest',
     fields: [
       { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -45,13 +49,12 @@ export interface CreateWorldResponse {
   resourceId?: number
 }
 
-// CreateWorldResponse contains the message type declaration for CreateWorldResponse.
 export const CreateWorldResponse: MessageType<CreateWorldResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.testbed.CreateWorldResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -75,14 +78,13 @@ export interface MarkTestResultRequest {
   errorMessage?: string
 }
 
-// MarkTestResultRequest contains the message type declaration for MarkTestResultRequest.
 export const MarkTestResultRequest: MessageType<MarkTestResultRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.testbed.MarkTestResultRequest',
     fields: [
       { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -93,13 +95,11 @@ export const MarkTestResultRequest: MessageType<MarkTestResultRequest> =
  */
 export interface MarkTestResultResponse {}
 
-// MarkTestResultResponse contains the message type declaration for MarkTestResultResponse.
 export const MarkTestResultResponse: MessageType<MarkTestResultResponse> =
-  createMessageType({
-    typeName: 's4wave.testbed.MarkTestResultResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<MarkTestResultResponse>(
+    's4wave.testbed.MarkTestResultResponse',
+    true,
+  )
 
 /**
  * AccessStateAtomRequest is the request for AccessStateAtom.
@@ -116,13 +116,12 @@ export interface AccessStateAtomRequest {
   storeId?: string
 }
 
-// AccessStateAtomRequest contains the message type declaration for AccessStateAtomRequest.
 export const AccessStateAtomRequest: MessageType<AccessStateAtomRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.testbed.AccessStateAtomRequest',
     fields: [
       { no: 1, name: 'store_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -140,12 +139,11 @@ export interface AccessStateAtomResponse {
   resourceId?: number
 }
 
-// AccessStateAtomResponse contains the message type declaration for AccessStateAtomResponse.
 export const AccessStateAtomResponse: MessageType<AccessStateAtomResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.testbed.AccessStateAtomResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

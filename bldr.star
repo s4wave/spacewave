@@ -140,8 +140,10 @@ def spacewave_launcher_controller_config(
         conf["initDistConfig"] = init_dist_config
     return conf
 
-def spacewave_launcher_config(launcher_controller_config=spacewave_launcher_controller_config()):
-    return {
+def spacewave_launcher_config(
+        launcher_controller_config=spacewave_launcher_controller_config(),
+        web_compiler_mode=None):
+    conf = {
         "goPkgs": LAUNCHER_GO_PKGS,
         "configSet": {
             "spacewave-launcher": config_entry(
@@ -175,8 +177,15 @@ def spacewave_launcher_config(launcher_controller_config=spacewave_launcher_cont
             }),
         },
     }
+    if web_compiler_mode:
+        conf["platformTypes"] = {
+            "web": {
+                "compilerMode": web_compiler_mode,
+            },
+        }
+    return conf
 
-def e2e_release_wasm_launcher_config():
+def e2e_release_wasm_launcher_config(web_compiler_mode=None):
     return spacewave_launcher_config(
         spacewave_launcher_controller_config(
             dist_peer_ids=[E2E_RELEASE_WASM_DIST_PEER_ID],
@@ -184,6 +193,7 @@ def e2e_release_wasm_launcher_config():
             init_dist_config=E2E_RELEASE_WASM_INIT_DIST_CONFIG,
             disable_endpoint_fetch=True,
         ),
+        web_compiler_mode=web_compiler_mode,
     )
 
 # Web packages excluded by JS plugins that consume spacewave-web packages.
@@ -482,7 +492,7 @@ build("release-web-e2e-goscript",
     targets=["browser"],
     manifestOverrides={
         "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_GOSCRIPT"),
-        "spacewave-launcher": e2e_release_wasm_launcher_config(),
+        "spacewave-launcher": e2e_release_wasm_launcher_config(web_compiler_mode="COMPILER_MODE_GOSCRIPT"),
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,

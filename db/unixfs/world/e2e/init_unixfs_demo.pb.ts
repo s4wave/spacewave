@@ -2,9 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/db/unixfs/world/e2e/init_unixfs_demo.proto (package unixfs.world.e2e, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'unixfs.world.e2e'
 
@@ -28,13 +30,12 @@ export interface InitUnixFSDemoOp {
   timestamp?: Date
 }
 
-// InitUnixFSDemoOp contains the message type declaration for InitUnixFSDemoOp.
 export const InitUnixFSDemoOp: MessageType<InitUnixFSDemoOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.world.e2e.InitUnixFSDemoOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

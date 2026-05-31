@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto (package bldr.web.plugin, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import { WebViewHandlersConfig } from '../view/handler/handler.pb.js'
 
@@ -30,14 +32,13 @@ export interface HandleWebViewViaPluginRequest {
   webViewIdRe?: string
 }
 
-// HandleWebViewViaPluginRequest contains the message type declaration for HandleWebViewViaPluginRequest.
 export const HandleWebViewViaPluginRequest: MessageType<HandleWebViewViaPluginRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleWebViewViaPluginRequest',
     fields: [
       { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'web_view_id_re', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -66,9 +67,8 @@ export interface HandleWebViewViaPluginResponse {
       }
 }
 
-// HandleWebViewViaPluginResponse contains the message type declaration for HandleWebViewViaPluginResponse.
 export const HandleWebViewViaPluginResponse: MessageType<HandleWebViewViaPluginResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleWebViewViaPluginResponse',
     fields: [
       {
@@ -78,7 +78,7 @@ export const HandleWebViewViaPluginResponse: MessageType<HandleWebViewViaPluginR
         T: ScalarType.BOOL,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -119,9 +119,8 @@ export interface HandleWebPkgViaPluginRequest {
   webPkgIdList?: string[]
 }
 
-// HandleWebPkgViaPluginRequest contains the message type declaration for HandleWebPkgViaPluginRequest.
 export const HandleWebPkgViaPluginRequest: MessageType<HandleWebPkgViaPluginRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleWebPkgViaPluginRequest',
     fields: [
       { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
@@ -140,7 +139,7 @@ export const HandleWebPkgViaPluginRequest: MessageType<HandleWebPkgViaPluginRequ
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -169,9 +168,8 @@ export interface HandleWebPkgViaPluginResponse {
       }
 }
 
-// HandleWebPkgViaPluginResponse contains the message type declaration for HandleWebPkgViaPluginResponse.
 export const HandleWebPkgViaPluginResponse: MessageType<HandleWebPkgViaPluginResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleWebPkgViaPluginResponse',
     fields: [
       {
@@ -181,7 +179,7 @@ export const HandleWebPkgViaPluginResponse: MessageType<HandleWebPkgViaPluginRes
         T: ScalarType.BOOL,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -220,16 +218,15 @@ export interface HandleRpcViaPluginRequest {
   backoff?: Backoff
 }
 
-// HandleRpcViaPluginRequest contains the message type declaration for HandleRpcViaPluginRequest.
 export const HandleRpcViaPluginRequest: MessageType<HandleRpcViaPluginRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleRpcViaPluginRequest',
     fields: [
       { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'service_id_re', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'backoff', kind: 'message', T: () => Backoff },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -258,9 +255,8 @@ export interface HandleRpcViaPluginResponse {
       }
 }
 
-// HandleRpcViaPluginResponse contains the message type declaration for HandleRpcViaPluginResponse.
 export const HandleRpcViaPluginResponse: MessageType<HandleRpcViaPluginResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleRpcViaPluginResponse',
     fields: [
       {
@@ -270,7 +266,7 @@ export const HandleRpcViaPluginResponse: MessageType<HandleRpcViaPluginResponse>
         T: ScalarType.BOOL,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -288,9 +284,8 @@ export interface HandleWebViewViaHandlersRequest {
   config?: WebViewHandlersConfig
 }
 
-// HandleWebViewViaHandlersRequest contains the message type declaration for HandleWebViewViaHandlersRequest.
 export const HandleWebViewViaHandlersRequest: MessageType<HandleWebViewViaHandlersRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleWebViewViaHandlersRequest',
     fields: [
       {
@@ -299,7 +294,7 @@ export const HandleWebViewViaHandlersRequest: MessageType<HandleWebViewViaHandle
         kind: 'message',
         T: () => WebViewHandlersConfig,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -328,9 +323,8 @@ export interface HandleWebViewViaHandlersResponse {
       }
 }
 
-// HandleWebViewViaHandlersResponse contains the message type declaration for HandleWebViewViaHandlersResponse.
 export const HandleWebViewViaHandlersResponse: MessageType<HandleWebViewViaHandlersResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleWebViewViaHandlersResponse',
     fields: [
       {
@@ -340,7 +334,7 @@ export const HandleWebViewViaHandlersResponse: MessageType<HandleWebViewViaHandl
         T: ScalarType.BOOL,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -371,9 +365,8 @@ export interface HandleWebPkgsViaPluginAssetsRequest {
   webPkgIdList?: string[]
 }
 
-// HandleWebPkgsViaPluginAssetsRequest contains the message type declaration for HandleWebPkgsViaPluginAssetsRequest.
 export const HandleWebPkgsViaPluginAssetsRequest: MessageType<HandleWebPkgsViaPluginAssetsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleWebPkgsViaPluginAssetsRequest',
     fields: [
       { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
@@ -385,7 +378,7 @@ export const HandleWebPkgsViaPluginAssetsRequest: MessageType<HandleWebPkgsViaPl
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -414,9 +407,8 @@ export interface HandleWebPkgsViaPluginAssetsResponse {
       }
 }
 
-// HandleWebPkgsViaPluginAssetsResponse contains the message type declaration for HandleWebPkgsViaPluginAssetsResponse.
 export const HandleWebPkgsViaPluginAssetsResponse: MessageType<HandleWebPkgsViaPluginAssetsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.plugin.HandleWebPkgsViaPluginAssetsResponse',
     fields: [
       {
@@ -426,6 +418,6 @@ export const HandleWebPkgsViaPluginAssetsResponse: MessageType<HandleWebPkgsViaP
         T: ScalarType.BOOL,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

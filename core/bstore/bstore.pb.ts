@@ -2,9 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/core/bstore/bstore.proto (package bstore, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ProviderResourceRef } from '../provider/provider.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bstore'
 
@@ -44,14 +46,13 @@ export enum BlockStoreParticipantRole {
   BlockStoreParticipantRole_OWNER = 3,
 }
 
-// BlockStoreParticipantRole_Enum is the enum type for BlockStoreParticipantRole.
-export const BlockStoreParticipantRole_Enum = createEnumType(
+export const BlockStoreParticipantRole_Enum = /* @__PURE__ */ createEnumType(
   'bstore.BlockStoreParticipantRole',
   [
-    { no: 0, name: 'BlockStoreParticipantRole_UNKNOWN' },
-    { no: 1, name: 'BlockStoreParticipantRole_READER' },
-    { no: 2, name: 'BlockStoreParticipantRole_WRITER' },
-    { no: 3, name: 'BlockStoreParticipantRole_OWNER' },
+    [0, 'BlockStoreParticipantRole_UNKNOWN'],
+    [1, 'BlockStoreParticipantRole_READER'],
+    [2, 'BlockStoreParticipantRole_WRITER'],
+    [3, 'BlockStoreParticipantRole_OWNER'],
   ],
 )
 
@@ -69,16 +70,16 @@ export interface BlockStoreRef {
   providerResourceRef?: ProviderResourceRef
 }
 
-// BlockStoreRef contains the message type declaration for BlockStoreRef.
-export const BlockStoreRef: MessageType<BlockStoreRef> = createMessageType({
-  typeName: 'bstore.BlockStoreRef',
-  fields: [
-    {
-      no: 1,
-      name: 'provider_resource_ref',
-      kind: 'message',
-      T: () => ProviderResourceRef,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BlockStoreRef: MessageType<BlockStoreRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bstore.BlockStoreRef',
+    fields: [
+      {
+        no: 1,
+        name: 'provider_resource_ref',
+        kind: 'message',
+        T: () => ProviderResourceRef,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

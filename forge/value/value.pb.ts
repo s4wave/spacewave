@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/forge/value/value.proto (package forge.value, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 
 export const protobufPackage = 'forge.value'
@@ -48,13 +47,15 @@ export enum ValueType {
   ValueType_WORLD_OBJECT_SNAPSHOT = 3,
 }
 
-// ValueType_Enum is the enum type for ValueType.
-export const ValueType_Enum = createEnumType('forge.value.ValueType', [
-  { no: 0, name: 'ValueType_UNKNOWN' },
-  { no: 1, name: 'ValueType_BLOCK_REF' },
-  { no: 2, name: 'ValueType_BUCKET_REF' },
-  { no: 3, name: 'ValueType_WORLD_OBJECT_SNAPSHOT' },
-])
+export const ValueType_Enum = /* @__PURE__ */ createEnumType(
+  'forge.value.ValueType',
+  [
+    [0, 'ValueType_UNKNOWN'],
+    [1, 'ValueType_BLOCK_REF'],
+    [2, 'ValueType_BUCKET_REF'],
+    [3, 'ValueType_WORLD_OBJECT_SNAPSHOT'],
+  ],
+)
 
 /**
  * WorldObjectSnapshot is a snapshot of a WorldObject state.
@@ -100,9 +101,8 @@ export interface WorldObjectSnapshot {
   objectParent?: string
 }
 
-// WorldObjectSnapshot contains the message type declaration for WorldObjectSnapshot.
 export const WorldObjectSnapshot: MessageType<WorldObjectSnapshot> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'forge.value.WorldObjectSnapshot',
     fields: [
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
@@ -110,7 +110,7 @@ export const WorldObjectSnapshot: MessageType<WorldObjectSnapshot> =
       { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'object_parent', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -158,8 +158,7 @@ export interface Value {
   worldObjectSnapshot?: WorldObjectSnapshot
 }
 
-// Value contains the message type declaration for Value.
-export const Value: MessageType<Value> = createMessageType({
+export const Value: MessageType<Value> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.value.Value',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
@@ -172,7 +171,7 @@ export const Value: MessageType<Value> = createMessageType({
       kind: 'message',
       T: () => WorldObjectSnapshot,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -202,13 +201,12 @@ export interface Result {
   canceled?: boolean
 }
 
-// Result contains the message type declaration for Result.
-export const Result: MessageType<Result> = createMessageType({
+export const Result: MessageType<Result> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.value.Result',
   fields: [
     { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
     { no: 2, name: 'fail_error', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'canceled', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

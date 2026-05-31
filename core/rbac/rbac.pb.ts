@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/core/rbac/rbac.proto (package rbac, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'rbac'
 
@@ -38,12 +37,11 @@ export enum RbacScope {
   RESOURCE = 3,
 }
 
-// RbacScope_Enum is the enum type for RbacScope.
-export const RbacScope_Enum = createEnumType('rbac.RbacScope', [
-  { no: 0, name: 'RBAC_SCOPE_UNKNOWN' },
-  { no: 1, name: 'RBAC_SCOPE_PLATFORM' },
-  { no: 2, name: 'RBAC_SCOPE_ORGANIZATION' },
-  { no: 3, name: 'RBAC_SCOPE_RESOURCE' },
+export const RbacScope_Enum = /* @__PURE__ */ createEnumType('rbac.RbacScope', [
+  [0, 'RBAC_SCOPE_UNKNOWN'],
+  [1, 'RBAC_SCOPE_PLATFORM'],
+  [2, 'RBAC_SCOPE_ORGANIZATION'],
+  [3, 'RBAC_SCOPE_RESOURCE'],
 ])
 
 /**
@@ -66,21 +64,21 @@ export interface RbacRule {
   verbs?: string[]
 }
 
-// RbacRule contains the message type declaration for RbacRule.
-export const RbacRule: MessageType<RbacRule> = createMessageType({
-  typeName: 'rbac.RbacRule',
-  fields: [
-    { no: 1, name: 'resource_type', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'verbs',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RbacRule: MessageType<RbacRule> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'rbac.RbacRule',
+    fields: [
+      { no: 1, name: 'resource_type', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'verbs',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RbacRole defines a named collection of permission rules.
@@ -114,23 +112,23 @@ export interface RbacRole {
   builtin?: boolean
 }
 
-// RbacRole contains the message type declaration for RbacRole.
-export const RbacRole: MessageType<RbacRole> = createMessageType({
-  typeName: 'rbac.RbacRole',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'rules',
-      kind: 'message',
-      T: () => RbacRule,
-      repeated: true,
-    },
-    { no: 4, name: 'builtin', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RbacRole: MessageType<RbacRole> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'rbac.RbacRole',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'rules',
+        kind: 'message',
+        T: () => RbacRule,
+        repeated: true,
+      },
+      { no: 4, name: 'builtin', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RbacRoleBinding binds a role to a subject within a scope.
@@ -176,19 +174,19 @@ export interface RbacRoleBinding {
   createdAt?: bigint
 }
 
-// RbacRoleBinding contains the message type declaration for RbacRoleBinding.
-export const RbacRoleBinding: MessageType<RbacRoleBinding> = createMessageType({
-  typeName: 'rbac.RbacRoleBinding',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'subject_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'scope', kind: 'enum', T: RbacScope_Enum },
-    { no: 5, name: 'scope_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RbacRoleBinding: MessageType<RbacRoleBinding> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'rbac.RbacRoleBinding',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'subject_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'scope', kind: 'enum', T: RbacScope_Enum },
+      { no: 5, name: 'scope_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RbacConfig contains a set of roles and bindings.
@@ -210,24 +208,24 @@ export interface RbacConfig {
   bindings?: RbacRoleBinding[]
 }
 
-// RbacConfig contains the message type declaration for RbacConfig.
-export const RbacConfig: MessageType<RbacConfig> = createMessageType({
-  typeName: 'rbac.RbacConfig',
-  fields: [
-    {
-      no: 1,
-      name: 'roles',
-      kind: 'message',
-      T: () => RbacRole,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'bindings',
-      kind: 'message',
-      T: () => RbacRoleBinding,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RbacConfig: MessageType<RbacConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'rbac.RbacConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'roles',
+        kind: 'message',
+        T: () => RbacRole,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'bindings',
+        kind: 'message',
+        T: () => RbacRoleBinding,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -3,9 +3,11 @@
 /* eslint-disable */
 
 import { CloneOpts } from '../../db/git/block/git.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.git'
 
@@ -49,9 +51,8 @@ export interface CreateGitRepoWizardOp {
   timestamp?: Date
 }
 
-// CreateGitRepoWizardOp contains the message type declaration for CreateGitRepoWizardOp.
 export const CreateGitRepoWizardOp: MessageType<CreateGitRepoWizardOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.CreateGitRepoWizardOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -59,6 +60,6 @@ export const CreateGitRepoWizardOp: MessageType<CreateGitRepoWizardOp> =
       { no: 3, name: 'clone', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'clone_opts', kind: 'message', T: () => CloneOpts },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,9 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/plugin/notes/sdk/blog.proto (package notes, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { Blog } from '../proto/blog.pb.js'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'notes'
 
@@ -15,13 +19,11 @@ export const protobufPackage = 'notes'
  */
 export interface WatchBlogRequest {}
 
-// WatchBlogRequest contains the message type declaration for WatchBlogRequest.
 export const WatchBlogRequest: MessageType<WatchBlogRequest> =
-  createMessageType({
-    typeName: 'notes.WatchBlogRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchBlogRequest>(
+    'notes.WatchBlogRequest',
+    true,
+  )
 
 /**
  * WatchBlogResponse is the response for WatchBlog.
@@ -37,12 +39,11 @@ export interface WatchBlogResponse {
   blog?: Blog
 }
 
-// WatchBlogResponse contains the message type declaration for WatchBlogResponse.
 export const WatchBlogResponse: MessageType<WatchBlogResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'notes.WatchBlogResponse',
     fields: [
       { no: 1, name: 'blog', kind: 'message', T: () => Blog },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/bldr/prototypes/webworker-rpcstream/app2/app2.proto (package app2, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
 export const protobufPackage = 'app2'
 
@@ -14,9 +14,5 @@ export const protobufPackage = 'app2'
  */
 export interface Config {}
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'app2.Config',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createEmptyMessageType<Config>('app2.Config', true)

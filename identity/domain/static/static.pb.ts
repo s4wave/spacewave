@@ -4,8 +4,10 @@
 
 import { DomainInfo } from '../domain.pb.js'
 import { Entity } from '../../identity.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'identity.domain.static'
 
@@ -44,8 +46,7 @@ export interface Config {
   resolveSelectIdentityDomain?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'identity.domain.static.Config',
   fields: [
     { no: 1, name: 'domain_info', kind: 'message', T: () => DomainInfo },
@@ -63,6 +64,6 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'scalar',
       T: ScalarType.BOOL,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

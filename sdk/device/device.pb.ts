@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/device/device.proto (package s4wave.device, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 's4wave.device'
@@ -54,15 +56,14 @@ export enum DeviceSetupState {
   FAILED = 4,
 }
 
-// DeviceSetupState_Enum is the enum type for DeviceSetupState.
-export const DeviceSetupState_Enum = createEnumType(
+export const DeviceSetupState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceSetupState',
   [
-    { no: 0, name: 'DEVICE_SETUP_STATE_UNKNOWN' },
-    { no: 1, name: 'DEVICE_SETUP_STATE_WAITING_FOR_COMPLETION' },
-    { no: 2, name: 'DEVICE_SETUP_STATE_COMPLETION_IMPORTED' },
-    { no: 3, name: 'DEVICE_SETUP_STATE_DEVICE_SESSION_READY' },
-    { no: 4, name: 'DEVICE_SETUP_STATE_FAILED' },
+    [0, 'DEVICE_SETUP_STATE_UNKNOWN'],
+    [1, 'DEVICE_SETUP_STATE_WAITING_FOR_COMPLETION'],
+    [2, 'DEVICE_SETUP_STATE_COMPLETION_IMPORTED'],
+    [3, 'DEVICE_SETUP_STATE_DEVICE_SESSION_READY'],
+    [4, 'DEVICE_SETUP_STATE_FAILED'],
   ],
 )
 
@@ -122,17 +123,16 @@ export enum DeviceUpdateState {
   FAILED = 6,
 }
 
-// DeviceUpdateState_Enum is the enum type for DeviceUpdateState.
-export const DeviceUpdateState_Enum = createEnumType(
+export const DeviceUpdateState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceUpdateState',
   [
-    { no: 0, name: 'DEVICE_UPDATE_STATE_UNKNOWN' },
-    { no: 1, name: 'DEVICE_UPDATE_STATE_IDLE' },
-    { no: 2, name: 'DEVICE_UPDATE_STATE_READY' },
-    { no: 3, name: 'DEVICE_UPDATE_STATE_STAGING' },
-    { no: 4, name: 'DEVICE_UPDATE_STATE_APPLYING' },
-    { no: 5, name: 'DEVICE_UPDATE_STATE_UPDATED' },
-    { no: 6, name: 'DEVICE_UPDATE_STATE_FAILED' },
+    [0, 'DEVICE_UPDATE_STATE_UNKNOWN'],
+    [1, 'DEVICE_UPDATE_STATE_IDLE'],
+    [2, 'DEVICE_UPDATE_STATE_READY'],
+    [3, 'DEVICE_UPDATE_STATE_STAGING'],
+    [4, 'DEVICE_UPDATE_STATE_APPLYING'],
+    [5, 'DEVICE_UPDATE_STATE_UPDATED'],
+    [6, 'DEVICE_UPDATE_STATE_FAILED'],
   ],
 )
 
@@ -171,14 +171,13 @@ export enum DeviceLiveness {
   OFFLINE = 3,
 }
 
-// DeviceLiveness_Enum is the enum type for DeviceLiveness.
-export const DeviceLiveness_Enum = createEnumType(
+export const DeviceLiveness_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceLiveness',
   [
-    { no: 0, name: 'DEVICE_LIVENESS_UNKNOWN' },
-    { no: 1, name: 'DEVICE_LIVENESS_ONLINE' },
-    { no: 2, name: 'DEVICE_LIVENESS_DEGRADED' },
-    { no: 3, name: 'DEVICE_LIVENESS_OFFLINE' },
+    [0, 'DEVICE_LIVENESS_UNKNOWN'],
+    [1, 'DEVICE_LIVENESS_ONLINE'],
+    [2, 'DEVICE_LIVENESS_DEGRADED'],
+    [3, 'DEVICE_LIVENESS_OFFLINE'],
   ],
 )
 
@@ -231,16 +230,15 @@ export enum DeviceCapabilityState {
   ACTIVE = 5,
 }
 
-// DeviceCapabilityState_Enum is the enum type for DeviceCapabilityState.
-export const DeviceCapabilityState_Enum = createEnumType(
+export const DeviceCapabilityState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityState',
   [
-    { no: 0, name: 'DEVICE_CAPABILITY_STATE_UNKNOWN' },
-    { no: 1, name: 'DEVICE_CAPABILITY_STATE_DECLARED' },
-    { no: 2, name: 'DEVICE_CAPABILITY_STATE_DISABLED' },
-    { no: 3, name: 'DEVICE_CAPABILITY_STATE_GRANT_BLOCKED' },
-    { no: 4, name: 'DEVICE_CAPABILITY_STATE_AVAILABLE' },
-    { no: 5, name: 'DEVICE_CAPABILITY_STATE_ACTIVE' },
+    [0, 'DEVICE_CAPABILITY_STATE_UNKNOWN'],
+    [1, 'DEVICE_CAPABILITY_STATE_DECLARED'],
+    [2, 'DEVICE_CAPABILITY_STATE_DISABLED'],
+    [3, 'DEVICE_CAPABILITY_STATE_GRANT_BLOCKED'],
+    [4, 'DEVICE_CAPABILITY_STATE_AVAILABLE'],
+    [5, 'DEVICE_CAPABILITY_STATE_ACTIVE'],
   ],
 )
 
@@ -272,13 +270,12 @@ export enum DeviceCapabilityLocalState {
   DISABLED = 2,
 }
 
-// DeviceCapabilityLocalState_Enum is the enum type for DeviceCapabilityLocalState.
-export const DeviceCapabilityLocalState_Enum = createEnumType(
+export const DeviceCapabilityLocalState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityLocalState',
   [
-    { no: 0, name: 'DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN' },
-    { no: 1, name: 'DEVICE_CAPABILITY_LOCAL_STATE_ENABLED' },
-    { no: 2, name: 'DEVICE_CAPABILITY_LOCAL_STATE_DISABLED' },
+    [0, 'DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN'],
+    [1, 'DEVICE_CAPABILITY_LOCAL_STATE_ENABLED'],
+    [2, 'DEVICE_CAPABILITY_LOCAL_STATE_DISABLED'],
   ],
 )
 
@@ -310,13 +307,12 @@ export enum DeviceCapabilityGrantState {
   BLOCKED = 2,
 }
 
-// DeviceCapabilityGrantState_Enum is the enum type for DeviceCapabilityGrantState.
-export const DeviceCapabilityGrantState_Enum = createEnumType(
+export const DeviceCapabilityGrantState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityGrantState',
   [
-    { no: 0, name: 'DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN' },
-    { no: 1, name: 'DEVICE_CAPABILITY_GRANT_STATE_ALLOWED' },
-    { no: 2, name: 'DEVICE_CAPABILITY_GRANT_STATE_BLOCKED' },
+    [0, 'DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN'],
+    [1, 'DEVICE_CAPABILITY_GRANT_STATE_ALLOWED'],
+    [2, 'DEVICE_CAPABILITY_GRANT_STATE_BLOCKED'],
   ],
 )
 
@@ -348,13 +344,12 @@ export enum DeviceCheckoutRootAccess {
   READ_WRITE = 2,
 }
 
-// DeviceCheckoutRootAccess_Enum is the enum type for DeviceCheckoutRootAccess.
-export const DeviceCheckoutRootAccess_Enum = createEnumType(
+export const DeviceCheckoutRootAccess_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCheckoutRootAccess',
   [
-    { no: 0, name: 'DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN' },
-    { no: 1, name: 'DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY' },
-    { no: 2, name: 'DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE' },
+    [0, 'DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN'],
+    [1, 'DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY'],
+    [2, 'DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE'],
   ],
 )
 
@@ -378,15 +373,15 @@ export interface DevicePlatform {
   arch?: string
 }
 
-// DevicePlatform contains the message type declaration for DevicePlatform.
-export const DevicePlatform: MessageType<DevicePlatform> = createMessageType({
-  typeName: 's4wave.device.DevicePlatform',
-  fields: [
-    { no: 1, name: 'os', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'arch', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DevicePlatform: MessageType<DevicePlatform> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.device.DevicePlatform',
+    fields: [
+      { no: 1, name: 'os', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'arch', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DeviceStatus is the durable last status summary authored by the daemon.
@@ -420,17 +415,17 @@ export interface DeviceStatus {
   observedAt?: Date
 }
 
-// DeviceStatus contains the message type declaration for DeviceStatus.
-export const DeviceStatus: MessageType<DeviceStatus> = createMessageType({
-  typeName: 's4wave.device.DeviceStatus',
-  fields: [
-    { no: 1, name: 'liveness', kind: 'enum', T: DeviceLiveness_Enum },
-    { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'observed_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DeviceStatus: MessageType<DeviceStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.device.DeviceStatus',
+    fields: [
+      { no: 1, name: 'liveness', kind: 'enum', T: DeviceLiveness_Enum },
+      { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'observed_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DeviceCapabilityLink points at the capability execution owner.
@@ -458,15 +453,14 @@ export interface DeviceCapabilityLink {
   protocolId?: string
 }
 
-// DeviceCapabilityLink contains the message type declaration for DeviceCapabilityLink.
 export const DeviceCapabilityLink: MessageType<DeviceCapabilityLink> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.DeviceCapabilityLink',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'protocol_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -502,9 +496,8 @@ export interface DeviceCapabilityPolicy {
   grantState?: DeviceCapabilityGrantState
 }
 
-// DeviceCapabilityPolicy contains the message type declaration for DeviceCapabilityPolicy.
 export const DeviceCapabilityPolicy: MessageType<DeviceCapabilityPolicy> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.DeviceCapabilityPolicy',
     fields: [
       { no: 1, name: 'local_policy_ref', kind: 'scalar', T: ScalarType.STRING },
@@ -521,7 +514,7 @@ export const DeviceCapabilityPolicy: MessageType<DeviceCapabilityPolicy> =
         kind: 'enum',
         T: DeviceCapabilityGrantState_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -569,9 +562,8 @@ export interface DeviceCheckoutRootCapability {
   writeAvailable?: boolean
 }
 
-// DeviceCheckoutRootCapability contains the message type declaration for DeviceCheckoutRootCapability.
 export const DeviceCheckoutRootCapability: MessageType<DeviceCheckoutRootCapability> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.DeviceCheckoutRootCapability',
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
@@ -580,7 +572,7 @@ export const DeviceCheckoutRootCapability: MessageType<DeviceCheckoutRootCapabil
       { no: 4, name: 'access', kind: 'enum', T: DeviceCheckoutRootAccess_Enum },
       { no: 5, name: 'read_available', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'write_available', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -640,9 +632,8 @@ export interface DeviceCapability {
   checkoutRoot?: DeviceCheckoutRootCapability
 }
 
-// DeviceCapability contains the message type declaration for DeviceCapability.
 export const DeviceCapability: MessageType<DeviceCapability> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.DeviceCapability',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -663,7 +654,7 @@ export const DeviceCapability: MessageType<DeviceCapability> =
         kind: 'message',
         T: () => DeviceCheckoutRootCapability,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -735,8 +726,7 @@ export interface Device {
   updatedAt?: Date
 }
 
-// Device contains the message type declaration for Device.
-export const Device: MessageType<Device> = createMessageType({
+export const Device: MessageType<Device> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.device.Device',
   fields: [
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -755,7 +745,7 @@ export const Device: MessageType<Device> = createMessageType({
     },
     { no: 9, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 10, name: 'updated_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -780,14 +770,13 @@ export interface ComputersDashboard {
   createdAt?: Date
 }
 
-// ComputersDashboard contains the message type declaration for ComputersDashboard.
 export const ComputersDashboard: MessageType<ComputersDashboard> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.ComputersDashboard',
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -817,15 +806,14 @@ export interface CreateComputersDashboardOp {
   timestamp?: Date
 }
 
-// CreateComputersDashboardOp contains the message type declaration for CreateComputersDashboardOp.
 export const CreateComputersDashboardOp: MessageType<CreateComputersDashboardOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.CreateComputersDashboardOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -836,13 +824,11 @@ export const CreateComputersDashboardOp: MessageType<CreateComputersDashboardOp>
  */
 export interface WatchDeviceStateRequest {}
 
-// WatchDeviceStateRequest contains the message type declaration for WatchDeviceStateRequest.
 export const WatchDeviceStateRequest: MessageType<WatchDeviceStateRequest> =
-  createMessageType({
-    typeName: 's4wave.device.WatchDeviceStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchDeviceStateRequest>(
+    's4wave.device.WatchDeviceStateRequest',
+    true,
+  )
 
 /**
  * WatchDeviceStateResponse contains the current Device state.
@@ -858,13 +844,12 @@ export interface WatchDeviceStateResponse {
   state?: Device
 }
 
-// WatchDeviceStateResponse contains the message type declaration for WatchDeviceStateResponse.
 export const WatchDeviceStateResponse: MessageType<WatchDeviceStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.WatchDeviceStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => Device },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -912,9 +897,8 @@ export interface ReportDeviceStatusRequest {
   replaceCapabilities?: boolean
 }
 
-// ReportDeviceStatusRequest contains the message type declaration for ReportDeviceStatusRequest.
 export const ReportDeviceStatusRequest: MessageType<ReportDeviceStatusRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.ReportDeviceStatusRequest',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -934,7 +918,7 @@ export const ReportDeviceStatusRequest: MessageType<ReportDeviceStatusRequest> =
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -952,13 +936,12 @@ export interface ReportDeviceStatusResponse {
   state?: Device
 }
 
-// ReportDeviceStatusResponse contains the message type declaration for ReportDeviceStatusResponse.
 export const ReportDeviceStatusResponse: MessageType<ReportDeviceStatusResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.ReportDeviceStatusResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => Device },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -988,9 +971,8 @@ export interface AccessCheckoutRootRequest {
   writeApprovalRef?: string
 }
 
-// AccessCheckoutRootRequest contains the message type declaration for AccessCheckoutRootRequest.
 export const AccessCheckoutRootRequest: MessageType<AccessCheckoutRootRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.AccessCheckoutRootRequest',
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
@@ -1001,7 +983,7 @@ export const AccessCheckoutRootRequest: MessageType<AccessCheckoutRootRequest> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1061,9 +1043,8 @@ export interface AccessCheckoutRootResponse {
   writeApprovalRef?: string
 }
 
-// AccessCheckoutRootResponse contains the message type declaration for AccessCheckoutRootResponse.
 export const AccessCheckoutRootResponse: MessageType<AccessCheckoutRootResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.AccessCheckoutRootResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
@@ -1084,6 +1065,6 @@ export const AccessCheckoutRootResponse: MessageType<AccessCheckoutRootResponse>
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

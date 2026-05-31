@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/db/bucket/event/event.proto (package bucket.event, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { BlockRef } from '../../block/block.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bucket.event'
 
@@ -40,12 +39,14 @@ export enum EventType {
   EventType_RM_BLOCK = 3,
 }
 
-// EventType_Enum is the enum type for EventType.
-export const EventType_Enum = createEnumType('bucket.event.EventType', [
-  { no: 0, name: 'EventType_UNKNOWN' },
-  { no: 1, name: 'EventType_PUT_BLOCK' },
-  { no: 3, name: 'EventType_RM_BLOCK' },
-])
+export const EventType_Enum = /* @__PURE__ */ createEnumType(
+  'bucket.event.EventType',
+  [
+    [0, 'EventType_UNKNOWN'],
+    [1, 'EventType_PUT_BLOCK'],
+    [3, 'EventType_RM_BLOCK'],
+  ],
+)
 
 /**
  * BlockCommon are common block properties.
@@ -86,17 +87,17 @@ export interface BlockCommon {
   blockRef?: BlockRef
 }
 
-// BlockCommon contains the message type declaration for BlockCommon.
-export const BlockCommon: MessageType<BlockCommon> = createMessageType({
-  typeName: 'bucket.event.BlockCommon',
-  fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'bucket_conf_rev', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 4, name: 'block_ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BlockCommon: MessageType<BlockCommon> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bucket.event.BlockCommon',
+    fields: [
+      { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'bucket_conf_rev', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'block_ref', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PutBlock is the put block event.
@@ -112,14 +113,14 @@ export interface PutBlock {
   blockCommon?: BlockCommon
 }
 
-// PutBlock contains the message type declaration for PutBlock.
-export const PutBlock: MessageType<PutBlock> = createMessageType({
-  typeName: 'bucket.event.PutBlock',
-  fields: [
-    { no: 1, name: 'block_common', kind: 'message', T: () => BlockCommon },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PutBlock: MessageType<PutBlock> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bucket.event.PutBlock',
+    fields: [
+      { no: 1, name: 'block_common', kind: 'message', T: () => BlockCommon },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RmBlock is the remoe block event.
@@ -135,12 +136,11 @@ export interface RmBlock {
   blockCommon?: BlockCommon
 }
 
-// RmBlock contains the message type declaration for RmBlock.
-export const RmBlock: MessageType<RmBlock> = createMessageType({
+export const RmBlock: MessageType<RmBlock> = /* @__PURE__ */ createMessageType({
   typeName: 'bucket.event.RmBlock',
   fields: [
     { no: 1, name: 'block_common', kind: 'message', T: () => BlockCommon },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -170,13 +170,12 @@ export interface Event {
   rmBlock?: RmBlock
 }
 
-// Event contains the message type declaration for Event.
-export const Event: MessageType<Event> = createMessageType({
+export const Event: MessageType<Event> = /* @__PURE__ */ createMessageType({
   typeName: 'bucket.event.Event',
   fields: [
     { no: 1, name: 'event_type', kind: 'enum', T: EventType_Enum },
     { no: 2, name: 'put_block', kind: 'message', T: () => PutBlock },
     { no: 4, name: 'rm_block', kind: 'message', T: () => RmBlock },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

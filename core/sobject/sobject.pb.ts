@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/core/sobject/sobject.proto (package sobject, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ProviderResourceRef } from '../provider/provider.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { Signature } from '../../net/peer/peer.pb.js'
 import { Config } from '../../db/block/transform/transform.pb.js'
@@ -57,15 +56,14 @@ export enum SharedObjectHealthStatus {
   CLOSED = 4,
 }
 
-// SharedObjectHealthStatus_Enum is the enum type for SharedObjectHealthStatus.
-export const SharedObjectHealthStatus_Enum = createEnumType(
+export const SharedObjectHealthStatus_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SharedObjectHealthStatus',
   [
-    { no: 0, name: 'SHARED_OBJECT_HEALTH_STATUS_UNKNOWN' },
-    { no: 1, name: 'SHARED_OBJECT_HEALTH_STATUS_LOADING' },
-    { no: 2, name: 'SHARED_OBJECT_HEALTH_STATUS_READY' },
-    { no: 3, name: 'SHARED_OBJECT_HEALTH_STATUS_DEGRADED' },
-    { no: 4, name: 'SHARED_OBJECT_HEALTH_STATUS_CLOSED' },
+    [0, 'SHARED_OBJECT_HEALTH_STATUS_UNKNOWN'],
+    [1, 'SHARED_OBJECT_HEALTH_STATUS_LOADING'],
+    [2, 'SHARED_OBJECT_HEALTH_STATUS_READY'],
+    [3, 'SHARED_OBJECT_HEALTH_STATUS_DEGRADED'],
+    [4, 'SHARED_OBJECT_HEALTH_STATUS_CLOSED'],
   ],
 )
 
@@ -97,13 +95,12 @@ export enum SharedObjectHealthLayer {
   BODY = 2,
 }
 
-// SharedObjectHealthLayer_Enum is the enum type for SharedObjectHealthLayer.
-export const SharedObjectHealthLayer_Enum = createEnumType(
+export const SharedObjectHealthLayer_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SharedObjectHealthLayer',
   [
-    { no: 0, name: 'SHARED_OBJECT_HEALTH_LAYER_UNKNOWN' },
-    { no: 1, name: 'SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT' },
-    { no: 2, name: 'SHARED_OBJECT_HEALTH_LAYER_BODY' },
+    [0, 'SHARED_OBJECT_HEALTH_LAYER_UNKNOWN'],
+    [1, 'SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT'],
+    [2, 'SHARED_OBJECT_HEALTH_LAYER_BODY'],
   ],
 )
 
@@ -163,28 +160,16 @@ export enum SharedObjectHealthCommonReason {
   BODY_CONFIG_DECODE_FAILED = 6,
 }
 
-// SharedObjectHealthCommonReason_Enum is the enum type for SharedObjectHealthCommonReason.
-export const SharedObjectHealthCommonReason_Enum = createEnumType(
-  'sobject.SharedObjectHealthCommonReason',
-  [
-    { no: 0, name: 'SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN' },
-    { no: 1, name: 'SHARED_OBJECT_HEALTH_COMMON_REASON_NOT_FOUND' },
-    { no: 2, name: 'SHARED_OBJECT_HEALTH_COMMON_REASON_ACCESS_REVOKED' },
-    {
-      no: 3,
-      name: 'SHARED_OBJECT_HEALTH_COMMON_REASON_INITIAL_STATE_REJECTED',
-    },
-    { no: 4, name: 'SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND' },
-    {
-      no: 5,
-      name: 'SHARED_OBJECT_HEALTH_COMMON_REASON_TRANSFORM_CONFIG_DECODE_FAILED',
-    },
-    {
-      no: 6,
-      name: 'SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED',
-    },
-  ],
-)
+export const SharedObjectHealthCommonReason_Enum =
+  /* @__PURE__ */ createEnumType('sobject.SharedObjectHealthCommonReason', [
+    [0, 'SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN'],
+    [1, 'SHARED_OBJECT_HEALTH_COMMON_REASON_NOT_FOUND'],
+    [2, 'SHARED_OBJECT_HEALTH_COMMON_REASON_ACCESS_REVOKED'],
+    [3, 'SHARED_OBJECT_HEALTH_COMMON_REASON_INITIAL_STATE_REJECTED'],
+    [4, 'SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND'],
+    [5, 'SHARED_OBJECT_HEALTH_COMMON_REASON_TRANSFORM_CONFIG_DECODE_FAILED'],
+    [6, 'SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED'],
+  ])
 
 /**
  * SharedObjectHealthRemediationHint suggests a next step for the caller or UI.
@@ -235,18 +220,15 @@ export enum SharedObjectHealthRemediationHint {
   REPAIR_SOURCE_DATA = 5,
 }
 
-// SharedObjectHealthRemediationHint_Enum is the enum type for SharedObjectHealthRemediationHint.
-export const SharedObjectHealthRemediationHint_Enum = createEnumType(
-  'sobject.SharedObjectHealthRemediationHint',
-  [
-    { no: 0, name: 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_UNKNOWN' },
-    { no: 1, name: 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE' },
-    { no: 2, name: 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_RETRY' },
-    { no: 3, name: 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REQUEST_ACCESS' },
-    { no: 4, name: 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_CONTACT_OWNER' },
-    { no: 5, name: 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA' },
-  ],
-)
+export const SharedObjectHealthRemediationHint_Enum =
+  /* @__PURE__ */ createEnumType('sobject.SharedObjectHealthRemediationHint', [
+    [0, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_UNKNOWN'],
+    [1, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE'],
+    [2, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_RETRY'],
+    [3, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REQUEST_ACCESS'],
+    [4, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_CONTACT_OWNER'],
+    [5, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA'],
+  ])
 
 /**
  * SOParticipantRole defines the general role of a shared object participant.
@@ -291,15 +273,14 @@ export enum SOParticipantRole {
   SOParticipantRole_OWNER = 4,
 }
 
-// SOParticipantRole_Enum is the enum type for SOParticipantRole.
-export const SOParticipantRole_Enum = createEnumType(
+export const SOParticipantRole_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOParticipantRole',
   [
-    { no: 0, name: 'SOParticipantRole_UNKNOWN' },
-    { no: 1, name: 'SOParticipantRole_READER' },
-    { no: 2, name: 'SOParticipantRole_WRITER' },
-    { no: 3, name: 'SOParticipantRole_VALIDATOR' },
-    { no: 4, name: 'SOParticipantRole_OWNER' },
+    [0, 'SOParticipantRole_UNKNOWN'],
+    [1, 'SOParticipantRole_READER'],
+    [2, 'SOParticipantRole_WRITER'],
+    [3, 'SOParticipantRole_VALIDATOR'],
+    [4, 'SOParticipantRole_OWNER'],
   ],
 )
 
@@ -322,10 +303,10 @@ export enum SOConsensusMode {
   SO_CONSENSUS_MODE_SINGLE_VALIDATOR = 0,
 }
 
-// SOConsensusMode_Enum is the enum type for SOConsensusMode.
-export const SOConsensusMode_Enum = createEnumType('sobject.SOConsensusMode', [
-  { no: 0, name: 'SO_CONSENSUS_MODE_SINGLE_VALIDATOR' },
-])
+export const SOConsensusMode_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOConsensusMode',
+  [[0, 'SO_CONSENSUS_MODE_SINGLE_VALIDATOR']],
+)
 
 /**
  * SOConfigChangeType describes the kind of mutation in a config chain entry.
@@ -390,18 +371,17 @@ export enum SOConfigChangeType {
   SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER = 7,
 }
 
-// SOConfigChangeType_Enum is the enum type for SOConfigChangeType.
-export const SOConfigChangeType_Enum = createEnumType(
+export const SOConfigChangeType_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOConfigChangeType',
   [
-    { no: 0, name: 'SO_CONFIG_CHANGE_TYPE_UNKNOWN' },
-    { no: 1, name: 'SO_CONFIG_CHANGE_TYPE_GENESIS' },
-    { no: 2, name: 'SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT' },
-    { no: 3, name: 'SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT' },
-    { no: 4, name: 'SO_CONFIG_CHANGE_TYPE_ADD_INVITE' },
-    { no: 5, name: 'SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE' },
-    { no: 6, name: 'SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES' },
-    { no: 7, name: 'SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER' },
+    [0, 'SO_CONFIG_CHANGE_TYPE_UNKNOWN'],
+    [1, 'SO_CONFIG_CHANGE_TYPE_GENESIS'],
+    [2, 'SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT'],
+    [3, 'SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT'],
+    [4, 'SO_CONFIG_CHANGE_TYPE_ADD_INVITE'],
+    [5, 'SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE'],
+    [6, 'SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES'],
+    [7, 'SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER'],
   ],
 )
 
@@ -447,15 +427,14 @@ export enum SORevocationReason {
   SO_REVOCATION_REASON_INVITE_REVOKED = 4,
 }
 
-// SORevocationReason_Enum is the enum type for SORevocationReason.
-export const SORevocationReason_Enum = createEnumType(
+export const SORevocationReason_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SORevocationReason',
   [
-    { no: 0, name: 'SO_REVOCATION_REASON_UNKNOWN' },
-    { no: 1, name: 'SO_REVOCATION_REASON_SESSION_REVOKED' },
-    { no: 2, name: 'SO_REVOCATION_REASON_ORG_REMOVED' },
-    { no: 3, name: 'SO_REVOCATION_REASON_OWNER_REMOVED' },
-    { no: 4, name: 'SO_REVOCATION_REASON_INVITE_REVOKED' },
+    [0, 'SO_REVOCATION_REASON_UNKNOWN'],
+    [1, 'SO_REVOCATION_REASON_SESSION_REVOKED'],
+    [2, 'SO_REVOCATION_REASON_ORG_REMOVED'],
+    [3, 'SO_REVOCATION_REASON_OWNER_REMOVED'],
+    [4, 'SO_REVOCATION_REASON_INVITE_REVOKED'],
   ],
 )
 
@@ -480,20 +459,20 @@ export interface SharedObjectRef {
   blockStoreId?: string
 }
 
-// SharedObjectRef contains the message type declaration for SharedObjectRef.
-export const SharedObjectRef: MessageType<SharedObjectRef> = createMessageType({
-  typeName: 'sobject.SharedObjectRef',
-  fields: [
-    {
-      no: 1,
-      name: 'provider_resource_ref',
-      kind: 'message',
-      T: () => ProviderResourceRef,
-    },
-    { no: 2, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SharedObjectRef: MessageType<SharedObjectRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SharedObjectRef',
+    fields: [
+      {
+        no: 1,
+        name: 'provider_resource_ref',
+        kind: 'message',
+        T: () => ProviderResourceRef,
+      },
+      { no: 2, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SharedObjectMeta is the contents of the provider_feature_meta field for a SharedObject.
@@ -523,15 +502,14 @@ export interface SharedObjectMeta {
   accountPrivate?: boolean
 }
 
-// SharedObjectMeta contains the message type declaration for SharedObjectMeta.
 export const SharedObjectMeta: MessageType<SharedObjectMeta> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SharedObjectMeta',
     fields: [
       { no: 1, name: 'body_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'body_meta', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'account_private', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -562,15 +540,14 @@ export interface SharedObjectListEntry {
   source?: string
 }
 
-// SharedObjectListEntry contains the message type declaration for SharedObjectListEntry.
 export const SharedObjectListEntry: MessageType<SharedObjectListEntry> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SharedObjectListEntry',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => SharedObjectRef },
       { no: 2, name: 'meta', kind: 'message', T: () => SharedObjectMeta },
       { no: 3, name: 'source', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -588,9 +565,8 @@ export interface SharedObjectList {
   sharedObjects?: SharedObjectListEntry[]
 }
 
-// SharedObjectList contains the message type declaration for SharedObjectList.
 export const SharedObjectList: MessageType<SharedObjectList> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SharedObjectList',
     fields: [
       {
@@ -600,7 +576,7 @@ export const SharedObjectList: MessageType<SharedObjectList> =
         T: () => SharedObjectListEntry,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -650,9 +626,8 @@ export interface SharedObjectHealth {
   metadata?: Uint8Array
 }
 
-// SharedObjectHealth contains the message type declaration for SharedObjectHealth.
 export const SharedObjectHealth: MessageType<SharedObjectHealth> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SharedObjectHealth',
     fields: [
       { no: 1, name: 'status', kind: 'enum', T: SharedObjectHealthStatus_Enum },
@@ -671,7 +646,7 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
       },
       { no: 5, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'metadata', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -707,15 +682,14 @@ export interface SOParticipantConfig {
   entityId?: string
 }
 
-// SOParticipantConfig contains the message type declaration for SOParticipantConfig.
 export const SOParticipantConfig: MessageType<SOParticipantConfig> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOParticipantConfig',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -754,9 +728,8 @@ export interface SharedObjectConfig {
   configChainSeqno?: bigint
 }
 
-// SharedObjectConfig contains the message type declaration for SharedObjectConfig.
 export const SharedObjectConfig: MessageType<SharedObjectConfig> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SharedObjectConfig',
     fields: [
       {
@@ -779,7 +752,7 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         kind: 'scalar',
         T: ScalarType.UINT64,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -809,15 +782,14 @@ export interface SORevocationInfo {
   nonce?: bigint
 }
 
-// SORevocationInfo contains the message type declaration for SORevocationInfo.
 export const SORevocationInfo: MessageType<SORevocationInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SORevocationInfo',
     fields: [
       { no: 1, name: 'reason', kind: 'enum', T: SORevocationReason_Enum },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
       { no: 3, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -872,25 +844,25 @@ export interface SOConfigChange {
   revocationInfo?: SORevocationInfo
 }
 
-// SOConfigChange contains the message type declaration for SOConfigChange.
-export const SOConfigChange: MessageType<SOConfigChange> = createMessageType({
-  typeName: 'sobject.SOConfigChange',
-  fields: [
-    { no: 1, name: 'config_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'config', kind: 'message', T: () => SharedObjectConfig },
-    { no: 4, name: 'signed_by', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 5, name: 'signature', kind: 'message', T: () => Signature },
-    { no: 6, name: 'previous_hash', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 7, name: 'change_type', kind: 'enum', T: SOConfigChangeType_Enum },
-    {
-      no: 8,
-      name: 'revocation_info',
-      kind: 'message',
-      T: () => SORevocationInfo,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOConfigChange: MessageType<SOConfigChange> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOConfigChange',
+    fields: [
+      { no: 1, name: 'config_seqno', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'config', kind: 'message', T: () => SharedObjectConfig },
+      { no: 4, name: 'signed_by', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 5, name: 'signature', kind: 'message', T: () => Signature },
+      { no: 6, name: 'previous_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 7, name: 'change_type', kind: 'enum', T: SOConfigChangeType_Enum },
+      {
+        no: 8,
+        name: 'revocation_info',
+        kind: 'message',
+        T: () => SORevocationInfo,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOAccountNonce contains the current nonce for an account.
@@ -913,15 +885,15 @@ export interface SOAccountNonce {
   nonce?: bigint
 }
 
-// SOAccountNonce contains the message type declaration for SOAccountNonce.
-export const SOAccountNonce: MessageType<SOAccountNonce> = createMessageType({
-  typeName: 'sobject.SOAccountNonce',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOAccountNonce: MessageType<SOAccountNonce> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOAccountNonce',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SORoot is the signed root state on a SharedObject.
@@ -958,8 +930,7 @@ export interface SORoot {
   validatorSignatures?: Signature[]
 }
 
-// SORoot contains the message type declaration for SORoot.
-export const SORoot: MessageType<SORoot> = createMessageType({
+export const SORoot: MessageType<SORoot> = /* @__PURE__ */ createMessageType({
   typeName: 'sobject.SORoot',
   fields: [
     { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
@@ -978,7 +949,7 @@ export const SORoot: MessageType<SORoot> = createMessageType({
       T: () => Signature,
       repeated: true,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -1002,15 +973,15 @@ export interface SORootInner {
   stateData?: Uint8Array
 }
 
-// SORootInner contains the message type declaration for SORootInner.
-export const SORootInner: MessageType<SORootInner> = createMessageType({
-  typeName: 'sobject.SORootInner',
-  fields: [
-    { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'state_data', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SORootInner: MessageType<SORootInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SORootInner',
+    fields: [
+      { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'state_data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOOperation represents an individual operation submitted by a participant.
@@ -1033,15 +1004,15 @@ export interface SOOperation {
   signature?: Signature
 }
 
-// SOOperation contains the message type declaration for SOOperation.
-export const SOOperation: MessageType<SOOperation> = createMessageType({
-  typeName: 'sobject.SOOperation',
-  fields: [
-    { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'signature', kind: 'message', T: () => Signature },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOOperation: MessageType<SOOperation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOOperation',
+    fields: [
+      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOOperationInner is the inner message of SOOperation.
@@ -1077,16 +1048,15 @@ export interface SOOperationInner {
   opData?: Uint8Array
 }
 
-// SOOperationInner contains the message type declaration for SOOperationInner.
 export const SOOperationInner: MessageType<SOOperationInner> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOOperationInner',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1110,15 +1080,15 @@ export interface SOOperationRef {
   nonce?: bigint
 }
 
-// SOOperationRef contains the message type declaration for SOOperationRef.
-export const SOOperationRef: MessageType<SOOperationRef> = createMessageType({
-  typeName: 'sobject.SOOperationRef',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOOperationRef: MessageType<SOOperationRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOOperationRef',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOOperationRejectionErrorDetails contains error details.
@@ -1134,13 +1104,12 @@ export interface SOOperationRejectionErrorDetails {
   errorMsg?: string
 }
 
-// SOOperationRejectionErrorDetails contains the message type declaration for SOOperationRejectionErrorDetails.
 export const SOOperationRejectionErrorDetails: MessageType<SOOperationRejectionErrorDetails> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOOperationRejectionErrorDetails',
     fields: [
       { no: 1, name: 'error_msg', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1187,9 +1156,8 @@ export interface SOOperationResult {
       }
 }
 
-// SOOperationResult contains the message type declaration for SOOperationResult.
 export const SOOperationResult: MessageType<SOOperationResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOOperationResult',
     fields: [
       { no: 1, name: 'op_ref', kind: 'message', T: () => SOOperationRef },
@@ -1207,7 +1175,7 @@ export const SOOperationResult: MessageType<SOOperationResult> =
         T: () => SOOperationRejectionErrorDetails,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1233,14 +1201,13 @@ export interface SOOperationRejection {
   signature?: Signature
 }
 
-// SOOperationRejection contains the message type declaration for SOOperationRejection.
 export const SOOperationRejection: MessageType<SOOperationRejection> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOOperationRejection',
     fields: [
       { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'signature', kind: 'message', T: () => Signature },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1279,16 +1246,15 @@ export interface SOOperationRejectionInner {
   errorDetails?: Uint8Array
 }
 
-// SOOperationRejectionInner contains the message type declaration for SOOperationRejectionInner.
 export const SOOperationRejectionInner: MessageType<SOOperationRejectionInner> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOOperationRejectionInner',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'op_nonce', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'error_details', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1319,14 +1285,13 @@ export interface SOGrant {
   signature?: Signature
 }
 
-// SOGrant contains the message type declaration for SOGrant.
-export const SOGrant: MessageType<SOGrant> = createMessageType({
+export const SOGrant: MessageType<SOGrant> = /* @__PURE__ */ createMessageType({
   typeName: 'sobject.SOGrant',
   fields: [
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'inner_data', kind: 'scalar', T: ScalarType.BYTES },
     { no: 3, name: 'signature', kind: 'message', T: () => Signature },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -1345,14 +1310,14 @@ export interface SOGrantInner {
   transformConf?: Config
 }
 
-// SOGrantInner contains the message type declaration for SOGrantInner.
-export const SOGrantInner: MessageType<SOGrantInner> = createMessageType({
-  typeName: 'sobject.SOGrantInner',
-  fields: [
-    { no: 1, name: 'transform_conf', kind: 'message', T: () => Config },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOGrantInner: MessageType<SOGrantInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOGrantInner',
+    fields: [
+      { no: 1, name: 'transform_conf', kind: 'message', T: () => Config },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOEntityRecoveryEnvelope stores recovery material for one entity on an SO.
@@ -1392,9 +1357,8 @@ export interface SOEntityRecoveryEnvelope {
   envelopeData?: Uint8Array
 }
 
-// SOEntityRecoveryEnvelope contains the message type declaration for SOEntityRecoveryEnvelope.
 export const SOEntityRecoveryEnvelope: MessageType<SOEntityRecoveryEnvelope> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOEntityRecoveryEnvelope',
     fields: [
       { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
@@ -1407,7 +1371,7 @@ export const SOEntityRecoveryEnvelope: MessageType<SOEntityRecoveryEnvelope> =
       },
       { no: 4, name: 'config_chain_hash', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'envelope_data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1437,15 +1401,14 @@ export interface SOEntityRecoveryMaterial {
   grantInner?: SOGrantInner
 }
 
-// SOEntityRecoveryMaterial contains the message type declaration for SOEntityRecoveryMaterial.
 export const SOEntityRecoveryMaterial: MessageType<SOEntityRecoveryMaterial> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOEntityRecoveryMaterial',
     fields: [
       { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 3, name: 'grant_inner', kind: 'message', T: () => SOGrantInner },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1517,22 +1480,27 @@ export interface SOInvite {
   targetAccountId?: string
 }
 
-// SOInvite contains the message type declaration for SOInvite.
-export const SOInvite: MessageType<SOInvite> = createMessageType({
-  typeName: 'sobject.SOInvite',
-  fields: [
-    { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'token_hash', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 3, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
-    { no: 4, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 6, name: 'uses', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 7, name: 'expires_at', kind: 'message', T: () => Timestamp },
-    { no: 8, name: 'revoked', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 9, name: 'target_account_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOInvite: MessageType<SOInvite> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOInvite',
+    fields: [
+      { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'token_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
+      { no: 4, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 6, name: 'uses', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 7, name: 'expires_at', kind: 'message', T: () => Timestamp },
+      { no: 8, name: 'revoked', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 9,
+        name: 'target_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOPeerOpRejections contains all rejections for a specific peer.
@@ -1554,9 +1522,8 @@ export interface SOPeerOpRejections {
   rejections?: SOOperationRejection[]
 }
 
-// SOPeerOpRejections contains the message type declaration for SOPeerOpRejections.
 export const SOPeerOpRejections: MessageType<SOPeerOpRejections> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOPeerOpRejections',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -1567,7 +1534,7 @@ export const SOPeerOpRejections: MessageType<SOPeerOpRejections> =
         T: () => SOOperationRejection,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1632,8 +1599,7 @@ export interface SOState {
   invites?: SOInvite[]
 }
 
-// SOState contains the message type declaration for SOState.
-export const SOState: MessageType<SOState> = createMessageType({
+export const SOState: MessageType<SOState> = /* @__PURE__ */ createMessageType({
   typeName: 'sobject.SOState',
   fields: [
     { no: 1, name: 'config', kind: 'message', T: () => SharedObjectConfig },
@@ -1673,7 +1639,7 @@ export const SOState: MessageType<SOState> = createMessageType({
       T: () => SOInvite,
       repeated: true,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -1698,14 +1664,13 @@ export interface SOClearOperationResult {
   signature?: Signature
 }
 
-// SOClearOperationResult contains the message type declaration for SOClearOperationResult.
 export const SOClearOperationResult: MessageType<SOClearOperationResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOClearOperationResult',
     fields: [
       { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'signature', kind: 'message', T: () => Signature },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1731,14 +1696,13 @@ export interface SOClearOperationResultInner {
   localId?: string
 }
 
-// SOClearOperationResultInner contains the message type declaration for SOClearOperationResultInner.
 export const SOClearOperationResultInner: MessageType<SOClearOperationResultInner> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOClearOperationResultInner',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1774,23 +1738,23 @@ export interface SOKeyEpoch {
   grants?: SOGrant[]
 }
 
-// SOKeyEpoch contains the message type declaration for SOKeyEpoch.
-export const SOKeyEpoch: MessageType<SOKeyEpoch> = createMessageType({
-  typeName: 'sobject.SOKeyEpoch',
-  fields: [
-    { no: 1, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'seqno_start', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 3, name: 'seqno_end', kind: 'scalar', T: ScalarType.UINT64 },
-    {
-      no: 4,
-      name: 'grants',
-      kind: 'message',
-      T: () => SOGrant,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOKeyEpoch: MessageType<SOKeyEpoch> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOKeyEpoch',
+    fields: [
+      { no: 1, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'seqno_start', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'seqno_end', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 4,
+        name: 'grants',
+        kind: 'message',
+        T: () => SOGrant,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOConfigChainResponse is returned by GET /sobject/{id}/config-chain.
@@ -1812,9 +1776,8 @@ export interface SOConfigChainResponse {
   keyEpochs?: SOKeyEpoch[]
 }
 
-// SOConfigChainResponse contains the message type declaration for SOConfigChainResponse.
 export const SOConfigChainResponse: MessageType<SOConfigChainResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOConfigChainResponse',
     fields: [
       {
@@ -1831,7 +1794,7 @@ export const SOConfigChainResponse: MessageType<SOConfigChainResponse> =
         T: () => SOKeyEpoch,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1855,14 +1818,13 @@ export interface QueuedSOOperation {
   opData?: Uint8Array
 }
 
-// QueuedSOOperation contains the message type declaration for QueuedSOOperation.
 export const QueuedSOOperation: MessageType<QueuedSOOperation> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.QueuedSOOperation',
     fields: [
       { no: 1, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1938,23 +1900,23 @@ export interface SOInviteMessage {
   signature?: Signature
 }
 
-// SOInviteMessage contains the message type declaration for SOInviteMessage.
-export const SOInviteMessage: MessageType<SOInviteMessage> = createMessageType({
-  typeName: 'sobject.SOInviteMessage',
-  fields: [
-    { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'owner_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'token', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 6, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
-    { no: 7, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'expires_at', kind: 'message', T: () => Timestamp },
-    { no: 9, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 10, name: 'signature', kind: 'message', T: () => Signature },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOInviteMessage: MessageType<SOInviteMessage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOInviteMessage',
+    fields: [
+      { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'owner_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'token', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 6, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
+      { no: 7, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'expires_at', kind: 'message', T: () => Timestamp },
+      { no: 9, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 10, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOJoinResponse is a signed response from an invitee requesting to join.
@@ -1988,14 +1950,19 @@ export interface SOJoinResponse {
   signature?: Signature
 }
 
-// SOJoinResponse contains the message type declaration for SOJoinResponse.
-export const SOJoinResponse: MessageType<SOJoinResponse> = createMessageType({
-  typeName: 'sobject.SOJoinResponse',
-  fields: [
-    { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'responder_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'responder_pubkey', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 4, name: 'signature', kind: 'message', T: () => Signature },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOJoinResponse: MessageType<SOJoinResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJoinResponse',
+    fields: [
+      { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'responder_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 3, name: 'responder_pubkey', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

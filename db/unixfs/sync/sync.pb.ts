@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/db/unixfs/sync/sync.proto (package unixfs.sync, syntax proto3)
 /* eslint-disable */
 
-import { createEnumType } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 
 export const protobufPackage = 'unixfs.sync'
 
@@ -49,11 +49,13 @@ export enum DeleteMode {
   DeleteMode_ONLY = 4,
 }
 
-// DeleteMode_Enum is the enum type for DeleteMode.
-export const DeleteMode_Enum = createEnumType('unixfs.sync.DeleteMode', [
-  { no: 0, name: 'DeleteMode_NONE' },
-  { no: 1, name: 'DeleteMode_BEFORE' },
-  { no: 2, name: 'DeleteMode_DURING' },
-  { no: 3, name: 'DeleteMode_AFTER' },
-  { no: 4, name: 'DeleteMode_ONLY' },
-])
+export const DeleteMode_Enum = /* @__PURE__ */ createEnumType(
+  'unixfs.sync.DeleteMode',
+  [
+    [0, 'DeleteMode_NONE'],
+    [1, 'DeleteMode_BEFORE'],
+    [2, 'DeleteMode_DURING'],
+    [3, 'DeleteMode_AFTER'],
+    [4, 'DeleteMode_ONLY'],
+  ],
+)

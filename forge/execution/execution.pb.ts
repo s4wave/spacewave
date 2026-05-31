@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/forge/execution/execution.proto (package forge.execution, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ValueSet } from '../target/target.pb.js'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 import { Result } from '../value/value.pb.js'
@@ -52,13 +51,15 @@ export enum State {
   ExecutionState_COMPLETE = 3,
 }
 
-// State_Enum is the enum type for State.
-export const State_Enum = createEnumType('forge.execution.State', [
-  { no: 0, name: 'ExecutionState_UNKNOWN' },
-  { no: 1, name: 'ExecutionState_PENDING' },
-  { no: 2, name: 'ExecutionState_RUNNING' },
-  { no: 3, name: 'ExecutionState_COMPLETE' },
-])
+export const State_Enum = /* @__PURE__ */ createEnumType(
+  'forge.execution.State',
+  [
+    [0, 'ExecutionState_UNKNOWN'],
+    [1, 'ExecutionState_PENDING'],
+    [2, 'ExecutionState_RUNNING'],
+    [3, 'ExecutionState_COMPLETE'],
+  ],
+)
 
 /**
  * LogEntry is a single log line from an execution.
@@ -86,16 +87,16 @@ export interface LogEntry {
   message?: string
 }
 
-// LogEntry contains the message type declaration for LogEntry.
-export const LogEntry: MessageType<LogEntry> = createMessageType({
-  typeName: 'forge.execution.LogEntry',
-  fields: [
-    { no: 1, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    { no: 2, name: 'level', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'message', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LogEntry: MessageType<LogEntry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.execution.LogEntry',
+    fields: [
+      { no: 1, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 2, name: 'level', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'message', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * World graph links:
@@ -153,26 +154,26 @@ export interface Execution {
   logEntries?: LogEntry[]
 }
 
-// Execution contains the message type declaration for Execution.
-export const Execution: MessageType<Execution> = createMessageType({
-  typeName: 'forge.execution.Execution',
-  fields: [
-    { no: 1, name: 'execution_state', kind: 'enum', T: State_Enum },
-    { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    { no: 4, name: 'value_set', kind: 'message', T: () => ValueSet },
-    { no: 5, name: 'target_ref', kind: 'message', T: () => BlockRef },
-    { no: 6, name: 'result', kind: 'message', T: () => Result },
-    {
-      no: 7,
-      name: 'log_entries',
-      kind: 'message',
-      T: () => LogEntry,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Execution: MessageType<Execution> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.execution.Execution',
+    fields: [
+      { no: 1, name: 'execution_state', kind: 'enum', T: State_Enum },
+      { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 4, name: 'value_set', kind: 'message', T: () => ValueSet },
+      { no: 5, name: 'target_ref', kind: 'message', T: () => BlockRef },
+      { no: 6, name: 'result', kind: 'message', T: () => Result },
+      {
+        no: 7,
+        name: 'log_entries',
+        kind: 'message',
+        T: () => LogEntry,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Spec contains information specified when creating a Execution.
@@ -203,13 +204,12 @@ export interface Spec {
   targetRef?: BlockRef
 }
 
-// Spec contains the message type declaration for Spec.
-export const Spec: MessageType<Spec> = createMessageType({
+export const Spec: MessageType<Spec> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.execution.Spec',
   fields: [
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 3, name: 'target_ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

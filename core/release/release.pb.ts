@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BlockRef } from '../../db/block/block.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ManifestRef } from '../../bldr/manifest/manifest.pb.js'
 
 export const protobufPackage = 'release'
@@ -29,15 +31,20 @@ export interface ChannelEntry {
   releaseMetadataRef?: BlockRef
 }
 
-// ChannelEntry contains the message type declaration for ChannelEntry.
-export const ChannelEntry: MessageType<ChannelEntry> = createMessageType({
-  typeName: 'release.ChannelEntry',
-  fields: [
-    { no: 1, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'release_metadata_ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ChannelEntry: MessageType<ChannelEntry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'release.ChannelEntry',
+    fields: [
+      { no: 1, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'release_metadata_ref',
+        kind: 'message',
+        T: () => BlockRef,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ChannelDirectory lists the public release channels in a release Space.
@@ -53,9 +60,8 @@ export interface ChannelDirectory {
   channels?: ChannelEntry[]
 }
 
-// ChannelDirectory contains the message type declaration for ChannelDirectory.
 export const ChannelDirectory: MessageType<ChannelDirectory> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'release.ChannelDirectory',
     fields: [
       {
@@ -65,7 +71,7 @@ export const ChannelDirectory: MessageType<ChannelDirectory> =
         T: () => ChannelEntry,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -113,19 +119,19 @@ export interface BrowserAsset {
   cacheControl?: string
 }
 
-// BrowserAsset contains the message type declaration for BrowserAsset.
-export const BrowserAsset: MessageType<BrowserAsset> = createMessageType({
-  typeName: 'release.BrowserAsset',
-  fields: [
-    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'content_ref', kind: 'message', T: () => BlockRef },
-    { no: 3, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 5, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'cache_control', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BrowserAsset: MessageType<BrowserAsset> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'release.BrowserAsset',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'content_ref', kind: 'message', T: () => BlockRef },
+      { no: 3, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 5, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'cache_control', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BrowserShellMetadata describes the browser entrypoint shell for a release.
@@ -177,9 +183,8 @@ export interface BrowserShellMetadata {
   assets?: BrowserAsset[]
 }
 
-// BrowserShellMetadata contains the message type declaration for BrowserShellMetadata.
 export const BrowserShellMetadata: MessageType<BrowserShellMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'release.BrowserShellMetadata',
     fields: [
       { no: 1, name: 'version', kind: 'scalar', T: ScalarType.STRING },
@@ -205,7 +210,7 @@ export const BrowserShellMetadata: MessageType<BrowserShellMetadata> =
         T: () => BrowserAsset,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -260,36 +265,36 @@ export interface ReleaseMetadata {
   minimumLauncherVersion?: string
 }
 
-// ReleaseMetadata contains the message type declaration for ReleaseMetadata.
-export const ReleaseMetadata: MessageType<ReleaseMetadata> = createMessageType({
-  typeName: 'release.ReleaseMetadata',
-  fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 3, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 5,
-      name: 'manifest_refs',
-      kind: 'message',
-      T: () => ManifestRef,
-      repeated: true,
-    },
-    {
-      no: 6,
-      name: 'browser_shell',
-      kind: 'message',
-      T: () => BrowserShellMetadata,
-    },
-    {
-      no: 7,
-      name: 'minimum_launcher_version',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ReleaseMetadata: MessageType<ReleaseMetadata> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'release.ReleaseMetadata',
+    fields: [
+      { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'version', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'manifest_refs',
+        kind: 'message',
+        T: () => ManifestRef,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'browser_shell',
+        kind: 'message',
+        T: () => BrowserShellMetadata,
+      },
+      {
+        no: 7,
+        name: 'minimum_launcher_version',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * UpdateNotification describes a newly available release root.
@@ -318,14 +323,13 @@ export interface UpdateNotification {
   rootPointerUrl?: string
 }
 
-// UpdateNotification contains the message type declaration for UpdateNotification.
 export const UpdateNotification: MessageType<UpdateNotification> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'release.UpdateNotification',
     fields: [
       { no: 1, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'inner_seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'root_pointer_url', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

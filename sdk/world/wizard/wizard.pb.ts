@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/world/wizard/wizard.proto (package s4wave.wizard, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 's4wave.wizard'
@@ -47,14 +49,13 @@ export enum GitCloneProgressState {
   FAILED = 3,
 }
 
-// GitCloneProgressState_Enum is the enum type for GitCloneProgressState.
-export const GitCloneProgressState_Enum = createEnumType(
+export const GitCloneProgressState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.wizard.GitCloneProgressState',
   [
-    { no: 0, name: 'GIT_CLONE_PROGRESS_STATE_IDLE' },
-    { no: 1, name: 'GIT_CLONE_PROGRESS_STATE_RUNNING' },
-    { no: 2, name: 'GIT_CLONE_PROGRESS_STATE_DONE' },
-    { no: 3, name: 'GIT_CLONE_PROGRESS_STATE_FAILED' },
+    [0, 'GIT_CLONE_PROGRESS_STATE_IDLE'],
+    [1, 'GIT_CLONE_PROGRESS_STATE_RUNNING'],
+    [2, 'GIT_CLONE_PROGRESS_STATE_DONE'],
+    [3, 'GIT_CLONE_PROGRESS_STATE_FAILED'],
   ],
 )
 
@@ -65,13 +66,11 @@ export const GitCloneProgressState_Enum = createEnumType(
  */
 export interface WatchWizardStateRequest {}
 
-// WatchWizardStateRequest contains the message type declaration for WatchWizardStateRequest.
 export const WatchWizardStateRequest: MessageType<WatchWizardStateRequest> =
-  createMessageType({
-    typeName: 's4wave.wizard.WatchWizardStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchWizardStateRequest>(
+    's4wave.wizard.WatchWizardStateRequest',
+    true,
+  )
 
 /**
  * WizardState is the block state for a persistent wizard object.
@@ -112,18 +111,23 @@ export interface WizardState {
   configData?: Uint8Array
 }
 
-// WizardState contains the message type declaration for WizardState.
-export const WizardState: MessageType<WizardState> = createMessageType({
-  typeName: 's4wave.wizard.WizardState',
-  fields: [
-    { no: 1, name: 'step', kind: 'scalar', T: ScalarType.INT32 },
-    { no: 2, name: 'target_type_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'target_key_prefix', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'config_data', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WizardState: MessageType<WizardState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.wizard.WizardState',
+    fields: [
+      { no: 1, name: 'step', kind: 'scalar', T: ScalarType.INT32 },
+      { no: 2, name: 'target_type_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'target_key_prefix',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 4, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'config_data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchWizardStateResponse is a stream response with wizard state.
@@ -139,13 +143,12 @@ export interface WatchWizardStateResponse {
   state?: WizardState
 }
 
-// WatchWizardStateResponse contains the message type declaration for WatchWizardStateResponse.
 export const WatchWizardStateResponse: MessageType<WatchWizardStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.WatchWizardStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => WizardState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -181,16 +184,15 @@ export interface UpdateWizardStateRequest {
   hasConfigData?: boolean
 }
 
-// UpdateWizardStateRequest contains the message type declaration for UpdateWizardStateRequest.
 export const UpdateWizardStateRequest: MessageType<UpdateWizardStateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.UpdateWizardStateRequest',
     fields: [
       { no: 1, name: 'step', kind: 'scalar', T: ScalarType.INT32 },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'config_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'has_config_data', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -208,13 +210,12 @@ export interface UpdateWizardStateResponse {
   state?: WizardState
 }
 
-// UpdateWizardStateResponse contains the message type declaration for UpdateWizardStateResponse.
 export const UpdateWizardStateResponse: MessageType<UpdateWizardStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.UpdateWizardStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => WizardState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -250,16 +251,15 @@ export interface StartGitCloneRequest {
   opSender?: string
 }
 
-// StartGitCloneRequest contains the message type declaration for StartGitCloneRequest.
 export const StartGitCloneRequest: MessageType<StartGitCloneRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.StartGitCloneRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'config_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -295,16 +295,15 @@ export interface GitCloneProgress {
   objectKey?: string
 }
 
-// GitCloneProgress contains the message type declaration for GitCloneProgress.
 export const GitCloneProgress: MessageType<GitCloneProgress> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.GitCloneProgress',
     fields: [
       { no: 1, name: 'state', kind: 'enum', T: GitCloneProgressState_Enum },
       { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -322,13 +321,12 @@ export interface StartGitCloneResponse {
   progress?: GitCloneProgress
 }
 
-// StartGitCloneResponse contains the message type declaration for StartGitCloneResponse.
 export const StartGitCloneResponse: MessageType<StartGitCloneResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.StartGitCloneResponse',
     fields: [
       { no: 1, name: 'progress', kind: 'message', T: () => GitCloneProgress },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -339,13 +337,11 @@ export const StartGitCloneResponse: MessageType<StartGitCloneResponse> =
  */
 export interface WatchGitCloneProgressRequest {}
 
-// WatchGitCloneProgressRequest contains the message type declaration for WatchGitCloneProgressRequest.
 export const WatchGitCloneProgressRequest: MessageType<WatchGitCloneProgressRequest> =
-  createMessageType({
-    typeName: 's4wave.wizard.WatchGitCloneProgressRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchGitCloneProgressRequest>(
+    's4wave.wizard.WatchGitCloneProgressRequest',
+    true,
+  )
 
 /**
  * WatchGitCloneProgressResponse is a stream response with Git clone progress.
@@ -361,13 +357,12 @@ export interface WatchGitCloneProgressResponse {
   progress?: GitCloneProgress
 }
 
-// WatchGitCloneProgressResponse contains the message type declaration for WatchGitCloneProgressResponse.
 export const WatchGitCloneProgressResponse: MessageType<WatchGitCloneProgressResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.WatchGitCloneProgressResponse',
     fields: [
       { no: 1, name: 'progress', kind: 'message', T: () => GitCloneProgress },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -378,13 +373,11 @@ export const WatchGitCloneProgressResponse: MessageType<WatchGitCloneProgressRes
  */
 export interface ListWizardsRequest {}
 
-// ListWizardsRequest contains the message type declaration for ListWizardsRequest.
 export const ListWizardsRequest: MessageType<ListWizardsRequest> =
-  createMessageType({
-    typeName: 's4wave.wizard.ListWizardsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ListWizardsRequest>(
+    's4wave.wizard.ListWizardsRequest',
+    true,
+  )
 
 /**
  * ObjectWizard defines a creatable object type for the creation drawer.
@@ -467,30 +460,30 @@ export interface ObjectWizard {
   pluginId?: string
 }
 
-// ObjectWizard contains the message type declaration for ObjectWizard.
-export const ObjectWizard: MessageType<ObjectWizard> = createMessageType({
-  typeName: 's4wave.wizard.ObjectWizard',
-  fields: [
-    { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'category', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'icon_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'create_op_id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 6,
-      name: 'default_name_pattern',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    { no: 7, name: 'persistent', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 8, name: 'wizard_type_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'key_prefix', kind: 'scalar', T: ScalarType.STRING },
-    { no: 10, name: 'experimental', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 11, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 12, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ObjectWizard: MessageType<ObjectWizard> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.wizard.ObjectWizard',
+    fields: [
+      { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'category', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'icon_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'create_op_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'default_name_pattern',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 7, name: 'persistent', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 8, name: 'wizard_type_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'key_prefix', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'experimental', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 11, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 12, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RegisterWizardRequest is the request for RegisterWizard.
@@ -506,13 +499,12 @@ export interface RegisterWizardRequest {
   wizard?: ObjectWizard
 }
 
-// RegisterWizardRequest contains the message type declaration for RegisterWizardRequest.
 export const RegisterWizardRequest: MessageType<RegisterWizardRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.RegisterWizardRequest',
     fields: [
       { no: 1, name: 'wizard', kind: 'message', T: () => ObjectWizard },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -530,13 +522,12 @@ export interface RegisterWizardResponse {
   resourceId?: number
 }
 
-// RegisterWizardResponse contains the message type declaration for RegisterWizardResponse.
 export const RegisterWizardResponse: MessageType<RegisterWizardResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.RegisterWizardResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -554,9 +545,8 @@ export interface ListWizardsResponse {
   wizards?: ObjectWizard[]
 }
 
-// ListWizardsResponse contains the message type declaration for ListWizardsResponse.
 export const ListWizardsResponse: MessageType<ListWizardsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.ListWizardsResponse',
     fields: [
       {
@@ -566,7 +556,7 @@ export const ListWizardsResponse: MessageType<ListWizardsResponse> =
         T: () => ObjectWizard,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -577,13 +567,11 @@ export const ListWizardsResponse: MessageType<ListWizardsResponse> =
  */
 export interface WatchWizardsRequest {}
 
-// WatchWizardsRequest contains the message type declaration for WatchWizardsRequest.
 export const WatchWizardsRequest: MessageType<WatchWizardsRequest> =
-  createMessageType({
-    typeName: 's4wave.wizard.WatchWizardsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchWizardsRequest>(
+    's4wave.wizard.WatchWizardsRequest',
+    true,
+  )
 
 /**
  * WatchWizardsResponse contains the current registered object wizards.
@@ -599,9 +587,8 @@ export interface WatchWizardsResponse {
   wizards?: ObjectWizard[]
 }
 
-// WatchWizardsResponse contains the message type declaration for WatchWizardsResponse.
 export const WatchWizardsResponse: MessageType<WatchWizardsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.WatchWizardsResponse',
     fields: [
       {
@@ -611,7 +598,7 @@ export const WatchWizardsResponse: MessageType<WatchWizardsResponse> =
         T: () => ObjectWizard,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -671,9 +658,8 @@ export interface CreateWizardObjectOp {
   initialConfigData?: Uint8Array
 }
 
-// CreateWizardObjectOp contains the message type declaration for CreateWizardObjectOp.
 export const CreateWizardObjectOp: MessageType<CreateWizardObjectOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.wizard.CreateWizardObjectOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -694,6 +680,6 @@ export const CreateWizardObjectOp: MessageType<CreateWizardObjectOp> =
         kind: 'scalar',
         T: ScalarType.BYTES,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

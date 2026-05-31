@@ -4,8 +4,10 @@
 
 import { BlockRef } from '../../../block/block.pb.js'
 import { Blob } from '../../../block/blob/blob.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'kvtx.block.iavl'
 
@@ -66,8 +68,7 @@ export interface Node {
   rightChildRef?: BlockRef
 }
 
-// Node contains the message type declaration for Node.
-export const Node: MessageType<Node> = createMessageType({
+export const Node: MessageType<Node> = /* @__PURE__ */ createMessageType({
   typeName: 'kvtx.block.iavl.Node',
   fields: [
     { no: 1, name: 'height', kind: 'scalar', T: ScalarType.UINT32 },
@@ -77,6 +78,6 @@ export const Node: MessageType<Node> = createMessageType({
     { no: 8, name: 'value_blob', kind: 'message', T: () => Blob },
     { no: 5, name: 'left_child_ref', kind: 'message', T: () => BlockRef },
     { no: 6, name: 'right_child_ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

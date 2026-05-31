@@ -6,8 +6,13 @@ import {
   EntityCredential,
   EntityKeypair,
 } from '../../core/session/session.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 's4wave.session'
 
@@ -25,13 +30,12 @@ export interface AddLocalEntityKeypairRequest {
   credential?: EntityCredential
 }
 
-// AddLocalEntityKeypairRequest contains the message type declaration for AddLocalEntityKeypairRequest.
 export const AddLocalEntityKeypairRequest: MessageType<AddLocalEntityKeypairRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.AddLocalEntityKeypairRequest',
     fields: [
       { no: 1, name: 'credential', kind: 'message', T: () => EntityCredential },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -49,13 +53,12 @@ export interface AddLocalEntityKeypairResponse {
   peerId?: string
 }
 
-// AddLocalEntityKeypairResponse contains the message type declaration for AddLocalEntityKeypairResponse.
 export const AddLocalEntityKeypairResponse: MessageType<AddLocalEntityKeypairResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.AddLocalEntityKeypairResponse',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -73,13 +76,12 @@ export interface RemoveLocalEntityKeypairRequest {
   peerId?: string
 }
 
-// RemoveLocalEntityKeypairRequest contains the message type declaration for RemoveLocalEntityKeypairRequest.
 export const RemoveLocalEntityKeypairRequest: MessageType<RemoveLocalEntityKeypairRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.RemoveLocalEntityKeypairRequest',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -90,13 +92,11 @@ export const RemoveLocalEntityKeypairRequest: MessageType<RemoveLocalEntityKeypa
  */
 export interface RemoveLocalEntityKeypairResponse {}
 
-// RemoveLocalEntityKeypairResponse contains the message type declaration for RemoveLocalEntityKeypairResponse.
 export const RemoveLocalEntityKeypairResponse: MessageType<RemoveLocalEntityKeypairResponse> =
-  createMessageType({
-    typeName: 's4wave.session.RemoveLocalEntityKeypairResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RemoveLocalEntityKeypairResponse>(
+    's4wave.session.RemoveLocalEntityKeypairResponse',
+    true,
+  )
 
 /**
  * WatchLocalEntityKeypairsRequest is the request for WatchEntityKeypairs on local sessions.
@@ -105,13 +105,11 @@ export const RemoveLocalEntityKeypairResponse: MessageType<RemoveLocalEntityKeyp
  */
 export interface WatchLocalEntityKeypairsRequest {}
 
-// WatchLocalEntityKeypairsRequest contains the message type declaration for WatchLocalEntityKeypairsRequest.
 export const WatchLocalEntityKeypairsRequest: MessageType<WatchLocalEntityKeypairsRequest> =
-  createMessageType({
-    typeName: 's4wave.session.WatchLocalEntityKeypairsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchLocalEntityKeypairsRequest>(
+    's4wave.session.WatchLocalEntityKeypairsRequest',
+    true,
+  )
 
 /**
  * WatchLocalEntityKeypairsResponse is the response for WatchEntityKeypairs on local sessions.
@@ -127,9 +125,8 @@ export interface WatchLocalEntityKeypairsResponse {
   keypairs?: EntityKeypair[]
 }
 
-// WatchLocalEntityKeypairsResponse contains the message type declaration for WatchLocalEntityKeypairsResponse.
 export const WatchLocalEntityKeypairsResponse: MessageType<WatchLocalEntityKeypairsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.WatchLocalEntityKeypairsResponse',
     fields: [
       {
@@ -139,7 +136,7 @@ export const WatchLocalEntityKeypairsResponse: MessageType<WatchLocalEntityKeypa
         T: () => EntityKeypair,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -157,13 +154,12 @@ export interface SetLocalDisplayNameRequest {
   displayName?: string
 }
 
-// SetLocalDisplayNameRequest contains the message type declaration for SetLocalDisplayNameRequest.
 export const SetLocalDisplayNameRequest: MessageType<SetLocalDisplayNameRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.SetLocalDisplayNameRequest',
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -174,13 +170,11 @@ export const SetLocalDisplayNameRequest: MessageType<SetLocalDisplayNameRequest>
  */
 export interface SetLocalDisplayNameResponse {}
 
-// SetLocalDisplayNameResponse contains the message type declaration for SetLocalDisplayNameResponse.
 export const SetLocalDisplayNameResponse: MessageType<SetLocalDisplayNameResponse> =
-  createMessageType({
-    typeName: 's4wave.session.SetLocalDisplayNameResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetLocalDisplayNameResponse>(
+    's4wave.session.SetLocalDisplayNameResponse',
+    true,
+  )
 
 /**
  * WatchLocalDisplayNameRequest is the request for WatchDisplayName on local sessions.
@@ -189,13 +183,11 @@ export const SetLocalDisplayNameResponse: MessageType<SetLocalDisplayNameRespons
  */
 export interface WatchLocalDisplayNameRequest {}
 
-// WatchLocalDisplayNameRequest contains the message type declaration for WatchLocalDisplayNameRequest.
 export const WatchLocalDisplayNameRequest: MessageType<WatchLocalDisplayNameRequest> =
-  createMessageType({
-    typeName: 's4wave.session.WatchLocalDisplayNameRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchLocalDisplayNameRequest>(
+    's4wave.session.WatchLocalDisplayNameRequest',
+    true,
+  )
 
 /**
  * WatchLocalDisplayNameResponse is the response for WatchDisplayName on local sessions.
@@ -211,12 +203,11 @@ export interface WatchLocalDisplayNameResponse {
   displayName?: string
 }
 
-// WatchLocalDisplayNameResponse contains the message type declaration for WatchLocalDisplayNameResponse.
 export const WatchLocalDisplayNameResponse: MessageType<WatchLocalDisplayNameResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.WatchLocalDisplayNameResponse',
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

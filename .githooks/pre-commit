@@ -14,7 +14,7 @@ fi
 
 js_files=$(printf "%s\n" "$files" | grep -E '\.(js|mjs|ts|tsx)$' || true)
 if [ -n "$js_files" ]; then
-	printf "%s\n" "$js_files" | xargs bunx oxlint
+	printf "%s\n" "$js_files" | xargs bunx oxlint --no-error-on-unmatched-pattern
 fi
 
 go_files=$(printf "%s\n" "$files" | grep -E '\.go$' || true)

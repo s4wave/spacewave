@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/configtype/registry/registry.proto (package s4wave.configtype.registry, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.configtype.registry'
 
@@ -56,9 +61,8 @@ export interface ConfigTypeRegistration {
   scriptPath?: string
 }
 
-// ConfigTypeRegistration contains the message type declaration for ConfigTypeRegistration.
 export const ConfigTypeRegistration: MessageType<ConfigTypeRegistration> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.configtype.registry.ConfigTypeRegistration',
     fields: [
       { no: 1, name: 'config_id', kind: 'scalar', T: ScalarType.STRING },
@@ -67,7 +71,7 @@ export const ConfigTypeRegistration: MessageType<ConfigTypeRegistration> =
       { no: 4, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'category', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -109,9 +113,8 @@ export interface RegisterConfigTypeRequest {
   scriptPath?: string
 }
 
-// RegisterConfigTypeRequest contains the message type declaration for RegisterConfigTypeRequest.
 export const RegisterConfigTypeRequest: MessageType<RegisterConfigTypeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.configtype.registry.RegisterConfigTypeRequest',
     fields: [
       { no: 1, name: 'config_id', kind: 'scalar', T: ScalarType.STRING },
@@ -119,7 +122,7 @@ export const RegisterConfigTypeRequest: MessageType<RegisterConfigTypeRequest> =
       { no: 3, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'category', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -137,13 +140,12 @@ export interface RegisterConfigTypeResponse {
   resourceId?: number
 }
 
-// RegisterConfigTypeResponse contains the message type declaration for RegisterConfigTypeResponse.
 export const RegisterConfigTypeResponse: MessageType<RegisterConfigTypeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.configtype.registry.RegisterConfigTypeResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -154,13 +156,11 @@ export const RegisterConfigTypeResponse: MessageType<RegisterConfigTypeResponse>
  */
 export interface WatchConfigTypesRequest {}
 
-// WatchConfigTypesRequest contains the message type declaration for WatchConfigTypesRequest.
 export const WatchConfigTypesRequest: MessageType<WatchConfigTypesRequest> =
-  createMessageType({
-    typeName: 's4wave.configtype.registry.WatchConfigTypesRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchConfigTypesRequest>(
+    's4wave.configtype.registry.WatchConfigTypesRequest',
+    true,
+  )
 
 /**
  * WatchConfigTypesResponse is the response for WatchConfigTypes.
@@ -176,9 +176,8 @@ export interface WatchConfigTypesResponse {
   registrations?: ConfigTypeRegistration[]
 }
 
-// WatchConfigTypesResponse contains the message type declaration for WatchConfigTypesResponse.
 export const WatchConfigTypesResponse: MessageType<WatchConfigTypesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.configtype.registry.WatchConfigTypesResponse',
     fields: [
       {
@@ -188,6 +187,6 @@ export const WatchConfigTypesResponse: MessageType<WatchConfigTypesResponse> =
         T: () => ConfigTypeRegistration,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

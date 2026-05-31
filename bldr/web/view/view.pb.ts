@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/view/view.proto (package web.view, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'web.view'
 
@@ -55,13 +57,15 @@ export enum RenderMode {
   RenderMode_REACT_CHILDREN = 3,
 }
 
-// RenderMode_Enum is the enum type for RenderMode.
-export const RenderMode_Enum = createEnumType('web.view.RenderMode', [
-  { no: 0, name: 'RenderMode_NONE' },
-  { no: 1, name: 'RenderMode_REACT_COMPONENT' },
-  { no: 2, name: 'RenderMode_FUNCTION' },
-  { no: 3, name: 'RenderMode_REACT_CHILDREN' },
-])
+export const RenderMode_Enum = /* @__PURE__ */ createEnumType(
+  'web.view.RenderMode',
+  [
+    [0, 'RenderMode_NONE'],
+    [1, 'RenderMode_REACT_COMPONENT'],
+    [2, 'RenderMode_FUNCTION'],
+    [3, 'RenderMode_REACT_CHILDREN'],
+  ],
+)
 
 /**
  * SetRenderModeRequest is the request to change the render mode.
@@ -97,16 +101,15 @@ export interface SetRenderModeRequest {
   refresh?: boolean
 }
 
-// SetRenderModeRequest contains the message type declaration for SetRenderModeRequest.
 export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.view.SetRenderModeRequest',
     fields: [
       { no: 1, name: 'render_mode', kind: 'enum', T: RenderMode_Enum },
       { no: 2, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'props', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'refresh', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -117,13 +120,11 @@ export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
  */
 export interface SetRenderModeResponse {}
 
-// SetRenderModeResponse contains the message type declaration for SetRenderModeResponse.
 export const SetRenderModeResponse: MessageType<SetRenderModeResponse> =
-  createMessageType({
-    typeName: 'web.view.SetRenderModeResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetRenderModeResponse>(
+    'web.view.SetRenderModeResponse',
+    true,
+  )
 
 /**
  * HtmlLink is a html link element for loading css & other resources.
@@ -146,15 +147,15 @@ export interface HtmlLink {
   rel?: string
 }
 
-// HtmlLink contains the message type declaration for HtmlLink.
-export const HtmlLink: MessageType<HtmlLink> = createMessageType({
-  typeName: 'web.view.HtmlLink',
-  fields: [
-    { no: 1, name: 'href', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'rel', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const HtmlLink: MessageType<HtmlLink> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'web.view.HtmlLink',
+    fields: [
+      { no: 1, name: 'href', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'rel', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SetHtmlLinksRequest is the request to set a list of HtmlLink
@@ -182,9 +183,8 @@ export interface SetHtmlLinksRequest {
   setLinks?: { [key: string]: HtmlLink }
 }
 
-// SetHtmlLinksRequest contains the message type declaration for SetHtmlLinksRequest.
 export const SetHtmlLinksRequest: MessageType<SetHtmlLinksRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.view.SetHtmlLinksRequest',
     fields: [
       { no: 1, name: 'clear', kind: 'scalar', T: ScalarType.BOOL },
@@ -202,7 +202,7 @@ export const SetHtmlLinksRequest: MessageType<SetHtmlLinksRequest> =
         K: ScalarType.STRING,
         V: { kind: 'message', T: () => HtmlLink },
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -213,13 +213,11 @@ export const SetHtmlLinksRequest: MessageType<SetHtmlLinksRequest> =
  */
 export interface SetHtmlLinksResponse {}
 
-// SetHtmlLinksResponse contains the message type declaration for SetHtmlLinksResponse.
 export const SetHtmlLinksResponse: MessageType<SetHtmlLinksResponse> =
-  createMessageType({
-    typeName: 'web.view.SetHtmlLinksResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetHtmlLinksResponse>(
+    'web.view.SetHtmlLinksResponse',
+    true,
+  )
 
 /**
  * ResetWebViewRequest is a request to reset the web view.
@@ -228,13 +226,11 @@ export const SetHtmlLinksResponse: MessageType<SetHtmlLinksResponse> =
  */
 export interface ResetWebViewRequest {}
 
-// ResetWebViewRequest contains the message type declaration for ResetWebViewRequest.
 export const ResetWebViewRequest: MessageType<ResetWebViewRequest> =
-  createMessageType({
-    typeName: 'web.view.ResetWebViewRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ResetWebViewRequest>(
+    'web.view.ResetWebViewRequest',
+    true,
+  )
 
 /**
  * ResetWebViewResponse is a response to reset the web view.
@@ -243,13 +239,11 @@ export const ResetWebViewRequest: MessageType<ResetWebViewRequest> =
  */
 export interface ResetWebViewResponse {}
 
-// ResetWebViewResponse contains the message type declaration for ResetWebViewResponse.
 export const ResetWebViewResponse: MessageType<ResetWebViewResponse> =
-  createMessageType({
-    typeName: 'web.view.ResetWebViewResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ResetWebViewResponse>(
+    'web.view.ResetWebViewResponse',
+    true,
+  )
 
 /**
  * RemoveWebViewRequest is a request to remove the web view.
@@ -258,13 +252,11 @@ export const ResetWebViewResponse: MessageType<ResetWebViewResponse> =
  */
 export interface RemoveWebViewRequest {}
 
-// RemoveWebViewRequest contains the message type declaration for RemoveWebViewRequest.
 export const RemoveWebViewRequest: MessageType<RemoveWebViewRequest> =
-  createMessageType({
-    typeName: 'web.view.RemoveWebViewRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RemoveWebViewRequest>(
+    'web.view.RemoveWebViewRequest',
+    true,
+  )
 
 /**
  * RemoveWebViewResponse is the response to the RemoveWebView request.
@@ -280,12 +272,11 @@ export interface RemoveWebViewResponse {
   removed?: boolean
 }
 
-// RemoveWebViewResponse contains the message type declaration for RemoveWebViewResponse.
 export const RemoveWebViewResponse: MessageType<RemoveWebViewResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.view.RemoveWebViewResponse',
     fields: [
       { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

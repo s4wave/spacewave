@@ -78,7 +78,7 @@ func TestMain(m *testing.M) {
 		}
 		opts = append(opts, WithTinyGoCore())
 	case E2EWasmCompilerGoScript:
-		opts = append(opts, WithGoScriptCore())
+		opts = append(opts, WithGoScriptBrowserStartup())
 	}
 
 	h, err := Boot(ctx, le, opts...)

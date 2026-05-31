@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/bldr/plugin/host/web/config.proto (package plugin.host.web, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'plugin.host.web'
 
@@ -29,8 +31,7 @@ export interface Config {
   forceDedicatedWorkers?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'plugin.host.web.Config',
   fields: [
     { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
@@ -40,7 +41,7 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'scalar',
       T: ScalarType.BOOL,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -66,17 +67,17 @@ export interface QuickJSConfig {
   forceDedicatedWorkers?: boolean
 }
 
-// QuickJSConfig contains the message type declaration for QuickJSConfig.
-export const QuickJSConfig: MessageType<QuickJSConfig> = createMessageType({
-  typeName: 'plugin.host.web.QuickJSConfig',
-  fields: [
-    { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'force_dedicated_workers',
-      kind: 'scalar',
-      T: ScalarType.BOOL,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const QuickJSConfig: MessageType<QuickJSConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'plugin.host.web.QuickJSConfig',
+    fields: [
+      { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'force_dedicated_workers',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

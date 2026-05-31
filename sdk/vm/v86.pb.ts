@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/sdk/vm/v86.proto (package s4wave.vm, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 's4wave.vm'
@@ -54,14 +53,16 @@ export enum VmState {
   VmState_ERROR = 4,
 }
 
-// VmState_Enum is the enum type for VmState.
-export const VmState_Enum = createEnumType('s4wave.vm.VmState', [
-  { no: 0, name: 'VmState_STOPPED' },
-  { no: 1, name: 'VmState_STARTING' },
-  { no: 2, name: 'VmState_RUNNING' },
-  { no: 3, name: 'VmState_STOPPING' },
-  { no: 4, name: 'VmState_ERROR' },
-])
+export const VmState_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.vm.VmState',
+  [
+    [0, 'VmState_STOPPED'],
+    [1, 'VmState_STARTING'],
+    [2, 'VmState_RUNNING'],
+    [3, 'VmState_STOPPING'],
+    [4, 'VmState_ERROR'],
+  ],
+)
 
 /**
  * VmMount is a v86fs mount bound to a UnixFS object in the Space.
@@ -89,14 +90,13 @@ export interface VmMount {
   writable?: boolean
 }
 
-// VmMount contains the message type declaration for VmMount.
-export const VmMount: MessageType<VmMount> = createMessageType({
+export const VmMount: MessageType<VmMount> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.vm.VmMount',
   fields: [
     { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'writable', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -151,26 +151,31 @@ export interface V86Config {
   runtimePluginId?: string
 }
 
-// V86Config contains the message type declaration for V86Config.
-export const V86Config: MessageType<V86Config> = createMessageType({
-  typeName: 's4wave.vm.V86Config',
-  fields: [
-    { no: 1, name: 'memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 2, name: 'vga_memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'networking', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'serial_enabled', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 5, name: 'boot_args', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 6,
-      name: 'mounts',
-      kind: 'message',
-      T: () => VmMount,
-      repeated: true,
-    },
-    { no: 7, name: 'runtime_plugin_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const V86Config: MessageType<V86Config> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.vm.V86Config',
+    fields: [
+      { no: 1, name: 'memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'vga_memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'networking', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'serial_enabled', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'boot_args', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'mounts',
+        kind: 'message',
+        T: () => VmMount,
+        repeated: true,
+      },
+      {
+        no: 7,
+        name: 'runtime_plugin_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * VmV86 represents an x86 virtual machine instance via v86 emulation.
@@ -222,8 +227,7 @@ export interface VmV86 {
   errorMessage?: string
 }
 
-// VmV86 contains the message type declaration for VmV86.
-export const VmV86: MessageType<VmV86> = createMessageType({
+export const VmV86: MessageType<VmV86> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.vm.VmV86',
   fields: [
     { no: 1, name: 'state', kind: 'enum', T: VmState_Enum },
@@ -231,7 +235,7 @@ export const VmV86: MessageType<VmV86> = createMessageType({
     { no: 3, name: 'config', kind: 'message', T: () => V86Config },
     { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -304,42 +308,42 @@ export interface CreateVmV86Op {
   wasmOverrideObjectKey?: string
 }
 
-// CreateVmV86Op contains the message type declaration for CreateVmV86Op.
-export const CreateVmV86Op: MessageType<CreateVmV86Op> = createMessageType({
-  typeName: 's4wave.vm.CreateVmV86Op',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'config', kind: 'message', T: () => V86Config },
-    { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    { no: 5, name: 'image_object_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 6,
-      name: 'kernel_override_object_key',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    {
-      no: 7,
-      name: 'rootfs_override_object_key',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    {
-      no: 8,
-      name: 'bios_override_object_key',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    {
-      no: 9,
-      name: 'wasm_override_object_key',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CreateVmV86Op: MessageType<CreateVmV86Op> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.vm.CreateVmV86Op',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'config', kind: 'message', T: () => V86Config },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 5, name: 'image_object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'kernel_override_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 7,
+        name: 'rootfs_override_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 8,
+        name: 'bios_override_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 9,
+        name: 'wasm_override_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SetV86ConfigOp mutates the mutable V86Config on an existing VmV86 object.
@@ -362,15 +366,15 @@ export interface SetV86ConfigOp {
   config?: V86Config
 }
 
-// SetV86ConfigOp contains the message type declaration for SetV86ConfigOp.
-export const SetV86ConfigOp: MessageType<SetV86ConfigOp> = createMessageType({
-  typeName: 's4wave.vm.SetV86ConfigOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'config', kind: 'message', T: () => V86Config },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SetV86ConfigOp: MessageType<SetV86ConfigOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.vm.SetV86ConfigOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'config', kind: 'message', T: () => V86Config },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SetV86StateOp transitions the state of an existing VmV86 object.
@@ -400,16 +404,16 @@ export interface SetV86StateOp {
   errorMessage?: string
 }
 
-// SetV86StateOp contains the message type declaration for SetV86StateOp.
-export const SetV86StateOp: MessageType<SetV86StateOp> = createMessageType({
-  typeName: 's4wave.vm.SetV86StateOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'state', kind: 'enum', T: VmState_Enum },
-    { no: 3, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SetV86StateOp: MessageType<SetV86StateOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.vm.SetV86StateOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'state', kind: 'enum', T: VmState_Enum },
+      { no: 3, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,
@@ -477,27 +481,27 @@ export interface V86Image {
   createdAt?: Date
 }
 
-// V86Image contains the message type declaration for V86Image.
-export const V86Image: MessageType<V86Image> = createMessageType({
-  typeName: 's4wave.vm.V86Image',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'platform', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'distro', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'kernel_version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 7,
-      name: 'tags',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 8, name: 'created_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const V86Image: MessageType<V86Image> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.vm.V86Image',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'platform', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'distro', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'kernel_version', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'tags',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 8, name: 'created_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CreateV86ImageOp creates a new V86Image world object. Metadata is supplied
@@ -527,15 +531,14 @@ export interface CreateV86ImageOp {
   timestamp?: Date
 }
 
-// CreateV86ImageOp contains the message type declaration for CreateV86ImageOp.
 export const CreateV86ImageOp: MessageType<CreateV86ImageOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.vm.CreateV86ImageOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'image', kind: 'message', T: () => V86Image },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -562,13 +565,12 @@ export interface SetV86ImageMetadataOp {
   image?: V86Image
 }
 
-// SetV86ImageMetadataOp contains the message type declaration for SetV86ImageMetadataOp.
 export const SetV86ImageMetadataOp: MessageType<SetV86ImageMetadataOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.vm.SetV86ImageMetadataOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'image', kind: 'message', T: () => V86Image },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

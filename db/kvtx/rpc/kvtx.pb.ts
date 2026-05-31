@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/db/kvtx/rpc/kvtx.proto (package kvtx.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'kvtx.rpc'
 
@@ -22,13 +27,12 @@ export interface KvtxTransactionInit {
   write?: boolean
 }
 
-// KvtxTransactionInit contains the message type declaration for KvtxTransactionInit.
 export const KvtxTransactionInit: MessageType<KvtxTransactionInit> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxTransactionInit',
     fields: [
       { no: 1, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -79,9 +83,8 @@ export interface KvtxTransactionRequest {
       }
 }
 
-// KvtxTransactionRequest contains the message type declaration for KvtxTransactionRequest.
 export const KvtxTransactionRequest: MessageType<KvtxTransactionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxTransactionRequest',
     fields: [
       {
@@ -105,7 +108,7 @@ export const KvtxTransactionRequest: MessageType<KvtxTransactionRequest> =
         T: ScalarType.BOOL,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -130,14 +133,13 @@ export interface KvtxTransactionAck {
   transactionId?: string
 }
 
-// KvtxTransactionAck contains the message type declaration for KvtxTransactionAck.
 export const KvtxTransactionAck: MessageType<KvtxTransactionAck> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxTransactionAck',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'transaction_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -170,15 +172,14 @@ export interface KvtxTransactionComplete {
   discarded?: boolean
 }
 
-// KvtxTransactionComplete contains the message type declaration for KvtxTransactionComplete.
 export const KvtxTransactionComplete: MessageType<KvtxTransactionComplete> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxTransactionComplete',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'committed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'discarded', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -220,9 +221,8 @@ export interface KvtxTransactionResponse {
       }
 }
 
-// KvtxTransactionResponse contains the message type declaration for KvtxTransactionResponse.
 export const KvtxTransactionResponse: MessageType<KvtxTransactionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxTransactionResponse',
     fields: [
       {
@@ -239,7 +239,7 @@ export const KvtxTransactionResponse: MessageType<KvtxTransactionResponse> =
         T: () => KvtxTransactionComplete,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -250,12 +250,11 @@ export const KvtxTransactionResponse: MessageType<KvtxTransactionResponse> =
  */
 export interface KeyCountRequest {}
 
-// KeyCountRequest contains the message type declaration for KeyCountRequest.
-export const KeyCountRequest: MessageType<KeyCountRequest> = createMessageType({
-  typeName: 'kvtx.rpc.KeyCountRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const KeyCountRequest: MessageType<KeyCountRequest> =
+  /* @__PURE__ */ createEmptyMessageType<KeyCountRequest>(
+    'kvtx.rpc.KeyCountRequest',
+    true,
+  )
 
 /**
  * KeyCountResponse is a response to the KeyCountRequest.
@@ -271,13 +270,12 @@ export interface KeyCountResponse {
   keyCount?: bigint
 }
 
-// KeyCountResponse contains the message type declaration for KeyCountResponse.
 export const KeyCountResponse: MessageType<KeyCountResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KeyCountResponse',
     fields: [
       { no: 1, name: 'key_count', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -295,14 +293,14 @@ export interface KvtxKeyRequest {
   key?: Uint8Array
 }
 
-// KvtxKeyRequest contains the message type declaration for KvtxKeyRequest.
-export const KvtxKeyRequest: MessageType<KvtxKeyRequest> = createMessageType({
-  typeName: 'kvtx.rpc.KvtxKeyRequest',
-  fields: [
-    { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const KvtxKeyRequest: MessageType<KvtxKeyRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'kvtx.rpc.KvtxKeyRequest',
+    fields: [
+      { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * KvtxKeyDataResponse responds to a request for data from a KvtxOps store.
@@ -331,15 +329,14 @@ export interface KvtxKeyDataResponse {
   data?: Uint8Array
 }
 
-// KvtxKeyDataResponse contains the message type declaration for KvtxKeyDataResponse.
 export const KvtxKeyDataResponse: MessageType<KvtxKeyDataResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxKeyDataResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -364,14 +361,13 @@ export interface KvtxKeyExistsResponse {
   found?: boolean
 }
 
-// KvtxKeyExistsResponse contains the message type declaration for KvtxKeyExistsResponse.
 export const KvtxKeyExistsResponse: MessageType<KvtxKeyExistsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxKeyExistsResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -395,14 +391,13 @@ export interface KvtxSetKeyRequest {
   value?: Uint8Array
 }
 
-// KvtxSetKeyRequest contains the message type declaration for KvtxSetKeyRequest.
 export const KvtxSetKeyRequest: MessageType<KvtxSetKeyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxSetKeyRequest',
     fields: [
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -421,13 +416,12 @@ export interface KvtxSetKeyResponse {
   error?: string
 }
 
-// KvtxSetKeyResponse contains the message type declaration for KvtxSetKeyResponse.
 export const KvtxSetKeyResponse: MessageType<KvtxSetKeyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxSetKeyResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -445,13 +439,12 @@ export interface KvtxDeleteKeyRequest {
   key?: Uint8Array
 }
 
-// KvtxDeleteKeyRequest contains the message type declaration for KvtxDeleteKeyRequest.
 export const KvtxDeleteKeyRequest: MessageType<KvtxDeleteKeyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxDeleteKeyRequest',
     fields: [
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -470,13 +463,12 @@ export interface KvtxDeleteKeyResponse {
   error?: string
 }
 
-// KvtxDeleteKeyResponse contains the message type declaration for KvtxDeleteKeyResponse.
 export const KvtxDeleteKeyResponse: MessageType<KvtxDeleteKeyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxDeleteKeyResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -501,14 +493,13 @@ export interface KvtxScanPrefixRequest {
   onlyKeys?: boolean
 }
 
-// KvtxScanPrefixRequest contains the message type declaration for KvtxScanPrefixRequest.
 export const KvtxScanPrefixRequest: MessageType<KvtxScanPrefixRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxScanPrefixRequest',
     fields: [
       { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'only_keys', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -539,15 +530,14 @@ export interface KvtxScanPrefixResponse {
   value?: Uint8Array
 }
 
-// KvtxScanPrefixResponse contains the message type declaration for KvtxScanPrefixResponse.
 export const KvtxScanPrefixResponse: MessageType<KvtxScanPrefixResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxScanPrefixResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -577,16 +567,16 @@ export interface KvtxIterateInit {
   reverse?: boolean
 }
 
-// KvtxIterateInit contains the message type declaration for KvtxIterateInit.
-export const KvtxIterateInit: MessageType<KvtxIterateInit> = createMessageType({
-  typeName: 'kvtx.rpc.KvtxIterateInit',
-  fields: [
-    { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'sort', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'reverse', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const KvtxIterateInit: MessageType<KvtxIterateInit> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'kvtx.rpc.KvtxIterateInit',
+    fields: [
+      { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'sort', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'reverse', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * KvtxIterateRequest is a request to open an iterator on a kvtx store.
@@ -661,9 +651,8 @@ export interface KvtxIterateRequest {
       }
 }
 
-// KvtxIterateRequest contains the message type declaration for KvtxIterateRequest.
 export const KvtxIterateRequest: MessageType<KvtxIterateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxIterateRequest',
     fields: [
       {
@@ -708,7 +697,7 @@ export const KvtxIterateRequest: MessageType<KvtxIterateRequest> =
         T: ScalarType.BOOL,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -739,15 +728,14 @@ export interface KvtxIterateStatus {
   key?: Uint8Array
 }
 
-// KvtxIterateStatus contains the message type declaration for KvtxIterateStatus.
 export const KvtxIterateStatus: MessageType<KvtxIterateStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxIterateStatus',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -815,9 +803,8 @@ export interface KvtxIterateResponse {
       }
 }
 
-// KvtxIterateResponse contains the message type declaration for KvtxIterateResponse.
 export const KvtxIterateResponse: MessageType<KvtxIterateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'kvtx.rpc.KvtxIterateResponse',
     fields: [
       { no: 1, name: 'ack', kind: 'scalar', T: ScalarType.BOOL, oneof: 'body' },
@@ -849,6 +836,6 @@ export const KvtxIterateResponse: MessageType<KvtxIterateResponse> =
         T: ScalarType.BOOL,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

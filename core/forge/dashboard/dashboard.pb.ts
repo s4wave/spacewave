@@ -2,9 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/core/forge/dashboard/dashboard.proto (package s4wave.forge.dashboard, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.forge.dashboard'
 
@@ -29,15 +31,15 @@ export interface ForgeDashboard {
   createdAt?: Date
 }
 
-// ForgeDashboard contains the message type declaration for ForgeDashboard.
-export const ForgeDashboard: MessageType<ForgeDashboard> = createMessageType({
-  typeName: 's4wave.forge.dashboard.ForgeDashboard',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ForgeDashboard: MessageType<ForgeDashboard> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.forge.dashboard.ForgeDashboard',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CreateForgeDashboardOp creates a new ForgeDashboard world object.
@@ -65,15 +67,14 @@ export interface CreateForgeDashboardOp {
   timestamp?: Date
 }
 
-// CreateForgeDashboardOp contains the message type declaration for CreateForgeDashboardOp.
 export const CreateForgeDashboardOp: MessageType<CreateForgeDashboardOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.forge.dashboard.CreateForgeDashboardOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -97,14 +98,13 @@ export interface LinkForgeDashboardOp {
   entityKey?: string
 }
 
-// LinkForgeDashboardOp contains the message type declaration for LinkForgeDashboardOp.
 export const LinkForgeDashboardOp: MessageType<LinkForgeDashboardOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.forge.dashboard.LinkForgeDashboardOp',
     fields: [
       { no: 1, name: 'dashboard_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entity_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -162,9 +162,8 @@ export interface InitForgeQuickstartOp {
   sessionPeerId?: string
 }
 
-// InitForgeQuickstartOp contains the message type declaration for InitForgeQuickstartOp.
 export const InitForgeQuickstartOp: MessageType<InitForgeQuickstartOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.forge.dashboard.InitForgeQuickstartOp',
     fields: [
       { no: 1, name: 'layout_key', kind: 'scalar', T: ScalarType.STRING },
@@ -174,6 +173,6 @@ export const InitForgeQuickstartOp: MessageType<InitForgeQuickstartOp> =
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
       { no: 6, name: 'worker_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

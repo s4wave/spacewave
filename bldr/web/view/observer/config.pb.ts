@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/view/observer/config.proto (package bldr.web.view.observer, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
 export const protobufPackage = 'bldr.web.view.observer'
 
@@ -16,9 +16,8 @@ export const protobufPackage = 'bldr.web.view.observer'
  */
 export interface Config {}
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'bldr.web.view.observer.Config',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createEmptyMessageType<Config>(
+    'bldr.web.view.observer.Config',
+    true,
+  )

@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/db/block/gc/rpc/refgraph.proto (package block.gc.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'block.gc.rpc'
 
@@ -27,15 +32,15 @@ export interface AddRefRequest {
   object?: string
 }
 
-// AddRefRequest contains the message type declaration for AddRefRequest.
-export const AddRefRequest: MessageType<AddRefRequest> = createMessageType({
-  typeName: 'block.gc.rpc.AddRefRequest',
-  fields: [
-    { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AddRefRequest: MessageType<AddRefRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.gc.rpc.AddRefRequest',
+    fields: [
+      { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * AddRefResponse is the response to adding a gc/ref edge.
@@ -51,14 +56,14 @@ export interface AddRefResponse {
   error?: string
 }
 
-// AddRefResponse contains the message type declaration for AddRefResponse.
-export const AddRefResponse: MessageType<AddRefResponse> = createMessageType({
-  typeName: 'block.gc.rpc.AddRefResponse',
-  fields: [
-    { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AddRefResponse: MessageType<AddRefResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.gc.rpc.AddRefResponse',
+    fields: [
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RemoveRefRequest is a request to remove a gc/ref edge.
@@ -80,14 +85,13 @@ export interface RemoveRefRequest {
   object?: string
 }
 
-// RemoveRefRequest contains the message type declaration for RemoveRefRequest.
 export const RemoveRefRequest: MessageType<RemoveRefRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.RemoveRefRequest',
     fields: [
       { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -105,13 +109,12 @@ export interface RemoveRefResponse {
   error?: string
 }
 
-// RemoveRefResponse contains the message type declaration for RemoveRefResponse.
 export const RemoveRefResponse: MessageType<RemoveRefResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.RemoveRefResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -136,14 +139,13 @@ export interface RemoveNodeRefsRequest {
   markOrphaned?: boolean
 }
 
-// RemoveNodeRefsRequest contains the message type declaration for RemoveNodeRefsRequest.
 export const RemoveNodeRefsRequest: MessageType<RemoveNodeRefsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.RemoveNodeRefsRequest',
     fields: [
       { no: 1, name: 'node', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'mark_orphaned', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -167,9 +169,8 @@ export interface RemoveNodeRefsResponse {
   error?: string
 }
 
-// RemoveNodeRefsResponse contains the message type declaration for RemoveNodeRefsResponse.
 export const RemoveNodeRefsResponse: MessageType<RemoveNodeRefsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.RemoveNodeRefsResponse',
     fields: [
       {
@@ -180,7 +181,7 @@ export const RemoveNodeRefsResponse: MessageType<RemoveNodeRefsResponse> =
         repeated: true,
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -198,13 +199,12 @@ export interface HasIncomingRefsRequest {
   node?: string
 }
 
-// HasIncomingRefsRequest contains the message type declaration for HasIncomingRefsRequest.
 export const HasIncomingRefsRequest: MessageType<HasIncomingRefsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.HasIncomingRefsRequest',
     fields: [
       { no: 1, name: 'node', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -228,14 +228,13 @@ export interface HasIncomingRefsResponse {
   error?: string
 }
 
-// HasIncomingRefsResponse contains the message type declaration for HasIncomingRefsResponse.
 export const HasIncomingRefsResponse: MessageType<HasIncomingRefsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.HasIncomingRefsResponse',
     fields: [
       { no: 1, name: 'has_refs', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -253,13 +252,12 @@ export interface GetOutgoingRefsRequest {
   node?: string
 }
 
-// GetOutgoingRefsRequest contains the message type declaration for GetOutgoingRefsRequest.
 export const GetOutgoingRefsRequest: MessageType<GetOutgoingRefsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.GetOutgoingRefsRequest',
     fields: [
       { no: 1, name: 'node', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -283,9 +281,8 @@ export interface GetOutgoingRefsResponse {
   error?: string
 }
 
-// GetOutgoingRefsResponse contains the message type declaration for GetOutgoingRefsResponse.
 export const GetOutgoingRefsResponse: MessageType<GetOutgoingRefsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.GetOutgoingRefsResponse',
     fields: [
       {
@@ -296,7 +293,7 @@ export const GetOutgoingRefsResponse: MessageType<GetOutgoingRefsResponse> =
         repeated: true,
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -314,13 +311,12 @@ export interface GetIncomingRefsRequest {
   node?: string
 }
 
-// GetIncomingRefsRequest contains the message type declaration for GetIncomingRefsRequest.
 export const GetIncomingRefsRequest: MessageType<GetIncomingRefsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.GetIncomingRefsRequest',
     fields: [
       { no: 1, name: 'node', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -344,9 +340,8 @@ export interface GetIncomingRefsResponse {
   error?: string
 }
 
-// GetIncomingRefsResponse contains the message type declaration for GetIncomingRefsResponse.
 export const GetIncomingRefsResponse: MessageType<GetIncomingRefsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.GetIncomingRefsResponse',
     fields: [
       {
@@ -357,7 +352,7 @@ export const GetIncomingRefsResponse: MessageType<GetIncomingRefsResponse> =
         repeated: true,
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -368,13 +363,11 @@ export const GetIncomingRefsResponse: MessageType<GetIncomingRefsResponse> =
  */
 export interface GetUnreferencedNodesRequest {}
 
-// GetUnreferencedNodesRequest contains the message type declaration for GetUnreferencedNodesRequest.
 export const GetUnreferencedNodesRequest: MessageType<GetUnreferencedNodesRequest> =
-  createMessageType({
-    typeName: 'block.gc.rpc.GetUnreferencedNodesRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetUnreferencedNodesRequest>(
+    'block.gc.rpc.GetUnreferencedNodesRequest',
+    true,
+  )
 
 /**
  * GetUnreferencedNodesResponse is the response to getting unreferenced nodes.
@@ -396,9 +389,8 @@ export interface GetUnreferencedNodesResponse {
   error?: string
 }
 
-// GetUnreferencedNodesResponse contains the message type declaration for GetUnreferencedNodesResponse.
 export const GetUnreferencedNodesResponse: MessageType<GetUnreferencedNodesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.GetUnreferencedNodesResponse',
     fields: [
       {
@@ -409,6 +401,6 @@ export const GetUnreferencedNodesResponse: MessageType<GetUnreferencedNodesRespo
         repeated: true,
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

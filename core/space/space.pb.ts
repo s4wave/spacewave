@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/space/space.proto (package space, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SharedObjectListEntry } from '../sobject/sobject.pb.js'
 
 export const protobufPackage = 'space'
@@ -22,14 +24,14 @@ export interface SpaceSoMeta {
   name?: string
 }
 
-// SpaceSoMeta contains the message type declaration for SpaceSoMeta.
-export const SpaceSoMeta: MessageType<SpaceSoMeta> = createMessageType({
-  typeName: 'space.SpaceSoMeta',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SpaceSoMeta: MessageType<SpaceSoMeta> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.SpaceSoMeta',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SpaceSoListEntry is a SharedObjectListEntry with parsed metadata.
@@ -51,13 +53,12 @@ export interface SpaceSoListEntry {
   spaceMeta?: SpaceSoMeta
 }
 
-// SpaceSoListEntry contains the message type declaration for SpaceSoListEntry.
 export const SpaceSoListEntry: MessageType<SpaceSoListEntry> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'space.SpaceSoListEntry',
     fields: [
       { no: 1, name: 'entry', kind: 'message', T: () => SharedObjectListEntry },
       { no: 2, name: 'space_meta', kind: 'message', T: () => SpaceSoMeta },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

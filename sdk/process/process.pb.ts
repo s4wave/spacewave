@@ -2,13 +2,15 @@
 // @generated from file github.com/s4wave/spacewave/sdk/process/process.proto (package s4wave.process, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.process'
 
@@ -54,15 +56,14 @@ export enum ExecutionState {
   ExecutionState_ERROR = 4,
 }
 
-// ExecutionState_Enum is the enum type for ExecutionState.
-export const ExecutionState_Enum = createEnumType(
+export const ExecutionState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.process.ExecutionState',
   [
-    { no: 0, name: 'ExecutionState_STARTING' },
-    { no: 1, name: 'ExecutionState_RUNNING' },
-    { no: 2, name: 'ExecutionState_STOPPING' },
-    { no: 3, name: 'ExecutionState_STOPPED' },
-    { no: 4, name: 'ExecutionState_ERROR' },
+    [0, 'ExecutionState_STARTING'],
+    [1, 'ExecutionState_RUNNING'],
+    [2, 'ExecutionState_STOPPING'],
+    [3, 'ExecutionState_STOPPED'],
+    [4, 'ExecutionState_ERROR'],
   ],
 )
 
@@ -73,12 +74,11 @@ export const ExecutionState_Enum = createEnumType(
  */
 export interface ExecuteRequest {}
 
-// ExecuteRequest contains the message type declaration for ExecuteRequest.
-export const ExecuteRequest: MessageType<ExecuteRequest> = createMessageType({
-  typeName: 's4wave.process.ExecuteRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ExecuteRequest: MessageType<ExecuteRequest> =
+  /* @__PURE__ */ createEmptyMessageType<ExecuteRequest>(
+    's4wave.process.ExecuteRequest',
+    true,
+  )
 
 /**
  * ExecuteStatus is a status update from a running process.
@@ -106,13 +106,13 @@ export interface ExecuteStatus {
   timestamp?: Date
 }
 
-// ExecuteStatus contains the message type declaration for ExecuteStatus.
-export const ExecuteStatus: MessageType<ExecuteStatus> = createMessageType({
-  typeName: 's4wave.process.ExecuteStatus',
-  fields: [
-    { no: 1, name: 'state', kind: 'enum', T: ExecutionState_Enum },
-    { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ExecuteStatus: MessageType<ExecuteStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.process.ExecuteStatus',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: ExecutionState_Enum },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

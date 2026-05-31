@@ -2,9 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/chat/rpc/rpc.proto (package spacewave.chat.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'spacewave.chat.rpc'
 
@@ -46,18 +51,18 @@ export interface ChatMessageInfo {
   replyToKey?: string
 }
 
-// ChatMessageInfo contains the message type declaration for ChatMessageInfo.
-export const ChatMessageInfo: MessageType<ChatMessageInfo> = createMessageType({
-  typeName: 'spacewave.chat.rpc.ChatMessageInfo',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'sender_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'text', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
-    { no: 5, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ChatMessageInfo: MessageType<ChatMessageInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.rpc.ChatMessageInfo',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'sender_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'text', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
+      { no: 5, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetChannelInfoRequest is a request for channel info.
@@ -66,13 +71,11 @@ export const ChatMessageInfo: MessageType<ChatMessageInfo> = createMessageType({
  */
 export interface GetChannelInfoRequest {}
 
-// GetChannelInfoRequest contains the message type declaration for GetChannelInfoRequest.
 export const GetChannelInfoRequest: MessageType<GetChannelInfoRequest> =
-  createMessageType({
-    typeName: 'spacewave.chat.rpc.GetChannelInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetChannelInfoRequest>(
+    'spacewave.chat.rpc.GetChannelInfoRequest',
+    true,
+  )
 
 /**
  * GetChannelInfoResponse contains channel metadata.
@@ -94,14 +97,13 @@ export interface GetChannelInfoResponse {
   topic?: string
 }
 
-// GetChannelInfoResponse contains the message type declaration for GetChannelInfoResponse.
 export const GetChannelInfoResponse: MessageType<GetChannelInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.chat.rpc.GetChannelInfoResponse',
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'topic', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -125,14 +127,13 @@ export interface ListMessagesRequest {
   limit?: number
 }
 
-// ListMessagesRequest contains the message type declaration for ListMessagesRequest.
 export const ListMessagesRequest: MessageType<ListMessagesRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.chat.rpc.ListMessagesRequest',
     fields: [
       { no: 1, name: 'before_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -156,9 +157,8 @@ export interface ListMessagesResponse {
   hasMore?: boolean
 }
 
-// ListMessagesResponse contains the message type declaration for ListMessagesResponse.
 export const ListMessagesResponse: MessageType<ListMessagesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.chat.rpc.ListMessagesResponse',
     fields: [
       {
@@ -169,7 +169,7 @@ export const ListMessagesResponse: MessageType<ListMessagesResponse> =
         repeated: true,
       },
       { no: 2, name: 'has_more', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -180,13 +180,11 @@ export const ListMessagesResponse: MessageType<ListMessagesResponse> =
  */
 export interface WatchMessagesRequest {}
 
-// WatchMessagesRequest contains the message type declaration for WatchMessagesRequest.
 export const WatchMessagesRequest: MessageType<WatchMessagesRequest> =
-  createMessageType({
-    typeName: 'spacewave.chat.rpc.WatchMessagesRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchMessagesRequest>(
+    'spacewave.chat.rpc.WatchMessagesRequest',
+    true,
+  )
 
 /**
  * WatchMessagesResponse contains a batch of new messages.
@@ -202,9 +200,8 @@ export interface WatchMessagesResponse {
   messages?: ChatMessageInfo[]
 }
 
-// WatchMessagesResponse contains the message type declaration for WatchMessagesResponse.
 export const WatchMessagesResponse: MessageType<WatchMessagesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.chat.rpc.WatchMessagesResponse',
     fields: [
       {
@@ -214,7 +211,7 @@ export const WatchMessagesResponse: MessageType<WatchMessagesResponse> =
         T: () => ChatMessageInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -238,14 +235,13 @@ export interface SendMessageRequest {
   replyToKey?: string
 }
 
-// SendMessageRequest contains the message type declaration for SendMessageRequest.
 export const SendMessageRequest: MessageType<SendMessageRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.chat.rpc.SendMessageRequest',
     fields: [
       { no: 1, name: 'text', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -263,12 +259,11 @@ export interface SendMessageResponse {
   messageKey?: string
 }
 
-// SendMessageResponse contains the message type declaration for SendMessageResponse.
 export const SendMessageResponse: MessageType<SendMessageResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.chat.rpc.SendMessageResponse',
     fields: [
       { no: 1, name: 'message_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

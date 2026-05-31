@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/net/tptaddr/static/static.proto (package tptaddr.static, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'tptaddr.static'
 
@@ -26,8 +28,7 @@ export interface Config {
   addresses?: string[]
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'tptaddr.static.Config',
   fields: [
     {
@@ -37,6 +38,6 @@ export const Config: MessageType<Config> = createMessageType({
       T: ScalarType.STRING,
       repeated: true,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

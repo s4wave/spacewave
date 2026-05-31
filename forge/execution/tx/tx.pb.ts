@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/forge/execution/tx/tx.proto (package execution.tx, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Result, Value } from '../../value/value.pb.js'
 import { LogEntry } from '../execution.pb.js'
 
@@ -53,14 +52,16 @@ export enum TxType {
   TxType_APPEND_LOG = 4,
 }
 
-// TxType_Enum is the enum type for TxType.
-export const TxType_Enum = createEnumType('execution.tx.TxType', [
-  { no: 0, name: 'TxType_INVALID' },
-  { no: 1, name: 'TxType_START' },
-  { no: 2, name: 'TxType_SET_OUTPUTS' },
-  { no: 3, name: 'TxType_COMPLETE' },
-  { no: 4, name: 'TxType_APPEND_LOG' },
-])
+export const TxType_Enum = /* @__PURE__ */ createEnumType(
+  'execution.tx.TxType',
+  [
+    [0, 'TxType_INVALID'],
+    [1, 'TxType_START'],
+    [2, 'TxType_SET_OUTPUTS'],
+    [3, 'TxType_COMPLETE'],
+    [4, 'TxType_APPEND_LOG'],
+  ],
+)
 
 /**
  * TxStart starts the execution with a peer id.
@@ -80,12 +81,11 @@ export interface TxStart {
   peerId?: string
 }
 
-// TxStart contains the message type declaration for TxStart.
-export const TxStart: MessageType<TxStart> = createMessageType({
+export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
   typeName: 'execution.tx.TxStart',
   fields: [
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -112,15 +112,21 @@ export interface TxSetOutputs {
   clearOld?: boolean
 }
 
-// TxSetOutputs contains the message type declaration for TxSetOutputs.
-export const TxSetOutputs: MessageType<TxSetOutputs> = createMessageType({
-  typeName: 'execution.tx.TxSetOutputs',
-  fields: [
-    { no: 1, name: 'outputs', kind: 'message', T: () => Value, repeated: true },
-    { no: 2, name: 'clear_old', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxSetOutputs: MessageType<TxSetOutputs> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'execution.tx.TxSetOutputs',
+    fields: [
+      {
+        no: 1,
+        name: 'outputs',
+        kind: 'message',
+        T: () => Value,
+        repeated: true,
+      },
+      { no: 2, name: 'clear_old', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxComplete completes the execution by setting the result.
@@ -139,14 +145,14 @@ export interface TxComplete {
   result?: Result
 }
 
-// TxComplete contains the message type declaration for TxComplete.
-export const TxComplete: MessageType<TxComplete> = createMessageType({
-  typeName: 'execution.tx.TxComplete',
-  fields: [
-    { no: 1, name: 'result', kind: 'message', T: () => Result },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxComplete: MessageType<TxComplete> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'execution.tx.TxComplete',
+    fields: [
+      { no: 1, name: 'result', kind: 'message', T: () => Result },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxAppendLog appends log entries to the execution.
@@ -165,20 +171,20 @@ export interface TxAppendLog {
   entries?: LogEntry[]
 }
 
-// TxAppendLog contains the message type declaration for TxAppendLog.
-export const TxAppendLog: MessageType<TxAppendLog> = createMessageType({
-  typeName: 'execution.tx.TxAppendLog',
-  fields: [
-    {
-      no: 1,
-      name: 'entries',
-      kind: 'message',
-      T: () => LogEntry,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxAppendLog: MessageType<TxAppendLog> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'execution.tx.TxAppendLog',
+    fields: [
+      {
+        no: 1,
+        name: 'entries',
+        kind: 'message',
+        T: () => LogEntry,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Tx is the on-the-wire representation of a transaction.
@@ -222,8 +228,7 @@ export interface Tx {
   txAppendLog?: TxAppendLog
 }
 
-// Tx contains the message type declaration for Tx.
-export const Tx: MessageType<Tx> = createMessageType({
+export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
   typeName: 'execution.tx.Tx',
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
@@ -231,6 +236,6 @@ export const Tx: MessageType<Tx> = createMessageType({
     { no: 3, name: 'tx_set_outputs', kind: 'message', T: () => TxSetOutputs },
     { no: 4, name: 'tx_complete', kind: 'message', T: () => TxComplete },
     { no: 5, name: 'tx_append_log', kind: 'message', T: () => TxAppendLog },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

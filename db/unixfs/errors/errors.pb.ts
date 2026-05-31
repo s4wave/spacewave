@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/db/unixfs/errors/errors.proto (package unixfs.errors, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'unixfs.errors'
 
@@ -172,32 +171,31 @@ export enum UnixFSErrorType {
   EOF = 20,
 }
 
-// UnixFSErrorType_Enum is the enum type for UnixFSErrorType.
-export const UnixFSErrorType_Enum = createEnumType(
+export const UnixFSErrorType_Enum = /* @__PURE__ */ createEnumType(
   'unixfs.errors.UnixFSErrorType',
   [
-    { no: 0, name: 'NONE' },
-    { no: 1, name: 'OTHER' },
-    { no: 2, name: 'FS_NOT_FOUND' },
-    { no: 3, name: 'EXIST' },
-    { no: 4, name: 'NOT_EXIST' },
-    { no: 5, name: 'CLOSED' },
-    { no: 6, name: 'READ_ONLY' },
-    { no: 7, name: 'RELEASED' },
-    { no: 8, name: 'NOT_DIRECTORY' },
-    { no: 9, name: 'NOT_FILE' },
-    { no: 10, name: 'OUT_OF_BOUNDS' },
-    { no: 11, name: 'EMPTY_PATH' },
-    { no: 12, name: 'ABSOLUTE_PATH' },
-    { no: 13, name: 'INODE_UNRESOLVABLE' },
-    { no: 14, name: 'NOT_SYMLINK' },
-    { no: 15, name: 'EMPTY_TIMESTAMP' },
-    { no: 16, name: 'MOVE_TO_SELF' },
-    { no: 17, name: 'INVALID_WRITE' },
-    { no: 18, name: 'EMPTY_UNIXFS_ID' },
-    { no: 21, name: 'CROSS_FS_RENAME' },
-    { no: 19, name: 'CONTEXT_CANCELED' },
-    { no: 20, name: 'EOF' },
+    [0, 'NONE'],
+    [1, 'OTHER'],
+    [2, 'FS_NOT_FOUND'],
+    [3, 'EXIST'],
+    [4, 'NOT_EXIST'],
+    [5, 'CLOSED'],
+    [6, 'READ_ONLY'],
+    [7, 'RELEASED'],
+    [8, 'NOT_DIRECTORY'],
+    [9, 'NOT_FILE'],
+    [10, 'OUT_OF_BOUNDS'],
+    [11, 'EMPTY_PATH'],
+    [12, 'ABSOLUTE_PATH'],
+    [13, 'INODE_UNRESOLVABLE'],
+    [14, 'NOT_SYMLINK'],
+    [15, 'EMPTY_TIMESTAMP'],
+    [16, 'MOVE_TO_SELF'],
+    [17, 'INVALID_WRITE'],
+    [18, 'EMPTY_UNIXFS_ID'],
+    [21, 'CROSS_FS_RENAME'],
+    [19, 'CONTEXT_CANCELED'],
+    [20, 'EOF'],
   ],
 )
 
@@ -224,12 +222,12 @@ export interface UnixFSError {
   errorBody?: string
 }
 
-// UnixFSError contains the message type declaration for UnixFSError.
-export const UnixFSError: MessageType<UnixFSError> = createMessageType({
-  typeName: 'unixfs.errors.UnixFSError',
-  fields: [
-    { no: 1, name: 'error_type', kind: 'enum', T: UnixFSErrorType_Enum },
-    { no: 2, name: 'error_body', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const UnixFSError: MessageType<UnixFSError> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.errors.UnixFSError',
+    fields: [
+      { no: 1, name: 'error_type', kind: 'enum', T: UnixFSErrorType_Enum },
+      { no: 2, name: 'error_body', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

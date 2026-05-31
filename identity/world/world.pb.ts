@@ -3,8 +3,9 @@
 /* eslint-disable */
 
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'identity.world'
 
@@ -26,14 +27,14 @@ export interface EntityUpdateOp {
   entityRef?: ObjectRef
 }
 
-// EntityUpdateOp contains the message type declaration for EntityUpdateOp.
-export const EntityUpdateOp: MessageType<EntityUpdateOp> = createMessageType({
-  typeName: 'identity.world.EntityUpdateOp',
-  fields: [
-    { no: 1, name: 'entity_ref', kind: 'message', T: () => ObjectRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EntityUpdateOp: MessageType<EntityUpdateOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'identity.world.EntityUpdateOp',
+    fields: [
+      { no: 1, name: 'entity_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * KeypairUpdateOp updates a Keypair.
@@ -49,14 +50,14 @@ export interface KeypairUpdateOp {
   keypairRef?: ObjectRef
 }
 
-// KeypairUpdateOp contains the message type declaration for KeypairUpdateOp.
-export const KeypairUpdateOp: MessageType<KeypairUpdateOp> = createMessageType({
-  typeName: 'identity.world.KeypairUpdateOp',
-  fields: [
-    { no: 1, name: 'keypair_ref', kind: 'message', T: () => ObjectRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const KeypairUpdateOp: MessageType<KeypairUpdateOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'identity.world.KeypairUpdateOp',
+    fields: [
+      { no: 1, name: 'keypair_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DomainInfoUpdateOp updates a DomainInfo.
@@ -72,12 +73,11 @@ export interface DomainInfoUpdateOp {
   domainInfoRef?: ObjectRef
 }
 
-// DomainInfoUpdateOp contains the message type declaration for DomainInfoUpdateOp.
 export const DomainInfoUpdateOp: MessageType<DomainInfoUpdateOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'identity.world.DomainInfoUpdateOp',
     fields: [
       { no: 1, name: 'domain_info_ref', kind: 'message', T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

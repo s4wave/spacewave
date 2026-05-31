@@ -3,9 +3,11 @@
 /* eslint-disable */
 
 import { LayoutModel } from '../layout.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectInfo } from '../../../web/object/object.pb.js'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 's4wave.layout.world'
 
@@ -25,14 +27,14 @@ export interface ObjectLayout {
   layoutModel?: LayoutModel
 }
 
-// ObjectLayout contains the message type declaration for ObjectLayout.
-export const ObjectLayout: MessageType<ObjectLayout> = createMessageType({
-  typeName: 's4wave.layout.world.ObjectLayout',
-  fields: [
-    { no: 1, name: 'layout_model', kind: 'message', T: () => LayoutModel },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ObjectLayout: MessageType<ObjectLayout> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.world.ObjectLayout',
+    fields: [
+      { no: 1, name: 'layout_model', kind: 'message', T: () => LayoutModel },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ObjectLayoutTab contains data stored in the ObjectLayout TabDef.
@@ -62,16 +64,16 @@ export interface ObjectLayoutTab {
   path?: string
 }
 
-// ObjectLayoutTab contains the message type declaration for ObjectLayoutTab.
-export const ObjectLayoutTab: MessageType<ObjectLayoutTab> = createMessageType({
-  typeName: 's4wave.layout.world.ObjectLayoutTab',
-  fields: [
-    { no: 1, name: 'component_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'object_info', kind: 'message', T: () => ObjectInfo },
-    { no: 3, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ObjectLayoutTab: MessageType<ObjectLayoutTab> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.world.ObjectLayoutTab',
+    fields: [
+      { no: 1, name: 'component_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'object_info', kind: 'message', T: () => ObjectInfo },
+      { no: 3, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CreateObjectLayoutOp creates an ObjectLayout.
@@ -89,9 +91,8 @@ export interface CreateObjectLayoutOp {
   objectLayoutKey?: string
 }
 
-// CreateObjectLayoutOp contains the message type declaration for CreateObjectLayoutOp.
 export const CreateObjectLayoutOp: MessageType<CreateObjectLayoutOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.layout.world.CreateObjectLayoutOp',
     fields: [
       {
@@ -100,7 +101,7 @@ export const CreateObjectLayoutOp: MessageType<CreateObjectLayoutOp> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -125,9 +126,8 @@ export interface UpdateObjectLayoutOp {
   layoutModel?: LayoutModel
 }
 
-// UpdateObjectLayoutOp contains the message type declaration for UpdateObjectLayoutOp.
 export const UpdateObjectLayoutOp: MessageType<UpdateObjectLayoutOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.layout.world.UpdateObjectLayoutOp',
     fields: [
       {
@@ -137,6 +137,6 @@ export const UpdateObjectLayoutOp: MessageType<UpdateObjectLayoutOp> =
         T: ScalarType.STRING,
       },
       { no: 2, name: 'layout_model', kind: 'message', T: () => LayoutModel },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

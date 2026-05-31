@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { Config as Config$1 } from '../../../../db/block/transform/transform.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SharedObjectRef } from '../../sobject.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import { ObjectRef } from '../../../../db/bucket/bucket.pb.js'
@@ -35,15 +37,20 @@ export interface InitWorldOp {
   transformConf?: Config$1
 }
 
-// InitWorldOp contains the message type declaration for InitWorldOp.
-export const InitWorldOp: MessageType<InitWorldOp> = createMessageType({
-  typeName: 'sobject.world.engine.InitWorldOp',
-  fields: [
-    { no: 1, name: 'last_change_disable', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 2, name: 'transform_conf', kind: 'message', T: () => Config$1 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const InitWorldOp: MessageType<InitWorldOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.InitWorldOp',
+    fields: [
+      {
+        no: 1,
+        name: 'last_change_disable',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+      { no: 2, name: 'transform_conf', kind: 'message', T: () => Config$1 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config configures a World Graph engine bound to a block graph and controlled by a Shared Object.
@@ -123,8 +130,7 @@ export interface Config {
   gcSweepBackstopIntervalDur?: bigint
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'sobject.world.engine.Config',
   fields: [
     { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
@@ -157,7 +163,7 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'scalar',
       T: ScalarType.UINT64,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -180,14 +186,14 @@ export interface InnerState {
   headRef?: ObjectRef
 }
 
-// InnerState contains the message type declaration for InnerState.
-export const InnerState: MessageType<InnerState> = createMessageType({
-  typeName: 'sobject.world.engine.InnerState',
-  fields: [
-    { no: 1, name: 'head_ref', kind: 'message', T: () => ObjectRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const InnerState: MessageType<InnerState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.InnerState',
+    fields: [
+      { no: 1, name: 'head_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ApplyTxOp is the operation to apply a world transaction.
@@ -203,14 +209,14 @@ export interface ApplyTxOp {
   tx?: Tx
 }
 
-// ApplyTxOp contains the message type declaration for ApplyTxOp.
-export const ApplyTxOp: MessageType<ApplyTxOp> = createMessageType({
-  typeName: 'sobject.world.engine.ApplyTxOp',
-  fields: [
-    { no: 1, name: 'tx', kind: 'message', T: () => Tx },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ApplyTxOp: MessageType<ApplyTxOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.ApplyTxOp',
+    fields: [
+      { no: 1, name: 'tx', kind: 'message', T: () => Tx },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SOWorldOp is the outer wrapper for a shared object operation against a world InnerState.
@@ -248,24 +254,24 @@ export interface SOWorldOp {
       }
 }
 
-// SOWorldOp contains the message type declaration for SOWorldOp.
-export const SOWorldOp: MessageType<SOWorldOp> = createMessageType({
-  typeName: 'sobject.world.engine.SOWorldOp',
-  fields: [
-    {
-      no: 1,
-      name: 'init_world',
-      kind: 'message',
-      T: () => InitWorldOp,
-      oneof: 'body',
-    },
-    {
-      no: 2,
-      name: 'apply_tx_op',
-      kind: 'message',
-      T: () => ApplyTxOp,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SOWorldOp: MessageType<SOWorldOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.SOWorldOp',
+    fields: [
+      {
+        no: 1,
+        name: 'init_world',
+        kind: 'message',
+        T: () => InitWorldOp,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'apply_tx_op',
+        kind: 'message',
+        T: () => ApplyTxOp,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

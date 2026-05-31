@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/status/status.proto (package s4wave.status, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.status'
 
@@ -33,16 +38,16 @@ export interface ControllerInfo {
   description?: string
 }
 
-// ControllerInfo contains the message type declaration for ControllerInfo.
-export const ControllerInfo: MessageType<ControllerInfo> = createMessageType({
-  typeName: 's4wave.status.ControllerInfo',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ControllerInfo: MessageType<ControllerInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.status.ControllerInfo',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DirectiveInfo describes an active directive.
@@ -64,15 +69,15 @@ export interface DirectiveInfo {
   ident?: string
 }
 
-// DirectiveInfo contains the message type declaration for DirectiveInfo.
-export const DirectiveInfo: MessageType<DirectiveInfo> = createMessageType({
-  typeName: 's4wave.status.DirectiveInfo',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'ident', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DirectiveInfo: MessageType<DirectiveInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.status.DirectiveInfo',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'ident', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PluginInfo describes a runtime plugin load request.
@@ -100,16 +105,16 @@ export interface PluginInfo {
   state?: string
 }
 
-// PluginInfo contains the message type declaration for PluginInfo.
-export const PluginInfo: MessageType<PluginInfo> = createMessageType({
-  typeName: 's4wave.status.PluginInfo',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'state', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PluginInfo: MessageType<PluginInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.status.PluginInfo',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'state', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
@@ -139,9 +144,8 @@ export interface LauncherRecoveryStatus {
   releaseMetadataOutcome?: string
 }
 
-// LauncherRecoveryStatus contains the message type declaration for LauncherRecoveryStatus.
 export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.LauncherRecoveryStatus',
     fields: [
       {
@@ -174,7 +178,7 @@ export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -226,9 +230,8 @@ export interface PluginManifestRecoveryStatus {
   quarantinedCandidateSummary?: string
 }
 
-// PluginManifestRecoveryStatus contains the message type declaration for PluginManifestRecoveryStatus.
 export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoveryStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.PluginManifestRecoveryStatus',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
@@ -281,7 +284,7 @@ export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoverySta
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -321,9 +324,8 @@ export interface NativePackageRecoveryStatus {
   updatedAt?: string
 }
 
-// NativePackageRecoveryStatus contains the message type declaration for NativePackageRecoveryStatus.
 export const NativePackageRecoveryStatus: MessageType<NativePackageRecoveryStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.NativePackageRecoveryStatus',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
@@ -333,7 +335,7 @@ export const NativePackageRecoveryStatus: MessageType<NativePackageRecoveryStatu
       { no: 5, name: 'last_action', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'last_error', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'updated_at', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -358,9 +360,8 @@ export interface BrowserBootRecoveryStatus {
   status?: string
 }
 
-// BrowserBootRecoveryStatus contains the message type declaration for BrowserBootRecoveryStatus.
 export const BrowserBootRecoveryStatus: MessageType<BrowserBootRecoveryStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.BrowserBootRecoveryStatus',
     fields: [
       {
@@ -376,7 +377,7 @@ export const BrowserBootRecoveryStatus: MessageType<BrowserBootRecoveryStatus> =
         T: ScalarType.STRING,
       },
       { no: 3, name: 'status', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -429,9 +430,8 @@ export interface RuntimeAssetRecoveryStatus {
   status?: string
 }
 
-// RuntimeAssetRecoveryStatus contains the message type declaration for RuntimeAssetRecoveryStatus.
 export const RuntimeAssetRecoveryStatus: MessageType<RuntimeAssetRecoveryStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.RuntimeAssetRecoveryStatus',
     fields: [
       { no: 1, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
@@ -449,7 +449,7 @@ export const RuntimeAssetRecoveryStatus: MessageType<RuntimeAssetRecoveryStatus>
       { no: 8, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'body_prefix', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'status', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -481,45 +481,45 @@ export interface RecoveryStatus {
   runtimeAsset?: RuntimeAssetRecoveryStatus
 }
 
-// RecoveryStatus contains the message type declaration for RecoveryStatus.
-export const RecoveryStatus: MessageType<RecoveryStatus> = createMessageType({
-  typeName: 's4wave.status.RecoveryStatus',
-  fields: [
-    {
-      no: 1,
-      name: 'launcher',
-      kind: 'message',
-      T: () => LauncherRecoveryStatus,
-    },
-    {
-      no: 2,
-      name: 'plugins',
-      kind: 'message',
-      T: () => PluginManifestRecoveryStatus,
-      repeated: true,
-    },
-    {
-      no: 3,
-      name: 'native_packages',
-      kind: 'message',
-      T: () => NativePackageRecoveryStatus,
-      repeated: true,
-    },
-    {
-      no: 4,
-      name: 'boot',
-      kind: 'message',
-      T: () => BrowserBootRecoveryStatus,
-    },
-    {
-      no: 5,
-      name: 'runtime_asset',
-      kind: 'message',
-      T: () => RuntimeAssetRecoveryStatus,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RecoveryStatus: MessageType<RecoveryStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.status.RecoveryStatus',
+    fields: [
+      {
+        no: 1,
+        name: 'launcher',
+        kind: 'message',
+        T: () => LauncherRecoveryStatus,
+      },
+      {
+        no: 2,
+        name: 'plugins',
+        kind: 'message',
+        T: () => PluginManifestRecoveryStatus,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'native_packages',
+        kind: 'message',
+        T: () => NativePackageRecoveryStatus,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'boot',
+        kind: 'message',
+        T: () => BrowserBootRecoveryStatus,
+      },
+      {
+        no: 5,
+        name: 'runtime_asset',
+        kind: 'message',
+        T: () => RuntimeAssetRecoveryStatus,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchControllersRequest is the request type for WatchControllers.
@@ -528,13 +528,11 @@ export const RecoveryStatus: MessageType<RecoveryStatus> = createMessageType({
  */
 export interface WatchControllersRequest {}
 
-// WatchControllersRequest contains the message type declaration for WatchControllersRequest.
 export const WatchControllersRequest: MessageType<WatchControllersRequest> =
-  createMessageType({
-    typeName: 's4wave.status.WatchControllersRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchControllersRequest>(
+    's4wave.status.WatchControllersRequest',
+    true,
+  )
 
 /**
  * WatchControllersResponse is the response type for WatchControllers.
@@ -556,9 +554,8 @@ export interface WatchControllersResponse {
   controllerCount?: number
 }
 
-// WatchControllersResponse contains the message type declaration for WatchControllersResponse.
 export const WatchControllersResponse: MessageType<WatchControllersResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.WatchControllersResponse',
     fields: [
       {
@@ -569,7 +566,7 @@ export const WatchControllersResponse: MessageType<WatchControllersResponse> =
         repeated: true,
       },
       { no: 2, name: 'controller_count', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -580,13 +577,11 @@ export const WatchControllersResponse: MessageType<WatchControllersResponse> =
  */
 export interface WatchDirectivesRequest {}
 
-// WatchDirectivesRequest contains the message type declaration for WatchDirectivesRequest.
 export const WatchDirectivesRequest: MessageType<WatchDirectivesRequest> =
-  createMessageType({
-    typeName: 's4wave.status.WatchDirectivesRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchDirectivesRequest>(
+    's4wave.status.WatchDirectivesRequest',
+    true,
+  )
 
 /**
  * WatchDirectivesResponse is the response type for WatchDirectives.
@@ -608,9 +603,8 @@ export interface WatchDirectivesResponse {
   directiveCount?: number
 }
 
-// WatchDirectivesResponse contains the message type declaration for WatchDirectivesResponse.
 export const WatchDirectivesResponse: MessageType<WatchDirectivesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.WatchDirectivesResponse',
     fields: [
       {
@@ -621,7 +615,7 @@ export const WatchDirectivesResponse: MessageType<WatchDirectivesResponse> =
         repeated: true,
       },
       { no: 2, name: 'directive_count', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -632,13 +626,11 @@ export const WatchDirectivesResponse: MessageType<WatchDirectivesResponse> =
  */
 export interface WatchPluginsRequest {}
 
-// WatchPluginsRequest contains the message type declaration for WatchPluginsRequest.
 export const WatchPluginsRequest: MessageType<WatchPluginsRequest> =
-  createMessageType({
-    typeName: 's4wave.status.WatchPluginsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchPluginsRequest>(
+    's4wave.status.WatchPluginsRequest',
+    true,
+  )
 
 /**
  * WatchPluginsResponse is the response type for WatchPlugins.
@@ -660,9 +652,8 @@ export interface WatchPluginsResponse {
   pluginCount?: number
 }
 
-// WatchPluginsResponse contains the message type declaration for WatchPluginsResponse.
 export const WatchPluginsResponse: MessageType<WatchPluginsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.WatchPluginsResponse',
     fields: [
       {
@@ -673,7 +664,7 @@ export const WatchPluginsResponse: MessageType<WatchPluginsResponse> =
         repeated: true,
       },
       { no: 2, name: 'plugin_count', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -684,13 +675,11 @@ export const WatchPluginsResponse: MessageType<WatchPluginsResponse> =
  */
 export interface WatchRecoveryStatusRequest {}
 
-// WatchRecoveryStatusRequest contains the message type declaration for WatchRecoveryStatusRequest.
 export const WatchRecoveryStatusRequest: MessageType<WatchRecoveryStatusRequest> =
-  createMessageType({
-    typeName: 's4wave.status.WatchRecoveryStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchRecoveryStatusRequest>(
+    's4wave.status.WatchRecoveryStatusRequest',
+    true,
+  )
 
 /**
  * ReportRecoveryStatusRequest publishes renderer-owned recovery facts.
@@ -708,9 +697,8 @@ export interface ReportRecoveryStatusRequest {
   runtimeAsset?: RuntimeAssetRecoveryStatus
 }
 
-// ReportRecoveryStatusRequest contains the message type declaration for ReportRecoveryStatusRequest.
 export const ReportRecoveryStatusRequest: MessageType<ReportRecoveryStatusRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.ReportRecoveryStatusRequest',
     fields: [
       {
@@ -725,7 +713,7 @@ export const ReportRecoveryStatusRequest: MessageType<ReportRecoveryStatusReques
         kind: 'message',
         T: () => RuntimeAssetRecoveryStatus,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -736,13 +724,11 @@ export const ReportRecoveryStatusRequest: MessageType<ReportRecoveryStatusReques
  */
 export interface ReportRecoveryStatusResponse {}
 
-// ReportRecoveryStatusResponse contains the message type declaration for ReportRecoveryStatusResponse.
 export const ReportRecoveryStatusResponse: MessageType<ReportRecoveryStatusResponse> =
-  createMessageType({
-    typeName: 's4wave.status.ReportRecoveryStatusResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ReportRecoveryStatusResponse>(
+    's4wave.status.ReportRecoveryStatusResponse',
+    true,
+  )
 
 /**
  * WatchRecoveryStatusResponse is the response type for WatchRecoveryStatus.
@@ -756,12 +742,11 @@ export interface WatchRecoveryStatusResponse {
   status?: RecoveryStatus
 }
 
-// WatchRecoveryStatusResponse contains the message type declaration for WatchRecoveryStatusResponse.
 export const WatchRecoveryStatusResponse: MessageType<WatchRecoveryStatusResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.WatchRecoveryStatusResponse',
     fields: [
       { no: 1, name: 'status', kind: 'message', T: () => RecoveryStatus },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

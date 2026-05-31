@@ -2,9 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/provider/local/local.proto (package s4wave.provider.local, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { SessionListEntry } from '../../../core/session/session.pb.js'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.provider.local'
 
@@ -15,13 +19,11 @@ export const protobufPackage = 's4wave.provider.local'
  */
 export interface CreateAccountRequest {}
 
-// CreateAccountRequest contains the message type declaration for CreateAccountRequest.
 export const CreateAccountRequest: MessageType<CreateAccountRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.local.CreateAccountRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<CreateAccountRequest>(
+    's4wave.provider.local.CreateAccountRequest',
+    true,
+  )
 
 /**
  * CreateAccountResponse returns the details of the created provider account.
@@ -37,9 +39,8 @@ export interface CreateAccountResponse {
   sessionListEntry?: SessionListEntry
 }
 
-// CreateAccountResponse contains the message type declaration for CreateAccountResponse.
 export const CreateAccountResponse: MessageType<CreateAccountResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.local.CreateAccountResponse',
     fields: [
       {
@@ -48,6 +49,6 @@ export const CreateAccountResponse: MessageType<CreateAccountResponse> =
         kind: 'message',
         T: () => SessionListEntry,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

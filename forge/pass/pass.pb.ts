@@ -2,17 +2,16 @@
 // @generated from file github.com/s4wave/spacewave/forge/pass/pass.proto (package forge.pass, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { State as State$1 } from '../execution/execution.pb.js'
 import { State_Enum as State_Enum$1 } from '../execution/execution.pb.js'
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 
 export const protobufPackage = 'forge.pass'
@@ -64,13 +63,12 @@ export enum State {
   PassState_COMPLETE = 4,
 }
 
-// State_Enum is the enum type for State.
-export const State_Enum = createEnumType('forge.pass.State', [
-  { no: 0, name: 'PassState_UNKNOWN' },
-  { no: 1, name: 'PassState_PENDING' },
-  { no: 2, name: 'PassState_RUNNING' },
-  { no: 3, name: 'PassState_CHECKING' },
-  { no: 4, name: 'PassState_COMPLETE' },
+export const State_Enum = /* @__PURE__ */ createEnumType('forge.pass.State', [
+  [0, 'PassState_UNKNOWN'],
+  [1, 'PassState_PENDING'],
+  [2, 'PassState_RUNNING'],
+  [3, 'PassState_CHECKING'],
+  [4, 'PassState_COMPLETE'],
 ])
 
 /**
@@ -121,19 +119,19 @@ export interface ExecState {
   result?: Result
 }
 
-// ExecState contains the message type declaration for ExecState.
-export const ExecState: MessageType<ExecState> = createMessageType({
-  typeName: 'forge.pass.ExecState',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'execution_state', kind: 'enum', T: State_Enum$1 },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    { no: 5, name: 'value_set', kind: 'message', T: () => ValueSet },
-    { no: 6, name: 'result', kind: 'message', T: () => Result },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ExecState: MessageType<ExecState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.pass.ExecState',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'execution_state', kind: 'enum', T: State_Enum$1 },
+      { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 5, name: 'value_set', kind: 'message', T: () => ValueSet },
+      { no: 6, name: 'result', kind: 'message', T: () => Result },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Pass contains state for a Task pass.
@@ -227,8 +225,7 @@ export interface Pass {
   timestamp?: Date
 }
 
-// Pass contains the message type declaration for Pass.
-export const Pass: MessageType<Pass> = createMessageType({
+export const Pass: MessageType<Pass> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.pass.Pass',
   fields: [
     { no: 1, name: 'pass_state', kind: 'enum', T: State_Enum },
@@ -246,6 +243,6 @@ export const Pass: MessageType<Pass> = createMessageType({
       repeated: true,
     },
     { no: 9, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

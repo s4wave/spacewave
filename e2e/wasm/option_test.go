@@ -302,6 +302,78 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 	}
 }
 
+func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
+	launcherStatic := mustMarshalGoPluginConfig(t, &bldr_plugin_compiler_go.Config{
+		GoPkgs: []string{"./production-launcher"},
+	})
+	launcherE2E := mustMarshalGoPluginConfig(t, &bldr_plugin_compiler_go.Config{
+		GoPkgs: []string{"./e2e-launcher"},
+		ConfigSet: map[string]*configset_proto.ControllerConfig{
+			"spacewave-launcher": {Id: "spacewave/launcher/controller"},
+		},
+	})
+	coreStatic := mustMarshalGoPluginConfig(t, &bldr_plugin_compiler_go.Config{
+		GoPkgs: []string{"./core/plugin/space"},
+	})
+	conf := &bldr_project.ProjectConfig{
+		Start: &bldr_project.StartConfig{
+			Plugins: []string{"web", "spacewave-web", "spacewave-app", "spacewave-core", "spacewave-debug"},
+		},
+		Manifests: map[string]*bldr_project.ManifestConfig{
+			"spacewave-launcher": {
+				Builder: &configset_proto.ControllerConfig{
+					Id:     bldr_plugin_compiler_go.ConfigID,
+					Config: launcherStatic,
+				},
+			},
+			"spacewave-core": {
+				Builder: &configset_proto.ControllerConfig{
+					Id:     bldr_plugin_compiler_go.ConfigID,
+					Config: coreStatic,
+				},
+			},
+		},
+		Build: map[string]*bldr_project.BuildConfig{
+			"release-web-e2e": {
+				ManifestOverrides: map[string]*configset_proto.ControllerConfig{
+					"spacewave-launcher": {
+						Id:     bldr_plugin_compiler_go.ConfigID,
+						Config: launcherE2E,
+					},
+				},
+			},
+		},
+	}
+
+	if err := ConfigureGoScriptBrowserStartup(conf); err != nil {
+		t.Fatal(err)
+	}
+	if got := conf.GetStart().GetPlugins(); !slices.Equal(got, goScriptBrowserStartPlugins) {
+		t.Fatalf("startup plugins = %v, want %v", got, goScriptBrowserStartPlugins)
+	}
+
+	launcher := &bldr_plugin_compiler_go.Config{}
+	if err := launcher.UnmarshalJSON(conf.GetManifests()["spacewave-launcher"].GetBuilder().GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(launcher.GetGoPkgs(), "./e2e-launcher") {
+		t.Fatalf("launcher did not use e2e override config: %v", launcher.GetGoPkgs())
+	}
+	launcherWeb := launcher.GetPlatformTypes()["web"]
+	if launcherWeb == nil || launcherWeb.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+		t.Fatalf("launcher web GoScript config missing: %#v", launcherWeb)
+	}
+
+	core := &bldr_plugin_compiler_go.Config{}
+	if err := core.UnmarshalJSON(conf.GetManifests()["spacewave-core"].GetBuilder().GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	coreWeb := core.GetPlatformTypes()["web"]
+	if coreWeb == nil || coreWeb.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+		t.Fatalf("core web GoScript config missing: %#v", coreWeb)
+	}
+}
+
 func TestConfigureTinyGoForManifestDeterministicConfig(t *testing.T) {
 	goConf := &bldr_plugin_compiler_go.Config{
 		ConfigSet: map[string]*configset_proto.ControllerConfig{
@@ -352,6 +424,16 @@ func TestConfigureTinyGoForManifestDeterministicConfig(t *testing.T) {
 			t.Fatalf("iteration %d produced unstable config:\nfirst: %s\nnext:  %s", i, first, got)
 		}
 	}
+}
+
+func mustMarshalGoPluginConfig(t *testing.T, conf *bldr_plugin_compiler_go.Config) []byte {
+	t.Helper()
+
+	data, err := conf.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }
 
 func TestStartupBuildCacheDefaultsToTinyGo(t *testing.T) {

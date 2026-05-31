@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc/sqlite-bridge.proto (package sql.sqlite_wasm.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'sql.sqlite_wasm.rpc'
 
@@ -59,41 +64,41 @@ export interface SqlValue {
       }
 }
 
-// SqlValue contains the message type declaration for SqlValue.
-export const SqlValue: MessageType<SqlValue> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.SqlValue',
-  fields: [
-    {
-      no: 1,
-      name: 'int_value',
-      kind: 'scalar',
-      T: ScalarType.INT64,
-      oneof: 'value',
-    },
-    {
-      no: 2,
-      name: 'float_value',
-      kind: 'scalar',
-      T: ScalarType.DOUBLE,
-      oneof: 'value',
-    },
-    {
-      no: 3,
-      name: 'str_value',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      oneof: 'value',
-    },
-    {
-      no: 4,
-      name: 'blob_value',
-      kind: 'scalar',
-      T: ScalarType.BYTES,
-      oneof: 'value',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SqlValue: MessageType<SqlValue> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.SqlValue',
+    fields: [
+      {
+        no: 1,
+        name: 'int_value',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+        oneof: 'value',
+      },
+      {
+        no: 2,
+        name: 'float_value',
+        kind: 'scalar',
+        T: ScalarType.DOUBLE,
+        oneof: 'value',
+      },
+      {
+        no: 3,
+        name: 'str_value',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        oneof: 'value',
+      },
+      {
+        no: 4,
+        name: 'blob_value',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+        oneof: 'value',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * OpenDbRequest is the request to open a database.
@@ -109,14 +114,14 @@ export interface OpenDbRequest {
   path?: string
 }
 
-// OpenDbRequest contains the message type declaration for OpenDbRequest.
-export const OpenDbRequest: MessageType<OpenDbRequest> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.OpenDbRequest',
-  fields: [
-    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OpenDbRequest: MessageType<OpenDbRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.OpenDbRequest',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * OpenDbResponse is the response after opening a database.
@@ -132,14 +137,14 @@ export interface OpenDbResponse {
   dbId?: number
 }
 
-// OpenDbResponse contains the message type declaration for OpenDbResponse.
-export const OpenDbResponse: MessageType<OpenDbResponse> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.OpenDbResponse',
-  fields: [
-    { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OpenDbResponse: MessageType<OpenDbResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.OpenDbResponse',
+    fields: [
+      { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CloseDbRequest is the request to close a database.
@@ -155,14 +160,14 @@ export interface CloseDbRequest {
   dbId?: number
 }
 
-// CloseDbRequest contains the message type declaration for CloseDbRequest.
-export const CloseDbRequest: MessageType<CloseDbRequest> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.CloseDbRequest',
-  fields: [
-    { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CloseDbRequest: MessageType<CloseDbRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.CloseDbRequest',
+    fields: [
+      { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CloseDbResponse is the response after closing a database.
@@ -171,12 +176,11 @@ export const CloseDbRequest: MessageType<CloseDbRequest> = createMessageType({
  */
 export interface CloseDbResponse {}
 
-// CloseDbResponse contains the message type declaration for CloseDbResponse.
-export const CloseDbResponse: MessageType<CloseDbResponse> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.CloseDbResponse',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CloseDbResponse: MessageType<CloseDbResponse> =
+  /* @__PURE__ */ createEmptyMessageType<CloseDbResponse>(
+    'sql.sqlite_wasm.rpc.CloseDbResponse',
+    true,
+  )
 
 /**
  * ExecRequest is the request to execute a DDL/DML statement.
@@ -204,22 +208,22 @@ export interface ExecRequest {
   params?: SqlValue[]
 }
 
-// ExecRequest contains the message type declaration for ExecRequest.
-export const ExecRequest: MessageType<ExecRequest> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.ExecRequest',
-  fields: [
-    { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 2, name: 'sql', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'params',
-      kind: 'message',
-      T: () => SqlValue,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ExecRequest: MessageType<ExecRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.ExecRequest',
+    fields: [
+      { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'sql', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'params',
+        kind: 'message',
+        T: () => SqlValue,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ExecResponse is the response after executing a statement.
@@ -241,15 +245,20 @@ export interface ExecResponse {
   lastInsertRowId?: bigint
 }
 
-// ExecResponse contains the message type declaration for ExecResponse.
-export const ExecResponse: MessageType<ExecResponse> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.ExecResponse',
-  fields: [
-    { no: 1, name: 'changes', kind: 'scalar', T: ScalarType.INT64 },
-    { no: 2, name: 'last_insert_row_id', kind: 'scalar', T: ScalarType.INT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ExecResponse: MessageType<ExecResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.ExecResponse',
+    fields: [
+      { no: 1, name: 'changes', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 2,
+        name: 'last_insert_row_id',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * QueryRequest is the request to execute a SELECT query.
@@ -277,22 +286,22 @@ export interface QueryRequest {
   params?: SqlValue[]
 }
 
-// QueryRequest contains the message type declaration for QueryRequest.
-export const QueryRequest: MessageType<QueryRequest> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.QueryRequest',
-  fields: [
-    { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 2, name: 'sql', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'params',
-      kind: 'message',
-      T: () => SqlValue,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const QueryRequest: MessageType<QueryRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.QueryRequest',
+    fields: [
+      { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'sql', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'params',
+        kind: 'message',
+        T: () => SqlValue,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * QueryResponse is a streaming response for a SELECT query.
@@ -315,21 +324,27 @@ export interface QueryResponse {
   row?: SqlValue[]
 }
 
-// QueryResponse contains the message type declaration for QueryResponse.
-export const QueryResponse: MessageType<QueryResponse> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.QueryResponse',
-  fields: [
-    {
-      no: 1,
-      name: 'column_names',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 2, name: 'row', kind: 'message', T: () => SqlValue, repeated: true },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const QueryResponse: MessageType<QueryResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.QueryResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'column_names',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'row',
+        kind: 'message',
+        T: () => SqlValue,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DeleteDbRequest is the request to delete a database.
@@ -345,14 +360,14 @@ export interface DeleteDbRequest {
   path?: string
 }
 
-// DeleteDbRequest contains the message type declaration for DeleteDbRequest.
-export const DeleteDbRequest: MessageType<DeleteDbRequest> = createMessageType({
-  typeName: 'sql.sqlite_wasm.rpc.DeleteDbRequest',
-  fields: [
-    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DeleteDbRequest: MessageType<DeleteDbRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sql.sqlite_wasm.rpc.DeleteDbRequest',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DeleteDbResponse is the response after deleting a database.
@@ -361,10 +376,8 @@ export const DeleteDbRequest: MessageType<DeleteDbRequest> = createMessageType({
  */
 export interface DeleteDbResponse {}
 
-// DeleteDbResponse contains the message type declaration for DeleteDbResponse.
 export const DeleteDbResponse: MessageType<DeleteDbResponse> =
-  createMessageType({
-    typeName: 'sql.sqlite_wasm.rpc.DeleteDbResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<DeleteDbResponse>(
+    'sql.sqlite_wasm.rpc.DeleteDbResponse',
+    true,
+  )

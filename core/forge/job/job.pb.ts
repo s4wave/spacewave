@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/forge/job/job.proto (package s4wave.forge.job, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 's4wave.forge.job'
@@ -22,14 +24,14 @@ export interface ForgeJobTaskDef {
   name?: string
 }
 
-// ForgeJobTaskDef contains the message type declaration for ForgeJobTaskDef.
-export const ForgeJobTaskDef: MessageType<ForgeJobTaskDef> = createMessageType({
-  typeName: 's4wave.forge.job.ForgeJobTaskDef',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ForgeJobTaskDef: MessageType<ForgeJobTaskDef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.forge.job.ForgeJobTaskDef',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ForgeJobCreateOp creates a Forge Job with tasks and assigns it to a Cluster.
@@ -64,9 +66,8 @@ export interface ForgeJobCreateOp {
   timestamp?: Date
 }
 
-// ForgeJobCreateOp contains the message type declaration for ForgeJobCreateOp.
 export const ForgeJobCreateOp: MessageType<ForgeJobCreateOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.forge.job.ForgeJobCreateOp',
     fields: [
       { no: 1, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
@@ -79,6 +80,6 @@ export const ForgeJobCreateOp: MessageType<ForgeJobCreateOp> =
         repeated: true,
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/block/cursor/cursor.proto (package s4wave.block.cursor, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '../../../db/block/block.pb.js'
 
 export const protobufPackage = 's4wave.block.cursor'
@@ -15,12 +20,11 @@ export const protobufPackage = 's4wave.block.cursor'
  */
 export interface FetchRequest {}
 
-// FetchRequest contains the message type declaration for FetchRequest.
-export const FetchRequest: MessageType<FetchRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.FetchRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FetchRequest: MessageType<FetchRequest> =
+  /* @__PURE__ */ createEmptyMessageType<FetchRequest>(
+    's4wave.block.cursor.FetchRequest',
+    true,
+  )
 
 /**
  * FetchResponse is the response type for Fetch.
@@ -42,15 +46,15 @@ export interface FetchResponse {
   found?: boolean
 }
 
-// FetchResponse contains the message type declaration for FetchResponse.
-export const FetchResponse: MessageType<FetchResponse> = createMessageType({
-  typeName: 's4wave.block.cursor.FetchResponse',
-  fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FetchResponse: MessageType<FetchResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.FetchResponse',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SetBlockRequest is the request type for SetBlock.
@@ -79,16 +83,16 @@ export interface SetBlockRequest {
   blockType?: string
 }
 
-// SetBlockRequest contains the message type declaration for SetBlockRequest.
-export const SetBlockRequest: MessageType<SetBlockRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.SetBlockRequest',
-  fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'mark_dirty', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'block_type', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SetBlockRequest: MessageType<SetBlockRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.SetBlockRequest',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'mark_dirty', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'block_type', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SetBlockResponse is the response type for SetBlock.
@@ -97,13 +101,11 @@ export const SetBlockRequest: MessageType<SetBlockRequest> = createMessageType({
  */
 export interface SetBlockResponse {}
 
-// SetBlockResponse contains the message type declaration for SetBlockResponse.
 export const SetBlockResponse: MessageType<SetBlockResponse> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.SetBlockResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetBlockResponse>(
+    's4wave.block.cursor.SetBlockResponse',
+    true,
+  )
 
 /**
  * FollowRefRequest is the request type for FollowRef.
@@ -126,14 +128,13 @@ export interface FollowRefRequest {
   blkRef?: BlockRef
 }
 
-// FollowRefRequest contains the message type declaration for FollowRefRequest.
 export const FollowRefRequest: MessageType<FollowRefRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.FollowRefRequest',
     fields: [
       { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'blk_ref', kind: 'message', T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -151,13 +152,12 @@ export interface FollowRefResponse {
   resourceId?: number
 }
 
-// FollowRefResponse contains the message type declaration for FollowRefResponse.
 export const FollowRefResponse: MessageType<FollowRefResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.FollowRefResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -168,12 +168,11 @@ export const FollowRefResponse: MessageType<FollowRefResponse> =
  */
 export interface GetRefRequest {}
 
-// GetRefRequest contains the message type declaration for GetRefRequest.
-export const GetRefRequest: MessageType<GetRefRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.GetRefRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetRefRequest: MessageType<GetRefRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetRefRequest>(
+    's4wave.block.cursor.GetRefRequest',
+    true,
+  )
 
 /**
  * GetRefResponse is the response type for GetRef.
@@ -189,14 +188,14 @@ export interface GetRefResponse {
   ref?: BlockRef
 }
 
-// GetRefResponse contains the message type declaration for GetRefResponse.
-export const GetRefResponse: MessageType<GetRefResponse> = createMessageType({
-  typeName: 's4wave.block.cursor.GetRefResponse',
-  fields: [
-    { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetRefResponse: MessageType<GetRefResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.GetRefResponse',
+    fields: [
+      { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * IsDirtyRequest is the request type for IsDirty.
@@ -205,12 +204,11 @@ export const GetRefResponse: MessageType<GetRefResponse> = createMessageType({
  */
 export interface IsDirtyRequest {}
 
-// IsDirtyRequest contains the message type declaration for IsDirtyRequest.
-export const IsDirtyRequest: MessageType<IsDirtyRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.IsDirtyRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const IsDirtyRequest: MessageType<IsDirtyRequest> =
+  /* @__PURE__ */ createEmptyMessageType<IsDirtyRequest>(
+    's4wave.block.cursor.IsDirtyRequest',
+    true,
+  )
 
 /**
  * IsDirtyResponse is the response type for IsDirty.
@@ -226,14 +224,14 @@ export interface IsDirtyResponse {
   dirty?: boolean
 }
 
-// IsDirtyResponse contains the message type declaration for IsDirtyResponse.
-export const IsDirtyResponse: MessageType<IsDirtyResponse> = createMessageType({
-  typeName: 's4wave.block.cursor.IsDirtyResponse',
-  fields: [
-    { no: 1, name: 'dirty', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const IsDirtyResponse: MessageType<IsDirtyResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.IsDirtyResponse',
+    fields: [
+      { no: 1, name: 'dirty', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * MarkDirtyRequest is the request type for MarkDirty.
@@ -242,13 +240,11 @@ export const IsDirtyResponse: MessageType<IsDirtyResponse> = createMessageType({
  */
 export interface MarkDirtyRequest {}
 
-// MarkDirtyRequest contains the message type declaration for MarkDirtyRequest.
 export const MarkDirtyRequest: MessageType<MarkDirtyRequest> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.MarkDirtyRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<MarkDirtyRequest>(
+    's4wave.block.cursor.MarkDirtyRequest',
+    true,
+  )
 
 /**
  * MarkDirtyResponse is the response type for MarkDirty.
@@ -257,13 +253,11 @@ export const MarkDirtyRequest: MessageType<MarkDirtyRequest> =
  */
 export interface MarkDirtyResponse {}
 
-// MarkDirtyResponse contains the message type declaration for MarkDirtyResponse.
 export const MarkDirtyResponse: MessageType<MarkDirtyResponse> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.MarkDirtyResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<MarkDirtyResponse>(
+    's4wave.block.cursor.MarkDirtyResponse',
+    true,
+  )
 
 /**
  * GetBlockRequest is the request type for GetBlock.
@@ -272,12 +266,11 @@ export const MarkDirtyResponse: MessageType<MarkDirtyResponse> =
  */
 export interface GetBlockRequest {}
 
-// GetBlockRequest contains the message type declaration for GetBlockRequest.
-export const GetBlockRequest: MessageType<GetBlockRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.GetBlockRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetBlockRequest: MessageType<GetBlockRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetBlockRequest>(
+    's4wave.block.cursor.GetBlockRequest',
+    true,
+  )
 
 /**
  * GetBlockResponse is the response type for GetBlock.
@@ -299,14 +292,13 @@ export interface GetBlockResponse {
   isSubBlock?: boolean
 }
 
-// GetBlockResponse contains the message type declaration for GetBlockResponse.
 export const GetBlockResponse: MessageType<GetBlockResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.GetBlockResponse',
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'is_sub_block', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -325,13 +317,12 @@ export interface UnmarshalRequest {
   blockType?: string
 }
 
-// UnmarshalRequest contains the message type declaration for UnmarshalRequest.
 export const UnmarshalRequest: MessageType<UnmarshalRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.UnmarshalRequest',
     fields: [
       { no: 1, name: 'block_type', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -355,14 +346,13 @@ export interface UnmarshalResponse {
   found?: boolean
 }
 
-// UnmarshalResponse contains the message type declaration for UnmarshalResponse.
 export const UnmarshalResponse: MessageType<UnmarshalResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.UnmarshalResponse',
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -373,13 +363,11 @@ export const UnmarshalResponse: MessageType<UnmarshalResponse> =
  */
 export interface IsSubBlockRequest {}
 
-// IsSubBlockRequest contains the message type declaration for IsSubBlockRequest.
 export const IsSubBlockRequest: MessageType<IsSubBlockRequest> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.IsSubBlockRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<IsSubBlockRequest>(
+    's4wave.block.cursor.IsSubBlockRequest',
+    true,
+  )
 
 /**
  * IsSubBlockResponse is the response type for IsSubBlock.
@@ -395,13 +383,12 @@ export interface IsSubBlockResponse {
   isSubBlock?: boolean
 }
 
-// IsSubBlockResponse contains the message type declaration for IsSubBlockResponse.
 export const IsSubBlockResponse: MessageType<IsSubBlockResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.IsSubBlockResponse',
     fields: [
       { no: 1, name: 'is_sub_block', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -419,13 +406,12 @@ export interface FollowSubBlockRequest {
   refId?: number
 }
 
-// FollowSubBlockRequest contains the message type declaration for FollowSubBlockRequest.
 export const FollowSubBlockRequest: MessageType<FollowSubBlockRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.FollowSubBlockRequest',
     fields: [
       { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -443,13 +429,12 @@ export interface FollowSubBlockResponse {
   resourceId?: number
 }
 
-// FollowSubBlockResponse contains the message type declaration for FollowSubBlockResponse.
 export const FollowSubBlockResponse: MessageType<FollowSubBlockResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.FollowSubBlockResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -473,9 +458,8 @@ export interface SetAsSubBlockRequest {
   parentResourceId?: number
 }
 
-// SetAsSubBlockRequest contains the message type declaration for SetAsSubBlockRequest.
 export const SetAsSubBlockRequest: MessageType<SetAsSubBlockRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.SetAsSubBlockRequest',
     fields: [
       { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
@@ -485,7 +469,7 @@ export const SetAsSubBlockRequest: MessageType<SetAsSubBlockRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -496,13 +480,11 @@ export const SetAsSubBlockRequest: MessageType<SetAsSubBlockRequest> =
  */
 export interface SetAsSubBlockResponse {}
 
-// SetAsSubBlockResponse contains the message type declaration for SetAsSubBlockResponse.
 export const SetAsSubBlockResponse: MessageType<SetAsSubBlockResponse> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.SetAsSubBlockResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetAsSubBlockResponse>(
+    's4wave.block.cursor.SetAsSubBlockResponse',
+    true,
+  )
 
 /**
  * ClearRefRequest is the request type for ClearRef.
@@ -518,14 +500,14 @@ export interface ClearRefRequest {
   refId?: number
 }
 
-// ClearRefRequest contains the message type declaration for ClearRefRequest.
-export const ClearRefRequest: MessageType<ClearRefRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.ClearRefRequest',
-  fields: [
-    { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ClearRefRequest: MessageType<ClearRefRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.ClearRefRequest',
+    fields: [
+      { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ClearRefResponse is the response type for ClearRef.
@@ -534,13 +516,11 @@ export const ClearRefRequest: MessageType<ClearRefRequest> = createMessageType({
  */
 export interface ClearRefResponse {}
 
-// ClearRefResponse contains the message type declaration for ClearRefResponse.
 export const ClearRefResponse: MessageType<ClearRefResponse> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.ClearRefResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ClearRefResponse>(
+    's4wave.block.cursor.ClearRefResponse',
+    true,
+  )
 
 /**
  * ClearAllRefsRequest is the request type for ClearAllRefs.
@@ -549,13 +529,11 @@ export const ClearRefResponse: MessageType<ClearRefResponse> =
  */
 export interface ClearAllRefsRequest {}
 
-// ClearAllRefsRequest contains the message type declaration for ClearAllRefsRequest.
 export const ClearAllRefsRequest: MessageType<ClearAllRefsRequest> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.ClearAllRefsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ClearAllRefsRequest>(
+    's4wave.block.cursor.ClearAllRefsRequest',
+    true,
+  )
 
 /**
  * ClearAllRefsResponse is the response type for ClearAllRefs.
@@ -564,13 +542,11 @@ export const ClearAllRefsRequest: MessageType<ClearAllRefsRequest> =
  */
 export interface ClearAllRefsResponse {}
 
-// ClearAllRefsResponse contains the message type declaration for ClearAllRefsResponse.
 export const ClearAllRefsResponse: MessageType<ClearAllRefsResponse> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.ClearAllRefsResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ClearAllRefsResponse>(
+    's4wave.block.cursor.ClearAllRefsResponse',
+    true,
+  )
 
 /**
  * SetRefRequest is the request type for SetRef.
@@ -592,15 +568,20 @@ export interface SetRefRequest {
   targetResourceId?: number
 }
 
-// SetRefRequest contains the message type declaration for SetRefRequest.
-export const SetRefRequest: MessageType<SetRefRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.SetRefRequest',
-  fields: [
-    { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 2, name: 'target_resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SetRefRequest: MessageType<SetRefRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.SetRefRequest',
+    fields: [
+      { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 2,
+        name: 'target_resource_id',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SetRefResponse is the response type for SetRef.
@@ -609,12 +590,11 @@ export const SetRefRequest: MessageType<SetRefRequest> = createMessageType({
  */
 export interface SetRefResponse {}
 
-// SetRefResponse contains the message type declaration for SetRefResponse.
-export const SetRefResponse: MessageType<SetRefResponse> = createMessageType({
-  typeName: 's4wave.block.cursor.SetRefResponse',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SetRefResponse: MessageType<SetRefResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetRefResponse>(
+    's4wave.block.cursor.SetRefResponse',
+    true,
+  )
 
 /**
  * GetExistingRefRequest is the request type for GetExistingRef.
@@ -630,13 +610,12 @@ export interface GetExistingRefRequest {
   refId?: number
 }
 
-// GetExistingRefRequest contains the message type declaration for GetExistingRefRequest.
 export const GetExistingRefRequest: MessageType<GetExistingRefRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.GetExistingRefRequest',
     fields: [
       { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -655,13 +634,12 @@ export interface GetExistingRefResponse {
   resourceId?: number
 }
 
-// GetExistingRefResponse contains the message type declaration for GetExistingRefResponse.
 export const GetExistingRefResponse: MessageType<GetExistingRefResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.GetExistingRefResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -679,13 +657,12 @@ export interface GetAllRefsRequest {
   existingOnly?: boolean
 }
 
-// GetAllRefsRequest contains the message type declaration for GetAllRefsRequest.
 export const GetAllRefsRequest: MessageType<GetAllRefsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.GetAllRefsRequest',
     fields: [
       { no: 1, name: 'existing_only', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -703,9 +680,8 @@ export interface GetAllRefsResponse {
   refs?: { [key: number]: number }
 }
 
-// GetAllRefsResponse contains the message type declaration for GetAllRefsResponse.
 export const GetAllRefsResponse: MessageType<GetAllRefsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.GetAllRefsResponse',
     fields: [
       {
@@ -715,7 +691,7 @@ export const GetAllRefsResponse: MessageType<GetAllRefsResponse> =
         K: ScalarType.UINT32,
         V: { kind: 'scalar', T: ScalarType.UINT32 },
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -733,14 +709,14 @@ export interface DetachRequest {
   keepRefs?: boolean
 }
 
-// DetachRequest contains the message type declaration for DetachRequest.
-export const DetachRequest: MessageType<DetachRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.DetachRequest',
-  fields: [
-    { no: 1, name: 'keep_refs', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DetachRequest: MessageType<DetachRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.DetachRequest',
+    fields: [
+      { no: 1, name: 'keep_refs', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DetachResponse is the response type for Detach.
@@ -756,14 +732,14 @@ export interface DetachResponse {
   resourceId?: number
 }
 
-// DetachResponse contains the message type declaration for DetachResponse.
-export const DetachResponse: MessageType<DetachResponse> = createMessageType({
-  typeName: 's4wave.block.cursor.DetachResponse',
-  fields: [
-    { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DetachResponse: MessageType<DetachResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.DetachResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DetachTransactionRequest is the request type for DetachTransaction.
@@ -772,13 +748,11 @@ export const DetachResponse: MessageType<DetachResponse> = createMessageType({
  */
 export interface DetachTransactionRequest {}
 
-// DetachTransactionRequest contains the message type declaration for DetachTransactionRequest.
 export const DetachTransactionRequest: MessageType<DetachTransactionRequest> =
-  createMessageType({
-    typeName: 's4wave.block.cursor.DetachTransactionRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<DetachTransactionRequest>(
+    's4wave.block.cursor.DetachTransactionRequest',
+    true,
+  )
 
 /**
  * DetachTransactionResponse is the response type for DetachTransaction.
@@ -794,13 +768,12 @@ export interface DetachTransactionResponse {
   resourceId?: number
 }
 
-// DetachTransactionResponse contains the message type declaration for DetachTransactionResponse.
 export const DetachTransactionResponse: MessageType<DetachTransactionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.DetachTransactionResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -830,15 +803,14 @@ export interface DetachRecursiveRequest {
   markDirty?: boolean
 }
 
-// DetachRecursiveRequest contains the message type declaration for DetachRecursiveRequest.
 export const DetachRecursiveRequest: MessageType<DetachRecursiveRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.DetachRecursiveRequest',
     fields: [
       { no: 1, name: 'detach_tx', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'clone_blocks', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'mark_dirty', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -856,13 +828,12 @@ export interface DetachRecursiveResponse {
   resourceId?: number
 }
 
-// DetachRecursiveResponse contains the message type declaration for DetachRecursiveResponse.
 export const DetachRecursiveResponse: MessageType<DetachRecursiveResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.block.cursor.DetachRecursiveResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -873,12 +844,11 @@ export const DetachRecursiveResponse: MessageType<DetachRecursiveResponse> =
  */
 export interface ParentsRequest {}
 
-// ParentsRequest contains the message type declaration for ParentsRequest.
-export const ParentsRequest: MessageType<ParentsRequest> = createMessageType({
-  typeName: 's4wave.block.cursor.ParentsRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ParentsRequest: MessageType<ParentsRequest> =
+  /* @__PURE__ */ createEmptyMessageType<ParentsRequest>(
+    's4wave.block.cursor.ParentsRequest',
+    true,
+  )
 
 /**
  * ParentsResponse is the response type for Parents.
@@ -894,17 +864,17 @@ export interface ParentsResponse {
   parentResourceIds?: number[]
 }
 
-// ParentsResponse contains the message type declaration for ParentsResponse.
-export const ParentsResponse: MessageType<ParentsResponse> = createMessageType({
-  typeName: 's4wave.block.cursor.ParentsResponse',
-  fields: [
-    {
-      no: 1,
-      name: 'parent_resource_ids',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ParentsResponse: MessageType<ParentsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.block.cursor.ParentsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'parent_resource_ids',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

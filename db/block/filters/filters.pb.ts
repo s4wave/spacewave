@@ -4,8 +4,10 @@
 
 import { Quad } from '../quad/quad.pb.js'
 import { BloomFilter } from '../bloom/bloom.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'filters'
 
@@ -42,13 +44,13 @@ export interface KeyFilters {
   keyBloom?: BloomFilter
 }
 
-// KeyFilters contains the message type declaration for KeyFilters.
-export const KeyFilters: MessageType<KeyFilters> = createMessageType({
-  typeName: 'filters.KeyFilters',
-  fields: [
-    { no: 1, name: 'key_prefix', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'quad_prefix', kind: 'message', T: () => Quad },
-    { no: 3, name: 'key_bloom', kind: 'message', T: () => BloomFilter },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const KeyFilters: MessageType<KeyFilters> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'filters.KeyFilters',
+    fields: [
+      { no: 1, name: 'key_prefix', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'quad_prefix', kind: 'message', T: () => Quad },
+      { no: 3, name: 'key_bloom', kind: 'message', T: () => BloomFilter },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { SOGrant, SOJoinResponse } from '../sobject.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'sobject.invite'
 
@@ -31,9 +33,8 @@ export interface AcceptInviteRequest {
   token?: Uint8Array
 }
 
-// AcceptInviteRequest contains the message type declaration for AcceptInviteRequest.
 export const AcceptInviteRequest: MessageType<AcceptInviteRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.invite.AcceptInviteRequest',
     fields: [
       {
@@ -43,7 +44,7 @@ export const AcceptInviteRequest: MessageType<AcceptInviteRequest> =
         T: () => SOJoinResponse,
       },
       { no: 2, name: 'token', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -67,13 +68,12 @@ export interface AcceptInviteResponse {
   sharedObjectId?: string
 }
 
-// AcceptInviteResponse contains the message type declaration for AcceptInviteResponse.
 export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'sobject.invite.AcceptInviteResponse',
     fields: [
       { no: 1, name: 'grant', kind: 'message', T: () => SOGrant },
       { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

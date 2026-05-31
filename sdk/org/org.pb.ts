@@ -2,13 +2,15 @@
 // @generated from file github.com/s4wave/spacewave/sdk/org/org.proto (package s4wave.org, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.org'
 
@@ -47,13 +49,15 @@ export enum OrgInviteType {
   EMAIL = 3,
 }
 
-// OrgInviteType_Enum is the enum type for OrgInviteType.
-export const OrgInviteType_Enum = createEnumType('s4wave.org.OrgInviteType', [
-  { no: 0, name: 'ORG_INVITE_TYPE_UNKNOWN' },
-  { no: 1, name: 'ORG_INVITE_TYPE_CODE' },
-  { no: 2, name: 'ORG_INVITE_TYPE_LINK' },
-  { no: 3, name: 'ORG_INVITE_TYPE_EMAIL' },
-])
+export const OrgInviteType_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.org.OrgInviteType',
+  [
+    [0, 'ORG_INVITE_TYPE_UNKNOWN'],
+    [1, 'ORG_INVITE_TYPE_CODE'],
+    [2, 'ORG_INVITE_TYPE_LINK'],
+    [3, 'ORG_INVITE_TYPE_EMAIL'],
+  ],
+)
 
 /**
  * OrgMemberInfo contains per-member metadata within the organization.
@@ -82,16 +86,16 @@ export interface OrgMemberInfo {
   joinedAt?: Date
 }
 
-// OrgMemberInfo contains the message type declaration for OrgMemberInfo.
-export const OrgMemberInfo: MessageType<OrgMemberInfo> = createMessageType({
-  typeName: 's4wave.org.OrgMemberInfo',
-  fields: [
-    { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'display_role', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'joined_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OrgMemberInfo: MessageType<OrgMemberInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.org.OrgMemberInfo',
+    fields: [
+      { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_role', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'joined_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * OrgChildRef is a reference to a child SharedObject owned by this organization.
@@ -107,14 +111,14 @@ export interface OrgChildRef {
   sharedObjectId?: string
 }
 
-// OrgChildRef contains the message type declaration for OrgChildRef.
-export const OrgChildRef: MessageType<OrgChildRef> = createMessageType({
-  typeName: 's4wave.org.OrgChildRef',
-  fields: [
-    { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OrgChildRef: MessageType<OrgChildRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.org.OrgChildRef',
+    fields: [
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * OrgInvite is an organization invite stored in OrgState.
@@ -166,20 +170,20 @@ export interface OrgInvite {
   expiresAt?: Date
 }
 
-// OrgInvite contains the message type declaration for OrgInvite.
-export const OrgInvite: MessageType<OrgInvite> = createMessageType({
-  typeName: 's4wave.org.OrgInvite',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'type', kind: 'enum', T: OrgInviteType_Enum },
-    { no: 3, name: 'token', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'config', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'uses', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 6, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 7, name: 'expires_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OrgInvite: MessageType<OrgInvite> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.org.OrgInvite',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'type', kind: 'enum', T: OrgInviteType_Enum },
+      { no: 3, name: 'token', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'config', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'uses', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 6, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 7, name: 'expires_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * OrgState is the state of an Organization SharedObject.
@@ -228,37 +232,42 @@ export interface OrgState {
   invites?: OrgInvite[]
 }
 
-// OrgState contains the message type declaration for OrgState.
-export const OrgState: MessageType<OrgState> = createMessageType({
-  typeName: 's4wave.org.OrgState',
-  fields: [
-    { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
-    { no: 3, name: 'billing_account_id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 4,
-      name: 'members',
-      kind: 'message',
-      T: () => OrgMemberInfo,
-      repeated: true,
-    },
-    {
-      no: 5,
-      name: 'child_shared_objects',
-      kind: 'message',
-      T: () => OrgChildRef,
-      repeated: true,
-    },
-    {
-      no: 6,
-      name: 'invites',
-      kind: 'message',
-      T: () => OrgInvite,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OrgState: MessageType<OrgState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.org.OrgState',
+    fields: [
+      { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
+      {
+        no: 3,
+        name: 'billing_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 4,
+        name: 'members',
+        kind: 'message',
+        T: () => OrgMemberInfo,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'child_shared_objects',
+        kind: 'message',
+        T: () => OrgChildRef,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'invites',
+        kind: 'message',
+        T: () => OrgInvite,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * InitOrganizationOp initializes an organization world object on space quickstart.
@@ -292,9 +301,8 @@ export interface InitOrganizationOp {
   timestamp?: Date
 }
 
-// InitOrganizationOp contains the message type declaration for InitOrganizationOp.
 export const InitOrganizationOp: MessageType<InitOrganizationOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.org.InitOrganizationOp',
     fields: [
       { no: 1, name: 'org_object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -306,7 +314,7 @@ export const InitOrganizationOp: MessageType<InitOrganizationOp> =
         T: ScalarType.STRING,
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -324,13 +332,12 @@ export interface UpdateOrgDisplayName {
   displayName?: string
 }
 
-// UpdateOrgDisplayName contains the message type declaration for UpdateOrgDisplayName.
 export const UpdateOrgDisplayName: MessageType<UpdateOrgDisplayName> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.org.UpdateOrgDisplayName',
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -348,14 +355,14 @@ export interface AddOrgMember {
   member?: OrgMemberInfo
 }
 
-// AddOrgMember contains the message type declaration for AddOrgMember.
-export const AddOrgMember: MessageType<AddOrgMember> = createMessageType({
-  typeName: 's4wave.org.AddOrgMember',
-  fields: [
-    { no: 1, name: 'member', kind: 'message', T: () => OrgMemberInfo },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AddOrgMember: MessageType<AddOrgMember> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.org.AddOrgMember',
+    fields: [
+      { no: 1, name: 'member', kind: 'message', T: () => OrgMemberInfo },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RemoveOrgMember is the body for removing a member.
@@ -371,14 +378,14 @@ export interface RemoveOrgMember {
   accountId?: string
 }
 
-// RemoveOrgMember contains the message type declaration for RemoveOrgMember.
-export const RemoveOrgMember: MessageType<RemoveOrgMember> = createMessageType({
-  typeName: 's4wave.org.RemoveOrgMember',
-  fields: [
-    { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RemoveOrgMember: MessageType<RemoveOrgMember> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.org.RemoveOrgMember',
+    fields: [
+      { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * AddOrgChildSo is the body for adding a child SO reference.
@@ -394,14 +401,14 @@ export interface AddOrgChildSo {
   sharedObjectId?: string
 }
 
-// AddOrgChildSo contains the message type declaration for AddOrgChildSo.
-export const AddOrgChildSo: MessageType<AddOrgChildSo> = createMessageType({
-  typeName: 's4wave.org.AddOrgChildSo',
-  fields: [
-    { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AddOrgChildSo: MessageType<AddOrgChildSo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.org.AddOrgChildSo',
+    fields: [
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RemoveOrgChildSo is the body for removing a child SO reference.
@@ -417,13 +424,12 @@ export interface RemoveOrgChildSo {
   sharedObjectId?: string
 }
 
-// RemoveOrgChildSo contains the message type declaration for RemoveOrgChildSo.
 export const RemoveOrgChildSo: MessageType<RemoveOrgChildSo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.org.RemoveOrgChildSo',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -465,9 +471,8 @@ export interface CreateOrgInviteOp {
   timestamp?: Date
 }
 
-// CreateOrgInviteOp contains the message type declaration for CreateOrgInviteOp.
 export const CreateOrgInviteOp: MessageType<CreateOrgInviteOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.org.CreateOrgInviteOp',
     fields: [
       { no: 1, name: 'type', kind: 'enum', T: OrgInviteType_Enum },
@@ -475,7 +480,7 @@ export const CreateOrgInviteOp: MessageType<CreateOrgInviteOp> =
       { no: 3, name: 'expires_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'config', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -493,13 +498,12 @@ export interface RevokeOrgInviteOp {
   inviteId?: string
 }
 
-// RevokeOrgInviteOp contains the message type declaration for RevokeOrgInviteOp.
 export const RevokeOrgInviteOp: MessageType<RevokeOrgInviteOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.org.RevokeOrgInviteOp',
     fields: [
       { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -529,15 +533,14 @@ export interface JoinOrgViaInviteOp {
   timestamp?: Date
 }
 
-// JoinOrgViaInviteOp contains the message type declaration for JoinOrgViaInviteOp.
 export const JoinOrgViaInviteOp: MessageType<JoinOrgViaInviteOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.org.JoinOrgViaInviteOp',
     fields: [
       { no: 1, name: 'token', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -638,70 +641,70 @@ export interface UpdateOrgOp {
       }
 }
 
-// UpdateOrgOp contains the message type declaration for UpdateOrgOp.
-export const UpdateOrgOp: MessageType<UpdateOrgOp> = createMessageType({
-  typeName: 's4wave.org.UpdateOrgOp',
-  fields: [
-    { no: 1, name: 'org_object_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'update_display_name',
-      kind: 'message',
-      T: () => UpdateOrgDisplayName,
-      oneof: 'body',
-    },
-    {
-      no: 3,
-      name: 'add_member',
-      kind: 'message',
-      T: () => AddOrgMember,
-      oneof: 'body',
-    },
-    {
-      no: 4,
-      name: 'remove_member',
-      kind: 'message',
-      T: () => RemoveOrgMember,
-      oneof: 'body',
-    },
-    {
-      no: 5,
-      name: 'add_child_so',
-      kind: 'message',
-      T: () => AddOrgChildSo,
-      oneof: 'body',
-    },
-    {
-      no: 6,
-      name: 'remove_child_so',
-      kind: 'message',
-      T: () => RemoveOrgChildSo,
-      oneof: 'body',
-    },
-    {
-      no: 7,
-      name: 'create_invite',
-      kind: 'message',
-      T: () => CreateOrgInviteOp,
-      oneof: 'body',
-    },
-    {
-      no: 8,
-      name: 'revoke_invite',
-      kind: 'message',
-      T: () => RevokeOrgInviteOp,
-      oneof: 'body',
-    },
-    {
-      no: 9,
-      name: 'join_via_invite',
-      kind: 'message',
-      T: () => JoinOrgViaInviteOp,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const UpdateOrgOp: MessageType<UpdateOrgOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.org.UpdateOrgOp',
+    fields: [
+      { no: 1, name: 'org_object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'update_display_name',
+        kind: 'message',
+        T: () => UpdateOrgDisplayName,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'add_member',
+        kind: 'message',
+        T: () => AddOrgMember,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'remove_member',
+        kind: 'message',
+        T: () => RemoveOrgMember,
+        oneof: 'body',
+      },
+      {
+        no: 5,
+        name: 'add_child_so',
+        kind: 'message',
+        T: () => AddOrgChildSo,
+        oneof: 'body',
+      },
+      {
+        no: 6,
+        name: 'remove_child_so',
+        kind: 'message',
+        T: () => RemoveOrgChildSo,
+        oneof: 'body',
+      },
+      {
+        no: 7,
+        name: 'create_invite',
+        kind: 'message',
+        T: () => CreateOrgInviteOp,
+        oneof: 'body',
+      },
+      {
+        no: 8,
+        name: 'revoke_invite',
+        kind: 'message',
+        T: () => RevokeOrgInviteOp,
+        oneof: 'body',
+      },
+      {
+        no: 9,
+        name: 'join_via_invite',
+        kind: 'message',
+        T: () => JoinOrgViaInviteOp,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DeleteOrganizationOp marks an organization as deleted.
@@ -718,13 +721,12 @@ export interface DeleteOrganizationOp {
   orgObjectKey?: string
 }
 
-// DeleteOrganizationOp contains the message type declaration for DeleteOrganizationOp.
 export const DeleteOrganizationOp: MessageType<DeleteOrganizationOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.org.DeleteOrganizationOp',
     fields: [
       { no: 1, name: 'org_object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -774,8 +776,7 @@ export interface OrgSOOp {
       }
 }
 
-// OrgSOOp contains the message type declaration for OrgSOOp.
-export const OrgSOOp: MessageType<OrgSOOp> = createMessageType({
+export const OrgSOOp: MessageType<OrgSOOp> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.org.OrgSOOp',
   fields: [
     {
@@ -799,7 +800,7 @@ export const OrgSOOp: MessageType<OrgSOOp> = createMessageType({
       T: () => DeleteOrganizationOp,
       oneof: 'body',
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -810,13 +811,11 @@ export const OrgSOOp: MessageType<OrgSOOp> = createMessageType({
  */
 export interface WatchOrgStateRequest {}
 
-// WatchOrgStateRequest contains the message type declaration for WatchOrgStateRequest.
 export const WatchOrgStateRequest: MessageType<WatchOrgStateRequest> =
-  createMessageType({
-    typeName: 's4wave.org.WatchOrgStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchOrgStateRequest>(
+    's4wave.org.WatchOrgStateRequest',
+    true,
+  )
 
 /**
  * WatchOrgStateResponse contains the current organization state.
@@ -832,12 +831,11 @@ export interface WatchOrgStateResponse {
   state?: OrgState
 }
 
-// WatchOrgStateResponse contains the message type declaration for WatchOrgStateResponse.
 export const WatchOrgStateResponse: MessageType<WatchOrgStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.org.WatchOrgStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => OrgState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

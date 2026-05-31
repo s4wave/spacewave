@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { NotebookSource } from './notebook.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'notes'
@@ -42,8 +44,7 @@ export interface Blog {
   authorRegistryPath?: string
 }
 
-// Blog contains the message type declaration for Blog.
-export const Blog: MessageType<Blog> = createMessageType({
+export const Blog: MessageType<Blog> = /* @__PURE__ */ createMessageType({
   typeName: 'notes.Blog',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
@@ -61,7 +62,7 @@ export const Blog: MessageType<Blog> = createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -103,20 +104,20 @@ export interface CreateBlogOp {
   timestamp?: Date
 }
 
-// CreateBlogOp contains the message type declaration for CreateBlogOp.
-export const CreateBlogOp: MessageType<CreateBlogOp> = createMessageType({
-  typeName: 'notes.CreateBlogOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 4,
-      name: 'author_registry_path',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CreateBlogOp: MessageType<CreateBlogOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'notes.CreateBlogOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'author_registry_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

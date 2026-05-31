@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/net/stream/srpc/server/lookup/lookup.proto (package stream.srpc.server.lookup, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'stream.srpc.server.lookup'
 
@@ -36,8 +38,7 @@ export interface Config {
   serverId?: string
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'stream.srpc.server.lookup.Config',
   fields: [
     {
@@ -55,6 +56,6 @@ export const Config: MessageType<Config> = createMessageType({
       repeated: true,
     },
     { no: 3, name: 'server_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

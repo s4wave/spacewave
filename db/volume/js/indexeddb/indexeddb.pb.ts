@@ -5,8 +5,10 @@
 import { Config as Config$1 } from '../../../store/kvkey/kvkey.pb.js'
 import { Config as Config$2 } from '../../controller/controller.pb.js'
 import { Config as Config$3 } from '../../../store/kvtx/kvtx.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'volume.indexeddb'
 
@@ -78,8 +80,7 @@ export interface Config {
   storeConfig?: Config$3
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'volume.indexeddb.Config',
   fields: [
     { no: 1, name: 'database_name', kind: 'scalar', T: ScalarType.STRING },
@@ -90,6 +91,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 6, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 7, name: 'volume_config', kind: 'message', T: () => Config$2 },
     { no: 8, name: 'store_config', kind: 'message', T: () => Config$3 },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

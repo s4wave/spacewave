@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/bldr/example/example.proto (package bldr.example, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.example'
 
@@ -21,12 +23,11 @@ export interface Config {
   runDemo?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bldr.example.Config',
   fields: [
     { no: 1, name: 'run_demo', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -44,11 +45,11 @@ export interface ExampleProps {
   msg?: string
 }
 
-// ExampleProps contains the message type declaration for ExampleProps.
-export const ExampleProps: MessageType<ExampleProps> = createMessageType({
-  typeName: 'bldr.example.ExampleProps',
-  fields: [
-    { no: 1, name: 'msg', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ExampleProps: MessageType<ExampleProps> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.example.ExampleProps',
+    fields: [
+      { no: 1, name: 'msg', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/space/world/ops/ops.proto (package space.world.ops, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SpaceSettings } from '../world.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { CanvasEdge, CanvasNode } from '../../../../sdk/canvas/canvas.pb.js'
@@ -25,12 +27,11 @@ export interface Config {
   engineId?: string
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'space.world.ops.Config',
   fields: [
     { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -68,16 +69,15 @@ export interface SetSpaceSettingsOp {
   timestamp?: Date
 }
 
-// SetSpaceSettingsOp contains the message type declaration for SetSpaceSettingsOp.
 export const SetSpaceSettingsOp: MessageType<SetSpaceSettingsOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'space.world.ops.SetSpaceSettingsOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'settings', kind: 'message', T: () => SpaceSettings },
       { no: 3, name: 'overwrite', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -102,15 +102,15 @@ export interface InitUnixFSOp {
   timestamp?: Date
 }
 
-// InitUnixFSOp contains the message type declaration for InitUnixFSOp.
-export const InitUnixFSOp: MessageType<InitUnixFSOp> = createMessageType({
-  typeName: 'space.world.ops.InitUnixFSOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const InitUnixFSOp: MessageType<InitUnixFSOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.ops.InitUnixFSOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * InitObjectLayoutOp is an operation to initialize an ObjectLayout with starter content.
@@ -133,14 +133,13 @@ export interface InitObjectLayoutOp {
   timestamp?: Date
 }
 
-// InitObjectLayoutOp contains the message type declaration for InitObjectLayoutOp.
 export const InitObjectLayoutOp: MessageType<InitObjectLayoutOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'space.world.ops.InitObjectLayoutOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -166,14 +165,13 @@ export interface InitCanvasDemoOp {
   timestamp?: Date
 }
 
-// InitCanvasDemoOp contains the message type declaration for InitCanvasDemoOp.
 export const InitCanvasDemoOp: MessageType<InitCanvasDemoOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'space.world.ops.InitCanvasDemoOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -198,15 +196,15 @@ export interface CanvasInitOp {
   timestamp?: Date
 }
 
-// CanvasInitOp contains the message type declaration for CanvasInitOp.
-export const CanvasInitOp: MessageType<CanvasInitOp> = createMessageType({
-  typeName: 'space.world.ops.CanvasInitOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CanvasInitOp: MessageType<CanvasInitOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.ops.CanvasInitOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CanvasAddNodeOp is an operation to add a node to a canvas.
@@ -228,15 +226,15 @@ export interface CanvasAddNodeOp {
   node?: CanvasNode
 }
 
-// CanvasAddNodeOp contains the message type declaration for CanvasAddNodeOp.
-export const CanvasAddNodeOp: MessageType<CanvasAddNodeOp> = createMessageType({
-  typeName: 'space.world.ops.CanvasAddNodeOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'node', kind: 'message', T: () => CanvasNode },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CanvasAddNodeOp: MessageType<CanvasAddNodeOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.ops.CanvasAddNodeOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'node', kind: 'message', T: () => CanvasNode },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CanvasRemoveNodeOp is an operation to remove nodes from a canvas.
@@ -258,9 +256,8 @@ export interface CanvasRemoveNodeOp {
   nodeIds?: string[]
 }
 
-// CanvasRemoveNodeOp contains the message type declaration for CanvasRemoveNodeOp.
 export const CanvasRemoveNodeOp: MessageType<CanvasRemoveNodeOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'space.world.ops.CanvasRemoveNodeOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -271,7 +268,7 @@ export const CanvasRemoveNodeOp: MessageType<CanvasRemoveNodeOp> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -296,15 +293,15 @@ export interface CanvasSetNodeOp {
   node?: CanvasNode
 }
 
-// CanvasSetNodeOp contains the message type declaration for CanvasSetNodeOp.
-export const CanvasSetNodeOp: MessageType<CanvasSetNodeOp> = createMessageType({
-  typeName: 'space.world.ops.CanvasSetNodeOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'node', kind: 'message', T: () => CanvasNode },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CanvasSetNodeOp: MessageType<CanvasSetNodeOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.ops.CanvasSetNodeOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'node', kind: 'message', T: () => CanvasNode },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CanvasAddEdgeOp is an operation to add an edge to a canvas.
@@ -326,15 +323,15 @@ export interface CanvasAddEdgeOp {
   edge?: CanvasEdge
 }
 
-// CanvasAddEdgeOp contains the message type declaration for CanvasAddEdgeOp.
-export const CanvasAddEdgeOp: MessageType<CanvasAddEdgeOp> = createMessageType({
-  typeName: 'space.world.ops.CanvasAddEdgeOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'edge', kind: 'message', T: () => CanvasEdge },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CanvasAddEdgeOp: MessageType<CanvasAddEdgeOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.ops.CanvasAddEdgeOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'edge', kind: 'message', T: () => CanvasEdge },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CanvasRemoveEdgeOp is an operation to remove edges from a canvas.
@@ -356,9 +353,8 @@ export interface CanvasRemoveEdgeOp {
   edgeIds?: string[]
 }
 
-// CanvasRemoveEdgeOp contains the message type declaration for CanvasRemoveEdgeOp.
 export const CanvasRemoveEdgeOp: MessageType<CanvasRemoveEdgeOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'space.world.ops.CanvasRemoveEdgeOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -369,6 +365,6 @@ export const CanvasRemoveEdgeOp: MessageType<CanvasRemoveEdgeOp> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,14 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/db/unixfs/world/unixfs.proto (package unixfs.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { NodeType } from '../block/fstree.pb.js'
 import { FSPath, FSSymlink, NodeType_Enum } from '../block/fstree.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { BlockRef } from '../../block/block.pb.js'
@@ -52,13 +51,15 @@ export enum FSType {
   FSType_FS_HOST_VOLUME = 3,
 }
 
-// FSType_Enum is the enum type for FSType.
-export const FSType_Enum = createEnumType('unixfs.world.FSType', [
-  { no: 0, name: 'FSType_UNKNOWN' },
-  { no: 1, name: 'FSType_FS_NODE' },
-  { no: 2, name: 'FSType_FS_OBJECT' },
-  { no: 3, name: 'FSType_FS_HOST_VOLUME' },
-])
+export const FSType_Enum = /* @__PURE__ */ createEnumType(
+  'unixfs.world.FSType',
+  [
+    [0, 'FSType_UNKNOWN'],
+    [1, 'FSType_FS_NODE'],
+    [2, 'FSType_FS_OBJECT'],
+    [3, 'FSType_FS_HOST_VOLUME'],
+  ],
+)
 
 /**
  * UnixfsRef is a reference to a UnixFS object in a World.
@@ -89,16 +90,16 @@ export interface UnixfsRef {
   path?: FSPath
 }
 
-// UnixfsRef contains the message type declaration for UnixfsRef.
-export const UnixfsRef: MessageType<UnixfsRef> = createMessageType({
-  typeName: 'unixfs.world.UnixfsRef',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'path', kind: 'message', T: () => FSPath },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const UnixfsRef: MessageType<UnixfsRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.UnixfsRef',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FsInitOp is an operation to create a unixfs filesystem with a root ref or empty.
@@ -141,18 +142,18 @@ export interface FsInitOp {
   timestamp?: Date
 }
 
-// FsInitOp contains the message type declaration for FsInitOp.
-export const FsInitOp: MessageType<FsInitOp> = createMessageType({
-  typeName: 'unixfs.world.FsInitOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'fs_ref', kind: 'message', T: () => ObjectRef },
-    { no: 5, name: 'fs_overwrite', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FsInitOp: MessageType<FsInitOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.FsInitOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 3, name: 'fs_ref', kind: 'message', T: () => ObjectRef },
+      { no: 5, name: 'fs_overwrite', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FsMknodOp is an operation to create one or more inodes at paths.
@@ -202,19 +203,25 @@ export interface FsMknodOp {
   timestamp?: Date
 }
 
-// FsMknodOp contains the message type declaration for FsMknodOp.
-export const FsMknodOp: MessageType<FsMknodOp> = createMessageType({
-  typeName: 'unixfs.world.FsMknodOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'paths', kind: 'message', T: () => FSPath, repeated: true },
-    { no: 4, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 5, name: 'node_type', kind: 'enum', T: NodeType_Enum },
-    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FsMknodOp: MessageType<FsMknodOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.FsMknodOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      {
+        no: 3,
+        name: 'paths',
+        kind: 'message',
+        T: () => FSPath,
+        repeated: true,
+      },
+      { no: 4, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 5, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+      { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FsSymlinkOp is an operation to create a symbolic link.
@@ -257,18 +264,18 @@ export interface FsSymlinkOp {
   timestamp?: Date
 }
 
-// FsSymlinkOp contains the message type declaration for FsSymlinkOp.
-export const FsSymlinkOp: MessageType<FsSymlinkOp> = createMessageType({
-  typeName: 'unixfs.world.FsSymlinkOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'path', kind: 'message', T: () => FSPath },
-    { no: 4, name: 'symlink', kind: 'message', T: () => FSSymlink },
-    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FsSymlinkOp: MessageType<FsSymlinkOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.FsSymlinkOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+      { no: 4, name: 'symlink', kind: 'message', T: () => FSSymlink },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FsSetPermissionsOp is an operation to set the permissions at the paths.
@@ -312,9 +319,8 @@ export interface FsSetPermissionsOp {
   timestamp?: Date
 }
 
-// FsSetPermissionsOp contains the message type declaration for FsSetPermissionsOp.
 export const FsSetPermissionsOp: MessageType<FsSetPermissionsOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.world.FsSetPermissionsOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -328,7 +334,7 @@ export const FsSetPermissionsOp: MessageType<FsSetPermissionsOp> =
       },
       { no: 4, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -367,9 +373,8 @@ export interface FsSetModTimestampOp {
   timestamp?: Date
 }
 
-// FsSetModTimestampOp contains the message type declaration for FsSetModTimestampOp.
 export const FsSetModTimestampOp: MessageType<FsSetModTimestampOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.world.FsSetModTimestampOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -382,7 +387,7 @@ export const FsSetModTimestampOp: MessageType<FsSetModTimestampOp> =
         repeated: true,
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -433,19 +438,19 @@ export interface FsWriteAtOp {
   timestamp?: Date
 }
 
-// FsWriteAtOp contains the message type declaration for FsWriteAtOp.
-export const FsWriteAtOp: MessageType<FsWriteAtOp> = createMessageType({
-  typeName: 'unixfs.world.FsWriteAtOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'path', kind: 'message', T: () => FSPath },
-    { no: 4, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
-    { no: 5, name: 'blob_ref', kind: 'message', T: () => BlockRef },
-    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FsWriteAtOp: MessageType<FsWriteAtOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.FsWriteAtOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+      { no: 4, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 5, name: 'blob_ref', kind: 'message', T: () => BlockRef },
+      { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FsTruncateOp shrinks or extends a file to the specified size.
@@ -489,18 +494,18 @@ export interface FsTruncateOp {
   timestamp?: Date
 }
 
-// FsTruncateOp contains the message type declaration for FsTruncateOp.
-export const FsTruncateOp: MessageType<FsTruncateOp> = createMessageType({
-  typeName: 'unixfs.world.FsTruncateOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'path', kind: 'message', T: () => FSPath },
-    { no: 4, name: 'file_size', kind: 'scalar', T: ScalarType.INT64 },
-    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FsTruncateOp: MessageType<FsTruncateOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.FsTruncateOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 3, name: 'path', kind: 'message', T: () => FSPath },
+      { no: 4, name: 'file_size', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FsCopyOp recursively copies a source path to a destination, overwriting destination.
@@ -544,18 +549,18 @@ export interface FsCopyOp {
   timestamp?: Date
 }
 
-// FsCopyOp contains the message type declaration for FsCopyOp.
-export const FsCopyOp: MessageType<FsCopyOp> = createMessageType({
-  typeName: 'unixfs.world.FsCopyOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'src_path', kind: 'message', T: () => FSPath },
-    { no: 4, name: 'dest_path', kind: 'message', T: () => FSPath },
-    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FsCopyOp: MessageType<FsCopyOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.FsCopyOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 3, name: 'src_path', kind: 'message', T: () => FSPath },
+      { no: 4, name: 'dest_path', kind: 'message', T: () => FSPath },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FsRenameOp recursively moves a source path to a destination, overwriting destination.
@@ -600,18 +605,18 @@ export interface FsRenameOp {
   timestamp?: Date
 }
 
-// FsRenameOp contains the message type declaration for FsRenameOp.
-export const FsRenameOp: MessageType<FsRenameOp> = createMessageType({
-  typeName: 'unixfs.world.FsRenameOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'src_path', kind: 'message', T: () => FSPath },
-    { no: 4, name: 'dest_path', kind: 'message', T: () => FSPath },
-    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FsRenameOp: MessageType<FsRenameOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.FsRenameOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 3, name: 'src_path', kind: 'message', T: () => FSPath },
+      { no: 4, name: 'dest_path', kind: 'message', T: () => FSPath },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FsMknodWithContentOp creates a file and writes content atomically.
@@ -669,9 +674,8 @@ export interface FsMknodWithContentOp {
   blobRef?: BlockRef
 }
 
-// FsMknodWithContentOp contains the message type declaration for FsMknodWithContentOp.
 export const FsMknodWithContentOp: MessageType<FsMknodWithContentOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.world.FsMknodWithContentOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -681,7 +685,7 @@ export const FsMknodWithContentOp: MessageType<FsMknodWithContentOp> =
       { no: 5, name: 'node_type', kind: 'enum', T: NodeType_Enum },
       { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
       { no: 7, name: 'blob_ref', kind: 'message', T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -720,17 +724,23 @@ export interface FsRemoveOp {
   timestamp?: Date
 }
 
-// FsRemoveOp contains the message type declaration for FsRemoveOp.
-export const FsRemoveOp: MessageType<FsRemoveOp> = createMessageType({
-  typeName: 'unixfs.world.FsRemoveOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 3, name: 'paths', kind: 'message', T: () => FSPath, repeated: true },
-    { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FsRemoveOp: MessageType<FsRemoveOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.FsRemoveOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      {
+        no: 3,
+        name: 'paths',
+        kind: 'message',
+        T: () => FSPath,
+        repeated: true,
+      },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * MountValue is the contents of the quad value field for a mount.
@@ -755,15 +765,15 @@ export interface MountValue {
   prefix?: string
 }
 
-// MountValue contains the message type declaration for MountValue.
-export const MountValue: MessageType<MountValue> = createMessageType({
-  typeName: 'unixfs.world.MountValue',
-  fields: [
-    { no: 1, name: 'mountpoint', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const MountValue: MessageType<MountValue> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.MountValue',
+    fields: [
+      { no: 1, name: 'mountpoint', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RefValue is the contents of the quad value field for a ref.
@@ -789,12 +799,12 @@ export interface RefValue {
   path?: FSPath
 }
 
-// RefValue contains the message type declaration for RefValue.
-export const RefValue: MessageType<RefValue> = createMessageType({
-  typeName: 'unixfs.world.RefValue',
-  fields: [
-    { no: 1, name: 'fs_type', kind: 'enum', T: FSType_Enum },
-    { no: 2, name: 'path', kind: 'message', T: () => FSPath },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RefValue: MessageType<RefValue> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.world.RefValue',
+    fields: [
+      { no: 1, name: 'fs_type', kind: 'enum', T: FSType_Enum },
+      { no: 2, name: 'path', kind: 'message', T: () => FSPath },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

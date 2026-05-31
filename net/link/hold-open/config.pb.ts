@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/net/link/hold-open/config.proto (package link.holdopen.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
 export const protobufPackage = 'link.holdopen.controller'
 
@@ -16,9 +16,8 @@ export const protobufPackage = 'link.holdopen.controller'
  */
 export interface Config {}
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'link.holdopen.controller.Config',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createEmptyMessageType<Config>(
+    'link.holdopen.controller.Config',
+    true,
+  )

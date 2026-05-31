@@ -4,8 +4,10 @@
 
 import { Opts } from '../common/quic/quic.pb.js'
 import { DialerOpts } from '../common/dialer/dialer.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'websocket'
 
@@ -69,8 +71,7 @@ export interface Config {
   verbose?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'websocket.Config',
   fields: [
     { no: 1, name: 'transport_peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -86,6 +87,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 5, name: 'http_path', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'http_peer_path', kind: 'scalar', T: ScalarType.STRING },
     { no: 7, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

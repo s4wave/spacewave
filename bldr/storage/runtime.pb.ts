@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/bldr/storage/runtime.proto (package storage, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
 export const protobufPackage = 'storage'
 
@@ -17,9 +17,8 @@ export const protobufPackage = 'storage'
  */
 export interface StorageInfo {}
 
-// StorageInfo contains the message type declaration for StorageInfo.
-export const StorageInfo: MessageType<StorageInfo> = createMessageType({
-  typeName: 'storage.StorageInfo',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StorageInfo: MessageType<StorageInfo> =
+  /* @__PURE__ */ createEmptyMessageType<StorageInfo>(
+    'storage.StorageInfo',
+    true,
+  )

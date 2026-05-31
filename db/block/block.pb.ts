@@ -2,13 +2,15 @@
 // @generated from file github.com/s4wave/spacewave/db/block/block.proto (package block, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import {
   Hash,
   HashType_Enum,
 } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'block'
 
@@ -63,15 +65,17 @@ export enum StoreFeature {
   NATIVE_DEFER_FLUSH = 16,
 }
 
-// StoreFeature_Enum is the enum type for StoreFeature.
-export const StoreFeature_Enum = createEnumType('block.StoreFeature', [
-  { no: 0, name: 'STORE_FEATURE_UNKNOWN' },
-  { no: 1, name: 'STORE_FEATURE_NATIVE_BATCH_PUT' },
-  { no: 2, name: 'STORE_FEATURE_NATIVE_BATCH_EXISTS' },
-  { no: 4, name: 'STORE_FEATURE_NATIVE_BACKGROUND_PUT' },
-  { no: 8, name: 'STORE_FEATURE_NATIVE_FLUSH' },
-  { no: 16, name: 'STORE_FEATURE_NATIVE_DEFER_FLUSH' },
-])
+export const StoreFeature_Enum = /* @__PURE__ */ createEnumType(
+  'block.StoreFeature',
+  [
+    [0, 'STORE_FEATURE_UNKNOWN'],
+    [1, 'STORE_FEATURE_NATIVE_BATCH_PUT'],
+    [2, 'STORE_FEATURE_NATIVE_BATCH_EXISTS'],
+    [4, 'STORE_FEATURE_NATIVE_BACKGROUND_PUT'],
+    [8, 'STORE_FEATURE_NATIVE_FLUSH'],
+    [16, 'STORE_FEATURE_NATIVE_DEFER_FLUSH'],
+  ],
+)
 
 /**
  * OverlayMode controls the mode for the block store overlay.
@@ -181,18 +185,20 @@ export enum OverlayMode {
   UPPER_READBACK_CACHE = 8,
 }
 
-// OverlayMode_Enum is the enum type for OverlayMode.
-export const OverlayMode_Enum = createEnumType('block.OverlayMode', [
-  { no: 0, name: 'UPPER_ONLY' },
-  { no: 1, name: 'LOWER_ONLY' },
-  { no: 2, name: 'UPPER_CACHE' },
-  { no: 3, name: 'LOWER_CACHE' },
-  { no: 4, name: 'UPPER_READ_CACHE' },
-  { no: 5, name: 'LOWER_READ_CACHE' },
-  { no: 6, name: 'UPPER_WRITE_CACHE' },
-  { no: 7, name: 'LOWER_WRITE_CACHE' },
-  { no: 8, name: 'UPPER_READBACK_CACHE' },
-])
+export const OverlayMode_Enum = /* @__PURE__ */ createEnumType(
+  'block.OverlayMode',
+  [
+    [0, 'UPPER_ONLY'],
+    [1, 'LOWER_ONLY'],
+    [2, 'UPPER_CACHE'],
+    [3, 'LOWER_CACHE'],
+    [4, 'UPPER_READ_CACHE'],
+    [5, 'LOWER_READ_CACHE'],
+    [6, 'UPPER_WRITE_CACHE'],
+    [7, 'LOWER_WRITE_CACHE'],
+    [8, 'UPPER_READBACK_CACHE'],
+  ],
+)
 
 /**
  * BlockRef is a block content ID reference.
@@ -210,14 +216,14 @@ export interface BlockRef {
   hash?: Hash
 }
 
-// BlockRef contains the message type declaration for BlockRef.
-export const BlockRef: MessageType<BlockRef> = createMessageType({
-  typeName: 'block.BlockRef',
-  fields: [
-    { no: 1, name: 'hash', kind: 'message', T: () => Hash },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BlockRef: MessageType<BlockRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.BlockRef',
+    fields: [
+      { no: 1, name: 'hash', kind: 'message', T: () => Hash },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PutOpts are options that can be passed to PutBlock.
@@ -252,13 +258,12 @@ export interface PutOpts {
   refs?: BlockRef[]
 }
 
-// PutOpts contains the message type declaration for PutOpts.
-export const PutOpts: MessageType<PutOpts> = createMessageType({
+export const PutOpts: MessageType<PutOpts> = /* @__PURE__ */ createMessageType({
   typeName: 'block.PutOpts',
   fields: [
     { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     { no: 2, name: 'force_block_ref', kind: 'message', T: () => BlockRef },
     { no: 3, name: 'refs', kind: 'message', T: () => BlockRef, repeated: true },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

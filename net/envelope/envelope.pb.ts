@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/net/envelope/envelope.proto (package envelope, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'envelope'
 
@@ -32,27 +34,27 @@ export interface EnvelopeGrant {
   ciphertexts?: Uint8Array[]
 }
 
-// EnvelopeGrant contains the message type declaration for EnvelopeGrant.
-export const EnvelopeGrant: MessageType<EnvelopeGrant> = createMessageType({
-  typeName: 'envelope.EnvelopeGrant',
-  fields: [
-    {
-      no: 1,
-      name: 'keypair_indexes',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'ciphertexts',
-      kind: 'scalar',
-      T: ScalarType.BYTES,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EnvelopeGrant: MessageType<EnvelopeGrant> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'envelope.EnvelopeGrant',
+    fields: [
+      {
+        no: 1,
+        name: 'keypair_indexes',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'ciphertexts',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EnvelopeKeypair is a public key entry in the envelope.
@@ -81,16 +83,21 @@ export interface EnvelopeKeypair {
   authMethodParams?: Uint8Array
 }
 
-// EnvelopeKeypair contains the message type declaration for EnvelopeKeypair.
-export const EnvelopeKeypair: MessageType<EnvelopeKeypair> = createMessageType({
-  typeName: 'envelope.EnvelopeKeypair',
-  fields: [
-    { no: 1, name: 'pub_key', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'auth_method_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'auth_method_params', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EnvelopeKeypair: MessageType<EnvelopeKeypair> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'envelope.EnvelopeKeypair',
+    fields: [
+      { no: 1, name: 'pub_key', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'auth_method_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'auth_method_params',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Envelope contains an encrypted message unlockable via secret sharing.
@@ -152,32 +159,32 @@ export interface Envelope {
   contents?: Uint8Array
 }
 
-// Envelope contains the message type declaration for Envelope.
-export const Envelope: MessageType<Envelope> = createMessageType({
-  typeName: 'envelope.Envelope',
-  fields: [
-    { no: 1, name: 'envelope_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'context_hash', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 3, name: 'threshold', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 4, name: 'ciphertext', kind: 'scalar', T: ScalarType.BYTES },
-    {
-      no: 5,
-      name: 'grants',
-      kind: 'message',
-      T: () => EnvelopeGrant,
-      repeated: true,
-    },
-    {
-      no: 6,
-      name: 'keypairs',
-      kind: 'message',
-      T: () => EnvelopeKeypair,
-      repeated: true,
-    },
-    { no: 7, name: 'contents', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Envelope: MessageType<Envelope> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'envelope.Envelope',
+    fields: [
+      { no: 1, name: 'envelope_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'context_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'threshold', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'ciphertext', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 5,
+        name: 'grants',
+        kind: 'message',
+        T: () => EnvelopeGrant,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'keypairs',
+        kind: 'message',
+        T: () => EnvelopeKeypair,
+        repeated: true,
+      },
+      { no: 7, name: 'contents', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EnvelopeShare is a single Shamir share (Ristretto255 scalar pair).
@@ -199,15 +206,15 @@ export interface EnvelopeShare {
   value?: Uint8Array
 }
 
-// EnvelopeShare contains the message type declaration for EnvelopeShare.
-export const EnvelopeShare: MessageType<EnvelopeShare> = createMessageType({
-  typeName: 'envelope.EnvelopeShare',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EnvelopeShare: MessageType<EnvelopeShare> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'envelope.EnvelopeShare',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EnvelopeGrantInner is the decrypted contents of a grant.
@@ -223,9 +230,8 @@ export interface EnvelopeGrantInner {
   shares?: EnvelopeShare[]
 }
 
-// EnvelopeGrantInner contains the message type declaration for EnvelopeGrantInner.
 export const EnvelopeGrantInner: MessageType<EnvelopeGrantInner> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'envelope.EnvelopeGrantInner',
     fields: [
       {
@@ -235,7 +241,7 @@ export const EnvelopeGrantInner: MessageType<EnvelopeGrantInner> =
         T: () => EnvelopeShare,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -261,9 +267,8 @@ export interface EnvelopeGrantConfig {
   keypairIndexes?: number[]
 }
 
-// EnvelopeGrantConfig contains the message type declaration for EnvelopeGrantConfig.
 export const EnvelopeGrantConfig: MessageType<EnvelopeGrantConfig> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'envelope.EnvelopeGrantConfig',
     fields: [
       { no: 1, name: 'share_count', kind: 'scalar', T: ScalarType.UINT32 },
@@ -274,7 +279,7 @@ export const EnvelopeGrantConfig: MessageType<EnvelopeGrantConfig> =
         T: ScalarType.UINT32,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -312,23 +317,23 @@ export interface EnvelopeConfig {
   grantConfigs?: EnvelopeGrantConfig[]
 }
 
-// EnvelopeConfig contains the message type declaration for EnvelopeConfig.
-export const EnvelopeConfig: MessageType<EnvelopeConfig> = createMessageType({
-  typeName: 'envelope.EnvelopeConfig',
-  fields: [
-    { no: 1, name: 'envelope_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'threshold', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'total_shares', kind: 'scalar', T: ScalarType.UINT32 },
-    {
-      no: 4,
-      name: 'grant_configs',
-      kind: 'message',
-      T: () => EnvelopeGrantConfig,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EnvelopeConfig: MessageType<EnvelopeConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'envelope.EnvelopeConfig',
+    fields: [
+      { no: 1, name: 'envelope_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'threshold', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'total_shares', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 4,
+        name: 'grant_configs',
+        kind: 'message',
+        T: () => EnvelopeGrantConfig,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EnvelopeUnlockResult is the result of attempting to unlock an envelope.
@@ -362,9 +367,8 @@ export interface EnvelopeUnlockResult {
   unlockedGrantIndexes?: number[]
 }
 
-// EnvelopeUnlockResult contains the message type declaration for EnvelopeUnlockResult.
 export const EnvelopeUnlockResult: MessageType<EnvelopeUnlockResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'envelope.EnvelopeUnlockResult',
     fields: [
       { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
@@ -377,6 +381,6 @@ export const EnvelopeUnlockResult: MessageType<EnvelopeUnlockResult> =
         T: ScalarType.UINT32,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

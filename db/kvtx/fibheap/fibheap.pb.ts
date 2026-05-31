@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/db/kvtx/fibheap/fibheap.proto (package fibheap, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'fibheap'
 
@@ -57,8 +59,7 @@ export interface Entry {
   priority?: number
 }
 
-// Entry contains the message type declaration for Entry.
-export const Entry: MessageType<Entry> = createMessageType({
+export const Entry: MessageType<Entry> = /* @__PURE__ */ createMessageType({
   typeName: 'fibheap.Entry',
   fields: [
     { no: 1, name: 'degree', kind: 'scalar', T: ScalarType.INT32 },
@@ -68,7 +69,7 @@ export const Entry: MessageType<Entry> = createMessageType({
     { no: 5, name: 'child', kind: 'scalar', T: ScalarType.BYTES },
     { no: 6, name: 'parent', kind: 'scalar', T: ScalarType.BYTES },
     { no: 7, name: 'priority', kind: 'scalar', T: ScalarType.DOUBLE },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -98,13 +99,12 @@ export interface Root {
   size?: number
 }
 
-// Root contains the message type declaration for Root.
-export const Root: MessageType<Root> = createMessageType({
+export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
   typeName: 'fibheap.Root',
   fields: [
     { no: 1, name: 'min', kind: 'scalar', T: ScalarType.BYTES },
     { no: 2, name: 'min_priority', kind: 'scalar', T: ScalarType.DOUBLE },
     { no: 3, name: 'size', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

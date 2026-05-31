@@ -3,8 +3,9 @@
 /* eslint-disable */
 
 import { Blob } from '../blob/blob.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'msgpack'
 
@@ -27,11 +28,11 @@ export interface MsgpackBlob {
   blob?: Blob
 }
 
-// MsgpackBlob contains the message type declaration for MsgpackBlob.
-export const MsgpackBlob: MessageType<MsgpackBlob> = createMessageType({
-  typeName: 'msgpack.MsgpackBlob',
-  fields: [
-    { no: 1, name: 'blob', kind: 'message', T: () => Blob },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const MsgpackBlob: MessageType<MsgpackBlob> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'msgpack.MsgpackBlob',
+    fields: [
+      { no: 1, name: 'blob', kind: 'message', T: () => Blob },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

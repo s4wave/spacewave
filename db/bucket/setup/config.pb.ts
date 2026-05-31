@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { Config as Config$1 } from '../bucket.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bucket.setup'
 
@@ -40,9 +42,8 @@ export interface ApplyBucketConfig {
   volumeIdList?: string[]
 }
 
-// ApplyBucketConfig contains the message type declaration for ApplyBucketConfig.
 export const ApplyBucketConfig: MessageType<ApplyBucketConfig> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bucket.setup.ApplyBucketConfig',
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config$1 },
@@ -54,7 +55,7 @@ export const ApplyBucketConfig: MessageType<ApplyBucketConfig> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -74,8 +75,7 @@ export interface Config {
   applyBucketConfigs?: ApplyBucketConfig[]
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bucket.setup.Config',
   fields: [
     {
@@ -85,6 +85,6 @@ export const Config: MessageType<Config> = createMessageType({
       T: () => ApplyBucketConfig,
       repeated: true,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/cdn/cdn-resource.proto (package s4wave.cdn, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.cdn'
 
@@ -14,13 +19,11 @@ export const protobufPackage = 's4wave.cdn'
  */
 export interface GetCdnSpaceIdRequest {}
 
-// GetCdnSpaceIdRequest contains the message type declaration for GetCdnSpaceIdRequest.
 export const GetCdnSpaceIdRequest: MessageType<GetCdnSpaceIdRequest> =
-  createMessageType({
-    typeName: 's4wave.cdn.GetCdnSpaceIdRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetCdnSpaceIdRequest>(
+    's4wave.cdn.GetCdnSpaceIdRequest',
+    true,
+  )
 
 /**
  * GetCdnSpaceIdResponse is the response type for GetCdnSpaceId.
@@ -36,13 +39,12 @@ export interface GetCdnSpaceIdResponse {
   spaceId?: string
 }
 
-// GetCdnSpaceIdResponse contains the message type declaration for GetCdnSpaceIdResponse.
 export const GetCdnSpaceIdResponse: MessageType<GetCdnSpaceIdResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.cdn.GetCdnSpaceIdResponse',
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -53,13 +55,11 @@ export const GetCdnSpaceIdResponse: MessageType<GetCdnSpaceIdResponse> =
  */
 export interface MountCdnSpaceRequest {}
 
-// MountCdnSpaceRequest contains the message type declaration for MountCdnSpaceRequest.
 export const MountCdnSpaceRequest: MessageType<MountCdnSpaceRequest> =
-  createMessageType({
-    typeName: 's4wave.cdn.MountCdnSpaceRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<MountCdnSpaceRequest>(
+    's4wave.cdn.MountCdnSpaceRequest',
+    true,
+  )
 
 /**
  * MountCdnSpaceResponse is the response type for MountCdnSpace.
@@ -75,13 +75,12 @@ export interface MountCdnSpaceResponse {
   resourceId?: number
 }
 
-// MountCdnSpaceResponse contains the message type declaration for MountCdnSpaceResponse.
 export const MountCdnSpaceResponse: MessageType<MountCdnSpaceResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.cdn.MountCdnSpaceResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -118,16 +117,15 @@ export interface CopyV86ImageToSpaceRequest {
   dstObjectKey?: string
 }
 
-// CopyV86ImageToSpaceRequest contains the message type declaration for CopyV86ImageToSpaceRequest.
 export const CopyV86ImageToSpaceRequest: MessageType<CopyV86ImageToSpaceRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.cdn.CopyV86ImageToSpaceRequest',
     fields: [
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'dst_space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'src_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'dst_object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -138,10 +136,8 @@ export const CopyV86ImageToSpaceRequest: MessageType<CopyV86ImageToSpaceRequest>
  */
 export interface CopyV86ImageToSpaceResponse {}
 
-// CopyV86ImageToSpaceResponse contains the message type declaration for CopyV86ImageToSpaceResponse.
 export const CopyV86ImageToSpaceResponse: MessageType<CopyV86ImageToSpaceResponse> =
-  createMessageType({
-    typeName: 's4wave.cdn.CopyV86ImageToSpaceResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<CopyV86ImageToSpaceResponse>(
+    's4wave.cdn.CopyV86ImageToSpaceResponse',
+    true,
+  )

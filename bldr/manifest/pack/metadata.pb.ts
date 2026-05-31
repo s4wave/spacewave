@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/bldr/manifest/pack/metadata.proto (package bldr.manifest.pack, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import { PackfileEntry } from '../../../core/provider/spacewave/packfile/packfile.pb.js'
 
@@ -47,24 +49,24 @@ export interface ManifestTuple {
   linkObjectKeys?: string[]
 }
 
-// ManifestTuple contains the message type declaration for ManifestTuple.
-export const ManifestTuple: MessageType<ManifestTuple> = createMessageType({
-  typeName: 'bldr.manifest.pack.ManifestTuple',
-  fields: [
-    { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 5,
-      name: 'link_object_keys',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ManifestTuple: MessageType<ManifestTuple> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.pack.ManifestTuple',
+    fields: [
+      { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'link_object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ManifestPackMetadata describes a CI manifest-pack handoff artifact.
@@ -134,9 +136,8 @@ export interface ManifestPackMetadata {
   cacheSchema?: string
 }
 
-// ManifestPackMetadata contains the message type declaration for ManifestPackMetadata.
 export const ManifestPackMetadata: MessageType<ManifestPackMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.manifest.pack.ManifestPackMetadata',
     fields: [
       { no: 1, name: 'format_version', kind: 'scalar', T: ScalarType.UINT32 },
@@ -160,6 +161,6 @@ export const ManifestPackMetadata: MessageType<ManifestPackMetadata> =
       { no: 8, name: 'pack_sha256', kind: 'scalar', T: ScalarType.BYTES },
       { no: 9, name: 'react_dev', kind: 'scalar', T: ScalarType.BOOL },
       { no: 10, name: 'cache_schema', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

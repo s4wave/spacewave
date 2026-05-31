@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BlockRef } from '../block.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 'block.mock'
 
@@ -22,14 +24,14 @@ export interface SubBlock {
   examplePtr?: BlockRef
 }
 
-// SubBlock contains the message type declaration for SubBlock.
-export const SubBlock: MessageType<SubBlock> = createMessageType({
-  typeName: 'block.mock.SubBlock',
-  fields: [
-    { no: 1, name: 'example_ptr', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SubBlock: MessageType<SubBlock> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.mock.SubBlock',
+    fields: [
+      { no: 1, name: 'example_ptr', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Root is the root of the mock structure.
@@ -45,12 +47,11 @@ export interface Root {
   exampleSubBlock?: SubBlock
 }
 
-// Root contains the message type declaration for Root.
-export const Root: MessageType<Root> = createMessageType({
+export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
   typeName: 'block.mock.Root',
   fields: [
     { no: 1, name: 'example_sub_block', kind: 'message', T: () => SubBlock },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -68,11 +69,10 @@ export interface Example {
   msg?: string
 }
 
-// Example contains the message type declaration for Example.
-export const Example: MessageType<Example> = createMessageType({
+export const Example: MessageType<Example> = /* @__PURE__ */ createMessageType({
   typeName: 'block.mock.Example',
   fields: [
     { no: 1, name: 'msg', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

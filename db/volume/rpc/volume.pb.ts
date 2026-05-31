@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/db/volume/rpc/volume.proto (package volume.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { StorageStats, VolumeInfo } from '../volume.pb.js'
 
 export const protobufPackage = 'volume.rpc'
@@ -22,13 +27,12 @@ export interface WatchVolumeInfoRequest {
   volumeId?: string
 }
 
-// WatchVolumeInfoRequest contains the message type declaration for WatchVolumeInfoRequest.
 export const WatchVolumeInfoRequest: MessageType<WatchVolumeInfoRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.WatchVolumeInfoRequest',
     fields: [
       { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -52,14 +56,13 @@ export interface WatchVolumeInfoResponse {
   volumeInfo?: VolumeInfo
 }
 
-// WatchVolumeInfoResponse contains the message type declaration for WatchVolumeInfoResponse.
 export const WatchVolumeInfoResponse: MessageType<WatchVolumeInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.WatchVolumeInfoResponse',
     fields: [
       { no: 1, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -70,13 +73,11 @@ export const WatchVolumeInfoResponse: MessageType<WatchVolumeInfoResponse> =
  */
 export interface GetVolumeInfoRequest {}
 
-// GetVolumeInfoRequest contains the message type declaration for GetVolumeInfoRequest.
 export const GetVolumeInfoRequest: MessageType<GetVolumeInfoRequest> =
-  createMessageType({
-    typeName: 'volume.rpc.GetVolumeInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetVolumeInfoRequest>(
+    'volume.rpc.GetVolumeInfoRequest',
+    true,
+  )
 
 /**
  * GetVolumeInfoResponse is the response to the request for volume info.
@@ -92,13 +93,12 @@ export interface GetVolumeInfoResponse {
   volumeInfo?: VolumeInfo
 }
 
-// GetVolumeInfoResponse contains the message type declaration for GetVolumeInfoResponse.
 export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.GetVolumeInfoResponse',
     fields: [
       { no: 1, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -109,13 +109,11 @@ export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> =
  */
 export interface GetPeerPrivRequest {}
 
-// GetPeerPrivRequest contains the message type declaration for GetPeerPrivRequest.
 export const GetPeerPrivRequest: MessageType<GetPeerPrivRequest> =
-  createMessageType({
-    typeName: 'volume.rpc.GetPeerPrivRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetPeerPrivRequest>(
+    'volume.rpc.GetPeerPrivRequest',
+    true,
+  )
 
 /**
  * GetPeerPrivResponse is the response to looking up the volume peer privkey.
@@ -131,13 +129,12 @@ export interface GetPeerPrivResponse {
   privKey?: string
 }
 
-// GetPeerPrivResponse contains the message type declaration for GetPeerPrivResponse.
 export const GetPeerPrivResponse: MessageType<GetPeerPrivResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.GetPeerPrivResponse',
     fields: [
       { no: 1, name: 'priv_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -148,13 +145,11 @@ export const GetPeerPrivResponse: MessageType<GetPeerPrivResponse> =
  */
 export interface GetStorageStatsRequest {}
 
-// GetStorageStatsRequest contains the message type declaration for GetStorageStatsRequest.
 export const GetStorageStatsRequest: MessageType<GetStorageStatsRequest> =
-  createMessageType({
-    typeName: 'volume.rpc.GetStorageStatsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetStorageStatsRequest>(
+    'volume.rpc.GetStorageStatsRequest',
+    true,
+  )
 
 /**
  * GetStorageStatsResponse is the response with storage usage statistics.
@@ -170,12 +165,11 @@ export interface GetStorageStatsResponse {
   storageStats?: StorageStats
 }
 
-// GetStorageStatsResponse contains the message type declaration for GetStorageStatsResponse.
 export const GetStorageStatsResponse: MessageType<GetStorageStatsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.GetStorageStatsResponse',
     fields: [
       { no: 1, name: 'storage_stats', kind: 'message', T: () => StorageStats },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

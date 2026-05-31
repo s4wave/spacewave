@@ -2,9 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/net/pubsub/util/pubmessage/pubmessage.proto (package pubmessage, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'pubmessage'
 
@@ -34,13 +36,13 @@ export interface PubMessageInner {
   timestamp?: Date
 }
 
-// PubMessageInner contains the message type declaration for PubMessageInner.
-export const PubMessageInner: MessageType<PubMessageInner> = createMessageType({
-  typeName: 'pubmessage.PubMessageInner',
-  fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'channel', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PubMessageInner: MessageType<PubMessageInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'pubmessage.PubMessageInner',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'channel', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

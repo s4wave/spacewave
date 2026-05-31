@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/local/local.proto (package provider.local, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import {
   QueuedSOOperation,
   SOOperationResult,
@@ -41,14 +43,13 @@ export interface Config {
   storageId?: string
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'provider.local.Config',
   fields: [
     { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'storage_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -66,20 +67,20 @@ export interface LocalSOState {
   opQueue?: QueuedSOOperation[]
 }
 
-// LocalSOState contains the message type declaration for LocalSOState.
-export const LocalSOState: MessageType<LocalSOState> = createMessageType({
-  typeName: 'provider.local.LocalSOState',
-  fields: [
-    {
-      no: 1,
-      name: 'op_queue',
-      kind: 'message',
-      T: () => QueuedSOOperation,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LocalSOState: MessageType<LocalSOState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.local.LocalSOState',
+    fields: [
+      {
+        no: 1,
+        name: 'op_queue',
+        kind: 'message',
+        T: () => QueuedSOOperation,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * LocalSOOperationResult contains the result of a SOOperation.
@@ -107,15 +108,14 @@ export interface LocalSOOperationResult {
   rootSeqno?: bigint
 }
 
-// LocalSOOperationResult contains the message type declaration for LocalSOOperationResult.
 export const LocalSOOperationResult: MessageType<LocalSOOperationResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.local.LocalSOOperationResult',
     fields: [
       { no: 1, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'result', kind: 'message', T: () => SOOperationResult },
       { no: 3, name: 'root_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -141,13 +141,12 @@ export interface PairingConfirmMessage {
   rejected?: boolean
 }
 
-// PairingConfirmMessage contains the message type declaration for PairingConfirmMessage.
 export const PairingConfirmMessage: MessageType<PairingConfirmMessage> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.local.PairingConfirmMessage',
     fields: [
       { no: 1, name: 'confirmed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'rejected', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

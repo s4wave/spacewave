@@ -181,7 +181,6 @@
         "react-doctor/no-many-boolean-props": "warn",
         "react-doctor/no-react19-deprecated-apis": "warn",
         "react-doctor/no-render-prop-children": "warn",
-        "react-doctor/react-compiler-destructure-method": "warn",
         "react-doctor/no-legacy-class-lifecycles": "warn",
         "react-doctor/no-legacy-context-api": "warn",
         "react-doctor/no-default-props": "warn",

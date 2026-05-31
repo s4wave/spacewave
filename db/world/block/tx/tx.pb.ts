@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/db/world/block/tx/tx.proto (package world.block.tx, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Quad } from '../../../block/quad/quad.pb.js'
 
@@ -102,21 +101,23 @@ export enum TxType {
   TxType_GC_SWEEP = 10,
 }
 
-// TxType_Enum is the enum type for TxType.
-export const TxType_Enum = createEnumType('world.block.tx.TxType', [
-  { no: 0, name: 'TxType_INVALID' },
-  { no: 1, name: 'TxType_APPLY_WORLD_OP' },
-  { no: 2, name: 'TxType_APPLY_OBJECT_OP' },
-  { no: 3, name: 'TxType_CREATE_OBJECT' },
-  { no: 4, name: 'TxType_OBJECT_SET' },
-  { no: 5, name: 'TxType_OBJECT_INC_REV' },
-  { no: 6, name: 'TxType_DELETE_OBJECT' },
-  { no: 11, name: 'TxType_RENAME_OBJECT' },
-  { no: 7, name: 'TxType_SET_GRAPH_QUAD' },
-  { no: 8, name: 'TxType_DELETE_GRAPH_QUAD' },
-  { no: 9, name: 'TxType_BATCH' },
-  { no: 10, name: 'TxType_GC_SWEEP' },
-])
+export const TxType_Enum = /* @__PURE__ */ createEnumType(
+  'world.block.tx.TxType',
+  [
+    [0, 'TxType_INVALID'],
+    [1, 'TxType_APPLY_WORLD_OP'],
+    [2, 'TxType_APPLY_OBJECT_OP'],
+    [3, 'TxType_CREATE_OBJECT'],
+    [4, 'TxType_OBJECT_SET'],
+    [5, 'TxType_OBJECT_INC_REV'],
+    [6, 'TxType_DELETE_OBJECT'],
+    [11, 'TxType_RENAME_OBJECT'],
+    [7, 'TxType_SET_GRAPH_QUAD'],
+    [8, 'TxType_DELETE_GRAPH_QUAD'],
+    [9, 'TxType_BATCH'],
+    [10, 'TxType_GC_SWEEP'],
+  ],
+)
 
 /**
  * TxGCSweepIntent indicates why a GC sweep transaction was created.
@@ -146,13 +147,12 @@ export enum TxGCSweepIntent {
   TxGCSweepIntent_EXPLICIT = 2,
 }
 
-// TxGCSweepIntent_Enum is the enum type for TxGCSweepIntent.
-export const TxGCSweepIntent_Enum = createEnumType(
+export const TxGCSweepIntent_Enum = /* @__PURE__ */ createEnumType(
   'world.block.tx.TxGCSweepIntent',
   [
-    { no: 0, name: 'TxGCSweepIntent_LEGACY_MAINTENANCE' },
-    { no: 1, name: 'TxGCSweepIntent_MAINTENANCE' },
-    { no: 2, name: 'TxGCSweepIntent_EXPLICIT' },
+    [0, 'TxGCSweepIntent_LEGACY_MAINTENANCE'],
+    [1, 'TxGCSweepIntent_MAINTENANCE'],
+    [2, 'TxGCSweepIntent_EXPLICIT'],
   ],
 )
 
@@ -183,16 +183,21 @@ export interface TxApplyWorldOp {
   opSender?: string
 }
 
-// TxApplyWorldOp contains the message type declaration for TxApplyWorldOp.
-export const TxApplyWorldOp: MessageType<TxApplyWorldOp> = createMessageType({
-  typeName: 'world.block.tx.TxApplyWorldOp',
-  fields: [
-    { no: 1, name: 'operation_type_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 3, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxApplyWorldOp: MessageType<TxApplyWorldOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxApplyWorldOp',
+    fields: [
+      {
+        no: 1,
+        name: 'operation_type_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxApplyObjectOp applies a object operation.
@@ -227,17 +232,22 @@ export interface TxApplyObjectOp {
   opSender?: string
 }
 
-// TxApplyObjectOp contains the message type declaration for TxApplyObjectOp.
-export const TxApplyObjectOp: MessageType<TxApplyObjectOp> = createMessageType({
-  typeName: 'world.block.tx.TxApplyObjectOp',
-  fields: [
-    { no: 1, name: 'operation_type_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxApplyObjectOp: MessageType<TxApplyObjectOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxApplyObjectOp',
+    fields: [
+      {
+        no: 1,
+        name: 'operation_type_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxCreateObject creates a new object with a key and ref.
@@ -260,15 +270,15 @@ export interface TxCreateObject {
   rootRef?: ObjectRef
 }
 
-// TxCreateObject contains the message type declaration for TxCreateObject.
-export const TxCreateObject: MessageType<TxCreateObject> = createMessageType({
-  typeName: 'world.block.tx.TxCreateObject',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxCreateObject: MessageType<TxCreateObject> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxCreateObject',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxObjectSet sets the root ref of an existing object.
@@ -291,15 +301,15 @@ export interface TxObjectSet {
   rootRef?: ObjectRef
 }
 
-// TxObjectSet contains the message type declaration for TxObjectSet.
-export const TxObjectSet: MessageType<TxObjectSet> = createMessageType({
-  typeName: 'world.block.tx.TxObjectSet',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxObjectSet: MessageType<TxObjectSet> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxObjectSet',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxObjectIncRev increments the revision of a object.
@@ -316,14 +326,14 @@ export interface TxObjectIncRev {
   objectKey?: string
 }
 
-// TxObjectIncRev contains the message type declaration for TxObjectIncRev.
-export const TxObjectIncRev: MessageType<TxObjectIncRev> = createMessageType({
-  typeName: 'world.block.tx.TxObjectIncRev',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxObjectIncRev: MessageType<TxObjectIncRev> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxObjectIncRev',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxDeleteObject deletes an object with a given key.
@@ -346,15 +356,15 @@ export interface TxDeleteObject {
   failIfNotFound?: boolean
 }
 
-// TxDeleteObject contains the message type declaration for TxDeleteObject.
-export const TxDeleteObject: MessageType<TxDeleteObject> = createMessageType({
-  typeName: 'world.block.tx.TxDeleteObject',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fail_if_not_found', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxDeleteObject: MessageType<TxDeleteObject> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxDeleteObject',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fail_if_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxRenameObject renames an object key.
@@ -377,15 +387,15 @@ export interface TxRenameObject {
   newObjectKey?: string
 }
 
-// TxRenameObject contains the message type declaration for TxRenameObject.
-export const TxRenameObject: MessageType<TxRenameObject> = createMessageType({
-  typeName: 'world.block.tx.TxRenameObject',
-  fields: [
-    { no: 1, name: 'old_object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'new_object_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxRenameObject: MessageType<TxRenameObject> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxRenameObject',
+    fields: [
+      { no: 1, name: 'old_object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'new_object_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxSetGraphQuad sets a graph quad.
@@ -402,14 +412,14 @@ export interface TxSetGraphQuad {
   quad?: Quad
 }
 
-// TxSetGraphQuad contains the message type declaration for TxSetGraphQuad.
-export const TxSetGraphQuad: MessageType<TxSetGraphQuad> = createMessageType({
-  typeName: 'world.block.tx.TxSetGraphQuad',
-  fields: [
-    { no: 1, name: 'quad', kind: 'message', T: () => Quad },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxSetGraphQuad: MessageType<TxSetGraphQuad> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxSetGraphQuad',
+    fields: [
+      { no: 1, name: 'quad', kind: 'message', T: () => Quad },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxDeleteGraphQuad deletes a graph quad.
@@ -426,13 +436,12 @@ export interface TxDeleteGraphQuad {
   quad?: Quad
 }
 
-// TxDeleteGraphQuad contains the message type declaration for TxDeleteGraphQuad.
 export const TxDeleteGraphQuad: MessageType<TxDeleteGraphQuad> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'world.block.tx.TxDeleteGraphQuad',
     fields: [
       { no: 1, name: 'quad', kind: 'message', T: () => Quad },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -450,12 +459,11 @@ export interface TxBatch {
   txs?: Tx[]
 }
 
-// TxBatch contains the message type declaration for TxBatch.
-export const TxBatch: MessageType<TxBatch> = createMessageType({
+export const TxBatch: MessageType<TxBatch> = /* @__PURE__ */ createMessageType({
   typeName: 'world.block.tx.TxBatch',
   fields: [
     { no: 1, name: 'txs', kind: 'message', T: () => Tx, repeated: true },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -474,14 +482,14 @@ export interface TxGCSweep {
   intent?: TxGCSweepIntent
 }
 
-// TxGCSweep contains the message type declaration for TxGCSweep.
-export const TxGCSweep: MessageType<TxGCSweep> = createMessageType({
-  typeName: 'world.block.tx.TxGCSweep',
-  fields: [
-    { no: 1, name: 'intent', kind: 'enum', T: TxGCSweepIntent_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxGCSweep: MessageType<TxGCSweep> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'world.block.tx.TxGCSweep',
+    fields: [
+      { no: 1, name: 'intent', kind: 'enum', T: TxGCSweepIntent_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Tx is the on-the-wire representation of a World transaction.
@@ -571,8 +579,7 @@ export interface Tx {
   txGcSweep?: TxGCSweep
 }
 
-// Tx contains the message type declaration for Tx.
-export const Tx: MessageType<Tx> = createMessageType({
+export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
   typeName: 'world.block.tx.Tx',
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
@@ -627,6 +634,6 @@ export const Tx: MessageType<Tx> = createMessageType({
     },
     { no: 10, name: 'tx_batch', kind: 'message', T: () => TxBatch },
     { no: 11, name: 'tx_gc_sweep', kind: 'message', T: () => TxGCSweep },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/core/session/handoff/handoff.proto (package session.handoff, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'session.handoff'
 
@@ -40,17 +45,17 @@ export interface HandoffRequest {
   clientType?: string
 }
 
-// HandoffRequest contains the message type declaration for HandoffRequest.
-export const HandoffRequest: MessageType<HandoffRequest> = createMessageType({
-  typeName: 'session.handoff.HandoffRequest',
-  fields: [
-    { no: 1, name: 'device_public_key', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'device_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'session_nonce', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'client_type', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const HandoffRequest: MessageType<HandoffRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'session.handoff.HandoffRequest',
+    fields: [
+      { no: 1, name: 'device_public_key', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'device_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'session_nonce', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'client_type', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * HandoffCompletion is sent by the browser to the AuthSessionDO
@@ -80,9 +85,8 @@ export interface HandoffCompletion {
   entityId?: string
 }
 
-// HandoffCompletion contains the message type declaration for HandoffCompletion.
 export const HandoffCompletion: MessageType<HandoffCompletion> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'session.handoff.HandoffCompletion',
     fields: [
       {
@@ -93,7 +97,7 @@ export const HandoffCompletion: MessageType<HandoffCompletion> =
       },
       { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -105,9 +109,8 @@ export const HandoffCompletion: MessageType<HandoffCompletion> =
  */
 export interface HandoffAck {}
 
-// HandoffAck contains the message type declaration for HandoffAck.
-export const HandoffAck: MessageType<HandoffAck> = createMessageType({
-  typeName: 'session.handoff.HandoffAck',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const HandoffAck: MessageType<HandoffAck> =
+  /* @__PURE__ */ createEmptyMessageType<HandoffAck>(
+    'session.handoff.HandoffAck',
+    true,
+  )

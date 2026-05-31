@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/db/unixfs/rpc/rpc.proto (package unixfs.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { UnixFSError } from '../errors/errors.pb.js'
 import type { NodeType } from '../block/fstree.pb.js'
 import { FSSymlink, NodeType_Enum } from '../block/fstree.pb.js'
@@ -32,14 +37,13 @@ export interface GetProxyCursorRequest {
   clientHandleId?: bigint
 }
 
-// GetProxyCursorRequest contains the message type declaration for GetProxyCursorRequest.
 export const GetProxyCursorRequest: MessageType<GetProxyCursorRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.GetProxyCursorRequest',
     fields: [
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -64,14 +68,13 @@ export interface GetProxyCursorResponse {
   cursorHandleId?: bigint
 }
 
-// GetProxyCursorResponse contains the message type declaration for GetProxyCursorResponse.
 export const GetProxyCursorResponse: MessageType<GetProxyCursorResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.GetProxyCursorResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -107,17 +110,17 @@ export interface FSCursorChange {
   size?: bigint
 }
 
-// FSCursorChange contains the message type declaration for FSCursorChange.
-export const FSCursorChange: MessageType<FSCursorChange> = createMessageType({
-  typeName: 'unixfs.rpc.FSCursorChange',
-  fields: [
-    { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'released', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'offset', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FSCursorChange: MessageType<FSCursorChange> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.rpc.FSCursorChange',
+    fields: [
+      { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'released', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'offset', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FSCursorDirent represents the FSCursorDirent interface from unixfs.
@@ -139,15 +142,15 @@ export interface FSCursorDirent {
   nodeType?: NodeType
 }
 
-// FSCursorDirent contains the message type declaration for FSCursorDirent.
-export const FSCursorDirent: MessageType<FSCursorDirent> = createMessageType({
-  typeName: 'unixfs.rpc.FSCursorDirent',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'node_type', kind: 'enum', T: NodeType_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FSCursorDirent: MessageType<FSCursorDirent> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.rpc.FSCursorDirent',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FSCursorClientRequest is the request body for FSCursorClient.
@@ -156,13 +159,11 @@ export const FSCursorDirent: MessageType<FSCursorDirent> = createMessageType({
  */
 export interface FSCursorClientRequest {}
 
-// FSCursorClientRequest contains the message type declaration for FSCursorClientRequest.
 export const FSCursorClientRequest: MessageType<FSCursorClientRequest> =
-  createMessageType({
-    typeName: 'unixfs.rpc.FSCursorClientRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<FSCursorClientRequest>(
+    'unixfs.rpc.FSCursorClientRequest',
+    true,
+  )
 
 /**
  * FSClientInit is the initialization response to FSCursorClient.
@@ -186,15 +187,15 @@ export interface FSClientInit {
   cursorHandleId?: bigint
 }
 
-// FSClientInit contains the message type declaration for FSClientInit.
-export const FSClientInit: MessageType<FSClientInit> = createMessageType({
-  typeName: 'unixfs.rpc.FSClientInit',
-  fields: [
-    { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FSClientInit: MessageType<FSClientInit> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.rpc.FSClientInit',
+    fields: [
+      { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FSCursorClientResponse contains an event for an FSCursor change.
@@ -242,9 +243,8 @@ export interface FSCursorClientResponse {
       }
 }
 
-// FSCursorClientResponse contains the message type declaration for FSCursorClientResponse.
 export const FSCursorClientResponse: MessageType<FSCursorClientResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.FSCursorClientResponse',
     fields: [
       {
@@ -268,7 +268,7 @@ export const FSCursorClientResponse: MessageType<FSCursorClientResponse> =
         T: () => UnixFSError,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -286,13 +286,12 @@ export interface GetCursorOpsRequest {
   cursorHandleId?: bigint
 }
 
-// GetCursorOpsRequest contains the message type declaration for GetCursorOpsRequest.
 export const GetCursorOpsRequest: MessageType<GetCursorOpsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.GetCursorOpsRequest',
     fields: [
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -330,16 +329,15 @@ export interface GetCursorOpsResponse {
   nodeType?: NodeType
 }
 
-// GetCursorOpsResponse contains the message type declaration for GetCursorOpsResponse.
 export const GetCursorOpsResponse: MessageType<GetCursorOpsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.GetCursorOpsResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'node_type', kind: 'enum', T: NodeType_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -364,14 +362,13 @@ export interface ReleaseFSCursorRequest {
   clientHandleId?: bigint
 }
 
-// ReleaseFSCursorRequest contains the message type declaration for ReleaseFSCursorRequest.
 export const ReleaseFSCursorRequest: MessageType<ReleaseFSCursorRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.ReleaseFSCursorRequest',
     fields: [
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -382,13 +379,11 @@ export const ReleaseFSCursorRequest: MessageType<ReleaseFSCursorRequest> =
  */
 export interface ReleaseFSCursorResponse {}
 
-// ReleaseFSCursorResponse contains the message type declaration for ReleaseFSCursorResponse.
 export const ReleaseFSCursorResponse: MessageType<ReleaseFSCursorResponse> =
-  createMessageType({
-    typeName: 'unixfs.rpc.ReleaseFSCursorResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ReleaseFSCursorResponse>(
+    'unixfs.rpc.ReleaseFSCursorResponse',
+    true,
+  )
 
 /**
  * OpsGetPermissionsRequest is the body of the ops GetPermissions request.
@@ -404,13 +399,12 @@ export interface OpsGetPermissionsRequest {
   opsHandleId?: bigint
 }
 
-// OpsGetPermissionsRequest contains the message type declaration for OpsGetPermissionsRequest.
 export const OpsGetPermissionsRequest: MessageType<OpsGetPermissionsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsGetPermissionsRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -434,14 +428,13 @@ export interface OpsGetPermissionsResponse {
   fileMode?: number
 }
 
-// OpsGetPermissionsResponse contains the message type declaration for OpsGetPermissionsResponse.
 export const OpsGetPermissionsResponse: MessageType<OpsGetPermissionsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsGetPermissionsResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'file_mode', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -471,15 +464,14 @@ export interface OpsSetPermissionsRequest {
   timestamp?: Date
 }
 
-// OpsSetPermissionsRequest contains the message type declaration for OpsSetPermissionsRequest.
 export const OpsSetPermissionsRequest: MessageType<OpsSetPermissionsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsSetPermissionsRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'file_mode', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -497,13 +489,12 @@ export interface OpsSetPermissionsResponse {
   unixfsError?: UnixFSError
 }
 
-// OpsSetPermissionsResponse contains the message type declaration for OpsSetPermissionsResponse.
 export const OpsSetPermissionsResponse: MessageType<OpsSetPermissionsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsSetPermissionsResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -521,13 +512,12 @@ export interface OpsGetSizeRequest {
   opsHandleId?: bigint
 }
 
-// OpsGetSizeRequest contains the message type declaration for OpsGetSizeRequest.
 export const OpsGetSizeRequest: MessageType<OpsGetSizeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsGetSizeRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -551,14 +541,13 @@ export interface OpsGetSizeResponse {
   size?: bigint
 }
 
-// OpsGetSizeResponse contains the message type declaration for OpsGetSizeResponse.
 export const OpsGetSizeResponse: MessageType<OpsGetSizeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsGetSizeResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -576,13 +565,12 @@ export interface OpsGetModTimestampRequest {
   opsHandleId?: bigint
 }
 
-// OpsGetModTimestampRequest contains the message type declaration for OpsGetModTimestampRequest.
 export const OpsGetModTimestampRequest: MessageType<OpsGetModTimestampRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsGetModTimestampRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -606,14 +594,13 @@ export interface OpsGetModTimestampResponse {
   modTimestamp?: Date
 }
 
-// OpsGetModTimestampResponse contains the message type declaration for OpsGetModTimestampResponse.
 export const OpsGetModTimestampResponse: MessageType<OpsGetModTimestampResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsGetModTimestampResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'mod_timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -637,14 +624,13 @@ export interface OpsSetModTimestampRequest {
   modTimestamp?: Date
 }
 
-// OpsSetModTimestampRequest contains the message type declaration for OpsSetModTimestampRequest.
 export const OpsSetModTimestampRequest: MessageType<OpsSetModTimestampRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsSetModTimestampRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'mod_timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -662,13 +648,12 @@ export interface OpsSetModTimestampResponse {
   unixfsError?: UnixFSError
 }
 
-// OpsSetModTimestampResponse contains the message type declaration for OpsSetModTimestampResponse.
 export const OpsSetModTimestampResponse: MessageType<OpsSetModTimestampResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsSetModTimestampResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -699,15 +684,14 @@ export interface OpsReadAtRequest {
   size?: bigint
 }
 
-// OpsReadAtRequest contains the message type declaration for OpsReadAtRequest.
 export const OpsReadAtRequest: MessageType<OpsReadAtRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsReadAtRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'size', kind: 'scalar', T: ScalarType.INT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -731,14 +715,13 @@ export interface OpsReadAtResponse {
   data?: Uint8Array
 }
 
-// OpsReadAtResponse contains the message type declaration for OpsReadAtResponse.
 export const OpsReadAtResponse: MessageType<OpsReadAtResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsReadAtResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -756,13 +739,12 @@ export interface OpsGetOptimalWriteSizeRequest {
   opsHandleId?: bigint
 }
 
-// OpsGetOptimalWriteSizeRequest contains the message type declaration for OpsGetOptimalWriteSizeRequest.
 export const OpsGetOptimalWriteSizeRequest: MessageType<OpsGetOptimalWriteSizeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsGetOptimalWriteSizeRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -786,9 +768,8 @@ export interface OpsGetOptimalWriteSizeResponse {
   optimalWriteSize?: bigint
 }
 
-// OpsGetOptimalWriteSizeResponse contains the message type declaration for OpsGetOptimalWriteSizeResponse.
 export const OpsGetOptimalWriteSizeResponse: MessageType<OpsGetOptimalWriteSizeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsGetOptimalWriteSizeResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
@@ -798,7 +779,7 @@ export const OpsGetOptimalWriteSizeResponse: MessageType<OpsGetOptimalWriteSizeR
         kind: 'scalar',
         T: ScalarType.INT64,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -834,16 +815,15 @@ export interface OpsWriteAtRequest {
   timestamp?: Date
 }
 
-// OpsWriteAtRequest contains the message type declaration for OpsWriteAtRequest.
 export const OpsWriteAtRequest: MessageType<OpsWriteAtRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsWriteAtRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -861,13 +841,12 @@ export interface OpsWriteAtResponse {
   unixfsError?: UnixFSError
 }
 
-// OpsWriteAtResponse contains the message type declaration for OpsWriteAtResponse.
 export const OpsWriteAtResponse: MessageType<OpsWriteAtResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsWriteAtResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -897,15 +876,14 @@ export interface OpsTruncateRequest {
   timestamp?: Date
 }
 
-// OpsTruncateRequest contains the message type declaration for OpsTruncateRequest.
 export const OpsTruncateRequest: MessageType<OpsTruncateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsTruncateRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'nsize', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -923,13 +901,12 @@ export interface OpsTruncateResponse {
   unixfsError?: UnixFSError
 }
 
-// OpsTruncateResponse contains the message type declaration for OpsTruncateResponse.
 export const OpsTruncateResponse: MessageType<OpsTruncateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsTruncateResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -967,16 +944,15 @@ export interface OpsLookupRequest {
   name?: string
 }
 
-// OpsLookupRequest contains the message type declaration for OpsLookupRequest.
 export const OpsLookupRequest: MessageType<OpsLookupRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsLookupRequest',
     fields: [
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1000,14 +976,13 @@ export interface OpsLookupResponse {
   unixfsError?: UnixFSError
 }
 
-// OpsLookupResponse contains the message type declaration for OpsLookupResponse.
 export const OpsLookupResponse: MessageType<OpsLookupResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsLookupResponse',
     fields: [
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1031,14 +1006,13 @@ export interface OpsReaddirAllRequest {
   skip?: bigint
 }
 
-// OpsReaddirAllRequest contains the message type declaration for OpsReaddirAllRequest.
 export const OpsReaddirAllRequest: MessageType<OpsReaddirAllRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsReaddirAllRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'skip', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1085,9 +1059,8 @@ export interface OpsReaddirAllResponse {
       }
 }
 
-// OpsReaddirAllResponse contains the message type declaration for OpsReaddirAllResponse.
 export const OpsReaddirAllResponse: MessageType<OpsReaddirAllResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsReaddirAllResponse',
     fields: [
       {
@@ -1111,7 +1084,7 @@ export const OpsReaddirAllResponse: MessageType<OpsReaddirAllResponse> =
         T: () => FSCursorDirent,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1159,25 +1132,25 @@ export interface OpsMknodRequest {
   timestamp?: Date
 }
 
-// OpsMknodRequest contains the message type declaration for OpsMknodRequest.
-export const OpsMknodRequest: MessageType<OpsMknodRequest> = createMessageType({
-  typeName: 'unixfs.rpc.OpsMknodRequest',
-  fields: [
-    { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'check_exist', kind: 'scalar', T: ScalarType.BOOL },
-    {
-      no: 3,
-      name: 'names',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 4, name: 'node_type', kind: 'enum', T: NodeType_Enum },
-    { no: 5, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OpsMknodRequest: MessageType<OpsMknodRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'unixfs.rpc.OpsMknodRequest',
+    fields: [
+      { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'check_exist', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 3,
+        name: 'names',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 4, name: 'node_type', kind: 'enum', T: NodeType_Enum },
+      { no: 5, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * OpsMknodResponse is the body of the ops Mknod response.
@@ -1193,13 +1166,12 @@ export interface OpsMknodResponse {
   unixfsError?: UnixFSError
 }
 
-// OpsMknodResponse contains the message type declaration for OpsMknodResponse.
 export const OpsMknodResponse: MessageType<OpsMknodResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsMknodResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1241,9 +1213,8 @@ export interface OpsSymlinkRequest {
   timestamp?: Date
 }
 
-// OpsSymlinkRequest contains the message type declaration for OpsSymlinkRequest.
 export const OpsSymlinkRequest: MessageType<OpsSymlinkRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsSymlinkRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
@@ -1251,7 +1222,7 @@ export const OpsSymlinkRequest: MessageType<OpsSymlinkRequest> =
       { no: 3, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'symlink', kind: 'message', T: () => FSSymlink },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1269,13 +1240,12 @@ export interface OpsSymlinkResponse {
   unixfsError?: UnixFSError
 }
 
-// OpsSymlinkResponse contains the message type declaration for OpsSymlinkResponse.
 export const OpsSymlinkResponse: MessageType<OpsSymlinkResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsSymlinkResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1299,14 +1269,13 @@ export interface OpsReadlinkRequest {
   name?: string
 }
 
-// OpsReadlinkRequest contains the message type declaration for OpsReadlinkRequest.
 export const OpsReadlinkRequest: MessageType<OpsReadlinkRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsReadlinkRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1330,14 +1299,13 @@ export interface OpsReadlinkResponse {
   symlink?: FSSymlink
 }
 
-// OpsReadlinkResponse contains the message type declaration for OpsReadlinkResponse.
 export const OpsReadlinkResponse: MessageType<OpsReadlinkResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsReadlinkResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'symlink', kind: 'message', T: () => FSSymlink },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1373,9 +1341,8 @@ export interface OpsCopyToRequest {
   timestamp?: Date
 }
 
-// OpsCopyToRequest contains the message type declaration for OpsCopyToRequest.
 export const OpsCopyToRequest: MessageType<OpsCopyToRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsCopyToRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
@@ -1387,7 +1354,7 @@ export const OpsCopyToRequest: MessageType<OpsCopyToRequest> =
       },
       { no: 3, name: 'target_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1411,14 +1378,13 @@ export interface OpsCopyToResponse {
   done?: boolean
 }
 
-// OpsCopyToResponse contains the message type declaration for OpsCopyToResponse.
 export const OpsCopyToResponse: MessageType<OpsCopyToResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsCopyToResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1454,9 +1420,8 @@ export interface OpsCopyFromRequest {
   timestamp?: Date
 }
 
-// OpsCopyFromRequest contains the message type declaration for OpsCopyFromRequest.
 export const OpsCopyFromRequest: MessageType<OpsCopyFromRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsCopyFromRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
@@ -1468,7 +1433,7 @@ export const OpsCopyFromRequest: MessageType<OpsCopyFromRequest> =
         T: ScalarType.UINT64,
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1492,14 +1457,13 @@ export interface OpsCopyFromResponse {
   done?: boolean
 }
 
-// OpsCopyFromResponse contains the message type declaration for OpsCopyFromResponse.
 export const OpsCopyFromResponse: MessageType<OpsCopyFromResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsCopyFromResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1535,9 +1499,8 @@ export interface OpsMoveToRequest {
   timestamp?: Date
 }
 
-// OpsMoveToRequest contains the message type declaration for OpsMoveToRequest.
 export const OpsMoveToRequest: MessageType<OpsMoveToRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsMoveToRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
@@ -1549,7 +1512,7 @@ export const OpsMoveToRequest: MessageType<OpsMoveToRequest> =
       },
       { no: 3, name: 'target_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1573,14 +1536,13 @@ export interface OpsMoveToResponse {
   done?: boolean
 }
 
-// OpsMoveToResponse contains the message type declaration for OpsMoveToResponse.
 export const OpsMoveToResponse: MessageType<OpsMoveToResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsMoveToResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1616,9 +1578,8 @@ export interface OpsMoveFromRequest {
   timestamp?: Date
 }
 
-// OpsMoveFromRequest contains the message type declaration for OpsMoveFromRequest.
 export const OpsMoveFromRequest: MessageType<OpsMoveFromRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsMoveFromRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
@@ -1630,7 +1591,7 @@ export const OpsMoveFromRequest: MessageType<OpsMoveFromRequest> =
         T: ScalarType.UINT64,
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1654,14 +1615,13 @@ export interface OpsMoveFromResponse {
   done?: boolean
 }
 
-// OpsMoveFromResponse contains the message type declaration for OpsMoveFromResponse.
 export const OpsMoveFromResponse: MessageType<OpsMoveFromResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsMoveFromResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1691,9 +1651,8 @@ export interface OpsRemoveRequest {
   timestamp?: Date
 }
 
-// OpsRemoveRequest contains the message type declaration for OpsRemoveRequest.
 export const OpsRemoveRequest: MessageType<OpsRemoveRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsRemoveRequest',
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
@@ -1705,7 +1664,7 @@ export const OpsRemoveRequest: MessageType<OpsRemoveRequest> =
         repeated: true,
       },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1723,12 +1682,11 @@ export interface OpsRemoveResponse {
   unixfsError?: UnixFSError
 }
 
-// OpsRemoveResponse contains the message type declaration for OpsRemoveResponse.
 export const OpsRemoveResponse: MessageType<OpsRemoveResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.OpsRemoveResponse',
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

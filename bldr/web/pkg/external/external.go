@@ -36,6 +36,14 @@ func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgR
 	}, {
 		WebPkgId:   "@aptre/protobuf-es-lite",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/@aptre/protobuf-es-lite/dist"),
-		Imports:    []string{"index.js", "google/protobuf/empty.pb.js", "google/protobuf/timestamp.pb.js"},
+		Imports: []string{
+			"index.js",
+			"message.js",
+			"field.js",
+			"scalar.js",
+			"enum.js",
+			"google/protobuf/empty.pb.js",
+			"google/protobuf/timestamp.pb.js",
+		},
 	}}
 }

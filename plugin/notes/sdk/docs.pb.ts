@@ -2,9 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/plugin/notes/sdk/docs.proto (package notes, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { Documentation } from '../proto/docs.pb.js'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'notes'
 
@@ -15,13 +19,11 @@ export const protobufPackage = 'notes'
  */
 export interface WatchDocsRequest {}
 
-// WatchDocsRequest contains the message type declaration for WatchDocsRequest.
 export const WatchDocsRequest: MessageType<WatchDocsRequest> =
-  createMessageType({
-    typeName: 'notes.WatchDocsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchDocsRequest>(
+    'notes.WatchDocsRequest',
+    true,
+  )
 
 /**
  * WatchDocsResponse is the response for WatchDocs.
@@ -37,12 +39,11 @@ export interface WatchDocsResponse {
   documentation?: Documentation
 }
 
-// WatchDocsResponse contains the message type declaration for WatchDocsResponse.
 export const WatchDocsResponse: MessageType<WatchDocsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'notes.WatchDocsResponse',
     fields: [
       { no: 1, name: 'documentation', kind: 'message', T: () => Documentation },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

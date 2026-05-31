@@ -2,10 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto (package kvtx.block, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { Node } from './iavl/iavl.pb.js'
 import { Root } from './okra/okra.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'kvtx.block'
 
@@ -37,12 +39,14 @@ export enum KVImplType {
   KV_IMPL_TYPE_OKRA = 2,
 }
 
-// KVImplType_Enum is the enum type for KVImplType.
-export const KVImplType_Enum = createEnumType('kvtx.block.KVImplType', [
-  { no: 0, name: 'KV_IMPL_TYPE_UNKNOWN' },
-  { no: 1, name: 'KV_IMPL_TYPE_IAVL' },
-  { no: 2, name: 'KV_IMPL_TYPE_OKRA' },
-])
+export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
+  'kvtx.block.KVImplType',
+  [
+    [0, 'KV_IMPL_TYPE_UNKNOWN'],
+    [1, 'KV_IMPL_TYPE_IAVL'],
+    [2, 'KV_IMPL_TYPE_OKRA'],
+  ],
+)
 
 /**
  * KeyValueStore is the root of a Key-Value Transaction store.
@@ -73,13 +77,13 @@ export interface KeyValueStore {
   okraRoot?: Root
 }
 
-// KeyValueStore contains the message type declaration for KeyValueStore.
-export const KeyValueStore: MessageType<KeyValueStore> = createMessageType({
-  typeName: 'kvtx.block.KeyValueStore',
-  fields: [
-    { no: 1, name: 'impl_type', kind: 'enum', T: KVImplType_Enum },
-    { no: 2, name: 'iavl_root', kind: 'message', T: () => Node },
-    { no: 3, name: 'okra_root', kind: 'message', T: () => Root },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const KeyValueStore: MessageType<KeyValueStore> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'kvtx.block.KeyValueStore',
+    fields: [
+      { no: 1, name: 'impl_type', kind: 'enum', T: KVImplType_Enum },
+      { no: 2, name: 'iavl_root', kind: 'message', T: () => Node },
+      { no: 3, name: 'okra_root', kind: 'message', T: () => Root },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

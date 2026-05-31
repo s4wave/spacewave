@@ -3,10 +3,12 @@
 /* eslint-disable */
 
 import { Config } from '../controller/config.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import type { ControllerStatus } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
 import { ControllerStatus_Enum } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 'peer.api'
 
@@ -24,14 +26,14 @@ export interface IdentifyRequest {
   config?: Config
 }
 
-// IdentifyRequest contains the message type declaration for IdentifyRequest.
-export const IdentifyRequest: MessageType<IdentifyRequest> = createMessageType({
-  typeName: 'peer.api.IdentifyRequest',
-  fields: [
-    { no: 1, name: 'config', kind: 'message', T: () => Config },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const IdentifyRequest: MessageType<IdentifyRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'peer.api.IdentifyRequest',
+    fields: [
+      { no: 1, name: 'config', kind: 'message', T: () => Config },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * IdentifyResponse is a response to an identify request.
@@ -47,9 +49,8 @@ export interface IdentifyResponse {
   controllerStatus?: ControllerStatus
 }
 
-// IdentifyResponse contains the message type declaration for IdentifyResponse.
 export const IdentifyResponse: MessageType<IdentifyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'peer.api.IdentifyResponse',
     fields: [
       {
@@ -58,7 +59,7 @@ export const IdentifyResponse: MessageType<IdentifyResponse> =
         kind: 'enum',
         T: ControllerStatus_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -76,13 +77,12 @@ export interface GetPeerInfoRequest {
   peerId?: string
 }
 
-// GetPeerInfoRequest contains the message type declaration for GetPeerInfoRequest.
 export const GetPeerInfoRequest: MessageType<GetPeerInfoRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'peer.api.GetPeerInfoRequest',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -100,14 +100,14 @@ export interface PeerInfo {
   peerId?: string
 }
 
-// PeerInfo contains the message type declaration for PeerInfo.
-export const PeerInfo: MessageType<PeerInfo> = createMessageType({
-  typeName: 'peer.api.PeerInfo',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PeerInfo: MessageType<PeerInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'peer.api.PeerInfo',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetPeerInfoResponse is the response type for GetPeerInfo.
@@ -123,9 +123,8 @@ export interface GetPeerInfoResponse {
   localPeers?: PeerInfo[]
 }
 
-// GetPeerInfoResponse contains the message type declaration for GetPeerInfoResponse.
 export const GetPeerInfoResponse: MessageType<GetPeerInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'peer.api.GetPeerInfoResponse',
     fields: [
       {
@@ -135,6 +134,6 @@ export const GetPeerInfoResponse: MessageType<GetPeerInfoResponse> =
         T: () => PeerInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

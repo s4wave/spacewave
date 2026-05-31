@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/db/block/transform/chksum/chksum.proto (package transform.chksum, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'transform.chksum'
 
@@ -28,11 +30,13 @@ export enum ChksumType {
   ChksumType_CRC32 = 1,
 }
 
-// ChksumType_Enum is the enum type for ChksumType.
-export const ChksumType_Enum = createEnumType('transform.chksum.ChksumType', [
-  { no: 0, name: 'ChksumType_UNKNOWN' },
-  { no: 1, name: 'ChksumType_CRC32' },
-])
+export const ChksumType_Enum = /* @__PURE__ */ createEnumType(
+  'transform.chksum.ChksumType',
+  [
+    [0, 'ChksumType_UNKNOWN'],
+    [1, 'ChksumType_CRC32'],
+  ],
+)
 
 /**
  * Config configures the snappy transform.
@@ -48,11 +52,10 @@ export interface Config {
   chksumType?: ChksumType
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'transform.chksum.Config',
   fields: [
     { no: 1, name: 'chksum_type', kind: 'enum', T: ChksumType_Enum },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

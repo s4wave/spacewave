@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/sdk/process/binding.proto (package s4wave.process, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.process'
 
@@ -33,12 +32,11 @@ export enum ProcessBindingState {
   ProcessBindingState_APPROVED = 1,
 }
 
-// ProcessBindingState_Enum is the enum type for ProcessBindingState.
-export const ProcessBindingState_Enum = createEnumType(
+export const ProcessBindingState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.process.ProcessBindingState',
   [
-    { no: 0, name: 'ProcessBindingState_UNAPPROVED' },
-    { no: 1, name: 'ProcessBindingState_APPROVED' },
+    [0, 'ProcessBindingState_UNAPPROVED'],
+    [1, 'ProcessBindingState_APPROVED'],
   ],
 )
 
@@ -75,14 +73,14 @@ export interface ProcessBinding {
   decidedAt?: Date
 }
 
-// ProcessBinding contains the message type declaration for ProcessBinding.
-export const ProcessBinding: MessageType<ProcessBinding> = createMessageType({
-  typeName: 's4wave.process.ProcessBinding',
-  fields: [
-    { no: 1, name: 'state', kind: 'enum', T: ProcessBindingState_Enum },
-    { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'decided_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ProcessBinding: MessageType<ProcessBinding> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.process.ProcessBinding',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: ProcessBindingState_Enum },
+      { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'decided_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

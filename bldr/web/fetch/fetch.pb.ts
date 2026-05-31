@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/fetch/fetch.proto (package web.fetch, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'web.fetch'
 
@@ -98,9 +100,8 @@ export interface FetchRequestInfo {
   referrerPolicy?: string
 }
 
-// FetchRequestInfo contains the message type declaration for FetchRequestInfo.
 export const FetchRequestInfo: MessageType<FetchRequestInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.fetch.FetchRequestInfo',
     fields: [
       { no: 1, name: 'method', kind: 'scalar', T: ScalarType.STRING },
@@ -120,7 +121,7 @@ export const FetchRequestInfo: MessageType<FetchRequestInfo> =
       { no: 9, name: 'redirect', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'referrer', kind: 'scalar', T: ScalarType.STRING },
       { no: 11, name: 'referrer_policy', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -144,14 +145,13 @@ export interface FetchRequestData {
   done?: boolean
 }
 
-// FetchRequestData contains the message type declaration for FetchRequestData.
 export const FetchRequestData: MessageType<FetchRequestData> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.fetch.FetchRequestData',
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -191,27 +191,27 @@ export interface FetchRequest {
       }
 }
 
-// FetchRequest contains the message type declaration for FetchRequest.
-export const FetchRequest: MessageType<FetchRequest> = createMessageType({
-  typeName: 'web.fetch.FetchRequest',
-  fields: [
-    {
-      no: 1,
-      name: 'request_info',
-      kind: 'message',
-      T: () => FetchRequestInfo,
-      oneof: 'body',
-    },
-    {
-      no: 2,
-      name: 'request_data',
-      kind: 'message',
-      T: () => FetchRequestData,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FetchRequest: MessageType<FetchRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'web.fetch.FetchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'request_info',
+        kind: 'message',
+        T: () => FetchRequestInfo,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'request_data',
+        kind: 'message',
+        T: () => FetchRequestData,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ResponseInfo contains information about the response.
@@ -258,25 +258,25 @@ export interface ResponseInfo {
   responseType?: string
 }
 
-// ResponseInfo contains the message type declaration for ResponseInfo.
-export const ResponseInfo: MessageType<ResponseInfo> = createMessageType({
-  typeName: 'web.fetch.ResponseInfo',
-  fields: [
-    {
-      no: 1,
-      name: 'headers',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'scalar', T: ScalarType.STRING },
-    },
-    { no: 2, name: 'ok', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'redirected', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'status', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 5, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'response_type', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ResponseInfo: MessageType<ResponseInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'web.fetch.ResponseInfo',
+    fields: [
+      {
+        no: 1,
+        name: 'headers',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'scalar', T: ScalarType.STRING },
+      },
+      { no: 2, name: 'ok', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'redirected', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'status', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 5, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'response_type', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ResponseData contains a streaming response data packet.
@@ -298,15 +298,15 @@ export interface ResponseData {
   done?: boolean
 }
 
-// ResponseData contains the message type declaration for ResponseData.
-export const ResponseData: MessageType<ResponseData> = createMessageType({
-  typeName: 'web.fetch.ResponseData',
-  fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ResponseData: MessageType<ResponseData> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'web.fetch.ResponseData',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * FetchResponse is a message in a Fetch response stream.
@@ -345,24 +345,24 @@ export interface FetchResponse {
       }
 }
 
-// FetchResponse contains the message type declaration for FetchResponse.
-export const FetchResponse: MessageType<FetchResponse> = createMessageType({
-  typeName: 'web.fetch.FetchResponse',
-  fields: [
-    {
-      no: 1,
-      name: 'response_info',
-      kind: 'message',
-      T: () => ResponseInfo,
-      oneof: 'body',
-    },
-    {
-      no: 2,
-      name: 'response_data',
-      kind: 'message',
-      T: () => ResponseData,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FetchResponse: MessageType<FetchResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'web.fetch.FetchResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'response_info',
+        kind: 'message',
+        T: () => ResponseInfo,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'response_data',
+        kind: 'message',
+        T: () => ResponseData,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

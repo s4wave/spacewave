@@ -2,16 +2,15 @@
 // @generated from file github.com/s4wave/spacewave/bldr/plugin/compiler/go/compiler.proto (package bldr.plugin.compiler.go, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import { WebPkgRefConfig } from '../../../web/bundler/bundler.pb.js'
 import type { Enabled } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
 import { Enabled_Enum } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { PluginDevInfo } from '../../vardef/vardef.pb.js'
 import { WebPkgRef } from '../../../web/pkg/pkg.pb.js'
 import { EsbuildOutputMeta } from '../../../web/bundler/esbuild/esbuild.pb.js'
@@ -54,14 +53,13 @@ export enum CompilerMode {
   GOSCRIPT = 3,
 }
 
-// CompilerMode_Enum is the enum type for CompilerMode.
-export const CompilerMode_Enum = createEnumType(
+export const CompilerMode_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.CompilerMode',
   [
-    { no: 0, name: 'COMPILER_MODE_DEFAULT' },
-    { no: 1, name: 'COMPILER_MODE_GO' },
-    { no: 2, name: 'COMPILER_MODE_TINYGO' },
-    { no: 3, name: 'COMPILER_MODE_GOSCRIPT' },
+    [0, 'COMPILER_MODE_DEFAULT'],
+    [1, 'COMPILER_MODE_GO'],
+    [2, 'COMPILER_MODE_TINYGO'],
+    [3, 'COMPILER_MODE_GOSCRIPT'],
   ],
 )
 
@@ -100,14 +98,13 @@ export enum InputFileKind {
   InputFileKind_GOSCRIPT_OVERRIDE = 3,
 }
 
-// InputFileKind_Enum is the enum type for InputFileKind.
-export const InputFileKind_Enum = createEnumType(
+export const InputFileKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.InputFileKind',
   [
-    { no: 0, name: 'InputFileKind_UNKNOWN' },
-    { no: 1, name: 'InputFileKind_ASSET' },
-    { no: 2, name: 'InputFileKind_GO' },
-    { no: 3, name: 'InputFileKind_GOSCRIPT_OVERRIDE' },
+    [0, 'InputFileKind_UNKNOWN'],
+    [1, 'InputFileKind_ASSET'],
+    [2, 'InputFileKind_GO'],
+    [3, 'InputFileKind_GOSCRIPT_OVERRIDE'],
   ],
 )
 
@@ -134,12 +131,11 @@ export enum EsbuildVarType {
   EsbuildVarType_WEB_BUNDLER_OUTPUT = 1,
 }
 
-// EsbuildVarType_Enum is the enum type for EsbuildVarType.
-export const EsbuildVarType_Enum = createEnumType(
+export const EsbuildVarType_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.EsbuildVarType',
   [
-    { no: 0, name: 'EsbuildVarType_ENTRYPOINT_PATH' },
-    { no: 1, name: 'EsbuildVarType_WEB_BUNDLER_OUTPUT' },
+    [0, 'EsbuildVarType_ENTRYPOINT_PATH'],
+    [1, 'EsbuildVarType_WEB_BUNDLER_OUTPUT'],
   ],
 )
 
@@ -166,12 +162,11 @@ export enum ViteVarType {
   ViteVarType_WEB_BUNDLER_OUTPUT = 1,
 }
 
-// ViteVarType_Enum is the enum type for ViteVarType.
-export const ViteVarType_Enum = createEnumType(
+export const ViteVarType_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.ViteVarType',
   [
-    { no: 0, name: 'ViteVarType_ENTRYPOINT_PATH' },
-    { no: 1, name: 'ViteVarType_WEB_BUNDLER_OUTPUT' },
+    [0, 'ViteVarType_ENTRYPOINT_PATH'],
+    [1, 'ViteVarType_WEB_BUNDLER_OUTPUT'],
   ],
 )
 
@@ -344,8 +339,7 @@ export interface Config {
   enableImportedFactoryDiscovery?: Enabled
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bldr.plugin.compiler.go.Config',
   fields: [
     { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
@@ -423,7 +417,7 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'enum',
       T: Enabled_Enum,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -442,13 +436,12 @@ export interface PreBuildHookResult {
   config?: Config
 }
 
-// PreBuildHookResult contains the message type declaration for PreBuildHookResult.
 export const PreBuildHookResult: MessageType<PreBuildHookResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.compiler.go.PreBuildHookResult',
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -466,14 +459,14 @@ export interface InputFileMeta {
   kind?: InputFileKind
 }
 
-// InputFileMeta contains the message type declaration for InputFileMeta.
-export const InputFileMeta: MessageType<InputFileMeta> = createMessageType({
-  typeName: 'bldr.plugin.compiler.go.InputFileMeta',
-  fields: [
-    { no: 1, name: 'kind', kind: 'enum', T: InputFileKind_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const InputFileMeta: MessageType<InputFileMeta> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.compiler.go.InputFileMeta',
+    fields: [
+      { no: 1, name: 'kind', kind: 'enum', T: InputFileKind_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EsbuildEntrypointVar is a variable in the Go code referring to a esbuild entrypoint.
@@ -513,9 +506,8 @@ export interface EsbuildEntrypointVar {
   esbuildFlags?: string[]
 }
 
-// EsbuildEntrypointVar contains the message type declaration for EsbuildEntrypointVar.
 export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.compiler.go.EsbuildEntrypointVar',
     fields: [
       { no: 1, name: 'pkg_import_path', kind: 'scalar', T: ScalarType.STRING },
@@ -529,7 +521,7 @@ export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -553,9 +545,8 @@ export interface EsbuildBundleVarMeta {
   entrypointVars?: EsbuildEntrypointVar[]
 }
 
-// EsbuildBundleVarMeta contains the message type declaration for EsbuildBundleVarMeta.
 export const EsbuildBundleVarMeta: MessageType<EsbuildBundleVarMeta> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.compiler.go.EsbuildBundleVarMeta',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -566,7 +557,7 @@ export const EsbuildBundleVarMeta: MessageType<EsbuildBundleVarMeta> =
         T: () => EsbuildEntrypointVar,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -621,9 +612,8 @@ export interface ViteEntrypointVar {
   disableProjectConfig?: boolean
 }
 
-// ViteEntrypointVar contains the message type declaration for ViteEntrypointVar.
 export const ViteEntrypointVar: MessageType<ViteEntrypointVar> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.compiler.go.ViteEntrypointVar',
     fields: [
       { no: 1, name: 'pkg_import_path', kind: 'scalar', T: ScalarType.STRING },
@@ -644,7 +634,7 @@ export const ViteEntrypointVar: MessageType<ViteEntrypointVar> =
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -668,9 +658,8 @@ export interface ViteBundleVarMeta {
   entrypointVars?: ViteEntrypointVar[]
 }
 
-// ViteBundleVarMeta contains the message type declaration for ViteBundleVarMeta.
 export const ViteBundleVarMeta: MessageType<ViteBundleVarMeta> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.compiler.go.ViteBundleVarMeta',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -681,7 +670,7 @@ export const ViteBundleVarMeta: MessageType<ViteBundleVarMeta> =
         T: () => ViteEntrypointVar,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -778,9 +767,8 @@ export interface InputManifestMeta {
   goscriptAllDependencies?: boolean
 }
 
-// InputManifestMeta contains the message type declaration for InputManifestMeta.
 export const InputManifestMeta: MessageType<InputManifestMeta> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.compiler.go.InputManifestMeta',
     fields: [
       { no: 1, name: 'dev_info', kind: 'message', T: () => PluginDevInfo },
@@ -867,6 +855,6 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/view/handler/server/config.proto (package web.view.handler.server, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
 export const protobufPackage = 'web.view.handler.server'
 
@@ -17,9 +17,8 @@ export const protobufPackage = 'web.view.handler.server'
  */
 export interface Config {}
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'web.view.handler.server.Config',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createEmptyMessageType<Config>(
+    'web.view.handler.server.Config',
+    true,
+  )

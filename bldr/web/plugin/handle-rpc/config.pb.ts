@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.web.plugin.handle_rpc'
 
@@ -52,8 +54,7 @@ export interface Config {
   backoff?: Backoff
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bldr.web.plugin.handle_rpc.Config',
   fields: [
     { no: 1, name: 'web_plugin_id', kind: 'scalar', T: ScalarType.STRING },
@@ -61,6 +62,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 3, name: 'service_id_re', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
     { no: 5, name: 'backoff', kind: 'message', T: () => Backoff },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

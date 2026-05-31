@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/forge/pass/tx/tx.proto (package pass.tx, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Result } from '../../value/value.pb.js'
 import { ValueSet } from '../../target/target.pb.js'
 
@@ -64,13 +66,12 @@ export enum TxType {
   TxType_COMPLETE = 4,
 }
 
-// TxType_Enum is the enum type for TxType.
-export const TxType_Enum = createEnumType('pass.tx.TxType', [
-  { no: 0, name: 'TxType_INVALID' },
-  { no: 1, name: 'TxType_START' },
-  { no: 2, name: 'TxType_CREATE_EXEC_SPECS' },
-  { no: 3, name: 'TxType_UPDATE_EXEC_STATES' },
-  { no: 4, name: 'TxType_COMPLETE' },
+export const TxType_Enum = /* @__PURE__ */ createEnumType('pass.tx.TxType', [
+  [0, 'TxType_INVALID'],
+  [1, 'TxType_START'],
+  [2, 'TxType_CREATE_EXEC_SPECS'],
+  [3, 'TxType_UPDATE_EXEC_STATES'],
+  [4, 'TxType_COMPLETE'],
 ])
 
 /**
@@ -88,14 +89,14 @@ export interface ExecSpec {
   peerId?: string
 }
 
-// ExecSpec contains the message type declaration for ExecSpec.
-export const ExecSpec: MessageType<ExecSpec> = createMessageType({
-  typeName: 'pass.tx.ExecSpec',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ExecSpec: MessageType<ExecSpec> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'pass.tx.ExecSpec',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TxCreateExecSpecs creates a set of Execution objects from the specs.
@@ -120,9 +121,8 @@ export interface TxCreateExecSpecs {
   clearExisting?: boolean
 }
 
-// TxCreateExecSpecs contains the message type declaration for TxCreateExecSpecs.
 export const TxCreateExecSpecs: MessageType<TxCreateExecSpecs> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'pass.tx.TxCreateExecSpecs',
     fields: [
       {
@@ -133,7 +133,7 @@ export const TxCreateExecSpecs: MessageType<TxCreateExecSpecs> =
         repeated: true,
       },
       { no: 2, name: 'clear_existing', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -155,8 +155,7 @@ export interface TxStart {
   createExecSpecs?: TxCreateExecSpecs
 }
 
-// TxStart contains the message type declaration for TxStart.
-export const TxStart: MessageType<TxStart> = createMessageType({
+export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
   typeName: 'pass.tx.TxStart',
   fields: [
     {
@@ -165,7 +164,7 @@ export const TxStart: MessageType<TxStart> = createMessageType({
       kind: 'message',
       T: () => TxCreateExecSpecs,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -180,13 +179,11 @@ export const TxStart: MessageType<TxStart> = createMessageType({
  */
 export interface TxUpdateExecStates {}
 
-// TxUpdateExecStates contains the message type declaration for TxUpdateExecStates.
 export const TxUpdateExecStates: MessageType<TxUpdateExecStates> =
-  createMessageType({
-    typeName: 'pass.tx.TxUpdateExecStates',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<TxUpdateExecStates>(
+    'pass.tx.TxUpdateExecStates',
+    true,
+  )
 
 /**
  * TxComplete completes the execution by setting the result.
@@ -215,15 +212,15 @@ export interface TxComplete {
   valueSet?: ValueSet
 }
 
-// TxComplete contains the message type declaration for TxComplete.
-export const TxComplete: MessageType<TxComplete> = createMessageType({
-  typeName: 'pass.tx.TxComplete',
-  fields: [
-    { no: 1, name: 'result', kind: 'message', T: () => Result },
-    { no: 2, name: 'value_set', kind: 'message', T: () => ValueSet },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TxComplete: MessageType<TxComplete> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'pass.tx.TxComplete',
+    fields: [
+      { no: 1, name: 'result', kind: 'message', T: () => Result },
+      { no: 2, name: 'value_set', kind: 'message', T: () => ValueSet },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Tx is the on-the-wire representation of a transaction.
@@ -274,8 +271,7 @@ export interface Tx {
   txComplete?: TxComplete
 }
 
-// Tx contains the message type declaration for Tx.
-export const Tx: MessageType<Tx> = createMessageType({
+export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
   typeName: 'pass.tx.Tx',
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
@@ -294,6 +290,6 @@ export const Tx: MessageType<Tx> = createMessageType({
       T: () => TxUpdateExecStates,
     },
     { no: 6, name: 'tx_complete', kind: 'message', T: () => TxComplete },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

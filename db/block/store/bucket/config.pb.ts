@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { Config as Config$1 } from '../../../bucket/bucket.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'block.store.bucket'
 
@@ -45,14 +47,13 @@ export interface Config {
   notFoundIfIdle?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'block.store.bucket.Config',
   fields: [
     { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'bucket_config', kind: 'message', T: () => Config$1 },
     { no: 3, name: 'bucket_store_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'not_found_if_idle', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

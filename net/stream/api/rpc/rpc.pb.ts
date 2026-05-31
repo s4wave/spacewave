@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/net/stream/api/rpc/rpc.proto (package stream.api.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'stream.api.rpc'
 
@@ -39,12 +38,14 @@ export enum StreamState {
   StreamState_ESTABLISHED = 2,
 }
 
-// StreamState_Enum is the enum type for StreamState.
-export const StreamState_Enum = createEnumType('stream.api.rpc.StreamState', [
-  { no: 0, name: 'StreamState_NONE' },
-  { no: 1, name: 'StreamState_ESTABLISHING' },
-  { no: 2, name: 'StreamState_ESTABLISHED' },
-])
+export const StreamState_Enum = /* @__PURE__ */ createEnumType(
+  'stream.api.rpc.StreamState',
+  [
+    [0, 'StreamState_NONE'],
+    [1, 'StreamState_ESTABLISHING'],
+    [2, 'StreamState_ESTABLISHED'],
+  ],
+)
 
 /**
  * Data is a data packet.
@@ -67,12 +68,11 @@ export interface Data {
   state?: StreamState
 }
 
-// Data contains the message type declaration for Data.
-export const Data: MessageType<Data> = createMessageType({
+export const Data: MessageType<Data> = /* @__PURE__ */ createMessageType({
   typeName: 'stream.api.rpc.Data',
   fields: [
     { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     { no: 2, name: 'state', kind: 'enum', T: StreamState_Enum },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

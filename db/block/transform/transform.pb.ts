@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/db/block/transform/transform.proto (package block.transform, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'block.transform'
 
@@ -30,15 +32,15 @@ export interface StepConfig {
   config?: Uint8Array
 }
 
-// StepConfig contains the message type declaration for StepConfig.
-export const StepConfig: MessageType<StepConfig> = createMessageType({
-  typeName: 'block.transform.StepConfig',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'config', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StepConfig: MessageType<StepConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.transform.StepConfig',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'config', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config configures block transformation.
@@ -55,8 +57,7 @@ export interface Config {
   steps?: StepConfig[]
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'block.transform.Config',
   fields: [
     {
@@ -66,6 +67,6 @@ export const Config: MessageType<Config> = createMessageType({
       T: () => StepConfig,
       repeated: true,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

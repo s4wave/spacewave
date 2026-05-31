@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/provider.proto (package provider, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'provider'
 
@@ -53,14 +52,16 @@ export enum ProviderFeature {
   ProviderFeature_SHARED_OBJECT_RECOVERY = 4,
 }
 
-// ProviderFeature_Enum is the enum type for ProviderFeature.
-export const ProviderFeature_Enum = createEnumType('provider.ProviderFeature', [
-  { no: 0, name: 'ProviderFeature_NONE' },
-  { no: 1, name: 'ProviderFeature_SESSION' },
-  { no: 2, name: 'ProviderFeature_SHARED_OBJECT' },
-  { no: 3, name: 'ProviderFeature_BLOCK_STORE' },
-  { no: 4, name: 'ProviderFeature_SHARED_OBJECT_RECOVERY' },
-])
+export const ProviderFeature_Enum = /* @__PURE__ */ createEnumType(
+  'provider.ProviderFeature',
+  [
+    [0, 'ProviderFeature_NONE'],
+    [1, 'ProviderFeature_SESSION'],
+    [2, 'ProviderFeature_SHARED_OBJECT'],
+    [3, 'ProviderFeature_BLOCK_STORE'],
+    [4, 'ProviderFeature_SHARED_OBJECT_RECOVERY'],
+  ],
+)
 
 /**
  * ProviderAccountStatus contains the high-level status of an account.
@@ -121,17 +122,16 @@ export enum ProviderAccountStatus {
   ProviderAccountStatus_DORMANT = 6,
 }
 
-// ProviderAccountStatus_Enum is the enum type for ProviderAccountStatus.
-export const ProviderAccountStatus_Enum = createEnumType(
+export const ProviderAccountStatus_Enum = /* @__PURE__ */ createEnumType(
   'provider.ProviderAccountStatus',
   [
-    { no: 0, name: 'ProviderAccountStatus_NONE' },
-    { no: 1, name: 'ProviderAccountStatus_PENDING' },
-    { no: 2, name: 'ProviderAccountStatus_READY' },
-    { no: 3, name: 'ProviderAccountStatus_DELETED' },
-    { no: 4, name: 'ProviderAccountStatus_FAILED' },
-    { no: 5, name: 'ProviderAccountStatus_UNAUTHENTICATED' },
-    { no: 6, name: 'ProviderAccountStatus_DORMANT' },
+    [0, 'ProviderAccountStatus_NONE'],
+    [1, 'ProviderAccountStatus_PENDING'],
+    [2, 'ProviderAccountStatus_READY'],
+    [3, 'ProviderAccountStatus_DELETED'],
+    [4, 'ProviderAccountStatus_FAILED'],
+    [5, 'ProviderAccountStatus_UNAUTHENTICATED'],
+    [6, 'ProviderAccountStatus_DORMANT'],
   ],
 )
 
@@ -155,21 +155,21 @@ export interface ProviderInfo {
   providerFeatures?: ProviderFeature[]
 }
 
-// ProviderInfo contains the message type declaration for ProviderInfo.
-export const ProviderInfo: MessageType<ProviderInfo> = createMessageType({
-  typeName: 'provider.ProviderInfo',
-  fields: [
-    { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'provider_features',
-      kind: 'enum',
-      T: ProviderFeature_Enum,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ProviderInfo: MessageType<ProviderInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.ProviderInfo',
+    fields: [
+      { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'provider_features',
+        kind: 'enum',
+        T: ProviderFeature_Enum,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ProviderFeatureMapItem is an item in the ProviderFeatureMap.
@@ -197,9 +197,8 @@ export interface ProviderFeatureMapItem {
   providerAccountId?: string
 }
 
-// ProviderFeatureMapItem contains the message type declaration for ProviderFeatureMapItem.
 export const ProviderFeatureMapItem: MessageType<ProviderFeatureMapItem> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.ProviderFeatureMapItem',
     fields: [
       {
@@ -216,7 +215,7 @@ export const ProviderFeatureMapItem: MessageType<ProviderFeatureMapItem> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -237,9 +236,8 @@ export interface ProviderFeatureMap {
   mapItems?: ProviderFeatureMapItem[]
 }
 
-// ProviderFeatureMap contains the message type declaration for ProviderFeatureMap.
 export const ProviderFeatureMap: MessageType<ProviderFeatureMap> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.ProviderFeatureMap',
     fields: [
       {
@@ -249,7 +247,7 @@ export const ProviderFeatureMap: MessageType<ProviderFeatureMap> =
         T: () => ProviderFeatureMapItem,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -292,9 +290,8 @@ export interface ProviderAccountInfo {
   providerAccountState?: Uint8Array
 }
 
-// ProviderAccountInfo contains the message type declaration for ProviderAccountInfo.
 export const ProviderAccountInfo: MessageType<ProviderAccountInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.ProviderAccountInfo',
     fields: [
       { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
@@ -323,7 +320,7 @@ export const ProviderAccountInfo: MessageType<ProviderAccountInfo> =
         kind: 'scalar',
         T: ScalarType.BYTES,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -354,9 +351,8 @@ export interface ProviderResourceRef {
   providerAccountId?: string
 }
 
-// ProviderResourceRef contains the message type declaration for ProviderResourceRef.
 export const ProviderResourceRef: MessageType<ProviderResourceRef> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.ProviderResourceRef',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -367,7 +363,7 @@ export const ProviderResourceRef: MessageType<ProviderResourceRef> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -398,9 +394,8 @@ export interface ProviderFeatureResourceRef {
   providerFeatureMeta?: Uint8Array
 }
 
-// ProviderFeatureResourceRef contains the message type declaration for ProviderFeatureResourceRef.
 export const ProviderFeatureResourceRef: MessageType<ProviderFeatureResourceRef> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.ProviderFeatureResourceRef',
     fields: [
       {
@@ -421,6 +416,6 @@ export const ProviderFeatureResourceRef: MessageType<ProviderFeatureResourceRef>
         kind: 'scalar',
         T: ScalarType.BYTES,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

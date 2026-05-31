@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/db/block/gc/wal/wal.proto (package block.gc.wal, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'block.gc.wal'
 
@@ -27,13 +29,12 @@ export interface RefEdge {
   object?: string
 }
 
-// RefEdge contains the message type declaration for RefEdge.
-export const RefEdge: MessageType<RefEdge> = createMessageType({
+export const RefEdge: MessageType<RefEdge> = /* @__PURE__ */ createMessageType({
   typeName: 'block.gc.wal.RefEdge',
   fields: [
     { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -71,20 +72,26 @@ export interface WALEntry {
   removes?: RefEdge[]
 }
 
-// WALEntry contains the message type declaration for WALEntry.
-export const WALEntry: MessageType<WALEntry> = createMessageType({
-  typeName: 'block.gc.wal.WALEntry',
-  fields: [
-    { no: 1, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'timestamp', kind: 'scalar', T: ScalarType.INT64 },
-    { no: 3, name: 'adds', kind: 'message', T: () => RefEdge, repeated: true },
-    {
-      no: 4,
-      name: 'removes',
-      kind: 'message',
-      T: () => RefEdge,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WALEntry: MessageType<WALEntry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.gc.wal.WALEntry',
+    fields: [
+      { no: 1, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'timestamp', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 3,
+        name: 'adds',
+        kind: 'message',
+        T: () => RefEdge,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'removes',
+        kind: 'message',
+        T: () => RefEdge,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

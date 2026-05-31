@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef, PutOpts } from '../block/block.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { Config as Config$1 } from '../block/transform/transform.pb.js'
@@ -34,15 +36,15 @@ export interface LookupConfig {
   controller?: ControllerConfig
 }
 
-// LookupConfig contains the message type declaration for LookupConfig.
-export const LookupConfig: MessageType<LookupConfig> = createMessageType({
-  typeName: 'bucket.LookupConfig',
-  fields: [
-    { no: 1, name: 'disable', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 2, name: 'controller', kind: 'message', T: () => ControllerConfig },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LookupConfig: MessageType<LookupConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bucket.LookupConfig',
+    fields: [
+      { no: 1, name: 'disable', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'controller', kind: 'message', T: () => ControllerConfig },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config is a bucket configuration object.
@@ -79,15 +81,14 @@ export interface Config {
   lookup?: LookupConfig
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bucket.Config',
   fields: [
     { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 4, name: 'put_opts', kind: 'message', T: () => PutOpts },
     { no: 5, name: 'lookup', kind: 'message', T: () => LookupConfig },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -105,14 +106,14 @@ export interface BucketInfo {
   config?: Config
 }
 
-// BucketInfo contains the message type declaration for BucketInfo.
-export const BucketInfo: MessageType<BucketInfo> = createMessageType({
-  typeName: 'bucket.BucketInfo',
-  fields: [
-    { no: 1, name: 'config', kind: 'message', T: () => Config },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BucketInfo: MessageType<BucketInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bucket.BucketInfo',
+    fields: [
+      { no: 1, name: 'config', kind: 'message', T: () => Config },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ApplyBucketConfigResult is the result of the ApplyBucketConfig directive.
@@ -165,9 +166,8 @@ export interface ApplyBucketConfigResult {
   error?: string
 }
 
-// ApplyBucketConfigResult contains the message type declaration for ApplyBucketConfigResult.
 export const ApplyBucketConfigResult: MessageType<ApplyBucketConfigResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bucket.ApplyBucketConfigResult',
     fields: [
       { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
@@ -177,7 +177,7 @@ export const ApplyBucketConfigResult: MessageType<ApplyBucketConfigResult> =
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
       { no: 6, name: 'updated', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -219,17 +219,17 @@ export interface ObjectRef {
   transformConf?: Config$1
 }
 
-// ObjectRef contains the message type declaration for ObjectRef.
-export const ObjectRef: MessageType<ObjectRef> = createMessageType({
-  typeName: 'bucket.ObjectRef',
-  fields: [
-    { no: 1, name: 'root_ref', kind: 'message', T: () => BlockRef },
-    { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'transform_conf_ref', kind: 'message', T: () => BlockRef },
-    { no: 4, name: 'transform_conf', kind: 'message', T: () => Config$1 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ObjectRef: MessageType<ObjectRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bucket.ObjectRef',
+    fields: [
+      { no: 1, name: 'root_ref', kind: 'message', T: () => BlockRef },
+      { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'transform_conf_ref', kind: 'message', T: () => BlockRef },
+      { no: 4, name: 'transform_conf', kind: 'message', T: () => Config$1 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BucketOpArgs are common arguments for a bucket operation.
@@ -252,12 +252,12 @@ export interface BucketOpArgs {
   volumeId?: string
 }
 
-// BucketOpArgs contains the message type declaration for BucketOpArgs.
-export const BucketOpArgs: MessageType<BucketOpArgs> = createMessageType({
-  typeName: 'bucket.BucketOpArgs',
-  fields: [
-    { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BucketOpArgs: MessageType<BucketOpArgs> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bucket.BucketOpArgs',
+    fields: [
+      { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

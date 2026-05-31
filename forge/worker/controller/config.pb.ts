@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/forge/worker/controller/config.proto (package worker.controller, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'worker.controller'
 
@@ -44,14 +46,13 @@ export interface Config {
   assignSelf?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'worker.controller.Config',
   fields: [
     { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'assign_self', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

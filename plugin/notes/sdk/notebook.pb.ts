@@ -2,9 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/plugin/notes/sdk/notebook.proto (package notes, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { Notebook, NotebookSource } from '../proto/notebook.pb.js'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 'notes'
 
@@ -15,13 +20,11 @@ export const protobufPackage = 'notes'
  */
 export interface WatchNotebookRequest {}
 
-// WatchNotebookRequest contains the message type declaration for WatchNotebookRequest.
 export const WatchNotebookRequest: MessageType<WatchNotebookRequest> =
-  createMessageType({
-    typeName: 'notes.WatchNotebookRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchNotebookRequest>(
+    'notes.WatchNotebookRequest',
+    true,
+  )
 
 /**
  * WatchNotebookResponse is the response for WatchNotebook.
@@ -37,13 +40,12 @@ export interface WatchNotebookResponse {
   notebook?: Notebook
 }
 
-// WatchNotebookResponse contains the message type declaration for WatchNotebookResponse.
 export const WatchNotebookResponse: MessageType<WatchNotebookResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'notes.WatchNotebookResponse',
     fields: [
       { no: 1, name: 'notebook', kind: 'message', T: () => Notebook },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -61,13 +63,12 @@ export interface AddSourceRequest {
   source?: NotebookSource
 }
 
-// AddSourceRequest contains the message type declaration for AddSourceRequest.
 export const AddSourceRequest: MessageType<AddSourceRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'notes.AddSourceRequest',
     fields: [
       { no: 1, name: 'source', kind: 'message', T: () => NotebookSource },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -78,13 +79,11 @@ export const AddSourceRequest: MessageType<AddSourceRequest> =
  */
 export interface AddSourceResponse {}
 
-// AddSourceResponse contains the message type declaration for AddSourceResponse.
 export const AddSourceResponse: MessageType<AddSourceResponse> =
-  createMessageType({
-    typeName: 'notes.AddSourceResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AddSourceResponse>(
+    'notes.AddSourceResponse',
+    true,
+  )
 
 /**
  * RemoveSourceRequest is the request for RemoveSource.
@@ -100,13 +99,12 @@ export interface RemoveSourceRequest {
   index?: number
 }
 
-// RemoveSourceRequest contains the message type declaration for RemoveSourceRequest.
 export const RemoveSourceRequest: MessageType<RemoveSourceRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'notes.RemoveSourceRequest',
     fields: [
       { no: 1, name: 'index', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -117,13 +115,11 @@ export const RemoveSourceRequest: MessageType<RemoveSourceRequest> =
  */
 export interface RemoveSourceResponse {}
 
-// RemoveSourceResponse contains the message type declaration for RemoveSourceResponse.
 export const RemoveSourceResponse: MessageType<RemoveSourceResponse> =
-  createMessageType({
-    typeName: 'notes.RemoveSourceResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RemoveSourceResponse>(
+    'notes.RemoveSourceResponse',
+    true,
+  )
 
 /**
  * ReorderSourcesRequest is the request for ReorderSources.
@@ -139,9 +135,8 @@ export interface ReorderSourcesRequest {
   order?: number[]
 }
 
-// ReorderSourcesRequest contains the message type declaration for ReorderSourcesRequest.
 export const ReorderSourcesRequest: MessageType<ReorderSourcesRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'notes.ReorderSourcesRequest',
     fields: [
       {
@@ -151,7 +146,7 @@ export const ReorderSourcesRequest: MessageType<ReorderSourcesRequest> =
         T: ScalarType.UINT32,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -162,10 +157,8 @@ export const ReorderSourcesRequest: MessageType<ReorderSourcesRequest> =
  */
 export interface ReorderSourcesResponse {}
 
-// ReorderSourcesResponse contains the message type declaration for ReorderSourcesResponse.
 export const ReorderSourcesResponse: MessageType<ReorderSourcesResponse> =
-  createMessageType({
-    typeName: 'notes.ReorderSourcesResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ReorderSourcesResponse>(
+    'notes.ReorderSourcesResponse',
+    true,
+  )

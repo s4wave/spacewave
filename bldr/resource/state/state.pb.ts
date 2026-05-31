@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/bldr/resource/state/state.proto (package resource.state, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'resource.state'
 
@@ -14,12 +19,11 @@ export const protobufPackage = 'resource.state'
  */
 export interface GetStateRequest {}
 
-// GetStateRequest contains the message type declaration for GetStateRequest.
-export const GetStateRequest: MessageType<GetStateRequest> = createMessageType({
-  typeName: 'resource.state.GetStateRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetStateRequest: MessageType<GetStateRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetStateRequest>(
+    'resource.state.GetStateRequest',
+    true,
+  )
 
 /**
  * GetStateResponse is the response for GetState.
@@ -41,14 +45,13 @@ export interface GetStateResponse {
   seqno?: bigint
 }
 
-// GetStateResponse contains the message type declaration for GetStateResponse.
 export const GetStateResponse: MessageType<GetStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.state.GetStateResponse',
     fields: [
       { no: 1, name: 'state_json', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -66,14 +69,14 @@ export interface SetStateRequest {
   stateJson?: string
 }
 
-// SetStateRequest contains the message type declaration for SetStateRequest.
-export const SetStateRequest: MessageType<SetStateRequest> = createMessageType({
-  typeName: 'resource.state.SetStateRequest',
-  fields: [
-    { no: 1, name: 'state_json', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SetStateRequest: MessageType<SetStateRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.state.SetStateRequest',
+    fields: [
+      { no: 1, name: 'state_json', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SetStateResponse is the response for SetState.
@@ -89,13 +92,12 @@ export interface SetStateResponse {
   seqno?: bigint
 }
 
-// SetStateResponse contains the message type declaration for SetStateResponse.
 export const SetStateResponse: MessageType<SetStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.state.SetStateResponse',
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -106,13 +108,11 @@ export const SetStateResponse: MessageType<SetStateResponse> =
  */
 export interface WatchStateRequest {}
 
-// WatchStateRequest contains the message type declaration for WatchStateRequest.
 export const WatchStateRequest: MessageType<WatchStateRequest> =
-  createMessageType({
-    typeName: 'resource.state.WatchStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchStateRequest>(
+    'resource.state.WatchStateRequest',
+    true,
+  )
 
 /**
  * WatchStateResponse is the response for WatchState.
@@ -134,13 +134,12 @@ export interface WatchStateResponse {
   seqno?: bigint
 }
 
-// WatchStateResponse contains the message type declaration for WatchStateResponse.
 export const WatchStateResponse: MessageType<WatchStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.state.WatchStateResponse',
     fields: [
       { no: 1, name: 'state_json', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

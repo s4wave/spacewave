@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/net/hash/hash.proto (package hash, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'hash'
 
@@ -48,12 +47,11 @@ export enum HashType {
   HashType_BLAKE3 = 3,
 }
 
-// HashType_Enum is the enum type for HashType.
-export const HashType_Enum = createEnumType('hash.HashType', [
-  { no: 0, name: 'HashType_UNKNOWN' },
-  { no: 1, name: 'HashType_SHA256' },
-  { no: 2, name: 'HashType_SHA1' },
-  { no: 3, name: 'HashType_BLAKE3' },
+export const HashType_Enum = /* @__PURE__ */ createEnumType('hash.HashType', [
+  [0, 'HashType_UNKNOWN'],
+  [1, 'HashType_SHA256'],
+  [2, 'HashType_SHA1'],
+  [3, 'HashType_BLAKE3'],
 ])
 
 /**
@@ -76,12 +74,11 @@ export interface Hash {
   hash?: Uint8Array
 }
 
-// Hash contains the message type declaration for Hash.
-export const Hash: MessageType<Hash> = createMessageType({
+export const Hash: MessageType<Hash> = /* @__PURE__ */ createMessageType({
   typeName: 'hash.Hash',
   fields: [
     { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     { no: 2, name: 'hash', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

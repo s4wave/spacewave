@@ -2,9 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/space/space.proto (package s4wave.space, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { StepConfig } from '../../db/block/transform/transform.pb.js'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import {
   SpaceSettings,
   WorldContents,
@@ -28,13 +33,11 @@ export const protobufPackage = 's4wave.space'
  */
 export interface WatchSpaceStateRequest {}
 
-// WatchSpaceStateRequest contains the message type declaration for WatchSpaceStateRequest.
 export const WatchSpaceStateRequest: MessageType<WatchSpaceStateRequest> =
-  createMessageType({
-    typeName: 's4wave.space.WatchSpaceStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchSpaceStateRequest>(
+    's4wave.space.WatchSpaceStateRequest',
+    true,
+  )
 
 /**
  * TransformInfo contains redacted transform configuration for display.
@@ -63,22 +66,22 @@ export interface TransformInfo {
   storageBytes?: bigint
 }
 
-// TransformInfo contains the message type declaration for TransformInfo.
-export const TransformInfo: MessageType<TransformInfo> = createMessageType({
-  typeName: 's4wave.space.TransformInfo',
-  fields: [
-    {
-      no: 1,
-      name: 'steps',
-      kind: 'message',
-      T: () => StepConfig,
-      repeated: true,
-    },
-    { no: 2, name: 'grant_count', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'storage_bytes', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TransformInfo: MessageType<TransformInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.TransformInfo',
+    fields: [
+      {
+        no: 1,
+        name: 'steps',
+        kind: 'message',
+        T: () => StepConfig,
+        repeated: true,
+      },
+      { no: 2, name: 'grant_count', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'storage_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SpaceState contains the state for the Space for display.
@@ -112,17 +115,27 @@ export interface SpaceState {
   transformInfo?: TransformInfo
 }
 
-// SpaceState contains the message type declaration for SpaceState.
-export const SpaceState: MessageType<SpaceState> = createMessageType({
-  typeName: 's4wave.space.SpaceState',
-  fields: [
-    { no: 1, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 2, name: 'world_contents', kind: 'message', T: () => WorldContents },
-    { no: 3, name: 'settings', kind: 'message', T: () => SpaceSettings },
-    { no: 4, name: 'transform_info', kind: 'message', T: () => TransformInfo },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SpaceState: MessageType<SpaceState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SpaceState',
+    fields: [
+      { no: 1, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 2,
+        name: 'world_contents',
+        kind: 'message',
+        T: () => WorldContents,
+      },
+      { no: 3, name: 'settings', kind: 'message', T: () => SpaceSettings },
+      {
+        no: 4,
+        name: 'transform_info',
+        kind: 'message',
+        T: () => TransformInfo,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchSpaceSharingStateRequest is the request to watch sharing state.
@@ -131,13 +144,11 @@ export const SpaceState: MessageType<SpaceState> = createMessageType({
  */
 export interface WatchSpaceSharingStateRequest {}
 
-// WatchSpaceSharingStateRequest contains the message type declaration for WatchSpaceSharingStateRequest.
 export const WatchSpaceSharingStateRequest: MessageType<WatchSpaceSharingStateRequest> =
-  createMessageType({
-    typeName: 's4wave.space.WatchSpaceSharingStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchSpaceSharingStateRequest>(
+    's4wave.space.WatchSpaceSharingStateRequest',
+    true,
+  )
 
 /**
  * SpaceParticipantInfo is one app-facing participant presentation row.
@@ -177,9 +188,8 @@ export interface SpaceParticipantInfo {
   isSelf?: boolean
 }
 
-// SpaceParticipantInfo contains the message type declaration for SpaceParticipantInfo.
 export const SpaceParticipantInfo: MessageType<SpaceParticipantInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.SpaceParticipantInfo',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
@@ -193,7 +203,7 @@ export const SpaceParticipantInfo: MessageType<SpaceParticipantInfo> =
       },
       { no: 4, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 5, name: 'is_self', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -241,9 +251,8 @@ export interface SpaceSharingState {
   participantInfo?: SpaceParticipantInfo[]
 }
 
-// SpaceSharingState contains the message type declaration for SpaceSharingState.
 export const SpaceSharingState: MessageType<SpaceSharingState> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.SpaceSharingState',
     fields: [
       {
@@ -276,7 +285,7 @@ export const SpaceSharingState: MessageType<SpaceSharingState> =
         T: () => SpaceParticipantInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -287,13 +296,11 @@ export const SpaceSharingState: MessageType<SpaceSharingState> =
  */
 export interface AccessWorldRequest {}
 
-// AccessWorldRequest contains the message type declaration for AccessWorldRequest.
 export const AccessWorldRequest: MessageType<AccessWorldRequest> =
-  createMessageType({
-    typeName: 's4wave.space.AccessWorldRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AccessWorldRequest>(
+    's4wave.space.AccessWorldRequest',
+    true,
+  )
 
 /**
  * AccessWorldResponse contains the World resource ID.
@@ -309,13 +316,12 @@ export interface AccessWorldResponse {
   resourceId?: number
 }
 
-// AccessWorldResponse contains the message type declaration for AccessWorldResponse.
 export const AccessWorldResponse: MessageType<AccessWorldResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.AccessWorldResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -326,13 +332,11 @@ export const AccessWorldResponse: MessageType<AccessWorldResponse> =
  */
 export interface MountSpaceContentsRequest {}
 
-// MountSpaceContentsRequest contains the message type declaration for MountSpaceContentsRequest.
 export const MountSpaceContentsRequest: MessageType<MountSpaceContentsRequest> =
-  createMessageType({
-    typeName: 's4wave.space.MountSpaceContentsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<MountSpaceContentsRequest>(
+    's4wave.space.MountSpaceContentsRequest',
+    true,
+  )
 
 /**
  * MountSpaceContentsResponse contains the resource ID for the SpaceContents sub-resource.
@@ -348,13 +352,12 @@ export interface MountSpaceContentsResponse {
   resourceId?: number
 }
 
-// MountSpaceContentsResponse contains the message type declaration for MountSpaceContentsResponse.
 export const MountSpaceContentsResponse: MessageType<MountSpaceContentsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.MountSpaceContentsResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -402,9 +405,8 @@ export interface CreateSecretRequest {
   readerPublicKeyPem?: Uint8Array
 }
 
-// CreateSecretRequest contains the message type declaration for CreateSecretRequest.
 export const CreateSecretRequest: MessageType<CreateSecretRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.CreateSecretRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -418,7 +420,7 @@ export const CreateSecretRequest: MessageType<CreateSecretRequest> =
         kind: 'scalar',
         T: ScalarType.BYTES,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -436,13 +438,12 @@ export interface CreateSecretResponse {
   secret?: Secret
 }
 
-// CreateSecretResponse contains the message type declaration for CreateSecretResponse.
 export const CreateSecretResponse: MessageType<CreateSecretResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.CreateSecretResponse',
     fields: [
       { no: 1, name: 'secret', kind: 'message', T: () => Secret },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -466,14 +467,13 @@ export interface ReadSecretPayloadRequest {
   expectedKind?: string
 }
 
-// ReadSecretPayloadRequest contains the message type declaration for ReadSecretPayloadRequest.
 export const ReadSecretPayloadRequest: MessageType<ReadSecretPayloadRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.ReadSecretPayloadRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'expected_kind', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -497,14 +497,13 @@ export interface ReadSecretPayloadResponse {
   payload?: SecretPayload
 }
 
-// ReadSecretPayloadResponse contains the message type declaration for ReadSecretPayloadResponse.
 export const ReadSecretPayloadResponse: MessageType<ReadSecretPayloadResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.ReadSecretPayloadResponse',
     fields: [
       { no: 1, name: 'secret', kind: 'message', T: () => Secret },
       { no: 2, name: 'payload', kind: 'message', T: () => SecretPayload },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -515,13 +514,11 @@ export const ReadSecretPayloadResponse: MessageType<ReadSecretPayloadResponse> =
  */
 export interface WatchSpaceContentsStateRequest {}
 
-// WatchSpaceContentsStateRequest contains the message type declaration for WatchSpaceContentsStateRequest.
 export const WatchSpaceContentsStateRequest: MessageType<WatchSpaceContentsStateRequest> =
-  createMessageType({
-    typeName: 's4wave.space.WatchSpaceContentsStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchSpaceContentsStateRequest>(
+    's4wave.space.WatchSpaceContentsStateRequest',
+    true,
+  )
 
 /**
  * SpacePluginStatus contains runtime state for a single plugin.
@@ -549,15 +546,14 @@ export interface SpacePluginStatus {
   description?: string
 }
 
-// SpacePluginStatus contains the message type declaration for SpacePluginStatus.
 export const SpacePluginStatus: MessageType<SpacePluginStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.SpacePluginStatus',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'loaded', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -593,16 +589,15 @@ export interface ProcessBindingInfo {
   decidedAt?: Date
 }
 
-// ProcessBindingInfo contains the message type declaration for ProcessBindingInfo.
 export const ProcessBindingInfo: MessageType<ProcessBindingInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.ProcessBindingInfo',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'approved', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'decided_at', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -632,9 +627,8 @@ export interface SpaceContentsState {
   processBindings?: ProcessBindingInfo[]
 }
 
-// SpaceContentsState contains the message type declaration for SpaceContentsState.
 export const SpaceContentsState: MessageType<SpaceContentsState> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.SpaceContentsState',
     fields: [
       { no: 1, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
@@ -652,7 +646,7 @@ export const SpaceContentsState: MessageType<SpaceContentsState> =
         T: () => ProcessBindingInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -670,13 +664,12 @@ export interface AddSpacePluginRequest {
   pluginId?: string
 }
 
-// AddSpacePluginRequest contains the message type declaration for AddSpacePluginRequest.
 export const AddSpacePluginRequest: MessageType<AddSpacePluginRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.AddSpacePluginRequest',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -687,13 +680,11 @@ export const AddSpacePluginRequest: MessageType<AddSpacePluginRequest> =
  */
 export interface AddSpacePluginResponse {}
 
-// AddSpacePluginResponse contains the message type declaration for AddSpacePluginResponse.
 export const AddSpacePluginResponse: MessageType<AddSpacePluginResponse> =
-  createMessageType({
-    typeName: 's4wave.space.AddSpacePluginResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AddSpacePluginResponse>(
+    's4wave.space.AddSpacePluginResponse',
+    true,
+  )
 
 /**
  * RemoveSpacePluginRequest is a request to remove a plugin from the space settings.
@@ -709,13 +700,12 @@ export interface RemoveSpacePluginRequest {
   pluginId?: string
 }
 
-// RemoveSpacePluginRequest contains the message type declaration for RemoveSpacePluginRequest.
 export const RemoveSpacePluginRequest: MessageType<RemoveSpacePluginRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.RemoveSpacePluginRequest',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -726,13 +716,11 @@ export const RemoveSpacePluginRequest: MessageType<RemoveSpacePluginRequest> =
  */
 export interface RemoveSpacePluginResponse {}
 
-// RemoveSpacePluginResponse contains the message type declaration for RemoveSpacePluginResponse.
 export const RemoveSpacePluginResponse: MessageType<RemoveSpacePluginResponse> =
-  createMessageType({
-    typeName: 's4wave.space.RemoveSpacePluginResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RemoveSpacePluginResponse>(
+    's4wave.space.RemoveSpacePluginResponse',
+    true,
+  )
 
 /**
  * SetProcessBindingRequest is a request to set a process binding state.
@@ -760,15 +748,14 @@ export interface SetProcessBindingRequest {
   approved?: boolean
 }
 
-// SetProcessBindingRequest contains the message type declaration for SetProcessBindingRequest.
 export const SetProcessBindingRequest: MessageType<SetProcessBindingRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.SetProcessBindingRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'approved', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -779,10 +766,8 @@ export const SetProcessBindingRequest: MessageType<SetProcessBindingRequest> =
  */
 export interface SetProcessBindingResponse {}
 
-// SetProcessBindingResponse contains the message type declaration for SetProcessBindingResponse.
 export const SetProcessBindingResponse: MessageType<SetProcessBindingResponse> =
-  createMessageType({
-    typeName: 's4wave.space.SetProcessBindingResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetProcessBindingResponse>(
+    's4wave.space.SetProcessBindingResponse',
+    true,
+  )

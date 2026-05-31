@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/plugin/electron/electron.proto (package electron, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'electron'
 
@@ -32,11 +31,13 @@ export enum ExternalLinks {
   DENY = 1,
 }
 
-// ExternalLinks_Enum is the enum type for ExternalLinks.
-export const ExternalLinks_Enum = createEnumType('electron.ExternalLinks', [
-  { no: 0, name: 'EXTERNAL_LINKS_OS_BROWSER' },
-  { no: 1, name: 'EXTERNAL_LINKS_DENY' },
-])
+export const ExternalLinks_Enum = /* @__PURE__ */ createEnumType(
+  'electron.ExternalLinks',
+  [
+    [0, 'EXTERNAL_LINKS_OS_BROWSER'],
+    [1, 'EXTERNAL_LINKS_DENY'],
+  ],
+)
 
 /**
  * QuitPolicy configures how the Electron runtime behaves on user quit.
@@ -66,12 +67,14 @@ export enum QuitPolicy {
   EXIT = 2,
 }
 
-// QuitPolicy_Enum is the enum type for QuitPolicy.
-export const QuitPolicy_Enum = createEnumType('electron.QuitPolicy', [
-  { no: 0, name: 'QUIT_POLICY_UNSPECIFIED' },
-  { no: 1, name: 'QUIT_POLICY_RESTART' },
-  { no: 2, name: 'QUIT_POLICY_EXIT' },
-])
+export const QuitPolicy_Enum = /* @__PURE__ */ createEnumType(
+  'electron.QuitPolicy',
+  [
+    [0, 'QUIT_POLICY_UNSPECIFIED'],
+    [1, 'QUIT_POLICY_RESTART'],
+    [2, 'QUIT_POLICY_EXIT'],
+  ],
+)
 
 /**
  * DesktopPresencePolicy configures whether the Electron runtime exits when its
@@ -102,13 +105,12 @@ export enum DesktopPresencePolicy {
   TRAY_BACKGROUND = 2,
 }
 
-// DesktopPresencePolicy_Enum is the enum type for DesktopPresencePolicy.
-export const DesktopPresencePolicy_Enum = createEnumType(
+export const DesktopPresencePolicy_Enum = /* @__PURE__ */ createEnumType(
   'electron.DesktopPresencePolicy',
   [
-    { no: 0, name: 'DESKTOP_PRESENCE_POLICY_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME' },
-    { no: 2, name: 'DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND' },
+    [0, 'DESKTOP_PRESENCE_POLICY_UNSPECIFIED'],
+    [1, 'DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME'],
+    [2, 'DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND'],
   ],
 )
 
@@ -186,34 +188,34 @@ export interface ElectronInit {
   macosTemplateTrayIconPath?: string
 }
 
-// ElectronInit contains the message type declaration for ElectronInit.
-export const ElectronInit: MessageType<ElectronInit> = createMessageType({
-  typeName: 'electron.ElectronInit',
-  fields: [
-    { no: 1, name: 'external_links', kind: 'enum', T: ExternalLinks_Enum },
-    { no: 2, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 5, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 6, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 7, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
-    {
-      no: 9,
-      name: 'desktop_presence_policy',
-      kind: 'enum',
-      T: DesktopPresencePolicy_Enum,
-    },
-    { no: 10, name: 'tray_icon_path', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 11,
-      name: 'macos_template_tray_icon_path',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ElectronInit: MessageType<ElectronInit> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.ElectronInit',
+    fields: [
+      { no: 1, name: 'external_links', kind: 'enum', T: ExternalLinks_Enum },
+      { no: 2, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 5, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 6, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 7, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
+      {
+        no: 9,
+        name: 'desktop_presence_policy',
+        kind: 'enum',
+        T: DesktopPresencePolicy_Enum,
+      },
+      { no: 10, name: 'tray_icon_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 11,
+        name: 'macos_template_tray_icon_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config is the configuration for the electron runtime.
@@ -325,8 +327,7 @@ export interface Config {
   macosTemplateTrayIconPath?: string
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'electron.Config',
   fields: [
     { no: 1, name: 'electron_path', kind: 'scalar', T: ScalarType.STRING },
@@ -361,6 +362,6 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

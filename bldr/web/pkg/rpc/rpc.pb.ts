@@ -2,9 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/pkg/rpc/rpc.proto (package web.pkg.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { WebPkgInfo } from '../pkg.pb.js'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'web.pkg.rpc'
 
@@ -15,12 +19,11 @@ export const protobufPackage = 'web.pkg.rpc'
  */
 export interface GetInfoRequest {}
 
-// GetInfoRequest contains the message type declaration for GetInfoRequest.
-export const GetInfoRequest: MessageType<GetInfoRequest> = createMessageType({
-  typeName: 'web.pkg.rpc.GetInfoRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetInfoRequest: MessageType<GetInfoRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetInfoRequest>(
+    'web.pkg.rpc.GetInfoRequest',
+    true,
+  )
 
 /**
  * GetInfoResponse is a response to getting the web pkg info.
@@ -36,11 +39,11 @@ export interface GetInfoResponse {
   info?: WebPkgInfo
 }
 
-// GetInfoResponse contains the message type declaration for GetInfoResponse.
-export const GetInfoResponse: MessageType<GetInfoResponse> = createMessageType({
-  typeName: 'web.pkg.rpc.GetInfoResponse',
-  fields: [
-    { no: 1, name: 'info', kind: 'message', T: () => WebPkgInfo },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetInfoResponse: MessageType<GetInfoResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'web.pkg.rpc.GetInfoResponse',
+    fields: [
+      { no: 1, name: 'info', kind: 'message', T: () => WebPkgInfo },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/identity/identity.proto (package identity, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { Signature } from '@go/github.com/s4wave/spacewave/net/peer/peer.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'identity'
 
@@ -34,13 +33,12 @@ export enum EntityChangeType {
   EntityChangeType_REMOVE_KEYPAIR = 2,
 }
 
-// EntityChangeType_Enum is the enum type for EntityChangeType.
-export const EntityChangeType_Enum = createEnumType(
+export const EntityChangeType_Enum = /* @__PURE__ */ createEnumType(
   'identity.EntityChangeType',
   [
-    { no: 0, name: 'EntityChangeType_UNKNOWN' },
-    { no: 1, name: 'EntityChangeType_REGISTER_KEYPAIR' },
-    { no: 2, name: 'EntityChangeType_REMOVE_KEYPAIR' },
+    [0, 'EntityChangeType_UNKNOWN'],
+    [1, 'EntityChangeType_REGISTER_KEYPAIR'],
+    [2, 'EntityChangeType_REMOVE_KEYPAIR'],
   ],
 )
 
@@ -66,9 +64,8 @@ export interface EntityKeypairSet {
   entityKeypairSignatures?: Signature[]
 }
 
-// EntityKeypairSet contains the message type declaration for EntityKeypairSet.
 export const EntityKeypairSet: MessageType<EntityKeypairSet> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'identity.EntityKeypairSet',
     fields: [
       {
@@ -85,7 +82,7 @@ export const EntityKeypairSet: MessageType<EntityKeypairSet> =
         T: () => Signature,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -139,8 +136,7 @@ export interface Entity {
   entityKeypairSet?: EntityKeypairSet
 }
 
-// Entity contains the message type declaration for Entity.
-export const Entity: MessageType<Entity> = createMessageType({
+export const Entity: MessageType<Entity> = /* @__PURE__ */ createMessageType({
   typeName: 'identity.Entity',
   fields: [
     { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
@@ -153,7 +149,7 @@ export const Entity: MessageType<Entity> = createMessageType({
       kind: 'message',
       T: () => EntityKeypairSet,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -194,15 +190,14 @@ export interface Keypair {
   authMethodParams?: Uint8Array
 }
 
-// Keypair contains the message type declaration for Keypair.
-export const Keypair: MessageType<Keypair> = createMessageType({
+export const Keypair: MessageType<Keypair> = /* @__PURE__ */ createMessageType({
   typeName: 'identity.Keypair',
   fields: [
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'pub_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'auth_method_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'auth_method_params', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -235,16 +230,16 @@ export interface EntityKeypair {
   keypair?: Keypair
 }
 
-// EntityKeypair contains the message type declaration for EntityKeypair.
-export const EntityKeypair: MessageType<EntityKeypair> = createMessageType({
-  typeName: 'identity.EntityKeypair',
-  fields: [
-    { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'keypair', kind: 'message', T: () => Keypair },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EntityKeypair: MessageType<EntityKeypair> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'identity.EntityKeypair',
+    fields: [
+      { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'keypair', kind: 'message', T: () => Keypair },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EntityRef is a reference to a entity on a domain.
@@ -268,15 +263,15 @@ export interface EntityRef {
   domainId?: string
 }
 
-// EntityRef contains the message type declaration for EntityRef.
-export const EntityRef: MessageType<EntityRef> = createMessageType({
-  typeName: 'identity.EntityRef',
-  fields: [
-    { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EntityRef: MessageType<EntityRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'identity.EntityRef',
+    fields: [
+      { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PendingEntityChange is a ongoing change to a entity credential list.
@@ -327,9 +322,8 @@ export interface PendingEntityChange {
   entityChangeData?: string
 }
 
-// PendingEntityChange contains the message type declaration for PendingEntityChange.
 export const PendingEntityChange: MessageType<PendingEntityChange> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'identity.PendingEntityChange',
     fields: [
       { no: 1, name: 'change_peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -352,7 +346,7 @@ export const PendingEntityChange: MessageType<PendingEntityChange> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -387,16 +381,16 @@ export interface RegisterKeypair {
   authMethodState?: Uint8Array
 }
 
-// RegisterKeypair contains the message type declaration for RegisterKeypair.
-export const RegisterKeypair: MessageType<RegisterKeypair> = createMessageType({
-  typeName: 'identity.RegisterKeypair',
-  fields: [
-    { no: 1, name: 'register_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'auth_method_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'auth_method_state', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RegisterKeypair: MessageType<RegisterKeypair> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'identity.RegisterKeypair',
+    fields: [
+      { no: 1, name: 'register_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'auth_method_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'auth_method_state', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RemoveKeypair is used to remove a keypair by peer ID from the entity.
@@ -414,11 +408,11 @@ export interface RemoveKeypair {
   peerId?: string
 }
 
-// RemoveKeypair contains the message type declaration for RemoveKeypair.
-export const RemoveKeypair: MessageType<RemoveKeypair> = createMessageType({
-  typeName: 'identity.RemoveKeypair',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RemoveKeypair: MessageType<RemoveKeypair> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'identity.RemoveKeypair',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -633,6 +633,15 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	if goscriptE2EReleaseWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
 		t.Fatalf("GoScript release-web e2e spacewave-core compilerMode: got %s, want COMPILER_MODE_GOSCRIPT", goscriptE2EReleaseWebConf.GetCompilerMode())
 	}
+	goscriptE2EReleaseLauncherOverride := goscriptE2EReleaseBuild.GetManifestOverrides()["spacewave-launcher"]
+	if goscriptE2EReleaseLauncherOverride == nil {
+		t.Fatal("spacewave-launcher GoScript release-web e2e override not found")
+	}
+	goscriptE2EReleaseLauncherConf := mustGoPluginConfig(t, goscriptE2EReleaseLauncherOverride.GetConfig())
+	goscriptE2EReleaseLauncherWebConf := flattenGoConfigForPlatform(t, goscriptE2EReleaseLauncherConf, "web/js/wasm")
+	if goscriptE2EReleaseLauncherWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+		t.Fatalf("GoScript release-web e2e spacewave-launcher compilerMode: got %s, want COMPILER_MODE_GOSCRIPT", goscriptE2EReleaseLauncherWebConf.GetCompilerMode())
+	}
 
 	cli := result.Config.GetManifests()["spacewave"]
 	if cli == nil {

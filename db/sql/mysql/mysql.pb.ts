@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BlockRef } from '../../block/block.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 import { Blob } from '../../block/blob/blob.pb.js'
 
@@ -32,13 +34,12 @@ export interface RootDb {
   ref?: BlockRef
 }
 
-// RootDb contains the message type declaration for RootDb.
-export const RootDb: MessageType<RootDb> = createMessageType({
+export const RootDb: MessageType<RootDb> = /* @__PURE__ */ createMessageType({
   typeName: 'mysql.RootDb',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -56,8 +57,7 @@ export interface Root {
   databases?: RootDb[]
 }
 
-// Root contains the message type declaration for Root.
-export const Root: MessageType<Root> = createMessageType({
+export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
   typeName: 'mysql.Root',
   fields: [
     {
@@ -67,7 +67,7 @@ export const Root: MessageType<Root> = createMessageType({
       T: () => RootDb,
       repeated: true,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -92,14 +92,13 @@ export interface DatabaseRootTable {
   ref?: BlockRef
 }
 
-// DatabaseRootTable contains the message type declaration for DatabaseRootTable.
 export const DatabaseRootTable: MessageType<DatabaseRootTable> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'mysql.DatabaseRootTable',
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -117,20 +116,20 @@ export interface DatabaseRoot {
   tables?: DatabaseRootTable[]
 }
 
-// DatabaseRoot contains the message type declaration for DatabaseRoot.
-export const DatabaseRoot: MessageType<DatabaseRoot> = createMessageType({
-  typeName: 'mysql.DatabaseRoot',
-  fields: [
-    {
-      no: 1,
-      name: 'tables',
-      kind: 'message',
-      T: () => DatabaseRootTable,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DatabaseRoot: MessageType<DatabaseRoot> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'mysql.DatabaseRoot',
+    fields: [
+      {
+        no: 1,
+        name: 'tables',
+        kind: 'message',
+        T: () => DatabaseRootTable,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TableSchemaColumn is the definition of a column for a table schema.
@@ -194,9 +193,8 @@ export interface TableSchemaColumn {
   extra?: string
 }
 
-// TableSchemaColumn contains the message type declaration for TableSchemaColumn.
 export const TableSchemaColumn: MessageType<TableSchemaColumn> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'mysql.TableSchemaColumn',
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
@@ -213,7 +211,7 @@ export const TableSchemaColumn: MessageType<TableSchemaColumn> =
       { no: 7, name: 'primary_key', kind: 'scalar', T: ScalarType.BOOL },
       { no: 8, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'extra', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -231,20 +229,20 @@ export interface TableSchema {
   columns?: TableSchemaColumn[]
 }
 
-// TableSchema contains the message type declaration for TableSchema.
-export const TableSchema: MessageType<TableSchema> = createMessageType({
-  typeName: 'mysql.TableSchema',
-  fields: [
-    {
-      no: 1,
-      name: 'columns',
-      kind: 'message',
-      T: () => TableSchemaColumn,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TableSchema: MessageType<TableSchema> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'mysql.TableSchema',
+    fields: [
+      {
+        no: 1,
+        name: 'columns',
+        kind: 'message',
+        T: () => TableSchemaColumn,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TablePartitionRoot contains the root of a table partition.
@@ -262,13 +260,12 @@ export interface TablePartitionRoot {
   rowKeyValue?: KeyValueStore
 }
 
-// TablePartitionRoot contains the message type declaration for TablePartitionRoot.
 export const TablePartitionRoot: MessageType<TablePartitionRoot> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'mysql.TablePartitionRoot',
     fields: [
       { no: 1, name: 'row_key_value', kind: 'message', T: () => KeyValueStore },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -292,15 +289,15 @@ export interface TableTimestamp {
   nanos?: number
 }
 
-// TableTimestamp contains the message type declaration for TableTimestamp.
-export const TableTimestamp: MessageType<TableTimestamp> = createMessageType({
-  typeName: 'mysql.TableTimestamp',
-  fields: [
-    { no: 1, name: 'unix_seconds', kind: 'scalar', T: ScalarType.INT64 },
-    { no: 2, name: 'nanos', kind: 'scalar', T: ScalarType.INT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TableTimestamp: MessageType<TableTimestamp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'mysql.TableTimestamp',
+    fields: [
+      { no: 1, name: 'unix_seconds', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 2, name: 'nanos', kind: 'scalar', T: ScalarType.INT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TableColumn is an entry in a table row.
@@ -401,76 +398,76 @@ export interface TableColumn {
       }
 }
 
-// TableColumn contains the message type declaration for TableColumn.
-export const TableColumn: MessageType<TableColumn> = createMessageType({
-  typeName: 'mysql.TableColumn',
-  fields: [
-    {
-      no: 2,
-      name: 'bool_value',
-      kind: 'scalar',
-      T: ScalarType.BOOL,
-      oneof: 'value',
-    },
-    {
-      no: 3,
-      name: 'int_value',
-      kind: 'scalar',
-      T: ScalarType.INT64,
-      oneof: 'value',
-    },
-    {
-      no: 4,
-      name: 'uint_value',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
-      oneof: 'value',
-    },
-    {
-      no: 5,
-      name: 'float_value',
-      kind: 'scalar',
-      T: ScalarType.DOUBLE,
-      oneof: 'value',
-    },
-    {
-      no: 6,
-      name: 'string_blob',
-      kind: 'message',
-      T: () => Blob,
-      oneof: 'value',
-    },
-    {
-      no: 7,
-      name: 'bytes_blob',
-      kind: 'message',
-      T: () => Blob,
-      oneof: 'value',
-    },
-    {
-      no: 8,
-      name: 'json_blob',
-      kind: 'message',
-      T: () => Blob,
-      oneof: 'value',
-    },
-    {
-      no: 9,
-      name: 'timestamp_value',
-      kind: 'message',
-      T: () => TableTimestamp,
-      oneof: 'value',
-    },
-    {
-      no: 10,
-      name: 'timespan_micros',
-      kind: 'scalar',
-      T: ScalarType.INT64,
-      oneof: 'value',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TableColumn: MessageType<TableColumn> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'mysql.TableColumn',
+    fields: [
+      {
+        no: 2,
+        name: 'bool_value',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+        oneof: 'value',
+      },
+      {
+        no: 3,
+        name: 'int_value',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+        oneof: 'value',
+      },
+      {
+        no: 4,
+        name: 'uint_value',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+        oneof: 'value',
+      },
+      {
+        no: 5,
+        name: 'float_value',
+        kind: 'scalar',
+        T: ScalarType.DOUBLE,
+        oneof: 'value',
+      },
+      {
+        no: 6,
+        name: 'string_blob',
+        kind: 'message',
+        T: () => Blob,
+        oneof: 'value',
+      },
+      {
+        no: 7,
+        name: 'bytes_blob',
+        kind: 'message',
+        T: () => Blob,
+        oneof: 'value',
+      },
+      {
+        no: 8,
+        name: 'json_blob',
+        kind: 'message',
+        T: () => Blob,
+        oneof: 'value',
+      },
+      {
+        no: 9,
+        name: 'timestamp_value',
+        kind: 'message',
+        T: () => TableTimestamp,
+        oneof: 'value',
+      },
+      {
+        no: 10,
+        name: 'timespan_micros',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+        oneof: 'value',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TableRoot is the root object of the table.
@@ -524,32 +521,32 @@ export interface TableRoot {
   comment?: string
 }
 
-// TableRoot contains the message type declaration for TableRoot.
-export const TableRoot: MessageType<TableRoot> = createMessageType({
-  typeName: 'mysql.TableRoot',
-  fields: [
-    { no: 1, name: 'table_schema', kind: 'message', T: () => TableSchema },
-    {
-      no: 5,
-      name: 'primary_key_ordinals',
-      kind: 'scalar',
-      T: ScalarType.INT32,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'table_partitions',
-      kind: 'message',
-      T: () => TablePartitionRoot,
-      repeated: true,
-    },
-    { no: 3, name: 'row_nonce', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'auto_incr_val', kind: 'message', T: () => TableColumn },
-    { no: 6, name: 'collation_id', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 7, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TableRoot: MessageType<TableRoot> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'mysql.TableRoot',
+    fields: [
+      { no: 1, name: 'table_schema', kind: 'message', T: () => TableSchema },
+      {
+        no: 5,
+        name: 'primary_key_ordinals',
+        kind: 'scalar',
+        T: ScalarType.INT32,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'table_partitions',
+        kind: 'message',
+        T: () => TablePartitionRoot,
+        repeated: true,
+      },
+      { no: 3, name: 'row_nonce', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'auto_incr_val', kind: 'message', T: () => TableColumn },
+      { no: 6, name: 'collation_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 7, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TableRow is a row in a table.
@@ -565,17 +562,17 @@ export interface TableRow {
   columns?: TableColumn[]
 }
 
-// TableRow contains the message type declaration for TableRow.
-export const TableRow: MessageType<TableRow> = createMessageType({
-  typeName: 'mysql.TableRow',
-  fields: [
-    {
-      no: 1,
-      name: 'columns',
-      kind: 'message',
-      T: () => TableColumn,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TableRow: MessageType<TableRow> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'mysql.TableRow',
+    fields: [
+      {
+        no: 1,
+        name: 'columns',
+        kind: 'message',
+        T: () => TableColumn,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

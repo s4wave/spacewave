@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/canvas/canvas.proto (package s4wave.canvas, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.canvas'
 
@@ -53,14 +55,16 @@ export enum NodeType {
   DRAWING = 4,
 }
 
-// NodeType_Enum is the enum type for NodeType.
-export const NodeType_Enum = createEnumType('s4wave.canvas.NodeType', [
-  { no: 0, name: 'NODE_TYPE_UNKNOWN' },
-  { no: 1, name: 'NODE_TYPE_TEXT' },
-  { no: 2, name: 'NODE_TYPE_SHAPE' },
-  { no: 3, name: 'NODE_TYPE_WORLD_OBJECT' },
-  { no: 4, name: 'NODE_TYPE_DRAWING' },
-])
+export const NodeType_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.canvas.NodeType',
+  [
+    [0, 'NODE_TYPE_UNKNOWN'],
+    [1, 'NODE_TYPE_TEXT'],
+    [2, 'NODE_TYPE_SHAPE'],
+    [3, 'NODE_TYPE_WORLD_OBJECT'],
+    [4, 'NODE_TYPE_DRAWING'],
+  ],
+)
 
 /**
  * EdgeStyle is the visual style of a canvas edge.
@@ -83,11 +87,13 @@ export enum EdgeStyle {
   STRAIGHT = 1,
 }
 
-// EdgeStyle_Enum is the enum type for EdgeStyle.
-export const EdgeStyle_Enum = createEnumType('s4wave.canvas.EdgeStyle', [
-  { no: 0, name: 'EDGE_STYLE_BEZIER' },
-  { no: 1, name: 'EDGE_STYLE_STRAIGHT' },
-])
+export const EdgeStyle_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.canvas.EdgeStyle',
+  [
+    [0, 'EDGE_STYLE_BEZIER'],
+    [1, 'EDGE_STYLE_STRAIGHT'],
+  ],
+)
 
 /**
  * CanvasNode is a node on the canvas.
@@ -169,25 +175,25 @@ export interface CanvasNode {
   viewPath?: string
 }
 
-// CanvasNode contains the message type declaration for CanvasNode.
-export const CanvasNode: MessageType<CanvasNode> = createMessageType({
-  typeName: 's4wave.canvas.CanvasNode',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'x', kind: 'scalar', T: ScalarType.DOUBLE },
-    { no: 3, name: 'y', kind: 'scalar', T: ScalarType.DOUBLE },
-    { no: 4, name: 'width', kind: 'scalar', T: ScalarType.DOUBLE },
-    { no: 5, name: 'height', kind: 'scalar', T: ScalarType.DOUBLE },
-    { no: 6, name: 'z_index', kind: 'scalar', T: ScalarType.INT32 },
-    { no: 7, name: 'type', kind: 'enum', T: NodeType_Enum },
-    { no: 8, name: 'text_content', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'shape_data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 10, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 11, name: 'pinned', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 12, name: 'view_path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CanvasNode: MessageType<CanvasNode> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.canvas.CanvasNode',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'x', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 3, name: 'y', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 4, name: 'width', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 5, name: 'height', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 6, name: 'z_index', kind: 'scalar', T: ScalarType.INT32 },
+      { no: 7, name: 'type', kind: 'enum', T: NodeType_Enum },
+      { no: 8, name: 'text_content', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'shape_data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 10, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 11, name: 'pinned', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 12, name: 'view_path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CanvasEdge is a user-drawn visual-only edge.
@@ -227,18 +233,18 @@ export interface CanvasEdge {
   style?: EdgeStyle
 }
 
-// CanvasEdge contains the message type declaration for CanvasEdge.
-export const CanvasEdge: MessageType<CanvasEdge> = createMessageType({
-  typeName: 's4wave.canvas.CanvasEdge',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'source_node_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'target_node_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'style', kind: 'enum', T: EdgeStyle_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CanvasEdge: MessageType<CanvasEdge> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.canvas.CanvasEdge',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'source_node_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'target_node_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'style', kind: 'enum', T: EdgeStyle_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * HiddenGraphLink is a canvas-scoped hidden world graph link identity.
@@ -272,17 +278,17 @@ export interface HiddenGraphLink {
   label?: string
 }
 
-// HiddenGraphLink contains the message type declaration for HiddenGraphLink.
-export const HiddenGraphLink: MessageType<HiddenGraphLink> = createMessageType({
-  typeName: 's4wave.canvas.HiddenGraphLink',
-  fields: [
-    { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'object', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const HiddenGraphLink: MessageType<HiddenGraphLink> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.canvas.HiddenGraphLink',
+    fields: [
+      { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'object', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CanvasLayoutMetadata stores reusable projection layout metadata for a node.
@@ -322,9 +328,8 @@ export interface CanvasLayoutMetadata {
   projectionOwner?: string
 }
 
-// CanvasLayoutMetadata contains the message type declaration for CanvasLayoutMetadata.
 export const CanvasLayoutMetadata: MessageType<CanvasLayoutMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.CanvasLayoutMetadata',
     fields: [
       { no: 1, name: 'stable_node_id', kind: 'scalar', T: ScalarType.STRING },
@@ -332,7 +337,7 @@ export const CanvasLayoutMetadata: MessageType<CanvasLayoutMetadata> =
       { no: 3, name: 'rank', kind: 'scalar', T: ScalarType.INT32 },
       { no: 4, name: 'group', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'projection_owner', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -374,42 +379,42 @@ export interface CanvasState {
   layoutMetadata?: { [key: string]: CanvasLayoutMetadata }
 }
 
-// CanvasState contains the message type declaration for CanvasState.
-export const CanvasState: MessageType<CanvasState> = createMessageType({
-  typeName: 's4wave.canvas.CanvasState',
-  fields: [
-    {
-      no: 1,
-      name: 'nodes',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => CanvasNode },
-    },
-    {
-      no: 2,
-      name: 'edges',
-      kind: 'message',
-      T: () => CanvasEdge,
-      repeated: true,
-    },
-    { no: 3, name: 'stroke_tree_ref', kind: 'scalar', T: ScalarType.BYTES },
-    {
-      no: 4,
-      name: 'hidden_graph_links',
-      kind: 'message',
-      T: () => HiddenGraphLink,
-      repeated: true,
-    },
-    {
-      no: 5,
-      name: 'layout_metadata',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => CanvasLayoutMetadata },
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CanvasState: MessageType<CanvasState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.canvas.CanvasState',
+    fields: [
+      {
+        no: 1,
+        name: 'nodes',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => CanvasNode },
+      },
+      {
+        no: 2,
+        name: 'edges',
+        kind: 'message',
+        T: () => CanvasEdge,
+        repeated: true,
+      },
+      { no: 3, name: 'stroke_tree_ref', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 4,
+        name: 'hidden_graph_links',
+        kind: 'message',
+        T: () => HiddenGraphLink,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'layout_metadata',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => CanvasLayoutMetadata },
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetCanvasStateRequest is the request for GetCanvasState.
@@ -418,13 +423,11 @@ export const CanvasState: MessageType<CanvasState> = createMessageType({
  */
 export interface GetCanvasStateRequest {}
 
-// GetCanvasStateRequest contains the message type declaration for GetCanvasStateRequest.
 export const GetCanvasStateRequest: MessageType<GetCanvasStateRequest> =
-  createMessageType({
-    typeName: 's4wave.canvas.GetCanvasStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetCanvasStateRequest>(
+    's4wave.canvas.GetCanvasStateRequest',
+    true,
+  )
 
 /**
  * GetCanvasStateResponse is the response for GetCanvasState.
@@ -440,13 +443,12 @@ export interface GetCanvasStateResponse {
   state?: CanvasState
 }
 
-// GetCanvasStateResponse contains the message type declaration for GetCanvasStateResponse.
 export const GetCanvasStateResponse: MessageType<GetCanvasStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.GetCanvasStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => CanvasState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -506,9 +508,8 @@ export interface UpdateCanvasRequest {
   removeLayoutMetadataNodeIds?: string[]
 }
 
-// UpdateCanvasRequest contains the message type declaration for UpdateCanvasRequest.
 export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.UpdateCanvasRequest',
     fields: [
       {
@@ -567,7 +568,7 @@ export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -585,13 +586,12 @@ export interface UpdateCanvasResponse {
   state?: CanvasState
 }
 
-// UpdateCanvasResponse contains the message type declaration for UpdateCanvasResponse.
 export const UpdateCanvasResponse: MessageType<UpdateCanvasResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.UpdateCanvasResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => CanvasState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -602,13 +602,11 @@ export const UpdateCanvasResponse: MessageType<UpdateCanvasResponse> =
  */
 export interface WatchCanvasStateRequest {}
 
-// WatchCanvasStateRequest contains the message type declaration for WatchCanvasStateRequest.
 export const WatchCanvasStateRequest: MessageType<WatchCanvasStateRequest> =
-  createMessageType({
-    typeName: 's4wave.canvas.WatchCanvasStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchCanvasStateRequest>(
+    's4wave.canvas.WatchCanvasStateRequest',
+    true,
+  )
 
 /**
  * WatchCanvasStateResponse is a stream response with canvas state.
@@ -624,12 +622,11 @@ export interface WatchCanvasStateResponse {
   state?: CanvasState
 }
 
-// WatchCanvasStateResponse contains the message type declaration for WatchCanvasStateResponse.
 export const WatchCanvasStateResponse: MessageType<WatchCanvasStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.WatchCanvasStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => CanvasState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

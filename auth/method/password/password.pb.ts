@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/auth/method/password/password.proto (package auth.method.password, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'auth.method.password'
 
@@ -43,17 +48,17 @@ export interface Parameters {
   scryptP?: number
 }
 
-// Parameters contains the message type declaration for Parameters.
-export const Parameters: MessageType<Parameters> = createMessageType({
-  typeName: 'auth.method.password.Parameters',
-  fields: [
-    { no: 1, name: 'salt', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'scrypt_n', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'scrypt_r', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 4, name: 'scrypt_p', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Parameters: MessageType<Parameters> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'auth.method.password.Parameters',
+    fields: [
+      { no: 1, name: 'salt', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'scrypt_n', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'scrypt_r', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'scrypt_p', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config is configuration for the auth method.
@@ -62,9 +67,8 @@ export const Parameters: MessageType<Parameters> = createMessageType({
  */
 export interface Config {}
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'auth.method.password.Config',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createEmptyMessageType<Config>(
+    'auth.method.password.Config',
+    true,
+  )

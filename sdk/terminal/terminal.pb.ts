@@ -2,13 +2,15 @@
 // @generated from file github.com/s4wave/spacewave/sdk/terminal/terminal.proto (package s4wave.terminal, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.terminal'
 
@@ -61,16 +63,15 @@ export enum TerminalSessionState {
   CLOSED = 5,
 }
 
-// TerminalSessionState_Enum is the enum type for TerminalSessionState.
-export const TerminalSessionState_Enum = createEnumType(
+export const TerminalSessionState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalSessionState',
   [
-    { no: 0, name: 'TERMINAL_SESSION_STATE_UNKNOWN' },
-    { no: 1, name: 'TERMINAL_SESSION_STATE_CONNECTING' },
-    { no: 2, name: 'TERMINAL_SESSION_STATE_ACTIVE' },
-    { no: 3, name: 'TERMINAL_SESSION_STATE_DISCONNECTED' },
-    { no: 4, name: 'TERMINAL_SESSION_STATE_FAILED' },
-    { no: 5, name: 'TERMINAL_SESSION_STATE_CLOSED' },
+    [0, 'TERMINAL_SESSION_STATE_UNKNOWN'],
+    [1, 'TERMINAL_SESSION_STATE_CONNECTING'],
+    [2, 'TERMINAL_SESSION_STATE_ACTIVE'],
+    [3, 'TERMINAL_SESSION_STATE_DISCONNECTED'],
+    [4, 'TERMINAL_SESSION_STATE_FAILED'],
+    [5, 'TERMINAL_SESSION_STATE_CLOSED'],
   ],
 )
 
@@ -144,19 +145,18 @@ export enum TerminalFrameKind {
   ERROR = 8,
 }
 
-// TerminalFrameKind_Enum is the enum type for TerminalFrameKind.
-export const TerminalFrameKind_Enum = createEnumType(
+export const TerminalFrameKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalFrameKind',
   [
-    { no: 0, name: 'TERMINAL_FRAME_KIND_UNKNOWN' },
-    { no: 1, name: 'TERMINAL_FRAME_KIND_OPEN' },
-    { no: 2, name: 'TERMINAL_FRAME_KIND_READY' },
-    { no: 3, name: 'TERMINAL_FRAME_KIND_INPUT' },
-    { no: 4, name: 'TERMINAL_FRAME_KIND_OUTPUT' },
-    { no: 5, name: 'TERMINAL_FRAME_KIND_RESIZE' },
-    { no: 6, name: 'TERMINAL_FRAME_KIND_CLOSE' },
-    { no: 7, name: 'TERMINAL_FRAME_KIND_EXIT' },
-    { no: 8, name: 'TERMINAL_FRAME_KIND_ERROR' },
+    [0, 'TERMINAL_FRAME_KIND_UNKNOWN'],
+    [1, 'TERMINAL_FRAME_KIND_OPEN'],
+    [2, 'TERMINAL_FRAME_KIND_READY'],
+    [3, 'TERMINAL_FRAME_KIND_INPUT'],
+    [4, 'TERMINAL_FRAME_KIND_OUTPUT'],
+    [5, 'TERMINAL_FRAME_KIND_RESIZE'],
+    [6, 'TERMINAL_FRAME_KIND_CLOSE'],
+    [7, 'TERMINAL_FRAME_KIND_EXIT'],
+    [8, 'TERMINAL_FRAME_KIND_ERROR'],
   ],
 )
 
@@ -188,13 +188,12 @@ export enum TerminalTargetKind {
   SSH_HOST = 2,
 }
 
-// TerminalTargetKind_Enum is the enum type for TerminalTargetKind.
-export const TerminalTargetKind_Enum = createEnumType(
+export const TerminalTargetKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalTargetKind',
   [
-    { no: 0, name: 'TERMINAL_TARGET_KIND_UNKNOWN' },
-    { no: 1, name: 'TERMINAL_TARGET_KIND_DEVICE' },
-    { no: 2, name: 'TERMINAL_TARGET_KIND_SSH_HOST' },
+    [0, 'TERMINAL_TARGET_KIND_UNKNOWN'],
+    [1, 'TERMINAL_TARGET_KIND_DEVICE'],
+    [2, 'TERMINAL_TARGET_KIND_SSH_HOST'],
   ],
 )
 
@@ -290,38 +289,43 @@ export interface Terminal {
   sshHostObjectKey?: string
 }
 
-// Terminal contains the message type declaration for Terminal.
-export const Terminal: MessageType<Terminal> = createMessageType({
-  typeName: 's4wave.terminal.Terminal',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'device_object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'device_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'command', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 5,
-      name: 'environment',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 6, name: 'cols', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 7, name: 'rows', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 8, name: 'state', kind: 'enum', T: TerminalSessionState_Enum },
-    { no: 9, name: 'status', kind: 'scalar', T: ScalarType.STRING },
-    { no: 10, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    { no: 11, name: 'created_at', kind: 'message', T: () => Timestamp },
-    { no: 12, name: 'updated_at', kind: 'message', T: () => Timestamp },
-    { no: 13, name: 'target_kind', kind: 'enum', T: TerminalTargetKind_Enum },
-    {
-      no: 14,
-      name: 'ssh_host_object_key',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Terminal: MessageType<Terminal> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.terminal.Terminal',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'device_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 3, name: 'device_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'command', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'environment',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 6, name: 'cols', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 7, name: 'rows', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 8, name: 'state', kind: 'enum', T: TerminalSessionState_Enum },
+      { no: 9, name: 'status', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 11, name: 'created_at', kind: 'message', T: () => Timestamp },
+      { no: 12, name: 'updated_at', kind: 'message', T: () => Timestamp },
+      { no: 13, name: 'target_kind', kind: 'enum', T: TerminalTargetKind_Enum },
+      {
+        no: 14,
+        name: 'ssh_host_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TerminalFrame carries terminal data and control frames.
@@ -379,27 +383,27 @@ export interface TerminalFrame {
   exitCode?: number
 }
 
-// TerminalFrame contains the message type declaration for TerminalFrame.
-export const TerminalFrame: MessageType<TerminalFrame> = createMessageType({
-  typeName: 's4wave.terminal.TerminalFrame',
-  fields: [
-    { no: 1, name: 'kind', kind: 'enum', T: TerminalFrameKind_Enum },
-    { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 3, name: 'cols', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 4, name: 'rows', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 5, name: 'command', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 6,
-      name: 'environment',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 7, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'exit_code', kind: 'scalar', T: ScalarType.INT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TerminalFrame: MessageType<TerminalFrame> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.terminal.TerminalFrame',
+    fields: [
+      { no: 1, name: 'kind', kind: 'enum', T: TerminalFrameKind_Enum },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'cols', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'rows', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 5, name: 'command', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'environment',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 7, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'exit_code', kind: 'scalar', T: ScalarType.INT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CreateTerminalOp creates a Terminal world object.
@@ -475,9 +479,8 @@ export interface CreateTerminalOp {
   sshHostObjectKey?: string
 }
 
-// CreateTerminalOp contains the message type declaration for CreateTerminalOp.
 export const CreateTerminalOp: MessageType<CreateTerminalOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.terminal.CreateTerminalOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -507,7 +510,7 @@ export const CreateTerminalOp: MessageType<CreateTerminalOp> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -518,13 +521,11 @@ export const CreateTerminalOp: MessageType<CreateTerminalOp> =
  */
 export interface WatchTerminalStateRequest {}
 
-// WatchTerminalStateRequest contains the message type declaration for WatchTerminalStateRequest.
 export const WatchTerminalStateRequest: MessageType<WatchTerminalStateRequest> =
-  createMessageType({
-    typeName: 's4wave.terminal.WatchTerminalStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchTerminalStateRequest>(
+    's4wave.terminal.WatchTerminalStateRequest',
+    true,
+  )
 
 /**
  * WatchTerminalStateResponse contains the current Terminal state.
@@ -540,12 +541,11 @@ export interface WatchTerminalStateResponse {
   state?: Terminal
 }
 
-// WatchTerminalStateResponse contains the message type declaration for WatchTerminalStateResponse.
 export const WatchTerminalStateResponse: MessageType<WatchTerminalStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.terminal.WatchTerminalStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => Terminal },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

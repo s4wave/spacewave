@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/forge/worker/worker.proto (package forge.worker, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Keypair } from '@go/github.com/s4wave/spacewave/identity/identity.pb.js'
 
 export const protobufPackage = 'forge.worker'
@@ -32,12 +34,11 @@ export interface Worker {
   name?: string
 }
 
-// Worker contains the message type declaration for Worker.
-export const Worker: MessageType<Worker> = createMessageType({
+export const Worker: MessageType<Worker> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.worker.Worker',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -69,19 +70,19 @@ export interface WorkerCreateOp {
   keypairs?: Keypair[]
 }
 
-// WorkerCreateOp contains the message type declaration for WorkerCreateOp.
-export const WorkerCreateOp: MessageType<WorkerCreateOp> = createMessageType({
-  typeName: 'forge.worker.WorkerCreateOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'keypairs',
-      kind: 'message',
-      T: () => Keypair,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WorkerCreateOp: MessageType<WorkerCreateOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.worker.WorkerCreateOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'keypairs',
+        kind: 'message',
+        T: () => Keypair,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

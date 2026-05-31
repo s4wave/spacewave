@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/debugdb/debugdb.proto (package s4wave.debugdb, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.debugdb'
 
@@ -14,13 +19,11 @@ export const protobufPackage = 's4wave.debugdb'
  */
 export interface GetStorageInfoRequest {}
 
-// GetStorageInfoRequest contains the message type declaration for GetStorageInfoRequest.
 export const GetStorageInfoRequest: MessageType<GetStorageInfoRequest> =
-  createMessageType({
-    typeName: 's4wave.debugdb.GetStorageInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetStorageInfoRequest>(
+    's4wave.debugdb.GetStorageInfoRequest',
+    true,
+  )
 
 /**
  * StorageInfo describes the current storage backend configuration.
@@ -84,32 +87,37 @@ export interface StorageInfo {
   userAgent?: string
 }
 
-// StorageInfo contains the message type declaration for StorageInfo.
-export const StorageInfo: MessageType<StorageInfo> = createMessageType({
-  typeName: 's4wave.debugdb.StorageInfo',
-  fields: [
-    { no: 1, name: 'volume_type', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'block_shard_count', kind: 'scalar', T: ScalarType.UINT32 },
-    {
-      no: 3,
-      name: 'block_flush_threshold',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    {
-      no: 4,
-      name: 'block_flush_max_age_millis',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    { no: 5, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 6, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 7, name: 'goos', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'goarch', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'user_agent', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StorageInfo: MessageType<StorageInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.debugdb.StorageInfo',
+    fields: [
+      { no: 1, name: 'volume_type', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'block_shard_count',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 3,
+        name: 'block_flush_threshold',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 4,
+        name: 'block_flush_max_age_millis',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      { no: 5, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 6, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 7, name: 'goos', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'goarch', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'user_agent', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetStorageInfoResponse is the response type for GetStorageInfo.
@@ -125,13 +133,12 @@ export interface GetStorageInfoResponse {
   info?: StorageInfo
 }
 
-// GetStorageInfoResponse contains the message type declaration for GetStorageInfoResponse.
 export const GetStorageInfoResponse: MessageType<GetStorageInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.GetStorageInfoResponse',
     fields: [
       { no: 1, name: 'info', kind: 'message', T: () => StorageInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -169,23 +176,28 @@ export interface BenchmarkConfig {
   asyncIo?: boolean
 }
 
-// BenchmarkConfig contains the message type declaration for BenchmarkConfig.
-export const BenchmarkConfig: MessageType<BenchmarkConfig> = createMessageType({
-  typeName: 's4wave.debugdb.BenchmarkConfig',
-  fields: [
-    { no: 1, name: 'duration_seconds', kind: 'scalar', T: ScalarType.UINT32 },
-    {
-      no: 2,
-      name: 'block_sizes',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-      repeated: true,
-    },
-    { no: 3, name: 'include_world_suite', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BenchmarkConfig: MessageType<BenchmarkConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.debugdb.BenchmarkConfig',
+    fields: [
+      { no: 1, name: 'duration_seconds', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 2,
+        name: 'block_sizes',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'include_world_suite',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+      { no: 4, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * StartBenchmarkRequest is the request type for StartBenchmark.
@@ -201,13 +213,12 @@ export interface StartBenchmarkRequest {
   config?: BenchmarkConfig
 }
 
-// StartBenchmarkRequest contains the message type declaration for StartBenchmarkRequest.
 export const StartBenchmarkRequest: MessageType<StartBenchmarkRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.StartBenchmarkRequest',
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => BenchmarkConfig },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -225,13 +236,12 @@ export interface StartBenchmarkResponse {
   resourceId?: number
 }
 
-// StartBenchmarkResponse contains the message type declaration for StartBenchmarkResponse.
 export const StartBenchmarkResponse: MessageType<StartBenchmarkResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.StartBenchmarkResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -242,13 +252,11 @@ export const StartBenchmarkResponse: MessageType<StartBenchmarkResponse> =
  */
 export interface WatchProgressRequest {}
 
-// WatchProgressRequest contains the message type declaration for WatchProgressRequest.
 export const WatchProgressRequest: MessageType<WatchProgressRequest> =
-  createMessageType({
-    typeName: 's4wave.debugdb.WatchProgressRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchProgressRequest>(
+    's4wave.debugdb.WatchProgressRequest',
+    true,
+  )
 
 /**
  * WatchProgressResponse is the response type for WatchProgress.
@@ -294,9 +302,8 @@ export interface WatchProgressResponse {
   done?: boolean
 }
 
-// WatchProgressResponse contains the message type declaration for WatchProgressResponse.
 export const WatchProgressResponse: MessageType<WatchProgressResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.WatchProgressResponse',
     fields: [
       { no: 1, name: 'suite_name', kind: 'scalar', T: ScalarType.STRING },
@@ -305,7 +312,7 @@ export const WatchProgressResponse: MessageType<WatchProgressResponse> =
       { no: 4, name: 'percent_complete', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'metric_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -316,13 +323,11 @@ export const WatchProgressResponse: MessageType<WatchProgressResponse> =
  */
 export interface GetResultsRequest {}
 
-// GetResultsRequest contains the message type declaration for GetResultsRequest.
 export const GetResultsRequest: MessageType<GetResultsRequest> =
-  createMessageType({
-    typeName: 's4wave.debugdb.GetResultsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetResultsRequest>(
+    's4wave.debugdb.GetResultsRequest',
+    true,
+  )
 
 /**
  * BenchmarkMetric contains measurements for one metric.
@@ -387,28 +392,28 @@ export interface BenchmarkMetric {
   samples?: number[]
 }
 
-// BenchmarkMetric contains the message type declaration for BenchmarkMetric.
-export const BenchmarkMetric: MessageType<BenchmarkMetric> = createMessageType({
-  typeName: 's4wave.debugdb.BenchmarkMetric',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'unit', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'count', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'total_ms', kind: 'scalar', T: ScalarType.DOUBLE },
-    { no: 5, name: 'min_ms', kind: 'scalar', T: ScalarType.DOUBLE },
-    { no: 6, name: 'p50_ms', kind: 'scalar', T: ScalarType.DOUBLE },
-    { no: 7, name: 'p99_ms', kind: 'scalar', T: ScalarType.DOUBLE },
-    { no: 8, name: 'max_ms', kind: 'scalar', T: ScalarType.DOUBLE },
-    {
-      no: 9,
-      name: 'samples',
-      kind: 'scalar',
-      T: ScalarType.DOUBLE,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BenchmarkMetric: MessageType<BenchmarkMetric> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.debugdb.BenchmarkMetric',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'unit', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'count', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'total_ms', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 5, name: 'min_ms', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 6, name: 'p50_ms', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 7, name: 'p99_ms', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 8, name: 'max_ms', kind: 'scalar', T: ScalarType.DOUBLE },
+      {
+        no: 9,
+        name: 'samples',
+        kind: 'scalar',
+        T: ScalarType.DOUBLE,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BenchmarkSuite contains results for one benchmark suite.
@@ -430,21 +435,21 @@ export interface BenchmarkSuite {
   metrics?: BenchmarkMetric[]
 }
 
-// BenchmarkSuite contains the message type declaration for BenchmarkSuite.
-export const BenchmarkSuite: MessageType<BenchmarkSuite> = createMessageType({
-  typeName: 's4wave.debugdb.BenchmarkSuite',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'metrics',
-      kind: 'message',
-      T: () => BenchmarkMetric,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BenchmarkSuite: MessageType<BenchmarkSuite> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.debugdb.BenchmarkSuite',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'metrics',
+        kind: 'message',
+        T: () => BenchmarkMetric,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BenchmarkResults contains the complete results of a benchmark run.
@@ -484,9 +489,8 @@ export interface BenchmarkResults {
   totalDurationMillis?: bigint
 }
 
-// BenchmarkResults contains the message type declaration for BenchmarkResults.
 export const BenchmarkResults: MessageType<BenchmarkResults> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.BenchmarkResults',
     fields: [
       { no: 1, name: 'info', kind: 'message', T: () => StorageInfo },
@@ -510,7 +514,7 @@ export const BenchmarkResults: MessageType<BenchmarkResults> =
         kind: 'scalar',
         T: ScalarType.UINT64,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -528,12 +532,11 @@ export interface GetResultsResponse {
   results?: BenchmarkResults
 }
 
-// GetResultsResponse contains the message type declaration for GetResultsResponse.
 export const GetResultsResponse: MessageType<GetResultsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.GetResultsResponse',
     fields: [
       { no: 1, name: 'results', kind: 'message', T: () => BenchmarkResults },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

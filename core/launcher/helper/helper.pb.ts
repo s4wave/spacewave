@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/core/launcher/helper/helper.proto (package launcher.helper, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'launcher.helper'
 
@@ -28,15 +33,15 @@ export interface ProgressUpdate {
   text?: string
 }
 
-// ProgressUpdate contains the message type declaration for ProgressUpdate.
-export const ProgressUpdate: MessageType<ProgressUpdate> = createMessageType({
-  typeName: 'launcher.helper.ProgressUpdate',
-  fields: [
-    { no: 1, name: 'fraction', kind: 'scalar', T: ScalarType.FLOAT },
-    { no: 2, name: 'text', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ProgressUpdate: MessageType<ProgressUpdate> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'launcher.helper.ProgressUpdate',
+    fields: [
+      { no: 1, name: 'fraction', kind: 'scalar', T: ScalarType.FLOAT },
+      { no: 2, name: 'text', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * StatusUpdate reports a status text change without progress.
@@ -52,14 +57,14 @@ export interface StatusUpdate {
   text?: string
 }
 
-// StatusUpdate contains the message type declaration for StatusUpdate.
-export const StatusUpdate: MessageType<StatusUpdate> = createMessageType({
-  typeName: 'launcher.helper.StatusUpdate',
-  fields: [
-    { no: 1, name: 'text', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StatusUpdate: MessageType<StatusUpdate> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'launcher.helper.StatusUpdate',
+    fields: [
+      { no: 1, name: 'text', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DismissCommand tells the helper to close its window and exit.
@@ -68,12 +73,11 @@ export const StatusUpdate: MessageType<StatusUpdate> = createMessageType({
  */
 export interface DismissCommand {}
 
-// DismissCommand contains the message type declaration for DismissCommand.
-export const DismissCommand: MessageType<DismissCommand> = createMessageType({
-  typeName: 'launcher.helper.DismissCommand',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DismissCommand: MessageType<DismissCommand> =
+  /* @__PURE__ */ createEmptyMessageType<DismissCommand>(
+    'launcher.helper.DismissCommand',
+    true,
+  )
 
 /**
  * ErrorReport displays an error to the user.
@@ -95,15 +99,15 @@ export interface ErrorReport {
   retryable?: boolean
 }
 
-// ErrorReport contains the message type declaration for ErrorReport.
-export const ErrorReport: MessageType<ErrorReport> = createMessageType({
-  typeName: 'launcher.helper.ErrorReport',
-  fields: [
-    { no: 1, name: 'message', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'retryable', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ErrorReport: MessageType<ErrorReport> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'launcher.helper.ErrorReport',
+    fields: [
+      { no: 1, name: 'message', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'retryable', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * HelperMessage is sent from the launcher to the desktop loading-UI helper.
@@ -149,41 +153,41 @@ export interface HelperMessage {
       }
 }
 
-// HelperMessage contains the message type declaration for HelperMessage.
-export const HelperMessage: MessageType<HelperMessage> = createMessageType({
-  typeName: 'launcher.helper.HelperMessage',
-  fields: [
-    {
-      no: 1,
-      name: 'progress',
-      kind: 'message',
-      T: () => ProgressUpdate,
-      oneof: 'body',
-    },
-    {
-      no: 2,
-      name: 'status',
-      kind: 'message',
-      T: () => StatusUpdate,
-      oneof: 'body',
-    },
-    {
-      no: 3,
-      name: 'dismiss',
-      kind: 'message',
-      T: () => DismissCommand,
-      oneof: 'body',
-    },
-    {
-      no: 4,
-      name: 'error',
-      kind: 'message',
-      T: () => ErrorReport,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const HelperMessage: MessageType<HelperMessage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'launcher.helper.HelperMessage',
+    fields: [
+      {
+        no: 1,
+        name: 'progress',
+        kind: 'message',
+        T: () => ProgressUpdate,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'status',
+        kind: 'message',
+        T: () => StatusUpdate,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'dismiss',
+        kind: 'message',
+        T: () => DismissCommand,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'error',
+        kind: 'message',
+        T: () => ErrorReport,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RetryRequest is sent when the user clicks retry after an error.
@@ -192,12 +196,11 @@ export const HelperMessage: MessageType<HelperMessage> = createMessageType({
  */
 export interface RetryRequest {}
 
-// RetryRequest contains the message type declaration for RetryRequest.
-export const RetryRequest: MessageType<RetryRequest> = createMessageType({
-  typeName: 'launcher.helper.RetryRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RetryRequest: MessageType<RetryRequest> =
+  /* @__PURE__ */ createEmptyMessageType<RetryRequest>(
+    'launcher.helper.RetryRequest',
+    true,
+  )
 
 /**
  * CancelRequest is sent when the user cancels the operation.
@@ -206,12 +209,11 @@ export const RetryRequest: MessageType<RetryRequest> = createMessageType({
  */
 export interface CancelRequest {}
 
-// CancelRequest contains the message type declaration for CancelRequest.
-export const CancelRequest: MessageType<CancelRequest> = createMessageType({
-  typeName: 'launcher.helper.CancelRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CancelRequest: MessageType<CancelRequest> =
+  /* @__PURE__ */ createEmptyMessageType<CancelRequest>(
+    'launcher.helper.CancelRequest',
+    true,
+  )
 
 /**
  * HelperReady is sent when the helper window is displayed and ready.
@@ -220,12 +222,11 @@ export const CancelRequest: MessageType<CancelRequest> = createMessageType({
  */
 export interface HelperReady {}
 
-// HelperReady contains the message type declaration for HelperReady.
-export const HelperReady: MessageType<HelperReady> = createMessageType({
-  typeName: 'launcher.helper.HelperReady',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const HelperReady: MessageType<HelperReady> =
+  /* @__PURE__ */ createEmptyMessageType<HelperReady>(
+    'launcher.helper.HelperReady',
+    true,
+  )
 
 /**
  * HelperEvent is sent from the desktop helper back to the launcher.
@@ -264,31 +265,31 @@ export interface HelperEvent {
       }
 }
 
-// HelperEvent contains the message type declaration for HelperEvent.
-export const HelperEvent: MessageType<HelperEvent> = createMessageType({
-  typeName: 'launcher.helper.HelperEvent',
-  fields: [
-    {
-      no: 1,
-      name: 'retry',
-      kind: 'message',
-      T: () => RetryRequest,
-      oneof: 'body',
-    },
-    {
-      no: 2,
-      name: 'cancel',
-      kind: 'message',
-      T: () => CancelRequest,
-      oneof: 'body',
-    },
-    {
-      no: 3,
-      name: 'ready',
-      kind: 'message',
-      T: () => HelperReady,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const HelperEvent: MessageType<HelperEvent> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'launcher.helper.HelperEvent',
+    fields: [
+      {
+        no: 1,
+        name: 'retry',
+        kind: 'message',
+        T: () => RetryRequest,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'cancel',
+        kind: 'message',
+        T: () => CancelRequest,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'ready',
+        kind: 'message',
+        T: () => HelperReady,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

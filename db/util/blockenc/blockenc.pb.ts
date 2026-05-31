@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/db/util/blockenc/blockenc.proto (package blockenc, syntax proto3)
 /* eslint-disable */
 
-import { createEnumType } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 
 export const protobufPackage = 'blockenc'
 
@@ -48,10 +48,12 @@ export enum BlockEnc {
   BlockEnc_SECRET_BOX = 3,
 }
 
-// BlockEnc_Enum is the enum type for BlockEnc.
-export const BlockEnc_Enum = createEnumType('blockenc.BlockEnc', [
-  { no: 0, name: 'BlockEnc_UNKNOWN' },
-  { no: 1, name: 'BlockEnc_NONE' },
-  { no: 2, name: 'BlockEnc_XCHACHA20_POLY1305' },
-  { no: 3, name: 'BlockEnc_SECRET_BOX' },
-])
+export const BlockEnc_Enum = /* @__PURE__ */ createEnumType(
+  'blockenc.BlockEnc',
+  [
+    [0, 'BlockEnc_UNKNOWN'],
+    [1, 'BlockEnc_NONE'],
+    [2, 'BlockEnc_XCHACHA20_POLY1305'],
+    [3, 'BlockEnc_SECRET_BOX'],
+  ],
+)

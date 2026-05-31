@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/sshhost/sshhost.proto (package s4wave.sshhost, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 's4wave.sshhost'
@@ -40,13 +42,12 @@ export enum SshHostProbeState {
   FAILED = 2,
 }
 
-// SshHostProbeState_Enum is the enum type for SshHostProbeState.
-export const SshHostProbeState_Enum = createEnumType(
+export const SshHostProbeState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.sshhost.SshHostProbeState',
   [
-    { no: 0, name: 'SSH_HOST_PROBE_STATE_UNKNOWN' },
-    { no: 1, name: 'SSH_HOST_PROBE_STATE_READY' },
-    { no: 2, name: 'SSH_HOST_PROBE_STATE_FAILED' },
+    [0, 'SSH_HOST_PROBE_STATE_UNKNOWN'],
+    [1, 'SSH_HOST_PROBE_STATE_READY'],
+    [2, 'SSH_HOST_PROBE_STATE_FAILED'],
   ],
 )
 
@@ -76,16 +77,16 @@ export interface SshHostEndpoint {
   username?: string
 }
 
-// SshHostEndpoint contains the message type declaration for SshHostEndpoint.
-export const SshHostEndpoint: MessageType<SshHostEndpoint> = createMessageType({
-  typeName: 's4wave.sshhost.SshHostEndpoint',
-  fields: [
-    { no: 1, name: 'host', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'port', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'username', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SshHostEndpoint: MessageType<SshHostEndpoint> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sshhost.SshHostEndpoint',
+    fields: [
+      { no: 1, name: 'host', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'port', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'username', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SshHostCredentialRefs points at Secret objects containing credential payloads.
@@ -113,9 +114,8 @@ export interface SshHostCredentialRefs {
   passphraseSecretObjectKey?: string
 }
 
-// SshHostCredentialRefs contains the message type declaration for SshHostCredentialRefs.
 export const SshHostCredentialRefs: MessageType<SshHostCredentialRefs> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sshhost.SshHostCredentialRefs',
     fields: [
       {
@@ -136,7 +136,7 @@ export const SshHostCredentialRefs: MessageType<SshHostCredentialRefs> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -178,23 +178,28 @@ export interface SshHostKeyPin {
   acceptedByPeerId?: string
 }
 
-// SshHostKeyPin contains the message type declaration for SshHostKeyPin.
-export const SshHostKeyPin: MessageType<SshHostKeyPin> = createMessageType({
-  typeName: 's4wave.sshhost.SshHostKeyPin',
-  fields: [
-    { no: 1, name: 'algorithm', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'public_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'sha256_fingerprint', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'accepted_at', kind: 'message', T: () => Timestamp },
-    {
-      no: 5,
-      name: 'accepted_by_peer_id',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SshHostKeyPin: MessageType<SshHostKeyPin> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sshhost.SshHostKeyPin',
+    fields: [
+      { no: 1, name: 'algorithm', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'public_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'sha256_fingerprint',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 4, name: 'accepted_at', kind: 'message', T: () => Timestamp },
+      {
+        no: 5,
+        name: 'accepted_by_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SshHostStatus is redacted operator-visible SSH Host status.
@@ -228,17 +233,17 @@ export interface SshHostStatus {
   observedAt?: Date
 }
 
-// SshHostStatus contains the message type declaration for SshHostStatus.
-export const SshHostStatus: MessageType<SshHostStatus> = createMessageType({
-  typeName: 's4wave.sshhost.SshHostStatus',
-  fields: [
-    { no: 1, name: 'state', kind: 'enum', T: SshHostProbeState_Enum },
-    { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'observed_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SshHostStatus: MessageType<SshHostStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sshhost.SshHostStatus',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: SshHostProbeState_Enum },
+      { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'observed_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SshHost is the world-block state for an SSH-only Host.
@@ -290,8 +295,7 @@ export interface SshHost {
   updatedAt?: Date
 }
 
-// SshHost contains the message type declaration for SshHost.
-export const SshHost: MessageType<SshHost> = createMessageType({
+export const SshHost: MessageType<SshHost> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.sshhost.SshHost',
   fields: [
     { no: 1, name: 'label', kind: 'scalar', T: ScalarType.STRING },
@@ -312,7 +316,7 @@ export const SshHost: MessageType<SshHost> = createMessageType({
     { no: 5, name: 'last_status', kind: 'message', T: () => SshHostStatus },
     { no: 6, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 7, name: 'updated_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -360,30 +364,30 @@ export interface CreateSshHostOp {
   timestamp?: Date
 }
 
-// CreateSshHostOp contains the message type declaration for CreateSshHostOp.
-export const CreateSshHostOp: MessageType<CreateSshHostOp> = createMessageType({
-  typeName: 's4wave.sshhost.CreateSshHostOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'endpoint', kind: 'message', T: () => SshHostEndpoint },
-    {
-      no: 4,
-      name: 'credentials',
-      kind: 'message',
-      T: () => SshHostCredentialRefs,
-    },
-    {
-      no: 5,
-      name: 'host_key_pins',
-      kind: 'message',
-      T: () => SshHostKeyPin,
-      repeated: true,
-    },
-    { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CreateSshHostOp: MessageType<CreateSshHostOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sshhost.CreateSshHostOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'endpoint', kind: 'message', T: () => SshHostEndpoint },
+      {
+        no: 4,
+        name: 'credentials',
+        kind: 'message',
+        T: () => SshHostCredentialRefs,
+      },
+      {
+        no: 5,
+        name: 'host_key_pins',
+        kind: 'message',
+        T: () => SshHostKeyPin,
+        repeated: true,
+      },
+      { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchSshHostStateRequest is a request to watch SSH Host state.
@@ -392,13 +396,11 @@ export const CreateSshHostOp: MessageType<CreateSshHostOp> = createMessageType({
  */
 export interface WatchSshHostStateRequest {}
 
-// WatchSshHostStateRequest contains the message type declaration for WatchSshHostStateRequest.
 export const WatchSshHostStateRequest: MessageType<WatchSshHostStateRequest> =
-  createMessageType({
-    typeName: 's4wave.sshhost.WatchSshHostStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchSshHostStateRequest>(
+    's4wave.sshhost.WatchSshHostStateRequest',
+    true,
+  )
 
 /**
  * WatchSshHostStateResponse contains the current SSH Host state.
@@ -414,12 +416,11 @@ export interface WatchSshHostStateResponse {
   state?: SshHost
 }
 
-// WatchSshHostStateResponse contains the message type declaration for WatchSshHostStateResponse.
 export const WatchSshHostStateResponse: MessageType<WatchSshHostStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sshhost.WatchSshHostStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => SshHost },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

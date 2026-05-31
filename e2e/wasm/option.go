@@ -40,6 +40,17 @@ const (
 	E2EWasmManifestBuildTimeoutEnv = "E2E_WASM_MANIFEST_BUILD_TIMEOUT"
 )
 
+var (
+	goScriptBrowserGoManifests  = []string{"spacewave-launcher", "spacewave-core"}
+	goScriptBrowserStartPlugins = []string{
+		"spacewave-launcher",
+		"spacewave-core",
+		"spacewave-web",
+		"spacewave-app",
+		"web",
+	}
+)
+
 // E2EWasmCompiler selects the browser Go plugin compiler used by e2e/wasm.
 type E2EWasmCompiler string
 
@@ -48,7 +59,7 @@ const (
 	E2EWasmCompilerGo E2EWasmCompiler = "go"
 	// E2EWasmCompilerTinyGo selects TinyGo for spacewave-core.
 	E2EWasmCompilerTinyGo E2EWasmCompiler = "tinygo"
-	// E2EWasmCompilerGoScript selects GoScript for spacewave-core.
+	// E2EWasmCompilerGoScript selects GoScript for browser launcher/core.
 	E2EWasmCompilerGoScript E2EWasmCompiler = "goscript"
 )
 
@@ -274,6 +285,12 @@ func WithGoScriptCore() Option {
 	return WithConfigMutator(ConfigureGoScriptForManifest("spacewave-core"))
 }
 
+// WithGoScriptBrowserStartup enables the production-shaped browser GoScript
+// startup surface used by staging: launcher plus core, without dev-only debug.
+func WithGoScriptBrowserStartup() Option {
+	return WithConfigMutator(ConfigureGoScriptBrowserStartup)
+}
+
 // EnableTinyGoForManifest enables TinyGo for a Go plugin Manifest's web
 // platform override.
 func EnableTinyGoForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
@@ -308,6 +325,21 @@ func ConfigureTinyGoForManifest(manifestID string) func(*bldr_project.ProjectCon
 // that pulls packages the seed GoScript browser lane should not compile.
 func ConfigureGoScriptForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
 	return ConfigureCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT)
+}
+
+// ConfigureGoScriptBrowserStartup makes the local GoScript e2e lane cover the
+// same browser Go plugin startup surface as the staging GoScript release.
+func ConfigureGoScriptBrowserStartup(conf *bldr_project.ProjectConfig) error {
+	if err := applyBuildManifestOverride(conf, "release-web-e2e", "spacewave-launcher"); err != nil {
+		return err
+	}
+	for _, manifestID := range goScriptBrowserGoManifests {
+		if err := ConfigureGoScriptForManifest(manifestID)(conf); err != nil {
+			return err
+		}
+	}
+	setStartupPlugins(conf, goScriptBrowserStartPlugins)
+	return nil
 }
 
 // ConfigureCompilerModeForManifest enables an alternate browser Go plugin
@@ -358,6 +390,34 @@ func updateGoPluginManifest(
 		builder.Config = data
 		return nil
 	}
+}
+
+func applyBuildManifestOverride(conf *bldr_project.ProjectConfig, buildID, manifestID string) error {
+	build := conf.GetBuild()[buildID]
+	if build == nil {
+		return errors.Errorf("build %q not found", buildID)
+	}
+	override := build.GetManifestOverrides()[manifestID]
+	if override == nil {
+		return errors.Errorf("build %q has no manifest override for %q", buildID, manifestID)
+	}
+	manifest := conf.GetManifests()[manifestID]
+	if manifest == nil {
+		return errors.Errorf("manifest %q not found", manifestID)
+	}
+	builder := manifest.GetBuilder()
+	if builder == nil {
+		return errors.Errorf("manifest %q has no builder", manifestID)
+	}
+	builder.Config = append([]byte(nil), override.GetConfig()...)
+	return nil
+}
+
+func setStartupPlugins(conf *bldr_project.ProjectConfig, plugins []string) {
+	if conf.Start == nil {
+		conf.Start = &bldr_project.StartConfig{}
+	}
+	conf.Start.Plugins = append([]string(nil), plugins...)
 }
 
 func setWebCompilerMode(goConf *bldr_plugin_compiler_go.Config, mode bldr_plugin_compiler_go.CompilerMode) {

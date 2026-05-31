@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/core/session/session.proto (package session, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ProviderResourceRef } from '../provider/provider.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 'session'
 
@@ -47,13 +46,15 @@ export enum SessionType {
   DEVICE = 3,
 }
 
-// SessionType_Enum is the enum type for SessionType.
-export const SessionType_Enum = createEnumType('session.SessionType', [
-  { no: 0, name: 'SESSION_TYPE_UNKNOWN' },
-  { no: 1, name: 'SESSION_TYPE_USER' },
-  { no: 2, name: 'SESSION_TYPE_APP' },
-  { no: 3, name: 'SESSION_TYPE_DEVICE' },
-])
+export const SessionType_Enum = /* @__PURE__ */ createEnumType(
+  'session.SessionType',
+  [
+    [0, 'SESSION_TYPE_UNKNOWN'],
+    [1, 'SESSION_TYPE_USER'],
+    [2, 'SESSION_TYPE_APP'],
+    [3, 'SESSION_TYPE_DEVICE'],
+  ],
+)
 
 /**
  * SessionLockMode identifies how a session private key is protected at rest.
@@ -76,11 +77,13 @@ export enum SessionLockMode {
   PIN_ENCRYPTED = 1,
 }
 
-// SessionLockMode_Enum is the enum type for SessionLockMode.
-export const SessionLockMode_Enum = createEnumType('session.SessionLockMode', [
-  { no: 0, name: 'SESSION_LOCK_MODE_AUTO_UNLOCK' },
-  { no: 1, name: 'SESSION_LOCK_MODE_PIN_ENCRYPTED' },
-])
+export const SessionLockMode_Enum = /* @__PURE__ */ createEnumType(
+  'session.SessionLockMode',
+  [
+    [0, 'SESSION_LOCK_MODE_AUTO_UNLOCK'],
+    [1, 'SESSION_LOCK_MODE_PIN_ENCRYPTED'],
+  ],
+)
 
 /**
  * SessionRef is a reference to a session managed by a provider.
@@ -99,19 +102,19 @@ export interface SessionRef {
   providerResourceRef?: ProviderResourceRef
 }
 
-// SessionRef contains the message type declaration for SessionRef.
-export const SessionRef: MessageType<SessionRef> = createMessageType({
-  typeName: 'session.SessionRef',
-  fields: [
-    {
-      no: 1,
-      name: 'provider_resource_ref',
-      kind: 'message',
-      T: () => ProviderResourceRef,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SessionRef: MessageType<SessionRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'session.SessionRef',
+    fields: [
+      {
+        no: 1,
+        name: 'provider_resource_ref',
+        kind: 'message',
+        T: () => ProviderResourceRef,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SessionListEntry is an entry in the local session list.
@@ -134,14 +137,13 @@ export interface SessionListEntry {
   sessionRef?: SessionRef
 }
 
-// SessionListEntry contains the message type declaration for SessionListEntry.
 export const SessionListEntry: MessageType<SessionListEntry> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'session.SessionListEntry',
     fields: [
       { no: 1, name: 'session_index', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'session_ref', kind: 'message', T: () => SessionRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -205,31 +207,31 @@ export interface SessionMetadata {
   providerId?: string
 }
 
-// SessionMetadata contains the message type declaration for SessionMetadata.
-export const SessionMetadata: MessageType<SessionMetadata> = createMessageType({
-  typeName: 'session.SessionMetadata',
-  fields: [
-    { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'provider_display_name',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    {
-      no: 3,
-      name: 'provider_account_id',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    { no: 4, name: 'lock_mode', kind: 'enum', T: SessionLockMode_Enum },
-    { no: 5, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
-    { no: 7, name: 'cloud_account_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'cloud_entity_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 10, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SessionMetadata: MessageType<SessionMetadata> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'session.SessionMetadata',
+    fields: [
+      { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'provider_display_name',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 3,
+        name: 'provider_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 4, name: 'lock_mode', kind: 'enum', T: SessionLockMode_Enum },
+      { no: 5, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 7, name: 'cloud_account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'cloud_entity_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EntityKeypair is a keypair associated with an entity for authentication.
@@ -257,16 +259,16 @@ export interface EntityKeypair {
   authParams?: Uint8Array
 }
 
-// EntityKeypair contains the message type declaration for EntityKeypair.
-export const EntityKeypair: MessageType<EntityKeypair> = createMessageType({
-  typeName: 'session.EntityKeypair',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'auth_method', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'auth_params', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EntityKeypair: MessageType<EntityKeypair> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'session.EntityKeypair',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'auth_method', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'auth_params', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EntityCredential is a credential for deriving an entity private key.
@@ -304,9 +306,8 @@ export interface EntityCredential {
       }
 }
 
-// EntityCredential contains the message type declaration for EntityCredential.
 export const EntityCredential: MessageType<EntityCredential> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'session.EntityCredential',
     fields: [
       {
@@ -323,6 +324,6 @@ export const EntityCredential: MessageType<EntityCredential> =
         T: ScalarType.BYTES,
         oneof: 'credential',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

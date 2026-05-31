@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto (package s4wave.provider.spacewave, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import type { SessionType } from '../../../core/session/session.pb.js'
 import {
   EntityCredential,
@@ -47,12 +49,11 @@ export enum PasskeyPrfWrapAlgorithm {
   AES_256_GCM_V1 = 1,
 }
 
-// PasskeyPrfWrapAlgorithm_Enum is the enum type for PasskeyPrfWrapAlgorithm.
-export const PasskeyPrfWrapAlgorithm_Enum = createEnumType(
+export const PasskeyPrfWrapAlgorithm_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.PasskeyPrfWrapAlgorithm',
   [
-    { no: 0, name: 'PASSKEY_PRF_WRAP_ALGORITHM_UNSPECIFIED' },
-    { no: 1, name: 'PASSKEY_PRF_WRAP_ALGORITHM_AES_256_GCM_V1' },
+    [0, 'PASSKEY_PRF_WRAP_ALGORITHM_UNSPECIFIED'],
+    [1, 'PASSKEY_PRF_WRAP_ALGORITHM_AES_256_GCM_V1'],
   ],
 )
 
@@ -127,19 +128,18 @@ export enum BillingStatus {
   BillingStatus_LAPSED = 8,
 }
 
-// BillingStatus_Enum is the enum type for BillingStatus.
-export const BillingStatus_Enum = createEnumType(
+export const BillingStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.BillingStatus',
   [
-    { no: 0, name: 'BillingStatus_UNKNOWN' },
-    { no: 1, name: 'BillingStatus_NONE' },
-    { no: 2, name: 'BillingStatus_ACTIVE' },
-    { no: 3, name: 'BillingStatus_PAST_DUE' },
-    { no: 4, name: 'BillingStatus_PAST_DUE_READONLY' },
-    { no: 5, name: 'BillingStatus_CANCELED' },
-    { no: 6, name: 'BillingStatus_DELETED' },
-    { no: 7, name: 'BillingStatus_TRIALING' },
-    { no: 8, name: 'BillingStatus_LAPSED' },
+    [0, 'BillingStatus_UNKNOWN'],
+    [1, 'BillingStatus_NONE'],
+    [2, 'BillingStatus_ACTIVE'],
+    [3, 'BillingStatus_PAST_DUE'],
+    [4, 'BillingStatus_PAST_DUE_READONLY'],
+    [5, 'BillingStatus_CANCELED'],
+    [6, 'BillingStatus_DELETED'],
+    [7, 'BillingStatus_TRIALING'],
+    [8, 'BillingStatus_LAPSED'],
   ],
 )
 
@@ -219,19 +219,18 @@ export enum AccountLifecycleState {
   AccountLifecycleState_DISPUTED_HARD_SUSPEND = 8,
 }
 
-// AccountLifecycleState_Enum is the enum type for AccountLifecycleState.
-export const AccountLifecycleState_Enum = createEnumType(
+export const AccountLifecycleState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.AccountLifecycleState',
   [
-    { no: 0, name: 'AccountLifecycleState_UNKNOWN' },
-    { no: 1, name: 'AccountLifecycleState_ACTIVE' },
-    { no: 2, name: 'AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END' },
-    { no: 3, name: 'AccountLifecycleState_CANCELED_GRACE_READONLY' },
-    { no: 4, name: 'AccountLifecycleState_PENDING_DELETE_READONLY' },
-    { no: 5, name: 'AccountLifecycleState_LAPSED_READONLY' },
-    { no: 6, name: 'AccountLifecycleState_DELETED_PENDING_PURGE' },
-    { no: 7, name: 'AccountLifecycleState_DELETED' },
-    { no: 8, name: 'AccountLifecycleState_DISPUTED_HARD_SUSPEND' },
+    [0, 'AccountLifecycleState_UNKNOWN'],
+    [1, 'AccountLifecycleState_ACTIVE'],
+    [2, 'AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END'],
+    [3, 'AccountLifecycleState_CANCELED_GRACE_READONLY'],
+    [4, 'AccountLifecycleState_PENDING_DELETE_READONLY'],
+    [5, 'AccountLifecycleState_LAPSED_READONLY'],
+    [6, 'AccountLifecycleState_DELETED_PENDING_PURGE'],
+    [7, 'AccountLifecycleState_DELETED'],
+    [8, 'AccountLifecycleState_DISPUTED_HARD_SUSPEND'],
   ],
 )
 
@@ -263,13 +262,12 @@ export enum BillingInterval {
   BillingInterval_YEAR = 2,
 }
 
-// BillingInterval_Enum is the enum type for BillingInterval.
-export const BillingInterval_Enum = createEnumType(
+export const BillingInterval_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.BillingInterval',
   [
-    { no: 0, name: 'BillingInterval_UNKNOWN' },
-    { no: 1, name: 'BillingInterval_MONTH' },
-    { no: 2, name: 'BillingInterval_YEAR' },
+    [0, 'BillingInterval_UNKNOWN'],
+    [1, 'BillingInterval_MONTH'],
+    [2, 'BillingInterval_YEAR'],
   ],
 )
 
@@ -305,15 +303,14 @@ export enum CheckoutStatus {
   CheckoutStatus_CANCELED = 4,
 }
 
-// CheckoutStatus_Enum is the enum type for CheckoutStatus.
-export const CheckoutStatus_Enum = createEnumType(
+export const CheckoutStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.CheckoutStatus',
   [
-    { no: 0, name: 'CheckoutStatus_UNKNOWN' },
-    { no: 1, name: 'CheckoutStatus_PENDING' },
-    { no: 2, name: 'CheckoutStatus_COMPLETED' },
-    { no: 3, name: 'CheckoutStatus_EXPIRED' },
-    { no: 4, name: 'CheckoutStatus_CANCELED' },
+    [0, 'CheckoutStatus_UNKNOWN'],
+    [1, 'CheckoutStatus_PENDING'],
+    [2, 'CheckoutStatus_COMPLETED'],
+    [3, 'CheckoutStatus_EXPIRED'],
+    [4, 'CheckoutStatus_CANCELED'],
   ],
 )
 
@@ -362,15 +359,14 @@ export enum SelfEnrollmentGateState {
   READY = 4,
 }
 
-// SelfEnrollmentGateState_Enum is the enum type for SelfEnrollmentGateState.
-export const SelfEnrollmentGateState_Enum = createEnumType(
+export const SelfEnrollmentGateState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.SelfEnrollmentGateState',
   [
-    { no: 0, name: 'SELF_ENROLLMENT_GATE_STATE_UNKNOWN' },
-    { no: 1, name: 'SELF_ENROLLMENT_GATE_STATE_CHECKING' },
-    { no: 2, name: 'SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING' },
-    { no: 3, name: 'SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED' },
-    { no: 4, name: 'SELF_ENROLLMENT_GATE_STATE_READY' },
+    [0, 'SELF_ENROLLMENT_GATE_STATE_UNKNOWN'],
+    [1, 'SELF_ENROLLMENT_GATE_STATE_CHECKING'],
+    [2, 'SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING'],
+    [3, 'SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED'],
+    [4, 'SELF_ENROLLMENT_GATE_STATE_READY'],
   ],
 )
 
@@ -403,13 +399,12 @@ export enum TargetedInvitePurpose {
   ORGANIZATION = 2,
 }
 
-// TargetedInvitePurpose_Enum is the enum type for TargetedInvitePurpose.
-export const TargetedInvitePurpose_Enum = createEnumType(
+export const TargetedInvitePurpose_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.TargetedInvitePurpose',
   [
-    { no: 0, name: 'TARGETED_INVITE_PURPOSE_UNSPECIFIED' },
-    { no: 1, name: 'TARGETED_INVITE_PURPOSE_SPACE' },
-    { no: 2, name: 'TARGETED_INVITE_PURPOSE_ORGANIZATION' },
+    [0, 'TARGETED_INVITE_PURPOSE_UNSPECIFIED'],
+    [1, 'TARGETED_INVITE_PURPOSE_SPACE'],
+    [2, 'TARGETED_INVITE_PURPOSE_ORGANIZATION'],
   ],
 )
 
@@ -443,13 +438,12 @@ export enum SpaceLinkCompletionMode {
   SpaceLinkCompletionMode_CLI = 2,
 }
 
-// SpaceLinkCompletionMode_Enum is the enum type for SpaceLinkCompletionMode.
-export const SpaceLinkCompletionMode_Enum = createEnumType(
+export const SpaceLinkCompletionMode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.SpaceLinkCompletionMode',
   [
-    { no: 0, name: 'SpaceLinkCompletionMode_UNKNOWN' },
-    { no: 1, name: 'SpaceLinkCompletionMode_BROWSER_CALLBACK' },
-    { no: 2, name: 'SpaceLinkCompletionMode_CLI' },
+    [0, 'SpaceLinkCompletionMode_UNKNOWN'],
+    [1, 'SpaceLinkCompletionMode_BROWSER_CALLBACK'],
+    [2, 'SpaceLinkCompletionMode_CLI'],
   ],
 )
 
@@ -496,15 +490,14 @@ export enum SpaceLinkCallbackStatus {
   SpaceLinkCallbackStatus_ERROR = 4,
 }
 
-// SpaceLinkCallbackStatus_Enum is the enum type for SpaceLinkCallbackStatus.
-export const SpaceLinkCallbackStatus_Enum = createEnumType(
+export const SpaceLinkCallbackStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.SpaceLinkCallbackStatus',
   [
-    { no: 0, name: 'SpaceLinkCallbackStatus_UNKNOWN' },
-    { no: 1, name: 'SpaceLinkCallbackStatus_OK' },
-    { no: 2, name: 'SpaceLinkCallbackStatus_DENIED' },
-    { no: 3, name: 'SpaceLinkCallbackStatus_EXPIRED' },
-    { no: 4, name: 'SpaceLinkCallbackStatus_ERROR' },
+    [0, 'SpaceLinkCallbackStatus_UNKNOWN'],
+    [1, 'SpaceLinkCallbackStatus_OK'],
+    [2, 'SpaceLinkCallbackStatus_DENIED'],
+    [3, 'SpaceLinkCallbackStatus_EXPIRED'],
+    [4, 'SpaceLinkCallbackStatus_ERROR'],
   ],
 )
 
@@ -522,13 +515,12 @@ export interface PasswordCredential {
   password?: string
 }
 
-// PasswordCredential contains the message type declaration for PasswordCredential.
 export const PasswordCredential: MessageType<PasswordCredential> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasswordCredential',
     fields: [
       { no: 1, name: 'password', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -546,14 +538,14 @@ export interface PemCredential {
   pemData?: Uint8Array
 }
 
-// PemCredential contains the message type declaration for PemCredential.
-export const PemCredential: MessageType<PemCredential> = createMessageType({
-  typeName: 's4wave.provider.spacewave.PemCredential',
-  fields: [
-    { no: 1, name: 'pem_data', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PemCredential: MessageType<PemCredential> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.PemCredential',
+    fields: [
+      { no: 1, name: 'pem_data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PasskeyCredential provides a WebAuthn assertion.
@@ -569,13 +561,12 @@ export interface PasskeyCredential {
   attestationJson?: string
 }
 
-// PasskeyCredential contains the message type declaration for PasskeyCredential.
 export const PasskeyCredential: MessageType<PasskeyCredential> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyCredential',
     fields: [
       { no: 1, name: 'attestation_json', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -631,9 +622,8 @@ export interface CreateAccountRequest {
       }
 }
 
-// CreateAccountRequest contains the message type declaration for CreateAccountRequest.
 export const CreateAccountRequest: MessageType<CreateAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateAccountRequest',
     fields: [
       { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
@@ -659,7 +649,7 @@ export const CreateAccountRequest: MessageType<CreateAccountRequest> =
         T: () => PasskeyCredential,
         oneof: 'credential',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -677,9 +667,8 @@ export interface CreateAccountResponse {
   sessionListEntry?: SessionListEntry
 }
 
-// CreateAccountResponse contains the message type declaration for CreateAccountResponse.
 export const CreateAccountResponse: MessageType<CreateAccountResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateAccountResponse',
     fields: [
       {
@@ -688,7 +677,7 @@ export const CreateAccountResponse: MessageType<CreateAccountResponse> =
         kind: 'message',
         T: () => SessionListEntry,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -744,9 +733,8 @@ export interface LoginAccountRequest {
       }
 }
 
-// LoginAccountRequest contains the message type declaration for LoginAccountRequest.
 export const LoginAccountRequest: MessageType<LoginAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LoginAccountRequest',
     fields: [
       { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
@@ -772,7 +760,7 @@ export const LoginAccountRequest: MessageType<LoginAccountRequest> =
         T: () => PasskeyCredential,
         oneof: 'credential',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -822,9 +810,8 @@ export interface LoginAccountResponse {
       }
 }
 
-// LoginAccountResponse contains the message type declaration for LoginAccountResponse.
 export const LoginAccountResponse: MessageType<LoginAccountResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LoginAccountResponse',
     fields: [
       {
@@ -848,7 +835,7 @@ export const LoginAccountResponse: MessageType<LoginAccountResponse> =
         T: ScalarType.STRING,
         oneof: 'result',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -872,14 +859,13 @@ export interface LoginOrCreateAccountRequest {
   password?: string
 }
 
-// LoginOrCreateAccountRequest contains the message type declaration for LoginOrCreateAccountRequest.
 export const LoginOrCreateAccountRequest: MessageType<LoginOrCreateAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LoginOrCreateAccountRequest',
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'password', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -903,9 +889,8 @@ export interface LoginOrCreateAccountResponse {
   isNewAccount?: boolean
 }
 
-// LoginOrCreateAccountResponse contains the message type declaration for LoginOrCreateAccountResponse.
 export const LoginOrCreateAccountResponse: MessageType<LoginOrCreateAccountResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LoginOrCreateAccountResponse',
     fields: [
       {
@@ -915,7 +900,7 @@ export const LoginOrCreateAccountResponse: MessageType<LoginOrCreateAccountRespo
         T: () => SessionListEntry,
       },
       { no: 2, name: 'is_new_account', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -933,13 +918,12 @@ export interface LoginWithEntityKeyRequest {
   pemPrivateKey?: Uint8Array
 }
 
-// LoginWithEntityKeyRequest contains the message type declaration for LoginWithEntityKeyRequest.
 export const LoginWithEntityKeyRequest: MessageType<LoginWithEntityKeyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LoginWithEntityKeyRequest',
     fields: [
       { no: 1, name: 'pem_private_key', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -957,9 +941,8 @@ export interface LoginWithEntityKeyResponse {
   sessionListEntry?: SessionListEntry
 }
 
-// LoginWithEntityKeyResponse contains the message type declaration for LoginWithEntityKeyResponse.
 export const LoginWithEntityKeyResponse: MessageType<LoginWithEntityKeyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LoginWithEntityKeyResponse',
     fields: [
       {
@@ -968,7 +951,7 @@ export const LoginWithEntityKeyResponse: MessageType<LoginWithEntityKeyResponse>
         kind: 'message',
         T: () => SessionListEntry,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1010,9 +993,8 @@ export interface MountLinkedDeviceSessionRequest {
   sessionPeerId?: string
 }
 
-// MountLinkedDeviceSessionRequest contains the message type declaration for MountLinkedDeviceSessionRequest.
 export const MountLinkedDeviceSessionRequest: MessageType<MountLinkedDeviceSessionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.MountLinkedDeviceSessionRequest',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
@@ -1025,7 +1007,7 @@ export const MountLinkedDeviceSessionRequest: MessageType<MountLinkedDeviceSessi
         T: ScalarType.BYTES,
       },
       { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1043,9 +1025,8 @@ export interface MountLinkedDeviceSessionResponse {
   sessionListEntry?: SessionListEntry
 }
 
-// MountLinkedDeviceSessionResponse contains the message type declaration for MountLinkedDeviceSessionResponse.
 export const MountLinkedDeviceSessionResponse: MessageType<MountLinkedDeviceSessionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.MountLinkedDeviceSessionResponse',
     fields: [
       {
@@ -1054,7 +1035,7 @@ export const MountLinkedDeviceSessionResponse: MessageType<MountLinkedDeviceSess
         kind: 'message',
         T: () => SessionListEntry,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1065,13 +1046,11 @@ export const MountLinkedDeviceSessionResponse: MessageType<MountLinkedDeviceSess
  */
 export interface GenerateAuthKeypairsRequest {}
 
-// GenerateAuthKeypairsRequest contains the message type declaration for GenerateAuthKeypairsRequest.
 export const GenerateAuthKeypairsRequest: MessageType<GenerateAuthKeypairsRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.GenerateAuthKeypairsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GenerateAuthKeypairsRequest>(
+    's4wave.provider.spacewave.GenerateAuthKeypairsRequest',
+    true,
+  )
 
 /**
  * GeneratedEntityKeypair is generated entity key material.
@@ -1099,9 +1078,8 @@ export interface GeneratedEntityKeypair {
   custodiedPemBase64?: string
 }
 
-// GeneratedEntityKeypair contains the message type declaration for GeneratedEntityKeypair.
 export const GeneratedEntityKeypair: MessageType<GeneratedEntityKeypair> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GeneratedEntityKeypair',
     fields: [
       { no: 1, name: 'pem_private_key', kind: 'scalar', T: ScalarType.STRING },
@@ -1112,7 +1090,7 @@ export const GeneratedEntityKeypair: MessageType<GeneratedEntityKeypair> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1130,13 +1108,12 @@ export interface GeneratedSessionKeypair {
   peerId?: string
 }
 
-// GeneratedSessionKeypair contains the message type declaration for GeneratedSessionKeypair.
 export const GeneratedSessionKeypair: MessageType<GeneratedSessionKeypair> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GeneratedSessionKeypair',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1160,9 +1137,8 @@ export interface GenerateAuthKeypairsResponse {
   session?: GeneratedSessionKeypair
 }
 
-// GenerateAuthKeypairsResponse contains the message type declaration for GenerateAuthKeypairsResponse.
 export const GenerateAuthKeypairsResponse: MessageType<GenerateAuthKeypairsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GenerateAuthKeypairsResponse',
     fields: [
       {
@@ -1177,7 +1153,7 @@ export const GenerateAuthKeypairsResponse: MessageType<GenerateAuthKeypairsRespo
         kind: 'message',
         T: () => GeneratedSessionKeypair,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1201,14 +1177,13 @@ export interface WrapPemWithPinRequest {
   pin?: string
 }
 
-// WrapPemWithPinRequest contains the message type declaration for WrapPemWithPinRequest.
 export const WrapPemWithPinRequest: MessageType<WrapPemWithPinRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WrapPemWithPinRequest',
     fields: [
       { no: 1, name: 'pem_private_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'pin', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1226,9 +1201,8 @@ export interface WrapPemWithPinResponse {
   wrappedPemBase64?: string
 }
 
-// WrapPemWithPinResponse contains the message type declaration for WrapPemWithPinResponse.
 export const WrapPemWithPinResponse: MessageType<WrapPemWithPinResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WrapPemWithPinResponse',
     fields: [
       {
@@ -1237,7 +1211,7 @@ export const WrapPemWithPinResponse: MessageType<WrapPemWithPinResponse> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1261,9 +1235,8 @@ export interface UnwrapPemWithPinRequest {
   pin?: string
 }
 
-// UnwrapPemWithPinRequest contains the message type declaration for UnwrapPemWithPinRequest.
 export const UnwrapPemWithPinRequest: MessageType<UnwrapPemWithPinRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.UnwrapPemWithPinRequest',
     fields: [
       {
@@ -1273,7 +1246,7 @@ export const UnwrapPemWithPinRequest: MessageType<UnwrapPemWithPinRequest> =
         T: ScalarType.STRING,
       },
       { no: 2, name: 'pin', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1291,13 +1264,12 @@ export interface UnwrapPemWithPinResponse {
   pemPrivateKey?: Uint8Array
 }
 
-// UnwrapPemWithPinResponse contains the message type declaration for UnwrapPemWithPinResponse.
 export const UnwrapPemWithPinResponse: MessageType<UnwrapPemWithPinResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.UnwrapPemWithPinResponse',
     fields: [
       { no: 1, name: 'pem_private_key', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1308,13 +1280,11 @@ export const UnwrapPemWithPinResponse: MessageType<UnwrapPemWithPinResponse> =
  */
 export interface GeneratePasskeyPrfSaltRequest {}
 
-// GeneratePasskeyPrfSaltRequest contains the message type declaration for GeneratePasskeyPrfSaltRequest.
 export const GeneratePasskeyPrfSaltRequest: MessageType<GeneratePasskeyPrfSaltRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.GeneratePasskeyPrfSaltRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GeneratePasskeyPrfSaltRequest>(
+    's4wave.provider.spacewave.GeneratePasskeyPrfSaltRequest',
+    true,
+  )
 
 /**
  * GeneratePasskeyPrfSaltResponse returns a passkey PRF salt.
@@ -1330,13 +1300,12 @@ export interface GeneratePasskeyPrfSaltResponse {
   prfSalt?: string
 }
 
-// GeneratePasskeyPrfSaltResponse contains the message type declaration for GeneratePasskeyPrfSaltResponse.
 export const GeneratePasskeyPrfSaltResponse: MessageType<GeneratePasskeyPrfSaltResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GeneratePasskeyPrfSaltResponse',
     fields: [
       { no: 1, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1366,15 +1335,14 @@ export interface WrapWithPasskeyPrfRequest {
   pinWrapped?: boolean
 }
 
-// WrapWithPasskeyPrfRequest contains the message type declaration for WrapWithPasskeyPrfRequest.
 export const WrapWithPasskeyPrfRequest: MessageType<WrapWithPasskeyPrfRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WrapWithPasskeyPrfRequest',
     fields: [
       { no: 1, name: 'plaintext', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'prf_output', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1398,9 +1366,8 @@ export interface WrapWithPasskeyPrfResponse {
   authParamsBase64?: string
 }
 
-// WrapWithPasskeyPrfResponse contains the message type declaration for WrapWithPasskeyPrfResponse.
 export const WrapWithPasskeyPrfResponse: MessageType<WrapWithPasskeyPrfResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WrapWithPasskeyPrfResponse',
     fields: [
       {
@@ -1415,7 +1382,7 @@ export const WrapWithPasskeyPrfResponse: MessageType<WrapWithPasskeyPrfResponse>
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1445,9 +1412,8 @@ export interface UnwrapWithPasskeyPrfRequest {
   prfOutput?: Uint8Array
 }
 
-// UnwrapWithPasskeyPrfRequest contains the message type declaration for UnwrapWithPasskeyPrfRequest.
 export const UnwrapWithPasskeyPrfRequest: MessageType<UnwrapWithPasskeyPrfRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.UnwrapWithPasskeyPrfRequest',
     fields: [
       {
@@ -1463,7 +1429,7 @@ export const UnwrapWithPasskeyPrfRequest: MessageType<UnwrapWithPasskeyPrfReques
         T: ScalarType.STRING,
       },
       { no: 3, name: 'prf_output', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1487,14 +1453,13 @@ export interface UnwrapWithPasskeyPrfResponse {
   pinWrapped?: boolean
 }
 
-// UnwrapWithPasskeyPrfResponse contains the message type declaration for UnwrapWithPasskeyPrfResponse.
 export const UnwrapWithPasskeyPrfResponse: MessageType<UnwrapWithPasskeyPrfResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.UnwrapWithPasskeyPrfResponse',
     fields: [
       { no: 1, name: 'plaintext', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1512,13 +1477,12 @@ export interface PasskeyAuthOptionsRequest {
   username?: string
 }
 
-// PasskeyAuthOptionsRequest contains the message type declaration for PasskeyAuthOptionsRequest.
 export const PasskeyAuthOptionsRequest: MessageType<PasskeyAuthOptionsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyAuthOptionsRequest',
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1536,13 +1500,12 @@ export interface PasskeyAuthOptionsResponse {
   optionsJson?: string
 }
 
-// PasskeyAuthOptionsResponse contains the message type declaration for PasskeyAuthOptionsResponse.
 export const PasskeyAuthOptionsResponse: MessageType<PasskeyAuthOptionsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyAuthOptionsResponse',
     fields: [
       { no: 1, name: 'options_json', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1560,13 +1523,12 @@ export interface PasskeyAuthVerifyRequest {
   credentialJson?: string
 }
 
-// PasskeyAuthVerifyRequest contains the message type declaration for PasskeyAuthVerifyRequest.
 export const PasskeyAuthVerifyRequest: MessageType<PasskeyAuthVerifyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyAuthVerifyRequest',
     fields: [
       { no: 1, name: 'credential_json', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1620,9 +1582,8 @@ export interface PasskeyAuthVerifyResponse {
   pinWrapped?: boolean
 }
 
-// PasskeyAuthVerifyResponse contains the message type declaration for PasskeyAuthVerifyResponse.
 export const PasskeyAuthVerifyResponse: MessageType<PasskeyAuthVerifyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyAuthVerifyResponse',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
@@ -1632,7 +1593,7 @@ export const PasskeyAuthVerifyResponse: MessageType<PasskeyAuthVerifyResponse> =
       { no: 5, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1663,9 +1624,8 @@ export interface PasskeyPrfAuthParams {
   pinWrapped?: boolean
 }
 
-// PasskeyPrfAuthParams contains the message type declaration for PasskeyPrfAuthParams.
 export const PasskeyPrfAuthParams: MessageType<PasskeyPrfAuthParams> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyPrfAuthParams',
     fields: [
       {
@@ -1676,7 +1636,7 @@ export const PasskeyPrfAuthParams: MessageType<PasskeyPrfAuthParams> =
       },
       { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1694,13 +1654,12 @@ export interface PasskeyCheckUsernameRequest {
   username?: string
 }
 
-// PasskeyCheckUsernameRequest contains the message type declaration for PasskeyCheckUsernameRequest.
 export const PasskeyCheckUsernameRequest: MessageType<PasskeyCheckUsernameRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyCheckUsernameRequest',
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1718,13 +1677,12 @@ export interface PasskeyCheckUsernameResponse {
   ok?: boolean
 }
 
-// PasskeyCheckUsernameResponse contains the message type declaration for PasskeyCheckUsernameResponse.
 export const PasskeyCheckUsernameResponse: MessageType<PasskeyCheckUsernameResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyCheckUsernameResponse',
     fields: [
       { no: 1, name: 'ok', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1742,13 +1700,12 @@ export interface PasskeyRegisterChallengeRequest {
   username?: string
 }
 
-// PasskeyRegisterChallengeRequest contains the message type declaration for PasskeyRegisterChallengeRequest.
 export const PasskeyRegisterChallengeRequest: MessageType<PasskeyRegisterChallengeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyRegisterChallengeRequest',
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1766,13 +1723,12 @@ export interface PasskeyRegisterChallengeResponse {
   optionsJson?: string
 }
 
-// PasskeyRegisterChallengeResponse contains the message type declaration for PasskeyRegisterChallengeResponse.
 export const PasskeyRegisterChallengeResponse: MessageType<PasskeyRegisterChallengeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyRegisterChallengeResponse',
     fields: [
       { no: 1, name: 'options_json', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1783,13 +1739,11 @@ export const PasskeyRegisterChallengeResponse: MessageType<PasskeyRegisterChalle
  */
 export interface StartDesktopPasskeyRequest {}
 
-// StartDesktopPasskeyRequest contains the message type declaration for StartDesktopPasskeyRequest.
 export const StartDesktopPasskeyRequest: MessageType<StartDesktopPasskeyRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.StartDesktopPasskeyRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<StartDesktopPasskeyRequest>(
+    's4wave.provider.spacewave.StartDesktopPasskeyRequest',
+    true,
+  )
 
 /**
  * DesktopPasskeyLinkedResult is returned when desktop passkey finds an existing account.
@@ -1841,9 +1795,8 @@ export interface DesktopPasskeyLinkedResult {
   prfOutput?: string
 }
 
-// DesktopPasskeyLinkedResult contains the message type declaration for DesktopPasskeyLinkedResult.
 export const DesktopPasskeyLinkedResult: MessageType<DesktopPasskeyLinkedResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.DesktopPasskeyLinkedResult',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
@@ -1853,7 +1806,7 @@ export const DesktopPasskeyLinkedResult: MessageType<DesktopPasskeyLinkedResult>
       { no: 5, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1901,9 +1854,8 @@ export interface DesktopPasskeyNewAccountResult {
   prfOutput?: string
 }
 
-// DesktopPasskeyNewAccountResult contains the message type declaration for DesktopPasskeyNewAccountResult.
 export const DesktopPasskeyNewAccountResult: MessageType<DesktopPasskeyNewAccountResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.DesktopPasskeyNewAccountResult',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
@@ -1912,7 +1864,7 @@ export const DesktopPasskeyNewAccountResult: MessageType<DesktopPasskeyNewAccoun
       { no: 4, name: 'prf_capable', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1952,9 +1904,8 @@ export interface StartDesktopPasskeyResponse {
       }
 }
 
-// StartDesktopPasskeyResponse contains the message type declaration for StartDesktopPasskeyResponse.
 export const StartDesktopPasskeyResponse: MessageType<StartDesktopPasskeyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartDesktopPasskeyResponse',
     fields: [
       {
@@ -1971,7 +1922,7 @@ export const StartDesktopPasskeyResponse: MessageType<StartDesktopPasskeyRespons
         T: () => DesktopPasskeyNewAccountResult,
         oneof: 'result',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2043,9 +1994,8 @@ export interface ConfirmDesktopPasskeyRequest {
   authParams?: string
 }
 
-// ConfirmDesktopPasskeyRequest contains the message type declaration for ConfirmDesktopPasskeyRequest.
 export const ConfirmDesktopPasskeyRequest: MessageType<ConfirmDesktopPasskeyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ConfirmDesktopPasskeyRequest',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
@@ -2063,7 +2013,7 @@ export const ConfirmDesktopPasskeyRequest: MessageType<ConfirmDesktopPasskeyRequ
       { no: 8, name: 'prf_capable', kind: 'scalar', T: ScalarType.BOOL },
       { no: 9, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2087,14 +2037,13 @@ export interface ConfirmDesktopPasskeyResponse {
   sessionPeerId?: string
 }
 
-// ConfirmDesktopPasskeyResponse contains the message type declaration for ConfirmDesktopPasskeyResponse.
 export const ConfirmDesktopPasskeyResponse: MessageType<ConfirmDesktopPasskeyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ConfirmDesktopPasskeyResponse',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2160,9 +2109,8 @@ export interface PasskeyConfirmSignupRequest {
   authParams?: string
 }
 
-// PasskeyConfirmSignupRequest contains the message type declaration for PasskeyConfirmSignupRequest.
 export const PasskeyConfirmSignupRequest: MessageType<PasskeyConfirmSignupRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyConfirmSignupRequest',
     fields: [
       { no: 1, name: 'credential_json', kind: 'scalar', T: ScalarType.STRING },
@@ -2179,7 +2127,7 @@ export const PasskeyConfirmSignupRequest: MessageType<PasskeyConfirmSignupReques
       { no: 7, name: 'prf_capable', kind: 'scalar', T: ScalarType.BOOL },
       { no: 8, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2203,14 +2151,13 @@ export interface PasskeyConfirmSignupResponse {
   sessionPeerId?: string
 }
 
-// PasskeyConfirmSignupResponse contains the message type declaration for PasskeyConfirmSignupResponse.
 export const PasskeyConfirmSignupResponse: MessageType<PasskeyConfirmSignupResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PasskeyConfirmSignupResponse',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2257,9 +2204,8 @@ export interface RelayDesktopPasskeyRequest {
       }
 }
 
-// RelayDesktopPasskeyRequest contains the message type declaration for RelayDesktopPasskeyRequest.
 export const RelayDesktopPasskeyRequest: MessageType<RelayDesktopPasskeyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RelayDesktopPasskeyRequest',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
@@ -2277,7 +2223,7 @@ export const RelayDesktopPasskeyRequest: MessageType<RelayDesktopPasskeyRequest>
         T: () => DesktopPasskeyNewAccountResult,
         oneof: 'result',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2288,13 +2234,11 @@ export const RelayDesktopPasskeyRequest: MessageType<RelayDesktopPasskeyRequest>
  */
 export interface RelayDesktopPasskeyResponse {}
 
-// RelayDesktopPasskeyResponse contains the message type declaration for RelayDesktopPasskeyResponse.
 export const RelayDesktopPasskeyResponse: MessageType<RelayDesktopPasskeyResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.RelayDesktopPasskeyResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RelayDesktopPasskeyResponse>(
+    's4wave.provider.spacewave.RelayDesktopPasskeyResponse',
+    true,
+  )
 
 /**
  * SSOCodeExchangeRequest exchanges an OAuth authorization code for account
@@ -2323,15 +2267,14 @@ export interface SSOCodeExchangeRequest {
   redirectUri?: string
 }
 
-// SSOCodeExchangeRequest contains the message type declaration for SSOCodeExchangeRequest.
 export const SSOCodeExchangeRequest: MessageType<SSOCodeExchangeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SSOCodeExchangeRequest',
     fields: [
       { no: 1, name: 'provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'redirect_uri', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2350,13 +2293,12 @@ export interface SSONonceExchangeRequest {
   nonce?: string
 }
 
-// SSONonceExchangeRequest contains the message type declaration for SSONonceExchangeRequest.
 export const SSONonceExchangeRequest: MessageType<SSONonceExchangeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SSONonceExchangeRequest',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2422,9 +2364,8 @@ export interface SSOCodeExchangeResponse {
   username?: string
 }
 
-// SSOCodeExchangeResponse contains the message type declaration for SSOCodeExchangeResponse.
 export const SSOCodeExchangeResponse: MessageType<SSOCodeExchangeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SSOCodeExchangeResponse',
     fields: [
       { no: 1, name: 'linked', kind: 'scalar', T: ScalarType.BOOL },
@@ -2436,7 +2377,7 @@ export const SSOCodeExchangeResponse: MessageType<SSOCodeExchangeResponse> =
       { no: 7, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'email', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'username', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2447,13 +2388,11 @@ export const SSOCodeExchangeResponse: MessageType<SSOCodeExchangeResponse> =
  */
 export interface GetCloudProviderConfigRequest {}
 
-// GetCloudProviderConfigRequest contains the message type declaration for GetCloudProviderConfigRequest.
 export const GetCloudProviderConfigRequest: MessageType<GetCloudProviderConfigRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.GetCloudProviderConfigRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetCloudProviderConfigRequest>(
+    's4wave.provider.spacewave.GetCloudProviderConfigRequest',
+    true,
+  )
 
 /**
  * StartBrowserHandoffRequest opens the external browser auth handoff flow.
@@ -2482,15 +2421,14 @@ export interface StartBrowserHandoffRequest {
   authIntent?: string
 }
 
-// StartBrowserHandoffRequest contains the message type declaration for StartBrowserHandoffRequest.
 export const StartBrowserHandoffRequest: MessageType<StartBrowserHandoffRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartBrowserHandoffRequest',
     fields: [
       { no: 1, name: 'client_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'username', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'auth_intent', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2508,9 +2446,8 @@ export interface StartBrowserHandoffResponse {
   sessionListEntry?: SessionListEntry
 }
 
-// StartBrowserHandoffResponse contains the message type declaration for StartBrowserHandoffResponse.
 export const StartBrowserHandoffResponse: MessageType<StartBrowserHandoffResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartBrowserHandoffResponse',
     fields: [
       {
@@ -2519,7 +2456,7 @@ export const StartBrowserHandoffResponse: MessageType<StartBrowserHandoffRespons
         kind: 'message',
         T: () => SessionListEntry,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2537,13 +2474,12 @@ export interface StartDesktopSSORequest {
   ssoProvider?: string
 }
 
-// StartDesktopSSORequest contains the message type declaration for StartDesktopSSORequest.
 export const StartDesktopSSORequest: MessageType<StartDesktopSSORequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartDesktopSSORequest',
     fields: [
       { no: 1, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2591,9 +2527,8 @@ export interface DesktopSSOLinkedResult {
   username?: string
 }
 
-// DesktopSSOLinkedResult contains the message type declaration for DesktopSSOLinkedResult.
 export const DesktopSSOLinkedResult: MessageType<DesktopSSOLinkedResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.DesktopSSOLinkedResult',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
@@ -2602,7 +2537,7 @@ export const DesktopSSOLinkedResult: MessageType<DesktopSSOLinkedResult> =
       { no: 4, name: 'pem_private_key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'username', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2632,15 +2567,14 @@ export interface DesktopSSONewAccountResult {
   email?: string
 }
 
-// DesktopSSONewAccountResult contains the message type declaration for DesktopSSONewAccountResult.
 export const DesktopSSONewAccountResult: MessageType<DesktopSSONewAccountResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.DesktopSSONewAccountResult',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2680,9 +2614,8 @@ export interface StartDesktopSSOResponse {
       }
 }
 
-// StartDesktopSSOResponse contains the message type declaration for StartDesktopSSOResponse.
 export const StartDesktopSSOResponse: MessageType<StartDesktopSSOResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartDesktopSSOResponse',
     fields: [
       {
@@ -2699,7 +2632,7 @@ export const StartDesktopSSOResponse: MessageType<StartDesktopSSOResponse> =
         T: () => DesktopSSONewAccountResult,
         oneof: 'result',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2718,13 +2651,12 @@ export interface StartDesktopSSOLinkRequest {
   ssoProvider?: string
 }
 
-// StartDesktopSSOLinkRequest contains the message type declaration for StartDesktopSSOLinkRequest.
 export const StartDesktopSSOLinkRequest: MessageType<StartDesktopSSOLinkRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartDesktopSSOLinkRequest',
     fields: [
       { no: 1, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2751,14 +2683,13 @@ export interface StartDesktopSSOLinkResponse {
   code?: string
 }
 
-// StartDesktopSSOLinkResponse contains the message type declaration for StartDesktopSSOLinkResponse.
 export const StartDesktopSSOLinkResponse: MessageType<StartDesktopSSOLinkResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartDesktopSSOLinkResponse',
     fields: [
       { no: 1, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2777,13 +2708,12 @@ export interface StartDesktopPasskeyReauthRequest {
   peerId?: string
 }
 
-// StartDesktopPasskeyReauthRequest contains the message type declaration for StartDesktopPasskeyReauthRequest.
 export const StartDesktopPasskeyReauthRequest: MessageType<StartDesktopPasskeyReauthRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartDesktopPasskeyReauthRequest',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2832,9 +2762,8 @@ export interface StartDesktopPasskeyReauthResponse {
   prfOutput?: string
 }
 
-// StartDesktopPasskeyReauthResponse contains the message type declaration for StartDesktopPasskeyReauthResponse.
 export const StartDesktopPasskeyReauthResponse: MessageType<StartDesktopPasskeyReauthResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.StartDesktopPasskeyReauthResponse',
     fields: [
       { no: 1, name: 'encrypted_blob', kind: 'scalar', T: ScalarType.STRING },
@@ -2843,7 +2772,7 @@ export const StartDesktopPasskeyReauthResponse: MessageType<StartDesktopPasskeyR
       { no: 4, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2891,9 +2820,8 @@ export interface ConfirmDesktopSSORequest {
   pinWrapped?: boolean
 }
 
-// ConfirmDesktopSSORequest contains the message type declaration for ConfirmDesktopSSORequest.
 export const ConfirmDesktopSSORequest: MessageType<ConfirmDesktopSSORequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ConfirmDesktopSSORequest',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
@@ -2907,7 +2835,7 @@ export const ConfirmDesktopSSORequest: MessageType<ConfirmDesktopSSORequest> =
       { no: 4, name: 'entity_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2931,14 +2859,13 @@ export interface ConfirmDesktopSSOResponse {
   sessionPeerId?: string
 }
 
-// ConfirmDesktopSSOResponse contains the message type declaration for ConfirmDesktopSSOResponse.
 export const ConfirmDesktopSSOResponse: MessageType<ConfirmDesktopSSOResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ConfirmDesktopSSOResponse',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3001,9 +2928,8 @@ export interface CloudProviderConfig {
   githubSsoEnabled?: boolean
 }
 
-// CloudProviderConfig contains the message type declaration for CloudProviderConfig.
 export const CloudProviderConfig: MessageType<CloudProviderConfig> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CloudProviderConfig',
     fields: [
       { no: 1, name: 'sso_base_url', kind: 'scalar', T: ScalarType.STRING },
@@ -3019,7 +2945,7 @@ export const CloudProviderConfig: MessageType<CloudProviderConfig> =
       { no: 6, name: 'public_base_url', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'google_sso_enabled', kind: 'scalar', T: ScalarType.BOOL },
       { no: 8, name: 'github_sso_enabled', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3043,14 +2969,13 @@ export interface RequestRecoveryEmailRequest {
   turnstileToken?: string
 }
 
-// RequestRecoveryEmailRequest contains the message type declaration for RequestRecoveryEmailRequest.
 export const RequestRecoveryEmailRequest: MessageType<RequestRecoveryEmailRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RequestRecoveryEmailRequest',
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'turnstile_token', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3068,13 +2993,12 @@ export interface RequestRecoveryEmailResponse {
   sent?: boolean
 }
 
-// RequestRecoveryEmailResponse contains the message type declaration for RequestRecoveryEmailResponse.
 export const RequestRecoveryEmailResponse: MessageType<RequestRecoveryEmailResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RequestRecoveryEmailResponse',
     fields: [
       { no: 1, name: 'sent', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3092,13 +3016,12 @@ export interface RecoverVerifyRequest {
   token?: string
 }
 
-// RecoverVerifyRequest contains the message type declaration for RecoverVerifyRequest.
 export const RecoverVerifyRequest: MessageType<RecoverVerifyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RecoverVerifyRequest',
     fields: [
       { no: 1, name: 'token', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3122,14 +3045,13 @@ export interface RecoverVerifyResponse {
   entityId?: string
 }
 
-// RecoverVerifyResponse contains the message type declaration for RecoverVerifyResponse.
 export const RecoverVerifyResponse: MessageType<RecoverVerifyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RecoverVerifyResponse',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3173,9 +3095,8 @@ export interface RecoverExecuteRequest {
   accountId?: string
 }
 
-// RecoverExecuteRequest contains the message type declaration for RecoverExecuteRequest.
 export const RecoverExecuteRequest: MessageType<RecoverExecuteRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RecoverExecuteRequest',
     fields: [
       { no: 1, name: 'token', kind: 'scalar', T: ScalarType.STRING },
@@ -3183,7 +3104,7 @@ export const RecoverExecuteRequest: MessageType<RecoverExecuteRequest> =
       { no: 3, name: 'new_password', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'remove_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3201,13 +3122,12 @@ export interface RecoverExecuteResponse {
   peerId?: string
 }
 
-// RecoverExecuteResponse contains the message type declaration for RecoverExecuteResponse.
 export const RecoverExecuteResponse: MessageType<RecoverExecuteResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RecoverExecuteResponse',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3263,9 +3183,8 @@ export interface ReauthenticateSessionRequest {
       }
 }
 
-// ReauthenticateSessionRequest contains the message type declaration for ReauthenticateSessionRequest.
 export const ReauthenticateSessionRequest: MessageType<ReauthenticateSessionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ReauthenticateSessionRequest',
     fields: [
       { no: 1, name: 'session_index', kind: 'scalar', T: ScalarType.UINT32 },
@@ -3285,7 +3204,7 @@ export const ReauthenticateSessionRequest: MessageType<ReauthenticateSessionRequ
       },
       { no: 4, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'turnstile_token', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3303,9 +3222,8 @@ export interface ReauthenticateSessionResponse {
   accountStatus?: ProviderAccountStatus
 }
 
-// ReauthenticateSessionResponse contains the message type declaration for ReauthenticateSessionResponse.
 export const ReauthenticateSessionResponse: MessageType<ReauthenticateSessionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ReauthenticateSessionResponse',
     fields: [
       {
@@ -3314,7 +3232,7 @@ export const ReauthenticateSessionResponse: MessageType<ReauthenticateSessionRes
         kind: 'enum',
         T: ProviderAccountStatus_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3338,14 +3256,13 @@ export interface ResetSessionRequest {
   credential?: EntityCredential
 }
 
-// ResetSessionRequest contains the message type declaration for ResetSessionRequest.
 export const ResetSessionRequest: MessageType<ResetSessionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ResetSessionRequest',
     fields: [
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3356,13 +3273,11 @@ export const ResetSessionRequest: MessageType<ResetSessionRequest> =
  */
 export interface ResetSessionResponse {}
 
-// ResetSessionResponse contains the message type declaration for ResetSessionResponse.
 export const ResetSessionResponse: MessageType<ResetSessionResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.ResetSessionResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ResetSessionResponse>(
+    's4wave.provider.spacewave.ResetSessionResponse',
+    true,
+  )
 
 /**
  * CreateLinkedLocalSessionRequest creates a local provider session with cloud identity.
@@ -3371,13 +3286,11 @@ export const ResetSessionResponse: MessageType<ResetSessionResponse> =
  */
 export interface CreateLinkedLocalSessionRequest {}
 
-// CreateLinkedLocalSessionRequest contains the message type declaration for CreateLinkedLocalSessionRequest.
 export const CreateLinkedLocalSessionRequest: MessageType<CreateLinkedLocalSessionRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.CreateLinkedLocalSessionRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<CreateLinkedLocalSessionRequest>(
+    's4wave.provider.spacewave.CreateLinkedLocalSessionRequest',
+    true,
+  )
 
 /**
  * CreateLinkedLocalSessionResponse is the response for CreateLinkedLocalSession.
@@ -3393,9 +3306,8 @@ export interface CreateLinkedLocalSessionResponse {
   sessionListEntry?: SessionListEntry
 }
 
-// CreateLinkedLocalSessionResponse contains the message type declaration for CreateLinkedLocalSessionResponse.
 export const CreateLinkedLocalSessionResponse: MessageType<CreateLinkedLocalSessionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateLinkedLocalSessionResponse',
     fields: [
       {
@@ -3404,7 +3316,7 @@ export const CreateLinkedLocalSessionResponse: MessageType<CreateLinkedLocalSess
         kind: 'message',
         T: () => SessionListEntry,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3415,13 +3327,11 @@ export const CreateLinkedLocalSessionResponse: MessageType<CreateLinkedLocalSess
  */
 export interface GetLinkedLocalSessionRequest {}
 
-// GetLinkedLocalSessionRequest contains the message type declaration for GetLinkedLocalSessionRequest.
 export const GetLinkedLocalSessionRequest: MessageType<GetLinkedLocalSessionRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.GetLinkedLocalSessionRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetLinkedLocalSessionRequest>(
+    's4wave.provider.spacewave.GetLinkedLocalSessionRequest',
+    true,
+  )
 
 /**
  * GetLinkedLocalSessionResponse is the response for GetLinkedLocalSession.
@@ -3443,14 +3353,13 @@ export interface GetLinkedLocalSessionResponse {
   sessionIndex?: number
 }
 
-// GetLinkedLocalSessionResponse contains the message type declaration for GetLinkedLocalSessionResponse.
 export const GetLinkedLocalSessionResponse: MessageType<GetLinkedLocalSessionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetLinkedLocalSessionResponse',
     fields: [
       { no: 1, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'session_index', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3461,13 +3370,11 @@ export const GetLinkedLocalSessionResponse: MessageType<GetLinkedLocalSessionRes
  */
 export interface GetLinkedCloudSessionRequest {}
 
-// GetLinkedCloudSessionRequest contains the message type declaration for GetLinkedCloudSessionRequest.
 export const GetLinkedCloudSessionRequest: MessageType<GetLinkedCloudSessionRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.GetLinkedCloudSessionRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetLinkedCloudSessionRequest>(
+    's4wave.provider.spacewave.GetLinkedCloudSessionRequest',
+    true,
+  )
 
 /**
  * GetLinkedCloudSessionResponse is the response for GetLinkedCloudSession.
@@ -3497,9 +3404,8 @@ export interface GetLinkedCloudSessionResponse {
   localSessionEmpty?: boolean
 }
 
-// GetLinkedCloudSessionResponse contains the message type declaration for GetLinkedCloudSessionResponse.
 export const GetLinkedCloudSessionResponse: MessageType<GetLinkedCloudSessionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetLinkedCloudSessionResponse',
     fields: [
       { no: 1, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
@@ -3510,7 +3416,7 @@ export const GetLinkedCloudSessionResponse: MessageType<GetLinkedCloudSessionRes
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3534,14 +3440,13 @@ export interface EncryptForHandoffRequest {
   sessionNonce?: string
 }
 
-// EncryptForHandoffRequest contains the message type declaration for EncryptForHandoffRequest.
 export const EncryptForHandoffRequest: MessageType<EncryptForHandoffRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.EncryptForHandoffRequest',
     fields: [
       { no: 1, name: 'device_public_key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'session_nonce', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3571,9 +3476,8 @@ export interface EncryptForHandoffResponse {
   entityId?: string
 }
 
-// EncryptForHandoffResponse contains the message type declaration for EncryptForHandoffResponse.
 export const EncryptForHandoffResponse: MessageType<EncryptForHandoffResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.EncryptForHandoffResponse',
     fields: [
       {
@@ -3584,7 +3488,7 @@ export const EncryptForHandoffResponse: MessageType<EncryptForHandoffResponse> =
       },
       { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3662,9 +3566,8 @@ export interface BillingAccountInfo {
   displayName?: string
 }
 
-// BillingAccountInfo contains the message type declaration for BillingAccountInfo.
 export const BillingAccountInfo: MessageType<BillingAccountInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.BillingAccountInfo',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -3698,7 +3601,7 @@ export const BillingAccountInfo: MessageType<BillingAccountInfo> =
       },
       { no: 10, name: 'deleted_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 11, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3794,9 +3697,8 @@ export interface BillingUsageInfo {
   usageMeteredThroughAt?: bigint
 }
 
-// BillingUsageInfo contains the message type declaration for BillingUsageInfo.
 export const BillingUsageInfo: MessageType<BillingUsageInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.BillingUsageInfo',
     fields: [
       { no: 1, name: 'storage_bytes', kind: 'scalar', T: ScalarType.DOUBLE },
@@ -3857,7 +3759,7 @@ export const BillingUsageInfo: MessageType<BillingUsageInfo> =
         kind: 'scalar',
         T: ScalarType.INT64,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3892,9 +3794,8 @@ export interface CreateCheckoutSessionRequest {
   billingAccountId?: string
 }
 
-// CreateCheckoutSessionRequest contains the message type declaration for CreateCheckoutSessionRequest.
 export const CreateCheckoutSessionRequest: MessageType<CreateCheckoutSessionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateCheckoutSessionRequest',
     fields: [
       { no: 1, name: 'success_url', kind: 'scalar', T: ScalarType.STRING },
@@ -3911,7 +3812,7 @@ export const CreateCheckoutSessionRequest: MessageType<CreateCheckoutSessionRequ
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3942,15 +3843,14 @@ export interface CreateCheckoutSessionResponse {
   status?: CheckoutStatus
 }
 
-// CreateCheckoutSessionResponse contains the message type declaration for CreateCheckoutSessionResponse.
 export const CreateCheckoutSessionResponse: MessageType<CreateCheckoutSessionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateCheckoutSessionResponse',
     fields: [
       { no: 1, name: 'checkout_url', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ws_ticket', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'status', kind: 'enum', T: CheckoutStatus_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -3961,13 +3861,11 @@ export const CreateCheckoutSessionResponse: MessageType<CreateCheckoutSessionRes
  */
 export interface CancelCheckoutSessionRequest {}
 
-// CancelCheckoutSessionRequest contains the message type declaration for CancelCheckoutSessionRequest.
 export const CancelCheckoutSessionRequest: MessageType<CancelCheckoutSessionRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.CancelCheckoutSessionRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<CancelCheckoutSessionRequest>(
+    's4wave.provider.spacewave.CancelCheckoutSessionRequest',
+    true,
+  )
 
 /**
  * CancelCheckoutSessionResponse is the response for CancelCheckoutSession.
@@ -3985,13 +3883,12 @@ export interface CancelCheckoutSessionResponse {
   status?: CheckoutStatus
 }
 
-// CancelCheckoutSessionResponse contains the message type declaration for CancelCheckoutSessionResponse.
 export const CancelCheckoutSessionResponse: MessageType<CancelCheckoutSessionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CancelCheckoutSessionResponse',
     fields: [
       { no: 1, name: 'status', kind: 'enum', T: CheckoutStatus_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4002,13 +3899,11 @@ export const CancelCheckoutSessionResponse: MessageType<CancelCheckoutSessionRes
  */
 export interface GetSubscriptionStatusRequest {}
 
-// GetSubscriptionStatusRequest contains the message type declaration for GetSubscriptionStatusRequest.
 export const GetSubscriptionStatusRequest: MessageType<GetSubscriptionStatusRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.GetSubscriptionStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetSubscriptionStatusRequest>(
+    's4wave.provider.spacewave.GetSubscriptionStatusRequest',
+    true,
+  )
 
 /**
  * GetSubscriptionStatusResponse contains the current subscription status.
@@ -4030,9 +3925,8 @@ export interface GetSubscriptionStatusResponse {
   cancelAt?: bigint
 }
 
-// GetSubscriptionStatusResponse contains the message type declaration for GetSubscriptionStatusResponse.
 export const GetSubscriptionStatusResponse: MessageType<GetSubscriptionStatusResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetSubscriptionStatusResponse',
     fields: [
       {
@@ -4042,7 +3936,7 @@ export const GetSubscriptionStatusResponse: MessageType<GetSubscriptionStatusRes
         T: BillingStatus_Enum,
       },
       { no: 2, name: 'cancel_at', kind: 'scalar', T: ScalarType.INT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4053,13 +3947,11 @@ export const GetSubscriptionStatusResponse: MessageType<GetSubscriptionStatusRes
  */
 export interface WatchSubscriptionStatusRequest {}
 
-// WatchSubscriptionStatusRequest contains the message type declaration for WatchSubscriptionStatusRequest.
 export const WatchSubscriptionStatusRequest: MessageType<WatchSubscriptionStatusRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.WatchSubscriptionStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchSubscriptionStatusRequest>(
+    's4wave.provider.spacewave.WatchSubscriptionStatusRequest',
+    true,
+  )
 
 /**
  * WatchSubscriptionStatusResponse contains the current subscription status.
@@ -4076,9 +3968,8 @@ export interface WatchSubscriptionStatusResponse {
   billingAccount?: BillingAccountInfo
 }
 
-// WatchSubscriptionStatusResponse contains the message type declaration for WatchSubscriptionStatusResponse.
 export const WatchSubscriptionStatusResponse: MessageType<WatchSubscriptionStatusResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchSubscriptionStatusResponse',
     fields: [
       {
@@ -4087,7 +3978,7 @@ export const WatchSubscriptionStatusResponse: MessageType<WatchSubscriptionStatu
         kind: 'message',
         T: () => BillingAccountInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4105,9 +3996,8 @@ export interface WatchBillingStateRequest {
   billingAccountId?: string
 }
 
-// WatchBillingStateRequest contains the message type declaration for WatchBillingStateRequest.
 export const WatchBillingStateRequest: MessageType<WatchBillingStateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchBillingStateRequest',
     fields: [
       {
@@ -4116,7 +4006,7 @@ export const WatchBillingStateRequest: MessageType<WatchBillingStateRequest> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4140,9 +4030,8 @@ export interface WatchBillingStateResponse {
   usage?: BillingUsageInfo
 }
 
-// WatchBillingStateResponse contains the message type declaration for WatchBillingStateResponse.
 export const WatchBillingStateResponse: MessageType<WatchBillingStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchBillingStateResponse',
     fields: [
       {
@@ -4152,7 +4041,7 @@ export const WatchBillingStateResponse: MessageType<WatchBillingStateResponse> =
         T: () => BillingAccountInfo,
       },
       { no: 2, name: 'usage', kind: 'message', T: () => BillingUsageInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4163,13 +4052,11 @@ export const WatchBillingStateResponse: MessageType<WatchBillingStateResponse> =
  */
 export interface WatchCheckoutStatusRequest {}
 
-// WatchCheckoutStatusRequest contains the message type declaration for WatchCheckoutStatusRequest.
 export const WatchCheckoutStatusRequest: MessageType<WatchCheckoutStatusRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.WatchCheckoutStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchCheckoutStatusRequest>(
+    's4wave.provider.spacewave.WatchCheckoutStatusRequest',
+    true,
+  )
 
 /**
  * WatchCheckoutStatusResponse is the response for WatchCheckoutStatus.
@@ -4186,13 +4073,12 @@ export interface WatchCheckoutStatusResponse {
   status?: CheckoutStatus
 }
 
-// WatchCheckoutStatusResponse contains the message type declaration for WatchCheckoutStatusResponse.
 export const WatchCheckoutStatusResponse: MessageType<WatchCheckoutStatusResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchCheckoutStatusResponse',
     fields: [
       { no: 1, name: 'status', kind: 'enum', T: CheckoutStatus_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4203,13 +4089,11 @@ export const WatchCheckoutStatusResponse: MessageType<WatchCheckoutStatusRespons
  */
 export interface WatchOnboardingStatusRequest {}
 
-// WatchOnboardingStatusRequest contains the message type declaration for WatchOnboardingStatusRequest.
 export const WatchOnboardingStatusRequest: MessageType<WatchOnboardingStatusRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.WatchOnboardingStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchOnboardingStatusRequest>(
+    's4wave.provider.spacewave.WatchOnboardingStatusRequest',
+    true,
+  )
 
 /**
  * WatchOnboardingStatusResponse contains the current onboarding state.
@@ -4358,9 +4242,8 @@ export interface WatchOnboardingStatusResponse {
   sessionSelfEnrollmentCount?: number
 }
 
-// WatchOnboardingStatusResponse contains the message type declaration for WatchOnboardingStatusResponse.
 export const WatchOnboardingStatusResponse: MessageType<WatchOnboardingStatusResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchOnboardingStatusResponse',
     fields: [
       { no: 1, name: 'has_subscription', kind: 'scalar', T: ScalarType.BOOL },
@@ -4460,7 +4343,7 @@ export const WatchOnboardingStatusResponse: MessageType<WatchOnboardingStatusRes
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4471,13 +4354,11 @@ export const WatchOnboardingStatusResponse: MessageType<WatchOnboardingStatusRes
  */
 export interface UnlinkLocalSessionRequest {}
 
-// UnlinkLocalSessionRequest contains the message type declaration for UnlinkLocalSessionRequest.
 export const UnlinkLocalSessionRequest: MessageType<UnlinkLocalSessionRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.UnlinkLocalSessionRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<UnlinkLocalSessionRequest>(
+    's4wave.provider.spacewave.UnlinkLocalSessionRequest',
+    true,
+  )
 
 /**
  * UnlinkLocalSessionResponse is the response for UnlinkLocalSession.
@@ -4486,13 +4367,11 @@ export const UnlinkLocalSessionRequest: MessageType<UnlinkLocalSessionRequest> =
  */
 export interface UnlinkLocalSessionResponse {}
 
-// UnlinkLocalSessionResponse contains the message type declaration for UnlinkLocalSessionResponse.
 export const UnlinkLocalSessionResponse: MessageType<UnlinkLocalSessionResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.UnlinkLocalSessionResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<UnlinkLocalSessionResponse>(
+    's4wave.provider.spacewave.UnlinkLocalSessionResponse',
+    true,
+  )
 
 /**
  * OrganizationInfo contains info about an organization.
@@ -4532,9 +4411,8 @@ export interface OrganizationInfo {
   spaceIds?: string[]
 }
 
-// OrganizationInfo contains the message type declaration for OrganizationInfo.
 export const OrganizationInfo: MessageType<OrganizationInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.OrganizationInfo',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -4553,7 +4431,7 @@ export const OrganizationInfo: MessageType<OrganizationInfo> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4564,13 +4442,11 @@ export const OrganizationInfo: MessageType<OrganizationInfo> =
  */
 export interface WatchOrganizationsRequest {}
 
-// WatchOrganizationsRequest contains the message type declaration for WatchOrganizationsRequest.
 export const WatchOrganizationsRequest: MessageType<WatchOrganizationsRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.WatchOrganizationsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchOrganizationsRequest>(
+    's4wave.provider.spacewave.WatchOrganizationsRequest',
+    true,
+  )
 
 /**
  * WatchOrganizationsResponse is a streaming response with the current org list.
@@ -4586,9 +4462,8 @@ export interface WatchOrganizationsResponse {
   organizations?: OrganizationInfo[]
 }
 
-// WatchOrganizationsResponse contains the message type declaration for WatchOrganizationsResponse.
 export const WatchOrganizationsResponse: MessageType<WatchOrganizationsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchOrganizationsResponse',
     fields: [
       {
@@ -4598,7 +4473,7 @@ export const WatchOrganizationsResponse: MessageType<WatchOrganizationsResponse>
         T: () => OrganizationInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4609,13 +4484,11 @@ export const WatchOrganizationsResponse: MessageType<WatchOrganizationsResponse>
  */
 export interface ListOrganizationsRequest {}
 
-// ListOrganizationsRequest contains the message type declaration for ListOrganizationsRequest.
 export const ListOrganizationsRequest: MessageType<ListOrganizationsRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.ListOrganizationsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ListOrganizationsRequest>(
+    's4wave.provider.spacewave.ListOrganizationsRequest',
+    true,
+  )
 
 /**
  * ListOrganizationsResponse is the response for ListOrganizations.
@@ -4631,9 +4504,8 @@ export interface ListOrganizationsResponse {
   organizations?: OrganizationInfo[]
 }
 
-// ListOrganizationsResponse contains the message type declaration for ListOrganizationsResponse.
 export const ListOrganizationsResponse: MessageType<ListOrganizationsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ListOrganizationsResponse',
     fields: [
       {
@@ -4643,7 +4515,7 @@ export const ListOrganizationsResponse: MessageType<ListOrganizationsResponse> =
         T: () => OrganizationInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4661,13 +4533,12 @@ export interface GetSpaceMetadataRequest {
   sharedObjectId?: string
 }
 
-// GetSpaceMetadataRequest contains the message type declaration for GetSpaceMetadataRequest.
 export const GetSpaceMetadataRequest: MessageType<GetSpaceMetadataRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetSpaceMetadataRequest',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4703,16 +4574,15 @@ export interface GetSpaceMetadataResponse {
   ownerId?: string
 }
 
-// GetSpaceMetadataResponse contains the message type declaration for GetSpaceMetadataResponse.
 export const GetSpaceMetadataResponse: MessageType<GetSpaceMetadataResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetSpaceMetadataResponse',
     fields: [
       { no: 1, name: 'owner_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'owner_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4730,13 +4600,12 @@ export interface CreateOrganizationRequest {
   displayName?: string
 }
 
-// CreateOrganizationRequest contains the message type declaration for CreateOrganizationRequest.
 export const CreateOrganizationRequest: MessageType<CreateOrganizationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateOrganizationRequest',
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4754,9 +4623,8 @@ export interface CreateOrganizationResponse {
   organization?: OrganizationInfo
 }
 
-// CreateOrganizationResponse contains the message type declaration for CreateOrganizationResponse.
 export const CreateOrganizationResponse: MessageType<CreateOrganizationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateOrganizationResponse',
     fields: [
       {
@@ -4765,7 +4633,7 @@ export const CreateOrganizationResponse: MessageType<CreateOrganizationResponse>
         kind: 'message',
         T: () => OrganizationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4813,19 +4681,19 @@ export interface OrgInviteInfo {
   expiresAt?: bigint
 }
 
-// OrgInviteInfo contains the message type declaration for OrgInviteInfo.
-export const OrgInviteInfo: MessageType<OrgInviteInfo> = createMessageType({
-  typeName: 's4wave.provider.spacewave.OrgInviteInfo',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'type', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'token', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'uses', kind: 'scalar', T: ScalarType.INT32 },
-    { no: 5, name: 'max_uses', kind: 'scalar', T: ScalarType.INT32 },
-    { no: 6, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OrgInviteInfo: MessageType<OrgInviteInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.OrgInviteInfo',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'token', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'uses', kind: 'scalar', T: ScalarType.INT32 },
+      { no: 5, name: 'max_uses', kind: 'scalar', T: ScalarType.INT32 },
+      { no: 6, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CreateTargetedInviteDraftByUsernameRequest is the request for
@@ -4872,9 +4740,8 @@ export interface CreateTargetedInviteDraftByUsernameRequest {
   expiresAt?: bigint
 }
 
-// CreateTargetedInviteDraftByUsernameRequest contains the message type declaration for CreateTargetedInviteDraftByUsernameRequest.
 export const CreateTargetedInviteDraftByUsernameRequest: MessageType<CreateTargetedInviteDraftByUsernameRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName:
       's4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest',
     fields: [
@@ -4884,7 +4751,7 @@ export const CreateTargetedInviteDraftByUsernameRequest: MessageType<CreateTarge
       { no: 4, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'role', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4904,14 +4771,13 @@ export interface CreateTargetedInviteDraftByUsernameResponse {
   accepted?: boolean
 }
 
-// CreateTargetedInviteDraftByUsernameResponse contains the message type declaration for CreateTargetedInviteDraftByUsernameResponse.
 export const CreateTargetedInviteDraftByUsernameResponse: MessageType<CreateTargetedInviteDraftByUsernameResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName:
       's4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse',
     fields: [
       { no: 1, name: 'accepted', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -4947,16 +4813,15 @@ export interface ResolveUsernameRequest {
   orgId?: string
 }
 
-// ResolveUsernameRequest contains the message type declaration for ResolveUsernameRequest.
 export const ResolveUsernameRequest: MessageType<ResolveUsernameRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ResolveUsernameRequest',
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'purpose', kind: 'enum', T: TargetedInvitePurpose_Enum },
       { no: 3, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5016,9 +4881,8 @@ export interface ResolveUsernameResponse {
   accountEpoch?: bigint
 }
 
-// ResolveUsernameResponse contains the message type declaration for ResolveUsernameResponse.
 export const ResolveUsernameResponse: MessageType<ResolveUsernameResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ResolveUsernameResponse',
     fields: [
       { no: 1, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
@@ -5029,7 +4893,7 @@ export const ResolveUsernameResponse: MessageType<ResolveUsernameResponse> =
       { no: 6, name: 'can_invite', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'entity_uuid', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'account_epoch', kind: 'scalar', T: ScalarType.INT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5138,9 +5002,8 @@ export interface TargetedInvitationEnvelope {
   signature?: Uint8Array
 }
 
-// TargetedInvitationEnvelope contains the message type declaration for TargetedInvitationEnvelope.
 export const TargetedInvitationEnvelope: MessageType<TargetedInvitationEnvelope> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.TargetedInvitationEnvelope',
     fields: [
       { no: 1, name: 'schema_version', kind: 'scalar', T: ScalarType.UINT32 },
@@ -5184,7 +5047,7 @@ export const TargetedInvitationEnvelope: MessageType<TargetedInvitationEnvelope>
       { no: 13, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 14, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
       { no: 15, name: 'signature', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5292,9 +5155,8 @@ export interface TargetedInvitationInfo {
   draftId?: string
 }
 
-// TargetedInvitationInfo contains the message type declaration for TargetedInvitationInfo.
 export const TargetedInvitationInfo: MessageType<TargetedInvitationInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.TargetedInvitationInfo',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -5333,7 +5195,7 @@ export const TargetedInvitationInfo: MessageType<TargetedInvitationInfo> =
       { no: 14, name: 'updated_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 15, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 16, name: 'draft_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5393,9 +5255,8 @@ export interface CreateTargetedInvitationRequest {
   draftId?: string
 }
 
-// CreateTargetedInvitationRequest contains the message type declaration for CreateTargetedInvitationRequest.
 export const CreateTargetedInvitationRequest: MessageType<CreateTargetedInvitationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateTargetedInvitationRequest',
     fields: [
       {
@@ -5416,7 +5277,7 @@ export const CreateTargetedInvitationRequest: MessageType<CreateTargetedInvitati
         T: () => TargetedInvitationEnvelope,
       },
       { no: 8, name: 'draft_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5435,9 +5296,8 @@ export interface CreateTargetedInvitationResponse {
   invitation?: TargetedInvitationInfo
 }
 
-// CreateTargetedInvitationResponse contains the message type declaration for CreateTargetedInvitationResponse.
 export const CreateTargetedInvitationResponse: MessageType<CreateTargetedInvitationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateTargetedInvitationResponse',
     fields: [
       {
@@ -5446,7 +5306,7 @@ export const CreateTargetedInvitationResponse: MessageType<CreateTargetedInvitat
         kind: 'message',
         T: () => TargetedInvitationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5483,9 +5343,8 @@ export interface CreateSpaceTargetedInvitationByUsernameRequest {
   expiresAt?: bigint
 }
 
-// CreateSpaceTargetedInvitationByUsernameRequest contains the message type declaration for CreateSpaceTargetedInvitationByUsernameRequest.
 export const CreateSpaceTargetedInvitationByUsernameRequest: MessageType<CreateSpaceTargetedInvitationByUsernameRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName:
       's4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest',
     fields: [
@@ -5493,7 +5352,7 @@ export const CreateSpaceTargetedInvitationByUsernameRequest: MessageType<CreateS
       { no: 2, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'role', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5512,9 +5371,8 @@ export interface CreateSpaceTargetedInvitationByUsernameResponse {
   invitation?: TargetedInvitationInfo
 }
 
-// CreateSpaceTargetedInvitationByUsernameResponse contains the message type declaration for CreateSpaceTargetedInvitationByUsernameResponse.
 export const CreateSpaceTargetedInvitationByUsernameResponse: MessageType<CreateSpaceTargetedInvitationByUsernameResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName:
       's4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse',
     fields: [
@@ -5524,7 +5382,7 @@ export const CreateSpaceTargetedInvitationByUsernameResponse: MessageType<Create
         kind: 'message',
         T: () => TargetedInvitationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5543,13 +5401,12 @@ export interface AcceptSpaceTargetedInvitationRequest {
   id?: string
 }
 
-// AcceptSpaceTargetedInvitationRequest contains the message type declaration for AcceptSpaceTargetedInvitationRequest.
 export const AcceptSpaceTargetedInvitationRequest: MessageType<AcceptSpaceTargetedInvitationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5581,9 +5438,8 @@ export interface AcceptSpaceTargetedInvitationResponse {
   joinResult?: string
 }
 
-// AcceptSpaceTargetedInvitationResponse contains the message type declaration for AcceptSpaceTargetedInvitationResponse.
 export const AcceptSpaceTargetedInvitationResponse: MessageType<AcceptSpaceTargetedInvitationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse',
     fields: [
       {
@@ -5594,7 +5450,7 @@ export const AcceptSpaceTargetedInvitationResponse: MessageType<AcceptSpaceTarge
       },
       { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'join_result', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5631,9 +5487,8 @@ export interface CreateOrganizationTargetedInvitationByUsernameRequest {
   expiresAt?: bigint
 }
 
-// CreateOrganizationTargetedInvitationByUsernameRequest contains the message type declaration for CreateOrganizationTargetedInvitationByUsernameRequest.
 export const CreateOrganizationTargetedInvitationByUsernameRequest: MessageType<CreateOrganizationTargetedInvitationByUsernameRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName:
       's4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest',
     fields: [
@@ -5641,7 +5496,7 @@ export const CreateOrganizationTargetedInvitationByUsernameRequest: MessageType<
       { no: 2, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'role', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5660,9 +5515,8 @@ export interface CreateOrganizationTargetedInvitationByUsernameResponse {
   invitation?: TargetedInvitationInfo
 }
 
-// CreateOrganizationTargetedInvitationByUsernameResponse contains the message type declaration for CreateOrganizationTargetedInvitationByUsernameResponse.
 export const CreateOrganizationTargetedInvitationByUsernameResponse: MessageType<CreateOrganizationTargetedInvitationByUsernameResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName:
       's4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse',
     fields: [
@@ -5672,7 +5526,7 @@ export const CreateOrganizationTargetedInvitationByUsernameResponse: MessageType
         kind: 'message',
         T: () => TargetedInvitationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5691,14 +5545,13 @@ export interface AcceptOrganizationTargetedInvitationRequest {
   id?: string
 }
 
-// AcceptOrganizationTargetedInvitationRequest contains the message type declaration for AcceptOrganizationTargetedInvitationRequest.
 export const AcceptOrganizationTargetedInvitationRequest: MessageType<AcceptOrganizationTargetedInvitationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName:
       's4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5723,9 +5576,8 @@ export interface AcceptOrganizationTargetedInvitationResponse {
   organization?: OrganizationInfo
 }
 
-// AcceptOrganizationTargetedInvitationResponse contains the message type declaration for AcceptOrganizationTargetedInvitationResponse.
 export const AcceptOrganizationTargetedInvitationResponse: MessageType<AcceptOrganizationTargetedInvitationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName:
       's4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse',
     fields: [
@@ -5741,7 +5593,7 @@ export const AcceptOrganizationTargetedInvitationResponse: MessageType<AcceptOrg
         kind: 'message',
         T: () => OrganizationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5752,13 +5604,11 @@ export const AcceptOrganizationTargetedInvitationResponse: MessageType<AcceptOrg
  */
 export interface ListTargetedInvitationsRequest {}
 
-// ListTargetedInvitationsRequest contains the message type declaration for ListTargetedInvitationsRequest.
 export const ListTargetedInvitationsRequest: MessageType<ListTargetedInvitationsRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.ListTargetedInvitationsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ListTargetedInvitationsRequest>(
+    's4wave.provider.spacewave.ListTargetedInvitationsRequest',
+    true,
+  )
 
 /**
  * ListTargetedInvitationsResponse is the response for
@@ -5775,9 +5625,8 @@ export interface ListTargetedInvitationsResponse {
   invitations?: TargetedInvitationInfo[]
 }
 
-// ListTargetedInvitationsResponse contains the message type declaration for ListTargetedInvitationsResponse.
 export const ListTargetedInvitationsResponse: MessageType<ListTargetedInvitationsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ListTargetedInvitationsResponse',
     fields: [
       {
@@ -5787,7 +5636,7 @@ export const ListTargetedInvitationsResponse: MessageType<ListTargetedInvitation
         T: () => TargetedInvitationInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5805,13 +5654,12 @@ export interface GetTargetedInvitationRequest {
   id?: string
 }
 
-// GetTargetedInvitationRequest contains the message type declaration for GetTargetedInvitationRequest.
 export const GetTargetedInvitationRequest: MessageType<GetTargetedInvitationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetTargetedInvitationRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5829,9 +5677,8 @@ export interface GetTargetedInvitationResponse {
   invitation?: TargetedInvitationInfo
 }
 
-// GetTargetedInvitationResponse contains the message type declaration for GetTargetedInvitationResponse.
 export const GetTargetedInvitationResponse: MessageType<GetTargetedInvitationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetTargetedInvitationResponse',
     fields: [
       {
@@ -5840,7 +5687,7 @@ export const GetTargetedInvitationResponse: MessageType<GetTargetedInvitationRes
         kind: 'message',
         T: () => TargetedInvitationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5858,13 +5705,12 @@ export interface RevokeTargetedInvitationRequest {
   id?: string
 }
 
-// RevokeTargetedInvitationRequest contains the message type declaration for RevokeTargetedInvitationRequest.
 export const RevokeTargetedInvitationRequest: MessageType<RevokeTargetedInvitationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RevokeTargetedInvitationRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5883,9 +5729,8 @@ export interface RevokeTargetedInvitationResponse {
   invitation?: TargetedInvitationInfo
 }
 
-// RevokeTargetedInvitationResponse contains the message type declaration for RevokeTargetedInvitationResponse.
 export const RevokeTargetedInvitationResponse: MessageType<RevokeTargetedInvitationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RevokeTargetedInvitationResponse',
     fields: [
       {
@@ -5894,7 +5739,7 @@ export const RevokeTargetedInvitationResponse: MessageType<RevokeTargetedInvitat
         kind: 'message',
         T: () => TargetedInvitationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5918,14 +5763,13 @@ export interface ProcessTargetedInvitationRequest {
   action?: string
 }
 
-// ProcessTargetedInvitationRequest contains the message type declaration for ProcessTargetedInvitationRequest.
 export const ProcessTargetedInvitationRequest: MessageType<ProcessTargetedInvitationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ProcessTargetedInvitationRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'action', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5944,9 +5788,8 @@ export interface ProcessTargetedInvitationResponse {
   invitation?: TargetedInvitationInfo
 }
 
-// ProcessTargetedInvitationResponse contains the message type declaration for ProcessTargetedInvitationResponse.
 export const ProcessTargetedInvitationResponse: MessageType<ProcessTargetedInvitationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ProcessTargetedInvitationResponse',
     fields: [
       {
@@ -5955,7 +5798,7 @@ export const ProcessTargetedInvitationResponse: MessageType<ProcessTargetedInvit
         kind: 'message',
         T: () => TargetedInvitationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -5997,9 +5840,8 @@ export interface CreateOrgInviteRequest {
   email?: string
 }
 
-// CreateOrgInviteRequest contains the message type declaration for CreateOrgInviteRequest.
 export const CreateOrgInviteRequest: MessageType<CreateOrgInviteRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateOrgInviteRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
@@ -6007,7 +5849,7 @@ export const CreateOrgInviteRequest: MessageType<CreateOrgInviteRequest> =
       { no: 3, name: 'max_uses', kind: 'scalar', T: ScalarType.INT32 },
       { no: 4, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 5, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6025,13 +5867,12 @@ export interface CreateOrgInviteResponse {
   invite?: OrgInviteInfo
 }
 
-// CreateOrgInviteResponse contains the message type declaration for CreateOrgInviteResponse.
 export const CreateOrgInviteResponse: MessageType<CreateOrgInviteResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateOrgInviteResponse',
     fields: [
       { no: 1, name: 'invite', kind: 'message', T: () => OrgInviteInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6049,13 +5890,12 @@ export interface JoinOrganizationRequest {
   token?: string
 }
 
-// JoinOrganizationRequest contains the message type declaration for JoinOrganizationRequest.
 export const JoinOrganizationRequest: MessageType<JoinOrganizationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.JoinOrganizationRequest',
     fields: [
       { no: 1, name: 'token', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6073,9 +5913,8 @@ export interface JoinOrganizationResponse {
   organization?: OrganizationInfo
 }
 
-// JoinOrganizationResponse contains the message type declaration for JoinOrganizationResponse.
 export const JoinOrganizationResponse: MessageType<JoinOrganizationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.JoinOrganizationResponse',
     fields: [
       {
@@ -6084,7 +5923,7 @@ export const JoinOrganizationResponse: MessageType<JoinOrganizationResponse> =
         kind: 'message',
         T: () => OrganizationInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6108,14 +5947,13 @@ export interface UpdateOrganizationRequest {
   displayName?: string
 }
 
-// UpdateOrganizationRequest contains the message type declaration for UpdateOrganizationRequest.
 export const UpdateOrganizationRequest: MessageType<UpdateOrganizationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.UpdateOrganizationRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6126,13 +5964,11 @@ export const UpdateOrganizationRequest: MessageType<UpdateOrganizationRequest> =
  */
 export interface UpdateOrganizationResponse {}
 
-// UpdateOrganizationResponse contains the message type declaration for UpdateOrganizationResponse.
 export const UpdateOrganizationResponse: MessageType<UpdateOrganizationResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.UpdateOrganizationResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<UpdateOrganizationResponse>(
+    's4wave.provider.spacewave.UpdateOrganizationResponse',
+    true,
+  )
 
 /**
  * DeleteOrganizationRequest is the request for DeleteOrganization.
@@ -6148,13 +5984,12 @@ export interface DeleteOrganizationRequest {
   orgId?: string
 }
 
-// DeleteOrganizationRequest contains the message type declaration for DeleteOrganizationRequest.
 export const DeleteOrganizationRequest: MessageType<DeleteOrganizationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.DeleteOrganizationRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6165,13 +6000,11 @@ export const DeleteOrganizationRequest: MessageType<DeleteOrganizationRequest> =
  */
 export interface DeleteOrganizationResponse {}
 
-// DeleteOrganizationResponse contains the message type declaration for DeleteOrganizationResponse.
 export const DeleteOrganizationResponse: MessageType<DeleteOrganizationResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.DeleteOrganizationResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<DeleteOrganizationResponse>(
+    's4wave.provider.spacewave.DeleteOrganizationResponse',
+    true,
+  )
 
 /**
  * GetOrganizationRequest is the request for GetOrganization.
@@ -6187,13 +6020,12 @@ export interface GetOrganizationRequest {
   orgId?: string
 }
 
-// GetOrganizationRequest contains the message type declaration for GetOrganizationRequest.
 export const GetOrganizationRequest: MessageType<GetOrganizationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetOrganizationRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6211,13 +6043,12 @@ export interface WatchOrganizationStateRequest {
   orgId?: string
 }
 
-// WatchOrganizationStateRequest contains the message type declaration for WatchOrganizationStateRequest.
 export const WatchOrganizationStateRequest: MessageType<WatchOrganizationStateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchOrganizationStateRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6259,18 +6090,18 @@ export interface OrgMemberInfo {
   entityId?: string
 }
 
-// OrgMemberInfo contains the message type declaration for OrgMemberInfo.
-export const OrgMemberInfo: MessageType<OrgMemberInfo> = createMessageType({
-  typeName: 's4wave.provider.spacewave.OrgMemberInfo',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'subject_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
-    { no: 5, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OrgMemberInfo: MessageType<OrgMemberInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.OrgMemberInfo',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'subject_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 5, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * OrgSpaceInfo contains info about a space owned by an organization.
@@ -6298,16 +6129,16 @@ export interface OrgSpaceInfo {
   objectType?: string
 }
 
-// OrgSpaceInfo contains the message type declaration for OrgSpaceInfo.
-export const OrgSpaceInfo: MessageType<OrgSpaceInfo> = createMessageType({
-  typeName: 's4wave.provider.spacewave.OrgSpaceInfo',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const OrgSpaceInfo: MessageType<OrgSpaceInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.OrgSpaceInfo',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SharedObjectMutationPermission contains the viewer's repair and
@@ -6336,15 +6167,14 @@ export interface SharedObjectMutationPermission {
   disabledReason?: string
 }
 
-// SharedObjectMutationPermission contains the message type declaration for SharedObjectMutationPermission.
 export const SharedObjectMutationPermission: MessageType<SharedObjectMutationPermission> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SharedObjectMutationPermission',
     fields: [
       { no: 1, name: 'can_repair', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'can_reinitialize', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'disabled_reason', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6375,9 +6205,8 @@ export interface OrganizationRootStateInfo {
   mutationPermission?: SharedObjectMutationPermission
 }
 
-// OrganizationRootStateInfo contains the message type declaration for OrganizationRootStateInfo.
 export const OrganizationRootStateInfo: MessageType<OrganizationRootStateInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.OrganizationRootStateInfo',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
@@ -6388,7 +6217,7 @@ export const OrganizationRootStateInfo: MessageType<OrganizationRootStateInfo> =
         kind: 'message',
         T: () => SharedObjectMutationPermission,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6424,9 +6253,8 @@ export interface GetOrganizationResponse {
   rootState?: OrganizationRootStateInfo
 }
 
-// GetOrganizationResponse contains the message type declaration for GetOrganizationResponse.
 export const GetOrganizationResponse: MessageType<GetOrganizationResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetOrganizationResponse',
     fields: [
       {
@@ -6455,7 +6283,7 @@ export const GetOrganizationResponse: MessageType<GetOrganizationResponse> =
         kind: 'message',
         T: () => OrganizationRootStateInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6497,9 +6325,8 @@ export interface WatchOrganizationStateResponse {
   rootState?: OrganizationRootStateInfo
 }
 
-// WatchOrganizationStateResponse contains the message type declaration for WatchOrganizationStateResponse.
 export const WatchOrganizationStateResponse: MessageType<WatchOrganizationStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchOrganizationStateResponse',
     fields: [
       {
@@ -6535,7 +6362,7 @@ export const WatchOrganizationStateResponse: MessageType<WatchOrganizationStateR
         kind: 'message',
         T: () => OrganizationRootStateInfo,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6553,13 +6380,12 @@ export interface RepairSharedObjectRequest {
   sharedObjectId?: string
 }
 
-// RepairSharedObjectRequest contains the message type declaration for RepairSharedObjectRequest.
 export const RepairSharedObjectRequest: MessageType<RepairSharedObjectRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RepairSharedObjectRequest',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6570,13 +6396,11 @@ export const RepairSharedObjectRequest: MessageType<RepairSharedObjectRequest> =
  */
 export interface RepairSharedObjectResponse {}
 
-// RepairSharedObjectResponse contains the message type declaration for RepairSharedObjectResponse.
 export const RepairSharedObjectResponse: MessageType<RepairSharedObjectResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.RepairSharedObjectResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RepairSharedObjectResponse>(
+    's4wave.provider.spacewave.RepairSharedObjectResponse',
+    true,
+  )
 
 /**
  * ReinitializeSharedObjectRequest is the request for ReinitializeSharedObject.
@@ -6592,13 +6416,12 @@ export interface ReinitializeSharedObjectRequest {
   sharedObjectId?: string
 }
 
-// ReinitializeSharedObjectRequest contains the message type declaration for ReinitializeSharedObjectRequest.
 export const ReinitializeSharedObjectRequest: MessageType<ReinitializeSharedObjectRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ReinitializeSharedObjectRequest',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6609,13 +6432,11 @@ export const ReinitializeSharedObjectRequest: MessageType<ReinitializeSharedObje
  */
 export interface ReinitializeSharedObjectResponse {}
 
-// ReinitializeSharedObjectResponse contains the message type declaration for ReinitializeSharedObjectResponse.
 export const ReinitializeSharedObjectResponse: MessageType<ReinitializeSharedObjectResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.ReinitializeSharedObjectResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ReinitializeSharedObjectResponse>(
+    's4wave.provider.spacewave.ReinitializeSharedObjectResponse',
+    true,
+  )
 
 /**
  * ListOrgInvitesRequest is the request for ListOrgInvites.
@@ -6631,13 +6452,12 @@ export interface ListOrgInvitesRequest {
   orgId?: string
 }
 
-// ListOrgInvitesRequest contains the message type declaration for ListOrgInvitesRequest.
 export const ListOrgInvitesRequest: MessageType<ListOrgInvitesRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ListOrgInvitesRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6655,9 +6475,8 @@ export interface ListOrgInvitesResponse {
   invites?: OrgInviteInfo[]
 }
 
-// ListOrgInvitesResponse contains the message type declaration for ListOrgInvitesResponse.
 export const ListOrgInvitesResponse: MessageType<ListOrgInvitesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ListOrgInvitesResponse',
     fields: [
       {
@@ -6667,7 +6486,7 @@ export const ListOrgInvitesResponse: MessageType<ListOrgInvitesResponse> =
         T: () => OrgInviteInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6691,14 +6510,13 @@ export interface RevokeOrgInviteRequest {
   inviteId?: string
 }
 
-// RevokeOrgInviteRequest contains the message type declaration for RevokeOrgInviteRequest.
 export const RevokeOrgInviteRequest: MessageType<RevokeOrgInviteRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RevokeOrgInviteRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6709,13 +6527,11 @@ export const RevokeOrgInviteRequest: MessageType<RevokeOrgInviteRequest> =
  */
 export interface RevokeOrgInviteResponse {}
 
-// RevokeOrgInviteResponse contains the message type declaration for RevokeOrgInviteResponse.
 export const RevokeOrgInviteResponse: MessageType<RevokeOrgInviteResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.RevokeOrgInviteResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RevokeOrgInviteResponse>(
+    's4wave.provider.spacewave.RevokeOrgInviteResponse',
+    true,
+  )
 
 /**
  * LeaveOrganizationRequest is the request for LeaveOrganization.
@@ -6731,13 +6547,12 @@ export interface LeaveOrganizationRequest {
   orgId?: string
 }
 
-// LeaveOrganizationRequest contains the message type declaration for LeaveOrganizationRequest.
 export const LeaveOrganizationRequest: MessageType<LeaveOrganizationRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LeaveOrganizationRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6748,13 +6563,11 @@ export const LeaveOrganizationRequest: MessageType<LeaveOrganizationRequest> =
  */
 export interface LeaveOrganizationResponse {}
 
-// LeaveOrganizationResponse contains the message type declaration for LeaveOrganizationResponse.
 export const LeaveOrganizationResponse: MessageType<LeaveOrganizationResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.LeaveOrganizationResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<LeaveOrganizationResponse>(
+    's4wave.provider.spacewave.LeaveOrganizationResponse',
+    true,
+  )
 
 /**
  * RemoveOrgMemberRequest is the request for RemoveOrgMember.
@@ -6776,14 +6589,13 @@ export interface RemoveOrgMemberRequest {
   memberId?: string
 }
 
-// RemoveOrgMemberRequest contains the message type declaration for RemoveOrgMemberRequest.
 export const RemoveOrgMemberRequest: MessageType<RemoveOrgMemberRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RemoveOrgMemberRequest',
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'member_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6794,13 +6606,11 @@ export const RemoveOrgMemberRequest: MessageType<RemoveOrgMemberRequest> =
  */
 export interface RemoveOrgMemberResponse {}
 
-// RemoveOrgMemberResponse contains the message type declaration for RemoveOrgMemberResponse.
 export const RemoveOrgMemberResponse: MessageType<RemoveOrgMemberResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.RemoveOrgMemberResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RemoveOrgMemberResponse>(
+    's4wave.provider.spacewave.RemoveOrgMemberResponse',
+    true,
+  )
 
 /**
  * TransferResourceRequest is the request for TransferResource.
@@ -6828,15 +6638,14 @@ export interface TransferResourceRequest {
   newOwnerId?: string
 }
 
-// TransferResourceRequest contains the message type declaration for TransferResourceRequest.
 export const TransferResourceRequest: MessageType<TransferResourceRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.TransferResourceRequest',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'new_owner_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'new_owner_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6847,13 +6656,11 @@ export const TransferResourceRequest: MessageType<TransferResourceRequest> =
  */
 export interface TransferResourceResponse {}
 
-// TransferResourceResponse contains the message type declaration for TransferResourceResponse.
 export const TransferResourceResponse: MessageType<TransferResourceResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.TransferResourceResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<TransferResourceResponse>(
+    's4wave.provider.spacewave.TransferResourceResponse',
+    true,
+  )
 
 /**
  * AssignBillingAccountRequest is the request for AssignBillingAccount.
@@ -6885,9 +6692,8 @@ export interface AssignBillingAccountRequest {
   targetOwnerId?: string
 }
 
-// AssignBillingAccountRequest contains the message type declaration for AssignBillingAccountRequest.
 export const AssignBillingAccountRequest: MessageType<AssignBillingAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.AssignBillingAccountRequest',
     fields: [
       {
@@ -6903,7 +6709,7 @@ export const AssignBillingAccountRequest: MessageType<AssignBillingAccountReques
         T: ScalarType.STRING,
       },
       { no: 3, name: 'target_owner_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6914,13 +6720,11 @@ export const AssignBillingAccountRequest: MessageType<AssignBillingAccountReques
  */
 export interface AssignBillingAccountResponse {}
 
-// AssignBillingAccountResponse contains the message type declaration for AssignBillingAccountResponse.
 export const AssignBillingAccountResponse: MessageType<AssignBillingAccountResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.AssignBillingAccountResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AssignBillingAccountResponse>(
+    's4wave.provider.spacewave.AssignBillingAccountResponse',
+    true,
+  )
 
 /**
  * DetachBillingAccountRequest is the request for DetachBillingAccount.
@@ -6944,9 +6748,8 @@ export interface DetachBillingAccountRequest {
   targetOwnerId?: string
 }
 
-// DetachBillingAccountRequest contains the message type declaration for DetachBillingAccountRequest.
 export const DetachBillingAccountRequest: MessageType<DetachBillingAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.DetachBillingAccountRequest',
     fields: [
       {
@@ -6956,7 +6759,7 @@ export const DetachBillingAccountRequest: MessageType<DetachBillingAccountReques
         T: ScalarType.STRING,
       },
       { no: 2, name: 'target_owner_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -6967,13 +6770,11 @@ export const DetachBillingAccountRequest: MessageType<DetachBillingAccountReques
  */
 export interface DetachBillingAccountResponse {}
 
-// DetachBillingAccountResponse contains the message type declaration for DetachBillingAccountResponse.
 export const DetachBillingAccountResponse: MessageType<DetachBillingAccountResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.DetachBillingAccountResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<DetachBillingAccountResponse>(
+    's4wave.provider.spacewave.DetachBillingAccountResponse',
+    true,
+  )
 
 /**
  * PrincipalAssignment identifies one principal that has this billing account
@@ -7003,15 +6804,14 @@ export interface PrincipalAssignment {
   displayName?: string
 }
 
-// PrincipalAssignment contains the message type declaration for PrincipalAssignment.
 export const PrincipalAssignment: MessageType<PrincipalAssignment> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PrincipalAssignment',
     fields: [
       { no: 1, name: 'owner_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'owner_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7073,9 +6873,8 @@ export interface ManagedBillingAccount {
   displayName?: string
 }
 
-// ManagedBillingAccount contains the message type declaration for ManagedBillingAccount.
 export const ManagedBillingAccount: MessageType<ManagedBillingAccount> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ManagedBillingAccount',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -7107,7 +6906,7 @@ export const ManagedBillingAccount: MessageType<ManagedBillingAccount> =
         repeated: true,
       },
       { no: 8, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7127,13 +6926,12 @@ export interface CreateBillingAccountRequest {
   displayName?: string
 }
 
-// CreateBillingAccountRequest contains the message type declaration for CreateBillingAccountRequest.
 export const CreateBillingAccountRequest: MessageType<CreateBillingAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateBillingAccountRequest',
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7157,9 +6955,8 @@ export interface RenameBillingAccountRequest {
   displayName?: string
 }
 
-// RenameBillingAccountRequest contains the message type declaration for RenameBillingAccountRequest.
 export const RenameBillingAccountRequest: MessageType<RenameBillingAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RenameBillingAccountRequest',
     fields: [
       {
@@ -7169,7 +6966,7 @@ export const RenameBillingAccountRequest: MessageType<RenameBillingAccountReques
         T: ScalarType.STRING,
       },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7180,13 +6977,11 @@ export const RenameBillingAccountRequest: MessageType<RenameBillingAccountReques
  */
 export interface RenameBillingAccountResponse {}
 
-// RenameBillingAccountResponse contains the message type declaration for RenameBillingAccountResponse.
 export const RenameBillingAccountResponse: MessageType<RenameBillingAccountResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.RenameBillingAccountResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RenameBillingAccountResponse>(
+    's4wave.provider.spacewave.RenameBillingAccountResponse',
+    true,
+  )
 
 /**
  * DeleteBillingAccountRequest is the request for DeleteBillingAccount.
@@ -7204,9 +6999,8 @@ export interface DeleteBillingAccountRequest {
   billingAccountId?: string
 }
 
-// DeleteBillingAccountRequest contains the message type declaration for DeleteBillingAccountRequest.
 export const DeleteBillingAccountRequest: MessageType<DeleteBillingAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.DeleteBillingAccountRequest',
     fields: [
       {
@@ -7215,7 +7009,7 @@ export const DeleteBillingAccountRequest: MessageType<DeleteBillingAccountReques
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7226,13 +7020,11 @@ export const DeleteBillingAccountRequest: MessageType<DeleteBillingAccountReques
  */
 export interface DeleteBillingAccountResponse {}
 
-// DeleteBillingAccountResponse contains the message type declaration for DeleteBillingAccountResponse.
 export const DeleteBillingAccountResponse: MessageType<DeleteBillingAccountResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.DeleteBillingAccountResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<DeleteBillingAccountResponse>(
+    's4wave.provider.spacewave.DeleteBillingAccountResponse',
+    true,
+  )
 
 /**
  * CreateBillingAccountResponse is the response for CreateBillingAccount.
@@ -7248,9 +7040,8 @@ export interface CreateBillingAccountResponse {
   billingAccountId?: string
 }
 
-// CreateBillingAccountResponse contains the message type declaration for CreateBillingAccountResponse.
 export const CreateBillingAccountResponse: MessageType<CreateBillingAccountResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateBillingAccountResponse',
     fields: [
       {
@@ -7259,7 +7050,7 @@ export const CreateBillingAccountResponse: MessageType<CreateBillingAccountRespo
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7270,13 +7061,11 @@ export const CreateBillingAccountResponse: MessageType<CreateBillingAccountRespo
  */
 export interface ListManagedBillingAccountsRequest {}
 
-// ListManagedBillingAccountsRequest contains the message type declaration for ListManagedBillingAccountsRequest.
 export const ListManagedBillingAccountsRequest: MessageType<ListManagedBillingAccountsRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.ListManagedBillingAccountsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ListManagedBillingAccountsRequest>(
+    's4wave.provider.spacewave.ListManagedBillingAccountsRequest',
+    true,
+  )
 
 /**
  * ListManagedBillingAccountsResponse is the response for ListManagedBillingAccounts.
@@ -7292,9 +7081,8 @@ export interface ListManagedBillingAccountsResponse {
   accounts?: ManagedBillingAccount[]
 }
 
-// ListManagedBillingAccountsResponse contains the message type declaration for ListManagedBillingAccountsResponse.
 export const ListManagedBillingAccountsResponse: MessageType<ListManagedBillingAccountsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ListManagedBillingAccountsResponse',
     fields: [
       {
@@ -7304,7 +7092,7 @@ export const ListManagedBillingAccountsResponse: MessageType<ListManagedBillingA
         T: () => ManagedBillingAccount,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7322,9 +7110,8 @@ export interface GetBillingAccountRequest {
   billingAccountId?: string
 }
 
-// GetBillingAccountRequest contains the message type declaration for GetBillingAccountRequest.
 export const GetBillingAccountRequest: MessageType<GetBillingAccountRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetBillingAccountRequest',
     fields: [
       {
@@ -7333,7 +7120,7 @@ export const GetBillingAccountRequest: MessageType<GetBillingAccountRequest> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7351,13 +7138,12 @@ export interface GetBillingAccountResponse {
   account?: BillingAccountInfo
 }
 
-// GetBillingAccountResponse contains the message type declaration for GetBillingAccountResponse.
 export const GetBillingAccountResponse: MessageType<GetBillingAccountResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetBillingAccountResponse',
     fields: [
       { no: 1, name: 'account', kind: 'message', T: () => BillingAccountInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7375,9 +7161,8 @@ export interface GetBillingUsageRequest {
   billingAccountId?: string
 }
 
-// GetBillingUsageRequest contains the message type declaration for GetBillingUsageRequest.
 export const GetBillingUsageRequest: MessageType<GetBillingUsageRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetBillingUsageRequest',
     fields: [
       {
@@ -7386,7 +7171,7 @@ export const GetBillingUsageRequest: MessageType<GetBillingUsageRequest> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7404,13 +7189,12 @@ export interface GetBillingUsageResponse {
   usage?: BillingUsageInfo
 }
 
-// GetBillingUsageResponse contains the message type declaration for GetBillingUsageResponse.
 export const GetBillingUsageResponse: MessageType<GetBillingUsageResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetBillingUsageResponse',
     fields: [
       { no: 1, name: 'usage', kind: 'message', T: () => BillingUsageInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7428,9 +7212,8 @@ export interface RefreshBillingStateRequest {
   billingAccountId?: string
 }
 
-// RefreshBillingStateRequest contains the message type declaration for RefreshBillingStateRequest.
 export const RefreshBillingStateRequest: MessageType<RefreshBillingStateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RefreshBillingStateRequest',
     fields: [
       {
@@ -7439,7 +7222,7 @@ export const RefreshBillingStateRequest: MessageType<RefreshBillingStateRequest>
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7450,13 +7233,11 @@ export const RefreshBillingStateRequest: MessageType<RefreshBillingStateRequest>
  */
 export interface RefreshBillingStateResponse {}
 
-// RefreshBillingStateResponse contains the message type declaration for RefreshBillingStateResponse.
 export const RefreshBillingStateResponse: MessageType<RefreshBillingStateResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.RefreshBillingStateResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RefreshBillingStateResponse>(
+    's4wave.provider.spacewave.RefreshBillingStateResponse',
+    true,
+  )
 
 /**
  * CancelSubscriptionRequest is the request for CancelSubscription.
@@ -7472,9 +7253,8 @@ export interface CancelSubscriptionRequest {
   billingAccountId?: string
 }
 
-// CancelSubscriptionRequest contains the message type declaration for CancelSubscriptionRequest.
 export const CancelSubscriptionRequest: MessageType<CancelSubscriptionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CancelSubscriptionRequest',
     fields: [
       {
@@ -7483,7 +7263,7 @@ export const CancelSubscriptionRequest: MessageType<CancelSubscriptionRequest> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7494,13 +7274,11 @@ export const CancelSubscriptionRequest: MessageType<CancelSubscriptionRequest> =
  */
 export interface CancelSubscriptionResponse {}
 
-// CancelSubscriptionResponse contains the message type declaration for CancelSubscriptionResponse.
 export const CancelSubscriptionResponse: MessageType<CancelSubscriptionResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.CancelSubscriptionResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<CancelSubscriptionResponse>(
+    's4wave.provider.spacewave.CancelSubscriptionResponse',
+    true,
+  )
 
 /**
  * ReactivateSubscriptionRequest is the request for ReactivateSubscription.
@@ -7516,9 +7294,8 @@ export interface ReactivateSubscriptionRequest {
   billingAccountId?: string
 }
 
-// ReactivateSubscriptionRequest contains the message type declaration for ReactivateSubscriptionRequest.
 export const ReactivateSubscriptionRequest: MessageType<ReactivateSubscriptionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ReactivateSubscriptionRequest',
     fields: [
       {
@@ -7527,7 +7304,7 @@ export const ReactivateSubscriptionRequest: MessageType<ReactivateSubscriptionRe
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7546,13 +7323,12 @@ export interface ReactivateSubscriptionResponse {
   needsCheckout?: boolean
 }
 
-// ReactivateSubscriptionResponse contains the message type declaration for ReactivateSubscriptionResponse.
 export const ReactivateSubscriptionResponse: MessageType<ReactivateSubscriptionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ReactivateSubscriptionResponse',
     fields: [
       { no: 1, name: 'needs_checkout', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7576,9 +7352,8 @@ export interface SwitchBillingIntervalRequest {
   billingAccountId?: string
 }
 
-// SwitchBillingIntervalRequest contains the message type declaration for SwitchBillingIntervalRequest.
 export const SwitchBillingIntervalRequest: MessageType<SwitchBillingIntervalRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SwitchBillingIntervalRequest',
     fields: [
       {
@@ -7593,7 +7368,7 @@ export const SwitchBillingIntervalRequest: MessageType<SwitchBillingIntervalRequ
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7604,13 +7379,11 @@ export const SwitchBillingIntervalRequest: MessageType<SwitchBillingIntervalRequ
  */
 export interface SwitchBillingIntervalResponse {}
 
-// SwitchBillingIntervalResponse contains the message type declaration for SwitchBillingIntervalResponse.
 export const SwitchBillingIntervalResponse: MessageType<SwitchBillingIntervalResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.SwitchBillingIntervalResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SwitchBillingIntervalResponse>(
+    's4wave.provider.spacewave.SwitchBillingIntervalResponse',
+    true,
+  )
 
 /**
  * CreateBillingPortalRequest is the request for CreateBillingPortal.
@@ -7626,9 +7399,8 @@ export interface CreateBillingPortalRequest {
   billingAccountId?: string
 }
 
-// CreateBillingPortalRequest contains the message type declaration for CreateBillingPortalRequest.
 export const CreateBillingPortalRequest: MessageType<CreateBillingPortalRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateBillingPortalRequest',
     fields: [
       {
@@ -7637,7 +7409,7 @@ export const CreateBillingPortalRequest: MessageType<CreateBillingPortalRequest>
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7655,13 +7427,12 @@ export interface CreateBillingPortalResponse {
   url?: string
 }
 
-// CreateBillingPortalResponse contains the message type declaration for CreateBillingPortalResponse.
 export const CreateBillingPortalResponse: MessageType<CreateBillingPortalResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateBillingPortalResponse',
     fields: [
       { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7672,13 +7443,11 @@ export const CreateBillingPortalResponse: MessageType<CreateBillingPortalRespons
  */
 export interface RequestDeleteNowEmailRequest {}
 
-// RequestDeleteNowEmailRequest contains the message type declaration for RequestDeleteNowEmailRequest.
 export const RequestDeleteNowEmailRequest: MessageType<RequestDeleteNowEmailRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.RequestDeleteNowEmailRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RequestDeleteNowEmailRequest>(
+    's4wave.provider.spacewave.RequestDeleteNowEmailRequest',
+    true,
+  )
 
 /**
  * RequestDeleteNowEmailResponse is the response for RequestDeleteNowEmail.
@@ -7706,15 +7475,14 @@ export interface RequestDeleteNowEmailResponse {
   email?: string
 }
 
-// RequestDeleteNowEmailResponse contains the message type declaration for RequestDeleteNowEmailResponse.
 export const RequestDeleteNowEmailResponse: MessageType<RequestDeleteNowEmailResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RequestDeleteNowEmailResponse',
     fields: [
       { no: 1, name: 'sent', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'retry_after', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7732,13 +7500,12 @@ export interface ConfirmDeleteNowCodeRequest {
   code?: string
 }
 
-// ConfirmDeleteNowCodeRequest contains the message type declaration for ConfirmDeleteNowCodeRequest.
 export const ConfirmDeleteNowCodeRequest: MessageType<ConfirmDeleteNowCodeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ConfirmDeleteNowCodeRequest',
     fields: [
       { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7798,9 +7565,8 @@ export interface ConfirmDeleteNowCodeResponse {
   refundCurrency?: string
 }
 
-// ConfirmDeleteNowCodeResponse contains the message type declaration for ConfirmDeleteNowCodeResponse.
 export const ConfirmDeleteNowCodeResponse: MessageType<ConfirmDeleteNowCodeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ConfirmDeleteNowCodeResponse',
     fields: [
       { no: 1, name: 'delete_at', kind: 'scalar', T: ScalarType.UINT64 },
@@ -7816,7 +7582,7 @@ export const ConfirmDeleteNowCodeResponse: MessageType<ConfirmDeleteNowCodeRespo
       { no: 6, name: 'charge_attempted', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'refund_amount', kind: 'scalar', T: ScalarType.INT64 },
       { no: 8, name: 'refund_currency', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7827,13 +7593,11 @@ export const ConfirmDeleteNowCodeResponse: MessageType<ConfirmDeleteNowCodeRespo
  */
 export interface UndoDeleteNowRequest {}
 
-// UndoDeleteNowRequest contains the message type declaration for UndoDeleteNowRequest.
 export const UndoDeleteNowRequest: MessageType<UndoDeleteNowRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.UndoDeleteNowRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<UndoDeleteNowRequest>(
+    's4wave.provider.spacewave.UndoDeleteNowRequest',
+    true,
+  )
 
 /**
  * UndoDeleteNowResponse is the response for UndoDeleteNow.
@@ -7842,13 +7606,11 @@ export const UndoDeleteNowRequest: MessageType<UndoDeleteNowRequest> =
  */
 export interface UndoDeleteNowResponse {}
 
-// UndoDeleteNowResponse contains the message type declaration for UndoDeleteNowResponse.
 export const UndoDeleteNowResponse: MessageType<UndoDeleteNowResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.UndoDeleteNowResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<UndoDeleteNowResponse>(
+    's4wave.provider.spacewave.UndoDeleteNowResponse',
+    true,
+  )
 
 /**
  * EmailInfo describes a single account email entry.
@@ -7882,17 +7644,17 @@ export interface EmailInfo {
   primary?: boolean
 }
 
-// EmailInfo contains the message type declaration for EmailInfo.
-export const EmailInfo: MessageType<EmailInfo> = createMessageType({
-  typeName: 's4wave.provider.spacewave.EmailInfo',
-  fields: [
-    { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'verified', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'source', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'primary', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EmailInfo: MessageType<EmailInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.EmailInfo',
+    fields: [
+      { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'verified', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'source', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'primary', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ListEmailsRequest is the request for ListEmails.
@@ -7901,13 +7663,11 @@ export const EmailInfo: MessageType<EmailInfo> = createMessageType({
  */
 export interface ListEmailsRequest {}
 
-// ListEmailsRequest contains the message type declaration for ListEmailsRequest.
 export const ListEmailsRequest: MessageType<ListEmailsRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.ListEmailsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ListEmailsRequest>(
+    's4wave.provider.spacewave.ListEmailsRequest',
+    true,
+  )
 
 /**
  * ListEmailsResponse is the response for ListEmails.
@@ -7923,9 +7683,8 @@ export interface ListEmailsResponse {
   emails?: EmailInfo[]
 }
 
-// ListEmailsResponse contains the message type declaration for ListEmailsResponse.
 export const ListEmailsResponse: MessageType<ListEmailsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ListEmailsResponse',
     fields: [
       {
@@ -7935,7 +7694,7 @@ export const ListEmailsResponse: MessageType<ListEmailsResponse> =
         T: () => EmailInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7946,13 +7705,11 @@ export const ListEmailsResponse: MessageType<ListEmailsResponse> =
  */
 export interface WatchEmailsRequest {}
 
-// WatchEmailsRequest contains the message type declaration for WatchEmailsRequest.
 export const WatchEmailsRequest: MessageType<WatchEmailsRequest> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.WatchEmailsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchEmailsRequest>(
+    's4wave.provider.spacewave.WatchEmailsRequest',
+    true,
+  )
 
 /**
  * WatchEmailsResponse is the response for WatchEmails.
@@ -7968,9 +7725,8 @@ export interface WatchEmailsResponse {
   emails?: EmailInfo[]
 }
 
-// WatchEmailsResponse contains the message type declaration for WatchEmailsResponse.
 export const WatchEmailsResponse: MessageType<WatchEmailsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchEmailsResponse',
     fields: [
       {
@@ -7980,7 +7736,7 @@ export const WatchEmailsResponse: MessageType<WatchEmailsResponse> =
         T: () => EmailInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -7998,13 +7754,12 @@ export interface SendVerificationEmailRequest {
   email?: string
 }
 
-// SendVerificationEmailRequest contains the message type declaration for SendVerificationEmailRequest.
 export const SendVerificationEmailRequest: MessageType<SendVerificationEmailRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SendVerificationEmailRequest',
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8028,14 +7783,13 @@ export interface SendVerificationEmailResponse {
   retryAfter?: number
 }
 
-// SendVerificationEmailResponse contains the message type declaration for SendVerificationEmailResponse.
 export const SendVerificationEmailResponse: MessageType<SendVerificationEmailResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SendVerificationEmailResponse',
     fields: [
       { no: 1, name: 'sent', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'retry_after', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8059,14 +7813,13 @@ export interface VerifyEmailCodeRequest {
   code?: string
 }
 
-// VerifyEmailCodeRequest contains the message type declaration for VerifyEmailCodeRequest.
 export const VerifyEmailCodeRequest: MessageType<VerifyEmailCodeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.VerifyEmailCodeRequest',
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8084,13 +7837,12 @@ export interface VerifyEmailCodeResponse {
   verified?: boolean
 }
 
-// VerifyEmailCodeResponse contains the message type declaration for VerifyEmailCodeResponse.
 export const VerifyEmailCodeResponse: MessageType<VerifyEmailCodeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.VerifyEmailCodeResponse',
     fields: [
       { no: 1, name: 'verified', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8108,14 +7860,14 @@ export interface AddEmailRequest {
   email?: string
 }
 
-// AddEmailRequest contains the message type declaration for AddEmailRequest.
-export const AddEmailRequest: MessageType<AddEmailRequest> = createMessageType({
-  typeName: 's4wave.provider.spacewave.AddEmailRequest',
-  fields: [
-    { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AddEmailRequest: MessageType<AddEmailRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.AddEmailRequest',
+    fields: [
+      { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * AddEmailResponse is the response for AddEmail.
@@ -8137,14 +7889,13 @@ export interface AddEmailResponse {
   retryAfter?: number
 }
 
-// AddEmailResponse contains the message type declaration for AddEmailResponse.
 export const AddEmailResponse: MessageType<AddEmailResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.AddEmailResponse',
     fields: [
       { no: 1, name: 'sent', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'retry_after', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8162,13 +7913,12 @@ export interface RemoveEmailRequest {
   email?: string
 }
 
-// RemoveEmailRequest contains the message type declaration for RemoveEmailRequest.
 export const RemoveEmailRequest: MessageType<RemoveEmailRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RemoveEmailRequest',
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8179,13 +7929,11 @@ export const RemoveEmailRequest: MessageType<RemoveEmailRequest> =
  */
 export interface RemoveEmailResponse {}
 
-// RemoveEmailResponse contains the message type declaration for RemoveEmailResponse.
 export const RemoveEmailResponse: MessageType<RemoveEmailResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.RemoveEmailResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RemoveEmailResponse>(
+    's4wave.provider.spacewave.RemoveEmailResponse',
+    true,
+  )
 
 /**
  * SetPrimaryEmailRequest is the request for SetPrimaryEmail.
@@ -8201,13 +7949,12 @@ export interface SetPrimaryEmailRequest {
   email?: string
 }
 
-// SetPrimaryEmailRequest contains the message type declaration for SetPrimaryEmailRequest.
 export const SetPrimaryEmailRequest: MessageType<SetPrimaryEmailRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SetPrimaryEmailRequest',
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8225,13 +7972,12 @@ export interface SetPrimaryEmailResponse {
   primary?: string
 }
 
-// SetPrimaryEmailResponse contains the message type declaration for SetPrimaryEmailResponse.
 export const SetPrimaryEmailResponse: MessageType<SetPrimaryEmailResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SetPrimaryEmailResponse',
     fields: [
       { no: 1, name: 'primary', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8261,15 +8007,14 @@ export interface EnrollSpaceMemberRequest {
   role?: SOParticipantRole
 }
 
-// EnrollSpaceMemberRequest contains the message type declaration for EnrollSpaceMemberRequest.
 export const EnrollSpaceMemberRequest: MessageType<EnrollSpaceMemberRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.EnrollSpaceMemberRequest',
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8305,9 +8050,8 @@ export interface EnrollSpaceMemberResult {
   error?: string
 }
 
-// EnrollSpaceMemberResult contains the message type declaration for EnrollSpaceMemberResult.
 export const EnrollSpaceMemberResult: MessageType<EnrollSpaceMemberResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.EnrollSpaceMemberResult',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -8319,7 +8063,7 @@ export const EnrollSpaceMemberResult: MessageType<EnrollSpaceMemberResult> =
         T: ScalarType.BOOL,
       },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8337,9 +8081,8 @@ export interface EnrollSpaceMemberResponse {
   results?: EnrollSpaceMemberResult[]
 }
 
-// EnrollSpaceMemberResponse contains the message type declaration for EnrollSpaceMemberResponse.
 export const EnrollSpaceMemberResponse: MessageType<EnrollSpaceMemberResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.EnrollSpaceMemberResponse',
     fields: [
       {
@@ -8349,7 +8092,7 @@ export const EnrollSpaceMemberResponse: MessageType<EnrollSpaceMemberResponse> =
         T: () => EnrollSpaceMemberResult,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8373,14 +8116,13 @@ export interface RemoveSpaceMemberRequest {
   accountId?: string
 }
 
-// RemoveSpaceMemberRequest contains the message type declaration for RemoveSpaceMemberRequest.
 export const RemoveSpaceMemberRequest: MessageType<RemoveSpaceMemberRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RemoveSpaceMemberRequest',
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8416,16 +8158,15 @@ export interface RemoveSpaceMemberResult {
   error?: string
 }
 
-// RemoveSpaceMemberResult contains the message type declaration for RemoveSpaceMemberResult.
 export const RemoveSpaceMemberResult: MessageType<RemoveSpaceMemberResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RemoveSpaceMemberResult',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'not_participant', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8443,9 +8184,8 @@ export interface RemoveSpaceMemberResponse {
   results?: RemoveSpaceMemberResult[]
 }
 
-// RemoveSpaceMemberResponse contains the message type declaration for RemoveSpaceMemberResponse.
 export const RemoveSpaceMemberResponse: MessageType<RemoveSpaceMemberResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RemoveSpaceMemberResponse',
     fields: [
       {
@@ -8455,7 +8195,7 @@ export const RemoveSpaceMemberResponse: MessageType<RemoveSpaceMemberResponse> =
         T: () => RemoveSpaceMemberResult,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8473,13 +8213,12 @@ export interface LookupInviteCodeRequest {
   code?: string
 }
 
-// LookupInviteCodeRequest contains the message type declaration for LookupInviteCodeRequest.
 export const LookupInviteCodeRequest: MessageType<LookupInviteCodeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LookupInviteCodeRequest',
     fields: [
       { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8503,9 +8242,8 @@ export interface LookupInviteCodeResponse {
   inviteMessage?: SOInviteMessage
 }
 
-// LookupInviteCodeResponse contains the message type declaration for LookupInviteCodeResponse.
 export const LookupInviteCodeResponse: MessageType<LookupInviteCodeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.LookupInviteCodeResponse',
     fields: [
       { no: 1, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
@@ -8515,7 +8253,7 @@ export const LookupInviteCodeResponse: MessageType<LookupInviteCodeResponse> =
         kind: 'message',
         T: () => SOInviteMessage,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8533,13 +8271,12 @@ export interface GetMailboxEntriesRequest {
   spaceId?: string
 }
 
-// GetMailboxEntriesRequest contains the message type declaration for GetMailboxEntriesRequest.
 export const GetMailboxEntriesRequest: MessageType<GetMailboxEntriesRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetMailboxEntriesRequest',
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8593,9 +8330,8 @@ export interface MailboxEntryInfo {
   entityId?: string
 }
 
-// MailboxEntryInfo contains the message type declaration for MailboxEntryInfo.
 export const MailboxEntryInfo: MessageType<MailboxEntryInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.MailboxEntryInfo',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.INT64 },
@@ -8605,7 +8341,7 @@ export const MailboxEntryInfo: MessageType<MailboxEntryInfo> =
       { no: 5, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 6, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8623,9 +8359,8 @@ export interface GetMailboxEntriesResponse {
   entries?: MailboxEntryInfo[]
 }
 
-// GetMailboxEntriesResponse contains the message type declaration for GetMailboxEntriesResponse.
 export const GetMailboxEntriesResponse: MessageType<GetMailboxEntriesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetMailboxEntriesResponse',
     fields: [
       {
@@ -8635,7 +8370,7 @@ export const GetMailboxEntriesResponse: MessageType<GetMailboxEntriesResponse> =
         T: () => MailboxEntryInfo,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8665,15 +8400,14 @@ export interface ProcessMailboxEntryRequest {
   accept?: boolean
 }
 
-// ProcessMailboxEntryRequest contains the message type declaration for ProcessMailboxEntryRequest.
 export const ProcessMailboxEntryRequest: MessageType<ProcessMailboxEntryRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ProcessMailboxEntryRequest',
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entry_id', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'accept', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8684,13 +8418,11 @@ export const ProcessMailboxEntryRequest: MessageType<ProcessMailboxEntryRequest>
  */
 export interface ProcessMailboxEntryResponse {}
 
-// ProcessMailboxEntryResponse contains the message type declaration for ProcessMailboxEntryResponse.
 export const ProcessMailboxEntryResponse: MessageType<ProcessMailboxEntryResponse> =
-  createMessageType({
-    typeName: 's4wave.provider.spacewave.ProcessMailboxEntryResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ProcessMailboxEntryResponse>(
+    's4wave.provider.spacewave.ProcessMailboxEntryResponse',
+    true,
+  )
 
 /**
  * SpaceLinkAuthRequest is the unsigned SpaceLink consent payload.
@@ -8760,9 +8492,8 @@ export interface SpaceLinkAuthRequest {
   completionMode?: SpaceLinkCompletionMode
 }
 
-// SpaceLinkAuthRequest contains the message type declaration for SpaceLinkAuthRequest.
 export const SpaceLinkAuthRequest: MessageType<SpaceLinkAuthRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SpaceLinkAuthRequest',
     fields: [
       { no: 1, name: 'version', kind: 'scalar', T: ScalarType.UINT32 },
@@ -8785,7 +8516,7 @@ export const SpaceLinkAuthRequest: MessageType<SpaceLinkAuthRequest> =
         kind: 'enum',
         T: SpaceLinkCompletionMode_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8809,14 +8540,13 @@ export interface SpaceLinkAuthTicket {
   agentSignature?: Uint8Array
 }
 
-// SpaceLinkAuthTicket contains the message type declaration for SpaceLinkAuthTicket.
 export const SpaceLinkAuthTicket: MessageType<SpaceLinkAuthTicket> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SpaceLinkAuthTicket',
     fields: [
       { no: 1, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'agent_signature', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8834,13 +8564,12 @@ export interface PreviewSpaceLinkRequest {
   ticket?: Uint8Array
 }
 
-// PreviewSpaceLinkRequest contains the message type declaration for PreviewSpaceLinkRequest.
 export const PreviewSpaceLinkRequest: MessageType<PreviewSpaceLinkRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PreviewSpaceLinkRequest',
     fields: [
       { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8906,9 +8635,8 @@ export interface PreviewSpaceLinkResponse {
   completionMode?: SpaceLinkCompletionMode
 }
 
-// PreviewSpaceLinkResponse contains the message type declaration for PreviewSpaceLinkResponse.
 export const PreviewSpaceLinkResponse: MessageType<PreviewSpaceLinkResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.PreviewSpaceLinkResponse',
     fields: [
       { no: 1, name: 'label', kind: 'scalar', T: ScalarType.STRING },
@@ -8930,7 +8658,7 @@ export const PreviewSpaceLinkResponse: MessageType<PreviewSpaceLinkResponse> =
         kind: 'enum',
         T: SpaceLinkCompletionMode_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -8954,14 +8682,13 @@ export interface ApproveSpaceLinkRequest {
   resourceId?: Uint8Array
 }
 
-// ApproveSpaceLinkRequest contains the message type declaration for ApproveSpaceLinkRequest.
 export const ApproveSpaceLinkRequest: MessageType<ApproveSpaceLinkRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ApproveSpaceLinkRequest',
     fields: [
       { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -9014,9 +8741,8 @@ export interface SpaceLinkCallback {
   errorMessage?: string
 }
 
-// SpaceLinkCallback contains the message type declaration for SpaceLinkCallback.
 export const SpaceLinkCallback: MessageType<SpaceLinkCallback> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.SpaceLinkCallback',
     fields: [
       { no: 1, name: 'status', kind: 'enum', T: SpaceLinkCallbackStatus_Enum },
@@ -9025,7 +8751,7 @@ export const SpaceLinkCallback: MessageType<SpaceLinkCallback> =
       { no: 4, name: 'resource_id', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.BYTES },
       { no: 6, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -9079,9 +8805,8 @@ export interface ApproveSpaceLinkResponse {
   completion?: SpaceLinkCallback
 }
 
-// ApproveSpaceLinkResponse contains the message type declaration for ApproveSpaceLinkResponse.
 export const ApproveSpaceLinkResponse: MessageType<ApproveSpaceLinkResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ApproveSpaceLinkResponse',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
@@ -9101,6 +8826,6 @@ export const ApproveSpaceLinkResponse: MessageType<ApproveSpaceLinkResponse> =
         kind: 'message',
         T: () => SpaceLinkCallback,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

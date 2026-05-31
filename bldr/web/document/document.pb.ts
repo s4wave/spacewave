@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/document/document.proto (package web.document, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'web.document'
 
@@ -112,22 +114,21 @@ export enum WebWorkerGenerationState {
   CONTROLLED_STREAM_RESET = 11,
 }
 
-// WebWorkerGenerationState_Enum is the enum type for WebWorkerGenerationState.
-export const WebWorkerGenerationState_Enum = createEnumType(
+export const WebWorkerGenerationState_Enum = /* @__PURE__ */ createEnumType(
   'web.document.WebWorkerGenerationState',
   [
-    { no: 0, name: 'WEB_WORKER_GENERATION_STATE_UNKNOWN' },
-    { no: 1, name: 'WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED' },
-    { no: 2, name: 'WEB_WORKER_GENERATION_STATE_WORKER_CREATED' },
-    { no: 3, name: 'WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING' },
-    { no: 4, name: 'WEB_WORKER_GENERATION_STATE_FRONTEND_READY' },
-    { no: 5, name: 'WEB_WORKER_GENERATION_STATE_CAPABILITY_READY' },
-    { no: 6, name: 'WEB_WORKER_GENERATION_STATE_RUNNING' },
-    { no: 7, name: 'WEB_WORKER_GENERATION_STATE_NORMAL_STOP' },
-    { no: 8, name: 'WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT' },
-    { no: 9, name: 'WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE' },
-    { no: 10, name: 'WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN' },
-    { no: 11, name: 'WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET' },
+    [0, 'WEB_WORKER_GENERATION_STATE_UNKNOWN'],
+    [1, 'WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED'],
+    [2, 'WEB_WORKER_GENERATION_STATE_WORKER_CREATED'],
+    [3, 'WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING'],
+    [4, 'WEB_WORKER_GENERATION_STATE_FRONTEND_READY'],
+    [5, 'WEB_WORKER_GENERATION_STATE_CAPABILITY_READY'],
+    [6, 'WEB_WORKER_GENERATION_STATE_RUNNING'],
+    [7, 'WEB_WORKER_GENERATION_STATE_NORMAL_STOP'],
+    [8, 'WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT'],
+    [9, 'WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE'],
+    [10, 'WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN'],
+    [11, 'WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET'],
   ],
 )
 
@@ -155,11 +156,13 @@ export enum WebWorkerType {
   QUICKJS = 1,
 }
 
-// WebWorkerType_Enum is the enum type for WebWorkerType.
-export const WebWorkerType_Enum = createEnumType('web.document.WebWorkerType', [
-  { no: 0, name: 'WEB_WORKER_TYPE_NATIVE' },
-  { no: 1, name: 'WEB_WORKER_TYPE_QUICKJS' },
-])
+export const WebWorkerType_Enum = /* @__PURE__ */ createEnumType(
+  'web.document.WebWorkerType',
+  [
+    [0, 'WEB_WORKER_TYPE_NATIVE'],
+    [1, 'WEB_WORKER_TYPE_QUICKJS'],
+  ],
+)
 
 /**
  * WebWorkerMode specifies whether a worker should be shared or dedicated.
@@ -190,12 +193,14 @@ export enum WebWorkerMode {
   WORKER_MODE_DEDICATED = 2,
 }
 
-// WebWorkerMode_Enum is the enum type for WebWorkerMode.
-export const WebWorkerMode_Enum = createEnumType('web.document.WebWorkerMode', [
-  { no: 0, name: 'WORKER_MODE_DEFAULT' },
-  { no: 1, name: 'WORKER_MODE_SHARED' },
-  { no: 2, name: 'WORKER_MODE_DEDICATED' },
-])
+export const WebWorkerMode_Enum = /* @__PURE__ */ createEnumType(
+  'web.document.WebWorkerMode',
+  [
+    [0, 'WORKER_MODE_DEFAULT'],
+    [1, 'WORKER_MODE_SHARED'],
+    [2, 'WORKER_MODE_DEDICATED'],
+  ],
+)
 
 /**
  * WatchWebDocumentStatusRequest is the body of the WatchWebDocumentStatus request.
@@ -204,13 +209,11 @@ export const WebWorkerMode_Enum = createEnumType('web.document.WebWorkerMode', [
  */
 export interface WatchWebDocumentStatusRequest {}
 
-// WatchWebDocumentStatusRequest contains the message type declaration for WatchWebDocumentStatusRequest.
 export const WatchWebDocumentStatusRequest: MessageType<WatchWebDocumentStatusRequest> =
-  createMessageType({
-    typeName: 'web.document.WatchWebDocumentStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchWebDocumentStatusRequest>(
+    'web.document.WatchWebDocumentStatusRequest',
+    true,
+  )
 
 /**
  * WebViewStatus contains status for a web view.
@@ -246,17 +249,17 @@ export interface WebViewStatus {
   permanent?: boolean
 }
 
-// WebViewStatus contains the message type declaration for WebViewStatus.
-export const WebViewStatus: MessageType<WebViewStatus> = createMessageType({
-  typeName: 'web.document.WebViewStatus',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'parent_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WebViewStatus: MessageType<WebViewStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'web.document.WebViewStatus',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'parent_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WebWorkerStatus contains status for a web worker.
@@ -310,25 +313,25 @@ export interface WebWorkerStatus {
   generationState?: WebWorkerGenerationState
 }
 
-// WebWorkerStatus contains the message type declaration for WebWorkerStatus.
-export const WebWorkerStatus: MessageType<WebWorkerStatus> = createMessageType({
-  typeName: 'web.document.WebWorkerStatus',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 5, name: 'failed', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 6, name: 'failure_reason', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 7,
-      name: 'generation_state',
-      kind: 'enum',
-      T: WebWorkerGenerationState_Enum,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WebWorkerStatus: MessageType<WebWorkerStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'web.document.WebWorkerStatus',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'failed', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'failure_reason', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'generation_state',
+        kind: 'enum',
+        T: WebWorkerGenerationState_Enum,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WebDocumentStatus contains a snapshot of status for a Document instance.
@@ -370,9 +373,8 @@ export interface WebDocumentStatus {
   closed?: boolean
 }
 
-// WebDocumentStatus contains the message type declaration for WebDocumentStatus.
 export const WebDocumentStatus: MessageType<WebDocumentStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.document.WebDocumentStatus',
     fields: [
       { no: 1, name: 'snapshot', kind: 'scalar', T: ScalarType.BOOL },
@@ -392,7 +394,7 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
         repeated: true,
       },
       { no: 5, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -410,13 +412,12 @@ export interface CreateWebViewRequest {
   id?: string
 }
 
-// CreateWebViewRequest contains the message type declaration for CreateWebViewRequest.
 export const CreateWebViewRequest: MessageType<CreateWebViewRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.document.CreateWebViewRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -435,13 +436,12 @@ export interface CreateWebViewResponse {
   created?: boolean
 }
 
-// CreateWebViewResponse contains the message type declaration for CreateWebViewResponse.
 export const CreateWebViewResponse: MessageType<CreateWebViewResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.document.CreateWebViewResponse',
     fields: [
       { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -489,9 +489,8 @@ export interface CreateWebWorkerRequest {
   workerType?: WebWorkerType
 }
 
-// CreateWebWorkerRequest contains the message type declaration for CreateWebWorkerRequest.
 export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.document.CreateWebWorkerRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -499,7 +498,7 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
       { no: 3, name: 'worker_mode', kind: 'enum', T: WebWorkerMode_Enum },
       { no: 4, name: 'init_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'worker_type', kind: 'enum', T: WebWorkerType_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -525,14 +524,13 @@ export interface CreateWebWorkerResponse {
   shared?: boolean
 }
 
-// CreateWebWorkerResponse contains the message type declaration for CreateWebWorkerResponse.
 export const CreateWebWorkerResponse: MessageType<CreateWebWorkerResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.document.CreateWebWorkerResponse',
     fields: [
       { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -550,13 +548,12 @@ export interface RemoveWebWorkerRequest {
   id?: string
 }
 
-// RemoveWebWorkerRequest contains the message type declaration for RemoveWebWorkerRequest.
 export const RemoveWebWorkerRequest: MessageType<RemoveWebWorkerRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.document.RemoveWebWorkerRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -575,12 +572,11 @@ export interface RemoveWebWorkerResponse {
   removed?: boolean
 }
 
-// RemoveWebWorkerResponse contains the message type declaration for RemoveWebWorkerResponse.
 export const RemoveWebWorkerResponse: MessageType<RemoveWebWorkerResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'web.document.RemoveWebWorkerResponse',
     fields: [
       { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/spacewave/audit.proto (package provider.spacewave, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'provider.spacewave'
 
@@ -39,9 +41,8 @@ export interface UserCreatedAuditMetadata {
   email?: string
 }
 
-// UserCreatedAuditMetadata contains the message type declaration for UserCreatedAuditMetadata.
 export const UserCreatedAuditMetadata: MessageType<UserCreatedAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.UserCreatedAuditMetadata',
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
@@ -53,7 +54,7 @@ export const UserCreatedAuditMetadata: MessageType<UserCreatedAuditMetadata> =
         T: ScalarType.STRING,
       },
       { no: 4, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -95,9 +96,8 @@ export interface EntityKeypairsChangedAuditMetadata {
   authThreshold?: number
 }
 
-// EntityKeypairsChangedAuditMetadata contains the message type declaration for EntityKeypairsChangedAuditMetadata.
 export const EntityKeypairsChangedAuditMetadata: MessageType<EntityKeypairsChangedAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.EntityKeypairsChangedAuditMetadata',
     fields: [
       { no: 1, name: 'change_type', kind: 'scalar', T: ScalarType.STRING },
@@ -105,7 +105,7 @@ export const EntityKeypairsChangedAuditMetadata: MessageType<EntityKeypairsChang
       { no: 3, name: 'auth_method', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'auth_threshold', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -153,9 +153,8 @@ export interface ResourceCreatedAuditMetadata {
   accountPrivate?: boolean
 }
 
-// ResourceCreatedAuditMetadata contains the message type declaration for ResourceCreatedAuditMetadata.
 export const ResourceCreatedAuditMetadata: MessageType<ResourceCreatedAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.ResourceCreatedAuditMetadata',
     fields: [
       { no: 1, name: 'resource_type', kind: 'scalar', T: ScalarType.STRING },
@@ -164,7 +163,7 @@ export const ResourceCreatedAuditMetadata: MessageType<ResourceCreatedAuditMetad
       { no: 4, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'account_private', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -200,9 +199,8 @@ export interface ResourceOwnershipTransferredAuditMetadata {
   newOwnerId?: string
 }
 
-// ResourceOwnershipTransferredAuditMetadata contains the message type declaration for ResourceOwnershipTransferredAuditMetadata.
 export const ResourceOwnershipTransferredAuditMetadata: MessageType<ResourceOwnershipTransferredAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.ResourceOwnershipTransferredAuditMetadata',
     fields: [
       {
@@ -219,7 +217,7 @@ export const ResourceOwnershipTransferredAuditMetadata: MessageType<ResourceOwne
       },
       { no: 3, name: 'new_owner_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'new_owner_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -255,16 +253,15 @@ export interface SharedObjectChangedAuditMetadata {
   publicRead?: boolean
 }
 
-// SharedObjectChangedAuditMetadata contains the message type declaration for SharedObjectChangedAuditMetadata.
 export const SharedObjectChangedAuditMetadata: MessageType<SharedObjectChangedAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.SharedObjectChangedAuditMetadata',
     fields: [
       { no: 1, name: 'change_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'public_read', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -306,9 +303,8 @@ export interface OrganizationChangedAuditMetadata {
   inviteId?: string
 }
 
-// OrganizationChangedAuditMetadata contains the message type declaration for OrganizationChangedAuditMetadata.
 export const OrganizationChangedAuditMetadata: MessageType<OrganizationChangedAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.OrganizationChangedAuditMetadata',
     fields: [
       { no: 1, name: 'change_type', kind: 'scalar', T: ScalarType.STRING },
@@ -321,7 +317,7 @@ export const OrganizationChangedAuditMetadata: MessageType<OrganizationChangedAu
         T: ScalarType.STRING,
       },
       { no: 5, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -363,9 +359,8 @@ export interface BillingStatusChangedAuditMetadata {
   newLifecycleState?: string
 }
 
-// BillingStatusChangedAuditMetadata contains the message type declaration for BillingStatusChangedAuditMetadata.
 export const BillingStatusChangedAuditMetadata: MessageType<BillingStatusChangedAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.BillingStatusChangedAuditMetadata',
     fields: [
       {
@@ -388,7 +383,7 @@ export const BillingStatusChangedAuditMetadata: MessageType<BillingStatusChanged
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -424,9 +419,8 @@ export interface BillingAdminActionAuditMetadata {
   disputerId?: string
 }
 
-// BillingAdminActionAuditMetadata contains the message type declaration for BillingAdminActionAuditMetadata.
 export const BillingAdminActionAuditMetadata: MessageType<BillingAdminActionAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.BillingAdminActionAuditMetadata',
     fields: [
       { no: 1, name: 'admin_action', kind: 'scalar', T: ScalarType.STRING },
@@ -438,7 +432,7 @@ export const BillingAdminActionAuditMetadata: MessageType<BillingAdminActionAudi
       },
       { no: 3, name: 'dispute_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'disputer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -456,13 +450,12 @@ export interface GenericAuditMetadata {
   summary?: string
 }
 
-// GenericAuditMetadata contains the message type declaration for GenericAuditMetadata.
 export const GenericAuditMetadata: MessageType<GenericAuditMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.GenericAuditMetadata',
     fields: [
       { no: 1, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -592,9 +585,8 @@ export interface AuditEventMetadata {
       }
 }
 
-// AuditEventMetadata contains the message type declaration for AuditEventMetadata.
 export const AuditEventMetadata: MessageType<AuditEventMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.AuditEventMetadata',
     fields: [
       { no: 1, name: 'request_method', kind: 'scalar', T: ScalarType.STRING },
@@ -664,7 +656,7 @@ export const AuditEventMetadata: MessageType<AuditEventMetadata> =
         T: () => GenericAuditMetadata,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -748,25 +740,30 @@ export interface AuditEvent {
   createdAtMs?: bigint
 }
 
-// AuditEvent contains the message type declaration for AuditEvent.
-export const AuditEvent: MessageType<AuditEvent> = createMessageType({
-  typeName: 'provider.spacewave.AuditEvent',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'action', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'actor_type', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'actor_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'actor_account_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'target_type', kind: 'scalar', T: ScalarType.STRING },
-    { no: 7, name: 'target_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'outcome', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'http_status', kind: 'scalar', T: ScalarType.INT32 },
-    { no: 10, name: 'error_code', kind: 'scalar', T: ScalarType.STRING },
-    { no: 11, name: 'metadata', kind: 'message', T: () => AuditEventMetadata },
-    { no: 12, name: 'created_at_ms', kind: 'scalar', T: ScalarType.INT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AuditEvent: MessageType<AuditEvent> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.AuditEvent',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'action', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'actor_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'actor_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'actor_account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'target_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'target_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'outcome', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'http_status', kind: 'scalar', T: ScalarType.INT32 },
+      { no: 10, name: 'error_code', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 11,
+        name: 'metadata',
+        kind: 'message',
+        T: () => AuditEventMetadata,
+      },
+      { no: 12, name: 'created_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ListAuditEventsResponse is the admin audit list response.
@@ -782,9 +779,8 @@ export interface ListAuditEventsResponse {
   events?: AuditEvent[]
 }
 
-// ListAuditEventsResponse contains the message type declaration for ListAuditEventsResponse.
 export const ListAuditEventsResponse: MessageType<ListAuditEventsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.ListAuditEventsResponse',
     fields: [
       {
@@ -794,6 +790,6 @@ export const ListAuditEventsResponse: MessageType<ListAuditEventsResponse> =
         T: () => AuditEvent,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

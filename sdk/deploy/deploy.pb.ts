@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '../../db/block/block.pb.js'
 
 export const protobufPackage = 's4wave.deploy'
@@ -42,16 +44,15 @@ export interface DeployManifestRequest {
   manifestId?: string
 }
 
-// DeployManifestRequest contains the message type declaration for DeployManifestRequest.
 export const DeployManifestRequest: MessageType<DeployManifestRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.deploy.DeployManifestRequest',
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'manifest_ref', kind: 'message', T: () => ObjectRef },
       { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -69,14 +70,14 @@ export interface BlockRequest {
   ref?: BlockRef
 }
 
-// BlockRequest contains the message type declaration for BlockRequest.
-export const BlockRequest: MessageType<BlockRequest> = createMessageType({
-  typeName: 's4wave.deploy.BlockRequest',
-  fields: [
-    { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BlockRequest: MessageType<BlockRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.deploy.BlockRequest',
+    fields: [
+      { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BlockResponse is the client's response with block data.
@@ -104,16 +105,16 @@ export interface BlockResponse {
   notFound?: boolean
 }
 
-// BlockResponse contains the message type declaration for BlockResponse.
-export const BlockResponse: MessageType<BlockResponse> = createMessageType({
-  typeName: 's4wave.deploy.BlockResponse',
-  fields: [
-    { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-    { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 3, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BlockResponse: MessageType<BlockResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.deploy.BlockResponse',
+    fields: [
+      { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * DeployManifestResult is sent when deployment completes.
@@ -129,13 +130,12 @@ export interface DeployManifestResult {
   error?: string
 }
 
-// DeployManifestResult contains the message type declaration for DeployManifestResult.
 export const DeployManifestResult: MessageType<DeployManifestResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.deploy.DeployManifestResult',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -191,9 +191,8 @@ export interface DeployManifestMessage {
       }
 }
 
-// DeployManifestMessage contains the message type declaration for DeployManifestMessage.
 export const DeployManifestMessage: MessageType<DeployManifestMessage> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.deploy.DeployManifestMessage',
     fields: [
       {
@@ -224,6 +223,6 @@ export const DeployManifestMessage: MessageType<DeployManifestMessage> =
         T: () => DeployManifestResult,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

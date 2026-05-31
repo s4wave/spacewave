@@ -4,8 +4,9 @@
 
 import type { Enabled } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
 import { Enabled_Enum } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.manifest.build'
 
@@ -35,12 +36,12 @@ export interface BuildPolicy {
   jsSourcemaps?: Enabled
 }
 
-// BuildPolicy contains the message type declaration for BuildPolicy.
-export const BuildPolicy: MessageType<BuildPolicy> = createMessageType({
-  typeName: 'bldr.manifest.build.BuildPolicy',
-  fields: [
-    { no: 1, name: 'js_minification', kind: 'enum', T: Enabled_Enum },
-    { no: 2, name: 'js_sourcemaps', kind: 'enum', T: Enabled_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BuildPolicy: MessageType<BuildPolicy> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.build.BuildPolicy',
+    fields: [
+      { no: 1, name: 'js_minification', kind: 'enum', T: Enabled_Enum },
+      { no: 2, name: 'js_sourcemaps', kind: 'enum', T: Enabled_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

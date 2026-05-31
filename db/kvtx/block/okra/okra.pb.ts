@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BlockRef } from '../../../block/block.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'kvtx.block.okra'
 
@@ -52,8 +54,7 @@ export interface Root {
   fanoutDegree?: number
 }
 
-// Root contains the message type declaration for Root.
-export const Root: MessageType<Root> = createMessageType({
+export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
   typeName: 'kvtx.block.okra.Root',
   fields: [
     { no: 1, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
@@ -62,7 +63,7 @@ export const Root: MessageType<Root> = createMessageType({
     { no: 4, name: 'root_page_ref', kind: 'message', T: () => BlockRef },
     { no: 5, name: 'hash_size', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 6, name: 'fanout_degree', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -116,8 +117,7 @@ export interface Entry {
   valueIsBlob?: boolean
 }
 
-// Entry contains the message type declaration for Entry.
-export const Entry: MessageType<Entry> = createMessageType({
+export const Entry: MessageType<Entry> = /* @__PURE__ */ createMessageType({
   typeName: 'kvtx.block.okra.Entry',
   fields: [
     { no: 1, name: 'anchor', kind: 'scalar', T: ScalarType.BOOL },
@@ -127,7 +127,7 @@ export const Entry: MessageType<Entry> = createMessageType({
     { no: 5, name: 'child_ref', kind: 'message', T: () => BlockRef },
     { no: 6, name: 'value_ref', kind: 'message', T: () => BlockRef },
     { no: 7, name: 'value_is_blob', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -181,8 +181,7 @@ export interface Page {
   entries?: Entry[]
 }
 
-// Page contains the message type declaration for Page.
-export const Page: MessageType<Page> = createMessageType({
+export const Page: MessageType<Page> = /* @__PURE__ */ createMessageType({
   typeName: 'kvtx.block.okra.Page',
   fields: [
     { no: 1, name: 'level', kind: 'scalar', T: ScalarType.UINT32 },
@@ -192,6 +191,6 @@ export const Page: MessageType<Page> = createMessageType({
     { no: 5, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 6, name: 'page_hash', kind: 'scalar', T: ScalarType.BYTES },
     { no: 7, name: 'entries', kind: 'message', T: () => Entry, repeated: true },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

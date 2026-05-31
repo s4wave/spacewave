@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/net/transport/webrtc/webrtc.proto (package webrtc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Opts } from '../common/quic/quic.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import { DialerOpts } from '../common/dialer/dialer.pb.js'
@@ -35,12 +34,11 @@ export enum IceTransportPolicy {
   IceTransportPolicy_RELAY = 1,
 }
 
-// IceTransportPolicy_Enum is the enum type for IceTransportPolicy.
-export const IceTransportPolicy_Enum = createEnumType(
+export const IceTransportPolicy_Enum = /* @__PURE__ */ createEnumType(
   'webrtc.IceTransportPolicy',
   [
-    { no: 0, name: 'IceTransportPolicy_ALL' },
-    { no: 1, name: 'IceTransportPolicy_RELAY' },
+    [0, 'IceTransportPolicy_ALL'],
+    [1, 'IceTransportPolicy_RELAY'],
   ],
 )
 
@@ -64,14 +62,13 @@ export interface IceServerConfig_OauthCredential {
   accessToken?: string
 }
 
-// IceServerConfig_OauthCredential contains the message type declaration for IceServerConfig_OauthCredential.
 export const IceServerConfig_OauthCredential: MessageType<IceServerConfig_OauthCredential> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'webrtc.IceServerConfig.OauthCredential',
     fields: [
       { no: 1, name: 'mac_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'access_token', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -130,35 +127,35 @@ export interface IceServerConfig {
       }
 }
 
-// IceServerConfig contains the message type declaration for IceServerConfig.
-export const IceServerConfig: MessageType<IceServerConfig> = createMessageType({
-  typeName: 'webrtc.IceServerConfig',
-  fields: [
-    {
-      no: 1,
-      name: 'urls',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 2, name: 'username', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'password',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      oneof: 'credential',
-    },
-    {
-      no: 4,
-      name: 'oauth',
-      kind: 'message',
-      T: () => IceServerConfig_OauthCredential,
-      oneof: 'credential',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const IceServerConfig: MessageType<IceServerConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'webrtc.IceServerConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'urls',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'username', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'password',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        oneof: 'credential',
+      },
+      {
+        no: 4,
+        name: 'oauth',
+        kind: 'message',
+        T: () => IceServerConfig_OauthCredential,
+        oneof: 'credential',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WebRtcConfig configures the WebRTC PeerConnection.
@@ -188,32 +185,32 @@ export interface WebRtcConfig {
   iceCandidatePoolSize?: number
 }
 
-// WebRtcConfig contains the message type declaration for WebRtcConfig.
-export const WebRtcConfig: MessageType<WebRtcConfig> = createMessageType({
-  typeName: 'webrtc.WebRtcConfig',
-  fields: [
-    {
-      no: 1,
-      name: 'ice_servers',
-      kind: 'message',
-      T: () => IceServerConfig,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'ice_transport_policy',
-      kind: 'enum',
-      T: IceTransportPolicy_Enum,
-    },
-    {
-      no: 3,
-      name: 'ice_candidate_pool_size',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WebRtcConfig: MessageType<WebRtcConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'webrtc.WebRtcConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'ice_servers',
+        kind: 'message',
+        T: () => IceServerConfig,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'ice_transport_policy',
+        kind: 'enum',
+        T: IceTransportPolicy_Enum,
+      },
+      {
+        no: 3,
+        name: 'ice_candidate_pool_size',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config is the configuration for the WebRTC Signal RPC transport.
@@ -302,8 +299,7 @@ export interface Config {
   verbose?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'webrtc.Config',
   fields: [
     { no: 1, name: 'signaling_id', kind: 'scalar', T: ScalarType.STRING },
@@ -329,7 +325,7 @@ export const Config: MessageType<Config> = createMessageType({
       repeated: true,
     },
     { no: 11, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -361,16 +357,16 @@ export interface WebRtcSdp {
   sdp?: string
 }
 
-// WebRtcSdp contains the message type declaration for WebRtcSdp.
-export const WebRtcSdp: MessageType<WebRtcSdp> = createMessageType({
-  typeName: 'webrtc.WebRtcSdp',
-  fields: [
-    { no: 1, name: 'tx_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'sdp_type', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'sdp', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WebRtcSdp: MessageType<WebRtcSdp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'webrtc.WebRtcSdp',
+    fields: [
+      { no: 1, name: 'tx_seqno', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'sdp_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'sdp', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WebRtcIce contains an ICE candidate.
@@ -386,14 +382,14 @@ export interface WebRtcIce {
   candidate?: string
 }
 
-// WebRtcIce contains the message type declaration for WebRtcIce.
-export const WebRtcIce: MessageType<WebRtcIce> = createMessageType({
-  typeName: 'webrtc.WebRtcIce',
-  fields: [
-    { no: 1, name: 'candidate', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WebRtcIce: MessageType<WebRtcIce> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'webrtc.WebRtcIce',
+    fields: [
+      { no: 1, name: 'candidate', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WebRtcSignal is a WebRTC Signaling message sent via the Signaling channel.
@@ -441,19 +437,31 @@ export interface WebRtcSignal {
       }
 }
 
-// WebRtcSignal contains the message type declaration for WebRtcSignal.
-export const WebRtcSignal: MessageType<WebRtcSignal> = createMessageType({
-  typeName: 'webrtc.WebRtcSignal',
-  fields: [
-    {
-      no: 1,
-      name: 'request_offer',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
-      oneof: 'body',
-    },
-    { no: 2, name: 'sdp', kind: 'message', T: () => WebRtcSdp, oneof: 'body' },
-    { no: 3, name: 'ice', kind: 'message', T: () => WebRtcIce, oneof: 'body' },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WebRtcSignal: MessageType<WebRtcSignal> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'webrtc.WebRtcSignal',
+    fields: [
+      {
+        no: 1,
+        name: 'request_offer',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'sdp',
+        kind: 'message',
+        T: () => WebRtcSdp,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'ice',
+        kind: 'message',
+        T: () => WebRtcIce,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

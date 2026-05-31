@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/plugin/compiler/config.proto (package bldr.web.plugin.compiler, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.web.plugin.compiler'
 
@@ -39,13 +38,12 @@ export enum QuitPolicy {
   EXIT = 2,
 }
 
-// QuitPolicy_Enum is the enum type for QuitPolicy.
-export const QuitPolicy_Enum = createEnumType(
+export const QuitPolicy_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.plugin.compiler.QuitPolicy',
   [
-    { no: 0, name: 'QUIT_POLICY_UNSPECIFIED' },
-    { no: 1, name: 'QUIT_POLICY_RESTART' },
-    { no: 2, name: 'QUIT_POLICY_EXIT' },
+    [0, 'QUIT_POLICY_UNSPECIFIED'],
+    [1, 'QUIT_POLICY_RESTART'],
+    [2, 'QUIT_POLICY_EXIT'],
   ],
 )
 
@@ -79,13 +77,12 @@ export enum DesktopPresencePolicy {
   TRAY_BACKGROUND = 2,
 }
 
-// DesktopPresencePolicy_Enum is the enum type for DesktopPresencePolicy.
-export const DesktopPresencePolicy_Enum = createEnumType(
+export const DesktopPresencePolicy_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.plugin.compiler.DesktopPresencePolicy',
   [
-    { no: 0, name: 'DESKTOP_PRESENCE_POLICY_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME' },
-    { no: 2, name: 'DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND' },
+    [0, 'DESKTOP_PRESENCE_POLICY_UNSPECIFIED'],
+    [1, 'DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME'],
+    [2, 'DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND'],
   ],
 )
 
@@ -165,34 +162,34 @@ export interface NativeAppConfig {
   macosTemplateTrayIconPath?: string
 }
 
-// NativeAppConfig contains the message type declaration for NativeAppConfig.
-export const NativeAppConfig: MessageType<NativeAppConfig> = createMessageType({
-  typeName: 'bldr.web.plugin.compiler.NativeAppConfig',
-  fields: [
-    { no: 1, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 4, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 5, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 6, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
-    { no: 7, name: 'icon_path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
-    {
-      no: 9,
-      name: 'desktop_presence_policy',
-      kind: 'enum',
-      T: DesktopPresencePolicy_Enum,
-    },
-    { no: 10, name: 'tray_icon_path', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 11,
-      name: 'macos_template_tray_icon_path',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const NativeAppConfig: MessageType<NativeAppConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.plugin.compiler.NativeAppConfig',
+    fields: [
+      { no: 1, name: 'app_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'window_title', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 5, name: 'dev_tools', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'theme_source', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'icon_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'quit_policy', kind: 'enum', T: QuitPolicy_Enum },
+      {
+        no: 9,
+        name: 'desktop_presence_policy',
+        kind: 'enum',
+        T: DesktopPresencePolicy_Enum,
+      },
+      { no: 10, name: 'tray_icon_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 11,
+        name: 'macos_template_tray_icon_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config configures the web plugin builder.
@@ -232,14 +229,13 @@ export interface Config {
   nativeApp?: NativeAppConfig
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bldr.web.plugin.compiler.Config',
   fields: [
     { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'electron_pkg', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'native_app', kind: 'message', T: () => NativeAppConfig },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/db/block/transform/snappy/snappy.proto (package transform.snappy, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
 export const protobufPackage = 'transform.snappy'
 
@@ -14,9 +14,8 @@ export const protobufPackage = 'transform.snappy'
  */
 export interface Config {}
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'transform.snappy.Config',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createEmptyMessageType<Config>(
+    'transform.snappy.Config',
+    true,
+  )

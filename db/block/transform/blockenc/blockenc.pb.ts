@@ -4,8 +4,10 @@
 
 import type { BlockEnc } from '../../../util/blockenc/blockenc.pb.js'
 import { BlockEnc_Enum } from '../../../util/blockenc/blockenc.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'transform.blockenc'
 
@@ -29,12 +31,11 @@ export interface Config {
   key?: Uint8Array
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'transform.blockenc.Config',
   fields: [
     { no: 1, name: 'block_enc', kind: 'enum', T: BlockEnc_Enum },
     { no: 2, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

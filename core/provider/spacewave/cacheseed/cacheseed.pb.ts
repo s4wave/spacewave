@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/spacewave/cacheseed/cacheseed.proto (package provider.spacewave.cacheseed, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'provider.spacewave.cacheseed'
 
@@ -14,13 +19,11 @@ export const protobufPackage = 'provider.spacewave.cacheseed'
  */
 export interface GetCacheSeedReasonsRequest {}
 
-// GetCacheSeedReasonsRequest contains the message type declaration for GetCacheSeedReasonsRequest.
 export const GetCacheSeedReasonsRequest: MessageType<GetCacheSeedReasonsRequest> =
-  createMessageType({
-    typeName: 'provider.spacewave.cacheseed.GetCacheSeedReasonsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetCacheSeedReasonsRequest>(
+    'provider.spacewave.cacheseed.GetCacheSeedReasonsRequest',
+    true,
+  )
 
 /**
  * CacheSeedEntry is a single recorded HTTP request tagged with a seed reason.
@@ -50,13 +53,13 @@ export interface CacheSeedEntry {
   path?: string
 }
 
-// CacheSeedEntry contains the message type declaration for CacheSeedEntry.
-export const CacheSeedEntry: MessageType<CacheSeedEntry> = createMessageType({
-  typeName: 'provider.spacewave.cacheseed.CacheSeedEntry',
-  fields: [
-    { no: 1, name: 'timestamp_ms', kind: 'scalar', T: ScalarType.INT64 },
-    { no: 2, name: 'reason', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CacheSeedEntry: MessageType<CacheSeedEntry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.cacheseed.CacheSeedEntry',
+    fields: [
+      { no: 1, name: 'timestamp_ms', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 2, name: 'reason', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

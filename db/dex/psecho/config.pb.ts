@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'psecho'
 
@@ -74,8 +76,7 @@ export interface Config {
   syncBackoff?: Backoff
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'psecho.Config',
   fields: [
     { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
@@ -97,6 +98,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 7, name: 'max_block_size', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 8, name: 'chunk_size', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 9, name: 'sync_backoff', kind: 'message', T: () => Backoff },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

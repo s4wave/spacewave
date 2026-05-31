@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/net/signaling/rpc/signaling.proto (package signaling.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SignedMsg } from '../../peer/peer.pb.js'
 
 export const protobufPackage = 'signaling.rpc'
@@ -15,12 +20,11 @@ export const protobufPackage = 'signaling.rpc'
  */
 export interface ListenRequest {}
 
-// ListenRequest contains the message type declaration for ListenRequest.
-export const ListenRequest: MessageType<ListenRequest> = createMessageType({
-  typeName: 'signaling.rpc.ListenRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ListenRequest: MessageType<ListenRequest> =
+  /* @__PURE__ */ createEmptyMessageType<ListenRequest>(
+    'signaling.rpc.ListenRequest',
+    true,
+  )
 
 /**
  * ListenResponse is a message sent in a stream in response to Listen.
@@ -60,27 +64,27 @@ export interface ListenResponse {
       }
 }
 
-// ListenResponse contains the message type declaration for ListenResponse.
-export const ListenResponse: MessageType<ListenResponse> = createMessageType({
-  typeName: 'signaling.rpc.ListenResponse',
-  fields: [
-    {
-      no: 1,
-      name: 'set_peer',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      oneof: 'body',
-    },
-    {
-      no: 2,
-      name: 'clear_peer',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ListenResponse: MessageType<ListenResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'signaling.rpc.ListenResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'set_peer',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'clear_peer',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SessionInit is a message to init a Session.
@@ -96,14 +100,14 @@ export interface SessionInit {
   peerId?: string
 }
 
-// SessionInit contains the message type declaration for SessionInit.
-export const SessionInit: MessageType<SessionInit> = createMessageType({
-  typeName: 'signaling.rpc.SessionInit',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SessionInit: MessageType<SessionInit> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'signaling.rpc.SessionInit',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SessionMsg contains a signed message and a sequence number.
@@ -125,15 +129,15 @@ export interface SessionMsg {
   seqno?: bigint
 }
 
-// SessionMsg contains the message type declaration for SessionMsg.
-export const SessionMsg: MessageType<SessionMsg> = createMessageType({
-  typeName: 'signaling.rpc.SessionMsg',
-  fields: [
-    { no: 1, name: 'signed_msg', kind: 'message', T: () => SignedMsg },
-    { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SessionMsg: MessageType<SessionMsg> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'signaling.rpc.SessionMsg',
+    fields: [
+      { no: 1, name: 'signed_msg', kind: 'message', T: () => SignedMsg },
+      { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SessionRequest is a message sent from the client to the server.
@@ -204,42 +208,42 @@ export interface SessionRequest {
       }
 }
 
-// SessionRequest contains the message type declaration for SessionRequest.
-export const SessionRequest: MessageType<SessionRequest> = createMessageType({
-  typeName: 'signaling.rpc.SessionRequest',
-  fields: [
-    { no: 1, name: 'session_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    {
-      no: 2,
-      name: 'init',
-      kind: 'message',
-      T: () => SessionInit,
-      oneof: 'body',
-    },
-    {
-      no: 3,
-      name: 'send_msg',
-      kind: 'message',
-      T: () => SessionMsg,
-      oneof: 'body',
-    },
-    {
-      no: 4,
-      name: 'clear_msg',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
-      oneof: 'body',
-    },
-    {
-      no: 5,
-      name: 'ack_msg',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SessionRequest: MessageType<SessionRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'signaling.rpc.SessionRequest',
+    fields: [
+      { no: 1, name: 'session_seqno', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 2,
+        name: 'init',
+        kind: 'message',
+        T: () => SessionInit,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'send_msg',
+        kind: 'message',
+        T: () => SessionMsg,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'clear_msg',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+        oneof: 'body',
+      },
+      {
+        no: 5,
+        name: 'ack_msg',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SessionResponse is a message sent from the server to the client.
@@ -309,45 +313,45 @@ export interface SessionResponse {
       }
 }
 
-// SessionResponse contains the message type declaration for SessionResponse.
-export const SessionResponse: MessageType<SessionResponse> = createMessageType({
-  typeName: 'signaling.rpc.SessionResponse',
-  fields: [
-    {
-      no: 1,
-      name: 'opened',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
-      oneof: 'body',
-    },
-    {
-      no: 2,
-      name: 'closed',
-      kind: 'scalar',
-      T: ScalarType.BOOL,
-      oneof: 'body',
-    },
-    {
-      no: 3,
-      name: 'recv_msg',
-      kind: 'message',
-      T: () => SessionMsg,
-      oneof: 'body',
-    },
-    {
-      no: 4,
-      name: 'clear_msg',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
-      oneof: 'body',
-    },
-    {
-      no: 5,
-      name: 'ack_msg',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
-      oneof: 'body',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SessionResponse: MessageType<SessionResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'signaling.rpc.SessionResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'opened',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+        oneof: 'body',
+      },
+      {
+        no: 2,
+        name: 'closed',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'recv_msg',
+        kind: 'message',
+        T: () => SessionMsg,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'clear_msg',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+        oneof: 'body',
+      },
+      {
+        no: 5,
+        name: 'ack_msg',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

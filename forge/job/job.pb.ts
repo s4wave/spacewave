@@ -2,10 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/forge/job/job.proto (package forge.job, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createEnumType, createMessageType } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { Result } from '../value/value.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'forge.job'
 
@@ -49,12 +51,11 @@ export enum State {
   JobState_COMPLETE = 3,
 }
 
-// State_Enum is the enum type for State.
-export const State_Enum = createEnumType('forge.job.State', [
-  { no: 0, name: 'JobState_UNKNOWN' },
-  { no: 1, name: 'JobState_PENDING' },
-  { no: 2, name: 'JobState_RUNNING' },
-  { no: 3, name: 'JobState_COMPLETE' },
+export const State_Enum = /* @__PURE__ */ createEnumType('forge.job.State', [
+  [0, 'JobState_UNKNOWN'],
+  [1, 'JobState_PENDING'],
+  [2, 'JobState_RUNNING'],
+  [3, 'JobState_COMPLETE'],
 ])
 
 /**
@@ -95,13 +96,12 @@ export interface Job {
   timestamp?: Date
 }
 
-// Job contains the message type declaration for Job.
-export const Job: MessageType<Job> = createMessageType({
+export const Job: MessageType<Job> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.job.Job',
   fields: [
     { no: 1, name: 'job_state', kind: 'enum', T: State_Enum },
     { no: 2, name: 'result', kind: 'message', T: () => Result },
     { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

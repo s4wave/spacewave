@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/space/world/world.proto (package space.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'space.world'
 
@@ -34,9 +36,8 @@ export interface WorldContentsObject {
   objectType?: string
 }
 
-// WorldContentsObject contains the message type declaration for WorldContentsObject.
 export const WorldContentsObject: MessageType<WorldContentsObject> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'space.world.WorldContentsObject',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -47,7 +48,7 @@ export const WorldContentsObject: MessageType<WorldContentsObject> =
         T: ScalarType.STRING,
       },
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -65,13 +66,12 @@ export interface WorldContentsObjectType {
   objectType?: string
 }
 
-// WorldContentsObjectType contains the message type declaration for WorldContentsObjectType.
 export const WorldContentsObjectType: MessageType<WorldContentsObjectType> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'space.world.WorldContentsObjectType',
     fields: [
       { no: 1, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -95,27 +95,27 @@ export interface WorldContents {
   objectTypes?: WorldContentsObjectType[]
 }
 
-// WorldContents contains the message type declaration for WorldContents.
-export const WorldContents: MessageType<WorldContents> = createMessageType({
-  typeName: 'space.world.WorldContents',
-  fields: [
-    {
-      no: 1,
-      name: 'objects',
-      kind: 'message',
-      T: () => WorldContentsObject,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'object_types',
-      kind: 'message',
-      T: () => WorldContentsObjectType,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WorldContents: MessageType<WorldContents> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.WorldContents',
+    fields: [
+      {
+        no: 1,
+        name: 'objects',
+        kind: 'message',
+        T: () => WorldContentsObject,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'object_types',
+        kind: 'message',
+        T: () => WorldContentsObjectType,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SpaceSettings is an object containing the settings for a Space.
@@ -140,18 +140,18 @@ export interface SpaceSettings {
   pluginIds?: string[]
 }
 
-// SpaceSettings contains the message type declaration for SpaceSettings.
-export const SpaceSettings: MessageType<SpaceSettings> = createMessageType({
-  typeName: 'space.world.SpaceSettings',
-  fields: [
-    { no: 1, name: 'index_path', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'plugin_ids',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SpaceSettings: MessageType<SpaceSettings> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.SpaceSettings',
+    fields: [
+      { no: 1, name: 'index_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'plugin_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

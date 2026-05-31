@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/objecttype/registry/registry.proto (package s4wave.objecttype.registry, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.objecttype.registry'
 
@@ -46,14 +48,13 @@ export enum ObjectTypeVisibility {
   INTERNAL = 3,
 }
 
-// ObjectTypeVisibility_Enum is the enum type for ObjectTypeVisibility.
-export const ObjectTypeVisibility_Enum = createEnumType(
+export const ObjectTypeVisibility_Enum = /* @__PURE__ */ createEnumType(
   's4wave.objecttype.registry.ObjectTypeVisibility',
   [
-    { no: 0, name: 'OBJECT_TYPE_VISIBILITY_UNSPECIFIED' },
-    { no: 1, name: 'OBJECT_TYPE_VISIBILITY_VISIBLE' },
-    { no: 2, name: 'OBJECT_TYPE_VISIBILITY_HIDDEN' },
-    { no: 3, name: 'OBJECT_TYPE_VISIBILITY_INTERNAL' },
+    [0, 'OBJECT_TYPE_VISIBILITY_UNSPECIFIED'],
+    [1, 'OBJECT_TYPE_VISIBILITY_VISIBLE'],
+    [2, 'OBJECT_TYPE_VISIBILITY_HIDDEN'],
+    [3, 'OBJECT_TYPE_VISIBILITY_INTERNAL'],
   ],
 )
 
@@ -89,16 +90,15 @@ export interface ObjectTypeMetadata {
   description?: string
 }
 
-// ObjectTypeMetadata contains the message type declaration for ObjectTypeMetadata.
 export const ObjectTypeMetadata: MessageType<ObjectTypeMetadata> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.objecttype.registry.ObjectTypeMetadata',
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'icon_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'visibility', kind: 'enum', T: ObjectTypeVisibility_Enum },
       { no: 4, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -134,16 +134,15 @@ export interface ObjectTypeRegistration {
   metadata?: ObjectTypeMetadata
 }
 
-// ObjectTypeRegistration contains the message type declaration for ObjectTypeRegistration.
 export const ObjectTypeRegistration: MessageType<ObjectTypeRegistration> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.objecttype.registry.ObjectTypeRegistration',
     fields: [
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'metadata', kind: 'message', T: () => ObjectTypeMetadata },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -173,15 +172,14 @@ export interface RegisterObjectTypeRequest {
   metadata?: ObjectTypeMetadata
 }
 
-// RegisterObjectTypeRequest contains the message type declaration for RegisterObjectTypeRequest.
 export const RegisterObjectTypeRequest: MessageType<RegisterObjectTypeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.objecttype.registry.RegisterObjectTypeRequest',
     fields: [
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'metadata', kind: 'message', T: () => ObjectTypeMetadata },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -199,13 +197,12 @@ export interface RegisterObjectTypeResponse {
   resourceId?: number
 }
 
-// RegisterObjectTypeResponse contains the message type declaration for RegisterObjectTypeResponse.
 export const RegisterObjectTypeResponse: MessageType<RegisterObjectTypeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.objecttype.registry.RegisterObjectTypeResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -216,13 +213,11 @@ export const RegisterObjectTypeResponse: MessageType<RegisterObjectTypeResponse>
  */
 export interface WatchObjectTypesRequest {}
 
-// WatchObjectTypesRequest contains the message type declaration for WatchObjectTypesRequest.
 export const WatchObjectTypesRequest: MessageType<WatchObjectTypesRequest> =
-  createMessageType({
-    typeName: 's4wave.objecttype.registry.WatchObjectTypesRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchObjectTypesRequest>(
+    's4wave.objecttype.registry.WatchObjectTypesRequest',
+    true,
+  )
 
 /**
  * WatchObjectTypesResponse is the response for WatchObjectTypes.
@@ -238,9 +233,8 @@ export interface WatchObjectTypesResponse {
   registrations?: ObjectTypeRegistration[]
 }
 
-// WatchObjectTypesResponse contains the message type declaration for WatchObjectTypesResponse.
 export const WatchObjectTypesResponse: MessageType<WatchObjectTypesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.objecttype.registry.WatchObjectTypesResponse',
     fields: [
       {
@@ -250,7 +244,7 @@ export const WatchObjectTypesResponse: MessageType<WatchObjectTypesResponse> =
         T: () => ObjectTypeRegistration,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -280,9 +274,8 @@ export interface InvokeObjectTypeRequest {
   attachedEngineResourceId?: number
 }
 
-// InvokeObjectTypeRequest contains the message type declaration for InvokeObjectTypeRequest.
 export const InvokeObjectTypeRequest: MessageType<InvokeObjectTypeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.objecttype.registry.InvokeObjectTypeRequest',
     fields: [
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
@@ -293,7 +286,7 @@ export const InvokeObjectTypeRequest: MessageType<InvokeObjectTypeRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -311,12 +304,11 @@ export interface InvokeObjectTypeResponse {
   resourceId?: number
 }
 
-// InvokeObjectTypeResponse contains the message type declaration for InvokeObjectTypeResponse.
 export const InvokeObjectTypeResponse: MessageType<InvokeObjectTypeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.objecttype.registry.InvokeObjectTypeResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

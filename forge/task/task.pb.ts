@@ -2,16 +2,15 @@
 // @generated from file github.com/s4wave/spacewave/forge/task/task.proto (package forge.task, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'forge.task'
 
@@ -75,14 +74,13 @@ export enum State {
   TaskState_RETRY = 5,
 }
 
-// State_Enum is the enum type for State.
-export const State_Enum = createEnumType('forge.task.State', [
-  { no: 0, name: 'TaskState_UNKNOWN' },
-  { no: 1, name: 'TaskState_PENDING' },
-  { no: 2, name: 'TaskState_RUNNING' },
-  { no: 3, name: 'TaskState_CHECKING' },
-  { no: 4, name: 'TaskState_COMPLETE' },
-  { no: 5, name: 'TaskState_RETRY' },
+export const State_Enum = /* @__PURE__ */ createEnumType('forge.task.State', [
+  [0, 'TaskState_UNKNOWN'],
+  [1, 'TaskState_PENDING'],
+  [2, 'TaskState_RUNNING'],
+  [3, 'TaskState_CHECKING'],
+  [4, 'TaskState_COMPLETE'],
+  [5, 'TaskState_RETRY'],
 ])
 
 /**
@@ -171,8 +169,7 @@ export interface Task {
   timestamp?: Date
 }
 
-// Task contains the message type declaration for Task.
-export const Task: MessageType<Task> = createMessageType({
+export const Task: MessageType<Task> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.task.Task',
   fields: [
     { no: 1, name: 'task_state', kind: 'enum', T: State_Enum },
@@ -184,6 +181,6 @@ export const Task: MessageType<Task> = createMessageType({
     { no: 8, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 9, name: 'result', kind: 'message', T: () => Result },
     { no: 10, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

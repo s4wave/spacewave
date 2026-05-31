@@ -2,13 +2,15 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/spacewave/launcher/launcher.proto (package spacewave.launcher, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'spacewave.launcher'
 
@@ -54,15 +56,14 @@ export enum UpdatePhase {
   UpdatePhase_ERROR = 4,
 }
 
-// UpdatePhase_Enum is the enum type for UpdatePhase.
-export const UpdatePhase_Enum = createEnumType(
+export const UpdatePhase_Enum = /* @__PURE__ */ createEnumType(
   'spacewave.launcher.UpdatePhase',
   [
-    { no: 0, name: 'UpdatePhase_IDLE' },
-    { no: 1, name: 'UpdatePhase_DOWNLOADING' },
-    { no: 2, name: 'UpdatePhase_STAGED' },
-    { no: 3, name: 'UpdatePhase_APPLYING' },
-    { no: 4, name: 'UpdatePhase_ERROR' },
+    [0, 'UpdatePhase_IDLE'],
+    [1, 'UpdatePhase_DOWNLOADING'],
+    [2, 'UpdatePhase_STAGED'],
+    [3, 'UpdatePhase_APPLYING'],
+    [4, 'UpdatePhase_ERROR'],
   ],
 )
 
@@ -106,23 +107,23 @@ export interface DistConfig {
   channelKey?: string
 }
 
-// DistConfig contains the message type declaration for DistConfig.
-export const DistConfig: MessageType<DistConfig> = createMessageType({
-  typeName: 'spacewave.launcher.DistConfig',
-  fields: [
-    { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    {
-      no: 3,
-      name: 'launcher_config_set',
-      kind: 'map',
-      K: ScalarType.STRING,
-      V: { kind: 'message', T: () => ControllerConfig },
-    },
-    { no: 8, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DistConfig: MessageType<DistConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.DistConfig',
+    fields: [
+      { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 3,
+        name: 'launcher_config_set',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => ControllerConfig },
+      },
+      { no: 8, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * UpdateState describes the current state of an entrypoint self-update.
@@ -162,18 +163,23 @@ export interface UpdateState {
   errorMessage?: string
 }
 
-// UpdateState contains the message type declaration for UpdateState.
-export const UpdateState: MessageType<UpdateState> = createMessageType({
-  typeName: 'spacewave.launcher.UpdateState',
-  fields: [
-    { no: 1, name: 'phase', kind: 'enum', T: UpdatePhase_Enum },
-    { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'download_progress', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 4, name: 'staged_path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const UpdateState: MessageType<UpdateState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.UpdateState',
+    fields: [
+      { no: 1, name: 'phase', kind: 'enum', T: UpdatePhase_Enum },
+      { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'download_progress',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      { no: 4, name: 'staged_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * LauncherInfo contains information about the state of the launcher.
@@ -196,15 +202,15 @@ export interface LauncherInfo {
   updateState?: UpdateState
 }
 
-// LauncherInfo contains the message type declaration for LauncherInfo.
-export const LauncherInfo: MessageType<LauncherInfo> = createMessageType({
-  typeName: 'spacewave.launcher.LauncherInfo',
-  fields: [
-    { no: 1, name: 'dist_config', kind: 'message', T: () => DistConfig },
-    { no: 2, name: 'update_state', kind: 'message', T: () => UpdateState },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LauncherInfo: MessageType<LauncherInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.LauncherInfo',
+    fields: [
+      { no: 1, name: 'dist_config', kind: 'message', T: () => DistConfig },
+      { no: 2, name: 'update_state', kind: 'message', T: () => UpdateState },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RecheckDistConfigRequest is a request to immediately recheck for updates.
@@ -213,13 +219,11 @@ export const LauncherInfo: MessageType<LauncherInfo> = createMessageType({
  */
 export interface RecheckDistConfigRequest {}
 
-// RecheckDistConfigRequest contains the message type declaration for RecheckDistConfigRequest.
 export const RecheckDistConfigRequest: MessageType<RecheckDistConfigRequest> =
-  createMessageType({
-    typeName: 'spacewave.launcher.RecheckDistConfigRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RecheckDistConfigRequest>(
+    'spacewave.launcher.RecheckDistConfigRequest',
+    true,
+  )
 
 /**
  * RecheckDistConfigRequest is a response to immediately recheck for updates.
@@ -229,13 +233,11 @@ export const RecheckDistConfigRequest: MessageType<RecheckDistConfigRequest> =
  */
 export interface RecheckDistConfigResponse {}
 
-// RecheckDistConfigResponse contains the message type declaration for RecheckDistConfigResponse.
 export const RecheckDistConfigResponse: MessageType<RecheckDistConfigResponse> =
-  createMessageType({
-    typeName: 'spacewave.launcher.RecheckDistConfigResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RecheckDistConfigResponse>(
+    'spacewave.launcher.RecheckDistConfigResponse',
+    true,
+  )
 
 /**
  * WatchLauncherInfoRequest is the request to get the launcher info.
@@ -244,13 +246,11 @@ export const RecheckDistConfigResponse: MessageType<RecheckDistConfigResponse> =
  */
 export interface WatchLauncherInfoRequest {}
 
-// WatchLauncherInfoRequest contains the message type declaration for WatchLauncherInfoRequest.
 export const WatchLauncherInfoRequest: MessageType<WatchLauncherInfoRequest> =
-  createMessageType({
-    typeName: 'spacewave.launcher.WatchLauncherInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchLauncherInfoRequest>(
+    'spacewave.launcher.WatchLauncherInfoRequest',
+    true,
+  )
 
 /**
  * PushDistConfigRequest is the request to push an app dist config signed message.
@@ -267,13 +267,12 @@ export interface PushDistConfigRequest {
   body?: string
 }
 
-// PushDistConfigRequest contains the message type declaration for PushDistConfigRequest.
 export const PushDistConfigRequest: MessageType<PushDistConfigRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.launcher.PushDistConfigRequest',
     fields: [
       { no: 1, name: 'body', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -310,16 +309,15 @@ export interface PushDistConfigResponse {
   prevRev?: bigint
 }
 
-// PushDistConfigResponse contains the message type declaration for PushDistConfigResponse.
 export const PushDistConfigResponse: MessageType<PushDistConfigResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.launcher.PushDistConfigResponse',
     fields: [
       { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'updated', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'prev_rev', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -330,13 +328,11 @@ export const PushDistConfigResponse: MessageType<PushDistConfigResponse> =
  */
 export interface ApplyUpdateRequest {}
 
-// ApplyUpdateRequest contains the message type declaration for ApplyUpdateRequest.
 export const ApplyUpdateRequest: MessageType<ApplyUpdateRequest> =
-  createMessageType({
-    typeName: 'spacewave.launcher.ApplyUpdateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ApplyUpdateRequest>(
+    'spacewave.launcher.ApplyUpdateRequest',
+    true,
+  )
 
 /**
  * ApplyUpdateResponse is the response to ApplyUpdateRequest.
@@ -346,10 +342,8 @@ export const ApplyUpdateRequest: MessageType<ApplyUpdateRequest> =
  */
 export interface ApplyUpdateResponse {}
 
-// ApplyUpdateResponse contains the message type declaration for ApplyUpdateResponse.
 export const ApplyUpdateResponse: MessageType<ApplyUpdateResponse> =
-  createMessageType({
-    typeName: 'spacewave.launcher.ApplyUpdateResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ApplyUpdateResponse>(
+    'spacewave.launcher.ApplyUpdateResponse',
+    true,
+  )

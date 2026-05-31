@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/bldr/devtool/status/status.proto (package bldr.devtool.status, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.devtool.status'
 
@@ -60,16 +62,15 @@ export enum DevtoolCommandState {
   CANCELED = 5,
 }
 
-// DevtoolCommandState_Enum is the enum type for DevtoolCommandState.
-export const DevtoolCommandState_Enum = createEnumType(
+export const DevtoolCommandState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.devtool.status.DevtoolCommandState',
   [
-    { no: 0, name: 'DEVTOOL_COMMAND_STATE_UNSPECIFIED' },
-    { no: 1, name: 'DEVTOOL_COMMAND_STATE_STARTING' },
-    { no: 2, name: 'DEVTOOL_COMMAND_STATE_RUNNING' },
-    { no: 3, name: 'DEVTOOL_COMMAND_STATE_DONE' },
-    { no: 4, name: 'DEVTOOL_COMMAND_STATE_ERROR' },
-    { no: 5, name: 'DEVTOOL_COMMAND_STATE_CANCELED' },
+    [0, 'DEVTOOL_COMMAND_STATE_UNSPECIFIED'],
+    [1, 'DEVTOOL_COMMAND_STATE_STARTING'],
+    [2, 'DEVTOOL_COMMAND_STATE_RUNNING'],
+    [3, 'DEVTOOL_COMMAND_STATE_DONE'],
+    [4, 'DEVTOOL_COMMAND_STATE_ERROR'],
+    [5, 'DEVTOOL_COMMAND_STATE_CANCELED'],
   ],
 )
 
@@ -122,16 +123,15 @@ export enum DevtoolManifestState {
   CANCELED = 5,
 }
 
-// DevtoolManifestState_Enum is the enum type for DevtoolManifestState.
-export const DevtoolManifestState_Enum = createEnumType(
+export const DevtoolManifestState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.devtool.status.DevtoolManifestState',
   [
-    { no: 0, name: 'DEVTOOL_MANIFEST_STATE_UNSPECIFIED' },
-    { no: 1, name: 'DEVTOOL_MANIFEST_STATE_QUEUED' },
-    { no: 2, name: 'DEVTOOL_MANIFEST_STATE_RUNNING' },
-    { no: 3, name: 'DEVTOOL_MANIFEST_STATE_READY' },
-    { no: 4, name: 'DEVTOOL_MANIFEST_STATE_ERROR' },
-    { no: 5, name: 'DEVTOOL_MANIFEST_STATE_CANCELED' },
+    [0, 'DEVTOOL_MANIFEST_STATE_UNSPECIFIED'],
+    [1, 'DEVTOOL_MANIFEST_STATE_QUEUED'],
+    [2, 'DEVTOOL_MANIFEST_STATE_RUNNING'],
+    [3, 'DEVTOOL_MANIFEST_STATE_READY'],
+    [4, 'DEVTOOL_MANIFEST_STATE_ERROR'],
+    [5, 'DEVTOOL_MANIFEST_STATE_CANCELED'],
   ],
 )
 
@@ -170,14 +170,13 @@ export enum DevtoolPluginState {
   ERRORED = 3,
 }
 
-// DevtoolPluginState_Enum is the enum type for DevtoolPluginState.
-export const DevtoolPluginState_Enum = createEnumType(
+export const DevtoolPluginState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.devtool.status.DevtoolPluginState',
   [
-    { no: 0, name: 'DEVTOOL_PLUGIN_STATE_UNSPECIFIED' },
-    { no: 1, name: 'DEVTOOL_PLUGIN_STATE_REQUESTED' },
-    { no: 2, name: 'DEVTOOL_PLUGIN_STATE_RUNNING' },
-    { no: 3, name: 'DEVTOOL_PLUGIN_STATE_ERRORED' },
+    [0, 'DEVTOOL_PLUGIN_STATE_UNSPECIFIED'],
+    [1, 'DEVTOOL_PLUGIN_STATE_REQUESTED'],
+    [2, 'DEVTOOL_PLUGIN_STATE_RUNNING'],
+    [3, 'DEVTOOL_PLUGIN_STATE_ERRORED'],
   ],
 )
 
@@ -223,15 +222,14 @@ export enum DevtoolControllerState {
   ERROR = 4,
 }
 
-// DevtoolControllerState_Enum is the enum type for DevtoolControllerState.
-export const DevtoolControllerState_Enum = createEnumType(
+export const DevtoolControllerState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.devtool.status.DevtoolControllerState',
   [
-    { no: 0, name: 'DEVTOOL_CONTROLLER_STATE_UNSPECIFIED' },
-    { no: 1, name: 'DEVTOOL_CONTROLLER_STATE_REQUESTED' },
-    { no: 2, name: 'DEVTOOL_CONTROLLER_STATE_RUNNING' },
-    { no: 3, name: 'DEVTOOL_CONTROLLER_STATE_IDLE' },
-    { no: 4, name: 'DEVTOOL_CONTROLLER_STATE_ERROR' },
+    [0, 'DEVTOOL_CONTROLLER_STATE_UNSPECIFIED'],
+    [1, 'DEVTOOL_CONTROLLER_STATE_REQUESTED'],
+    [2, 'DEVTOOL_CONTROLLER_STATE_RUNNING'],
+    [3, 'DEVTOOL_CONTROLLER_STATE_IDLE'],
+    [4, 'DEVTOOL_CONTROLLER_STATE_ERROR'],
   ],
 )
 
@@ -270,14 +268,13 @@ export enum DevtoolAttentionSeverity {
   ERROR = 3,
 }
 
-// DevtoolAttentionSeverity_Enum is the enum type for DevtoolAttentionSeverity.
-export const DevtoolAttentionSeverity_Enum = createEnumType(
+export const DevtoolAttentionSeverity_Enum = /* @__PURE__ */ createEnumType(
   'bldr.devtool.status.DevtoolAttentionSeverity',
   [
-    { no: 0, name: 'DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED' },
-    { no: 1, name: 'DEVTOOL_ATTENTION_SEVERITY_INFO' },
-    { no: 2, name: 'DEVTOOL_ATTENTION_SEVERITY_WARNING' },
-    { no: 3, name: 'DEVTOOL_ATTENTION_SEVERITY_ERROR' },
+    [0, 'DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED'],
+    [1, 'DEVTOOL_ATTENTION_SEVERITY_INFO'],
+    [2, 'DEVTOOL_ATTENTION_SEVERITY_WARNING'],
+    [3, 'DEVTOOL_ATTENTION_SEVERITY_ERROR'],
   ],
 )
 
@@ -288,13 +285,11 @@ export const DevtoolAttentionSeverity_Enum = createEnumType(
  */
 export interface WatchDevtoolStatusRequest {}
 
-// WatchDevtoolStatusRequest contains the message type declaration for WatchDevtoolStatusRequest.
 export const WatchDevtoolStatusRequest: MessageType<WatchDevtoolStatusRequest> =
-  createMessageType({
-    typeName: 'bldr.devtool.status.WatchDevtoolStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchDevtoolStatusRequest>(
+    'bldr.devtool.status.WatchDevtoolStatusRequest',
+    true,
+  )
 
 /**
  * DevtoolCommandStatus describes the active Bldr command.
@@ -334,9 +329,8 @@ export interface DevtoolCommandStatus {
   logFile?: string
 }
 
-// DevtoolCommandStatus contains the message type declaration for DevtoolCommandStatus.
 export const DevtoolCommandStatus: MessageType<DevtoolCommandStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.devtool.status.DevtoolCommandStatus',
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
@@ -344,7 +338,7 @@ export const DevtoolCommandStatus: MessageType<DevtoolCommandStatus> =
       { no: 3, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'log_file', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -428,9 +422,8 @@ export interface DevtoolManifestFetchRow {
   error?: string
 }
 
-// DevtoolManifestFetchRow contains the message type declaration for DevtoolManifestFetchRow.
 export const DevtoolManifestFetchRow: MessageType<DevtoolManifestFetchRow> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.devtool.status.DevtoolManifestFetchRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -450,7 +443,7 @@ export const DevtoolManifestFetchRow: MessageType<DevtoolManifestFetchRow> =
       },
       { no: 11, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
       { no: 12, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -552,9 +545,8 @@ export interface DevtoolManifestBuildRow {
   error?: string
 }
 
-// DevtoolManifestBuildRow contains the message type declaration for DevtoolManifestBuildRow.
 export const DevtoolManifestBuildRow: MessageType<DevtoolManifestBuildRow> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.devtool.status.DevtoolManifestBuildRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -587,7 +579,7 @@ export const DevtoolManifestBuildRow: MessageType<DevtoolManifestBuildRow> =
       },
       { no: 14, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
       { no: 15, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -641,9 +633,8 @@ export interface DevtoolPluginRow {
   lastErrorAt?: string
 }
 
-// DevtoolPluginRow contains the message type declaration for DevtoolPluginRow.
 export const DevtoolPluginRow: MessageType<DevtoolPluginRow> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.devtool.status.DevtoolPluginRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -653,7 +644,7 @@ export const DevtoolPluginRow: MessageType<DevtoolPluginRow> =
       { no: 5, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'last_error_at', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -701,9 +692,8 @@ export interface DevtoolControllerRow {
   error?: string
 }
 
-// DevtoolControllerRow contains the message type declaration for DevtoolControllerRow.
 export const DevtoolControllerRow: MessageType<DevtoolControllerRow> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.devtool.status.DevtoolControllerRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -712,7 +702,7 @@ export const DevtoolControllerRow: MessageType<DevtoolControllerRow> =
       { no: 4, name: 'state', kind: 'enum', T: DevtoolControllerState_Enum },
       { no: 5, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -754,9 +744,8 @@ export interface DevtoolAttentionRow {
   severity?: DevtoolAttentionSeverity
 }
 
-// DevtoolAttentionRow contains the message type declaration for DevtoolAttentionRow.
 export const DevtoolAttentionRow: MessageType<DevtoolAttentionRow> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.devtool.status.DevtoolAttentionRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -769,7 +758,7 @@ export const DevtoolAttentionRow: MessageType<DevtoolAttentionRow> =
         kind: 'enum',
         T: DevtoolAttentionSeverity_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -817,9 +806,8 @@ export interface DevtoolStatusSnapshot {
   attentionRows?: DevtoolAttentionRow[]
 }
 
-// DevtoolStatusSnapshot contains the message type declaration for DevtoolStatusSnapshot.
 export const DevtoolStatusSnapshot: MessageType<DevtoolStatusSnapshot> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.devtool.status.DevtoolStatusSnapshot',
     fields: [
       {
@@ -863,7 +851,7 @@ export const DevtoolStatusSnapshot: MessageType<DevtoolStatusSnapshot> =
         T: () => DevtoolAttentionRow,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -881,9 +869,8 @@ export interface WatchDevtoolStatusResponse {
   snapshot?: DevtoolStatusSnapshot
 }
 
-// WatchDevtoolStatusResponse contains the message type declaration for WatchDevtoolStatusResponse.
 export const WatchDevtoolStatusResponse: MessageType<WatchDevtoolStatusResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.devtool.status.WatchDevtoolStatusResponse',
     fields: [
       {
@@ -892,6 +879,6 @@ export const WatchDevtoolStatusResponse: MessageType<WatchDevtoolStatusResponse>
         kind: 'message',
         T: () => DevtoolStatusSnapshot,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

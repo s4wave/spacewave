@@ -3,8 +3,13 @@
 /* eslint-disable */
 
 import { Command } from '../command.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.command.registry'
 
@@ -29,9 +34,8 @@ export interface RegisterCommandRequest {
   handlerResourceId?: number
 }
 
-// RegisterCommandRequest contains the message type declaration for RegisterCommandRequest.
 export const RegisterCommandRequest: MessageType<RegisterCommandRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.RegisterCommandRequest',
     fields: [
       { no: 1, name: 'command', kind: 'message', T: () => Command },
@@ -41,7 +45,7 @@ export const RegisterCommandRequest: MessageType<RegisterCommandRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -59,13 +63,12 @@ export interface RegisterCommandResponse {
   resourceId?: number
 }
 
-// RegisterCommandResponse contains the message type declaration for RegisterCommandResponse.
 export const RegisterCommandResponse: MessageType<RegisterCommandResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.RegisterCommandResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -89,14 +92,13 @@ export interface SetActiveRequest {
   active?: boolean
 }
 
-// SetActiveRequest contains the message type declaration for SetActiveRequest.
 export const SetActiveRequest: MessageType<SetActiveRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.SetActiveRequest',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -107,13 +109,11 @@ export const SetActiveRequest: MessageType<SetActiveRequest> =
  */
 export interface SetActiveResponse {}
 
-// SetActiveResponse contains the message type declaration for SetActiveResponse.
 export const SetActiveResponse: MessageType<SetActiveResponse> =
-  createMessageType({
-    typeName: 's4wave.command.registry.SetActiveResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetActiveResponse>(
+    's4wave.command.registry.SetActiveResponse',
+    true,
+  )
 
 /**
  * SetEnabledRequest is the request for SetEnabled.
@@ -135,14 +135,13 @@ export interface SetEnabledRequest {
   enabled?: boolean
 }
 
-// SetEnabledRequest contains the message type declaration for SetEnabledRequest.
 export const SetEnabledRequest: MessageType<SetEnabledRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.SetEnabledRequest',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -153,13 +152,11 @@ export const SetEnabledRequest: MessageType<SetEnabledRequest> =
  */
 export interface SetEnabledResponse {}
 
-// SetEnabledResponse contains the message type declaration for SetEnabledResponse.
 export const SetEnabledResponse: MessageType<SetEnabledResponse> =
-  createMessageType({
-    typeName: 's4wave.command.registry.SetEnabledResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetEnabledResponse>(
+    's4wave.command.registry.SetEnabledResponse',
+    true,
+  )
 
 /**
  * WatchCommandsRequest is the request for WatchCommands.
@@ -168,13 +165,11 @@ export const SetEnabledResponse: MessageType<SetEnabledResponse> =
  */
 export interface WatchCommandsRequest {}
 
-// WatchCommandsRequest contains the message type declaration for WatchCommandsRequest.
 export const WatchCommandsRequest: MessageType<WatchCommandsRequest> =
-  createMessageType({
-    typeName: 's4wave.command.registry.WatchCommandsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchCommandsRequest>(
+    's4wave.command.registry.WatchCommandsRequest',
+    true,
+  )
 
 /**
  * CommandState is a registered command instance with active and enabled state.
@@ -208,17 +203,17 @@ export interface CommandState {
   enabled?: boolean
 }
 
-// CommandState contains the message type declaration for CommandState.
-export const CommandState: MessageType<CommandState> = createMessageType({
-  typeName: 's4wave.command.registry.CommandState',
-  fields: [
-    { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 2, name: 'command', kind: 'message', T: () => Command },
-    { no: 3, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CommandState: MessageType<CommandState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.registry.CommandState',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'command', kind: 'message', T: () => Command },
+      { no: 3, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchCommandsResponse is the response for WatchCommands.
@@ -234,9 +229,8 @@ export interface WatchCommandsResponse {
   commands?: CommandState[]
 }
 
-// WatchCommandsResponse contains the message type declaration for WatchCommandsResponse.
 export const WatchCommandsResponse: MessageType<WatchCommandsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.WatchCommandsResponse',
     fields: [
       {
@@ -246,7 +240,7 @@ export const WatchCommandsResponse: MessageType<WatchCommandsResponse> =
         T: () => CommandState,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -276,16 +270,16 @@ export interface CommandSubItem {
   description?: string
 }
 
-// CommandSubItem contains the message type declaration for CommandSubItem.
-export const CommandSubItem: MessageType<CommandSubItem> = createMessageType({
-  typeName: 's4wave.command.registry.CommandSubItem',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CommandSubItem: MessageType<CommandSubItem> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.registry.CommandSubItem',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetSubItemsRequest is the request for GetSubItems.
@@ -307,14 +301,13 @@ export interface GetSubItemsRequest {
   query?: string
 }
 
-// GetSubItemsRequest contains the message type declaration for GetSubItemsRequest.
 export const GetSubItemsRequest: MessageType<GetSubItemsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.GetSubItemsRequest',
     fields: [
       { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'query', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -332,9 +325,8 @@ export interface GetSubItemsResponse {
   items?: CommandSubItem[]
 }
 
-// GetSubItemsResponse contains the message type declaration for GetSubItemsResponse.
 export const GetSubItemsResponse: MessageType<GetSubItemsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.GetSubItemsResponse',
     fields: [
       {
@@ -344,7 +336,7 @@ export const GetSubItemsResponse: MessageType<GetSubItemsResponse> =
         T: () => CommandSubItem,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -368,9 +360,8 @@ export interface InvokeCommandRequest {
   args?: { [key: string]: string }
 }
 
-// InvokeCommandRequest contains the message type declaration for InvokeCommandRequest.
 export const InvokeCommandRequest: MessageType<InvokeCommandRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.InvokeCommandRequest',
     fields: [
       { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
@@ -381,7 +372,7 @@ export const InvokeCommandRequest: MessageType<InvokeCommandRequest> =
         K: ScalarType.STRING,
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -392,13 +383,11 @@ export const InvokeCommandRequest: MessageType<InvokeCommandRequest> =
  */
 export interface InvokeCommandResponse {}
 
-// InvokeCommandResponse contains the message type declaration for InvokeCommandResponse.
 export const InvokeCommandResponse: MessageType<InvokeCommandResponse> =
-  createMessageType({
-    typeName: 's4wave.command.registry.InvokeCommandResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<InvokeCommandResponse>(
+    's4wave.command.registry.InvokeCommandResponse',
+    true,
+  )
 
 /**
  * HandleCommandRequest is the request for HandleCommand.
@@ -420,9 +409,8 @@ export interface HandleCommandRequest {
   args?: { [key: string]: string }
 }
 
-// HandleCommandRequest contains the message type declaration for HandleCommandRequest.
 export const HandleCommandRequest: MessageType<HandleCommandRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.registry.HandleCommandRequest',
     fields: [
       { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
@@ -433,7 +421,7 @@ export const HandleCommandRequest: MessageType<HandleCommandRequest> =
         K: ScalarType.STRING,
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -444,10 +432,8 @@ export const HandleCommandRequest: MessageType<HandleCommandRequest> =
  */
 export interface HandleCommandResponse {}
 
-// HandleCommandResponse contains the message type declaration for HandleCommandResponse.
 export const HandleCommandResponse: MessageType<HandleCommandResponse> =
-  createMessageType({
-    typeName: 's4wave.command.registry.HandleCommandResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<HandleCommandResponse>(
+    's4wave.command.registry.HandleCommandResponse',
+    true,
+  )

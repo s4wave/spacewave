@@ -2,12 +2,17 @@
 // @generated from file github.com/s4wave/spacewave/db/block/rpc/block.proto (package block.rpc, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import type { StoreFeature } from '../block.pb.js'
 import { BlockRef, PutOpts, StoreFeature_Enum } from '../block.pb.js'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 'block.rpc'
 
@@ -18,13 +23,11 @@ export const protobufPackage = 'block.rpc'
  */
 export interface GetHashTypeRequest {}
 
-// GetHashTypeRequest contains the message type declaration for GetHashTypeRequest.
 export const GetHashTypeRequest: MessageType<GetHashTypeRequest> =
-  createMessageType({
-    typeName: 'block.rpc.GetHashTypeRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetHashTypeRequest>(
+    'block.rpc.GetHashTypeRequest',
+    true,
+  )
 
 /**
  * GetHashTypeResponse is the response to requesting the preferred hash type.
@@ -40,13 +43,12 @@ export interface GetHashTypeResponse {
   hashType?: HashType
 }
 
-// GetHashTypeResponse contains the message type declaration for GetHashTypeResponse.
 export const GetHashTypeResponse: MessageType<GetHashTypeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.GetHashTypeResponse',
     fields: [
       { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -57,13 +59,11 @@ export const GetHashTypeResponse: MessageType<GetHashTypeResponse> =
  */
 export interface GetSupportedFeaturesRequest {}
 
-// GetSupportedFeaturesRequest contains the message type declaration for GetSupportedFeaturesRequest.
 export const GetSupportedFeaturesRequest: MessageType<GetSupportedFeaturesRequest> =
-  createMessageType({
-    typeName: 'block.rpc.GetSupportedFeaturesRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetSupportedFeaturesRequest>(
+    'block.rpc.GetSupportedFeaturesRequest',
+    true,
+  )
 
 /**
  * GetSupportedFeaturesResponse is the response to requesting native features.
@@ -79,13 +79,12 @@ export interface GetSupportedFeaturesResponse {
   features?: StoreFeature
 }
 
-// GetSupportedFeaturesResponse contains the message type declaration for GetSupportedFeaturesResponse.
 export const GetSupportedFeaturesResponse: MessageType<GetSupportedFeaturesResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.GetSupportedFeaturesResponse',
     fields: [
       { no: 1, name: 'features', kind: 'enum', T: StoreFeature_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -109,15 +108,15 @@ export interface PutBlockRequest {
   putOpts?: PutOpts
 }
 
-// PutBlockRequest contains the message type declaration for PutBlockRequest.
-export const PutBlockRequest: MessageType<PutBlockRequest> = createMessageType({
-  typeName: 'block.rpc.PutBlockRequest',
-  fields: [
-    { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'put_opts', kind: 'message', T: () => PutOpts },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PutBlockRequest: MessageType<PutBlockRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.rpc.PutBlockRequest',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'put_opts', kind: 'message', T: () => PutOpts },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PutBlockResponse is the response to putting a block in the store.
@@ -145,15 +144,14 @@ export interface PutBlockResponse {
   error?: string
 }
 
-// PutBlockResponse contains the message type declaration for PutBlockResponse.
 export const PutBlockResponse: MessageType<PutBlockResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.PutBlockResponse',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
       { no: 2, name: 'existed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -189,9 +187,8 @@ export interface PutBlockBatchEntry {
   tombstone?: boolean
 }
 
-// PutBlockBatchEntry contains the message type declaration for PutBlockBatchEntry.
 export const PutBlockBatchEntry: MessageType<PutBlockBatchEntry> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.PutBlockBatchEntry',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
@@ -204,7 +201,7 @@ export const PutBlockBatchEntry: MessageType<PutBlockBatchEntry> =
         repeated: true,
       },
       { no: 4, name: 'tombstone', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -222,9 +219,8 @@ export interface PutBlockBatchRequest {
   entries?: PutBlockBatchEntry[]
 }
 
-// PutBlockBatchRequest contains the message type declaration for PutBlockBatchRequest.
 export const PutBlockBatchRequest: MessageType<PutBlockBatchRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.PutBlockBatchRequest',
     fields: [
       {
@@ -234,7 +230,7 @@ export const PutBlockBatchRequest: MessageType<PutBlockBatchRequest> =
         T: () => PutBlockBatchEntry,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -252,13 +248,12 @@ export interface PutBlockBatchResponse {
   error?: string
 }
 
-// PutBlockBatchResponse contains the message type declaration for PutBlockBatchResponse.
 export const PutBlockBatchResponse: MessageType<PutBlockBatchResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.PutBlockBatchResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -282,14 +277,13 @@ export interface PutBlockBackgroundRequest {
   putOpts?: PutOpts
 }
 
-// PutBlockBackgroundRequest contains the message type declaration for PutBlockBackgroundRequest.
 export const PutBlockBackgroundRequest: MessageType<PutBlockBackgroundRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.PutBlockBackgroundRequest',
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'put_opts', kind: 'message', T: () => PutOpts },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -319,15 +313,14 @@ export interface PutBlockBackgroundResponse {
   error?: string
 }
 
-// PutBlockBackgroundResponse contains the message type declaration for PutBlockBackgroundResponse.
 export const PutBlockBackgroundResponse: MessageType<PutBlockBackgroundResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.PutBlockBackgroundResponse',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
       { no: 2, name: 'existed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -345,14 +338,14 @@ export interface GetBlockRequest {
   ref?: BlockRef
 }
 
-// GetBlockRequest contains the message type declaration for GetBlockRequest.
-export const GetBlockRequest: MessageType<GetBlockRequest> = createMessageType({
-  typeName: 'block.rpc.GetBlockRequest',
-  fields: [
-    { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetBlockRequest: MessageType<GetBlockRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.rpc.GetBlockRequest',
+    fields: [
+      { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetBlockResponse is the response to looking up a block in the store.
@@ -380,15 +373,14 @@ export interface GetBlockResponse {
   error?: string
 }
 
-// GetBlockResponse contains the message type declaration for GetBlockResponse.
 export const GetBlockResponse: MessageType<GetBlockResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.GetBlockResponse',
     fields: [
       { no: 1, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -406,13 +398,12 @@ export interface GetBlockExistsRequest {
   ref?: BlockRef
 }
 
-// GetBlockExistsRequest contains the message type declaration for GetBlockExistsRequest.
 export const GetBlockExistsRequest: MessageType<GetBlockExistsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.GetBlockExistsRequest',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -436,14 +427,13 @@ export interface GetBlockExistsResponse {
   error?: string
 }
 
-// GetBlockExistsResponse contains the message type declaration for GetBlockExistsResponse.
 export const GetBlockExistsResponse: MessageType<GetBlockExistsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.GetBlockExistsResponse',
     fields: [
       { no: 1, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -461,9 +451,8 @@ export interface GetBlockExistsBatchRequest {
   refs?: BlockRef[]
 }
 
-// GetBlockExistsBatchRequest contains the message type declaration for GetBlockExistsBatchRequest.
 export const GetBlockExistsBatchRequest: MessageType<GetBlockExistsBatchRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.GetBlockExistsBatchRequest',
     fields: [
       {
@@ -473,7 +462,7 @@ export const GetBlockExistsBatchRequest: MessageType<GetBlockExistsBatchRequest>
         T: () => BlockRef,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -497,9 +486,8 @@ export interface GetBlockExistsBatchResponse {
   error?: string
 }
 
-// GetBlockExistsBatchResponse contains the message type declaration for GetBlockExistsBatchResponse.
 export const GetBlockExistsBatchResponse: MessageType<GetBlockExistsBatchResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.GetBlockExistsBatchResponse',
     fields: [
       {
@@ -510,7 +498,7 @@ export const GetBlockExistsBatchResponse: MessageType<GetBlockExistsBatchRespons
         repeated: true,
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -528,14 +516,14 @@ export interface RmBlockRequest {
   ref?: BlockRef
 }
 
-// RmBlockRequest contains the message type declaration for RmBlockRequest.
-export const RmBlockRequest: MessageType<RmBlockRequest> = createMessageType({
-  typeName: 'block.rpc.RmBlockRequest',
-  fields: [
-    { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RmBlockRequest: MessageType<RmBlockRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.rpc.RmBlockRequest',
+    fields: [
+      { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RmBlockResponse is the response to removing a block from the store.
@@ -552,14 +540,14 @@ export interface RmBlockResponse {
   error?: string
 }
 
-// RmBlockResponse contains the message type declaration for RmBlockResponse.
-export const RmBlockResponse: MessageType<RmBlockResponse> = createMessageType({
-  typeName: 'block.rpc.RmBlockResponse',
-  fields: [
-    { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RmBlockResponse: MessageType<RmBlockResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.rpc.RmBlockResponse',
+    fields: [
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * StatBlockRequest requests metadata about a block.
@@ -575,13 +563,12 @@ export interface StatBlockRequest {
   ref?: BlockRef
 }
 
-// StatBlockRequest contains the message type declaration for StatBlockRequest.
 export const StatBlockRequest: MessageType<StatBlockRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.StatBlockRequest',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -617,16 +604,15 @@ export interface StatBlockResponse {
   error?: string
 }
 
-// StatBlockResponse contains the message type declaration for StatBlockResponse.
 export const StatBlockResponse: MessageType<StatBlockResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.StatBlockResponse',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
       { no: 2, name: 'size', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -637,12 +623,11 @@ export const StatBlockResponse: MessageType<StatBlockResponse> =
  */
 export interface FlushRequest {}
 
-// FlushRequest contains the message type declaration for FlushRequest.
-export const FlushRequest: MessageType<FlushRequest> = createMessageType({
-  typeName: 'block.rpc.FlushRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FlushRequest: MessageType<FlushRequest> =
+  /* @__PURE__ */ createEmptyMessageType<FlushRequest>(
+    'block.rpc.FlushRequest',
+    true,
+  )
 
 /**
  * FlushResponse is the response to flushing the store.
@@ -658,14 +643,14 @@ export interface FlushResponse {
   error?: string
 }
 
-// FlushResponse contains the message type declaration for FlushResponse.
-export const FlushResponse: MessageType<FlushResponse> = createMessageType({
-  typeName: 'block.rpc.FlushResponse',
-  fields: [
-    { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const FlushResponse: MessageType<FlushResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.rpc.FlushResponse',
+    fields: [
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BeginDeferFlushRequest requests opening a defer-flush scope.
@@ -674,13 +659,11 @@ export const FlushResponse: MessageType<FlushResponse> = createMessageType({
  */
 export interface BeginDeferFlushRequest {}
 
-// BeginDeferFlushRequest contains the message type declaration for BeginDeferFlushRequest.
 export const BeginDeferFlushRequest: MessageType<BeginDeferFlushRequest> =
-  createMessageType({
-    typeName: 'block.rpc.BeginDeferFlushRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<BeginDeferFlushRequest>(
+    'block.rpc.BeginDeferFlushRequest',
+    true,
+  )
 
 /**
  * BeginDeferFlushResponse is the response to opening a defer-flush scope.
@@ -696,13 +679,12 @@ export interface BeginDeferFlushResponse {
   error?: string
 }
 
-// BeginDeferFlushResponse contains the message type declaration for BeginDeferFlushResponse.
 export const BeginDeferFlushResponse: MessageType<BeginDeferFlushResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.BeginDeferFlushResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -713,13 +695,11 @@ export const BeginDeferFlushResponse: MessageType<BeginDeferFlushResponse> =
  */
 export interface EndDeferFlushRequest {}
 
-// EndDeferFlushRequest contains the message type declaration for EndDeferFlushRequest.
 export const EndDeferFlushRequest: MessageType<EndDeferFlushRequest> =
-  createMessageType({
-    typeName: 'block.rpc.EndDeferFlushRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<EndDeferFlushRequest>(
+    'block.rpc.EndDeferFlushRequest',
+    true,
+  )
 
 /**
  * EndDeferFlushResponse is the response to closing a defer-flush scope.
@@ -735,12 +715,11 @@ export interface EndDeferFlushResponse {
   error?: string
 }
 
-// EndDeferFlushResponse contains the message type declaration for EndDeferFlushResponse.
 export const EndDeferFlushResponse: MessageType<EndDeferFlushResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'block.rpc.EndDeferFlushResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

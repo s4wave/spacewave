@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/sdk/vm/v86-wizard.proto (package s4wave.vm, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.vm'
 
@@ -39,13 +38,12 @@ export enum V86WizardConfig_Source {
   COPY_FROM_CDN = 2,
 }
 
-// V86WizardConfig_Source_Enum is the enum type for V86WizardConfig_Source.
-export const V86WizardConfig_Source_Enum = createEnumType(
+export const V86WizardConfig_Source_Enum = /* @__PURE__ */ createEnumType(
   's4wave.vm.V86WizardConfig.Source',
   [
-    { no: 0, name: 'SOURCE_UNSPECIFIED' },
-    { no: 1, name: 'EXISTING_IN_SPACE' },
-    { no: 2, name: 'COPY_FROM_CDN' },
+    [0, 'SOURCE_UNSPECIFIED'],
+    [1, 'EXISTING_IN_SPACE'],
+    [2, 'COPY_FROM_CDN'],
   ],
 )
 
@@ -105,23 +103,23 @@ export interface V86WizardConfig {
   cdnId?: string
 }
 
-// V86WizardConfig contains the message type declaration for V86WizardConfig.
-export const V86WizardConfig: MessageType<V86WizardConfig> = createMessageType({
-  typeName: 's4wave.vm.V86WizardConfig',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'vga_memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 4, name: 'networking', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 5, name: 'image_object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'source', kind: 'enum', T: V86WizardConfig_Source_Enum },
-    {
-      no: 7,
-      name: 'cdn_source_object_key',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-    },
-    { no: 8, name: 'cdn_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const V86WizardConfig: MessageType<V86WizardConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.vm.V86WizardConfig',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'vga_memory_mb', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'networking', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'image_object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'source', kind: 'enum', T: V86WizardConfig_Source_Enum },
+      {
+        no: 7,
+        name: 'cdn_source_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 8, name: 'cdn_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

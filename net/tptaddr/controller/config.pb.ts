@@ -3,8 +3,9 @@
 /* eslint-disable */
 
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'tptaddr.controller'
 
@@ -26,11 +27,10 @@ export interface Config {
   dialBackoff?: Backoff
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'tptaddr.controller.Config',
   fields: [
     { no: 1, name: 'dial_backoff', kind: 'message', T: () => Backoff },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

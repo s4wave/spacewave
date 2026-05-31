@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BitSet } from '../bitset/bitset.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bloom'
 
@@ -38,13 +40,13 @@ export interface BloomFilter {
   bitSet?: BitSet
 }
 
-// BloomFilter contains the message type declaration for BloomFilter.
-export const BloomFilter: MessageType<BloomFilter> = createMessageType({
-  typeName: 'bloom.BloomFilter',
-  fields: [
-    { no: 1, name: 'k', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 2, name: 'm', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'bit_set', kind: 'message', T: () => BitSet },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BloomFilter: MessageType<BloomFilter> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bloom.BloomFilter',
+    fields: [
+      { no: 1, name: 'k', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'm', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'bit_set', kind: 'message', T: () => BitSet },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

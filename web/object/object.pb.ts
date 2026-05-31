@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/web/object/object.proto (package s4wave.web.object, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.web.object'
 
@@ -41,13 +40,12 @@ export enum ObjectInfoType {
   ObjectInfoType_UNIXFS = 2,
 }
 
-// ObjectInfoType_Enum is the enum type for ObjectInfoType.
-export const ObjectInfoType_Enum = createEnumType(
+export const ObjectInfoType_Enum = /* @__PURE__ */ createEnumType(
   's4wave.web.object.ObjectInfoType',
   [
-    { no: 0, name: 'ObjectInfoType_UNKNOWN' },
-    { no: 1, name: 'ObjectInfoType_WORLD' },
-    { no: 2, name: 'ObjectInfoType_UNIXFS' },
+    [0, 'ObjectInfoType_UNKNOWN'],
+    [1, 'ObjectInfoType_WORLD'],
+    [2, 'ObjectInfoType_UNIXFS'],
   ],
 )
 
@@ -79,16 +77,16 @@ export interface WorldObjectInfo {
   objectType?: string
 }
 
-// WorldObjectInfo contains the message type declaration for WorldObjectInfo.
-export const WorldObjectInfo: MessageType<WorldObjectInfo> = createMessageType({
-  typeName: 's4wave.web.object.WorldObjectInfo',
-  fields: [
-    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WorldObjectInfo: MessageType<WorldObjectInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.web.object.WorldObjectInfo',
+    fields: [
+      { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * UnixfsObjectInfo is basic metadata about a UnixFS file.
@@ -121,15 +119,14 @@ export interface UnixfsObjectInfo {
   mimeType?: string
 }
 
-// UnixfsObjectInfo contains the message type declaration for UnixfsObjectInfo.
 export const UnixfsObjectInfo: MessageType<UnixfsObjectInfo> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.web.object.UnixfsObjectInfo',
     fields: [
       { no: 1, name: 'unixfs_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'mime_type', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -171,24 +168,24 @@ export interface ObjectInfo {
       }
 }
 
-// ObjectInfo contains the message type declaration for ObjectInfo.
-export const ObjectInfo: MessageType<ObjectInfo> = createMessageType({
-  typeName: 's4wave.web.object.ObjectInfo',
-  fields: [
-    {
-      no: 1,
-      name: 'world_object_info',
-      kind: 'message',
-      T: () => WorldObjectInfo,
-      oneof: 'info',
-    },
-    {
-      no: 2,
-      name: 'unixfs_object_info',
-      kind: 'message',
-      T: () => UnixfsObjectInfo,
-      oneof: 'info',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ObjectInfo: MessageType<ObjectInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.web.object.ObjectInfo',
+    fields: [
+      {
+        no: 1,
+        name: 'world_object_info',
+        kind: 'message',
+        T: () => WorldObjectInfo,
+        oneof: 'info',
+      },
+      {
+        no: 2,
+        name: 'unixfs_object_info',
+        kind: 'message',
+        T: () => UnixfsObjectInfo,
+        oneof: 'info',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

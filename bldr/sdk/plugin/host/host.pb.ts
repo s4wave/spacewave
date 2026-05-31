@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/bldr/sdk/plugin/host/host.proto (package bldr.plugin.host, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.plugin.host'
 
@@ -14,13 +19,11 @@ export const protobufPackage = 'bldr.plugin.host'
  */
 export interface AccessAssetsFSRequest {}
 
-// AccessAssetsFSRequest contains the message type declaration for AccessAssetsFSRequest.
 export const AccessAssetsFSRequest: MessageType<AccessAssetsFSRequest> =
-  createMessageType({
-    typeName: 'bldr.plugin.host.AccessAssetsFSRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AccessAssetsFSRequest>(
+    'bldr.plugin.host.AccessAssetsFSRequest',
+    true,
+  )
 
 /**
  * AccessAssetsFSResponse is the response for AccessAssetsFS.
@@ -36,13 +39,12 @@ export interface AccessAssetsFSResponse {
   resourceId?: number
 }
 
-// AccessAssetsFSResponse contains the message type declaration for AccessAssetsFSResponse.
 export const AccessAssetsFSResponse: MessageType<AccessAssetsFSResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.host.AccessAssetsFSResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -53,13 +55,11 @@ export const AccessAssetsFSResponse: MessageType<AccessAssetsFSResponse> =
  */
 export interface AccessDistFSRequest {}
 
-// AccessDistFSRequest contains the message type declaration for AccessDistFSRequest.
 export const AccessDistFSRequest: MessageType<AccessDistFSRequest> =
-  createMessageType({
-    typeName: 'bldr.plugin.host.AccessDistFSRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AccessDistFSRequest>(
+    'bldr.plugin.host.AccessDistFSRequest',
+    true,
+  )
 
 /**
  * AccessDistFSResponse is the response for AccessDistFS.
@@ -75,13 +75,12 @@ export interface AccessDistFSResponse {
   resourceId?: number
 }
 
-// AccessDistFSResponse contains the message type declaration for AccessDistFSResponse.
 export const AccessDistFSResponse: MessageType<AccessDistFSResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.host.AccessDistFSResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -92,13 +91,11 @@ export const AccessDistFSResponse: MessageType<AccessDistFSResponse> =
  */
 export interface AccessVolumeRequest {}
 
-// AccessVolumeRequest contains the message type declaration for AccessVolumeRequest.
 export const AccessVolumeRequest: MessageType<AccessVolumeRequest> =
-  createMessageType({
-    typeName: 'bldr.plugin.host.AccessVolumeRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AccessVolumeRequest>(
+    'bldr.plugin.host.AccessVolumeRequest',
+    true,
+  )
 
 /**
  * AccessVolumeResponse is the response for AccessVolume.
@@ -114,13 +111,12 @@ export interface AccessVolumeResponse {
   resourceId?: number
 }
 
-// AccessVolumeResponse contains the message type declaration for AccessVolumeResponse.
 export const AccessVolumeResponse: MessageType<AccessVolumeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.host.AccessVolumeResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -138,13 +134,12 @@ export interface AccessStateAtomRequest {
   storeId?: string
 }
 
-// AccessStateAtomRequest contains the message type declaration for AccessStateAtomRequest.
 export const AccessStateAtomRequest: MessageType<AccessStateAtomRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.host.AccessStateAtomRequest',
     fields: [
       { no: 1, name: 'store_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -162,13 +157,12 @@ export interface AccessStateAtomResponse {
   resourceId?: number
 }
 
-// AccessStateAtomResponse contains the message type declaration for AccessStateAtomResponse.
 export const AccessStateAtomResponse: MessageType<AccessStateAtomResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.host.AccessStateAtomResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -179,13 +173,11 @@ export const AccessStateAtomResponse: MessageType<AccessStateAtomResponse> =
  */
 export interface AccessDesktopTrayRequest {}
 
-// AccessDesktopTrayRequest contains the message type declaration for AccessDesktopTrayRequest.
 export const AccessDesktopTrayRequest: MessageType<AccessDesktopTrayRequest> =
-  createMessageType({
-    typeName: 'bldr.plugin.host.AccessDesktopTrayRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AccessDesktopTrayRequest>(
+    'bldr.plugin.host.AccessDesktopTrayRequest',
+    true,
+  )
 
 /**
  * AccessDesktopTrayResponse is the response for AccessDesktopTray.
@@ -201,13 +193,12 @@ export interface AccessDesktopTrayResponse {
   resourceId?: number
 }
 
-// AccessDesktopTrayResponse contains the message type declaration for AccessDesktopTrayResponse.
 export const AccessDesktopTrayResponse: MessageType<AccessDesktopTrayResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.host.AccessDesktopTrayResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -218,13 +209,11 @@ export const AccessDesktopTrayResponse: MessageType<AccessDesktopTrayResponse> =
  */
 export interface GetPluginInfoRequest {}
 
-// GetPluginInfoRequest contains the message type declaration for GetPluginInfoRequest.
 export const GetPluginInfoRequest: MessageType<GetPluginInfoRequest> =
-  createMessageType({
-    typeName: 'bldr.plugin.host.GetPluginInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetPluginInfoRequest>(
+    'bldr.plugin.host.GetPluginInfoRequest',
+    true,
+  )
 
 /**
  * GetPluginInfoResponse is the response for GetPluginInfo.
@@ -246,13 +235,12 @@ export interface GetPluginInfoResponse {
   entrypoint?: string
 }
 
-// GetPluginInfoResponse contains the message type declaration for GetPluginInfoResponse.
 export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.host.GetPluginInfoResponse',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entrypoint', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

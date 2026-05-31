@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/layout/layout.proto (package s4wave.layout, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.layout'
 
@@ -46,14 +48,13 @@ export enum BorderLocation {
   BorderLocation_RIGHT = 3,
 }
 
-// BorderLocation_Enum is the enum type for BorderLocation.
-export const BorderLocation_Enum = createEnumType(
+export const BorderLocation_Enum = /* @__PURE__ */ createEnumType(
   's4wave.layout.BorderLocation',
   [
-    { no: 0, name: 'BorderLocation_TOP' },
-    { no: 1, name: 'BorderLocation_BOTTOM' },
-    { no: 2, name: 'BorderLocation_LEFT' },
-    { no: 3, name: 'BorderLocation_RIGHT' },
+    [0, 'BorderLocation_TOP'],
+    [1, 'BorderLocation_BOTTOM'],
+    [2, 'BorderLocation_LEFT'],
+    [3, 'BorderLocation_RIGHT'],
   ],
 )
 
@@ -77,14 +78,13 @@ export interface NavigateTabRequest {
   path?: string
 }
 
-// NavigateTabRequest contains the message type declaration for NavigateTabRequest.
 export const NavigateTabRequest: MessageType<NavigateTabRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.layout.NavigateTabRequest',
     fields: [
       { no: 1, name: 'tab_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -95,13 +95,11 @@ export const NavigateTabRequest: MessageType<NavigateTabRequest> =
  */
 export interface NavigateTabResponse {}
 
-// NavigateTabResponse contains the message type declaration for NavigateTabResponse.
 export const NavigateTabResponse: MessageType<NavigateTabResponse> =
-  createMessageType({
-    typeName: 's4wave.layout.NavigateTabResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<NavigateTabResponse>(
+    's4wave.layout.NavigateTabResponse',
+    true,
+  )
 
 /**
  * TabDef contains information about a tab.
@@ -141,8 +139,7 @@ export interface TabDef {
   data?: Uint8Array
 }
 
-// TabDef contains the message type declaration for TabDef.
-export const TabDef: MessageType<TabDef> = createMessageType({
+export const TabDef: MessageType<TabDef> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.layout.TabDef',
   fields: [
     { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -150,7 +147,7 @@ export const TabDef: MessageType<TabDef> = createMessageType({
     { no: 3, name: 'help_text', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'enable_close', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -188,17 +185,17 @@ export interface AddTabRequest {
   select?: boolean
 }
 
-// AddTabRequest contains the message type declaration for AddTabRequest.
-export const AddTabRequest: MessageType<AddTabRequest> = createMessageType({
-  typeName: 's4wave.layout.AddTabRequest',
-  fields: [
-    { no: 1, name: 'tab_set_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'tab', kind: 'message', T: () => TabDef },
-    { no: 3, name: 'after_tab_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'select', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AddTabRequest: MessageType<AddTabRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.AddTabRequest',
+    fields: [
+      { no: 1, name: 'tab_set_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'tab', kind: 'message', T: () => TabDef },
+      { no: 3, name: 'after_tab_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'select', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * AddTabResponse is a response to adding a new tab.
@@ -214,14 +211,14 @@ export interface AddTabResponse {
   tabId?: string
 }
 
-// AddTabResponse contains the message type declaration for AddTabResponse.
-export const AddTabResponse: MessageType<AddTabResponse> = createMessageType({
-  typeName: 's4wave.layout.AddTabResponse',
-  fields: [
-    { no: 1, name: 'tab_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AddTabResponse: MessageType<AddTabResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.AddTabResponse',
+    fields: [
+      { no: 1, name: 'tab_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BorderDef contains a definition of a tab border.
@@ -255,23 +252,23 @@ export interface BorderDef {
   hide?: boolean
 }
 
-// BorderDef contains the message type declaration for BorderDef.
-export const BorderDef: MessageType<BorderDef> = createMessageType({
-  typeName: 's4wave.layout.BorderDef',
-  fields: [
-    { no: 1, name: 'border_location', kind: 'enum', T: BorderLocation_Enum },
-    {
-      no: 2,
-      name: 'children',
-      kind: 'message',
-      T: () => TabDef,
-      repeated: true,
-    },
-    { no: 3, name: 'selected', kind: 'scalar', T: ScalarType.INT32 },
-    { no: 4, name: 'hide', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BorderDef: MessageType<BorderDef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.BorderDef',
+    fields: [
+      { no: 1, name: 'border_location', kind: 'enum', T: BorderLocation_Enum },
+      {
+        no: 2,
+        name: 'children',
+        kind: 'message',
+        T: () => TabDef,
+        repeated: true,
+      },
+      { no: 3, name: 'selected', kind: 'scalar', T: ScalarType.INT32 },
+      { no: 4, name: 'hide', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TabSetDef contains information about a set of tabs.
@@ -305,23 +302,23 @@ export interface TabSetDef {
   children?: TabDef[]
 }
 
-// TabSetDef contains the message type declaration for TabSetDef.
-export const TabSetDef: MessageType<TabSetDef> = createMessageType({
-  typeName: 's4wave.layout.TabSetDef',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'weight', kind: 'scalar', T: ScalarType.FLOAT },
-    {
-      no: 4,
-      name: 'children',
-      kind: 'message',
-      T: () => TabDef,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TabSetDef: MessageType<TabSetDef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.TabSetDef',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'weight', kind: 'scalar', T: ScalarType.FLOAT },
+      {
+        no: 4,
+        name: 'children',
+        kind: 'message',
+        T: () => TabDef,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RowOrTabSetDef contains either a RowDef or a TabSetDef.
@@ -353,21 +350,21 @@ export interface RowOrTabSetDef {
       }
 }
 
-// RowOrTabSetDef contains the message type declaration for RowOrTabSetDef.
-export const RowOrTabSetDef: MessageType<RowOrTabSetDef> = createMessageType({
-  typeName: 's4wave.layout.RowOrTabSetDef',
-  fields: [
-    { no: 1, name: 'row', kind: 'message', T: () => RowDef, oneof: 'node' },
-    {
-      no: 2,
-      name: 'tab_set',
-      kind: 'message',
-      T: () => TabSetDef,
-      oneof: 'node',
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const RowOrTabSetDef: MessageType<RowOrTabSetDef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.RowOrTabSetDef',
+    fields: [
+      { no: 1, name: 'row', kind: 'message', T: () => RowDef, oneof: 'node' },
+      {
+        no: 2,
+        name: 'tab_set',
+        kind: 'message',
+        T: () => TabSetDef,
+        oneof: 'node',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * RowDef contains information about a row.
@@ -395,8 +392,7 @@ export interface RowDef {
   weight?: number
 }
 
-// RowDef contains the message type declaration for RowDef.
-export const RowDef: MessageType<RowDef> = createMessageType({
+export const RowDef: MessageType<RowDef> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.layout.RowDef',
   fields: [
     { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -408,7 +404,7 @@ export const RowDef: MessageType<RowDef> = createMessageType({
       repeated: true,
     },
     { no: 3, name: 'weight', kind: 'scalar', T: ScalarType.FLOAT },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -433,21 +429,21 @@ export interface LayoutModel {
   layout?: RowDef
 }
 
-// LayoutModel contains the message type declaration for LayoutModel.
-export const LayoutModel: MessageType<LayoutModel> = createMessageType({
-  typeName: 's4wave.layout.LayoutModel',
-  fields: [
-    {
-      no: 1,
-      name: 'borders',
-      kind: 'message',
-      T: () => BorderDef,
-      repeated: true,
-    },
-    { no: 2, name: 'layout', kind: 'message', T: () => RowDef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LayoutModel: MessageType<LayoutModel> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.LayoutModel',
+    fields: [
+      {
+        no: 1,
+        name: 'borders',
+        kind: 'message',
+        T: () => BorderDef,
+        repeated: true,
+      },
+      { no: 2, name: 'layout', kind: 'message', T: () => RowDef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchLayoutModelRequest is a request sent by the client of WatchLayoutModel.
@@ -476,9 +472,8 @@ export interface WatchLayoutModelRequest {
       }
 }
 
-// WatchLayoutModelRequest contains the message type declaration for WatchLayoutModelRequest.
 export const WatchLayoutModelRequest: MessageType<WatchLayoutModelRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.layout.WatchLayoutModelRequest',
     fields: [
       {
@@ -488,7 +483,7 @@ export const WatchLayoutModelRequest: MessageType<WatchLayoutModelRequest> =
         T: () => LayoutModel,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -519,9 +514,8 @@ export interface LayoutLocalState {
   maximizedTabSetId?: string
 }
 
-// LayoutLocalState contains the message type declaration for LayoutLocalState.
 export const LayoutLocalState: MessageType<LayoutLocalState> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.layout.LayoutLocalState',
     fields: [
       {
@@ -543,7 +537,7 @@ export const LayoutLocalState: MessageType<LayoutLocalState> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -568,12 +562,17 @@ export interface LayoutSnapshot {
   localState?: LayoutLocalState
 }
 
-// LayoutSnapshot contains the message type declaration for LayoutSnapshot.
-export const LayoutSnapshot: MessageType<LayoutSnapshot> = createMessageType({
-  typeName: 's4wave.layout.LayoutSnapshot',
-  fields: [
-    { no: 1, name: 'model', kind: 'message', T: () => LayoutModel },
-    { no: 2, name: 'local_state', kind: 'message', T: () => LayoutLocalState },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LayoutSnapshot: MessageType<LayoutSnapshot> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.LayoutSnapshot',
+    fields: [
+      { no: 1, name: 'model', kind: 'message', T: () => LayoutModel },
+      {
+        no: 2,
+        name: 'local_state',
+        kind: 'message',
+        T: () => LayoutLocalState,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

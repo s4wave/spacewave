@@ -2,8 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/db/blocktype/controller-factory/controller.proto (package blocktype.controller.factory, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
 export const protobufPackage = 'blocktype.controller.factory'
 
@@ -14,9 +14,8 @@ export const protobufPackage = 'blocktype.controller.factory'
  */
 export interface Config {}
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
-  typeName: 'blocktype.controller.factory.Config',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createEmptyMessageType<Config>(
+    'blocktype.controller.factory.Config',
+    true,
+  )

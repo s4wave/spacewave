@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/worldop/registry/registry.proto (package s4wave.worldop.registry, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.worldop.registry'
 
@@ -33,9 +38,8 @@ export interface WorldOpRegistration {
   pluginId?: string
 }
 
-// WorldOpRegistration contains the message type declaration for WorldOpRegistration.
 export const WorldOpRegistration: MessageType<WorldOpRegistration> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.WorldOpRegistration',
     fields: [
       {
@@ -46,7 +50,7 @@ export const WorldOpRegistration: MessageType<WorldOpRegistration> =
       },
       { no: 2, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -70,9 +74,8 @@ export interface RegisterWorldOpRequest {
   pluginId?: string
 }
 
-// RegisterWorldOpRequest contains the message type declaration for RegisterWorldOpRequest.
 export const RegisterWorldOpRequest: MessageType<RegisterWorldOpRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.RegisterWorldOpRequest',
     fields: [
       {
@@ -82,7 +85,7 @@ export const RegisterWorldOpRequest: MessageType<RegisterWorldOpRequest> =
         T: ScalarType.STRING,
       },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -100,13 +103,12 @@ export interface RegisterWorldOpResponse {
   resourceId?: number
 }
 
-// RegisterWorldOpResponse contains the message type declaration for RegisterWorldOpResponse.
 export const RegisterWorldOpResponse: MessageType<RegisterWorldOpResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.RegisterWorldOpResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -117,13 +119,11 @@ export const RegisterWorldOpResponse: MessageType<RegisterWorldOpResponse> =
  */
 export interface WatchWorldOpsRequest {}
 
-// WatchWorldOpsRequest contains the message type declaration for WatchWorldOpsRequest.
 export const WatchWorldOpsRequest: MessageType<WatchWorldOpsRequest> =
-  createMessageType({
-    typeName: 's4wave.worldop.registry.WatchWorldOpsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchWorldOpsRequest>(
+    's4wave.worldop.registry.WatchWorldOpsRequest',
+    true,
+  )
 
 /**
  * WatchWorldOpsResponse is the response for WatchWorldOps.
@@ -139,9 +139,8 @@ export interface WatchWorldOpsResponse {
   registrations?: WorldOpRegistration[]
 }
 
-// WatchWorldOpsResponse contains the message type declaration for WatchWorldOpsResponse.
 export const WatchWorldOpsResponse: MessageType<WatchWorldOpsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.WatchWorldOpsResponse',
     fields: [
       {
@@ -151,7 +150,7 @@ export const WatchWorldOpsResponse: MessageType<WatchWorldOpsResponse> =
         T: () => WorldOpRegistration,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -181,9 +180,8 @@ export interface ApplyWorldOpRequest {
   attachedWorldStateResourceId?: number
 }
 
-// ApplyWorldOpRequest contains the message type declaration for ApplyWorldOpRequest.
 export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.ApplyWorldOpRequest',
     fields: [
       {
@@ -199,7 +197,7 @@ export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -217,13 +215,12 @@ export interface ApplyWorldOpResponse {
   systemError?: boolean
 }
 
-// ApplyWorldOpResponse contains the message type declaration for ApplyWorldOpResponse.
 export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.ApplyWorldOpResponse',
     fields: [
       { no: 1, name: 'system_error', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -259,9 +256,8 @@ export interface ApplyWorldObjectOpRequest {
   attachedObjectStateResourceId?: number
 }
 
-// ApplyWorldObjectOpRequest contains the message type declaration for ApplyWorldObjectOpRequest.
 export const ApplyWorldObjectOpRequest: MessageType<ApplyWorldObjectOpRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.ApplyWorldObjectOpRequest',
     fields: [
       {
@@ -278,7 +274,7 @@ export const ApplyWorldObjectOpRequest: MessageType<ApplyWorldObjectOpRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -296,13 +292,12 @@ export interface ApplyWorldObjectOpResponse {
   systemError?: boolean
 }
 
-// ApplyWorldObjectOpResponse contains the message type declaration for ApplyWorldObjectOpResponse.
 export const ApplyWorldObjectOpResponse: MessageType<ApplyWorldObjectOpResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.ApplyWorldObjectOpResponse',
     fields: [
       { no: 1, name: 'system_error', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -326,9 +321,8 @@ export interface ValidateOpRequest {
   opData?: Uint8Array
 }
 
-// ValidateOpRequest contains the message type declaration for ValidateOpRequest.
 export const ValidateOpRequest: MessageType<ValidateOpRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.ValidateOpRequest',
     fields: [
       {
@@ -338,7 +332,7 @@ export const ValidateOpRequest: MessageType<ValidateOpRequest> =
         T: ScalarType.STRING,
       },
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -356,12 +350,11 @@ export interface ValidateOpResponse {
   error?: string
 }
 
-// ValidateOpResponse contains the message type declaration for ValidateOpResponse.
 export const ValidateOpResponse: MessageType<ValidateOpResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.worldop.registry.ValidateOpResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

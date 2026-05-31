@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/db/block/transform/lz4/lz4.proto (package transform.lz4, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'transform.lz4'
 
@@ -46,13 +45,15 @@ export enum BlockSize {
   BlockSize_1MB = 3,
 }
 
-// BlockSize_Enum is the enum type for BlockSize.
-export const BlockSize_Enum = createEnumType('transform.lz4.BlockSize', [
-  { no: 0, name: 'BlockSize_4MB' },
-  { no: 1, name: 'BlockSize_64KB' },
-  { no: 2, name: 'BlockSize_256KB' },
-  { no: 3, name: 'BlockSize_1MB' },
-])
+export const BlockSize_Enum = /* @__PURE__ */ createEnumType(
+  'transform.lz4.BlockSize',
+  [
+    [0, 'BlockSize_4MB'],
+    [1, 'BlockSize_64KB'],
+    [2, 'BlockSize_256KB'],
+    [3, 'BlockSize_1MB'],
+  ],
+)
 
 /**
  * Config configures the lz4 compression transform.
@@ -89,14 +90,13 @@ export interface Config {
   compressionLevel?: number
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'transform.lz4.Config',
   fields: [
     { no: 1, name: 'block_size', kind: 'enum', T: BlockSize_Enum },
     { no: 2, name: 'block_checksum', kind: 'scalar', T: ScalarType.BOOL },
     { no: 3, name: 'disable_checksum', kind: 'scalar', T: ScalarType.BOOL },
     { no: 4, name: 'compression_level', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

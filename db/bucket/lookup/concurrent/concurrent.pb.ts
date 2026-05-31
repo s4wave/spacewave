@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/db/bucket/lookup/concurrent/concurrent.proto (package lookup.concurrent, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { Config as Config$1 } from '../../bucket.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'lookup.concurrent'
 
@@ -42,13 +41,12 @@ export enum NotFoundBehavior {
   NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT = 2,
 }
 
-// NotFoundBehavior_Enum is the enum type for NotFoundBehavior.
-export const NotFoundBehavior_Enum = createEnumType(
+export const NotFoundBehavior_Enum = /* @__PURE__ */ createEnumType(
   'lookup.concurrent.NotFoundBehavior',
   [
-    { no: 0, name: 'NotFoundBehavior_NONE' },
-    { no: 1, name: 'NotFoundBehavior_LOOKUP_DIRECTIVE' },
-    { no: 2, name: 'NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT' },
+    [0, 'NotFoundBehavior_NONE'],
+    [1, 'NotFoundBehavior_LOOKUP_DIRECTIVE'],
+    [2, 'NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT'],
   ],
 )
 
@@ -73,12 +71,11 @@ export enum PutBlockBehavior {
   PutBlockBehavior_ALL = 1,
 }
 
-// PutBlockBehavior_Enum is the enum type for PutBlockBehavior.
-export const PutBlockBehavior_Enum = createEnumType(
+export const PutBlockBehavior_Enum = /* @__PURE__ */ createEnumType(
   'lookup.concurrent.PutBlockBehavior',
   [
-    { no: 0, name: 'PutBlockBehavior_NONE' },
-    { no: 1, name: 'PutBlockBehavior_ALL' },
+    [0, 'PutBlockBehavior_NONE'],
+    [1, 'PutBlockBehavior_ALL'],
   ],
 )
 
@@ -103,12 +100,11 @@ export enum WritebackBehavior {
   WritebackBehavior_ALL = 1,
 }
 
-// WritebackBehavior_Enum is the enum type for WritebackBehavior.
-export const WritebackBehavior_Enum = createEnumType(
+export const WritebackBehavior_Enum = /* @__PURE__ */ createEnumType(
   'lookup.concurrent.WritebackBehavior',
   [
-    { no: 0, name: 'WritebackBehavior_NONE' },
-    { no: 1, name: 'WritebackBehavior_ALL' },
+    [0, 'WritebackBehavior_NONE'],
+    [1, 'WritebackBehavior_ALL'],
   ],
 )
 
@@ -170,8 +166,7 @@ export interface Config {
   fallbackBlockStoreId?: string
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'lookup.concurrent.Config',
   fields: [
     { no: 1, name: 'bucket_conf', kind: 'message', T: () => Config$1 },
@@ -201,6 +196,6 @@ export const Config: MessageType<Config> = createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

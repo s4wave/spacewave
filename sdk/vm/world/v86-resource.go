@@ -16,6 +16,7 @@ import (
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
+	"github.com/sirupsen/logrus"
 )
 
 // defaultVmPluginID is the plugin ID that hosts the default V86 backend. Each
@@ -241,7 +242,7 @@ func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID s
 			"v86fs route for VmV86 runtime plugin",
 		),
 		func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
-			return mux, nil, nil
+			return v86fsRuntimeRouteInvoker{inv: mux}, nil, nil
 		},
 		[]string{servicePrefix},
 		true,
@@ -254,6 +255,20 @@ func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID s
 		return nil, err
 	}
 	return release, nil
+}
+
+type v86fsRuntimeRouteInvoker struct {
+	inv srpc.Invoker
+}
+
+func (i v86fsRuntimeRouteInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	ok, err := i.inv.InvokeMethod(serviceID, methodID, strm)
+	logrus.WithError(err).
+		WithField("service-id", serviceID).
+		WithField("method-id", methodID).
+		WithField("ok", ok).
+		Debug("v86fs runtime route invoke")
+	return ok, err
 }
 
 // verifyRootfsMount confirms the rootfs asset (empty mount name) resolves

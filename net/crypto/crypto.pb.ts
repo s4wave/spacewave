@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/net/crypto/crypto.proto (package crypto, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'crypto'
 
@@ -29,10 +28,9 @@ export enum KeyType {
   Ed25519 = 1,
 }
 
-// KeyType_Enum is the enum type for KeyType.
-export const KeyType_Enum = createEnumType('crypto.KeyType', [
-  { no: 0, name: 'RSA' },
-  { no: 1, name: 'Ed25519' },
+export const KeyType_Enum = /* @__PURE__ */ createEnumType('crypto.KeyType', [
+  [0, 'RSA'],
+  [1, 'Ed25519'],
 ])
 
 /**
@@ -57,15 +55,15 @@ export interface PrivateKey {
   data?: Uint8Array
 }
 
-// PrivateKey contains the message type declaration for PrivateKey.
-export const PrivateKey: MessageType<PrivateKey> = createMessageType({
-  typeName: 'crypto.PrivateKey',
-  fields: [
-    { no: 1, name: 'key_type', kind: 'enum', T: KeyType_Enum },
-    { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PrivateKey: MessageType<PrivateKey> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'crypto.PrivateKey',
+    fields: [
+      { no: 1, name: 'key_type', kind: 'enum', T: KeyType_Enum },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PublicKey is the protobuf message for public keys.
@@ -89,12 +87,12 @@ export interface PublicKey {
   data?: Uint8Array
 }
 
-// PublicKey contains the message type declaration for PublicKey.
-export const PublicKey: MessageType<PublicKey> = createMessageType({
-  typeName: 'crypto.PublicKey',
-  fields: [
-    { no: 1, name: 'key_type', kind: 'enum', T: KeyType_Enum },
-    { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PublicKey: MessageType<PublicKey> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'crypto.PublicKey',
+    fields: [
+      { no: 1, name: 'key_type', kind: 'enum', T: KeyType_Enum },
+      { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

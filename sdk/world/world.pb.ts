@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/world/world.proto (package s4wave.world, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
 
@@ -48,14 +50,13 @@ export enum GraphEdgeBucketDirection {
   BOTH = 3,
 }
 
-// GraphEdgeBucketDirection_Enum is the enum type for GraphEdgeBucketDirection.
-export const GraphEdgeBucketDirection_Enum = createEnumType(
+export const GraphEdgeBucketDirection_Enum = /* @__PURE__ */ createEnumType(
   's4wave.world.GraphEdgeBucketDirection',
   [
-    { no: 0, name: 'GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED' },
-    { no: 1, name: 'GRAPH_EDGE_BUCKET_DIRECTION_OUT' },
-    { no: 2, name: 'GRAPH_EDGE_BUCKET_DIRECTION_IN' },
-    { no: 3, name: 'GRAPH_EDGE_BUCKET_DIRECTION_BOTH' },
+    [0, 'GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED'],
+    [1, 'GRAPH_EDGE_BUCKET_DIRECTION_OUT'],
+    [2, 'GRAPH_EDGE_BUCKET_DIRECTION_IN'],
+    [3, 'GRAPH_EDGE_BUCKET_DIRECTION_BOTH'],
   ],
 )
 
@@ -94,14 +95,13 @@ export enum GraphPathDirection {
   BOTH = 3,
 }
 
-// GraphPathDirection_Enum is the enum type for GraphPathDirection.
-export const GraphPathDirection_Enum = createEnumType(
+export const GraphPathDirection_Enum = /* @__PURE__ */ createEnumType(
   's4wave.world.GraphPathDirection',
   [
-    { no: 0, name: 'GRAPH_PATH_DIRECTION_UNSPECIFIED' },
-    { no: 1, name: 'GRAPH_PATH_DIRECTION_OUT' },
-    { no: 2, name: 'GRAPH_PATH_DIRECTION_IN' },
-    { no: 3, name: 'GRAPH_PATH_DIRECTION_BOTH' },
+    [0, 'GRAPH_PATH_DIRECTION_UNSPECIFIED'],
+    [1, 'GRAPH_PATH_DIRECTION_OUT'],
+    [2, 'GRAPH_PATH_DIRECTION_IN'],
+    [3, 'GRAPH_PATH_DIRECTION_BOTH'],
   ],
 )
 
@@ -125,15 +125,15 @@ export interface EngineInfo {
   bucketId?: string
 }
 
-// EngineInfo contains the message type declaration for EngineInfo.
-export const EngineInfo: MessageType<EngineInfo> = createMessageType({
-  typeName: 's4wave.world.EngineInfo',
-  fields: [
-    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const EngineInfo: MessageType<EngineInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.EngineInfo',
+    fields: [
+      { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetEngineInfoRequest is the request type for GetEngineInfo.
@@ -142,13 +142,11 @@ export const EngineInfo: MessageType<EngineInfo> = createMessageType({
  */
 export interface GetEngineInfoRequest {}
 
-// GetEngineInfoRequest contains the message type declaration for GetEngineInfoRequest.
 export const GetEngineInfoRequest: MessageType<GetEngineInfoRequest> =
-  createMessageType({
-    typeName: 's4wave.world.GetEngineInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetEngineInfoRequest>(
+    's4wave.world.GetEngineInfoRequest',
+    true,
+  )
 
 /**
  * GetEngineInfoResponse is the response type for GetEngineInfo.
@@ -164,13 +162,12 @@ export interface GetEngineInfoResponse {
   engineInfo?: EngineInfo
 }
 
-// GetEngineInfoResponse contains the message type declaration for GetEngineInfoResponse.
 export const GetEngineInfoResponse: MessageType<GetEngineInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetEngineInfoResponse',
     fields: [
       { no: 1, name: 'engine_info', kind: 'message', T: () => EngineInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -206,9 +203,8 @@ export interface WorldRootSnapshot {
   storageVolumeId?: string
 }
 
-// WorldRootSnapshot contains the message type declaration for WorldRootSnapshot.
 export const WorldRootSnapshot: MessageType<WorldRootSnapshot> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.WorldRootSnapshot',
     fields: [
       { no: 1, name: 'root_ref', kind: 'message', T: () => ObjectRef },
@@ -220,7 +216,7 @@ export const WorldRootSnapshot: MessageType<WorldRootSnapshot> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -231,13 +227,11 @@ export const WorldRootSnapshot: MessageType<WorldRootSnapshot> =
  */
 export interface GetWorldRootSnapshotRequest {}
 
-// GetWorldRootSnapshotRequest contains the message type declaration for GetWorldRootSnapshotRequest.
 export const GetWorldRootSnapshotRequest: MessageType<GetWorldRootSnapshotRequest> =
-  createMessageType({
-    typeName: 's4wave.world.GetWorldRootSnapshotRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetWorldRootSnapshotRequest>(
+    's4wave.world.GetWorldRootSnapshotRequest',
+    true,
+  )
 
 /**
  * WatchWorldRootSnapshotsRequest is the request type for WatchWorldRootSnapshots.
@@ -246,13 +240,11 @@ export const GetWorldRootSnapshotRequest: MessageType<GetWorldRootSnapshotReques
  */
 export interface WatchWorldRootSnapshotsRequest {}
 
-// WatchWorldRootSnapshotsRequest contains the message type declaration for WatchWorldRootSnapshotsRequest.
 export const WatchWorldRootSnapshotsRequest: MessageType<WatchWorldRootSnapshotsRequest> =
-  createMessageType({
-    typeName: 's4wave.world.WatchWorldRootSnapshotsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchWorldRootSnapshotsRequest>(
+    's4wave.world.WatchWorldRootSnapshotsRequest',
+    true,
+  )
 
 /**
  * NewTransactionRequest is the request type for NewTransaction.
@@ -268,13 +260,12 @@ export interface NewTransactionRequest {
   write?: boolean
 }
 
-// NewTransactionRequest contains the message type declaration for NewTransactionRequest.
 export const NewTransactionRequest: MessageType<NewTransactionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.NewTransactionRequest',
     fields: [
       { no: 1, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -298,14 +289,13 @@ export interface NewTransactionResponse {
   readOnly?: boolean
 }
 
-// NewTransactionResponse contains the message type declaration for NewTransactionResponse.
 export const NewTransactionResponse: MessageType<NewTransactionResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.NewTransactionResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -316,12 +306,11 @@ export const NewTransactionResponse: MessageType<NewTransactionResponse> =
  */
 export interface GetSeqnoRequest {}
 
-// GetSeqnoRequest contains the message type declaration for GetSeqnoRequest.
-export const GetSeqnoRequest: MessageType<GetSeqnoRequest> = createMessageType({
-  typeName: 's4wave.world.GetSeqnoRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetSeqnoRequest: MessageType<GetSeqnoRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetSeqnoRequest>(
+    's4wave.world.GetSeqnoRequest',
+    true,
+  )
 
 /**
  * GetSeqnoResponse is the response type for GetSeqno.
@@ -337,13 +326,12 @@ export interface GetSeqnoResponse {
   seqno?: bigint
 }
 
-// GetSeqnoResponse contains the message type declaration for GetSeqnoResponse.
 export const GetSeqnoResponse: MessageType<GetSeqnoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetSeqnoResponse',
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -361,13 +349,12 @@ export interface WaitSeqnoRequest {
   seqno?: bigint
 }
 
-// WaitSeqnoRequest contains the message type declaration for WaitSeqnoRequest.
 export const WaitSeqnoRequest: MessageType<WaitSeqnoRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.WaitSeqnoRequest',
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -385,13 +372,12 @@ export interface WaitSeqnoResponse {
   seqno?: bigint
 }
 
-// WaitSeqnoResponse contains the message type declaration for WaitSeqnoResponse.
 export const WaitSeqnoResponse: MessageType<WaitSeqnoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.WaitSeqnoResponse',
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -410,13 +396,12 @@ export interface AccessWorldStateRequest {
   ref?: ObjectRef
 }
 
-// AccessWorldStateRequest contains the message type declaration for AccessWorldStateRequest.
 export const AccessWorldStateRequest: MessageType<AccessWorldStateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.AccessWorldStateRequest',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -434,13 +419,12 @@ export interface AccessWorldStateResponse {
   resourceId?: number
 }
 
-// AccessWorldStateResponse contains the message type declaration for AccessWorldStateResponse.
 export const AccessWorldStateResponse: MessageType<AccessWorldStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.AccessWorldStateResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -451,12 +435,11 @@ export const AccessWorldStateResponse: MessageType<AccessWorldStateResponse> =
  */
 export interface CommitRequest {}
 
-// CommitRequest contains the message type declaration for CommitRequest.
-export const CommitRequest: MessageType<CommitRequest> = createMessageType({
-  typeName: 's4wave.world.CommitRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CommitRequest: MessageType<CommitRequest> =
+  /* @__PURE__ */ createEmptyMessageType<CommitRequest>(
+    's4wave.world.CommitRequest',
+    true,
+  )
 
 /**
  * CommitResponse is the response type for Commit.
@@ -465,12 +448,11 @@ export const CommitRequest: MessageType<CommitRequest> = createMessageType({
  */
 export interface CommitResponse {}
 
-// CommitResponse contains the message type declaration for CommitResponse.
-export const CommitResponse: MessageType<CommitResponse> = createMessageType({
-  typeName: 's4wave.world.CommitResponse',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CommitResponse: MessageType<CommitResponse> =
+  /* @__PURE__ */ createEmptyMessageType<CommitResponse>(
+    's4wave.world.CommitResponse',
+    true,
+  )
 
 /**
  * DiscardRequest is the request type for Discard.
@@ -479,12 +461,11 @@ export const CommitResponse: MessageType<CommitResponse> = createMessageType({
  */
 export interface DiscardRequest {}
 
-// DiscardRequest contains the message type declaration for DiscardRequest.
-export const DiscardRequest: MessageType<DiscardRequest> = createMessageType({
-  typeName: 's4wave.world.DiscardRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DiscardRequest: MessageType<DiscardRequest> =
+  /* @__PURE__ */ createEmptyMessageType<DiscardRequest>(
+    's4wave.world.DiscardRequest',
+    true,
+  )
 
 /**
  * DiscardResponse is the response type for Discard.
@@ -493,12 +474,11 @@ export const DiscardRequest: MessageType<DiscardRequest> = createMessageType({
  */
 export interface DiscardResponse {}
 
-// DiscardResponse contains the message type declaration for DiscardResponse.
-export const DiscardResponse: MessageType<DiscardResponse> = createMessageType({
-  typeName: 's4wave.world.DiscardResponse',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DiscardResponse: MessageType<DiscardResponse> =
+  /* @__PURE__ */ createEmptyMessageType<DiscardResponse>(
+    's4wave.world.DiscardResponse',
+    true,
+  )
 
 /**
  * GetReadOnlyRequest is the request type for GetReadOnly.
@@ -507,13 +487,11 @@ export const DiscardResponse: MessageType<DiscardResponse> = createMessageType({
  */
 export interface GetReadOnlyRequest {}
 
-// GetReadOnlyRequest contains the message type declaration for GetReadOnlyRequest.
 export const GetReadOnlyRequest: MessageType<GetReadOnlyRequest> =
-  createMessageType({
-    typeName: 's4wave.world.GetReadOnlyRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetReadOnlyRequest>(
+    's4wave.world.GetReadOnlyRequest',
+    true,
+  )
 
 /**
  * GetReadOnlyResponse is the response type for GetReadOnly.
@@ -529,13 +507,12 @@ export interface GetReadOnlyResponse {
   readOnly?: boolean
 }
 
-// GetReadOnlyResponse contains the message type declaration for GetReadOnlyResponse.
 export const GetReadOnlyResponse: MessageType<GetReadOnlyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetReadOnlyResponse',
     fields: [
       { no: 1, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -546,13 +523,11 @@ export const GetReadOnlyResponse: MessageType<GetReadOnlyResponse> =
  */
 export interface BuildStorageCursorRequest {}
 
-// BuildStorageCursorRequest contains the message type declaration for BuildStorageCursorRequest.
 export const BuildStorageCursorRequest: MessageType<BuildStorageCursorRequest> =
-  createMessageType({
-    typeName: 's4wave.world.BuildStorageCursorRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<BuildStorageCursorRequest>(
+    's4wave.world.BuildStorageCursorRequest',
+    true,
+  )
 
 /**
  * BuildStorageCursorResponse is the response type for BuildStorageCursor.
@@ -568,13 +543,12 @@ export interface BuildStorageCursorResponse {
   resourceId?: number
 }
 
-// BuildStorageCursorResponse contains the message type declaration for BuildStorageCursorResponse.
 export const BuildStorageCursorResponse: MessageType<BuildStorageCursorResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.BuildStorageCursorResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -598,14 +572,13 @@ export interface CreateObjectRequest {
   rootRef?: ObjectRef
 }
 
-// CreateObjectRequest contains the message type declaration for CreateObjectRequest.
 export const CreateObjectRequest: MessageType<CreateObjectRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.CreateObjectRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -629,14 +602,13 @@ export interface CreateObjectResponse {
   objectKey?: string
 }
 
-// CreateObjectResponse contains the message type declaration for CreateObjectResponse.
 export const CreateObjectResponse: MessageType<CreateObjectResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.CreateObjectResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -654,13 +626,12 @@ export interface GetObjectRequest {
   objectKey?: string
 }
 
-// GetObjectRequest contains the message type declaration for GetObjectRequest.
 export const GetObjectRequest: MessageType<GetObjectRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetObjectRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -690,15 +661,14 @@ export interface GetObjectResponse {
   objectKey?: string
 }
 
-// GetObjectResponse contains the message type declaration for GetObjectResponse.
 export const GetObjectResponse: MessageType<GetObjectResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetObjectResponse',
     fields: [
       { no: 1, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -728,15 +698,14 @@ export interface RenameObjectRequest {
   descendants?: boolean
 }
 
-// RenameObjectRequest contains the message type declaration for RenameObjectRequest.
 export const RenameObjectRequest: MessageType<RenameObjectRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.RenameObjectRequest',
     fields: [
       { no: 1, name: 'old_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'new_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'descendants', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -760,14 +729,13 @@ export interface RenameObjectResponse {
   objectKey?: string
 }
 
-// RenameObjectResponse contains the message type declaration for RenameObjectResponse.
 export const RenameObjectResponse: MessageType<RenameObjectResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.RenameObjectResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -785,13 +753,12 @@ export interface DeleteObjectRequest {
   objectKey?: string
 }
 
-// DeleteObjectRequest contains the message type declaration for DeleteObjectRequest.
 export const DeleteObjectRequest: MessageType<DeleteObjectRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.DeleteObjectRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -809,13 +776,12 @@ export interface DeleteObjectResponse {
   deleted?: boolean
 }
 
-// DeleteObjectResponse contains the message type declaration for DeleteObjectResponse.
 export const DeleteObjectResponse: MessageType<DeleteObjectResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.DeleteObjectResponse',
     fields: [
       { no: 1, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -840,14 +806,13 @@ export interface IterateObjectsRequest {
   reversed?: boolean
 }
 
-// IterateObjectsRequest contains the message type declaration for IterateObjectsRequest.
 export const IterateObjectsRequest: MessageType<IterateObjectsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.IterateObjectsRequest',
     fields: [
       { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'reversed', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -865,13 +830,12 @@ export interface IterateObjectsResponse {
   resourceId?: number
 }
 
-// IterateObjectsResponse contains the message type declaration for IterateObjectsResponse.
 export const IterateObjectsResponse: MessageType<IterateObjectsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.IterateObjectsResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -889,13 +853,12 @@ export interface SetGraphQuadRequest {
   quad?: Quad
 }
 
-// SetGraphQuadRequest contains the message type declaration for SetGraphQuadRequest.
 export const SetGraphQuadRequest: MessageType<SetGraphQuadRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.SetGraphQuadRequest',
     fields: [
       { no: 1, name: 'quad', kind: 'message', T: () => Quad },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -906,13 +869,11 @@ export const SetGraphQuadRequest: MessageType<SetGraphQuadRequest> =
  */
 export interface SetGraphQuadResponse {}
 
-// SetGraphQuadResponse contains the message type declaration for SetGraphQuadResponse.
 export const SetGraphQuadResponse: MessageType<SetGraphQuadResponse> =
-  createMessageType({
-    typeName: 's4wave.world.SetGraphQuadResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetGraphQuadResponse>(
+    's4wave.world.SetGraphQuadResponse',
+    true,
+  )
 
 /**
  * DeleteGraphQuadRequest is the request type for DeleteGraphQuad.
@@ -928,13 +889,12 @@ export interface DeleteGraphQuadRequest {
   quad?: Quad
 }
 
-// DeleteGraphQuadRequest contains the message type declaration for DeleteGraphQuadRequest.
 export const DeleteGraphQuadRequest: MessageType<DeleteGraphQuadRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.DeleteGraphQuadRequest',
     fields: [
       { no: 1, name: 'quad', kind: 'message', T: () => Quad },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -945,13 +905,11 @@ export const DeleteGraphQuadRequest: MessageType<DeleteGraphQuadRequest> =
  */
 export interface DeleteGraphQuadResponse {}
 
-// DeleteGraphQuadResponse contains the message type declaration for DeleteGraphQuadResponse.
 export const DeleteGraphQuadResponse: MessageType<DeleteGraphQuadResponse> =
-  createMessageType({
-    typeName: 's4wave.world.DeleteGraphQuadResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<DeleteGraphQuadResponse>(
+    's4wave.world.DeleteGraphQuadResponse',
+    true,
+  )
 
 /**
  * LookupGraphQuadsRequest is the request type for LookupGraphQuads.
@@ -975,14 +933,13 @@ export interface LookupGraphQuadsRequest {
   limit?: number
 }
 
-// LookupGraphQuadsRequest contains the message type declaration for LookupGraphQuadsRequest.
 export const LookupGraphQuadsRequest: MessageType<LookupGraphQuadsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.LookupGraphQuadsRequest',
     fields: [
       { no: 1, name: 'filter', kind: 'message', T: () => Quad },
       { no: 2, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1000,13 +957,12 @@ export interface LookupGraphQuadsResponse {
   quads?: Quad[]
 }
 
-// LookupGraphQuadsResponse contains the message type declaration for LookupGraphQuadsResponse.
 export const LookupGraphQuadsResponse: MessageType<LookupGraphQuadsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.LookupGraphQuadsResponse',
     fields: [
       { no: 1, name: 'quads', kind: 'message', T: () => Quad, repeated: true },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1032,9 +988,8 @@ export interface LookupGraphQuadsBatchRequest {
   limitPerFilter?: number
 }
 
-// LookupGraphQuadsBatchRequest contains the message type declaration for LookupGraphQuadsBatchRequest.
 export const LookupGraphQuadsBatchRequest: MessageType<LookupGraphQuadsBatchRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.LookupGraphQuadsBatchRequest',
     fields: [
       {
@@ -1045,7 +1000,7 @@ export const LookupGraphQuadsBatchRequest: MessageType<LookupGraphQuadsBatchRequ
         repeated: true,
       },
       { no: 2, name: 'limit_per_filter', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1063,13 +1018,12 @@ export interface LookupGraphQuadsBatchResult {
   quads?: Quad[]
 }
 
-// LookupGraphQuadsBatchResult contains the message type declaration for LookupGraphQuadsBatchResult.
 export const LookupGraphQuadsBatchResult: MessageType<LookupGraphQuadsBatchResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.LookupGraphQuadsBatchResult',
     fields: [
       { no: 1, name: 'quads', kind: 'message', T: () => Quad, repeated: true },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1088,9 +1042,8 @@ export interface LookupGraphQuadsBatchResponse {
   results?: LookupGraphQuadsBatchResult[]
 }
 
-// LookupGraphQuadsBatchResponse contains the message type declaration for LookupGraphQuadsBatchResponse.
 export const LookupGraphQuadsBatchResponse: MessageType<LookupGraphQuadsBatchResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.LookupGraphQuadsBatchResponse',
     fields: [
       {
@@ -1100,7 +1053,7 @@ export const LookupGraphQuadsBatchResponse: MessageType<LookupGraphQuadsBatchRes
         T: () => LookupGraphQuadsBatchResult,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1140,9 +1093,8 @@ export interface ListGraphEdgeBucketsRequest {
   direction?: GraphEdgeBucketDirection
 }
 
-// ListGraphEdgeBucketsRequest contains the message type declaration for ListGraphEdgeBucketsRequest.
 export const ListGraphEdgeBucketsRequest: MessageType<ListGraphEdgeBucketsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.ListGraphEdgeBucketsRequest',
     fields: [
       {
@@ -1160,7 +1112,7 @@ export const ListGraphEdgeBucketsRequest: MessageType<ListGraphEdgeBucketsReques
         kind: 'enum',
         T: GraphEdgeBucketDirection_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1202,18 +1154,35 @@ export interface GraphEdgeBucket {
   incomingTruncated?: boolean
 }
 
-// GraphEdgeBucket contains the message type declaration for GraphEdgeBucket.
-export const GraphEdgeBucket: MessageType<GraphEdgeBucket> = createMessageType({
-  typeName: 's4wave.world.GraphEdgeBucket',
-  fields: [
-    { no: 1, name: 'origin_object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'outgoing', kind: 'message', T: () => Quad, repeated: true },
-    { no: 3, name: 'incoming', kind: 'message', T: () => Quad, repeated: true },
-    { no: 4, name: 'outgoing_truncated', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 5, name: 'incoming_truncated', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GraphEdgeBucket: MessageType<GraphEdgeBucket> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.GraphEdgeBucket',
+    fields: [
+      {
+        no: 1,
+        name: 'origin_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 2,
+        name: 'outgoing',
+        kind: 'message',
+        T: () => Quad,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'incoming',
+        kind: 'message',
+        T: () => Quad,
+        repeated: true,
+      },
+      { no: 4, name: 'outgoing_truncated', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'incoming_truncated', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ListGraphEdgeBucketsResponse returns grouped graph edge buckets.
@@ -1229,9 +1198,8 @@ export interface ListGraphEdgeBucketsResponse {
   buckets?: GraphEdgeBucket[]
 }
 
-// ListGraphEdgeBucketsResponse contains the message type declaration for ListGraphEdgeBucketsResponse.
 export const ListGraphEdgeBucketsResponse: MessageType<ListGraphEdgeBucketsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.ListGraphEdgeBucketsResponse',
     fields: [
       {
@@ -1241,7 +1209,7 @@ export const ListGraphEdgeBucketsResponse: MessageType<ListGraphEdgeBucketsRespo
         T: () => GraphEdgeBucket,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1259,13 +1227,12 @@ export interface ListObjectsWithTypeRequest {
   typeId?: string
 }
 
-// ListObjectsWithTypeRequest contains the message type declaration for ListObjectsWithTypeRequest.
 export const ListObjectsWithTypeRequest: MessageType<ListObjectsWithTypeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.ListObjectsWithTypeRequest',
     fields: [
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1283,9 +1250,8 @@ export interface ListObjectsWithTypeResponse {
   objectKeys?: string[]
 }
 
-// ListObjectsWithTypeResponse contains the message type declaration for ListObjectsWithTypeResponse.
 export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.ListObjectsWithTypeResponse',
     fields: [
       {
@@ -1295,7 +1261,7 @@ export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeRespons
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1331,17 +1297,17 @@ export interface ObjectRootRef {
   exists?: boolean
 }
 
-// ObjectRootRef contains the message type declaration for ObjectRootRef.
-export const ObjectRootRef: MessageType<ObjectRootRef> = createMessageType({
-  typeName: 's4wave.world.ObjectRootRef',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
-    { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ObjectRootRef: MessageType<ObjectRootRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ObjectRootRef',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+      { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetObjectRootRefsBatchRequest is the request type for
@@ -1358,9 +1324,8 @@ export interface GetObjectRootRefsBatchRequest {
   objectKeys?: string[]
 }
 
-// GetObjectRootRefsBatchRequest contains the message type declaration for GetObjectRootRefsBatchRequest.
 export const GetObjectRootRefsBatchRequest: MessageType<GetObjectRootRefsBatchRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetObjectRootRefsBatchRequest',
     fields: [
       {
@@ -1370,7 +1335,7 @@ export const GetObjectRootRefsBatchRequest: MessageType<GetObjectRootRefsBatchRe
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1389,9 +1354,8 @@ export interface GetObjectRootRefsBatchResponse {
   rootRefs?: ObjectRootRef[]
 }
 
-// GetObjectRootRefsBatchResponse contains the message type declaration for GetObjectRootRefsBatchResponse.
 export const GetObjectRootRefsBatchResponse: MessageType<GetObjectRootRefsBatchResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetObjectRootRefsBatchResponse',
     fields: [
       {
@@ -1401,7 +1365,7 @@ export const GetObjectRootRefsBatchResponse: MessageType<GetObjectRootRefsBatchR
         T: () => ObjectRootRef,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1431,16 +1395,21 @@ export interface ObjectMetadata {
   parentObjectKey?: string
 }
 
-// ObjectMetadata contains the message type declaration for ObjectMetadata.
-export const ObjectMetadata: MessageType<ObjectMetadata> = createMessageType({
-  typeName: 's4wave.world.ObjectMetadata',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'parent_object_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ObjectMetadata: MessageType<ObjectMetadata> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ObjectMetadata',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'parent_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetObjectMetadataBatchRequest is the request type for
@@ -1457,9 +1426,8 @@ export interface GetObjectMetadataBatchRequest {
   objectKeys?: string[]
 }
 
-// GetObjectMetadataBatchRequest contains the message type declaration for GetObjectMetadataBatchRequest.
 export const GetObjectMetadataBatchRequest: MessageType<GetObjectMetadataBatchRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetObjectMetadataBatchRequest',
     fields: [
       {
@@ -1469,7 +1437,7 @@ export const GetObjectMetadataBatchRequest: MessageType<GetObjectMetadataBatchRe
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1488,9 +1456,8 @@ export interface GetObjectMetadataBatchResponse {
   metadata?: ObjectMetadata[]
 }
 
-// GetObjectMetadataBatchResponse contains the message type declaration for GetObjectMetadataBatchResponse.
 export const GetObjectMetadataBatchResponse: MessageType<GetObjectMetadataBatchResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetObjectMetadataBatchResponse',
     fields: [
       {
@@ -1500,7 +1467,7 @@ export const GetObjectMetadataBatchResponse: MessageType<GetObjectMetadataBatchR
         T: () => ObjectMetadata,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1530,16 +1497,16 @@ export interface GraphPathStep {
   limit?: number
 }
 
-// GraphPathStep contains the message type declaration for GraphPathStep.
-export const GraphPathStep: MessageType<GraphPathStep> = createMessageType({
-  typeName: 's4wave.world.GraphPathStep',
-  fields: [
-    { no: 1, name: 'direction', kind: 'enum', T: GraphPathDirection_Enum },
-    { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GraphPathStep: MessageType<GraphPathStep> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.GraphPathStep',
+    fields: [
+      { no: 1, name: 'direction', kind: 'enum', T: GraphPathDirection_Enum },
+      { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * QueryGraphPathRequest is the request type for QueryGraphPath.
@@ -1581,9 +1548,8 @@ export interface QueryGraphPathRequest {
   pageSize?: number
 }
 
-// QueryGraphPathRequest contains the message type declaration for QueryGraphPathRequest.
 export const QueryGraphPathRequest: MessageType<QueryGraphPathRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.QueryGraphPathRequest',
     fields: [
       {
@@ -1603,7 +1569,7 @@ export const QueryGraphPathRequest: MessageType<QueryGraphPathRequest> =
       { no: 3, name: 'result_limit', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'include_quads', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1621,13 +1587,12 @@ export interface QueryGraphPathResponse {
   resourceId?: number
 }
 
-// QueryGraphPathResponse contains the message type declaration for QueryGraphPathResponse.
 export const QueryGraphPathResponse: MessageType<QueryGraphPathResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.QueryGraphPathResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1645,13 +1610,12 @@ export interface DeleteGraphObjectRequest {
   objectKey?: string
 }
 
-// DeleteGraphObjectRequest contains the message type declaration for DeleteGraphObjectRequest.
 export const DeleteGraphObjectRequest: MessageType<DeleteGraphObjectRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.DeleteGraphObjectRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1662,13 +1626,11 @@ export const DeleteGraphObjectRequest: MessageType<DeleteGraphObjectRequest> =
  */
 export interface DeleteGraphObjectResponse {}
 
-// DeleteGraphObjectResponse contains the message type declaration for DeleteGraphObjectResponse.
 export const DeleteGraphObjectResponse: MessageType<DeleteGraphObjectResponse> =
-  createMessageType({
-    typeName: 's4wave.world.DeleteGraphObjectResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<DeleteGraphObjectResponse>(
+    's4wave.world.DeleteGraphObjectResponse',
+    true,
+  )
 
 /**
  * ApplyWorldOpRequest is the request type for ApplyWorldOp.
@@ -1696,15 +1658,14 @@ export interface ApplyWorldOpRequest {
   opSender?: string
 }
 
-// ApplyWorldOpRequest contains the message type declaration for ApplyWorldOpRequest.
 export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.ApplyWorldOpRequest',
     fields: [
       { no: 1, name: 'op_type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1728,14 +1689,13 @@ export interface ApplyWorldOpResponse {
   sysErr?: boolean
 }
 
-// ApplyWorldOpResponse contains the message type declaration for ApplyWorldOpResponse.
 export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.ApplyWorldOpResponse',
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sys_err', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1746,13 +1706,11 @@ export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
  */
 export interface WatchWorldStateRequest {}
 
-// WatchWorldStateRequest contains the message type declaration for WatchWorldStateRequest.
 export const WatchWorldStateRequest: MessageType<WatchWorldStateRequest> =
-  createMessageType({
-    typeName: 's4wave.world.WatchWorldStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchWorldStateRequest>(
+    's4wave.world.WatchWorldStateRequest',
+    true,
+  )
 
 /**
  * WatchWorldStateResponse is the response type for WatchWorldState.
@@ -1769,13 +1727,12 @@ export interface WatchWorldStateResponse {
   resourceId?: number
 }
 
-// WatchWorldStateResponse contains the message type declaration for WatchWorldStateResponse.
 export const WatchWorldStateResponse: MessageType<WatchWorldStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.WatchWorldStateResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1799,14 +1756,13 @@ export interface TrackedWorldStateSnapshot_ObjectAccess {
   rev?: bigint
 }
 
-// TrackedWorldStateSnapshot_ObjectAccess contains the message type declaration for TrackedWorldStateSnapshot_ObjectAccess.
 export const TrackedWorldStateSnapshot_ObjectAccess: MessageType<TrackedWorldStateSnapshot_ObjectAccess> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.TrackedWorldStateSnapshot.ObjectAccess',
     fields: [
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1837,9 +1793,8 @@ export interface TrackedWorldStateSnapshot {
   initialSeqno?: bigint
 }
 
-// TrackedWorldStateSnapshot contains the message type declaration for TrackedWorldStateSnapshot.
 export const TrackedWorldStateSnapshot: MessageType<TrackedWorldStateSnapshot> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.TrackedWorldStateSnapshot',
     fields: [
       {
@@ -1851,7 +1806,7 @@ export const TrackedWorldStateSnapshot: MessageType<TrackedWorldStateSnapshot> =
       },
       { no: 2, name: 'has_quad_access', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'initial_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1862,12 +1817,11 @@ export const TrackedWorldStateSnapshot: MessageType<TrackedWorldStateSnapshot> =
  */
 export interface ErrRequest {}
 
-// ErrRequest contains the message type declaration for ErrRequest.
-export const ErrRequest: MessageType<ErrRequest> = createMessageType({
-  typeName: 's4wave.world.ErrRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ErrRequest: MessageType<ErrRequest> =
+  /* @__PURE__ */ createEmptyMessageType<ErrRequest>(
+    's4wave.world.ErrRequest',
+    true,
+  )
 
 /**
  * ErrResponse is the response type for Err.
@@ -1883,14 +1837,14 @@ export interface ErrResponse {
   error?: string
 }
 
-// ErrResponse contains the message type declaration for ErrResponse.
-export const ErrResponse: MessageType<ErrResponse> = createMessageType({
-  typeName: 's4wave.world.ErrResponse',
-  fields: [
-    { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ErrResponse: MessageType<ErrResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ErrResponse',
+    fields: [
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ValidRequest is the request type for Valid.
@@ -1899,12 +1853,11 @@ export const ErrResponse: MessageType<ErrResponse> = createMessageType({
  */
 export interface ValidRequest {}
 
-// ValidRequest contains the message type declaration for ValidRequest.
-export const ValidRequest: MessageType<ValidRequest> = createMessageType({
-  typeName: 's4wave.world.ValidRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ValidRequest: MessageType<ValidRequest> =
+  /* @__PURE__ */ createEmptyMessageType<ValidRequest>(
+    's4wave.world.ValidRequest',
+    true,
+  )
 
 /**
  * ValidResponse is the response type for Valid.
@@ -1920,14 +1873,14 @@ export interface ValidResponse {
   valid?: boolean
 }
 
-// ValidResponse contains the message type declaration for ValidResponse.
-export const ValidResponse: MessageType<ValidResponse> = createMessageType({
-  typeName: 's4wave.world.ValidResponse',
-  fields: [
-    { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ValidResponse: MessageType<ValidResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ValidResponse',
+    fields: [
+      { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * KeyRequest is the request type for Key.
@@ -1936,12 +1889,11 @@ export const ValidResponse: MessageType<ValidResponse> = createMessageType({
  */
 export interface KeyRequest {}
 
-// KeyRequest contains the message type declaration for KeyRequest.
-export const KeyRequest: MessageType<KeyRequest> = createMessageType({
-  typeName: 's4wave.world.KeyRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const KeyRequest: MessageType<KeyRequest> =
+  /* @__PURE__ */ createEmptyMessageType<KeyRequest>(
+    's4wave.world.KeyRequest',
+    true,
+  )
 
 /**
  * KeyResponse is the response type for Key.
@@ -1957,14 +1909,14 @@ export interface KeyResponse {
   objectKey?: string
 }
 
-// KeyResponse contains the message type declaration for KeyResponse.
-export const KeyResponse: MessageType<KeyResponse> = createMessageType({
-  typeName: 's4wave.world.KeyResponse',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const KeyResponse: MessageType<KeyResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.KeyResponse',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * NextRequest is the request type for Next.
@@ -1973,12 +1925,11 @@ export const KeyResponse: MessageType<KeyResponse> = createMessageType({
  */
 export interface NextRequest {}
 
-// NextRequest contains the message type declaration for NextRequest.
-export const NextRequest: MessageType<NextRequest> = createMessageType({
-  typeName: 's4wave.world.NextRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const NextRequest: MessageType<NextRequest> =
+  /* @__PURE__ */ createEmptyMessageType<NextRequest>(
+    's4wave.world.NextRequest',
+    true,
+  )
 
 /**
  * NextResponse is the response type for Next.
@@ -1994,14 +1945,14 @@ export interface NextResponse {
   valid?: boolean
 }
 
-// NextResponse contains the message type declaration for NextResponse.
-export const NextResponse: MessageType<NextResponse> = createMessageType({
-  typeName: 's4wave.world.NextResponse',
-  fields: [
-    { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const NextResponse: MessageType<NextResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.NextResponse',
+    fields: [
+      { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SeekRequest is the request type for Seek.
@@ -2017,14 +1968,14 @@ export interface SeekRequest {
   objectKey?: string
 }
 
-// SeekRequest contains the message type declaration for SeekRequest.
-export const SeekRequest: MessageType<SeekRequest> = createMessageType({
-  typeName: 's4wave.world.SeekRequest',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SeekRequest: MessageType<SeekRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.SeekRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SeekResponse is the response type for Seek.
@@ -2033,12 +1984,11 @@ export const SeekRequest: MessageType<SeekRequest> = createMessageType({
  */
 export interface SeekResponse {}
 
-// SeekResponse contains the message type declaration for SeekResponse.
-export const SeekResponse: MessageType<SeekResponse> = createMessageType({
-  typeName: 's4wave.world.SeekResponse',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SeekResponse: MessageType<SeekResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SeekResponse>(
+    's4wave.world.SeekResponse',
+    true,
+  )
 
 /**
  * CloseRequest is the request type for Close.
@@ -2047,12 +1997,11 @@ export const SeekResponse: MessageType<SeekResponse> = createMessageType({
  */
 export interface CloseRequest {}
 
-// CloseRequest contains the message type declaration for CloseRequest.
-export const CloseRequest: MessageType<CloseRequest> = createMessageType({
-  typeName: 's4wave.world.CloseRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CloseRequest: MessageType<CloseRequest> =
+  /* @__PURE__ */ createEmptyMessageType<CloseRequest>(
+    's4wave.world.CloseRequest',
+    true,
+  )
 
 /**
  * CloseResponse is the response type for Close.
@@ -2061,12 +2010,11 @@ export const CloseRequest: MessageType<CloseRequest> = createMessageType({
  */
 export interface CloseResponse {}
 
-// CloseResponse contains the message type declaration for CloseResponse.
-export const CloseResponse: MessageType<CloseResponse> = createMessageType({
-  typeName: 's4wave.world.CloseResponse',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CloseResponse: MessageType<CloseResponse> =
+  /* @__PURE__ */ createEmptyMessageType<CloseResponse>(
+    's4wave.world.CloseResponse',
+    true,
+  )
 
 /**
  * NextGraphPathQueryRequest is the request type for GraphPathQuery Next.
@@ -2075,13 +2023,11 @@ export const CloseResponse: MessageType<CloseResponse> = createMessageType({
  */
 export interface NextGraphPathQueryRequest {}
 
-// NextGraphPathQueryRequest contains the message type declaration for NextGraphPathQueryRequest.
 export const NextGraphPathQueryRequest: MessageType<NextGraphPathQueryRequest> =
-  createMessageType({
-    typeName: 's4wave.world.NextGraphPathQueryRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<NextGraphPathQueryRequest>(
+    's4wave.world.NextGraphPathQueryRequest',
+    true,
+  )
 
 /**
  * NextGraphPathQueryResponse is one page of graph path query results.
@@ -2109,9 +2055,8 @@ export interface NextGraphPathQueryResponse {
   done?: boolean
 }
 
-// NextGraphPathQueryResponse contains the message type declaration for NextGraphPathQueryResponse.
 export const NextGraphPathQueryResponse: MessageType<NextGraphPathQueryResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.NextGraphPathQueryResponse',
     fields: [
       {
@@ -2123,7 +2068,7 @@ export const NextGraphPathQueryResponse: MessageType<NextGraphPathQueryResponse>
       },
       { no: 2, name: 'quads', kind: 'message', T: () => Quad, repeated: true },
       { no: 3, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2134,13 +2079,11 @@ export const NextGraphPathQueryResponse: MessageType<NextGraphPathQueryResponse>
  */
 export interface CloseGraphPathQueryRequest {}
 
-// CloseGraphPathQueryRequest contains the message type declaration for CloseGraphPathQueryRequest.
 export const CloseGraphPathQueryRequest: MessageType<CloseGraphPathQueryRequest> =
-  createMessageType({
-    typeName: 's4wave.world.CloseGraphPathQueryRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<CloseGraphPathQueryRequest>(
+    's4wave.world.CloseGraphPathQueryRequest',
+    true,
+  )
 
 /**
  * CloseGraphPathQueryResponse is the response type for GraphPathQuery Close.
@@ -2149,13 +2092,11 @@ export const CloseGraphPathQueryRequest: MessageType<CloseGraphPathQueryRequest>
  */
 export interface CloseGraphPathQueryResponse {}
 
-// CloseGraphPathQueryResponse contains the message type declaration for CloseGraphPathQueryResponse.
 export const CloseGraphPathQueryResponse: MessageType<CloseGraphPathQueryResponse> =
-  createMessageType({
-    typeName: 's4wave.world.CloseGraphPathQueryResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<CloseGraphPathQueryResponse>(
+    's4wave.world.CloseGraphPathQueryResponse',
+    true,
+  )
 
 /**
  * GetKeyRequest is the request type for GetKey.
@@ -2164,12 +2105,11 @@ export const CloseGraphPathQueryResponse: MessageType<CloseGraphPathQueryRespons
  */
 export interface GetKeyRequest {}
 
-// GetKeyRequest contains the message type declaration for GetKeyRequest.
-export const GetKeyRequest: MessageType<GetKeyRequest> = createMessageType({
-  typeName: 's4wave.world.GetKeyRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetKeyRequest: MessageType<GetKeyRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetKeyRequest>(
+    's4wave.world.GetKeyRequest',
+    true,
+  )
 
 /**
  * GetKeyResponse is the response type for GetKey.
@@ -2185,14 +2125,14 @@ export interface GetKeyResponse {
   objectKey?: string
 }
 
-// GetKeyResponse contains the message type declaration for GetKeyResponse.
-export const GetKeyResponse: MessageType<GetKeyResponse> = createMessageType({
-  typeName: 's4wave.world.GetKeyResponse',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GetKeyResponse: MessageType<GetKeyResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.GetKeyResponse',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetRootRefRequest is the request type for GetRootRef.
@@ -2201,13 +2141,11 @@ export const GetKeyResponse: MessageType<GetKeyResponse> = createMessageType({
  */
 export interface GetRootRefRequest {}
 
-// GetRootRefRequest contains the message type declaration for GetRootRefRequest.
 export const GetRootRefRequest: MessageType<GetRootRefRequest> =
-  createMessageType({
-    typeName: 's4wave.world.GetRootRefRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetRootRefRequest>(
+    's4wave.world.GetRootRefRequest',
+    true,
+  )
 
 /**
  * GetRootRefResponse is the response type for GetRootRef.
@@ -2229,14 +2167,13 @@ export interface GetRootRefResponse {
   rev?: bigint
 }
 
-// GetRootRefResponse contains the message type declaration for GetRootRefResponse.
 export const GetRootRefResponse: MessageType<GetRootRefResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetRootRefResponse',
     fields: [
       { no: 1, name: 'root_ref', kind: 'message', T: () => ObjectRef },
       { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2254,13 +2191,12 @@ export interface SetRootRefRequest {
   rootRef?: ObjectRef
 }
 
-// SetRootRefRequest contains the message type declaration for SetRootRefRequest.
 export const SetRootRefRequest: MessageType<SetRootRefRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.SetRootRefRequest',
     fields: [
       { no: 1, name: 'root_ref', kind: 'message', T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2278,13 +2214,12 @@ export interface SetRootRefResponse {
   rev?: bigint
 }
 
-// SetRootRefResponse contains the message type declaration for SetRootRefResponse.
 export const SetRootRefResponse: MessageType<SetRootRefResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.SetRootRefResponse',
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2314,15 +2249,14 @@ export interface ApplyObjectOpRequest {
   opSender?: string
 }
 
-// ApplyObjectOpRequest contains the message type declaration for ApplyObjectOpRequest.
 export const ApplyObjectOpRequest: MessageType<ApplyObjectOpRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.ApplyObjectOpRequest',
     fields: [
       { no: 1, name: 'op_type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2346,14 +2280,13 @@ export interface ApplyObjectOpResponse {
   sysErr?: boolean
 }
 
-// ApplyObjectOpResponse contains the message type declaration for ApplyObjectOpResponse.
 export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.ApplyObjectOpResponse',
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sys_err', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2364,13 +2297,11 @@ export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
  */
 export interface IncrementRevRequest {}
 
-// IncrementRevRequest contains the message type declaration for IncrementRevRequest.
 export const IncrementRevRequest: MessageType<IncrementRevRequest> =
-  createMessageType({
-    typeName: 's4wave.world.IncrementRevRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<IncrementRevRequest>(
+    's4wave.world.IncrementRevRequest',
+    true,
+  )
 
 /**
  * IncrementRevResponse is the response type for IncrementRev.
@@ -2386,13 +2317,12 @@ export interface IncrementRevResponse {
   rev?: bigint
 }
 
-// IncrementRevResponse contains the message type declaration for IncrementRevResponse.
 export const IncrementRevResponse: MessageType<IncrementRevResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.IncrementRevResponse',
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2416,15 +2346,15 @@ export interface WaitRevRequest {
   ignoreNotFound?: boolean
 }
 
-// WaitRevRequest contains the message type declaration for WaitRevRequest.
-export const WaitRevRequest: MessageType<WaitRevRequest> = createMessageType({
-  typeName: 's4wave.world.WaitRevRequest',
-  fields: [
-    { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 2, name: 'ignore_not_found', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WaitRevRequest: MessageType<WaitRevRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.WaitRevRequest',
+    fields: [
+      { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'ignore_not_found', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WaitRevResponse is the response type for WaitRev.
@@ -2440,14 +2370,14 @@ export interface WaitRevResponse {
   rev?: bigint
 }
 
-// WaitRevResponse contains the message type declaration for WaitRevResponse.
-export const WaitRevResponse: MessageType<WaitRevResponse> = createMessageType({
-  typeName: 's4wave.world.WaitRevResponse',
-  fields: [
-    { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WaitRevResponse: MessageType<WaitRevResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.WaitRevResponse',
+    fields: [
+      { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * AccessTypedObjectRequest is the request type for AccessTypedObject.
@@ -2463,13 +2393,12 @@ export interface AccessTypedObjectRequest {
   objectKey?: string
 }
 
-// AccessTypedObjectRequest contains the message type declaration for AccessTypedObjectRequest.
 export const AccessTypedObjectRequest: MessageType<AccessTypedObjectRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.AccessTypedObjectRequest',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -2494,13 +2423,12 @@ export interface AccessTypedObjectResponse {
   typeId?: string
 }
 
-// AccessTypedObjectResponse contains the message type declaration for AccessTypedObjectResponse.
 export const AccessTypedObjectResponse: MessageType<AccessTypedObjectResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.AccessTypedObjectResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

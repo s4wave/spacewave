@@ -2,9 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/sdk/docs/docs.proto (package s4wave.docs, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.docs'
 
@@ -40,16 +42,16 @@ export interface Documentation {
   createdAt?: Date
 }
 
-// Documentation contains the message type declaration for Documentation.
-export const Documentation: MessageType<Documentation> = createMessageType({
-  typeName: 's4wave.docs.Documentation',
-  fields: [
-    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Documentation: MessageType<Documentation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.docs.Documentation',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CreateDocumentationOp creates a new Documentation world object.
@@ -83,15 +85,14 @@ export interface CreateDocumentationOp {
   timestamp?: Date
 }
 
-// CreateDocumentationOp contains the message type declaration for CreateDocumentationOp.
 export const CreateDocumentationOp: MessageType<CreateDocumentationOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.docs.CreateDocumentationOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

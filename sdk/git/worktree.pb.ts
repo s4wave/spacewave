@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/git/worktree.proto (package s4wave.git, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.git'
 
@@ -74,17 +76,19 @@ export enum FileStatusCode {
   UPDATED_BUT_UNMERGED = 7,
 }
 
-// FileStatusCode_Enum is the enum type for FileStatusCode.
-export const FileStatusCode_Enum = createEnumType('s4wave.git.FileStatusCode', [
-  { no: 0, name: 'FILE_STATUS_CODE_UNMODIFIED' },
-  { no: 1, name: 'FILE_STATUS_CODE_UNTRACKED' },
-  { no: 2, name: 'FILE_STATUS_CODE_MODIFIED' },
-  { no: 3, name: 'FILE_STATUS_CODE_ADDED' },
-  { no: 4, name: 'FILE_STATUS_CODE_DELETED' },
-  { no: 5, name: 'FILE_STATUS_CODE_RENAMED' },
-  { no: 6, name: 'FILE_STATUS_CODE_COPIED' },
-  { no: 7, name: 'FILE_STATUS_CODE_UPDATED_BUT_UNMERGED' },
-])
+export const FileStatusCode_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.git.FileStatusCode',
+  [
+    [0, 'FILE_STATUS_CODE_UNMODIFIED'],
+    [1, 'FILE_STATUS_CODE_UNTRACKED'],
+    [2, 'FILE_STATUS_CODE_MODIFIED'],
+    [3, 'FILE_STATUS_CODE_ADDED'],
+    [4, 'FILE_STATUS_CODE_DELETED'],
+    [5, 'FILE_STATUS_CODE_RENAMED'],
+    [6, 'FILE_STATUS_CODE_COPIED'],
+    [7, 'FILE_STATUS_CODE_UPDATED_BUT_UNMERGED'],
+  ],
+)
 
 /**
  * GetWorktreeInfoRequest is the request for GetWorktreeInfo.
@@ -93,13 +97,11 @@ export const FileStatusCode_Enum = createEnumType('s4wave.git.FileStatusCode', [
  */
 export interface GetWorktreeInfoRequest {}
 
-// GetWorktreeInfoRequest contains the message type declaration for GetWorktreeInfoRequest.
 export const GetWorktreeInfoRequest: MessageType<GetWorktreeInfoRequest> =
-  createMessageType({
-    typeName: 's4wave.git.GetWorktreeInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetWorktreeInfoRequest>(
+    's4wave.git.GetWorktreeInfoRequest',
+    true,
+  )
 
 /**
  * GetWorktreeInfoResponse is the response for GetWorktreeInfo.
@@ -140,9 +142,8 @@ export interface GetWorktreeInfoResponse {
   hasWorkdir?: boolean
 }
 
-// GetWorktreeInfoResponse contains the message type declaration for GetWorktreeInfoResponse.
 export const GetWorktreeInfoResponse: MessageType<GetWorktreeInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetWorktreeInfoResponse',
     fields: [
       { no: 1, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -155,7 +156,7 @@ export const GetWorktreeInfoResponse: MessageType<GetWorktreeInfoResponse> =
       { no: 3, name: 'checked_out_ref', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'head_commit_hash', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'has_workdir', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -166,13 +167,11 @@ export const GetWorktreeInfoResponse: MessageType<GetWorktreeInfoResponse> =
  */
 export interface GetRepoResourceRequest {}
 
-// GetRepoResourceRequest contains the message type declaration for GetRepoResourceRequest.
 export const GetRepoResourceRequest: MessageType<GetRepoResourceRequest> =
-  createMessageType({
-    typeName: 's4wave.git.GetRepoResourceRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetRepoResourceRequest>(
+    's4wave.git.GetRepoResourceRequest',
+    true,
+  )
 
 /**
  * GetRepoResourceResponse is the response for GetRepoResource.
@@ -188,13 +187,12 @@ export interface GetRepoResourceResponse {
   resourceId?: number
 }
 
-// GetRepoResourceResponse contains the message type declaration for GetRepoResourceResponse.
 export const GetRepoResourceResponse: MessageType<GetRepoResourceResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetRepoResourceResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -205,13 +203,11 @@ export const GetRepoResourceResponse: MessageType<GetRepoResourceResponse> =
  */
 export interface GetWorkdirResourceRequest {}
 
-// GetWorkdirResourceRequest contains the message type declaration for GetWorkdirResourceRequest.
 export const GetWorkdirResourceRequest: MessageType<GetWorkdirResourceRequest> =
-  createMessageType({
-    typeName: 's4wave.git.GetWorkdirResourceRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetWorkdirResourceRequest>(
+    's4wave.git.GetWorkdirResourceRequest',
+    true,
+  )
 
 /**
  * GetWorkdirResourceResponse is the response for GetWorkdirResource.
@@ -227,13 +223,12 @@ export interface GetWorkdirResourceResponse {
   resourceId?: number
 }
 
-// GetWorkdirResourceResponse contains the message type declaration for GetWorkdirResourceResponse.
 export const GetWorkdirResourceResponse: MessageType<GetWorkdirResourceResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetWorkdirResourceResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -263,16 +258,16 @@ export interface StatusEntry {
   worktreeStatus?: FileStatusCode
 }
 
-// StatusEntry contains the message type declaration for StatusEntry.
-export const StatusEntry: MessageType<StatusEntry> = createMessageType({
-  typeName: 's4wave.git.StatusEntry',
-  fields: [
-    { no: 1, name: 'file_path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'staging_status', kind: 'enum', T: FileStatusCode_Enum },
-    { no: 3, name: 'worktree_status', kind: 'enum', T: FileStatusCode_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StatusEntry: MessageType<StatusEntry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.git.StatusEntry',
+    fields: [
+      { no: 1, name: 'file_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'staging_status', kind: 'enum', T: FileStatusCode_Enum },
+      { no: 3, name: 'worktree_status', kind: 'enum', T: FileStatusCode_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchStatusRequest is the request for WatchStatus.
@@ -281,13 +276,11 @@ export const StatusEntry: MessageType<StatusEntry> = createMessageType({
  */
 export interface WatchStatusRequest {}
 
-// WatchStatusRequest contains the message type declaration for WatchStatusRequest.
 export const WatchStatusRequest: MessageType<WatchStatusRequest> =
-  createMessageType({
-    typeName: 's4wave.git.WatchStatusRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchStatusRequest>(
+    's4wave.git.WatchStatusRequest',
+    true,
+  )
 
 /**
  * WatchStatusResponse is the response for WatchStatus.
@@ -303,9 +296,8 @@ export interface WatchStatusResponse {
   entries?: StatusEntry[]
 }
 
-// WatchStatusResponse contains the message type declaration for WatchStatusResponse.
 export const WatchStatusResponse: MessageType<WatchStatusResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.WatchStatusResponse',
     fields: [
       {
@@ -315,7 +307,7 @@ export const WatchStatusResponse: MessageType<WatchStatusResponse> =
         T: () => StatusEntry,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -333,9 +325,8 @@ export interface StageFilesRequest {
   paths?: string[]
 }
 
-// StageFilesRequest contains the message type declaration for StageFilesRequest.
 export const StageFilesRequest: MessageType<StageFilesRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.StageFilesRequest',
     fields: [
       {
@@ -345,7 +336,7 @@ export const StageFilesRequest: MessageType<StageFilesRequest> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -356,13 +347,11 @@ export const StageFilesRequest: MessageType<StageFilesRequest> =
  */
 export interface StageFilesResponse {}
 
-// StageFilesResponse contains the message type declaration for StageFilesResponse.
 export const StageFilesResponse: MessageType<StageFilesResponse> =
-  createMessageType({
-    typeName: 's4wave.git.StageFilesResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<StageFilesResponse>(
+    's4wave.git.StageFilesResponse',
+    true,
+  )
 
 /**
  * UnstageFilesRequest is the request for UnstageFiles.
@@ -378,9 +367,8 @@ export interface UnstageFilesRequest {
   paths?: string[]
 }
 
-// UnstageFilesRequest contains the message type declaration for UnstageFilesRequest.
 export const UnstageFilesRequest: MessageType<UnstageFilesRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.UnstageFilesRequest',
     fields: [
       {
@@ -390,7 +378,7 @@ export const UnstageFilesRequest: MessageType<UnstageFilesRequest> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -401,10 +389,8 @@ export const UnstageFilesRequest: MessageType<UnstageFilesRequest> =
  */
 export interface UnstageFilesResponse {}
 
-// UnstageFilesResponse contains the message type declaration for UnstageFilesResponse.
 export const UnstageFilesResponse: MessageType<UnstageFilesResponse> =
-  createMessageType({
-    typeName: 's4wave.git.UnstageFilesResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<UnstageFilesResponse>(
+    's4wave.git.UnstageFilesResponse',
+    true,
+  )

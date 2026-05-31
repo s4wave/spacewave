@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/bundler/esbuild/esbuild.proto (package bldr.web.bundler.esbuild, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.web.bundler.esbuild'
 
@@ -36,15 +38,14 @@ export interface EsbuildBundleEntrypoint {
   entrypointId?: string
 }
 
-// EsbuildBundleEntrypoint contains the message type declaration for EsbuildBundleEntrypoint.
 export const EsbuildBundleEntrypoint: MessageType<EsbuildBundleEntrypoint> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.esbuild.EsbuildBundleEntrypoint',
     fields: [
       { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'entrypoint_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -90,9 +91,8 @@ export interface EsbuildOutputMeta {
   entrypointId?: string
 }
 
-// EsbuildOutputMeta contains the message type declaration for EsbuildOutputMeta.
 export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.esbuild.EsbuildOutputMeta',
     fields: [
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
@@ -100,6 +100,6 @@ export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
       { no: 3, name: 'css_bundle_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'entrypoint_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -4,8 +4,10 @@
 
 import type { HashType } from '../../hash/hash.pb.js'
 import { HashType_Enum } from '../../hash/hash.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { SignedMsg } from '../../peer/peer.pb.js'
 
 export const protobufPackage = 'floodsub'
@@ -25,12 +27,11 @@ export interface Config {
   publishHashType?: HashType
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'floodsub.Config',
   fields: [
     { no: 1, name: 'publish_hash_type', kind: 'enum', T: HashType_Enum },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -54,14 +55,13 @@ export interface SubscriptionOpts {
   channelId?: string
 }
 
-// SubscriptionOpts contains the message type declaration for SubscriptionOpts.
 export const SubscriptionOpts: MessageType<SubscriptionOpts> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'floodsub.SubscriptionOpts',
     fields: [
       { no: 1, name: 'subscribe', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'channel_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -85,8 +85,7 @@ export interface Packet {
   publish?: SignedMsg[]
 }
 
-// Packet contains the message type declaration for Packet.
-export const Packet: MessageType<Packet> = createMessageType({
+export const Packet: MessageType<Packet> = /* @__PURE__ */ createMessageType({
   typeName: 'floodsub.Packet',
   fields: [
     {
@@ -103,6 +102,6 @@ export const Packet: MessageType<Packet> = createMessageType({
       T: () => SignedMsg,
       repeated: true,
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

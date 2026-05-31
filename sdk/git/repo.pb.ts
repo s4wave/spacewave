@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/git/repo.proto (package s4wave.git, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.git'
 
@@ -33,14 +38,13 @@ export interface RefInfo {
   isHead?: boolean
 }
 
-// RefInfo contains the message type declaration for RefInfo.
-export const RefInfo: MessageType<RefInfo> = createMessageType({
+export const RefInfo: MessageType<RefInfo> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.git.RefInfo',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'commit_hash', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'is_head', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -88,25 +92,25 @@ export interface CommitInfo {
   parentHashes?: string[]
 }
 
-// CommitInfo contains the message type declaration for CommitInfo.
-export const CommitInfo: MessageType<CommitInfo> = createMessageType({
-  typeName: 's4wave.git.CommitInfo',
-  fields: [
-    { no: 1, name: 'hash', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'author_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'author_email', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'author_timestamp', kind: 'scalar', T: ScalarType.INT64 },
-    {
-      no: 6,
-      name: 'parent_hashes',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CommitInfo: MessageType<CommitInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.git.CommitInfo',
+    fields: [
+      { no: 1, name: 'hash', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'author_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'author_email', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'author_timestamp', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 6,
+        name: 'parent_hashes',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ListRefsRequest is the request for ListRefs.
@@ -115,12 +119,11 @@ export const CommitInfo: MessageType<CommitInfo> = createMessageType({
  */
 export interface ListRefsRequest {}
 
-// ListRefsRequest contains the message type declaration for ListRefsRequest.
-export const ListRefsRequest: MessageType<ListRefsRequest> = createMessageType({
-  typeName: 's4wave.git.ListRefsRequest',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ListRefsRequest: MessageType<ListRefsRequest> =
+  /* @__PURE__ */ createEmptyMessageType<ListRefsRequest>(
+    's4wave.git.ListRefsRequest',
+    true,
+  )
 
 /**
  * ListRefsResponse is the response for ListRefs.
@@ -148,9 +151,8 @@ export interface ListRefsResponse {
   headRef?: string
 }
 
-// ListRefsResponse contains the message type declaration for ListRefsResponse.
 export const ListRefsResponse: MessageType<ListRefsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.ListRefsResponse',
     fields: [
       {
@@ -168,7 +170,7 @@ export const ListRefsResponse: MessageType<ListRefsResponse> =
         repeated: true,
       },
       { no: 3, name: 'head_ref', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -186,13 +188,12 @@ export interface ResolveRefRequest {
   refName?: string
 }
 
-// ResolveRefRequest contains the message type declaration for ResolveRefRequest.
 export const ResolveRefRequest: MessageType<ResolveRefRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.ResolveRefRequest',
     fields: [
       { no: 1, name: 'ref_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -216,14 +217,13 @@ export interface ResolveRefResponse {
   treeHash?: string
 }
 
-// ResolveRefResponse contains the message type declaration for ResolveRefResponse.
 export const ResolveRefResponse: MessageType<ResolveRefResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.ResolveRefResponse',
     fields: [
       { no: 1, name: 'commit_hash', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'tree_hash', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -234,13 +234,11 @@ export const ResolveRefResponse: MessageType<ResolveRefResponse> =
  */
 export interface GetRepoInfoRequest {}
 
-// GetRepoInfoRequest contains the message type declaration for GetRepoInfoRequest.
 export const GetRepoInfoRequest: MessageType<GetRepoInfoRequest> =
-  createMessageType({
-    typeName: 's4wave.git.GetRepoInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetRepoInfoRequest>(
+    's4wave.git.GetRepoInfoRequest',
+    true,
+  )
 
 /**
  * GetRepoInfoResponse is the response for GetRepoInfo.
@@ -280,9 +278,8 @@ export interface GetRepoInfoResponse {
   isEmpty?: boolean
 }
 
-// GetRepoInfoResponse contains the message type declaration for GetRepoInfoResponse.
 export const GetRepoInfoResponse: MessageType<GetRepoInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetRepoInfoResponse',
     fields: [
       { no: 1, name: 'head_ref', kind: 'scalar', T: ScalarType.STRING },
@@ -290,7 +287,7 @@ export const GetRepoInfoResponse: MessageType<GetRepoInfoResponse> =
       { no: 3, name: 'readme_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'last_commit', kind: 'message', T: () => CommitInfo },
       { no: 5, name: 'is_empty', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -309,13 +306,12 @@ export interface GetTreeResourceRequest {
   refName?: string
 }
 
-// GetTreeResourceRequest contains the message type declaration for GetTreeResourceRequest.
 export const GetTreeResourceRequest: MessageType<GetTreeResourceRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetTreeResourceRequest',
     fields: [
       { no: 1, name: 'ref_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -333,13 +329,12 @@ export interface GetTreeResourceResponse {
   resourceId?: number
 }
 
-// GetTreeResourceResponse contains the message type declaration for GetTreeResourceResponse.
 export const GetTreeResourceResponse: MessageType<GetTreeResourceResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetTreeResourceResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -357,13 +352,12 @@ export interface GetRepoFilesystemResourceRequest {
   writable?: boolean
 }
 
-// GetRepoFilesystemResourceRequest contains the message type declaration for GetRepoFilesystemResourceRequest.
 export const GetRepoFilesystemResourceRequest: MessageType<GetRepoFilesystemResourceRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetRepoFilesystemResourceRequest',
     fields: [
       { no: 1, name: 'writable', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -381,13 +375,12 @@ export interface GetRepoFilesystemResourceResponse {
   resourceId?: number
 }
 
-// GetRepoFilesystemResourceResponse contains the message type declaration for GetRepoFilesystemResourceResponse.
 export const GetRepoFilesystemResourceResponse: MessageType<GetRepoFilesystemResourceResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetRepoFilesystemResourceResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -423,17 +416,17 @@ export interface LogRequest {
   sinceRef?: string
 }
 
-// LogRequest contains the message type declaration for LogRequest.
-export const LogRequest: MessageType<LogRequest> = createMessageType({
-  typeName: 's4wave.git.LogRequest',
-  fields: [
-    { no: 1, name: 'ref_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'offset', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 4, name: 'since_ref', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LogRequest: MessageType<LogRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.git.LogRequest',
+    fields: [
+      { no: 1, name: 'ref_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'offset', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 4, name: 'since_ref', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * LogResponse is the response for Log.
@@ -455,21 +448,21 @@ export interface LogResponse {
   hasMore?: boolean
 }
 
-// LogResponse contains the message type declaration for LogResponse.
-export const LogResponse: MessageType<LogResponse> = createMessageType({
-  typeName: 's4wave.git.LogResponse',
-  fields: [
-    {
-      no: 1,
-      name: 'commits',
-      kind: 'message',
-      T: () => CommitInfo,
-      repeated: true,
-    },
-    { no: 2, name: 'has_more', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LogResponse: MessageType<LogResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.git.LogResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'commits',
+        kind: 'message',
+        T: () => CommitInfo,
+        repeated: true,
+      },
+      { no: 2, name: 'has_more', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetCommitRequest is the request for GetCommit.
@@ -485,13 +478,12 @@ export interface GetCommitRequest {
   hash?: string
 }
 
-// GetCommitRequest contains the message type declaration for GetCommitRequest.
 export const GetCommitRequest: MessageType<GetCommitRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetCommitRequest',
     fields: [
       { no: 1, name: 'hash', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -509,13 +501,12 @@ export interface GetCommitResponse {
   commit?: CommitInfo
 }
 
-// GetCommitResponse contains the message type declaration for GetCommitResponse.
 export const GetCommitResponse: MessageType<GetCommitResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetCommitResponse',
     fields: [
       { no: 1, name: 'commit', kind: 'message', T: () => CommitInfo },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -539,14 +530,13 @@ export interface GetDiffStatRequest {
   refB?: string
 }
 
-// GetDiffStatRequest contains the message type declaration for GetDiffStatRequest.
 export const GetDiffStatRequest: MessageType<GetDiffStatRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetDiffStatRequest',
     fields: [
       { no: 1, name: 'ref_a', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref_b', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -576,16 +566,16 @@ export interface DiffFileStat {
   deletions?: number
 }
 
-// DiffFileStat contains the message type declaration for DiffFileStat.
-export const DiffFileStat: MessageType<DiffFileStat> = createMessageType({
-  typeName: 's4wave.git.DiffFileStat',
-  fields: [
-    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'additions', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 3, name: 'deletions', kind: 'scalar', T: ScalarType.UINT32 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const DiffFileStat: MessageType<DiffFileStat> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.git.DiffFileStat',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'additions', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'deletions', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetDiffStatResponse is the response for GetDiffStat.
@@ -613,9 +603,8 @@ export interface GetDiffStatResponse {
   totalDeletions?: number
 }
 
-// GetDiffStatResponse contains the message type declaration for GetDiffStatResponse.
 export const GetDiffStatResponse: MessageType<GetDiffStatResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetDiffStatResponse',
     fields: [
       {
@@ -627,7 +616,7 @@ export const GetDiffStatResponse: MessageType<GetDiffStatResponse> =
       },
       { no: 2, name: 'total_additions', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'total_deletions', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -651,14 +640,13 @@ export interface GetDiffPatchRequest {
   refB?: string
 }
 
-// GetDiffPatchRequest contains the message type declaration for GetDiffPatchRequest.
 export const GetDiffPatchRequest: MessageType<GetDiffPatchRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetDiffPatchRequest',
     fields: [
       { no: 1, name: 'ref_a', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref_b', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -694,15 +682,14 @@ export interface GetDiffPatchResponse {
   limitBytes?: number
 }
 
-// GetDiffPatchResponse contains the message type declaration for GetDiffPatchResponse.
 export const GetDiffPatchResponse: MessageType<GetDiffPatchResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetDiffPatchResponse',
     fields: [
       { no: 1, name: 'patch', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'truncated', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'limit_bytes', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

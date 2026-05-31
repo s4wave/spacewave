@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime/desktop-runtime.proto (package electron.desktop_runtime, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'electron.desktop_runtime'
 
@@ -67,17 +69,16 @@ export enum DesktopRuntimeHealth {
   QUITTING = 6,
 }
 
-// DesktopRuntimeHealth_Enum is the enum type for DesktopRuntimeHealth.
-export const DesktopRuntimeHealth_Enum = createEnumType(
+export const DesktopRuntimeHealth_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeHealth',
   [
-    { no: 0, name: 'DESKTOP_RUNTIME_HEALTH_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_RUNTIME_HEALTH_STARTING' },
-    { no: 2, name: 'DESKTOP_RUNTIME_HEALTH_HEALTHY' },
-    { no: 3, name: 'DESKTOP_RUNTIME_HEALTH_ACTIVE' },
-    { no: 4, name: 'DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION' },
-    { no: 5, name: 'DESKTOP_RUNTIME_HEALTH_DISCONNECTED' },
-    { no: 6, name: 'DESKTOP_RUNTIME_HEALTH_QUITTING' },
+    [0, 'DESKTOP_RUNTIME_HEALTH_UNSPECIFIED'],
+    [1, 'DESKTOP_RUNTIME_HEALTH_STARTING'],
+    [2, 'DESKTOP_RUNTIME_HEALTH_HEALTHY'],
+    [3, 'DESKTOP_RUNTIME_HEALTH_ACTIVE'],
+    [4, 'DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION'],
+    [5, 'DESKTOP_RUNTIME_HEALTH_DISCONNECTED'],
+    [6, 'DESKTOP_RUNTIME_HEALTH_QUITTING'],
   ],
 )
 
@@ -123,15 +124,14 @@ export enum DesktopRuntimeLifecycle {
   QUITTING = 4,
 }
 
-// DesktopRuntimeLifecycle_Enum is the enum type for DesktopRuntimeLifecycle.
-export const DesktopRuntimeLifecycle_Enum = createEnumType(
+export const DesktopRuntimeLifecycle_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeLifecycle',
   [
-    { no: 0, name: 'DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_RUNTIME_LIFECYCLE_STARTING' },
-    { no: 2, name: 'DESKTOP_RUNTIME_LIFECYCLE_RUNNING' },
-    { no: 3, name: 'DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED' },
-    { no: 4, name: 'DESKTOP_RUNTIME_LIFECYCLE_QUITTING' },
+    [0, 'DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED'],
+    [1, 'DESKTOP_RUNTIME_LIFECYCLE_STARTING'],
+    [2, 'DESKTOP_RUNTIME_LIFECYCLE_RUNNING'],
+    [3, 'DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED'],
+    [4, 'DESKTOP_RUNTIME_LIFECYCLE_QUITTING'],
   ],
 )
 
@@ -170,14 +170,13 @@ export enum DesktopRuntimeReachability {
   UNREACHABLE = 3,
 }
 
-// DesktopRuntimeReachability_Enum is the enum type for DesktopRuntimeReachability.
-export const DesktopRuntimeReachability_Enum = createEnumType(
+export const DesktopRuntimeReachability_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeReachability',
   [
-    { no: 0, name: 'DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_RUNTIME_REACHABILITY_STARTING' },
-    { no: 2, name: 'DESKTOP_RUNTIME_REACHABILITY_REACHABLE' },
-    { no: 3, name: 'DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE' },
+    [0, 'DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED'],
+    [1, 'DESKTOP_RUNTIME_REACHABILITY_STARTING'],
+    [2, 'DESKTOP_RUNTIME_REACHABILITY_REACHABLE'],
+    [3, 'DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE'],
   ],
 )
 
@@ -230,16 +229,15 @@ export enum DesktopRuntimeActivityState {
   ERROR = 5,
 }
 
-// DesktopRuntimeActivityState_Enum is the enum type for DesktopRuntimeActivityState.
-export const DesktopRuntimeActivityState_Enum = createEnumType(
+export const DesktopRuntimeActivityState_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeActivityState',
   [
-    { no: 0, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE' },
-    { no: 2, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING' },
-    { no: 3, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_DONE' },
-    { no: 4, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION' },
-    { no: 5, name: 'DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR' },
+    [0, 'DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED'],
+    [1, 'DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE'],
+    [2, 'DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING'],
+    [3, 'DESKTOP_RUNTIME_ACTIVITY_STATE_DONE'],
+    [4, 'DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION'],
+    [5, 'DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR'],
   ],
 )
 
@@ -320,20 +318,19 @@ export enum DesktopRuntimeAttentionKind {
   RUNTIME_QUITTING = 9,
 }
 
-// DesktopRuntimeAttentionKind_Enum is the enum type for DesktopRuntimeAttentionKind.
-export const DesktopRuntimeAttentionKind_Enum = createEnumType(
+export const DesktopRuntimeAttentionKind_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeAttentionKind',
   [
-    { no: 0, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING' },
-    { no: 2, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED' },
-    { no: 3, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE' },
-    { no: 4, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED' },
-    { no: 5, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED' },
-    { no: 6, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR' },
-    { no: 7, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY' },
-    { no: 8, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING' },
-    { no: 9, name: 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING' },
+    [0, 'DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED'],
+    [1, 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING'],
+    [2, 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED'],
+    [3, 'DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE'],
+    [4, 'DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED'],
+    [5, 'DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED'],
+    [6, 'DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR'],
+    [7, 'DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY'],
+    [8, 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING'],
+    [9, 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING'],
   ],
 )
 
@@ -372,14 +369,13 @@ export enum DesktopRuntimeSeverity {
   CRITICAL = 3,
 }
 
-// DesktopRuntimeSeverity_Enum is the enum type for DesktopRuntimeSeverity.
-export const DesktopRuntimeSeverity_Enum = createEnumType(
+export const DesktopRuntimeSeverity_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeSeverity',
   [
-    { no: 0, name: 'DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_RUNTIME_SEVERITY_INFO' },
-    { no: 2, name: 'DESKTOP_RUNTIME_SEVERITY_WARNING' },
-    { no: 3, name: 'DESKTOP_RUNTIME_SEVERITY_CRITICAL' },
+    [0, 'DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED'],
+    [1, 'DESKTOP_RUNTIME_SEVERITY_INFO'],
+    [2, 'DESKTOP_RUNTIME_SEVERITY_WARNING'],
+    [3, 'DESKTOP_RUNTIME_SEVERITY_CRITICAL'],
   ],
 )
 
@@ -432,16 +428,15 @@ export enum DesktopRuntimeActionKind {
   QUIT = 5,
 }
 
-// DesktopRuntimeActionKind_Enum is the enum type for DesktopRuntimeActionKind.
-export const DesktopRuntimeActionKind_Enum = createEnumType(
+export const DesktopRuntimeActionKind_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeActionKind',
   [
-    { no: 0, name: 'DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED' },
-    { no: 1, name: 'DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE' },
-    { no: 2, name: 'DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW' },
-    { no: 3, name: 'DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT' },
-    { no: 4, name: 'DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH' },
-    { no: 5, name: 'DESKTOP_RUNTIME_ACTION_KIND_QUIT' },
+    [0, 'DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED'],
+    [1, 'DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE'],
+    [2, 'DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW'],
+    [3, 'DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT'],
+    [4, 'DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH'],
+    [5, 'DESKTOP_RUNTIME_ACTION_KIND_QUIT'],
   ],
 )
 
@@ -483,9 +478,8 @@ export interface DesktopRuntimeListenerStatus {
   connectedClients?: number
 }
 
-// DesktopRuntimeListenerStatus contains the message type declaration for DesktopRuntimeListenerStatus.
 export const DesktopRuntimeListenerStatus: MessageType<DesktopRuntimeListenerStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.DesktopRuntimeListenerStatus',
     fields: [
       {
@@ -503,7 +497,7 @@ export const DesktopRuntimeListenerStatus: MessageType<DesktopRuntimeListenerSta
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -551,9 +545,8 @@ export interface DesktopRuntimeNavigationItem {
   statusText?: string
 }
 
-// DesktopRuntimeNavigationItem contains the message type declaration for DesktopRuntimeNavigationItem.
 export const DesktopRuntimeNavigationItem: MessageType<DesktopRuntimeNavigationItem> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.DesktopRuntimeNavigationItem',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -562,7 +555,7 @@ export const DesktopRuntimeNavigationItem: MessageType<DesktopRuntimeNavigationI
       { no: 4, name: 'route', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -604,9 +597,8 @@ export interface DesktopRuntimeActivityItem {
   updatedAtUnixMs?: bigint
 }
 
-// DesktopRuntimeActivityItem contains the message type declaration for DesktopRuntimeActivityItem.
 export const DesktopRuntimeActivityItem: MessageType<DesktopRuntimeActivityItem> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.DesktopRuntimeActivityItem',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -624,7 +616,7 @@ export const DesktopRuntimeActivityItem: MessageType<DesktopRuntimeActivityItem>
         kind: 'scalar',
         T: ScalarType.INT64,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -660,16 +652,15 @@ export interface DesktopRuntimeUpdateStatus {
   detail?: string
 }
 
-// DesktopRuntimeUpdateStatus contains the message type declaration for DesktopRuntimeUpdateStatus.
 export const DesktopRuntimeUpdateStatus: MessageType<DesktopRuntimeUpdateStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.DesktopRuntimeUpdateStatus',
     fields: [
       { no: 1, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -711,9 +702,8 @@ export interface DesktopRuntimeAttentionItem {
   route?: string
 }
 
-// DesktopRuntimeAttentionItem contains the message type declaration for DesktopRuntimeAttentionItem.
 export const DesktopRuntimeAttentionItem: MessageType<DesktopRuntimeAttentionItem> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.DesktopRuntimeAttentionItem',
     fields: [
       {
@@ -726,7 +716,7 @@ export const DesktopRuntimeAttentionItem: MessageType<DesktopRuntimeAttentionIte
       { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'route', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -780,9 +770,8 @@ export interface DesktopRuntimeActionItem {
   enabled?: boolean
 }
 
-// DesktopRuntimeActionItem contains the message type declaration for DesktopRuntimeActionItem.
 export const DesktopRuntimeActionItem: MessageType<DesktopRuntimeActionItem> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.DesktopRuntimeActionItem',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -792,7 +781,7 @@ export const DesktopRuntimeActionItem: MessageType<DesktopRuntimeActionItem> =
       { no: 5, name: 'route', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'value', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -876,9 +865,8 @@ export interface DesktopRuntimeState {
   actions?: DesktopRuntimeActionItem[]
 }
 
-// DesktopRuntimeState contains the message type declaration for DesktopRuntimeState.
 export const DesktopRuntimeState: MessageType<DesktopRuntimeState> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.DesktopRuntimeState',
     fields: [
       { no: 1, name: 'main_window_open', kind: 'scalar', T: ScalarType.BOOL },
@@ -938,7 +926,7 @@ export const DesktopRuntimeState: MessageType<DesktopRuntimeState> =
         T: () => DesktopRuntimeActionItem,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -949,13 +937,11 @@ export const DesktopRuntimeState: MessageType<DesktopRuntimeState> =
  */
 export interface WatchDesktopStateRequest {}
 
-// WatchDesktopStateRequest contains the message type declaration for WatchDesktopStateRequest.
 export const WatchDesktopStateRequest: MessageType<WatchDesktopStateRequest> =
-  createMessageType({
-    typeName: 'electron.desktop_runtime.WatchDesktopStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchDesktopStateRequest>(
+    'electron.desktop_runtime.WatchDesktopStateRequest',
+    true,
+  )
 
 /**
  * WatchDesktopStateResponse is the response for WatchDesktopState.
@@ -971,13 +957,12 @@ export interface WatchDesktopStateResponse {
   state?: DesktopRuntimeState
 }
 
-// WatchDesktopStateResponse contains the message type declaration for WatchDesktopStateResponse.
 export const WatchDesktopStateResponse: MessageType<WatchDesktopStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.WatchDesktopStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => DesktopRuntimeState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -995,13 +980,12 @@ export interface SetDesktopStateRequest {
   state?: DesktopRuntimeState
 }
 
-// SetDesktopStateRequest contains the message type declaration for SetDesktopStateRequest.
 export const SetDesktopStateRequest: MessageType<SetDesktopStateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.SetDesktopStateRequest',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => DesktopRuntimeState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1012,13 +996,11 @@ export const SetDesktopStateRequest: MessageType<SetDesktopStateRequest> =
  */
 export interface SetDesktopStateResponse {}
 
-// SetDesktopStateResponse contains the message type declaration for SetDesktopStateResponse.
 export const SetDesktopStateResponse: MessageType<SetDesktopStateResponse> =
-  createMessageType({
-    typeName: 'electron.desktop_runtime.SetDesktopStateResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetDesktopStateResponse>(
+    'electron.desktop_runtime.SetDesktopStateResponse',
+    true,
+  )
 
 /**
  * OpenOrFocusMainWindowRequest is the request for OpenOrFocusMainWindow.
@@ -1034,13 +1016,12 @@ export interface OpenOrFocusMainWindowRequest {
   route?: string
 }
 
-// OpenOrFocusMainWindowRequest contains the message type declaration for OpenOrFocusMainWindowRequest.
 export const OpenOrFocusMainWindowRequest: MessageType<OpenOrFocusMainWindowRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.OpenOrFocusMainWindowRequest',
     fields: [
       { no: 1, name: 'route', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1051,13 +1032,11 @@ export const OpenOrFocusMainWindowRequest: MessageType<OpenOrFocusMainWindowRequ
  */
 export interface OpenOrFocusMainWindowResponse {}
 
-// OpenOrFocusMainWindowResponse contains the message type declaration for OpenOrFocusMainWindowResponse.
 export const OpenOrFocusMainWindowResponse: MessageType<OpenOrFocusMainWindowResponse> =
-  createMessageType({
-    typeName: 'electron.desktop_runtime.OpenOrFocusMainWindowResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<OpenOrFocusMainWindowResponse>(
+    'electron.desktop_runtime.OpenOrFocusMainWindowResponse',
+    true,
+  )
 
 /**
  * QuitDesktopRuntimeRequest is the request for QuitDesktopRuntime.
@@ -1066,13 +1045,11 @@ export const OpenOrFocusMainWindowResponse: MessageType<OpenOrFocusMainWindowRes
  */
 export interface QuitDesktopRuntimeRequest {}
 
-// QuitDesktopRuntimeRequest contains the message type declaration for QuitDesktopRuntimeRequest.
 export const QuitDesktopRuntimeRequest: MessageType<QuitDesktopRuntimeRequest> =
-  createMessageType({
-    typeName: 'electron.desktop_runtime.QuitDesktopRuntimeRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<QuitDesktopRuntimeRequest>(
+    'electron.desktop_runtime.QuitDesktopRuntimeRequest',
+    true,
+  )
 
 /**
  * QuitDesktopRuntimeResponse is the response for QuitDesktopRuntime.
@@ -1081,10 +1058,8 @@ export const QuitDesktopRuntimeRequest: MessageType<QuitDesktopRuntimeRequest> =
  */
 export interface QuitDesktopRuntimeResponse {}
 
-// QuitDesktopRuntimeResponse contains the message type declaration for QuitDesktopRuntimeResponse.
 export const QuitDesktopRuntimeResponse: MessageType<QuitDesktopRuntimeResponse> =
-  createMessageType({
-    typeName: 'electron.desktop_runtime.QuitDesktopRuntimeResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<QuitDesktopRuntimeResponse>(
+    'electron.desktop_runtime.QuitDesktopRuntimeResponse',
+    true,
+  )

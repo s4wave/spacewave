@@ -4,8 +4,10 @@
 
 import type { HashType } from '../hash/hash.pb.js'
 import { HashType_Enum } from '../hash/hash.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'peer'
 
@@ -38,16 +40,16 @@ export interface Signature {
   sigData?: Uint8Array
 }
 
-// Signature contains the message type declaration for Signature.
-export const Signature: MessageType<Signature> = createMessageType({
-  typeName: 'peer.Signature',
-  fields: [
-    { no: 1, name: 'pub_key', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'hash_type', kind: 'enum', T: HashType_Enum },
-    { no: 3, name: 'sig_data', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Signature: MessageType<Signature> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'peer.Signature',
+    fields: [
+      { no: 1, name: 'pub_key', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'hash_type', kind: 'enum', T: HashType_Enum },
+      { no: 3, name: 'sig_data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SignedMsg is a message from a peer with a signature.
@@ -76,13 +78,13 @@ export interface SignedMsg {
   data?: Uint8Array
 }
 
-// SignedMsg contains the message type declaration for SignedMsg.
-export const SignedMsg: MessageType<SignedMsg> = createMessageType({
-  typeName: 'peer.SignedMsg',
-  fields: [
-    { no: 1, name: 'from_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'signature', kind: 'message', T: () => Signature },
-    { no: 3, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SignedMsg: MessageType<SignedMsg> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'peer.SignedMsg',
+    fields: [
+      { no: 1, name: 'from_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
+      { no: 3, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

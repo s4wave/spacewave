@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BlockRef } from '../../block/block.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'psecho'
 
@@ -40,26 +42,31 @@ export interface PubSubMessage {
   timestampUnixNano?: bigint
 }
 
-// PubSubMessage contains the message type declaration for PubSubMessage.
-export const PubSubMessage: MessageType<PubSubMessage> = createMessageType({
-  typeName: 'psecho.PubSubMessage',
-  fields: [
-    {
-      no: 1,
-      name: 'want_refs',
-      kind: 'message',
-      T: () => BlockRef,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'clear_refs',
-      kind: 'message',
-      T: () => BlockRef,
-      repeated: true,
-    },
-    { no: 3, name: 'want_empty', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'timestamp_unix_nano', kind: 'scalar', T: ScalarType.INT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PubSubMessage: MessageType<PubSubMessage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'psecho.PubSubMessage',
+    fields: [
+      {
+        no: 1,
+        name: 'want_refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'clear_refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+      { no: 3, name: 'want_empty', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 4,
+        name: 'timestamp_unix_nano',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

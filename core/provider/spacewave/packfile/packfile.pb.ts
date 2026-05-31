@@ -2,9 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/spacewave/packfile/packfile.proto (package provider.spacewave.packfile, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'provider.spacewave.packfile'
 
@@ -78,27 +80,27 @@ export interface PackfileEntry {
   supersededAt?: Date
 }
 
-// PackfileEntry contains the message type declaration for PackfileEntry.
-export const PackfileEntry: MessageType<PackfileEntry> = createMessageType({
-  typeName: 'provider.spacewave.packfile.PackfileEntry',
-  fields: [
-    { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'bloom_filter', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 3, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 5, name: 'created_at', kind: 'message', T: () => Timestamp },
-    {
-      no: 6,
-      name: 'bloom_format_version',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    { no: 7, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 8, name: 'superseded_by', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'superseded_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PackfileEntry: MessageType<PackfileEntry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.packfile.PackfileEntry',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'bloom_filter', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 5, name: 'created_at', kind: 'message', T: () => Timestamp },
+      {
+        no: 6,
+        name: 'bloom_format_version',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      { no: 7, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 8, name: 'superseded_by', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'superseded_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PackReplacementEvent describes one atomic replacement sequence.
@@ -126,9 +128,8 @@ export interface PackReplacementEvent {
   replacementPackIds?: string[]
 }
 
-// PackReplacementEvent contains the message type declaration for PackReplacementEvent.
 export const PackReplacementEvent: MessageType<PackReplacementEvent> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.packfile.PackReplacementEvent',
     fields: [
       { no: 1, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
@@ -146,7 +147,7 @@ export const PackReplacementEvent: MessageType<PackReplacementEvent> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -170,27 +171,27 @@ export interface PullResponse {
   replacementEvents?: PackReplacementEvent[]
 }
 
-// PullResponse contains the message type declaration for PullResponse.
-export const PullResponse: MessageType<PullResponse> = createMessageType({
-  typeName: 'provider.spacewave.packfile.PullResponse',
-  fields: [
-    {
-      no: 1,
-      name: 'entries',
-      kind: 'message',
-      T: () => PackfileEntry,
-      repeated: true,
-    },
-    {
-      no: 2,
-      name: 'replacement_events',
-      kind: 'message',
-      T: () => PackReplacementEvent,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PullResponse: MessageType<PullResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.packfile.PullResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'entries',
+        kind: 'message',
+        T: () => PackfileEntry,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'replacement_events',
+        kind: 'message',
+        T: () => PackReplacementEvent,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * PushResponse is the response to a push request.
@@ -218,13 +219,13 @@ export interface PushResponse {
   sizeBytes?: bigint
 }
 
-// PushResponse contains the message type declaration for PushResponse.
-export const PushResponse: MessageType<PushResponse> = createMessageType({
-  typeName: 'provider.spacewave.packfile.PushResponse',
-  fields: [
-    { no: 1, name: 'pack_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'already_exists', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PushResponse: MessageType<PushResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.packfile.PushResponse',
+    fields: [
+      { no: 1, name: 'pack_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'already_exists', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -2,6 +2,7 @@ package npm
 
 import (
 	"context"
+	"os"
 	oexec "os/exec"
 
 	"github.com/aperturerobotics/util/autobun"
@@ -33,6 +34,9 @@ func BunInstall(ctx context.Context, le *logrus.Entry, stateDir string, installA
 	}
 
 	args := []string{"install"}
+	if minAge := os.Getenv("BLDR_BUN_MINIMUM_RELEASE_AGE"); minAge != "" {
+		args = append(args, "--minimum-release-age="+minAge)
+	}
 	args = append(args, installArgs...)
 	return exec.NewCmd(ctx, bunPath, args...), nil
 }

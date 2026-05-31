@@ -5,8 +5,10 @@
 import { Config as Config$1 } from '@go/github.com/s4wave/spacewave/net/daemon/api/api.pb.js'
 import { Config as Config$2 } from '@go/github.com/aperturerobotics/controllerbus/bus/api/api.pb.js'
 import { Config as Config$3 } from '../api.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'hydra.api.controller'
 
@@ -54,8 +56,7 @@ export interface Config {
   hydraApiConfig?: Config$3
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'hydra.api.controller.Config',
   fields: [
     { no: 1, name: 'listen_addr', kind: 'scalar', T: ScalarType.STRING },
@@ -64,6 +65,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 4, name: 'disable_bus_api', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'bus_api_config', kind: 'message', T: () => Config$2 },
     { no: 6, name: 'hydra_api_config', kind: 'message', T: () => Config$3 },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

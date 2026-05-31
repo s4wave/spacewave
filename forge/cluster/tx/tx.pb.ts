@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/forge/cluster/tx/tx.proto (package cluster.tx, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'cluster.tx'
 
@@ -23,9 +22,8 @@ export enum TxType {
   TxType_INVALID = 0,
 }
 
-// TxType_Enum is the enum type for TxType.
-export const TxType_Enum = createEnumType('cluster.tx.TxType', [
-  { no: 0, name: 'TxType_INVALID' },
+export const TxType_Enum = /* @__PURE__ */ createEnumType('cluster.tx.TxType', [
+  [0, 'TxType_INVALID'],
 ])
 
 /**
@@ -49,12 +47,11 @@ export interface Tx {
   clusterObjectKey?: string
 }
 
-// Tx contains the message type declaration for Tx.
-export const Tx: MessageType<Tx> = createMessageType({
+export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
   typeName: 'cluster.tx.Tx',
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
     { no: 2, name: 'cluster_object_key', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

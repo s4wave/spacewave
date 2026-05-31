@@ -8,9 +8,14 @@ import {
   SharedObjectRef,
   SOParticipantRole_Enum,
 } from '../../core/sobject/sobject.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Signature } from '../../net/peer/peer.pb.js'
 
 export const protobufPackage = 's4wave.secret'
@@ -65,8 +70,7 @@ export interface Secret {
   updatedAt?: Date
 }
 
-// Secret contains the message type declaration for Secret.
-export const Secret: MessageType<Secret> = createMessageType({
+export const Secret: MessageType<Secret> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.secret.Secret',
   fields: [
     { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
@@ -81,7 +85,7 @@ export const Secret: MessageType<Secret> = createMessageType({
     { no: 5, name: 'value_hash', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 7, name: 'updated_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -117,17 +121,17 @@ export interface SecretPayload {
   updatedAt?: Date
 }
 
-// SecretPayload contains the message type declaration for SecretPayload.
-export const SecretPayload: MessageType<SecretPayload> = createMessageType({
-  typeName: 's4wave.secret.SecretPayload',
-  fields: [
-    { no: 1, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 2, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'version', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'updated_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SecretPayload: MessageType<SecretPayload> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.secret.SecretPayload',
+    fields: [
+      { no: 1, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'version', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'updated_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SecretGrantStatus describes the current peer's nested SharedObject grant.
@@ -167,9 +171,8 @@ export interface SecretGrantStatus {
   grantCount?: number
 }
 
-// SecretGrantStatus contains the message type declaration for SecretGrantStatus.
 export const SecretGrantStatus: MessageType<SecretGrantStatus> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.SecretGrantStatus',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -177,7 +180,7 @@ export const SecretGrantStatus: MessageType<SecretGrantStatus> =
       { no: 3, name: 'readable', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 5, name: 'grant_count', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -207,21 +210,21 @@ export interface SecretState {
   health?: SharedObjectHealth
 }
 
-// SecretState contains the message type declaration for SecretState.
-export const SecretState: MessageType<SecretState> = createMessageType({
-  typeName: 's4wave.secret.SecretState',
-  fields: [
-    { no: 1, name: 'secret', kind: 'message', T: () => Secret },
-    {
-      no: 2,
-      name: 'grant_status',
-      kind: 'message',
-      T: () => SecretGrantStatus,
-    },
-    { no: 3, name: 'health', kind: 'message', T: () => SharedObjectHealth },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SecretState: MessageType<SecretState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.secret.SecretState',
+    fields: [
+      { no: 1, name: 'secret', kind: 'message', T: () => Secret },
+      {
+        no: 2,
+        name: 'grant_status',
+        kind: 'message',
+        T: () => SecretGrantStatus,
+      },
+      { no: 3, name: 'health', kind: 'message', T: () => SharedObjectHealth },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchStateRequest is the request for WatchState.
@@ -230,13 +233,11 @@ export const SecretState: MessageType<SecretState> = createMessageType({
  */
 export interface WatchStateRequest {}
 
-// WatchStateRequest contains the message type declaration for WatchStateRequest.
 export const WatchStateRequest: MessageType<WatchStateRequest> =
-  createMessageType({
-    typeName: 's4wave.secret.WatchStateRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchStateRequest>(
+    's4wave.secret.WatchStateRequest',
+    true,
+  )
 
 /**
  * WatchStateResponse contains the current browser-safe Secret state.
@@ -252,13 +253,12 @@ export interface WatchStateResponse {
   state?: SecretState
 }
 
-// WatchStateResponse contains the message type declaration for WatchStateResponse.
 export const WatchStateResponse: MessageType<WatchStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.WatchStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => SecretState },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -282,14 +282,13 @@ export interface BeginReadPayloadRequest {
   expectedKind?: string
 }
 
-// BeginReadPayloadRequest contains the message type declaration for BeginReadPayloadRequest.
 export const BeginReadPayloadRequest: MessageType<BeginReadPayloadRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.BeginReadPayloadRequest',
     fields: [
       { no: 1, name: 'reader_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'expected_kind', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -325,16 +324,15 @@ export interface BeginReadPayloadResponse {
   secret?: Secret
 }
 
-// BeginReadPayloadResponse contains the message type declaration for BeginReadPayloadResponse.
 export const BeginReadPayloadResponse: MessageType<BeginReadPayloadResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.BeginReadPayloadResponse',
     fields: [
       { no: 1, name: 'challenge_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'challenge', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'expires_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'secret', kind: 'message', T: () => Secret },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -394,9 +392,8 @@ export interface ReadPayloadChallenge {
   expiresAt?: Date
 }
 
-// ReadPayloadChallenge contains the message type declaration for ReadPayloadChallenge.
 export const ReadPayloadChallenge: MessageType<ReadPayloadChallenge> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.ReadPayloadChallenge',
     fields: [
       { no: 1, name: 'challenge_id', kind: 'scalar', T: ScalarType.STRING },
@@ -412,7 +409,7 @@ export const ReadPayloadChallenge: MessageType<ReadPayloadChallenge> =
       },
       { no: 7, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 8, name: 'expires_at', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -436,14 +433,13 @@ export interface ReadPayloadRequest {
   signature?: Signature
 }
 
-// ReadPayloadRequest contains the message type declaration for ReadPayloadRequest.
 export const ReadPayloadRequest: MessageType<ReadPayloadRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.ReadPayloadRequest',
     fields: [
       { no: 1, name: 'challenge_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'signature', kind: 'message', T: () => Signature },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -461,12 +457,11 @@ export interface ReadPayloadResponse {
   payload?: SecretPayload
 }
 
-// ReadPayloadResponse contains the message type declaration for ReadPayloadResponse.
 export const ReadPayloadResponse: MessageType<ReadPayloadResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.ReadPayloadResponse',
     fields: [
       { no: 1, name: 'payload', kind: 'message', T: () => SecretPayload },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/db/store/kvtx/ristretto/ristretto.proto (package store.kvtx.ristretto, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'store.kvtx.ristretto'
 
@@ -63,14 +65,13 @@ export interface Config {
   ttlDur?: string
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'store.kvtx.ristretto.Config',
   fields: [
     { no: 1, name: 'num_counters', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 2, name: 'max_cost', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 3, name: 'buffer_items', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 4, name: 'ttl_dur', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

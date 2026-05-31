@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { BlockStoreRef } from '../bstore.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 'bstore.world'
 
@@ -22,14 +24,14 @@ export interface BlockStoreState {
   ref?: BlockStoreRef
 }
 
-// BlockStoreState contains the message type declaration for BlockStoreState.
-export const BlockStoreState: MessageType<BlockStoreState> = createMessageType({
-  typeName: 'bstore.world.BlockStoreState',
-  fields: [
-    { no: 1, name: 'ref', kind: 'message', T: () => BlockStoreRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BlockStoreState: MessageType<BlockStoreState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bstore.world.BlockStoreState',
+    fields: [
+      { no: 1, name: 'ref', kind: 'message', T: () => BlockStoreRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * UpdateBlockStoreStateOp is an world operation to update a BlockStoreState.
@@ -52,9 +54,8 @@ export interface UpdateBlockStoreStateOp {
   ifNotExists?: boolean
 }
 
-// UpdateBlockStoreStateOp contains the message type declaration for UpdateBlockStoreStateOp.
 export const UpdateBlockStoreStateOp: MessageType<UpdateBlockStoreStateOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bstore.world.UpdateBlockStoreStateOp',
     fields: [
       {
@@ -64,6 +65,6 @@ export const UpdateBlockStoreStateOp: MessageType<UpdateBlockStoreStateOp> =
         T: () => BlockStoreState,
       },
       { no: 2, name: 'if_not_exists', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

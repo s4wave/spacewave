@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/bldr/resource/resource.proto (package resource, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'resource'
 
@@ -14,13 +19,11 @@ export const protobufPackage = 'resource'
  */
 export interface ResourceClientRequest {}
 
-// ResourceClientRequest contains the message type declaration for ResourceClientRequest.
 export const ResourceClientRequest: MessageType<ResourceClientRequest> =
-  createMessageType({
-    typeName: 'resource.ResourceClientRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ResourceClientRequest>(
+    'resource.ResourceClientRequest',
+    true,
+  )
 
 /**
  * ResourceClientInit is the initialization response to ResourceClient.
@@ -43,14 +46,13 @@ export interface ResourceClientInit {
   rootResourceId?: number
 }
 
-// ResourceClientInit contains the message type declaration for ResourceClientInit.
 export const ResourceClientInit: MessageType<ResourceClientInit> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceClientInit',
     fields: [
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'root_resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -68,13 +70,12 @@ export interface ResourceReleasedResponse {
   resourceId?: number
 }
 
-// ResourceReleasedResponse contains the message type declaration for ResourceReleasedResponse.
 export const ResourceReleasedResponse: MessageType<ResourceReleasedResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceReleasedResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -125,9 +126,8 @@ export interface ResourceClientResponse {
       }
 }
 
-// ResourceClientResponse contains the message type declaration for ResourceClientResponse.
 export const ResourceClientResponse: MessageType<ResourceClientResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceClientResponse',
     fields: [
       {
@@ -151,7 +151,7 @@ export const ResourceClientResponse: MessageType<ResourceClientResponse> =
         T: ScalarType.STRING,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -175,14 +175,13 @@ export interface ResourceRefReleaseRequest {
   resourceId?: number
 }
 
-// ResourceRefReleaseRequest contains the message type declaration for ResourceRefReleaseRequest.
 export const ResourceRefReleaseRequest: MessageType<ResourceRefReleaseRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceRefReleaseRequest',
     fields: [
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -193,13 +192,11 @@ export const ResourceRefReleaseRequest: MessageType<ResourceRefReleaseRequest> =
  */
 export interface ResourceRefReleaseResponse {}
 
-// ResourceRefReleaseResponse contains the message type declaration for ResourceRefReleaseResponse.
 export const ResourceRefReleaseResponse: MessageType<ResourceRefReleaseResponse> =
-  createMessageType({
-    typeName: 'resource.ResourceRefReleaseResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ResourceRefReleaseResponse>(
+    'resource.ResourceRefReleaseResponse',
+    true,
+  )
 
 /**
  * ResourceAttachInit is sent by the client to initiate a session.
@@ -215,13 +212,12 @@ export interface ResourceAttachInit {
   clientHandleId?: number
 }
 
-// ResourceAttachInit contains the message type declaration for ResourceAttachInit.
 export const ResourceAttachInit: MessageType<ResourceAttachInit> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachInit',
     fields: [
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -245,14 +241,13 @@ export interface ResourceAttachAdd {
   label?: string
 }
 
-// ResourceAttachAdd contains the message type declaration for ResourceAttachAdd.
 export const ResourceAttachAdd: MessageType<ResourceAttachAdd> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachAdd',
     fields: [
       { no: 1, name: 'attach_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -270,13 +265,12 @@ export interface ResourceAttachDetach {
   resourceId?: number
 }
 
-// ResourceAttachDetach contains the message type declaration for ResourceAttachDetach.
 export const ResourceAttachDetach: MessageType<ResourceAttachDetach> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachDetach',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -334,9 +328,8 @@ export interface ResourceAttachRequest {
       }
 }
 
-// ResourceAttachRequest contains the message type declaration for ResourceAttachRequest.
 export const ResourceAttachRequest: MessageType<ResourceAttachRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachRequest',
     fields: [
       {
@@ -367,7 +360,7 @@ export const ResourceAttachRequest: MessageType<ResourceAttachRequest> =
         T: ScalarType.BYTES,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -385,13 +378,12 @@ export interface ResourceAttachAck {
   error?: string
 }
 
-// ResourceAttachAck contains the message type declaration for ResourceAttachAck.
 export const ResourceAttachAck: MessageType<ResourceAttachAck> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachAck',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -421,15 +413,14 @@ export interface ResourceAttachAddAck {
   resourceId?: number
 }
 
-// ResourceAttachAddAck contains the message type declaration for ResourceAttachAddAck.
 export const ResourceAttachAddAck: MessageType<ResourceAttachAddAck> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachAddAck',
     fields: [
       { no: 1, name: 'attach_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -447,13 +438,12 @@ export interface ResourceAttachDetachAck {
   resourceId?: number
 }
 
-// ResourceAttachDetachAck contains the message type declaration for ResourceAttachDetachAck.
 export const ResourceAttachDetachAck: MessageType<ResourceAttachDetachAck> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachDetachAck',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -511,9 +501,8 @@ export interface ResourceAttachResponse {
       }
 }
 
-// ResourceAttachResponse contains the message type declaration for ResourceAttachResponse.
 export const ResourceAttachResponse: MessageType<ResourceAttachResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachResponse',
     fields: [
       {
@@ -544,6 +533,6 @@ export const ResourceAttachResponse: MessageType<ResourceAttachResponse> =
         T: ScalarType.BYTES,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

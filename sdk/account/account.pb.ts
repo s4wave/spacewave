@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/sdk/account/account.proto (package s4wave.account, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import type { AccountAuthMethodKind } from '../../core/provider/spacewave/api/api.pb.js'
 import {
   AccountAuthMethod,
@@ -51,16 +53,12 @@ export enum AccountSessionKind {
   AccountSessionKind_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION = 2,
 }
 
-// AccountSessionKind_Enum is the enum type for AccountSessionKind.
-export const AccountSessionKind_Enum = createEnumType(
+export const AccountSessionKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.account.AccountSessionKind',
   [
-    { no: 0, name: 'AccountSessionKind_ACCOUNT_SESSION_KIND_UNSPECIFIED' },
-    { no: 1, name: 'AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION' },
-    {
-      no: 2,
-      name: 'AccountSessionKind_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION',
-    },
+    [0, 'AccountSessionKind_ACCOUNT_SESSION_KIND_UNSPECIFIED'],
+    [1, 'AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION'],
+    [2, 'AccountSessionKind_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION'],
   ],
 )
 
@@ -127,38 +125,34 @@ export enum AccountEscalationIntentKind {
   AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_CHANGE_PASSWORD = 6,
 }
 
-// AccountEscalationIntentKind_Enum is the enum type for AccountEscalationIntentKind.
-export const AccountEscalationIntentKind_Enum = createEnumType(
+export const AccountEscalationIntentKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.account.AccountEscalationIntentKind',
   [
-    {
-      no: 0,
-      name: 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED',
-    },
-    {
-      no: 1,
-      name: 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION',
-    },
-    {
-      no: 2,
-      name: 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REMOVE_AUTH_METHOD',
-    },
-    {
-      no: 3,
-      name: 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_ADD_BACKUP_KEY',
-    },
-    {
-      no: 4,
-      name: 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_LINK_SSO',
-    },
-    {
-      no: 5,
-      name: 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_SET_SECURITY_LEVEL',
-    },
-    {
-      no: 6,
-      name: 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_CHANGE_PASSWORD',
-    },
+    [
+      0,
+      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED',
+    ],
+    [
+      1,
+      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION',
+    ],
+    [
+      2,
+      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REMOVE_AUTH_METHOD',
+    ],
+    [
+      3,
+      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_ADD_BACKUP_KEY',
+    ],
+    [4, 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_LINK_SSO'],
+    [
+      5,
+      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_SET_SECURITY_LEVEL',
+    ],
+    [
+      6,
+      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_CHANGE_PASSWORD',
+    ],
   ],
 )
 
@@ -169,13 +163,11 @@ export const AccountEscalationIntentKind_Enum = createEnumType(
  */
 export interface WatchAccountInfoRequest {}
 
-// WatchAccountInfoRequest contains the message type declaration for WatchAccountInfoRequest.
 export const WatchAccountInfoRequest: MessageType<WatchAccountInfoRequest> =
-  createMessageType({
-    typeName: 's4wave.account.WatchAccountInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchAccountInfoRequest>(
+    's4wave.account.WatchAccountInfoRequest',
+    true,
+  )
 
 /**
  * WatchAccountInfoResponse is the response type for WatchAccountInfo.
@@ -215,9 +207,8 @@ export interface WatchAccountInfoResponse {
   keypairCount?: number
 }
 
-// WatchAccountInfoResponse contains the message type declaration for WatchAccountInfoResponse.
 export const WatchAccountInfoResponse: MessageType<WatchAccountInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.WatchAccountInfoResponse',
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
@@ -225,7 +216,7 @@ export const WatchAccountInfoResponse: MessageType<WatchAccountInfoResponse> =
       { no: 3, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'auth_threshold', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'keypair_count', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -236,13 +227,11 @@ export const WatchAccountInfoResponse: MessageType<WatchAccountInfoResponse> =
  */
 export interface WatchAuthMethodsRequest {}
 
-// WatchAuthMethodsRequest contains the message type declaration for WatchAuthMethodsRequest.
 export const WatchAuthMethodsRequest: MessageType<WatchAuthMethodsRequest> =
-  createMessageType({
-    typeName: 's4wave.account.WatchAuthMethodsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchAuthMethodsRequest>(
+    's4wave.account.WatchAuthMethodsRequest',
+    true,
+  )
 
 /**
  * WatchAuthMethodsResponse is the response type for WatchAuthMethods.
@@ -258,9 +247,8 @@ export interface WatchAuthMethodsResponse {
   authMethods?: AccountAuthMethod[]
 }
 
-// WatchAuthMethodsResponse contains the message type declaration for WatchAuthMethodsResponse.
 export const WatchAuthMethodsResponse: MessageType<WatchAuthMethodsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.WatchAuthMethodsResponse',
     fields: [
       {
@@ -270,7 +258,7 @@ export const WatchAuthMethodsResponse: MessageType<WatchAuthMethodsResponse> =
         T: () => AccountAuthMethod,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -343,23 +331,23 @@ export interface AccountSession {
   lastSeenAt?: Date
 }
 
-// AccountSession contains the message type declaration for AccountSession.
-export const AccountSession: MessageType<AccountSession> = createMessageType({
-  typeName: 's4wave.account.AccountSession',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'current_session', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 3, name: 'kind', kind: 'enum', T: AccountSessionKind_Enum },
-    { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'device_type', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'client_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 7, name: 'os', kind: 'scalar', T: ScalarType.STRING },
-    { no: 8, name: 'location', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'created_at', kind: 'message', T: () => Timestamp },
-    { no: 10, name: 'last_seen_at', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AccountSession: MessageType<AccountSession> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.account.AccountSession',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'current_session', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'kind', kind: 'enum', T: AccountSessionKind_Enum },
+      { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'device_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'client_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'os', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'location', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'created_at', kind: 'message', T: () => Timestamp },
+      { no: 10, name: 'last_seen_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchSessionsRequest is the request type for WatchSessions.
@@ -368,13 +356,11 @@ export const AccountSession: MessageType<AccountSession> = createMessageType({
  */
 export interface WatchSessionsRequest {}
 
-// WatchSessionsRequest contains the message type declaration for WatchSessionsRequest.
 export const WatchSessionsRequest: MessageType<WatchSessionsRequest> =
-  createMessageType({
-    typeName: 's4wave.account.WatchSessionsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchSessionsRequest>(
+    's4wave.account.WatchSessionsRequest',
+    true,
+  )
 
 /**
  * WatchSessionsResponse is the response type for WatchSessions.
@@ -390,9 +376,8 @@ export interface WatchSessionsResponse {
   sessions?: AccountSession[]
 }
 
-// WatchSessionsResponse contains the message type declaration for WatchSessionsResponse.
 export const WatchSessionsResponse: MessageType<WatchSessionsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.WatchSessionsResponse',
     fields: [
       {
@@ -402,7 +387,7 @@ export const WatchSessionsResponse: MessageType<WatchSessionsResponse> =
         T: () => AccountSession,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -427,14 +412,13 @@ export interface AddAuthMethodRequest {
   credential?: EntityCredential
 }
 
-// AddAuthMethodRequest contains the message type declaration for AddAuthMethodRequest.
 export const AddAuthMethodRequest: MessageType<AddAuthMethodRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.AddAuthMethodRequest',
     fields: [
       { no: 1, name: 'keypair', kind: 'message', T: () => EntityKeypair },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -445,13 +429,11 @@ export const AddAuthMethodRequest: MessageType<AddAuthMethodRequest> =
  */
 export interface AddAuthMethodResponse {}
 
-// AddAuthMethodResponse contains the message type declaration for AddAuthMethodResponse.
 export const AddAuthMethodResponse: MessageType<AddAuthMethodResponse> =
-  createMessageType({
-    typeName: 's4wave.account.AddAuthMethodResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<AddAuthMethodResponse>(
+    's4wave.account.AddAuthMethodResponse',
+    true,
+  )
 
 /**
  * RemoveAuthMethodRequest is the request type for RemoveAuthMethod.
@@ -474,14 +456,13 @@ export interface RemoveAuthMethodRequest {
   credential?: EntityCredential
 }
 
-// RemoveAuthMethodRequest contains the message type declaration for RemoveAuthMethodRequest.
 export const RemoveAuthMethodRequest: MessageType<RemoveAuthMethodRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.RemoveAuthMethodRequest',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -492,13 +473,11 @@ export const RemoveAuthMethodRequest: MessageType<RemoveAuthMethodRequest> =
  */
 export interface RemoveAuthMethodResponse {}
 
-// RemoveAuthMethodResponse contains the message type declaration for RemoveAuthMethodResponse.
 export const RemoveAuthMethodResponse: MessageType<RemoveAuthMethodResponse> =
-  createMessageType({
-    typeName: 's4wave.account.RemoveAuthMethodResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RemoveAuthMethodResponse>(
+    's4wave.account.RemoveAuthMethodResponse',
+    true,
+  )
 
 /**
  * SetSecurityLevelRequest is the request type for SetSecurityLevel.
@@ -521,14 +500,13 @@ export interface SetSecurityLevelRequest {
   credential?: EntityCredential
 }
 
-// SetSecurityLevelRequest contains the message type declaration for SetSecurityLevelRequest.
 export const SetSecurityLevelRequest: MessageType<SetSecurityLevelRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.SetSecurityLevelRequest',
     fields: [
       { no: 1, name: 'threshold', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -539,13 +517,11 @@ export const SetSecurityLevelRequest: MessageType<SetSecurityLevelRequest> =
  */
 export interface SetSecurityLevelResponse {}
 
-// SetSecurityLevelResponse contains the message type declaration for SetSecurityLevelResponse.
 export const SetSecurityLevelResponse: MessageType<SetSecurityLevelResponse> =
-  createMessageType({
-    typeName: 's4wave.account.SetSecurityLevelResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<SetSecurityLevelResponse>(
+    's4wave.account.SetSecurityLevelResponse',
+    true,
+  )
 
 /**
  * RevokeSessionRequest is the request type for RevokeSession.
@@ -570,14 +546,13 @@ export interface RevokeSessionRequest {
   credential?: EntityCredential
 }
 
-// RevokeSessionRequest contains the message type declaration for RevokeSessionRequest.
 export const RevokeSessionRequest: MessageType<RevokeSessionRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.RevokeSessionRequest',
     fields: [
       { no: 1, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -588,13 +563,11 @@ export const RevokeSessionRequest: MessageType<RevokeSessionRequest> =
  */
 export interface RevokeSessionResponse {}
 
-// RevokeSessionResponse contains the message type declaration for RevokeSessionResponse.
 export const RevokeSessionResponse: MessageType<RevokeSessionResponse> =
-  createMessageType({
-    typeName: 's4wave.account.RevokeSessionResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<RevokeSessionResponse>(
+    's4wave.account.RevokeSessionResponse',
+    true,
+  )
 
 /**
  * GenerateBackupKeyRequest is the request type for GenerateBackupKey.
@@ -610,13 +583,12 @@ export interface GenerateBackupKeyRequest {
   credential?: EntityCredential
 }
 
-// GenerateBackupKeyRequest contains the message type declaration for GenerateBackupKeyRequest.
 export const GenerateBackupKeyRequest: MessageType<GenerateBackupKeyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.GenerateBackupKeyRequest',
     fields: [
       { no: 1, name: 'credential', kind: 'message', T: () => EntityCredential },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -640,14 +612,13 @@ export interface GenerateBackupKeyResponse {
   peerId?: string
 }
 
-// GenerateBackupKeyResponse contains the message type declaration for GenerateBackupKeyResponse.
 export const GenerateBackupKeyResponse: MessageType<GenerateBackupKeyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.GenerateBackupKeyResponse',
     fields: [
       { no: 1, name: 'pem_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -671,14 +642,13 @@ export interface ChangePasswordRequest {
   newPassword?: string
 }
 
-// ChangePasswordRequest contains the message type declaration for ChangePasswordRequest.
 export const ChangePasswordRequest: MessageType<ChangePasswordRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.ChangePasswordRequest',
     fields: [
       { no: 1, name: 'old_password', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'new_password', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -689,13 +659,11 @@ export const ChangePasswordRequest: MessageType<ChangePasswordRequest> =
  */
 export interface ChangePasswordResponse {}
 
-// ChangePasswordResponse contains the message type declaration for ChangePasswordResponse.
 export const ChangePasswordResponse: MessageType<ChangePasswordResponse> =
-  createMessageType({
-    typeName: 's4wave.account.ChangePasswordResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ChangePasswordResponse>(
+    's4wave.account.ChangePasswordResponse',
+    true,
+  )
 
 /**
  * EntityKeypairState describes the lock state of an entity keypair.
@@ -717,14 +685,13 @@ export interface EntityKeypairState {
   unlocked?: boolean
 }
 
-// EntityKeypairState contains the message type declaration for EntityKeypairState.
 export const EntityKeypairState: MessageType<EntityKeypairState> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.EntityKeypairState',
     fields: [
       { no: 1, name: 'keypair', kind: 'message', T: () => EntityKeypair },
       { no: 2, name: 'unlocked', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -735,13 +702,11 @@ export const EntityKeypairState: MessageType<EntityKeypairState> =
  */
 export interface WatchEntityKeypairsRequest {}
 
-// WatchEntityKeypairsRequest contains the message type declaration for WatchEntityKeypairsRequest.
 export const WatchEntityKeypairsRequest: MessageType<WatchEntityKeypairsRequest> =
-  createMessageType({
-    typeName: 's4wave.account.WatchEntityKeypairsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchEntityKeypairsRequest>(
+    's4wave.account.WatchEntityKeypairsRequest',
+    true,
+  )
 
 /**
  * WatchEntityKeypairsResponse is the response type for WatchEntityKeypairs.
@@ -763,9 +728,8 @@ export interface WatchEntityKeypairsResponse {
   unlockedCount?: number
 }
 
-// WatchEntityKeypairsResponse contains the message type declaration for WatchEntityKeypairsResponse.
 export const WatchEntityKeypairsResponse: MessageType<WatchEntityKeypairsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.WatchEntityKeypairsResponse',
     fields: [
       {
@@ -776,7 +740,7 @@ export const WatchEntityKeypairsResponse: MessageType<WatchEntityKeypairsRespons
         repeated: true,
       },
       { no: 2, name: 'unlocked_count', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -825,9 +789,8 @@ export interface AccountEscalationIntent {
   provider?: string
 }
 
-// AccountEscalationIntent contains the message type declaration for AccountEscalationIntent.
 export const AccountEscalationIntent: MessageType<AccountEscalationIntent> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.AccountEscalationIntent',
     fields: [
       {
@@ -841,7 +804,7 @@ export const AccountEscalationIntent: MessageType<AccountEscalationIntent> =
       { no: 4, name: 'target_label', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'provider', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -889,9 +852,8 @@ export interface AccountEscalationMethod {
   unlocked?: boolean
 }
 
-// AccountEscalationMethod contains the message type declaration for AccountEscalationMethod.
 export const AccountEscalationMethod: MessageType<AccountEscalationMethod> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.AccountEscalationMethod',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -900,7 +862,7 @@ export const AccountEscalationMethod: MessageType<AccountEscalationMethod> =
       { no: 4, name: 'secondary_label', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'unlocked', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -936,16 +898,15 @@ export interface AccountEscalationRequirement {
   totalMethods?: number
 }
 
-// AccountEscalationRequirement contains the message type declaration for AccountEscalationRequirement.
 export const AccountEscalationRequirement: MessageType<AccountEscalationRequirement> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.AccountEscalationRequirement',
     fields: [
       { no: 1, name: 'auth_threshold', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'required_signers', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'unlocked_signers', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'total_methods', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -975,9 +936,8 @@ export interface AccountEscalationState {
   methods?: AccountEscalationMethod[]
 }
 
-// AccountEscalationState contains the message type declaration for AccountEscalationState.
 export const AccountEscalationState: MessageType<AccountEscalationState> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.AccountEscalationState',
     fields: [
       {
@@ -999,7 +959,7 @@ export const AccountEscalationState: MessageType<AccountEscalationState> =
         T: () => AccountEscalationMethod,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1023,14 +983,13 @@ export interface UnlockEntityKeypairRequest {
   credential?: EntityCredential
 }
 
-// UnlockEntityKeypairRequest contains the message type declaration for UnlockEntityKeypairRequest.
 export const UnlockEntityKeypairRequest: MessageType<UnlockEntityKeypairRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.UnlockEntityKeypairRequest',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1041,13 +1000,11 @@ export const UnlockEntityKeypairRequest: MessageType<UnlockEntityKeypairRequest>
  */
 export interface UnlockEntityKeypairResponse {}
 
-// UnlockEntityKeypairResponse contains the message type declaration for UnlockEntityKeypairResponse.
 export const UnlockEntityKeypairResponse: MessageType<UnlockEntityKeypairResponse> =
-  createMessageType({
-    typeName: 's4wave.account.UnlockEntityKeypairResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<UnlockEntityKeypairResponse>(
+    's4wave.account.UnlockEntityKeypairResponse',
+    true,
+  )
 
 /**
  * LockEntityKeypairRequest is the request type for LockEntityKeypair.
@@ -1063,13 +1020,12 @@ export interface LockEntityKeypairRequest {
   peerId?: string
 }
 
-// LockEntityKeypairRequest contains the message type declaration for LockEntityKeypairRequest.
 export const LockEntityKeypairRequest: MessageType<LockEntityKeypairRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.LockEntityKeypairRequest',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1080,13 +1036,11 @@ export const LockEntityKeypairRequest: MessageType<LockEntityKeypairRequest> =
  */
 export interface LockEntityKeypairResponse {}
 
-// LockEntityKeypairResponse contains the message type declaration for LockEntityKeypairResponse.
 export const LockEntityKeypairResponse: MessageType<LockEntityKeypairResponse> =
-  createMessageType({
-    typeName: 's4wave.account.LockEntityKeypairResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<LockEntityKeypairResponse>(
+    's4wave.account.LockEntityKeypairResponse',
+    true,
+  )
 
 /**
  * LockAllEntityKeypairsRequest is the request type for LockAllEntityKeypairs.
@@ -1095,13 +1049,11 @@ export const LockEntityKeypairResponse: MessageType<LockEntityKeypairResponse> =
  */
 export interface LockAllEntityKeypairsRequest {}
 
-// LockAllEntityKeypairsRequest contains the message type declaration for LockAllEntityKeypairsRequest.
 export const LockAllEntityKeypairsRequest: MessageType<LockAllEntityKeypairsRequest> =
-  createMessageType({
-    typeName: 's4wave.account.LockAllEntityKeypairsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<LockAllEntityKeypairsRequest>(
+    's4wave.account.LockAllEntityKeypairsRequest',
+    true,
+  )
 
 /**
  * LockAllEntityKeypairsResponse is the response type for LockAllEntityKeypairs.
@@ -1110,13 +1062,11 @@ export const LockAllEntityKeypairsRequest: MessageType<LockAllEntityKeypairsRequ
  */
 export interface LockAllEntityKeypairsResponse {}
 
-// LockAllEntityKeypairsResponse contains the message type declaration for LockAllEntityKeypairsResponse.
 export const LockAllEntityKeypairsResponse: MessageType<LockAllEntityKeypairsResponse> =
-  createMessageType({
-    typeName: 's4wave.account.LockAllEntityKeypairsResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<LockAllEntityKeypairsResponse>(
+    's4wave.account.LockAllEntityKeypairsResponse',
+    true,
+  )
 
 /**
  * SSOCodeExchangeRequest is the request type for SSOCodeExchange.
@@ -1144,15 +1094,14 @@ export interface SSOCodeExchangeRequest {
   redirectUri?: string
 }
 
-// SSOCodeExchangeRequest contains the message type declaration for SSOCodeExchangeRequest.
 export const SSOCodeExchangeRequest: MessageType<SSOCodeExchangeRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.SSOCodeExchangeRequest',
     fields: [
       { no: 1, name: 'provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'redirect_uri', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1212,9 +1161,8 @@ export interface SSOCodeExchangeResponse {
   email?: string
 }
 
-// SSOCodeExchangeResponse contains the message type declaration for SSOCodeExchangeResponse.
 export const SSOCodeExchangeResponse: MessageType<SSOCodeExchangeResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.SSOCodeExchangeResponse',
     fields: [
       { no: 1, name: 'linked', kind: 'scalar', T: ScalarType.BOOL },
@@ -1225,7 +1173,7 @@ export const SSOCodeExchangeResponse: MessageType<SSOCodeExchangeResponse> =
       { no: 6, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'email', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1270,18 +1218,18 @@ export interface LinkSSORequest {
   credential?: EntityCredential
 }
 
-// LinkSSORequest contains the message type declaration for LinkSSORequest.
-export const LinkSSORequest: MessageType<LinkSSORequest> = createMessageType({
-  typeName: 's4wave.account.LinkSSORequest',
-  fields: [
-    { no: 1, name: 'provider', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'redirect_uri', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'pin', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 5, name: 'credential', kind: 'message', T: () => EntityCredential },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LinkSSORequest: MessageType<LinkSSORequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.account.LinkSSORequest',
+    fields: [
+      { no: 1, name: 'provider', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'redirect_uri', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'pin', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 5, name: 'credential', kind: 'message', T: () => EntityCredential },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * LinkSSOResponse is the response type for LinkSSO.
@@ -1290,12 +1238,11 @@ export const LinkSSORequest: MessageType<LinkSSORequest> = createMessageType({
  */
 export interface LinkSSOResponse {}
 
-// LinkSSOResponse contains the message type declaration for LinkSSOResponse.
-export const LinkSSOResponse: MessageType<LinkSSOResponse> = createMessageType({
-  typeName: 's4wave.account.LinkSSOResponse',
-  fields: [] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LinkSSOResponse: MessageType<LinkSSOResponse> =
+  /* @__PURE__ */ createEmptyMessageType<LinkSSOResponse>(
+    's4wave.account.LinkSSOResponse',
+    true,
+  )
 
 /**
  * StartDesktopPasskeyRegisterRequest is the request type for
@@ -1305,13 +1252,11 @@ export const LinkSSOResponse: MessageType<LinkSSOResponse> = createMessageType({
  */
 export interface StartDesktopPasskeyRegisterRequest {}
 
-// StartDesktopPasskeyRegisterRequest contains the message type declaration for StartDesktopPasskeyRegisterRequest.
 export const StartDesktopPasskeyRegisterRequest: MessageType<StartDesktopPasskeyRegisterRequest> =
-  createMessageType({
-    typeName: 's4wave.account.StartDesktopPasskeyRegisterRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<StartDesktopPasskeyRegisterRequest>(
+    's4wave.account.StartDesktopPasskeyRegisterRequest',
+    true,
+  )
 
 /**
  * StartDesktopPasskeyRegisterResponse is the response type for
@@ -1340,15 +1285,14 @@ export interface StartDesktopPasskeyRegisterResponse {
   openUrl?: string
 }
 
-// StartDesktopPasskeyRegisterResponse contains the message type declaration for StartDesktopPasskeyRegisterResponse.
 export const StartDesktopPasskeyRegisterResponse: MessageType<StartDesktopPasskeyRegisterResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.StartDesktopPasskeyRegisterResponse',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ws_ticket', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'open_url', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1360,13 +1304,11 @@ export const StartDesktopPasskeyRegisterResponse: MessageType<StartDesktopPasske
  */
 export interface StartDesktopPasskeyRegisterHandoffRequest {}
 
-// StartDesktopPasskeyRegisterHandoffRequest contains the message type declaration for StartDesktopPasskeyRegisterHandoffRequest.
 export const StartDesktopPasskeyRegisterHandoffRequest: MessageType<StartDesktopPasskeyRegisterHandoffRequest> =
-  createMessageType({
-    typeName: 's4wave.account.StartDesktopPasskeyRegisterHandoffRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<StartDesktopPasskeyRegisterHandoffRequest>(
+    's4wave.account.StartDesktopPasskeyRegisterHandoffRequest',
+    true,
+  )
 
 /**
  * StartDesktopPasskeyRegisterHandoffResponse is the response type for
@@ -1407,9 +1349,8 @@ export interface StartDesktopPasskeyRegisterHandoffResponse {
   prfOutput?: string
 }
 
-// StartDesktopPasskeyRegisterHandoffResponse contains the message type declaration for StartDesktopPasskeyRegisterHandoffResponse.
 export const StartDesktopPasskeyRegisterHandoffResponse: MessageType<StartDesktopPasskeyRegisterHandoffResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.StartDesktopPasskeyRegisterHandoffResponse',
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
@@ -1417,7 +1358,7 @@ export const StartDesktopPasskeyRegisterHandoffResponse: MessageType<StartDeskto
       { no: 3, name: 'prf_capable', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1428,13 +1369,11 @@ export const StartDesktopPasskeyRegisterHandoffResponse: MessageType<StartDeskto
  */
 export interface PasskeyRegisterOptionsRequest {}
 
-// PasskeyRegisterOptionsRequest contains the message type declaration for PasskeyRegisterOptionsRequest.
 export const PasskeyRegisterOptionsRequest: MessageType<PasskeyRegisterOptionsRequest> =
-  createMessageType({
-    typeName: 's4wave.account.PasskeyRegisterOptionsRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<PasskeyRegisterOptionsRequest>(
+    's4wave.account.PasskeyRegisterOptionsRequest',
+    true,
+  )
 
 /**
  * PasskeyRegisterOptionsResponse is the response type for PasskeyRegisterOptions.
@@ -1450,13 +1389,12 @@ export interface PasskeyRegisterOptionsResponse {
   optionsJson?: string
 }
 
-// PasskeyRegisterOptionsResponse contains the message type declaration for PasskeyRegisterOptionsResponse.
 export const PasskeyRegisterOptionsResponse: MessageType<PasskeyRegisterOptionsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.PasskeyRegisterOptionsResponse',
     fields: [
       { no: 1, name: 'options_json', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1504,9 +1442,8 @@ export interface PasskeyRegisterVerifyRequest {
   prfSalt?: string
 }
 
-// PasskeyRegisterVerifyRequest contains the message type declaration for PasskeyRegisterVerifyRequest.
 export const PasskeyRegisterVerifyRequest: MessageType<PasskeyRegisterVerifyRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.PasskeyRegisterVerifyRequest',
     fields: [
       { no: 1, name: 'credential_json', kind: 'scalar', T: ScalarType.STRING },
@@ -1520,7 +1457,7 @@ export const PasskeyRegisterVerifyRequest: MessageType<PasskeyRegisterVerifyRequ
       { no: 5, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -1538,12 +1475,11 @@ export interface PasskeyRegisterVerifyResponse {
   credentialId?: string
 }
 
-// PasskeyRegisterVerifyResponse contains the message type declaration for PasskeyRegisterVerifyResponse.
 export const PasskeyRegisterVerifyResponse: MessageType<PasskeyRegisterVerifyResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.PasskeyRegisterVerifyResponse',
     fields: [
       { no: 1, name: 'credential_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

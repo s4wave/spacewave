@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/forge/cluster/cluster.proto (package forge.cluster, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'forge.cluster'
 
@@ -42,13 +44,12 @@ export interface Cluster {
   peerId?: string
 }
 
-// Cluster contains the message type declaration for Cluster.
-export const Cluster: MessageType<Cluster> = createMessageType({
+export const Cluster: MessageType<Cluster> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.cluster.Cluster',
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -80,16 +81,16 @@ export interface ClusterCreateOp {
   peerId?: string
 }
 
-// ClusterCreateOp contains the message type declaration for ClusterCreateOp.
-export const ClusterCreateOp: MessageType<ClusterCreateOp> = createMessageType({
-  typeName: 'forge.cluster.ClusterCreateOp',
-  fields: [
-    { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ClusterCreateOp: MessageType<ClusterCreateOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.cluster.ClusterCreateOp',
+    fields: [
+      { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ClusterAssignPeerOp sets the peer_id for the Cluster controller.
@@ -113,14 +114,13 @@ export interface ClusterAssignPeerOp {
   peerId?: string
 }
 
-// ClusterAssignPeerOp contains the message type declaration for ClusterAssignPeerOp.
 export const ClusterAssignPeerOp: MessageType<ClusterAssignPeerOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'forge.cluster.ClusterAssignPeerOp',
     fields: [
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -144,14 +144,13 @@ export interface ClusterAssignJobOp {
   jobKey?: string
 }
 
-// ClusterAssignJobOp contains the message type declaration for ClusterAssignJobOp.
 export const ClusterAssignJobOp: MessageType<ClusterAssignJobOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'forge.cluster.ClusterAssignJobOp',
     fields: [
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -175,14 +174,13 @@ export interface ClusterAssignWorkerOp {
   workerKey?: string
 }
 
-// ClusterAssignWorkerOp contains the message type declaration for ClusterAssignWorkerOp.
 export const ClusterAssignWorkerOp: MessageType<ClusterAssignWorkerOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'forge.cluster.ClusterAssignWorkerOp',
     fields: [
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'worker_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -206,14 +204,13 @@ export interface ClusterStartJobOp {
   jobKey?: string
 }
 
-// ClusterStartJobOp contains the message type declaration for ClusterStartJobOp.
 export const ClusterStartJobOp: MessageType<ClusterStartJobOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'forge.cluster.ClusterStartJobOp',
     fields: [
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -244,15 +241,14 @@ export interface ClusterAssignTaskOp {
   taskKey?: string
 }
 
-// ClusterAssignTaskOp contains the message type declaration for ClusterAssignTaskOp.
 export const ClusterAssignTaskOp: MessageType<ClusterAssignTaskOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'forge.cluster.ClusterAssignTaskOp',
     fields: [
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -280,13 +276,12 @@ export interface ClusterCompleteJobOp {
   jobKey?: string
 }
 
-// ClusterCompleteJobOp contains the message type declaration for ClusterCompleteJobOp.
 export const ClusterCompleteJobOp: MessageType<ClusterCompleteJobOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'forge.cluster.ClusterCompleteJobOp',
     fields: [
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

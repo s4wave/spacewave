@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/spacewave/spacewave.proto (package provider.spacewave, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'provider.spacewave'
 
@@ -32,11 +31,13 @@ export enum SyncMode {
   SyncMode_MIRROR = 1,
 }
 
-// SyncMode_Enum is the enum type for SyncMode.
-export const SyncMode_Enum = createEnumType('provider.spacewave.SyncMode', [
-  { no: 0, name: 'SyncMode_CACHE' },
-  { no: 1, name: 'SyncMode_MIRROR' },
-])
+export const SyncMode_Enum = /* @__PURE__ */ createEnumType(
+  'provider.spacewave.SyncMode',
+  [
+    [0, 'SyncMode_CACHE'],
+    [1, 'SyncMode_MIRROR'],
+  ],
+)
 
 /**
  * SyncConfig configures block store synchronization behavior.
@@ -73,27 +74,27 @@ export interface SyncConfig {
   syncMode?: SyncMode
 }
 
-// SyncConfig contains the message type declaration for SyncConfig.
-export const SyncConfig: MessageType<SyncConfig> = createMessageType({
-  typeName: 'provider.spacewave.SyncConfig',
-  fields: [
-    {
-      no: 1,
-      name: 'inactivity_timeout_secs',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    {
-      no: 2,
-      name: 'size_threshold_bytes',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    { no: 3, name: 'auto_sync', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 4, name: 'sync_mode', kind: 'enum', T: SyncMode_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SyncConfig: MessageType<SyncConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.SyncConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'inactivity_timeout_secs',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 2,
+        name: 'size_threshold_bytes',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      { no: 3, name: 'auto_sync', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'sync_mode', kind: 'enum', T: SyncMode_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Config configures the Spacewave cloud provider controller.
@@ -147,8 +148,7 @@ export interface Config {
   signingEnvPrefix?: string
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'provider.spacewave.Config',
   fields: [
     { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
@@ -158,6 +158,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 7, name: 'account_endpoint', kind: 'scalar', T: ScalarType.STRING },
     { no: 8, name: 'public_base_url', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'signing_env_prefix', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

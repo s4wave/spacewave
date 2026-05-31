@@ -26,8 +26,8 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.14.1-0.20260514195440-32d3c8730ab2 // latest
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.33.1-0.20260531062830-4591052ba51d // latest
-	github.com/aperturerobotics/controllerbus v0.53.3 // latest
+	github.com/aperturerobotics/common v0.33.1 // latest
+	github.com/aperturerobotics/controllerbus v0.53.4 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.1
@@ -48,7 +48,7 @@ require (
 	github.com/aperturerobotics/protobuf-go-lite v0.14.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.16 // latest
-	github.com/aperturerobotics/util v1.34.7-0.20260530185007-da6d29f33ebf // latest
+	github.com/aperturerobotics/util v1.34.7 // latest
 )
 
 require (

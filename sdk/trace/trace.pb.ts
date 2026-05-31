@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/trace/trace.proto (package s4wave.trace, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.trace'
 
@@ -21,13 +26,12 @@ export interface StartTraceRequest {
   label?: string
 }
 
-// StartTraceRequest contains the message type declaration for StartTraceRequest.
 export const StartTraceRequest: MessageType<StartTraceRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.trace.StartTraceRequest',
     fields: [
       { no: 1, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -38,13 +42,11 @@ export const StartTraceRequest: MessageType<StartTraceRequest> =
  */
 export interface StartTraceResponse {}
 
-// StartTraceResponse contains the message type declaration for StartTraceResponse.
 export const StartTraceResponse: MessageType<StartTraceResponse> =
-  createMessageType({
-    typeName: 's4wave.trace.StartTraceResponse',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<StartTraceResponse>(
+    's4wave.trace.StartTraceResponse',
+    true,
+  )
 
 /**
  * StopTraceRequest is the request for StopTrace.
@@ -53,13 +55,11 @@ export const StartTraceResponse: MessageType<StartTraceResponse> =
  */
 export interface StopTraceRequest {}
 
-// StopTraceRequest contains the message type declaration for StopTraceRequest.
 export const StopTraceRequest: MessageType<StopTraceRequest> =
-  createMessageType({
-    typeName: 's4wave.trace.StopTraceRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<StopTraceRequest>(
+    's4wave.trace.StopTraceRequest',
+    true,
+  )
 
 /**
  * StopTraceResponse is a streamed response chunk for StopTrace.
@@ -75,13 +75,12 @@ export interface StopTraceResponse {
   data?: Uint8Array
 }
 
-// StopTraceResponse contains the message type declaration for StopTraceResponse.
 export const StopTraceResponse: MessageType<StopTraceResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.trace.StopTraceResponse',
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -105,14 +104,13 @@ export interface CaptureCPUProfileRequest {
   label?: string
 }
 
-// CaptureCPUProfileRequest contains the message type declaration for CaptureCPUProfileRequest.
 export const CaptureCPUProfileRequest: MessageType<CaptureCPUProfileRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.trace.CaptureCPUProfileRequest',
     fields: [
       { no: 1, name: 'duration_millis', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -130,13 +128,12 @@ export interface CaptureCPUProfileResponse {
   data?: Uint8Array
 }
 
-// CaptureCPUProfileResponse contains the message type declaration for CaptureCPUProfileResponse.
 export const CaptureCPUProfileResponse: MessageType<CaptureCPUProfileResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.trace.CaptureCPUProfileResponse',
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -166,15 +163,14 @@ export interface CaptureMemoryProfileRequest {
   debug?: number
 }
 
-// CaptureMemoryProfileRequest contains the message type declaration for CaptureMemoryProfileRequest.
 export const CaptureMemoryProfileRequest: MessageType<CaptureMemoryProfileRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.trace.CaptureMemoryProfileRequest',
     fields: [
       { no: 1, name: 'profile', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'gc', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'debug', kind: 'scalar', T: ScalarType.INT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -192,12 +188,11 @@ export interface CaptureMemoryProfileResponse {
   data?: Uint8Array
 }
 
-// CaptureMemoryProfileResponse contains the message type declaration for CaptureMemoryProfileResponse.
 export const CaptureMemoryProfileResponse: MessageType<CaptureMemoryProfileResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.trace.CaptureMemoryProfileResponse',
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

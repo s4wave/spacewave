@@ -4,8 +4,10 @@
 
 import { SORoot } from '../sobject/sobject.pb.js'
 import { PackfileEntry } from '../provider/spacewave/packfile/packfile.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'cdn'
 
@@ -63,22 +65,27 @@ export interface CdnRootPointer {
   createdAtMs?: bigint
 }
 
-// CdnRootPointer contains the message type declaration for CdnRootPointer.
-export const CdnRootPointer: MessageType<CdnRootPointer> = createMessageType({
-  typeName: 'cdn.CdnRootPointer',
-  fields: [
-    { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'root', kind: 'message', T: () => SORoot },
-    { no: 3, name: 'config_chain_hash', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 4, name: 'config_chain_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    {
-      no: 5,
-      name: 'packs',
-      kind: 'message',
-      T: () => PackfileEntry,
-      repeated: true,
-    },
-    { no: 6, name: 'created_at_ms', kind: 'scalar', T: ScalarType.INT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const CdnRootPointer: MessageType<CdnRootPointer> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'cdn.CdnRootPointer',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root', kind: 'message', T: () => SORoot },
+      { no: 3, name: 'config_chain_hash', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 4,
+        name: 'config_chain_seqno',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 5,
+        name: 'packs',
+        kind: 'message',
+        T: () => PackfileEntry,
+        repeated: true,
+      },
+      { no: 6, name: 'created_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

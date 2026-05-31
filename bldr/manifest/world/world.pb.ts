@@ -3,8 +3,10 @@
 /* eslint-disable */
 
 import { ManifestRef } from '../manifest.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 
 export const protobufPackage = 'bldr.manifest.world'
@@ -35,22 +37,22 @@ export interface StoreManifestOp {
   manifestRef?: ManifestRef
 }
 
-// StoreManifestOp contains the message type declaration for StoreManifestOp.
-export const StoreManifestOp: MessageType<StoreManifestOp> = createMessageType({
-  typeName: 'bldr.manifest.world.StoreManifestOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'link_object_keys',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 3, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const StoreManifestOp: MessageType<StoreManifestOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.world.StoreManifestOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'link_object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 3, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ExtractManifestBundleOp stores a ManifestBundle to an object key.
@@ -79,9 +81,8 @@ export interface ExtractManifestBundleOp {
   manifestBundle?: ObjectRef
 }
 
-// ExtractManifestBundleOp contains the message type declaration for ExtractManifestBundleOp.
 export const ExtractManifestBundleOp: MessageType<ExtractManifestBundleOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.manifest.world.ExtractManifestBundleOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -93,6 +94,6 @@ export const ExtractManifestBundleOp: MessageType<ExtractManifestBundleOp> =
         repeated: true,
       },
       { no: 3, name: 'manifest_bundle', kind: 'message', T: () => ObjectRef },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/e2e/wasm/session/session.proto (package e2e.wasm.session, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'e2e.wasm.session'
 
@@ -46,14 +48,13 @@ export enum EstablishLinkState {
   EstablishLinkState_FAILED = 3,
 }
 
-// EstablishLinkState_Enum is the enum type for EstablishLinkState.
-export const EstablishLinkState_Enum = createEnumType(
+export const EstablishLinkState_Enum = /* @__PURE__ */ createEnumType(
   'e2e.wasm.session.EstablishLinkState',
   [
-    { no: 0, name: 'EstablishLinkState_UNKNOWN' },
-    { no: 1, name: 'EstablishLinkState_PENDING' },
-    { no: 2, name: 'EstablishLinkState_CONNECTED' },
-    { no: 3, name: 'EstablishLinkState_FAILED' },
+    [0, 'EstablishLinkState_UNKNOWN'],
+    [1, 'EstablishLinkState_PENDING'],
+    [2, 'EstablishLinkState_CONNECTED'],
+    [3, 'EstablishLinkState_FAILED'],
   ],
 )
 
@@ -64,13 +65,11 @@ export const EstablishLinkState_Enum = createEnumType(
  */
 export interface GetPeerInfoRequest {}
 
-// GetPeerInfoRequest contains the message type declaration for GetPeerInfoRequest.
 export const GetPeerInfoRequest: MessageType<GetPeerInfoRequest> =
-  createMessageType({
-    typeName: 'e2e.wasm.session.GetPeerInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetPeerInfoRequest>(
+    'e2e.wasm.session.GetPeerInfoRequest',
+    true,
+  )
 
 /**
  * GetPeerInfoResponse is the response type for GetPeerInfo.
@@ -86,13 +85,12 @@ export interface GetPeerInfoResponse {
   peerId?: string
 }
 
-// GetPeerInfoResponse contains the message type declaration for GetPeerInfoResponse.
 export const GetPeerInfoResponse: MessageType<GetPeerInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'e2e.wasm.session.GetPeerInfoResponse',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -110,13 +108,12 @@ export interface WatchStateRequest {
   targetPeerId?: string
 }
 
-// WatchStateRequest contains the message type declaration for WatchStateRequest.
 export const WatchStateRequest: MessageType<WatchStateRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'e2e.wasm.session.WatchStateRequest',
     fields: [
       { no: 1, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -134,13 +131,12 @@ export interface WatchStateResponse {
   state?: EstablishLinkState
 }
 
-// WatchStateResponse contains the message type declaration for WatchStateResponse.
 export const WatchStateResponse: MessageType<WatchStateResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'e2e.wasm.session.WatchStateResponse',
     fields: [
       { no: 1, name: 'state', kind: 'enum', T: EstablishLinkState_Enum },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -158,14 +154,14 @@ export interface SignalRelayInit {
   remotePeerId?: string
 }
 
-// SignalRelayInit contains the message type declaration for SignalRelayInit.
-export const SignalRelayInit: MessageType<SignalRelayInit> = createMessageType({
-  typeName: 'e2e.wasm.session.SignalRelayInit',
-  fields: [
-    { no: 1, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const SignalRelayInit: MessageType<SignalRelayInit> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'e2e.wasm.session.SignalRelayInit',
+    fields: [
+      { no: 1, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SignalRelayMessage is a message in the SignalRelay bidirectional stream.
@@ -202,9 +198,8 @@ export interface SignalRelayMessage {
       }
 }
 
-// SignalRelayMessage contains the message type declaration for SignalRelayMessage.
 export const SignalRelayMessage: MessageType<SignalRelayMessage> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'e2e.wasm.session.SignalRelayMessage',
     fields: [
       {
@@ -221,6 +216,6 @@ export const SignalRelayMessage: MessageType<SignalRelayMessage> =
         T: ScalarType.BYTES,
         oneof: 'body',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

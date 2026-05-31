@@ -2,14 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/apt/repository.proto (package s4wave.apt, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { BlockRef } from '../../db/block/block.pb.js'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.apt'
 
@@ -48,14 +47,13 @@ export enum AptRepositoryState {
   AptRepositoryState_ERROR = 3,
 }
 
-// AptRepositoryState_Enum is the enum type for AptRepositoryState.
-export const AptRepositoryState_Enum = createEnumType(
+export const AptRepositoryState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.apt.AptRepositoryState',
   [
-    { no: 0, name: 'AptRepositoryState_EMPTY' },
-    { no: 1, name: 'AptRepositoryState_INDEXING' },
-    { no: 2, name: 'AptRepositoryState_READY' },
-    { no: 3, name: 'AptRepositoryState_ERROR' },
+    [0, 'AptRepositoryState_EMPTY'],
+    [1, 'AptRepositoryState_INDEXING'],
+    [2, 'AptRepositoryState_READY'],
+    [3, 'AptRepositoryState_ERROR'],
   ],
 )
 
@@ -94,14 +92,13 @@ export enum AptPackageState {
   AptPackageState_SUPERSEDED = 3,
 }
 
-// AptPackageState_Enum is the enum type for AptPackageState.
-export const AptPackageState_Enum = createEnumType(
+export const AptPackageState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.apt.AptPackageState',
   [
-    { no: 0, name: 'AptPackageState_IMPORTING' },
-    { no: 1, name: 'AptPackageState_BUILT' },
-    { no: 2, name: 'AptPackageState_PUBLISHED' },
-    { no: 3, name: 'AptPackageState_SUPERSEDED' },
+    [0, 'AptPackageState_IMPORTING'],
+    [1, 'AptPackageState_BUILT'],
+    [2, 'AptPackageState_PUBLISHED'],
+    [3, 'AptPackageState_SUPERSEDED'],
   ],
 )
 
@@ -149,31 +146,31 @@ export interface AptRepository {
   indexRef?: ObjectRef
 }
 
-// AptRepository contains the message type declaration for AptRepository.
-export const AptRepository: MessageType<AptRepository> = createMessageType({
-  typeName: 's4wave.apt.AptRepository',
-  fields: [
-    { no: 1, name: 'state', kind: 'enum', T: AptRepositoryState_Enum },
-    { no: 2, name: 'distribution', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'components',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 4,
-      name: 'architectures',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 5, name: 'signing_key_ref', kind: 'message', T: () => BlockRef },
-    { no: 6, name: 'index_ref', kind: 'message', T: () => ObjectRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AptRepository: MessageType<AptRepository> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.AptRepository',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: AptRepositoryState_Enum },
+      { no: 2, name: 'distribution', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'components',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'architectures',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 5, name: 'signing_key_ref', kind: 'message', T: () => BlockRef },
+      { no: 6, name: 'index_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * AptPackageChecksum records a digest for the .deb payload.
@@ -195,14 +192,13 @@ export interface AptPackageChecksum {
   hex?: string
 }
 
-// AptPackageChecksum contains the message type declaration for AptPackageChecksum.
 export const AptPackageChecksum: MessageType<AptPackageChecksum> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.apt.AptPackageChecksum',
     fields: [
       { no: 1, name: 'algorithm', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'hex', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -280,45 +276,45 @@ export interface AptPackage {
   debRef?: BlockRef
 }
 
-// AptPackage contains the message type declaration for AptPackage.
-export const AptPackage: MessageType<AptPackage> = createMessageType({
-  typeName: 's4wave.apt.AptPackage',
-  fields: [
-    { no: 1, name: 'state', kind: 'enum', T: AptPackageState_Enum },
-    { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'version', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'architecture', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 5,
-      name: 'depends',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 6,
-      name: 'provides',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 7,
-      name: 'conflicts',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 8, name: 'description', kind: 'scalar', T: ScalarType.STRING },
-    { no: 9, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
-    {
-      no: 10,
-      name: 'checksums',
-      kind: 'message',
-      T: () => AptPackageChecksum,
-      repeated: true,
-    },
-    { no: 11, name: 'deb_ref', kind: 'message', T: () => BlockRef },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AptPackage: MessageType<AptPackage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.AptPackage',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: AptPackageState_Enum },
+      { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'version', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'architecture', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'depends',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'provides',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 7,
+        name: 'conflicts',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 8, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 10,
+        name: 'checksums',
+        kind: 'message',
+        T: () => AptPackageChecksum,
+        repeated: true,
+      },
+      { no: 11, name: 'deb_ref', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

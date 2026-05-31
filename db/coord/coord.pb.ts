@@ -2,12 +2,14 @@
 // @generated from file github.com/s4wave/spacewave/db/coord/coord.proto (package coord, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
-  createEnumType,
+  createEmptyMessageType,
   createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'coord'
 
@@ -39,12 +41,14 @@ export enum ParticipantRole {
   ParticipantRole_FOLLOWER = 2,
 }
 
-// ParticipantRole_Enum is the enum type for ParticipantRole.
-export const ParticipantRole_Enum = createEnumType('coord.ParticipantRole', [
-  { no: 0, name: 'ParticipantRole_UNKNOWN' },
-  { no: 1, name: 'ParticipantRole_LEADER' },
-  { no: 2, name: 'ParticipantRole_FOLLOWER' },
-])
+export const ParticipantRole_Enum = /* @__PURE__ */ createEnumType(
+  'coord.ParticipantRole',
+  [
+    [0, 'ParticipantRole_UNKNOWN'],
+    [1, 'ParticipantRole_LEADER'],
+    [2, 'ParticipantRole_FOLLOWER'],
+  ],
+)
 
 /**
  * ParticipantRecord is a participant entry in the coordination registry.
@@ -91,9 +95,8 @@ export interface ParticipantRecord {
   lastHeartbeatNanos?: bigint
 }
 
-// ParticipantRecord contains the message type declaration for ParticipantRecord.
 export const ParticipantRecord: MessageType<ParticipantRecord> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'coord.ParticipantRecord',
     fields: [
       { no: 1, name: 'pid', kind: 'scalar', T: ScalarType.UINT32 },
@@ -113,7 +116,7 @@ export const ParticipantRecord: MessageType<ParticipantRecord> =
         kind: 'scalar',
         T: ScalarType.INT64,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -124,13 +127,11 @@ export const ParticipantRecord: MessageType<ParticipantRecord> =
  */
 export interface GetParticipantInfoRequest {}
 
-// GetParticipantInfoRequest contains the message type declaration for GetParticipantInfoRequest.
 export const GetParticipantInfoRequest: MessageType<GetParticipantInfoRequest> =
-  createMessageType({
-    typeName: 'coord.GetParticipantInfoRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<GetParticipantInfoRequest>(
+    'coord.GetParticipantInfoRequest',
+    true,
+  )
 
 /**
  * GetParticipantInfoResponse is the response for GetParticipantInfo.
@@ -158,9 +159,8 @@ export interface GetParticipantInfoResponse {
   capabilities?: string[]
 }
 
-// GetParticipantInfoResponse contains the message type declaration for GetParticipantInfoResponse.
 export const GetParticipantInfoResponse: MessageType<GetParticipantInfoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'coord.GetParticipantInfoResponse',
     fields: [
       { no: 1, name: 'pid', kind: 'scalar', T: ScalarType.UINT32 },
@@ -172,7 +172,7 @@ export const GetParticipantInfoResponse: MessageType<GetParticipantInfoResponse>
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -190,13 +190,12 @@ export interface SubmitWorldOpRequest {
   opData?: Uint8Array
 }
 
-// SubmitWorldOpRequest contains the message type declaration for SubmitWorldOpRequest.
 export const SubmitWorldOpRequest: MessageType<SubmitWorldOpRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'coord.SubmitWorldOpRequest',
     fields: [
       { no: 1, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -220,14 +219,13 @@ export interface SubmitWorldOpResponse {
   error?: string
 }
 
-// SubmitWorldOpResponse contains the message type declaration for SubmitWorldOpResponse.
 export const SubmitWorldOpResponse: MessageType<SubmitWorldOpResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'coord.SubmitWorldOpResponse',
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -245,13 +243,12 @@ export interface WatchWorldSeqnoRequest {
   lastSeenSeqno?: bigint
 }
 
-// WatchWorldSeqnoRequest contains the message type declaration for WatchWorldSeqnoRequest.
 export const WatchWorldSeqnoRequest: MessageType<WatchWorldSeqnoRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'coord.WatchWorldSeqnoRequest',
     fields: [
       { no: 1, name: 'last_seen_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -269,13 +266,12 @@ export interface WatchWorldSeqnoResponse {
   seqno?: bigint
 }
 
-// WatchWorldSeqnoResponse contains the message type declaration for WatchWorldSeqnoResponse.
 export const WatchWorldSeqnoResponse: MessageType<WatchWorldSeqnoResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'coord.WatchWorldSeqnoResponse',
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -305,18 +301,23 @@ export interface LeaseRecord {
   leaderSocketPath?: string
 }
 
-// LeaseRecord contains the message type declaration for LeaseRecord.
-export const LeaseRecord: MessageType<LeaseRecord> = createMessageType({
-  typeName: 'coord.LeaseRecord',
-  fields: [
-    { no: 1, name: 'leader_pid', kind: 'scalar', T: ScalarType.UINT32 },
-    {
-      no: 2,
-      name: 'lease_timestamp_nanos',
-      kind: 'scalar',
-      T: ScalarType.INT64,
-    },
-    { no: 3, name: 'leader_socket_path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const LeaseRecord: MessageType<LeaseRecord> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'coord.LeaseRecord',
+    fields: [
+      { no: 1, name: 'leader_pid', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 2,
+        name: 'lease_timestamp_nanos',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+      {
+        no: 3,
+        name: 'leader_socket_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

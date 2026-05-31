@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/db/unixfs/mount/fuse/fuse.proto (package unixfs.mount.fuse, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'unixfs.mount.fuse'
 
@@ -48,8 +50,7 @@ export interface Config {
   allowSuid?: boolean
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'unixfs.mount.fuse.Config',
   fields: [
     { no: 1, name: 'mount_path', kind: 'scalar', T: ScalarType.STRING },
@@ -57,6 +58,6 @@ export const Config: MessageType<Config> = createMessageType({
     { no: 3, name: 'allow_other', kind: 'scalar', T: ScalarType.BOOL },
     { no: 4, name: 'allow_dev', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'allow_suid', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

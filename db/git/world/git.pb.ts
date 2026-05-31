@@ -10,9 +10,11 @@ import {
   Index,
   Reference,
 } from '../block/git.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 
 export const protobufPackage = 'git.world'
@@ -68,9 +70,8 @@ export interface GitCreateWorktreeOp {
   timestamp?: Date
 }
 
-// GitCreateWorktreeOp contains the message type declaration for GitCreateWorktreeOp.
 export const GitCreateWorktreeOp: MessageType<GitCreateWorktreeOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'git.world.GitCreateWorktreeOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
@@ -80,7 +81,7 @@ export const GitCreateWorktreeOp: MessageType<GitCreateWorktreeOp> =
       { no: 5, name: 'checkout_opts', kind: 'message', T: () => CheckoutOpts },
       { no: 6, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -128,23 +129,23 @@ export interface GitInitOp {
   timestamp?: Date
 }
 
-// GitInitOp contains the message type declaration for GitInitOp.
-export const GitInitOp: MessageType<GitInitOp> = createMessageType({
-  typeName: 'git.world.GitInitOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'repo_ref', kind: 'message', T: () => ObjectRef },
-    { no: 3, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
-    {
-      no: 4,
-      name: 'create_worktree',
-      kind: 'message',
-      T: () => GitCreateWorktreeOp,
-    },
-    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GitInitOp: MessageType<GitInitOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'git.world.GitInitOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'repo_ref', kind: 'message', T: () => ObjectRef },
+      { no: 3, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 4,
+        name: 'create_worktree',
+        kind: 'message',
+        T: () => GitCreateWorktreeOp,
+      },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * HeadRefStore contains the HEAD reference for a worktree and submodules.
@@ -174,22 +175,22 @@ export interface HeadRefStore {
   submodules?: HeadRefStore[]
 }
 
-// HeadRefStore contains the message type declaration for HeadRefStore.
-export const HeadRefStore: MessageType<HeadRefStore> = createMessageType({
-  typeName: 'git.world.HeadRefStore',
-  fields: [
-    { no: 1, name: 'submodule_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'head_ref', kind: 'message', T: () => Reference },
-    {
-      no: 3,
-      name: 'submodules',
-      kind: 'message',
-      T: () => HeadRefStore,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const HeadRefStore: MessageType<HeadRefStore> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'git.world.HeadRefStore',
+    fields: [
+      { no: 1, name: 'submodule_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'head_ref', kind: 'message', T: () => Reference },
+      {
+        no: 3,
+        name: 'submodules',
+        kind: 'message',
+        T: () => HeadRefStore,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Worktree refers to a location where a repo is checked out.
@@ -212,15 +213,15 @@ export interface Worktree {
   headRefStore?: HeadRefStore
 }
 
-// Worktree contains the message type declaration for Worktree.
-export const Worktree: MessageType<Worktree> = createMessageType({
-  typeName: 'git.world.Worktree',
-  fields: [
-    { no: 1, name: 'git_index', kind: 'message', T: () => Index },
-    { no: 2, name: 'head_ref_store', kind: 'message', T: () => HeadRefStore },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const Worktree: MessageType<Worktree> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'git.world.Worktree',
+    fields: [
+      { no: 1, name: 'git_index', kind: 'message', T: () => Index },
+      { no: 2, name: 'head_ref_store', kind: 'message', T: () => HeadRefStore },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GitFetchOp is an operation to fetch updates into an existing repo.
@@ -242,15 +243,15 @@ export interface GitFetchOp {
   fetchOpts?: FetchOpts
 }
 
-// GitFetchOp contains the message type declaration for GitFetchOp.
-export const GitFetchOp: MessageType<GitFetchOp> = createMessageType({
-  typeName: 'git.world.GitFetchOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'fetch_opts', kind: 'message', T: () => FetchOpts },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GitFetchOp: MessageType<GitFetchOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'git.world.GitFetchOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'fetch_opts', kind: 'message', T: () => FetchOpts },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GitCloneOp is an operation to clone a git repo into the world.
@@ -294,23 +295,23 @@ export interface GitCloneOp {
   timestamp?: Date
 }
 
-// GitCloneOp contains the message type declaration for GitCloneOp.
-export const GitCloneOp: MessageType<GitCloneOp> = createMessageType({
-  typeName: 'git.world.GitCloneOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'clone_opts', kind: 'message', T: () => CloneOpts },
-    { no: 3, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
-    {
-      no: 4,
-      name: 'create_worktree',
-      kind: 'message',
-      T: () => GitCreateWorktreeOp,
-    },
-    { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GitCloneOp: MessageType<GitCloneOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'git.world.GitCloneOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'clone_opts', kind: 'message', T: () => CloneOpts },
+      { no: 3, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 4,
+        name: 'create_worktree',
+        kind: 'message',
+        T: () => GitCreateWorktreeOp,
+      },
+      { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GitWorktreeCheckoutOp checks out a git revision in a worktree.
@@ -345,16 +346,15 @@ export interface GitWorktreeCheckoutOp {
   timestamp?: Date
 }
 
-// GitWorktreeCheckoutOp contains the message type declaration for GitWorktreeCheckoutOp.
 export const GitWorktreeCheckoutOp: MessageType<GitWorktreeCheckoutOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'git.world.GitWorktreeCheckoutOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'checkout_opts', kind: 'message', T: () => CheckoutOpts },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -390,23 +390,23 @@ export interface GitStageOp {
   timestamp?: Date
 }
 
-// GitStageOp contains the message type declaration for GitStageOp.
-export const GitStageOp: MessageType<GitStageOp> = createMessageType({
-  typeName: 'git.world.GitStageOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'paths',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GitStageOp: MessageType<GitStageOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'git.world.GitStageOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'paths',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GitUnstageOp unstages files from a worktree's git index.
@@ -440,20 +440,20 @@ export interface GitUnstageOp {
   timestamp?: Date
 }
 
-// GitUnstageOp contains the message type declaration for GitUnstageOp.
-export const GitUnstageOp: MessageType<GitUnstageOp> = createMessageType({
-  typeName: 'git.world.GitUnstageOp',
-  fields: [
-    { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'paths',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const GitUnstageOp: MessageType<GitUnstageOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'git.world.GitUnstageOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'repo_object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'paths',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

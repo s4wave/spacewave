@@ -2,8 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/sdk/viewer/registry/registry.proto (package s4wave.viewer.registry, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.viewer.registry'
 
@@ -51,9 +56,8 @@ export interface ViewerRegistration {
   componentId?: string
 }
 
-// ViewerRegistration contains the message type declaration for ViewerRegistration.
 export const ViewerRegistration: MessageType<ViewerRegistration> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.viewer.registry.ViewerRegistration',
     fields: [
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
@@ -62,7 +66,7 @@ export const ViewerRegistration: MessageType<ViewerRegistration> =
       { no: 4, name: 'category', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'dev_mode_only', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'component_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -80,9 +84,8 @@ export interface RegisterViewerRequest {
   registration?: ViewerRegistration
 }
 
-// RegisterViewerRequest contains the message type declaration for RegisterViewerRequest.
 export const RegisterViewerRequest: MessageType<RegisterViewerRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.viewer.registry.RegisterViewerRequest',
     fields: [
       {
@@ -91,7 +94,7 @@ export const RegisterViewerRequest: MessageType<RegisterViewerRequest> =
         kind: 'message',
         T: () => ViewerRegistration,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -109,13 +112,12 @@ export interface RegisterViewerResponse {
   resourceId?: number
 }
 
-// RegisterViewerResponse contains the message type declaration for RegisterViewerResponse.
 export const RegisterViewerResponse: MessageType<RegisterViewerResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.viewer.registry.RegisterViewerResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -126,13 +128,11 @@ export const RegisterViewerResponse: MessageType<RegisterViewerResponse> =
  */
 export interface ListViewersRequest {}
 
-// ListViewersRequest contains the message type declaration for ListViewersRequest.
 export const ListViewersRequest: MessageType<ListViewersRequest> =
-  createMessageType({
-    typeName: 's4wave.viewer.registry.ListViewersRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<ListViewersRequest>(
+    's4wave.viewer.registry.ListViewersRequest',
+    true,
+  )
 
 /**
  * ListViewersResponse is the response type for ListViewers.
@@ -148,9 +148,8 @@ export interface ListViewersResponse {
   registrations?: ViewerRegistration[]
 }
 
-// ListViewersResponse contains the message type declaration for ListViewersResponse.
 export const ListViewersResponse: MessageType<ListViewersResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.viewer.registry.ListViewersResponse',
     fields: [
       {
@@ -160,7 +159,7 @@ export const ListViewersResponse: MessageType<ListViewersResponse> =
         T: () => ViewerRegistration,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -171,13 +170,11 @@ export const ListViewersResponse: MessageType<ListViewersResponse> =
  */
 export interface WatchViewersRequest {}
 
-// WatchViewersRequest contains the message type declaration for WatchViewersRequest.
 export const WatchViewersRequest: MessageType<WatchViewersRequest> =
-  createMessageType({
-    typeName: 's4wave.viewer.registry.WatchViewersRequest',
-    fields: [] as readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
+  /* @__PURE__ */ createEmptyMessageType<WatchViewersRequest>(
+    's4wave.viewer.registry.WatchViewersRequest',
+    true,
+  )
 
 /**
  * WatchViewersResponse is the response type for WatchViewers.
@@ -193,9 +190,8 @@ export interface WatchViewersResponse {
   registrations?: ViewerRegistration[]
 }
 
-// WatchViewersResponse contains the message type declaration for WatchViewersResponse.
 export const WatchViewersResponse: MessageType<WatchViewersResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 's4wave.viewer.registry.WatchViewersResponse',
     fields: [
       {
@@ -205,6 +201,6 @@ export const WatchViewersResponse: MessageType<WatchViewersResponse> =
         T: () => ViewerRegistration,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

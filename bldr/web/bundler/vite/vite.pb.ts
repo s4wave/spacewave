@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/bundler/vite/vite.proto (package bldr.web.bundler.vite, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { WebPkgRefConfig } from '../bundler.pb.js'
 
 export const protobufPackage = 'bldr.web.bundler.vite'
@@ -34,22 +36,22 @@ export interface WebPkgRef {
   subPaths?: string[]
 }
 
-// WebPkgRef contains the message type declaration for WebPkgRef.
-export const WebPkgRef: MessageType<WebPkgRef> = createMessageType({
-  typeName: 'bldr.web.bundler.vite.WebPkgRef',
-  fields: [
-    { no: 1, name: 'pkg_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'pkg_root', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'sub_paths',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const WebPkgRef: MessageType<WebPkgRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.bundler.vite.WebPkgRef',
+    fields: [
+      { no: 1, name: 'pkg_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'pkg_root', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'sub_paths',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
@@ -71,14 +73,13 @@ export interface ViteBuildRequestEntrypoint {
   name?: string
 }
 
-// ViteBuildRequestEntrypoint contains the message type declaration for ViteBuildRequestEntrypoint.
 export const ViteBuildRequestEntrypoint: MessageType<ViteBuildRequestEntrypoint> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.vite.ViteBuildRequestEntrypoint',
     fields: [
       { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -162,49 +163,49 @@ export interface BuildRequest {
   jsSourcemaps?: boolean
 }
 
-// BuildRequest contains the message type declaration for BuildRequest.
-export const BuildRequest: MessageType<BuildRequest> = createMessageType({
-  typeName: 'bldr.web.bundler.vite.BuildRequest',
-  fields: [
-    {
-      no: 1,
-      name: 'config_paths',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 2, name: 'mode', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'root_dir', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'out_dir', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'cache_dir', kind: 'scalar', T: ScalarType.STRING },
-    { no: 6, name: 'dist_dir', kind: 'scalar', T: ScalarType.STRING },
-    { no: 7, name: 'public_path', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 8,
-      name: 'entrypoints',
-      kind: 'message',
-      T: () => ViteBuildRequestEntrypoint,
-      repeated: true,
-    },
-    {
-      no: 9,
-      name: 'external_pkgs',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 10,
-      name: 'web_pkgs',
-      kind: 'message',
-      T: () => WebPkgRefConfig,
-      repeated: true,
-    },
-    { no: 11, name: 'js_minification', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 12, name: 'js_sourcemaps', kind: 'scalar', T: ScalarType.BOOL },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BuildRequest: MessageType<BuildRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.bundler.vite.BuildRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'config_paths',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'mode', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'root_dir', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'out_dir', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'cache_dir', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'dist_dir', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'public_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 8,
+        name: 'entrypoints',
+        kind: 'message',
+        T: () => ViteBuildRequestEntrypoint,
+        repeated: true,
+      },
+      {
+        no: 9,
+        name: 'external_pkgs',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 10,
+        name: 'web_pkgs',
+        kind: 'message',
+        T: () => WebPkgRefConfig,
+        repeated: true,
+      },
+      { no: 11, name: 'js_minification', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 12, name: 'js_sourcemaps', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * EntrypointOutput contains information about an entrypoint and its outputs.
@@ -238,9 +239,8 @@ export interface EntrypointOutput {
   inputFiles?: string[]
 }
 
-// EntrypointOutput contains the message type declaration for EntrypointOutput.
 export const EntrypointOutput: MessageType<EntrypointOutput> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.vite.EntrypointOutput',
     fields: [
       { no: 1, name: 'entrypoint', kind: 'scalar', T: ScalarType.STRING },
@@ -259,7 +259,7 @@ export const EntrypointOutput: MessageType<EntrypointOutput> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -309,43 +309,43 @@ export interface BuildResponse {
   webPkgRefs?: WebPkgRef[]
 }
 
-// BuildResponse contains the message type declaration for BuildResponse.
-export const BuildResponse: MessageType<BuildResponse> = createMessageType({
-  typeName: 'bldr.web.bundler.vite.BuildResponse',
-  fields: [
-    { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'entrypoint_outputs',
-      kind: 'message',
-      T: () => EntrypointOutput,
-      repeated: true,
-    },
-    {
-      no: 4,
-      name: 'input_files',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 5,
-      name: 'global_css_files',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    {
-      no: 6,
-      name: 'web_pkg_refs',
-      kind: 'message',
-      T: () => WebPkgRef,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const BuildResponse: MessageType<BuildResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.bundler.vite.BuildResponse',
+    fields: [
+      { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'entrypoint_outputs',
+        kind: 'message',
+        T: () => EntrypointOutput,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'input_files',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'global_css_files',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'web_pkg_refs',
+        kind: 'message',
+        T: () => WebPkgRef,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ViteOutputMeta is information about a vite output.
@@ -368,15 +368,15 @@ export interface ViteOutputMeta {
   entrypointPath?: string
 }
 
-// ViteOutputMeta contains the message type declaration for ViteOutputMeta.
-export const ViteOutputMeta: MessageType<ViteOutputMeta> = createMessageType({
-  typeName: 'bldr.web.bundler.vite.ViteOutputMeta',
-  fields: [
-    { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ViteOutputMeta: MessageType<ViteOutputMeta> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.bundler.vite.ViteOutputMeta',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BuildWebPkgRequest is a request to build a single web package with Vite.
@@ -452,9 +452,8 @@ export interface BuildWebPkgRequest {
   jsSourcemaps?: boolean
 }
 
-// BuildWebPkgRequest contains the message type declaration for BuildWebPkgRequest.
 export const BuildWebPkgRequest: MessageType<BuildWebPkgRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.vite.BuildWebPkgRequest',
     fields: [
       { no: 1, name: 'pkg_id', kind: 'scalar', T: ScalarType.STRING },
@@ -491,7 +490,7 @@ export const BuildWebPkgRequest: MessageType<BuildWebPkgRequest> =
       { no: 9, name: 'cache_dir', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'js_minification', kind: 'scalar', T: ScalarType.BOOL },
       { no: 11, name: 'js_sourcemaps', kind: 'scalar', T: ScalarType.BOOL },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -515,15 +514,15 @@ export interface ImportMapEntry {
   outputPath?: string
 }
 
-// ImportMapEntry contains the message type declaration for ImportMapEntry.
-export const ImportMapEntry: MessageType<ImportMapEntry> = createMessageType({
-  typeName: 'bldr.web.bundler.vite.ImportMapEntry',
-  fields: [
-    { no: 1, name: 'specifier', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const ImportMapEntry: MessageType<ImportMapEntry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.bundler.vite.ImportMapEntry',
+    fields: [
+      { no: 1, name: 'specifier', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * BuildWebPkgResponse is the response from building a single web package.
@@ -559,9 +558,8 @@ export interface BuildWebPkgResponse {
   importMapEntries?: ImportMapEntry[]
 }
 
-// BuildWebPkgResponse contains the message type declaration for BuildWebPkgResponse.
 export const BuildWebPkgResponse: MessageType<BuildWebPkgResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.vite.BuildWebPkgResponse',
     fields: [
       { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
@@ -580,6 +578,6 @@ export const BuildWebPkgResponse: MessageType<BuildWebPkgResponse> =
         T: () => ImportMapEntry,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

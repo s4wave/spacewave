@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/bundler/esbuild/compiler/compiler.proto (package bldr.web.bundler.esbuild.compiler, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { EsbuildBundleEntrypoint, EsbuildOutputMeta } from '../esbuild.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { WebPkgRefConfig } from '../../bundler.pb.js'
 import { WebPkgRef } from '../../../pkg/pkg.pb.js'
 
@@ -42,13 +41,12 @@ export enum InputFileKind {
   InputFileKind_WEB_PKG = 2,
 }
 
-// InputFileKind_Enum is the enum type for InputFileKind.
-export const InputFileKind_Enum = createEnumType(
+export const InputFileKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.bundler.esbuild.compiler.InputFileKind',
   [
-    { no: 0, name: 'InputFileKind_UNKNOWN' },
-    { no: 1, name: 'InputFileKind_ESBUILD' },
-    { no: 2, name: 'InputFileKind_WEB_PKG' },
+    [0, 'InputFileKind_UNKNOWN'],
+    [1, 'InputFileKind_ESBUILD'],
+    [2, 'InputFileKind_WEB_PKG'],
   ],
 )
 
@@ -85,9 +83,8 @@ export interface EsbuildBundleMeta {
   esbuildFlags?: string[]
 }
 
-// EsbuildBundleMeta contains the message type declaration for EsbuildBundleMeta.
 export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.esbuild.compiler.EsbuildBundleMeta',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
@@ -106,7 +103,7 @@ export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
         T: ScalarType.STRING,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -166,8 +163,7 @@ export interface Config {
   platformTypes?: { [key: string]: Config }
 }
 
-// Config contains the message type declaration for Config.
-export const Config: MessageType<Config> = createMessageType({
+export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bldr.web.bundler.esbuild.compiler.Config',
   fields: [
     {
@@ -205,7 +201,7 @@ export const Config: MessageType<Config> = createMessageType({
       K: ScalarType.STRING,
       V: { kind: 'message', T: () => Config },
     },
-  ] as readonly PartialFieldInfo[],
+  ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
 
@@ -224,13 +220,12 @@ export interface PreBuildHookResult {
   config?: Config
 }
 
-// PreBuildHookResult contains the message type declaration for PreBuildHookResult.
 export const PreBuildHookResult: MessageType<PreBuildHookResult> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.esbuild.compiler.PreBuildHookResult',
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -248,14 +243,14 @@ export interface InputFileMeta {
   kind?: InputFileKind
 }
 
-// InputFileMeta contains the message type declaration for InputFileMeta.
-export const InputFileMeta: MessageType<InputFileMeta> = createMessageType({
-  typeName: 'bldr.web.bundler.esbuild.compiler.InputFileMeta',
-  fields: [
-    { no: 1, name: 'kind', kind: 'enum', T: InputFileKind_Enum },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const InputFileMeta: MessageType<InputFileMeta> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.bundler.esbuild.compiler.InputFileMeta',
+    fields: [
+      { no: 1, name: 'kind', kind: 'enum', T: InputFileKind_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * InputManifestMeta is metadata attached to the input manifest.
@@ -295,9 +290,8 @@ export interface InputManifestMeta {
   esbuildOutputs?: EsbuildOutputMeta[]
 }
 
-// InputManifestMeta contains the message type declaration for InputManifestMeta.
 export const InputManifestMeta: MessageType<InputManifestMeta> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.esbuild.compiler.InputManifestMeta',
     fields: [
       {
@@ -335,6 +329,6 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         T: () => EsbuildOutputMeta,
         repeated: true,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

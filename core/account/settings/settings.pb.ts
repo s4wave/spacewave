@@ -2,8 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/account/settings/settings.proto (package account.settings, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType, ScalarType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { EntityKeypair } from '../../session/session.pb.js'
 
 export const protobufPackage = 'account.settings'
@@ -34,16 +36,16 @@ export interface PairedDevice {
   pairedAt?: bigint
 }
 
-// PairedDevice contains the message type declaration for PairedDevice.
-export const PairedDevice: MessageType<PairedDevice> = createMessageType({
-  typeName: 'account.settings.PairedDevice',
-  fields: [
-    { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'paired_at', kind: 'scalar', T: ScalarType.INT64 },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const PairedDevice: MessageType<PairedDevice> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.PairedDevice',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'paired_at', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * SessionPresentation stores private presentation metadata for a session row.
@@ -89,9 +91,8 @@ export interface SessionPresentation {
   location?: string
 }
 
-// SessionPresentation contains the message type declaration for SessionPresentation.
 export const SessionPresentation: MessageType<SessionPresentation> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'account.settings.SessionPresentation',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -100,7 +101,7 @@ export const SessionPresentation: MessageType<SessionPresentation> =
       { no: 4, name: 'client_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'os', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'location', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -139,35 +140,35 @@ export interface AccountSettings {
   sessionPresentations?: SessionPresentation[]
 }
 
-// AccountSettings contains the message type declaration for AccountSettings.
-export const AccountSettings: MessageType<AccountSettings> = createMessageType({
-  typeName: 'account.settings.AccountSettings',
-  fields: [
-    { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 2,
-      name: 'paired_devices',
-      kind: 'message',
-      T: () => PairedDevice,
-      repeated: true,
-    },
-    {
-      no: 3,
-      name: 'entity_keypairs',
-      kind: 'message',
-      T: () => EntityKeypair,
-      repeated: true,
-    },
-    {
-      no: 4,
-      name: 'session_presentations',
-      kind: 'message',
-      T: () => SessionPresentation,
-      repeated: true,
-    },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const AccountSettings: MessageType<AccountSettings> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.AccountSettings',
+    fields: [
+      { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'paired_devices',
+        kind: 'message',
+        T: () => PairedDevice,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'entity_keypairs',
+        kind: 'message',
+        T: () => EntityKeypair,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'session_presentations',
+        kind: 'message',
+        T: () => SessionPresentation,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * UpdateDisplayNameOp changes the local provider account display name.
@@ -183,13 +184,12 @@ export interface UpdateDisplayNameOp {
   displayName?: string
 }
 
-// UpdateDisplayNameOp contains the message type declaration for UpdateDisplayNameOp.
 export const UpdateDisplayNameOp: MessageType<UpdateDisplayNameOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'account.settings.UpdateDisplayNameOp',
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -207,13 +207,12 @@ export interface RemovePairedDeviceOp {
   peerId?: string
 }
 
-// RemovePairedDeviceOp contains the message type declaration for RemovePairedDeviceOp.
 export const RemovePairedDeviceOp: MessageType<RemovePairedDeviceOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'account.settings.RemovePairedDeviceOp',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -231,13 +230,12 @@ export interface RemoveEntityKeypairOp {
   peerId?: string
 }
 
-// RemoveEntityKeypairOp contains the message type declaration for RemoveEntityKeypairOp.
 export const RemoveEntityKeypairOp: MessageType<RemoveEntityKeypairOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'account.settings.RemoveEntityKeypairOp',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -255,13 +253,12 @@ export interface RemoveSessionPresentationOp {
   peerId?: string
 }
 
-// RemoveSessionPresentationOp contains the message type declaration for RemoveSessionPresentationOp.
 export const RemoveSessionPresentationOp: MessageType<RemoveSessionPresentationOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'account.settings.RemoveSessionPresentationOp',
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -345,9 +342,8 @@ export interface AccountSettingsOp {
       }
 }
 
-// AccountSettingsOp contains the message type declaration for AccountSettingsOp.
 export const AccountSettingsOp: MessageType<AccountSettingsOp> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'account.settings.AccountSettingsOp',
     fields: [
       {
@@ -399,6 +395,6 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         T: () => RemoveSessionPresentationOp,
         oneof: 'op',
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

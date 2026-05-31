@@ -3,8 +3,9 @@
 /* eslint-disable */
 
 import { Config } from '../forwarding/forwarding.pb.js'
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import { createMessageType } from '@aptre/protobuf-es-lite'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import type { ControllerStatus } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
 import { ControllerStatus_Enum } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
 import { Config as Config$1 } from '../listening/listening.pb.js'
@@ -26,13 +27,12 @@ export interface ForwardStreamsRequest {
   forwardingConfig?: Config
 }
 
-// ForwardStreamsRequest contains the message type declaration for ForwardStreamsRequest.
 export const ForwardStreamsRequest: MessageType<ForwardStreamsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'stream.api.ForwardStreamsRequest',
     fields: [
       { no: 1, name: 'forwarding_config', kind: 'message', T: () => Config },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -50,9 +50,8 @@ export interface ForwardStreamsResponse {
   controllerStatus?: ControllerStatus
 }
 
-// ForwardStreamsResponse contains the message type declaration for ForwardStreamsResponse.
 export const ForwardStreamsResponse: MessageType<ForwardStreamsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'stream.api.ForwardStreamsResponse',
     fields: [
       {
@@ -61,7 +60,7 @@ export const ForwardStreamsResponse: MessageType<ForwardStreamsResponse> =
         kind: 'enum',
         T: ControllerStatus_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -77,13 +76,12 @@ export interface ListenStreamsRequest {
   listeningConfig?: Config$1
 }
 
-// ListenStreamsRequest contains the message type declaration for ListenStreamsRequest.
 export const ListenStreamsRequest: MessageType<ListenStreamsRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'stream.api.ListenStreamsRequest',
     fields: [
       { no: 1, name: 'listening_config', kind: 'message', T: () => Config$1 },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -101,9 +99,8 @@ export interface ListenStreamsResponse {
   controllerStatus?: ControllerStatus
 }
 
-// ListenStreamsResponse contains the message type declaration for ListenStreamsResponse.
 export const ListenStreamsResponse: MessageType<ListenStreamsResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'stream.api.ListenStreamsResponse',
     fields: [
       {
@@ -112,7 +109,7 @@ export const ListenStreamsResponse: MessageType<ListenStreamsResponse> =
         kind: 'enum',
         T: ControllerStatus_Enum,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -137,14 +134,13 @@ export interface AcceptStreamRequest {
   data?: Data
 }
 
-// AcceptStreamRequest contains the message type declaration for AcceptStreamRequest.
 export const AcceptStreamRequest: MessageType<AcceptStreamRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'stream.api.AcceptStreamRequest',
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config$2 },
       { no: 2, name: 'data', kind: 'message', T: () => Data },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -162,13 +158,12 @@ export interface AcceptStreamResponse {
   data?: Data
 }
 
-// AcceptStreamResponse contains the message type declaration for AcceptStreamResponse.
 export const AcceptStreamResponse: MessageType<AcceptStreamResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'stream.api.AcceptStreamResponse',
     fields: [
       { no: 1, name: 'data', kind: 'message', T: () => Data },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -193,14 +188,13 @@ export interface DialStreamRequest {
   data?: Data
 }
 
-// DialStreamRequest contains the message type declaration for DialStreamRequest.
 export const DialStreamRequest: MessageType<DialStreamRequest> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'stream.api.DialStreamRequest',
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config$3 },
       { no: 2, name: 'data', kind: 'message', T: () => Data },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -218,12 +212,11 @@ export interface DialStreamResponse {
   data?: Data
 }
 
-// DialStreamResponse contains the message type declaration for DialStreamResponse.
 export const DialStreamResponse: MessageType<DialStreamResponse> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'stream.api.DialStreamResponse',
     fields: [
       { no: 1, name: 'data', kind: 'message', T: () => Data },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

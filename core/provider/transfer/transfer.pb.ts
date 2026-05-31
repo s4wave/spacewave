@@ -2,13 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/transfer/transfer.proto (package provider.transfer, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType, PartialFieldInfo } from '@aptre/protobuf-es-lite'
-import {
-  createEnumType,
-  createMessageType,
-  ScalarType,
-} from '@aptre/protobuf-es-lite'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { SharedObjectMeta } from '../../sobject/sobject.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'provider.transfer'
 
@@ -47,14 +46,13 @@ export enum TransferMode {
   TransferMode_MIRROR = 3,
 }
 
-// TransferMode_Enum is the enum type for TransferMode.
-export const TransferMode_Enum = createEnumType(
+export const TransferMode_Enum = /* @__PURE__ */ createEnumType(
   'provider.transfer.TransferMode',
   [
-    { no: 0, name: 'TransferMode_UNKNOWN' },
-    { no: 1, name: 'TransferMode_MERGE' },
-    { no: 2, name: 'TransferMode_MIGRATE' },
-    { no: 3, name: 'TransferMode_MIRROR' },
+    [0, 'TransferMode_UNKNOWN'],
+    [1, 'TransferMode_MERGE'],
+    [2, 'TransferMode_MIGRATE'],
+    [3, 'TransferMode_MIRROR'],
   ],
 )
 
@@ -114,17 +112,16 @@ export enum TransferPhase {
   TransferPhase_FAILED = 6,
 }
 
-// TransferPhase_Enum is the enum type for TransferPhase.
-export const TransferPhase_Enum = createEnumType(
+export const TransferPhase_Enum = /* @__PURE__ */ createEnumType(
   'provider.transfer.TransferPhase',
   [
-    { no: 0, name: 'TransferPhase_IDLE' },
-    { no: 1, name: 'TransferPhase_SCANNING' },
-    { no: 2, name: 'TransferPhase_COPYING_BLOCKS' },
-    { no: 3, name: 'TransferPhase_COPYING_SO' },
-    { no: 4, name: 'TransferPhase_CLEANUP' },
-    { no: 5, name: 'TransferPhase_COMPLETE' },
-    { no: 6, name: 'TransferPhase_FAILED' },
+    [0, 'TransferPhase_IDLE'],
+    [1, 'TransferPhase_SCANNING'],
+    [2, 'TransferPhase_COPYING_BLOCKS'],
+    [3, 'TransferPhase_COPYING_SO'],
+    [4, 'TransferPhase_CLEANUP'],
+    [5, 'TransferPhase_COMPLETE'],
+    [6, 'TransferPhase_FAILED'],
   ],
 )
 
@@ -172,9 +169,8 @@ export interface SpaceTransferState {
   meta?: SharedObjectMeta
 }
 
-// SpaceTransferState contains the message type declaration for SpaceTransferState.
 export const SpaceTransferState: MessageType<SpaceTransferState> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.transfer.SpaceTransferState',
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
@@ -183,7 +179,7 @@ export const SpaceTransferState: MessageType<SpaceTransferState> =
       { no: 4, name: 'blocks_total', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'meta', kind: 'message', T: () => SharedObjectMeta },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
@@ -231,35 +227,35 @@ export interface TransferState {
   errorMessage?: string
 }
 
-// TransferState contains the message type declaration for TransferState.
-export const TransferState: MessageType<TransferState> = createMessageType({
-  typeName: 'provider.transfer.TransferState',
-  fields: [
-    { no: 1, name: 'mode', kind: 'enum', T: TransferMode_Enum },
-    { no: 2, name: 'phase', kind: 'enum', T: TransferPhase_Enum },
-    {
-      no: 3,
-      name: 'source_session_index',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    {
-      no: 4,
-      name: 'target_session_index',
-      kind: 'scalar',
-      T: ScalarType.UINT32,
-    },
-    {
-      no: 5,
-      name: 'spaces',
-      kind: 'message',
-      T: () => SpaceTransferState,
-      repeated: true,
-    },
-    { no: 6, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
-  ] as readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const TransferState: MessageType<TransferState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.transfer.TransferState',
+    fields: [
+      { no: 1, name: 'mode', kind: 'enum', T: TransferMode_Enum },
+      { no: 2, name: 'phase', kind: 'enum', T: TransferPhase_Enum },
+      {
+        no: 3,
+        name: 'source_session_index',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 4,
+        name: 'target_session_index',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 5,
+        name: 'spaces',
+        kind: 'message',
+        T: () => SpaceTransferState,
+        repeated: true,
+      },
+      { no: 6, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * TransferCheckpoint persists transfer progress for resumability.
@@ -287,9 +283,8 @@ export interface TransferCheckpoint {
   currentSpaceIndex?: number
 }
 
-// TransferCheckpoint contains the message type declaration for TransferCheckpoint.
 export const TransferCheckpoint: MessageType<TransferCheckpoint> =
-  createMessageType({
+  /* @__PURE__ */ createMessageType({
     typeName: 'provider.transfer.TransferCheckpoint',
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => TransferState },
@@ -306,6 +301,6 @@ export const TransferCheckpoint: MessageType<TransferCheckpoint> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-    ] as readonly PartialFieldInfo[],
+    ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
