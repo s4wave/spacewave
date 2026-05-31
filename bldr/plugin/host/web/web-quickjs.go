@@ -259,11 +259,13 @@ func (h *WebQuickJSHost) ExecutePlugin(
 			WorkerType: web_document.WebWorkerType_WEB_WORKER_TYPE_QUICKJS,
 		})
 		if err != nil {
+			workerOwner.observeCreateFailed(webDocumentID)
 			le.WithError(err).Warn("unable to create QuickJS web worker")
 			return err
 		}
 		// nil, nil means document is hidden - return nil to wait for visibility change
 		if createdWorker == nil {
+			workerOwner.observeCreateSkipped(webDocumentID, true)
 			le.Debug("document is hidden, waiting for visibility")
 			return nil
 		}
@@ -406,6 +408,12 @@ func (h *WebQuickJSHost) ExecutePlugin(
 				}
 			}
 			if workerInstance != nil && workerInstance.GetFailed() {
+				unlock, err := cmtx.Lock(ctx)
+				if err != nil {
+					return err
+				}
+				workerOwner.observeWorkerFailed(webDocumentID)
+				unlock()
 				return webWorkerFailureError(workerInstance, "QuickJS web worker failed")
 			}
 		}
