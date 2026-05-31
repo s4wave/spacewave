@@ -25,7 +25,7 @@
     },
     {
       "name": "@aptre/protobuf-es-lite",
-      "version": "1.0.2",
+      "version": "1.1.0",
       "spdx": "Apache-2.0",
       "source": "js",
       "repo": "https://github.com/aperturerobotics/protobuf-es-lite",
@@ -68,7 +68,7 @@
     },
     {
       "name": "@lexical/clipboard",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -76,7 +76,7 @@
     },
     {
       "name": "@lexical/code",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -84,7 +84,7 @@
     },
     {
       "name": "@lexical/code-core",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -92,7 +92,7 @@
     },
     {
       "name": "@lexical/code-prism",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -100,7 +100,7 @@
     },
     {
       "name": "@lexical/code-shiki",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -108,7 +108,7 @@
     },
     {
       "name": "@lexical/dragon",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -116,7 +116,7 @@
     },
     {
       "name": "@lexical/extension",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -124,7 +124,7 @@
     },
     {
       "name": "@lexical/history",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -132,7 +132,7 @@
     },
     {
       "name": "@lexical/html",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -140,7 +140,7 @@
     },
     {
       "name": "@lexical/link",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -148,7 +148,7 @@
     },
     {
       "name": "@lexical/list",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -156,7 +156,7 @@
     },
     {
       "name": "@lexical/markdown",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -164,7 +164,7 @@
     },
     {
       "name": "@lexical/react",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -172,7 +172,7 @@
     },
     {
       "name": "@lexical/rich-text",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -180,7 +180,7 @@
     },
     {
       "name": "@lexical/selection",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -188,7 +188,7 @@
     },
     {
       "name": "@lexical/table",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -196,7 +196,7 @@
     },
     {
       "name": "@lexical/text",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -204,7 +204,7 @@
     },
     {
       "name": "@lexical/utils",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -844,7 +844,7 @@
     },
     {
       "name": "github.com/aperturerobotics/controllerbus",
-      "version": "v0.53.3",
+      "version": "v0.53.4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/controllerbus",
@@ -923,7 +923,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs",
-      "version": "v0.0.0-20260522152758-b187f2b431ff",
+      "version": "v0.0.0-20260530012506-6bf78593427c",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-quickjs-wasi-reactor",
@@ -963,7 +963,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.49.16-0.20260528143940-9eed94e2b09a",
+      "version": "v0.49.16",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -971,7 +971,7 @@
     },
     {
       "name": "github.com/aperturerobotics/util",
-      "version": "v1.34.7-0.20260530185007-da6d29f33ebf",
+      "version": "v1.34.7",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/util",
@@ -1332,7 +1332,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3",
-      "version": "v0.34.2",
+      "version": "v0.34.3",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3",
@@ -1340,7 +1340,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3-wasm/v2",
-      "version": "v2.4.35301",
+      "version": "v2.5.35301",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3-wasm",
@@ -1372,7 +1372,7 @@
     },
     {
       "name": "github.com/pierrec/lz4/v4",
-      "version": "v4.1.26",
+      "version": "v4.1.27",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/pierrec/lz4",
@@ -1894,7 +1894,7 @@
     },
     {
       "name": "lexical",
-      "version": "0.44.0",
+      "version": "0.45.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
