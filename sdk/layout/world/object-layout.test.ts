@@ -4,6 +4,7 @@ import { jsonModelToLayoutModel, layoutModelToJsonModel } from '../layout.js'
 import { ObjectLayoutTab } from './world.pb.js'
 import {
   createObjectLayoutAddTabRequest,
+  createObjectLayoutReplaceTabRequest,
   createObjectLayoutTabDef,
   createSingleRowObjectLayout,
   serializeObjectLayout,
@@ -66,6 +67,43 @@ describe('object layout helpers', () => {
     )
     expect(payload.componentId).toBe('glados.llm-session')
     expect(payload.path).toBe('/chat')
+  })
+
+  it('builds ObjectLayout replace-tab requests that clear or preserve component selection explicitly', () => {
+    const ordinary = createObjectLayoutReplaceTabRequest({
+      tabId: 'current',
+      name: 'Files',
+      objectKey: 'files',
+      objectType: 'unixfs/fs-node',
+      path: '/docs',
+    })
+    expect(ordinary.tabId).toBe('current')
+    expect(ordinary.tab?.id).toBe('current')
+    const ordinaryPayload = ObjectLayoutTab.fromBinary(
+      ordinary.tab?.data ?? new Uint8Array(),
+    )
+    expect(ordinaryPayload.componentId).toBeUndefined()
+    expect(ordinaryPayload.path).toBe('/docs')
+    expect(ordinaryPayload.objectInfo?.info).toMatchObject({
+      case: 'worldObjectInfo',
+      value: {
+        objectKey: 'files',
+        objectType: 'unixfs/fs-node',
+      },
+    })
+
+    const explicit = createObjectLayoutReplaceTabRequest({
+      tabId: 'current',
+      name: 'Files',
+      objectKey: 'files',
+      objectType: 'unixfs/fs-node',
+      componentID: 'spacewave.files.preview',
+      path: '/docs',
+    })
+    const explicitPayload = ObjectLayoutTab.fromBinary(
+      explicit.tab?.data ?? new Uint8Array(),
+    )
+    expect(explicitPayload.componentId).toBe('spacewave.files.preview')
   })
 
   it('round-trips authored dashboard tabs through layout serialization', () => {

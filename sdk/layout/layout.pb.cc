@@ -66,6 +66,24 @@ struct TabDefDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TabDefDefaultTypeInternal _TabDef_default_instance_;
 template <typename>
+PROTOBUF_CONSTEXPR ReplaceTabResponse::ReplaceTabResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(ReplaceTabResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct ReplaceTabResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReplaceTabResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReplaceTabResponseDefaultTypeInternal() {}
+  union {
+    ReplaceTabResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReplaceTabResponseDefaultTypeInternal _ReplaceTabResponse_default_instance_;
+template <typename>
 PROTOBUF_CONSTEXPR NavigateTabResponse::NavigateTabResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::internal::ZeroFieldsBase(NavigateTabResponse_class_data_.base()){}
@@ -190,6 +208,34 @@ struct TabSetDefDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TabSetDefDefaultTypeInternal _TabSetDef_default_instance_;
+
+inline constexpr ReplaceTabRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        tab_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        tab_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReplaceTabRequest::ReplaceTabRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReplaceTabRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReplaceTabRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReplaceTabRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReplaceTabRequestDefaultTypeInternal() {}
+  union {
+    ReplaceTabRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReplaceTabRequestDefaultTypeInternal _ReplaceTabRequest_default_instance_;
 
 inline constexpr LayoutLocalState::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -432,6 +478,14 @@ const ::uint32_t
         1,
         0x000, // bitmap
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::layout::ReplaceTabRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::layout::ReplaceTabRequest, _impl_.tab_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::layout::ReplaceTabRequest, _impl_.tab_),
+        0,
+        1,
+        0x000, // bitmap
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::layout::AddTabRequest, _impl_._has_bits_),
         7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::layout::AddTabRequest, _impl_.tab_set_id_),
@@ -536,22 +590,26 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::s4wave::layout::NavigateTabRequest)},
         {7, sizeof(::s4wave::layout::NavigateTabResponse)},
-        {8, sizeof(::s4wave::layout::AddTabRequest)},
-        {19, sizeof(::s4wave::layout::AddTabResponse)},
-        {24, sizeof(::s4wave::layout::WatchLayoutModelRequest)},
-        {28, sizeof(::s4wave::layout::LayoutModel)},
-        {35, sizeof(::s4wave::layout::LayoutSnapshot)},
-        {42, sizeof(::s4wave::layout::LayoutLocalState_TabSetSelectionsEntry_DoNotUse)},
-        {49, sizeof(::s4wave::layout::LayoutLocalState)},
-        {58, sizeof(::s4wave::layout::BorderDef)},
-        {69, sizeof(::s4wave::layout::TabDef)},
-        {82, sizeof(::s4wave::layout::RowDef)},
-        {91, sizeof(::s4wave::layout::TabSetDef)},
-        {102, sizeof(::s4wave::layout::RowOrTabSetDef)},
+        {8, sizeof(::s4wave::layout::ReplaceTabRequest)},
+        {15, sizeof(::s4wave::layout::ReplaceTabResponse)},
+        {16, sizeof(::s4wave::layout::AddTabRequest)},
+        {27, sizeof(::s4wave::layout::AddTabResponse)},
+        {32, sizeof(::s4wave::layout::WatchLayoutModelRequest)},
+        {36, sizeof(::s4wave::layout::LayoutModel)},
+        {43, sizeof(::s4wave::layout::LayoutSnapshot)},
+        {50, sizeof(::s4wave::layout::LayoutLocalState_TabSetSelectionsEntry_DoNotUse)},
+        {57, sizeof(::s4wave::layout::LayoutLocalState)},
+        {66, sizeof(::s4wave::layout::BorderDef)},
+        {77, sizeof(::s4wave::layout::TabDef)},
+        {90, sizeof(::s4wave::layout::RowDef)},
+        {99, sizeof(::s4wave::layout::TabSetDef)},
+        {110, sizeof(::s4wave::layout::RowOrTabSetDef)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::layout::_NavigateTabRequest_default_instance_._instance,
     &::s4wave::layout::_NavigateTabResponse_default_instance_._instance,
+    &::s4wave::layout::_ReplaceTabRequest_default_instance_._instance,
+    &::s4wave::layout::_ReplaceTabResponse_default_instance_._instance,
     &::s4wave::layout::_AddTabRequest_default_instance_._instance,
     &::s4wave::layout::_AddTabResponse_default_instance_._instance,
     &::s4wave::layout::_WatchLayoutModelRequest_default_instance_._instance,
@@ -570,59 +628,63 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fl
     "\n3github.com/s4wave/spacewave/sdk/layout"
     "/layout.proto\022\rs4wave.layout\"2\n\022Navigate"
     "TabRequest\022\016\n\006tab_id\030\001 \001(\t\022\014\n\004path\030\002 \001(\t"
-    "\"\025\n\023NavigateTabResponse\"m\n\rAddTabRequest"
-    "\022\022\n\ntab_set_id\030\001 \001(\t\022\"\n\003tab\030\002 \001(\0132\025.s4wa"
-    "ve.layout.TabDef\022\024\n\014after_tab_id\030\003 \001(\t\022\016"
-    "\n\006select\030\004 \001(\010\" \n\016AddTabResponse\022\016\n\006tab_"
-    "id\030\001 \001(\t\"R\n\027WatchLayoutModelRequest\022/\n\ts"
-    "et_model\030\001 \001(\0132\032.s4wave.layout.LayoutMod"
-    "elH\000B\006\n\004body\"_\n\013LayoutModel\022)\n\007borders\030\001"
-    " \003(\0132\030.s4wave.layout.BorderDef\022%\n\006layout"
-    "\030\002 \001(\0132\025.s4wave.layout.RowDef\"q\n\016LayoutS"
-    "napshot\022)\n\005model\030\001 \001(\0132\032.s4wave.layout.L"
-    "ayoutModel\0224\n\013local_state\030\002 \001(\0132\037.s4wave"
-    ".layout.LayoutLocalState\"\327\001\n\020LayoutLocal"
-    "State\022\031\n\021active_tab_set_id\030\001 \001(\t\022Q\n\022tab_"
-    "set_selections\030\002 \003(\01325.s4wave.layout.Lay"
-    "outLocalState.TabSetSelectionsEntry\022\034\n\024m"
-    "aximized_tab_set_id\030\003 \001(\t\0327\n\025TabSetSelec"
-    "tionsEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\002"
-    "8\001\"\214\001\n\tBorderDef\0226\n\017border_location\030\001 \001("
-    "\0162\035.s4wave.layout.BorderLocation\022\'\n\010chil"
-    "dren\030\002 \003(\0132\025.s4wave.layout.TabDef\022\020\n\010sel"
-    "ected\030\003 \001(\005\022\014\n\004hide\030\004 \001(\010\"Y\n\006TabDef\022\n\n\002i"
-    "d\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\021\n\thelp_text\030\003 \001(\t"
-    "\022\024\n\014enable_close\030\004 \001(\010\022\014\n\004data\030\005 \001(\014\"U\n\006"
-    "RowDef\022\n\n\002id\030\001 \001(\t\022/\n\010children\030\002 \003(\0132\035.s"
-    "4wave.layout.RowOrTabSetDef\022\016\n\006weight\030\003 "
-    "\001(\002\"^\n\tTabSetDef\022\n\n\002id\030\001 \001(\t\022\014\n\004name\030\002 \001"
-    "(\t\022\016\n\006weight\030\003 \001(\002\022\'\n\010children\030\004 \003(\0132\025.s"
-    "4wave.layout.TabDef\"k\n\016RowOrTabSetDef\022$\n"
-    "\003row\030\001 \001(\0132\025.s4wave.layout.RowDefH\000\022+\n\007t"
-    "ab_set\030\002 \001(\0132\030.s4wave.layout.TabSetDefH\000"
-    "B\006\n\004node*v\n\016BorderLocation\022\026\n\022BorderLoca"
-    "tion_TOP\020\000\022\031\n\025BorderLocation_BOTTOM\020\001\022\027\n"
-    "\023BorderLocation_LEFT\020\002\022\030\n\024BorderLocation"
-    "_RIGHT\020\0032\213\002\n\nLayoutHost\022\\\n\020WatchLayoutMo"
-    "del\022&.s4wave.layout.WatchLayoutModelRequ"
-    "est\032\032.s4wave.layout.LayoutModel\"\000(\0010\001\022V\n"
-    "\013NavigateTab\022!.s4wave.layout.NavigateTab"
-    "Request\032\".s4wave.layout.NavigateTabRespo"
-    "nse\"\000\022G\n\006AddTab\022\034.s4wave.layout.AddTabRe"
-    "quest\032\035.s4wave.layout.AddTabResponse\"\000b\006"
-    "proto3"
+    "\"\025\n\023NavigateTabResponse\"G\n\021ReplaceTabReq"
+    "uest\022\016\n\006tab_id\030\001 \001(\t\022\"\n\003tab\030\002 \001(\0132\025.s4wa"
+    "ve.layout.TabDef\"\024\n\022ReplaceTabResponse\"m"
+    "\n\rAddTabRequest\022\022\n\ntab_set_id\030\001 \001(\t\022\"\n\003t"
+    "ab\030\002 \001(\0132\025.s4wave.layout.TabDef\022\024\n\014after"
+    "_tab_id\030\003 \001(\t\022\016\n\006select\030\004 \001(\010\" \n\016AddTabR"
+    "esponse\022\016\n\006tab_id\030\001 \001(\t\"R\n\027WatchLayoutMo"
+    "delRequest\022/\n\tset_model\030\001 \001(\0132\032.s4wave.l"
+    "ayout.LayoutModelH\000B\006\n\004body\"_\n\013LayoutMod"
+    "el\022)\n\007borders\030\001 \003(\0132\030.s4wave.layout.Bord"
+    "erDef\022%\n\006layout\030\002 \001(\0132\025.s4wave.layout.Ro"
+    "wDef\"q\n\016LayoutSnapshot\022)\n\005model\030\001 \001(\0132\032."
+    "s4wave.layout.LayoutModel\0224\n\013local_state"
+    "\030\002 \001(\0132\037.s4wave.layout.LayoutLocalState\""
+    "\327\001\n\020LayoutLocalState\022\031\n\021active_tab_set_i"
+    "d\030\001 \001(\t\022Q\n\022tab_set_selections\030\002 \003(\01325.s4"
+    "wave.layout.LayoutLocalState.TabSetSelec"
+    "tionsEntry\022\034\n\024maximized_tab_set_id\030\003 \001(\t"
+    "\0327\n\025TabSetSelectionsEntry\022\013\n\003key\030\001 \001(\t\022\r"
+    "\n\005value\030\002 \001(\t:\0028\001\"\214\001\n\tBorderDef\0226\n\017borde"
+    "r_location\030\001 \001(\0162\035.s4wave.layout.BorderL"
+    "ocation\022\'\n\010children\030\002 \003(\0132\025.s4wave.layou"
+    "t.TabDef\022\020\n\010selected\030\003 \001(\005\022\014\n\004hide\030\004 \001(\010"
+    "\"Y\n\006TabDef\022\n\n\002id\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\021\n\t"
+    "help_text\030\003 \001(\t\022\024\n\014enable_close\030\004 \001(\010\022\014\n"
+    "\004data\030\005 \001(\014\"U\n\006RowDef\022\n\n\002id\030\001 \001(\t\022/\n\010chi"
+    "ldren\030\002 \003(\0132\035.s4wave.layout.RowOrTabSetD"
+    "ef\022\016\n\006weight\030\003 \001(\002\"^\n\tTabSetDef\022\n\n\002id\030\001 "
+    "\001(\t\022\014\n\004name\030\002 \001(\t\022\016\n\006weight\030\003 \001(\002\022\'\n\010chi"
+    "ldren\030\004 \003(\0132\025.s4wave.layout.TabDef\"k\n\016Ro"
+    "wOrTabSetDef\022$\n\003row\030\001 \001(\0132\025.s4wave.layou"
+    "t.RowDefH\000\022+\n\007tab_set\030\002 \001(\0132\030.s4wave.lay"
+    "out.TabSetDefH\000B\006\n\004node*v\n\016BorderLocatio"
+    "n\022\026\n\022BorderLocation_TOP\020\000\022\031\n\025BorderLocat"
+    "ion_BOTTOM\020\001\022\027\n\023BorderLocation_LEFT\020\002\022\030\n"
+    "\024BorderLocation_RIGHT\020\0032\340\002\n\nLayoutHost\022\\"
+    "\n\020WatchLayoutModel\022&.s4wave.layout.Watch"
+    "LayoutModelRequest\032\032.s4wave.layout.Layou"
+    "tModel\"\000(\0010\001\022V\n\013NavigateTab\022!.s4wave.lay"
+    "out.NavigateTabRequest\032\".s4wave.layout.N"
+    "avigateTabResponse\"\000\022S\n\nReplaceTab\022 .s4w"
+    "ave.layout.ReplaceTabRequest\032!.s4wave.la"
+    "yout.ReplaceTabResponse\"\000\022G\n\006AddTab\022\034.s4"
+    "wave.layout.AddTabRequest\032\035.s4wave.layou"
+    "t.AddTabResponse\"\000b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto = {
     false,
     false,
-    1726,
+    1906,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto,
     "github.com/s4wave/spacewave/sdk/layout/layout.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto_once,
     nullptr,
     0,
-    14,
+    16,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto::offsets,
@@ -1064,6 +1126,435 @@ NavigateTabResponse::_table_ = {
 
 
 ::google::protobuf::Metadata NavigateTabResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReplaceTabRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReplaceTabRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReplaceTabRequest, _impl_._has_bits_);
+};
+
+ReplaceTabRequest::ReplaceTabRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReplaceTabRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.layout.ReplaceTabRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReplaceTabRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::layout::ReplaceTabRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        tab_id_(arena, from.tab_id_) {}
+
+ReplaceTabRequest::ReplaceTabRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReplaceTabRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReplaceTabRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReplaceTabRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.tab_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tab_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.layout.ReplaceTabRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReplaceTabRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        tab_id_(arena) {}
+
+inline void ReplaceTabRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.tab_ = {};
+}
+ReplaceTabRequest::~ReplaceTabRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.layout.ReplaceTabRequest)
+  SharedDtor(*this);
+}
+inline void ReplaceTabRequest::SharedDtor(MessageLite& self) {
+  ReplaceTabRequest& this_ = static_cast<ReplaceTabRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.tab_id_.Destroy();
+  delete this_._impl_.tab_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReplaceTabRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReplaceTabRequest(arena);
+}
+constexpr auto ReplaceTabRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReplaceTabRequest),
+                                            alignof(ReplaceTabRequest));
+}
+constexpr auto ReplaceTabRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReplaceTabRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReplaceTabRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReplaceTabRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReplaceTabRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReplaceTabRequest>(), &ReplaceTabRequest::ByteSizeLong,
+              &ReplaceTabRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReplaceTabRequest, _impl_._cached_size_),
+          false,
+      },
+      &ReplaceTabRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReplaceTabRequest_class_data_ =
+        ReplaceTabRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReplaceTabRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReplaceTabRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReplaceTabRequest_class_data_.tc_table);
+  return ReplaceTabRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 46, 2>
+ReplaceTabRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReplaceTabRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    ReplaceTabRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::layout::ReplaceTabRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.layout.TabDef tab = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ReplaceTabRequest, _impl_.tab_)}},
+    // string tab_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReplaceTabRequest, _impl_.tab_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string tab_id = 1;
+    {PROTOBUF_FIELD_OFFSET(ReplaceTabRequest, _impl_.tab_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.layout.TabDef tab = 2;
+    {PROTOBUF_FIELD_OFFSET(ReplaceTabRequest, _impl_.tab_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::layout::TabDef>()},
+  }},
+  {{
+    "\37\6\0\0\0\0\0\0"
+    "s4wave.layout.ReplaceTabRequest"
+    "tab_id"
+  }},
+};
+PROTOBUF_NOINLINE void ReplaceTabRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.layout.ReplaceTabRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.tab_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.tab_ != nullptr);
+      _impl_.tab_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReplaceTabRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReplaceTabRequest& this_ = static_cast<const ReplaceTabRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReplaceTabRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReplaceTabRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.layout.ReplaceTabRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string tab_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_tab_id().empty()) {
+      const ::std::string& _s = this_._internal_tab_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.layout.ReplaceTabRequest.tab_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .s4wave.layout.TabDef tab = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.tab_, this_._impl_.tab_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.layout.ReplaceTabRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReplaceTabRequest::ByteSizeLong(const MessageLite& base) {
+  const ReplaceTabRequest& this_ = static_cast<const ReplaceTabRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReplaceTabRequest::ByteSizeLong() const {
+  const ReplaceTabRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.layout.ReplaceTabRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string tab_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_tab_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_tab_id());
+      }
+    }
+    // .s4wave.layout.TabDef tab = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tab_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReplaceTabRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReplaceTabRequest*>(&to_msg);
+  auto& from = static_cast<const ReplaceTabRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.layout.ReplaceTabRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_tab_id().empty()) {
+        _this->_internal_set_tab_id(from._internal_tab_id());
+      } else {
+        if (_this->_impl_.tab_id_.IsDefault()) {
+          _this->_internal_set_tab_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.tab_ != nullptr);
+      if (_this->_impl_.tab_ == nullptr) {
+        _this->_impl_.tab_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tab_);
+      } else {
+        _this->_impl_.tab_->MergeFrom(*from._impl_.tab_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReplaceTabRequest::CopyFrom(const ReplaceTabRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.layout.ReplaceTabRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReplaceTabRequest::InternalSwap(ReplaceTabRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.tab_id_, &other->_impl_.tab_id_, arena);
+  swap(_impl_.tab_, other->_impl_.tab_);
+}
+
+::google::protobuf::Metadata ReplaceTabRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReplaceTabResponse::_Internal {
+ public:
+};
+
+ReplaceTabResponse::ReplaceTabResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ReplaceTabResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.layout.ReplaceTabResponse)
+}
+ReplaceTabResponse::ReplaceTabResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReplaceTabResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ReplaceTabResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReplaceTabResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.layout.ReplaceTabResponse)
+}
+
+inline void* PROTOBUF_NONNULL ReplaceTabResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReplaceTabResponse(arena);
+}
+constexpr auto ReplaceTabResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ReplaceTabResponse),
+                                            alignof(ReplaceTabResponse));
+}
+constexpr auto ReplaceTabResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReplaceTabResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReplaceTabResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<ReplaceTabResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReplaceTabResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<ReplaceTabResponse>(), &ReplaceTabResponse::ByteSizeLong,
+              &ReplaceTabResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReplaceTabResponse, _impl_._cached_size_),
+          false,
+      },
+      &ReplaceTabResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReplaceTabResponse_class_data_ =
+        ReplaceTabResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReplaceTabResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReplaceTabResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReplaceTabResponse_class_data_.tc_table);
+  return ReplaceTabResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+ReplaceTabResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ReplaceTabResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::layout::ReplaceTabResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata ReplaceTabResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

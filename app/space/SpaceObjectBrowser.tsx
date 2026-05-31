@@ -15,8 +15,8 @@ import {
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import {
+  buildSpaceObjectActionTargets,
   buildObjectTree,
-  isHiddenSpaceObject,
   type ObjectTreeNode,
 } from '@s4wave/web/space/object-tree.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
@@ -71,10 +71,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
   const objects = spaceState.worldContents?.objects
   const objectCount = useMemo(() => {
     if (!objects) return 0
-    return objects.filter(
-      (o) =>
-        !isHiddenSpaceObject(o.objectKey, o.objectType, objectTypeMetadataById),
-    ).length
+    return buildSpaceObjectActionTargets(objects, objectTypeMetadataById).length
   }, [objects, objectTypeMetadataById])
 
   const openObject = useCallback(

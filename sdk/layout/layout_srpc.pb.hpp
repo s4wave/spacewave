@@ -35,6 +35,8 @@ class SRPCLayoutHostClient {
   virtual std::pair<std::unique_ptr<SRPCLayoutHost_WatchLayoutModelClient>, starpc::Error> WatchLayoutModel() = 0;
   // NavigateTab
   virtual starpc::Error NavigateTab(const s4wave::layout::NavigateTabRequest& in, s4wave::layout::NavigateTabResponse* out) = 0;
+  // ReplaceTab
+  virtual starpc::Error ReplaceTab(const s4wave::layout::ReplaceTabRequest& in, s4wave::layout::ReplaceTabResponse* out) = 0;
   // AddTab
   virtual starpc::Error AddTab(const s4wave::layout::AddTabRequest& in, s4wave::layout::AddTabResponse* out) = 0;
 };
@@ -51,6 +53,8 @@ class SRPCLayoutHostClientImpl : public SRPCLayoutHostClient {
   virtual std::pair<std::unique_ptr<SRPCLayoutHost_WatchLayoutModelClient>, starpc::Error> WatchLayoutModel() override;
   // NavigateTab
   virtual starpc::Error NavigateTab(const s4wave::layout::NavigateTabRequest& in, s4wave::layout::NavigateTabResponse* out) override;
+  // ReplaceTab
+  virtual starpc::Error ReplaceTab(const s4wave::layout::ReplaceTabRequest& in, s4wave::layout::ReplaceTabResponse* out) override;
   // AddTab
   virtual starpc::Error AddTab(const s4wave::layout::AddTabRequest& in, s4wave::layout::AddTabResponse* out) override;
 
@@ -73,6 +77,8 @@ class SRPCLayoutHostServer {
   virtual starpc::Error WatchLayoutModel(SRPCLayoutHost_WatchLayoutModelStream* strm) = 0;
   // NavigateTab
   virtual starpc::Error NavigateTab(const s4wave::layout::NavigateTabRequest& req, s4wave::layout::NavigateTabResponse* resp) = 0;
+  // ReplaceTab
+  virtual starpc::Error ReplaceTab(const s4wave::layout::ReplaceTabRequest& req, s4wave::layout::ReplaceTabResponse* resp) = 0;
   // AddTab
   virtual starpc::Error AddTab(const s4wave::layout::AddTabRequest& req, s4wave::layout::AddTabResponse* resp) = 0;
 };

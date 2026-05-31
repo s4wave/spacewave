@@ -150,16 +150,15 @@ function installFakeDedicatedWorker() {
     public onerror: ((ev: ErrorEvent) => void) | null = null
     public readonly messages: unknown[] = []
     public readonly terminate = vi.fn()
+    public readonly postMessage = vi.fn((message: unknown) => {
+      this.messages.push(message)
+    })
 
     constructor(
       public readonly url: string,
       _opts?: WorkerOptions,
     ) {
       workers.push(this)
-    }
-
-    public postMessage(message: unknown) {
-      this.messages.push(message)
     }
   }
 

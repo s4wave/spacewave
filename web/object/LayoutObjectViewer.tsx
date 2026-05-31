@@ -60,13 +60,14 @@ export function LayoutObjectViewer({
 
   // Render tab content
   const renderTab = useCallback(
-    ({ tabID, tabData, navigate, addTab }: ITabComponentProps) => {
+    ({ tabID, tabData, navigate, addTab, replaceTab }: ITabComponentProps) => {
       return (
         <TabContentContainer
           tabID={tabID}
           tabData={tabData}
           navigate={navigate}
           addTab={addTab}
+          replaceTab={replaceTab}
         />
       )
     },

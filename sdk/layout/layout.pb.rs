@@ -14,6 +14,22 @@ pub struct NavigateTabRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct NavigateTabResponse {
 }
+/// ReplaceTabRequest is a request to replace the data and presentation fields of
+/// an existing tab without moving it or changing its id.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReplaceTabRequest {
+    /// TabId is the identifier of the tab to replace.
+    #[prost(string, tag="1")]
+    pub tab_id: ::prost::alloc::string::String,
+    /// Tab contains the replacement title, help text, close flag, and data.
+    /// The existing tab keeps TabId as its id.
+    #[prost(message, optional, tag="2")]
+    pub tab: ::core::option::Option<TabDef>,
+}
+/// ReplaceTabResponse is a response to replacing a tab payload.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReplaceTabResponse {
+}
 /// AddTabRequest is a request to add a new tab to the layout.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AddTabRequest {

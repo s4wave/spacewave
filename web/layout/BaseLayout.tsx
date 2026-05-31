@@ -20,6 +20,8 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import {
   LayoutModel,
   NavigateTabResponse,
+  ReplaceTabRequest,
+  ReplaceTabResponse,
   WatchLayoutModelRequest,
   AddTabRequest,
   AddTabResponse,
@@ -59,9 +61,13 @@ export interface ITabComponentProps {
   navigate: (path: string) => Promise<NavigateTabResponse>
   // addTab is a function to add a new tab to the layout.
   addTab: (request: AddTabRequest) => Promise<AddTabResponse>
+  // replaceTab replaces the current tab payload without moving the tab.
+  replaceTab: (request: ReplaceCurrentTabRequest) => Promise<ReplaceTabResponse>
   // tabData contains an optional Uint8Array tab data protobuf message.
   tabData?: Uint8Array
 }
+
+export type ReplaceCurrentTabRequest = Omit<ReplaceTabRequest, 'tabId'>
 
 // IBaseLayoutProps are properties for BaseLayout.
 export interface IBaseLayoutProps {
@@ -107,6 +113,9 @@ class BaseLayoutTabWrapper extends PureComponent<
   private releaseCb?: () => void
   private navigate: (path: string) => Promise<NavigateTabResponse>
   private addTab: (request: AddTabRequest) => Promise<AddTabResponse>
+  private replaceTab: (
+    request: ReplaceCurrentTabRequest,
+  ) => Promise<ReplaceTabResponse>
 
   constructor(props: { tabID: string; baseLayout: BaseLayout }) {
     super(props)
@@ -121,6 +130,10 @@ class BaseLayoutTabWrapper extends PureComponent<
       props.tabID,
     )
     this.addTab = props.baseLayout.addTab.bind(props.baseLayout)
+    this.replaceTab = props.baseLayout.replaceTab.bind(
+      props.baseLayout,
+      props.tabID,
+    )
   }
 
   componentWillUnmount() {
@@ -139,6 +152,7 @@ class BaseLayoutTabWrapper extends PureComponent<
       tabID: this.props.tabID,
       navigate: this.navigate,
       addTab: this.addTab,
+      replaceTab: this.replaceTab,
       tabData: this.state.tabData,
     })
   }
@@ -300,6 +314,17 @@ export class BaseLayout extends AbortComponent<
     path: string,
   ): Promise<NavigateTabResponse> {
     return this.props.layoutHost.NavigateTab({ tabId, path })
+  }
+
+  // replaceTab replaces the payload and presentation fields for a tab.
+  public replaceTab(
+    tabId: string,
+    request: ReplaceCurrentTabRequest,
+  ): Promise<ReplaceTabResponse> {
+    if (!request.tab) {
+      return Promise.resolve({})
+    }
+    return this.props.layoutHost.ReplaceTab({ ...request, tabId })
   }
 
   // addTab adds a new tab to the layout.

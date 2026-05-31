@@ -131,6 +131,9 @@ export function ObjectViewer({
             buttonKey={viewer.buttonKeyValue}
             overlayKey={viewer.overlayKeyValue}
             menuLabel={barLabel}
+            contextMenuLabel={viewer.contextMenuLabel}
+            contextMenuKey={viewer.contextMenuKey}
+            contextMenuItems={viewer.contextMenuItems}
             onBreadcrumbClick={onBreadcrumbClick}
           >
             {frameContent}
@@ -148,6 +151,9 @@ export function ObjectViewer({
       buttonKey={viewer.buttonKeyValue}
       overlayKey={viewer.overlayKeyValue}
       menuLabel={barLabel}
+      contextMenuLabel={viewer.contextMenuLabel}
+      contextMenuKey={viewer.contextMenuKey}
+      contextMenuItems={viewer.contextMenuItems}
       onBreadcrumbClick={onBreadcrumbClick}
     >
       {namespacedInner}

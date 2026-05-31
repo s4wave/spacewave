@@ -3,7 +3,11 @@ import type {
   AddTabRequest,
   AddTabResponse,
   NavigateTabResponse,
+  ReplaceTabRequest,
+  ReplaceTabResponse,
 } from '@s4wave/sdk/layout/layout.pb.js'
+
+export type ReplaceCurrentTabRequest = Omit<ReplaceTabRequest, 'tabId'>
 
 // TabContextValue provides tab operations to descendant components.
 // Both BaseLayout (FlexLayout) and ShellTabs provide this context
@@ -15,6 +19,10 @@ export interface TabContextValue {
   addTab: (request: AddTabRequest) => Promise<AddTabResponse>
   // navigateTab navigates the current tab to a new path.
   navigateTab: (path: string) => Promise<NavigateTabResponse>
+  // replaceTab replaces the current tab payload without moving the tab.
+  replaceTab?: (
+    request: ReplaceCurrentTabRequest,
+  ) => Promise<ReplaceTabResponse>
   // isObjectLayout is true when the context is provided by an ObjectLayout tab.
   isObjectLayout?: boolean
 }

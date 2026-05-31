@@ -213,8 +213,43 @@ func ObjectLayoutFactory(
 		return &s4wave_layout.NavigateTabResponse{}, nil
 	}
 
+	// replaceTab updates the durable payload fields of one tab in the layout.
+	replaceTab := func(ctx context.Context, req *s4wave_layout.ReplaceTabRequest) (*s4wave_layout.ReplaceTabResponse, error) {
+		ctx, task := trace.NewTask(ctx, "alpha/layout/replace-tab")
+		defer task.End()
+
+		tabID := req.GetTabId()
+		replacement := req.GetTab()
+		if tabID == "" || replacement == nil {
+			return &s4wave_layout.ReplaceTabResponse{}, nil
+		}
+
+		currentModel := stateCtr.GetValue()
+		if currentModel == nil {
+			return &s4wave_layout.ReplaceTabResponse{}, nil
+		}
+
+		updatedModel := currentModel.CloneVT()
+		var replaced bool
+		{
+			_, task := trace.NewTask(ctx, "alpha/layout/replace-tab/update-model")
+			replaced = resource_layout.ReplaceLayoutModelTab(updatedModel, tabID, replacement)
+			task.End()
+		}
+		if !replaced {
+			return &s4wave_layout.ReplaceTabResponse{}, nil
+		}
+
+		if err := setLayout(ctx, updatedModel); err != nil {
+			return nil, err
+		}
+
+		return &s4wave_layout.ReplaceTabResponse{}, nil
+	}
+
 	// Create the LayoutResource
 	layoutResource := resource_layout.NewLayoutResource(stateCtr, setLayout, navigateTab)
+	layoutResource.SetReplaceTabFunc(replaceTab)
 
 	return layoutResource.GetMux(), func() {}, nil
 }

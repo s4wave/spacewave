@@ -70,7 +70,8 @@ import { SpaceSettingsEditor } from './SpaceSettingsEditor.js'
 import { SpaceDataSection } from './SpaceTransformSection.js'
 import { CreateObjectButton } from './CreateObjectButton.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import { isHiddenSpaceObject } from '@s4wave/web/space/object-tree.js'
+import { buildSpaceObjectActionTargets } from '@s4wave/web/space/object-tree.js'
+import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import { canRenameSpace } from './permissions.js'
 import {
@@ -98,6 +99,13 @@ function quickstartDiagnosticErrorMessage(error: unknown): string | null {
     return null
   }
   return error instanceof Error ? error.message : String(error)
+}
+
+export function buildObjectRoutePath(
+  parentPaths: readonly string[],
+  objectKey: string,
+): string {
+  return joinPath([...parentPaths, SUBPATH_DELIMITER, objectKey], true)
 }
 
 // SpaceContainer renders a space shared object body.
@@ -415,12 +423,7 @@ export function SpaceContainer() {
     (objectKeys: string[]) => {
       if (objectKeys.length === 0) return
 
-      navigate({
-        path: joinPath(
-          [...parentPaths, SUBPATH_DELIMITER, objectKeys[0]],
-          true,
-        ),
-      })
+      navigate({ path: buildObjectRoutePath(parentPaths, objectKeys[0]) })
     },
     [navigate, parentPaths],
   )
@@ -470,12 +473,14 @@ export function SpaceContainer() {
     }
     return spaceState
   }, [canRenderBody, objectKey, spaceState])
-  const objectCount = useMemo(() => {
-    const objects = routeSpaceState?.worldContents?.objects ?? []
-    return objects.filter(
-      (o) => !isHiddenSpaceObject(o.objectKey, o.objectType),
-    ).length
-  }, [routeSpaceState?.worldContents?.objects])
+  const spaceObjectTargets = useMemo(
+    () =>
+      buildSpaceObjectActionTargets(
+        routeSpaceState?.worldContents?.objects ?? [],
+      ),
+    [routeSpaceState?.worldContents?.objects],
+  )
+  const objectCount = spaceObjectTargets.length
 
   const handleRenameStart = useCallback(() => {
     if (!canRename) return
@@ -515,6 +520,7 @@ export function SpaceContainer() {
   )
 
   const sharedObjectDisplayKey = `${sharedObjectId}:${spaceName}`
+  const ready = canRenderBody
 
   const handleSharingClick = useCallback(() => setSharingOpen(true), [])
   const handleDeleteClick = useCallback(() => setDeleteOpen(true), [])
@@ -527,6 +533,55 @@ export function SpaceContainer() {
       setAppPath(nextPath)
     },
     [tabId, updateTabPath],
+  )
+  const switchObjectAtCurrentPosition = useCallback(
+    ({ objectKey }: { objectKey: string }) => {
+      if (!objectKey) return
+      redirectTab(buildObjectRoutePath(parentPaths, objectKey))
+    },
+    [parentPaths, redirectTab],
+  )
+  const handleOpenSpaceObject = useCallback(
+    (target: { objectKey: string }) => {
+      navigateToObjects([target.objectKey])
+    },
+    [navigateToObjects],
+  )
+  const handleSwitchSpaceObject = useCallback(
+    (target: { objectKey: string }) => {
+      switchObjectAtCurrentPosition({ objectKey: target.objectKey })
+    },
+    [switchObjectAtCurrentPosition],
+  )
+  const sharedObjectContextMenuItems = useMemo(
+    () =>
+      ready
+        ? createSpaceObjectNavigationActions({
+            targets: spaceObjectTargets,
+            currentObjectKey: objectKey,
+            openDetails: () => {},
+            openObject: handleOpenSpaceObject,
+            switchObjectHere: handleSwitchSpaceObject,
+          })
+        : undefined,
+    [
+      ready,
+      spaceObjectTargets,
+      objectKey,
+      handleOpenSpaceObject,
+      handleSwitchSpaceObject,
+    ],
+  )
+  const sharedObjectContextMenuKey = useMemo(
+    () =>
+      [
+        sharedObjectDisplayKey,
+        objectKey ?? 'none',
+        spaceObjectTargets
+          .map((target) => `${target.objectKey}:${target.objectType}`)
+          .join('|'),
+      ].join(':'),
+    [sharedObjectDisplayKey, objectKey, spaceObjectTargets],
   )
 
   const buildExportUrl = useCallback(
@@ -555,7 +610,6 @@ export function SpaceContainer() {
     }
   }, [session, sharedObjectId, sessionIndex, path, redirectTab])
 
-  const ready = canRenderBody
   const sharedObjectOverlay = useMemo(() => {
     if (!ready || !spaceWorld || !routeSpaceState) return undefined
     return (
@@ -567,6 +621,7 @@ export function SpaceContainer() {
             spaceWorld={spaceWorld}
             navigateToRoot={navigateToRoot}
             navigateToObjects={navigateToObjects}
+            switchObjectAtCurrentPosition={switchObjectAtCurrentPosition}
             spaceState={routeSpaceState}
             spaceSharingState={spaceSharingState}
             orgState={spaceOrgState}
@@ -664,6 +719,7 @@ export function SpaceContainer() {
     spaceWorld,
     navigateToRoot,
     navigateToObjects,
+    switchObjectAtCurrentPosition,
     routeSpaceState,
     spaceSharingState,
     spaceOrgState,
@@ -697,6 +753,9 @@ export function SpaceContainer() {
         buttonKey={sharedObjectDisplayKey}
         overlayKey={sharedObjectDisplayKey}
         menuLabel={spaceName}
+        contextMenuLabel={`${spaceName} actions`}
+        contextMenuKey={sharedObjectContextMenuKey}
+        contextMenuItems={sharedObjectContextMenuItems}
         onBreadcrumbClick={handleSharedObjectBreadcrumb}
       >
         <DebugInfo>
@@ -726,6 +785,7 @@ export function SpaceContainer() {
                 spaceWorld={spaceWorld}
                 navigateToRoot={navigateToRoot}
                 navigateToObjects={navigateToObjects}
+                switchObjectAtCurrentPosition={switchObjectAtCurrentPosition}
                 spaceState={routeSpaceState}
                 spaceSharingState={spaceSharingState}
                 orgState={spaceOrgState}

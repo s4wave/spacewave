@@ -9,11 +9,18 @@ import { ObjectViewer } from './ObjectViewer.js'
 import type { ObjectInfo } from './object.pb.js'
 
 const mockUseObjectViewer = vi.hoisted(() => vi.fn())
+const mockBottomBarLevel = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/web/frame/bottom-bar-level.js', () => ({
-  BottomBarLevel: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="bottom-bar-level">{children}</div>
-  ),
+  BottomBarLevel: (props: {
+    children?: ReactNode
+    contextMenuItems?: unknown
+    contextMenuKey?: unknown
+    contextMenuLabel?: unknown
+  }) => {
+    mockBottomBarLevel(props)
+    return <div data-testid="bottom-bar-level">{props.children}</div>
+  },
 }))
 
 vi.mock('@s4wave/web/frame/bottom-bar-root.js', () => ({
@@ -97,6 +104,9 @@ function buildViewerResult(overrides: Record<string, unknown> = {}) {
     overlayContent: undefined,
     buttonKeyValue: 'button',
     overlayKeyValue: 'overlay',
+    contextMenuItems: undefined,
+    contextMenuKey: 'context',
+    contextMenuLabel: 'Object actions',
     ...overrides,
   }
 }
@@ -114,6 +124,7 @@ describe('ObjectViewer', () => {
   beforeEach(() => {
     cleanup()
     mockUseObjectViewer.mockReset()
+    mockBottomBarLevel.mockReset()
   })
 
   it('renders the extracted loading state while viewer state is resolving', () => {
@@ -418,5 +429,55 @@ describe('ObjectViewer', () => {
       'objectViewer/files',
     )
     expect(screen.queryByTestId('bottom-bar-root')).toBeNull()
+  })
+
+  it('passes object context-menu actions to the bottom bar item', () => {
+    const contextMenuItems = [
+      {
+        type: 'action' as const,
+        id: 'open-details',
+        label: 'Open Details',
+        onSelect: vi.fn(),
+      },
+    ]
+    mockUseObjectViewer.mockReturnValue(
+      buildViewerResult({
+        typeID: 'unixfs/fs-node',
+        selectedComponent: {
+          componentID: 'spacewave.unixfs.viewer',
+          typeID: 'unixfs/fs-node',
+          name: 'UnixFS Viewer',
+          component: () => null,
+        },
+        contextMenuItems,
+        contextMenuKey: 'files:actions',
+        contextMenuLabel: 'files actions',
+      }),
+    )
+
+    const objectInfo: ObjectInfo = {
+      info: {
+        case: 'worldObjectInfo',
+        value: {
+          objectKey: 'files',
+          objectType: 'unixfs/fs-node',
+        },
+      },
+    }
+
+    render(
+      <ObjectViewer
+        objectInfo={objectInfo}
+        worldState={buildWorldState({} as IWorldState)}
+      />,
+    )
+
+    expect(mockBottomBarLevel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contextMenuItems,
+        contextMenuKey: 'files:actions',
+        contextMenuLabel: 'files actions',
+      }),
+    )
   })
 })

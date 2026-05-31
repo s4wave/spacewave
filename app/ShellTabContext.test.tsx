@@ -43,6 +43,21 @@ function TabPathProbe() {
   )
 }
 
+function ReplaceActiveTabPathProbe({ path }: { path: string }) {
+  const { activeTabId, tabs, updateTabPath } = useShellTabs()
+
+  useEffect(() => {
+    updateTabPath(activeTabId, path)
+  }, [activeTabId, path, updateTabPath])
+
+  return (
+    <>
+      <div data-testid="tab-count">{tabs.length}</div>
+      <div data-testid="tab-paths">{tabs.map((tab) => tab.path).join('|')}</div>
+    </>
+  )
+}
+
 describe('ShellTabContext', () => {
   afterEach(() => {
     cleanup()
@@ -124,5 +139,29 @@ describe('ShellTabContext', () => {
 
     expect(screen.getByTestId('active-tab-id').textContent).toBe('tab-1')
     expect(screen.getByTestId('tab-paths').textContent).toBe('/|/docs')
+  })
+
+  it('replaces the active tab path without creating a new tab', () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Space', path: '/u/0/so/space' },
+          { id: 'tab-2', name: 'Docs', path: '/docs' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <ReplaceActiveTabPathProbe path="/u/0/so/space/-/files" />
+      </ShellTabsProvider>,
+    )
+
+    expect(screen.getByTestId('tab-count').textContent).toBe('2')
+    expect(screen.getByTestId('tab-paths').textContent).toBe(
+      '/u/0/so/space/-/files|/docs',
+    )
   })
 })

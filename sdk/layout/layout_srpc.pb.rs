@@ -28,6 +28,8 @@ pub trait LayoutHostClient: Send + Sync {
     async fn watch_layout_model(&self) -> starpc::Result<Box<dyn LayoutHostWatchLayoutModelStream>>;
     /// NavigateTab.
     async fn navigate_tab(&self, request: &NavigateTabRequest) -> starpc::Result<NavigateTabResponse>;
+    /// ReplaceTab.
+    async fn replace_tab(&self, request: &ReplaceTabRequest) -> starpc::Result<ReplaceTabResponse>;
     /// AddTab.
     async fn add_tab(&self, request: &AddTabRequest) -> starpc::Result<AddTabResponse>;
 }
@@ -52,6 +54,9 @@ impl<C: starpc::Client + 'static> LayoutHostClient for LayoutHostClientImpl<C> {
     }
     async fn navigate_tab(&self, request: &NavigateTabRequest) -> starpc::Result<NavigateTabResponse> {
         self.client.exec_call("s4wave.layout.LayoutHost", "NavigateTab", request).await
+    }
+    async fn replace_tab(&self, request: &ReplaceTabRequest) -> starpc::Result<ReplaceTabResponse> {
+        self.client.exec_call("s4wave.layout.LayoutHost", "ReplaceTab", request).await
     }
     async fn add_tab(&self, request: &AddTabRequest) -> starpc::Result<AddTabResponse> {
         self.client.exec_call("s4wave.layout.LayoutHost", "AddTab", request).await
@@ -85,6 +90,8 @@ pub trait LayoutHostServer: Send + Sync {
     async fn watch_layout_model(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// NavigateTab.
     async fn navigate_tab(&self, request: NavigateTabRequest) -> starpc::Result<NavigateTabResponse>;
+    /// ReplaceTab.
+    async fn replace_tab(&self, request: ReplaceTabRequest) -> starpc::Result<ReplaceTabResponse>;
     /// AddTab.
     async fn add_tab(&self, request: AddTabRequest) -> starpc::Result<AddTabResponse>;
 }
@@ -92,6 +99,7 @@ pub trait LayoutHostServer: Send + Sync {
 const LAYOUT_HOST_METHOD_IDS: &[&str] = &[
     "WatchLayoutModel",
     "NavigateTab",
+    "ReplaceTab",
     "AddTab",
 ];
 
@@ -130,6 +138,21 @@ impl<S: LayoutHostServer + 'static> starpc::Invoker for LayoutHostHandler<S> {
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.navigate_tab(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ReplaceTab" => {
+                let request: ReplaceTabRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.replace_tab(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

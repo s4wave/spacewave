@@ -103,6 +103,48 @@ func (x *NavigateTabResponse) Reset() {
 
 func (*NavigateTabResponse) ProtoMessage() {}
 
+// ReplaceTabRequest is a request to replace the data and presentation fields of
+// an existing tab without moving it or changing its id.
+type ReplaceTabRequest struct {
+	unknownFields []byte
+	// TabId is the identifier of the tab to replace.
+	TabId string `protobuf:"bytes,1,opt,name=tab_id,json=tabId,proto3" json:"tabId,omitempty"`
+	// Tab contains the replacement title, help text, close flag, and data.
+	// The existing tab keeps TabId as its id.
+	Tab *TabDef `protobuf:"bytes,2,opt,name=tab,proto3" json:"tab,omitempty"`
+}
+
+func (x *ReplaceTabRequest) Reset() {
+	*x = ReplaceTabRequest{}
+}
+
+func (*ReplaceTabRequest) ProtoMessage() {}
+
+func (x *ReplaceTabRequest) GetTabId() string {
+	if x != nil {
+		return x.TabId
+	}
+	return ""
+}
+
+func (x *ReplaceTabRequest) GetTab() *TabDef {
+	if x != nil {
+		return x.Tab
+	}
+	return nil
+}
+
+// ReplaceTabResponse is a response to replacing a tab payload.
+type ReplaceTabResponse struct {
+	unknownFields []byte
+}
+
+func (x *ReplaceTabResponse) Reset() {
+	*x = ReplaceTabResponse{}
+}
+
+func (*ReplaceTabResponse) ProtoMessage() {}
+
 // AddTabRequest is a request to add a new tab to the layout.
 type AddTabRequest struct {
 	unknownFields []byte
@@ -612,6 +654,38 @@ func (m *NavigateTabResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *ReplaceTabRequest) CloneVT() *ReplaceTabRequest {
+	if m == nil {
+		return (*ReplaceTabRequest)(nil)
+	}
+	r := new(ReplaceTabRequest)
+	r.TabId = m.TabId
+	r.Tab = m.Tab.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplaceTabRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReplaceTabResponse) CloneVT() *ReplaceTabResponse {
+	if m == nil {
+		return (*ReplaceTabResponse)(nil)
+	}
+	r := new(ReplaceTabResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplaceTabResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *AddTabRequest) CloneVT() *AddTabRequest {
 	if m == nil {
 		return (*AddTabRequest)(nil)
@@ -910,6 +984,46 @@ func (this *NavigateTabResponse) EqualVT(that *NavigateTabResponse) bool {
 
 func (this *NavigateTabResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*NavigateTabResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplaceTabRequest) EqualVT(that *ReplaceTabRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.TabId != that.TabId {
+		return false
+	}
+	if !this.Tab.EqualVT(that.Tab) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplaceTabRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplaceTabRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplaceTabResponse) EqualVT(that *ReplaceTabResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplaceTabResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplaceTabResponse)
 	if !ok {
 		return false
 	}
@@ -1468,6 +1582,90 @@ func (x *NavigateTabResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the NavigateTabResponse from JSON.
 func (x *NavigateTabResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplaceTabRequest message to JSON.
+func (x *ReplaceTabRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TabId != "" || s.HasField("tabId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tabId")
+		s.WriteString(x.TabId)
+	}
+	if x.Tab != nil || s.HasField("tab") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tab")
+		x.Tab.MarshalProtoJSON(s.WithField("tab"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplaceTabRequest to JSON.
+func (x *ReplaceTabRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplaceTabRequest message from JSON.
+func (x *ReplaceTabRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "tab_id", "tabId":
+			s.AddField("tab_id")
+			x.TabId = s.ReadString()
+		case "tab":
+			if s.ReadNil() {
+				x.Tab = nil
+				return
+			}
+			x.Tab = &TabDef{}
+			x.Tab.UnmarshalProtoJSON(s.WithField("tab", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplaceTabRequest from JSON.
+func (x *ReplaceTabRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplaceTabResponse message to JSON.
+func (x *ReplaceTabResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplaceTabResponse to JSON.
+func (x *ReplaceTabResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplaceTabResponse message from JSON.
+func (x *ReplaceTabResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplaceTabResponse from JSON.
+func (x *ReplaceTabResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2360,6 +2558,89 @@ func (m *NavigateTabResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ReplaceTabRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplaceTabRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplaceTabRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Tab != nil {
+		size, err := m.Tab.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.TabId) > 0 {
+		i -= len(m.TabId)
+		copy(dAtA[i:], m.TabId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TabId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReplaceTabResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplaceTabResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplaceTabResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AddTabRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3084,6 +3365,34 @@ func (m *NavigateTabResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *ReplaceTabRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.TabId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Tab != nil {
+		l = m.Tab.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReplaceTabResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *AddTabRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3399,6 +3708,42 @@ func (x *NavigateTabResponse) MarshalProtoText() string {
 }
 
 func (x *NavigateTabResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplaceTabRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReplaceTabRequest {")
+	if x.TabId != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("tab_id: ")
+		sb.WriteString(strconv.Quote(x.TabId))
+	}
+	if x.Tab != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("tab: ")
+		sb.WriteString(x.Tab.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReplaceTabRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplaceTabResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReplaceTabResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReplaceTabResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3934,6 +4279,142 @@ func (m *NavigateTabResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: NavigateTabResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReplaceTabRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReplaceTabRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReplaceTabRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TabId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TabId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Tab", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Tab == nil {
+				m.Tab = &TabDef{}
+			}
+			if err := m.Tab.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReplaceTabResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReplaceTabResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReplaceTabResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

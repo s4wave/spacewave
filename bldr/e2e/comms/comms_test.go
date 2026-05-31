@@ -460,6 +460,8 @@ func TestGoScriptResourceService(t *testing.T) {
 			assertBoolResult(t, results, "nestedChildRpc", true)
 			assertBoolResult(t, results, "nestedAfterReleaseEngineRpc", true)
 			assertBoolResult(t, results, "nestedChildReleaseOnce", true)
+			assertBoolResult(t, results, "concurrentChildEchoUnary", true)
+			assertBoolResult(t, results, "concurrentChildEchoStreams", true)
 
 			if failureReason, _ := results["failureReason"].(string); failureReason != "" {
 				t.Fatalf("unexpected runtime failure: %s", failureReason)

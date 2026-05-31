@@ -80,10 +80,17 @@ function CollapsedBottomBarItems({
   items,
   openMenu,
   setOpenMenu,
+  openContextMenu,
+  contextMenuOpenItemId,
 }: {
   items: BottomBarItem[]
   openMenu: string
   setOpenMenu: (id: string) => void
+  openContextMenu?: (
+    item: BottomBarItem,
+    activation: BottomBarSecondaryActivation,
+  ) => void
+  contextMenuOpenItemId?: string
 }) {
   const selected = items.some((item) => item.id === openMenu)
 
@@ -101,10 +108,42 @@ function CollapsedBottomBarItems({
       <DropdownMenuContent side="top" align="start" className="max-w-72">
         {items.map((item) => {
           const itemSelected = openMenu === item.id
+          const hasContextMenu = (item.contextMenuItems?.length ?? 0) > 0
           return (
             <DropdownMenuItem
               key={item.id}
               onSelect={() => setOpenMenu(itemSelected ? '' : item.id)}
+              aria-haspopup={hasContextMenu ? 'menu' : undefined}
+              aria-expanded={
+                hasContextMenu ? contextMenuOpenItemId === item.id : undefined
+              }
+              onContextMenu={(event) => {
+                if (!hasContextMenu || !openContextMenu) return
+                event.preventDefault()
+                event.stopPropagation()
+                openContextMenu(item, {
+                  openKind: 'mouse',
+                  x: event.clientX,
+                  y: event.clientY,
+                  trigger: event.currentTarget,
+                })
+              }}
+              onKeyDown={(event) => {
+                if (!hasContextMenu || !openContextMenu) return
+                const keyboardContextMenu =
+                  event.key === 'ContextMenu' ||
+                  (event.shiftKey && event.key === 'F10')
+                if (!keyboardContextMenu) return
+                event.preventDefault()
+                event.stopPropagation()
+                const rect = event.currentTarget.getBoundingClientRect()
+                openContextMenu(item, {
+                  openKind: 'keyboard',
+                  x: rect.left + rect.width / 2,
+                  y: rect.top,
+                  trigger: event.currentTarget,
+                })
+              }}
               className={cn(itemSelected && 'bg-accent text-accent-foreground')}
             >
               <span className="truncate">{item.menuLabel ?? item.id}</span>
@@ -221,11 +260,15 @@ function BottomBarContextMenuActionItem({
       variant={action.variant}
       onSelect={() => {
         if (!item || !state) return
-        void action.onSelect({
-          itemId: item.id,
-          openKind: state.openKind,
-          closeMenu: onClose,
-          openPrimaryOverlay: () => setOpenMenu(item.id),
+        void Promise.resolve(
+          action.onSelect({
+            itemId: item.id,
+            openKind: state.openKind,
+            closeMenu: onClose,
+            openPrimaryOverlay: () => setOpenMenu(item.id),
+          }),
+        ).catch((err) => {
+          console.warn('bottom bar context menu action failed', err)
         })
       }}
     >
@@ -296,6 +339,8 @@ export function ViewerFrame(props: ViewerFrameProps) {
               items={middle}
               openMenu={openMenu}
               setOpenMenu={setOpenMenu}
+              openContextMenu={openContextMenu}
+              contextMenuOpenItemId={contextMenuState?.itemId}
             />
             <BottomBarBreadcrumbSeparator
               onClick={beforeLast.onBreadcrumbClick}

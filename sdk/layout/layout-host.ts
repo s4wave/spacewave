@@ -7,6 +7,8 @@ import type {
   LayoutModel,
   NavigateTabRequest,
   NavigateTabResponse,
+  ReplaceTabRequest,
+  ReplaceTabResponse,
   AddTabRequest,
   AddTabResponse,
 } from './layout.pb.js'
@@ -34,6 +36,14 @@ export class LayoutHostHandle extends Resource implements LayoutHost {
     abortSignal?: AbortSignal,
   ): Promise<NavigateTabResponse> {
     return this.service.NavigateTab(request, abortSignal)
+  }
+
+  // ReplaceTab replaces an existing tab payload.
+  public ReplaceTab(
+    request: ReplaceTabRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReplaceTabResponse> {
+    return this.service.ReplaceTab(request, abortSignal)
   }
 
   // AddTab adds a new tab to the layout.

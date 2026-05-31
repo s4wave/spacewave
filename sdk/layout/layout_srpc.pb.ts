@@ -8,9 +8,11 @@ import {
   LayoutModel,
   NavigateTabRequest,
   NavigateTabResponse,
+  ReplaceTabRequest,
+  ReplaceTabResponse,
   WatchLayoutModelRequest,
 } from './layout.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -40,6 +42,15 @@ export const LayoutHostDefinition = {
       name: 'NavigateTab',
       I: NavigateTabRequest,
       O: NavigateTabResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.layout.LayoutHost.ReplaceTab
+     */
+    ReplaceTab: {
+      name: 'ReplaceTab',
+      I: ReplaceTabRequest,
+      O: ReplaceTabResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -75,6 +86,14 @@ export interface LayoutHost {
   ): Promise<NavigateTabResponse>
 
   /**
+   * @generated from rpc s4wave.layout.LayoutHost.ReplaceTab
+   */
+  ReplaceTab(
+    request: ReplaceTabRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReplaceTabResponse>
+
+  /**
    * @generated from rpc s4wave.layout.LayoutHost.AddTab
    */
   AddTab(
@@ -93,6 +112,7 @@ export class LayoutHostClient implements LayoutHost {
     this.rpc = rpc
     this.WatchLayoutModel = this.WatchLayoutModel.bind(this)
     this.NavigateTab = this.NavigateTab.bind(this)
+    this.ReplaceTab = this.ReplaceTab.bind(this)
     this.AddTab = this.AddTab.bind(this)
   }
   /**
@@ -126,6 +146,23 @@ export class LayoutHostClient implements LayoutHost {
       abortSignal || undefined,
     )
     return NavigateTabResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.layout.LayoutHost.ReplaceTab
+   */
+  async ReplaceTab(
+    request: ReplaceTabRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReplaceTabResponse> {
+    const requestMsg = ReplaceTabRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      LayoutHostDefinition.methods.ReplaceTab.name,
+      ReplaceTabRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReplaceTabResponse.fromBinary(result)
   }
 
   /**

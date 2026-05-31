@@ -20,6 +20,10 @@ starpc::Error SRPCLayoutHostClientImpl::NavigateTab(const s4wave::layout::Naviga
   return cc_->ExecCall(service_id_, "NavigateTab", in, out);
 }
 
+starpc::Error SRPCLayoutHostClientImpl::ReplaceTab(const s4wave::layout::ReplaceTabRequest& in, s4wave::layout::ReplaceTabResponse* out) {
+  return cc_->ExecCall(service_id_, "ReplaceTab", in, out);
+}
+
 starpc::Error SRPCLayoutHostClientImpl::AddTab(const s4wave::layout::AddTabRequest& in, s4wave::layout::AddTabResponse* out) {
   return cc_->ExecCall(service_id_, "AddTab", in, out);
 }
@@ -28,6 +32,7 @@ std::vector<std::string> SRPCLayoutHostHandler::GetMethodIDs() const {
   return {
     "WatchLayoutModel",
     "NavigateTab",
+    "ReplaceTab",
     "AddTab",
   };
 }
@@ -49,6 +54,14 @@ std::pair<bool, starpc::Error> SRPCLayoutHostHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     s4wave::layout::NavigateTabResponse resp;
     err = impl_->NavigateTab(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ReplaceTab") {
+    s4wave::layout::ReplaceTabRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::layout::ReplaceTabResponse resp;
+    err = impl_->ReplaceTab(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "AddTab") {

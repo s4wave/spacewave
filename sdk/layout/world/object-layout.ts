@@ -1,4 +1,9 @@
-import type { AddTabRequest, LayoutModel, TabDef } from '../layout.pb.js'
+import type {
+  AddTabRequest,
+  LayoutModel,
+  ReplaceTabRequest,
+  TabDef,
+} from '../layout.pb.js'
 import type { ObjectInfo } from '../../../web/object/object.pb.js'
 import {
   ObjectLayout,
@@ -20,6 +25,13 @@ export interface ObjectLayoutObjectTarget {
 export interface ObjectLayoutTabTarget extends ObjectLayoutObjectTarget {
   id: string
   name: string
+  helpText?: string
+  enableClose?: boolean
+}
+
+export interface ObjectLayoutReplaceTabTarget extends ObjectLayoutObjectTarget {
+  tabId: string
+  name?: string
   helpText?: string
   enableClose?: boolean
 }
@@ -80,6 +92,25 @@ export function createObjectLayoutAddTabRequest(
     afterTabId: target.afterTabId,
     select: target.select ?? true,
     tab: createObjectLayoutTabDef(target),
+  }
+}
+
+export function createObjectLayoutReplaceTabRequest(
+  target: ObjectLayoutReplaceTabTarget,
+): ReplaceTabRequest {
+  return {
+    tabId: target.tabId,
+    tab: createObjectLayoutTabDef({
+      id: target.tabId,
+      name: target.name ?? target.objectKey ?? 'Object',
+      helpText: target.helpText ?? target.objectKey ?? '',
+      enableClose: target.enableClose ?? true,
+      objectInfo: target.objectInfo,
+      objectKey: target.objectKey,
+      objectType: target.objectType,
+      componentID: target.componentID,
+      path: target.path,
+    }),
   }
 }
 

@@ -7,11 +7,16 @@ import {
 import type {
   AddTabRequest,
   AddTabResponse,
+  ReplaceTabResponse,
 } from '@s4wave/sdk/layout/layout.pb.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { resolvePath, type To } from '@s4wave/web/router/router.js'
-import { TabContextProvider, type TabContextValue } from './TabContext.js'
+import {
+  TabContextProvider,
+  type ReplaceCurrentTabRequest,
+  type TabContextValue,
+} from './TabContext.js'
 import { ObjectViewer } from './ObjectViewer.js'
 
 // NavigateFunc is the function signature for navigating to a new path.
@@ -19,6 +24,11 @@ export type NavigateFunc = (path: string) => void | Promise<unknown>
 
 // AddTabFunc is the function signature for adding a new tab.
 export type AddTabFunc = (request: AddTabRequest) => Promise<AddTabResponse>
+
+// ReplaceTabFunc is the function signature for replacing the current tab.
+export type ReplaceTabFunc = (
+  request: ReplaceCurrentTabRequest,
+) => Promise<ReplaceTabResponse>
 
 // TabContentProps are the props passed to the TabContent component.
 export interface TabContentProps {
@@ -30,6 +40,8 @@ export interface TabContentProps {
   navigate: NavigateFunc
   // addTab is the function to add a new tab to the layout.
   addTab: AddTabFunc
+  // replaceTab is the function to replace the current tab.
+  replaceTab?: ReplaceTabFunc
 }
 
 // decodeTabData decodes the tab data into an ObjectLayoutTab message.
@@ -50,6 +62,7 @@ export function TabContent({
   tabData,
   navigate,
   addTab,
+  replaceTab,
 }: TabContentProps) {
   const layoutTab = useMemo(() => decodeTabData(tabData), [tabData])
   const spaceContext = SpaceContainerContext.useContextSafe()
@@ -79,8 +92,14 @@ export function TabContent({
   )
 
   const tabContext = useMemo<TabContextValue>(
-    () => ({ tabId: tabID, addTab, navigateTab, isObjectLayout: true }),
-    [tabID, addTab, navigateTab],
+    () => ({
+      tabId: tabID,
+      addTab,
+      navigateTab,
+      replaceTab,
+      isObjectLayout: true,
+    }),
+    [tabID, addTab, navigateTab, replaceTab],
   )
 
   let content: ReactNode

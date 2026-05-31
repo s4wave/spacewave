@@ -4,6 +4,7 @@ package s4wave.layout;
 service LayoutHost {
   rpc WatchLayoutModel(stream WatchLayoutModelRequest) returns (stream LayoutModel) {};
   rpc NavigateTab(NavigateTabRequest) returns (NavigateTabResponse) {};
+  rpc ReplaceTab(ReplaceTabRequest) returns (ReplaceTabResponse) {};
   rpc AddTab(AddTabRequest) returns (AddTabResponse) {};
 }
 
@@ -17,6 +18,19 @@ message NavigateTabRequest {
 
 // NavigateTabResponse is a response to navigate within a tab.
 message NavigateTabResponse {}
+
+// ReplaceTabRequest is a request to replace the data and presentation fields of
+// an existing tab without moving it or changing its id.
+message ReplaceTabRequest {
+  // TabId is the identifier of the tab to replace.
+  string tab_id = 1;
+  // Tab contains the replacement title, help text, close flag, and data.
+  // The existing tab keeps TabId as its id.
+  TabDef tab = 2;
+}
+
+// ReplaceTabResponse is a response to replacing a tab payload.
+message ReplaceTabResponse {}
 
 // AddTabRequest is a request to add a new tab to the layout.
 message AddTabRequest {

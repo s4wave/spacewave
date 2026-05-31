@@ -23,6 +23,15 @@ import {
   useIsLastBottomBarItem,
   useBottomBarSetOpenMenu,
 } from '@s4wave/web/frame/bottom-bar-context.js'
+import type { BottomBarContextMenuItem } from '@s4wave/web/frame/bottom-bar-context.js'
+import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { buildSpaceObjectActionTargets } from '@s4wave/web/space/object-tree.js'
+import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
+import { useTabContext } from './TabContext.js'
+import {
+  hasObjectViewerSwitchOwner,
+  switchObjectAtViewerPosition,
+} from './object-viewer-space-actions.js'
 
 // UseObjectViewerProps are the props for the useObjectViewer hook.
 export interface UseObjectViewerProps {
@@ -57,6 +66,9 @@ export interface UseObjectViewerResult {
   overlayContent: React.ReactNode | undefined
   buttonKeyValue: string
   overlayKeyValue: string
+  contextMenuItems: readonly BottomBarContextMenuItem[] | undefined
+  contextMenuKey: string
+  contextMenuLabel: string
 }
 
 export interface ObjectViewerSelection {
@@ -236,10 +248,42 @@ export function useObjectViewer({
   // Bottom bar state.
   const isLastItem = useIsLastBottomBarItem(barId)
   const setOpenMenu = useBottomBarSetOpenMenu()
+  const spaceContext = SpaceContainerContext.useContextSafe()
+  const tabContext = useTabContext()
 
   const selectedComponentIDDisplay = selectedComponent?.componentID ?? 'default'
   const hasMultipleComponents = visibleComponents.length > 1
   const displayKey = objectKey ?? (isUnixfs ? 'UnixFS' : 'No object')
+  const spaceObjectTargets = useMemo(
+    () =>
+      buildSpaceObjectActionTargets(
+        spaceContext?.spaceState.worldContents?.objects ?? [],
+      ),
+    [spaceContext?.spaceState.worldContents?.objects],
+  )
+  const handleOpenObject = useCallback(
+    (target: { objectKey: string }) => {
+      spaceContext?.navigateToObjects([target.objectKey])
+    },
+    [spaceContext],
+  )
+  const replaceTab =
+    tabContext?.isObjectLayout === true ? tabContext.replaceTab : undefined
+  const tabId = tabContext?.isObjectLayout === true ? tabContext.tabId : ''
+  const positionOwner = useMemo(
+    () => ({
+      tabId,
+      replaceTab,
+      switchObjectAtCurrentPosition:
+        spaceContext?.switchObjectAtCurrentPosition,
+    }),
+    [tabId, replaceTab, spaceContext?.switchObjectAtCurrentPosition],
+  )
+  const handleSwitchObjectHere = useCallback(
+    (target: (typeof spaceObjectTargets)[number]) =>
+      switchObjectAtViewerPosition(target, positionOwner),
+    [positionOwner],
+  )
 
   const buttonKeyValue = useMemo(
     () =>
@@ -362,6 +406,52 @@ export function useObjectViewer({
     ],
   )
 
+  const contextMenuItems = useMemo(
+    () =>
+      createSpaceObjectNavigationActions({
+        targets: spaceObjectTargets,
+        currentObjectKey: objectKey,
+        openDetails: overlayContent ? () => {} : undefined,
+        openObject: spaceContext?.navigateToObjects
+          ? handleOpenObject
+          : undefined,
+        switchObjectHere: hasObjectViewerSwitchOwner(positionOwner)
+          ? handleSwitchObjectHere
+          : undefined,
+      }),
+    [
+      spaceObjectTargets,
+      objectKey,
+      overlayContent,
+      spaceContext?.navigateToObjects,
+      handleOpenObject,
+      positionOwner,
+      handleSwitchObjectHere,
+    ],
+  )
+  const contextMenuKey = useMemo(
+    () =>
+      [
+        displayKey,
+        objectKey ?? 'none',
+        overlayContent ? 'details' : 'no-details',
+        spaceContext?.navigateToObjects ? 'open' : 'no-open',
+        hasObjectViewerSwitchOwner(positionOwner) ? 'switch' : 'no-switch',
+        spaceObjectTargets
+          .map((target) => `${target.objectKey}:${target.objectType}`)
+          .join('|'),
+      ].join(':'),
+    [
+      displayKey,
+      objectKey,
+      overlayContent,
+      spaceContext?.navigateToObjects,
+      positionOwner,
+      spaceObjectTargets,
+    ],
+  )
+  const contextMenuLabel = `${displayKey} actions`
+
   // Export object command: active when viewing a world object with an export URL.
   const isTabActive = useIsTabActive()
   const objectExportUrl = useMemo(
@@ -405,5 +495,8 @@ export function useObjectViewer({
     overlayContent,
     buttonKeyValue,
     overlayKeyValue,
+    contextMenuItems,
+    contextMenuKey,
+    contextMenuLabel,
   }
 }

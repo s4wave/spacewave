@@ -100,6 +100,14 @@ class NavigateTabResponse;
 struct NavigateTabResponseDefaultTypeInternal;
 extern NavigateTabResponseDefaultTypeInternal _NavigateTabResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull NavigateTabResponse_class_data_;
+class ReplaceTabRequest;
+struct ReplaceTabRequestDefaultTypeInternal;
+extern ReplaceTabRequestDefaultTypeInternal _ReplaceTabRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReplaceTabRequest_class_data_;
+class ReplaceTabResponse;
+struct ReplaceTabResponseDefaultTypeInternal;
+extern ReplaceTabResponseDefaultTypeInternal _ReplaceTabResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReplaceTabResponse_class_data_;
 class RowDef;
 struct RowDefDefaultTypeInternal;
 extern RowDefDefaultTypeInternal _RowDef_default_instance_;
@@ -231,7 +239,7 @@ class TabDef final : public ::google::protobuf::Message
     return *reinterpret_cast<const TabDef*>(
         &_TabDef_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(TabDef& a, TabDef& b) { a.Swap(&b); }
   inline void Swap(TabDef* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -432,6 +440,140 @@ class TabDef final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TabDef_class_data_;
+// -------------------------------------------------------------------
+
+class ReplaceTabResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.layout.ReplaceTabResponse) */ {
+ public:
+  inline ReplaceTabResponse() : ReplaceTabResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReplaceTabResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReplaceTabResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReplaceTabResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReplaceTabResponse(const ReplaceTabResponse& from) : ReplaceTabResponse(nullptr, from) {}
+  inline ReplaceTabResponse(ReplaceTabResponse&& from) noexcept
+      : ReplaceTabResponse(nullptr, ::std::move(from)) {}
+  inline ReplaceTabResponse& operator=(const ReplaceTabResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReplaceTabResponse& operator=(ReplaceTabResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReplaceTabResponse& default_instance() {
+    return *reinterpret_cast<const ReplaceTabResponse*>(
+        &_ReplaceTabResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(ReplaceTabResponse& a, ReplaceTabResponse& b) { a.Swap(&b); }
+  inline void Swap(ReplaceTabResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReplaceTabResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReplaceTabResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<ReplaceTabResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const ReplaceTabResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const ReplaceTabResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.layout.ReplaceTabResponse"; }
+
+  explicit ReplaceTabResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReplaceTabResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReplaceTabResponse& from);
+  ReplaceTabResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReplaceTabResponse&& from) noexcept
+      : ReplaceTabResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.layout.ReplaceTabResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReplaceTabResponse_class_data_;
 // -------------------------------------------------------------------
 
 class NavigateTabResponse final : public ::google::protobuf::internal::ZeroFieldsBase
@@ -874,7 +1016,7 @@ class AddTabResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddTabResponse*>(
         &_AddTabResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(AddTabResponse& a, AddTabResponse& b) { a.Swap(&b); }
   inline void Swap(AddTabResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1069,7 +1211,7 @@ class TabSetDef final : public ::google::protobuf::Message
     return *reinterpret_cast<const TabSetDef*>(
         &_TabSetDef_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(TabSetDef& a, TabSetDef& b) { a.Swap(&b); }
   inline void Swap(TabSetDef* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1257,6 +1399,218 @@ class TabSetDef final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TabSetDef_class_data_;
 // -------------------------------------------------------------------
 
+class ReplaceTabRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.layout.ReplaceTabRequest) */ {
+ public:
+  inline ReplaceTabRequest() : ReplaceTabRequest(nullptr) {}
+  ~ReplaceTabRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReplaceTabRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReplaceTabRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReplaceTabRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReplaceTabRequest(const ReplaceTabRequest& from) : ReplaceTabRequest(nullptr, from) {}
+  inline ReplaceTabRequest(ReplaceTabRequest&& from) noexcept
+      : ReplaceTabRequest(nullptr, ::std::move(from)) {}
+  inline ReplaceTabRequest& operator=(const ReplaceTabRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReplaceTabRequest& operator=(ReplaceTabRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReplaceTabRequest& default_instance() {
+    return *reinterpret_cast<const ReplaceTabRequest*>(
+        &_ReplaceTabRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(ReplaceTabRequest& a, ReplaceTabRequest& b) { a.Swap(&b); }
+  inline void Swap(ReplaceTabRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReplaceTabRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReplaceTabRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ReplaceTabRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReplaceTabRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ReplaceTabRequest& from) { ReplaceTabRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ReplaceTabRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.layout.ReplaceTabRequest"; }
+
+  explicit ReplaceTabRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReplaceTabRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReplaceTabRequest& from);
+  ReplaceTabRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReplaceTabRequest&& from) noexcept
+      : ReplaceTabRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTabIdFieldNumber = 1,
+    kTabFieldNumber = 2,
+  };
+  // string tab_id = 1;
+  void clear_tab_id() ;
+  const ::std::string& tab_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_tab_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_tab_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_tab_id();
+  void set_allocated_tab_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_tab_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_tab_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_tab_id();
+
+  public:
+  // .s4wave.layout.TabDef tab = 2;
+  bool has_tab() const;
+  void clear_tab() ;
+  const ::s4wave::layout::TabDef& tab() const;
+  [[nodiscard]] ::s4wave::layout::TabDef* PROTOBUF_NULLABLE release_tab();
+  ::s4wave::layout::TabDef* PROTOBUF_NONNULL mutable_tab();
+  void set_allocated_tab(::s4wave::layout::TabDef* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_tab(::s4wave::layout::TabDef* PROTOBUF_NULLABLE value);
+  ::s4wave::layout::TabDef* PROTOBUF_NULLABLE unsafe_arena_release_tab();
+
+  private:
+  const ::s4wave::layout::TabDef& _internal_tab() const;
+  ::s4wave::layout::TabDef* PROTOBUF_NONNULL _internal_mutable_tab();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.layout.ReplaceTabRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 46,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ReplaceTabRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr tab_id_;
+    ::s4wave::layout::TabDef* PROTOBUF_NULLABLE tab_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2flayout_2flayout_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReplaceTabRequest_class_data_;
+// -------------------------------------------------------------------
+
 class LayoutLocalState final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.layout.LayoutLocalState) */ {
  public:
@@ -1312,7 +1666,7 @@ class LayoutLocalState final : public ::google::protobuf::Message
     return *reinterpret_cast<const LayoutLocalState*>(
         &_LayoutLocalState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(LayoutLocalState& a, LayoutLocalState& b) { a.Swap(&b); }
   inline void Swap(LayoutLocalState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1544,7 +1898,7 @@ class BorderDef final : public ::google::protobuf::Message
     return *reinterpret_cast<const BorderDef*>(
         &_BorderDef_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(BorderDef& a, BorderDef& b) { a.Swap(&b); }
   inline void Swap(BorderDef* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1777,7 +2131,7 @@ class AddTabRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddTabRequest*>(
         &_AddTabRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(AddTabRequest& a, AddTabRequest& b) { a.Swap(&b); }
   inline void Swap(AddTabRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2018,7 +2372,7 @@ class RowDef final : public ::google::protobuf::Message
     return *reinterpret_cast<const RowDef*>(
         &_RowDef_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(RowDef& a, RowDef& b) { a.Swap(&b); }
   inline void Swap(RowDef* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2249,7 +2603,7 @@ class RowOrTabSetDef final : public ::google::protobuf::Message
     kTabSet = 2,
     NODE_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(RowOrTabSetDef& a, RowOrTabSetDef& b) { a.Swap(&b); }
   inline void Swap(RowOrTabSetDef* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2479,7 +2833,7 @@ class LayoutModel final : public ::google::protobuf::Message
     return *reinterpret_cast<const LayoutModel*>(
         &_LayoutModel_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(LayoutModel& a, LayoutModel& b) { a.Swap(&b); }
   inline void Swap(LayoutModel* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2697,7 +3051,7 @@ class WatchLayoutModelRequest final : public ::google::protobuf::Message
     kSetModel = 1,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(WatchLayoutModelRequest& a, WatchLayoutModelRequest& b) { a.Swap(&b); }
   inline void Swap(WatchLayoutModelRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2905,7 +3259,7 @@ class LayoutSnapshot final : public ::google::protobuf::Message
     return *reinterpret_cast<const LayoutSnapshot*>(
         &_LayoutSnapshot_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(LayoutSnapshot& a, LayoutSnapshot& b) { a.Swap(&b); }
   inline void Swap(LayoutSnapshot* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3210,6 +3564,178 @@ inline void NavigateTabRequest::set_allocated_path(::std::string* PROTOBUF_NULLA
 // -------------------------------------------------------------------
 
 // NavigateTabResponse
+
+// -------------------------------------------------------------------
+
+// ReplaceTabRequest
+
+// string tab_id = 1;
+inline void ReplaceTabRequest::clear_tab_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tab_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ReplaceTabRequest::tab_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.layout.ReplaceTabRequest.tab_id)
+  return _internal_tab_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReplaceTabRequest::set_tab_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.tab_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.layout.ReplaceTabRequest.tab_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ReplaceTabRequest::mutable_tab_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_tab_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.layout.ReplaceTabRequest.tab_id)
+  return _s;
+}
+inline const ::std::string& ReplaceTabRequest::_internal_tab_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.tab_id_.Get();
+}
+inline void ReplaceTabRequest::_internal_set_tab_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.tab_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReplaceTabRequest::_internal_mutable_tab_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.tab_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReplaceTabRequest::release_tab_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.layout.ReplaceTabRequest.tab_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.tab_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.tab_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReplaceTabRequest::set_allocated_tab_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.tab_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.tab_id_.IsDefault()) {
+    _impl_.tab_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.layout.ReplaceTabRequest.tab_id)
+}
+
+// .s4wave.layout.TabDef tab = 2;
+inline bool ReplaceTabRequest::has_tab() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.tab_ != nullptr);
+  return value;
+}
+inline void ReplaceTabRequest::clear_tab() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tab_ != nullptr) _impl_.tab_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::s4wave::layout::TabDef& ReplaceTabRequest::_internal_tab() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::layout::TabDef* p = _impl_.tab_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::layout::TabDef&>(::s4wave::layout::_TabDef_default_instance_);
+}
+inline const ::s4wave::layout::TabDef& ReplaceTabRequest::tab() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.layout.ReplaceTabRequest.tab)
+  return _internal_tab();
+}
+inline void ReplaceTabRequest::unsafe_arena_set_allocated_tab(
+    ::s4wave::layout::TabDef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tab_);
+  }
+  _impl_.tab_ = reinterpret_cast<::s4wave::layout::TabDef*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.layout.ReplaceTabRequest.tab)
+}
+inline ::s4wave::layout::TabDef* PROTOBUF_NULLABLE ReplaceTabRequest::release_tab() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::layout::TabDef* released = _impl_.tab_;
+  _impl_.tab_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::layout::TabDef* PROTOBUF_NULLABLE ReplaceTabRequest::unsafe_arena_release_tab() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.layout.ReplaceTabRequest.tab)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::layout::TabDef* temp = _impl_.tab_;
+  _impl_.tab_ = nullptr;
+  return temp;
+}
+inline ::s4wave::layout::TabDef* PROTOBUF_NONNULL ReplaceTabRequest::_internal_mutable_tab() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tab_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::layout::TabDef>(GetArena());
+    _impl_.tab_ = reinterpret_cast<::s4wave::layout::TabDef*>(p);
+  }
+  return _impl_.tab_;
+}
+inline ::s4wave::layout::TabDef* PROTOBUF_NONNULL ReplaceTabRequest::mutable_tab()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::s4wave::layout::TabDef* _msg = _internal_mutable_tab();
+  // @@protoc_insertion_point(field_mutable:s4wave.layout.ReplaceTabRequest.tab)
+  return _msg;
+}
+inline void ReplaceTabRequest::set_allocated_tab(::s4wave::layout::TabDef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tab_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.tab_ = reinterpret_cast<::s4wave::layout::TabDef*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.layout.ReplaceTabRequest.tab)
+}
+
+// -------------------------------------------------------------------
+
+// ReplaceTabResponse
 
 // -------------------------------------------------------------------
 

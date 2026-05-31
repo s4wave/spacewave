@@ -9,11 +9,16 @@ import (
 	layout_testbed "github.com/s4wave/spacewave/core/resource/layout/testbed"
 	s4wave_layout "github.com/s4wave/spacewave/sdk/layout"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
+	s4wave_web_object "github.com/s4wave/spacewave/web/object"
 )
 
 type layoutTabState struct {
-	tabID string
-	path  string
+	tabID       string
+	name        string
+	objectKey   string
+	objectType  string
+	componentID string
+	path        string
 }
 
 func getMainFilesTabState(t *testing.T, model *s4wave_layout.LayoutModel) layoutTabState {
@@ -42,8 +47,12 @@ func getMainFilesTabState(t *testing.T, model *s4wave_layout.LayoutModel) layout
 		t.Fatal("expected files tab id")
 	}
 	return layoutTabState{
-		tabID: tabID,
-		path:  tabData.GetPath(),
+		tabID:       tabID,
+		name:        tab.GetName(),
+		objectKey:   tabData.GetObjectInfo().GetWorldObjectInfo().GetObjectKey(),
+		objectType:  tabData.GetObjectInfo().GetWorldObjectInfo().GetObjectType(),
+		componentID: tabData.GetComponentId(),
+		path:        tabData.GetPath(),
 	}
 }
 
@@ -58,6 +67,28 @@ func openLayoutClient(t *testing.T, tb *layout_testbed.Testbed, resourceID uint3
 		t.Fatalf("GetClient failed: %v", err)
 	}
 	return s4wave_layout.NewSRPCLayoutHostClient(layoutSrpcClient)
+}
+
+func objectLayoutTabData(t *testing.T, objectKey, objectType, path, componentID string) []byte {
+	t.Helper()
+
+	tabData := &s4wave_layout_world.ObjectLayoutTab{
+		ComponentId: componentID,
+		ObjectInfo: &s4wave_web_object.ObjectInfo{
+			Info: &s4wave_web_object.ObjectInfo_WorldObjectInfo{
+				WorldObjectInfo: &s4wave_web_object.WorldObjectInfo{
+					ObjectKey:  objectKey,
+					ObjectType: objectType,
+				},
+			},
+		},
+		Path: path,
+	}
+	data, err := tabData.MarshalVT()
+	if err != nil {
+		t.Fatalf("marshal tab data failed: %v", err)
+	}
+	return data
 }
 
 // TestLayoutResource tests the LayoutResource functionality.
@@ -308,6 +339,97 @@ func TestLayoutResource(t *testing.T) {
 		reopenedTab := getMainFilesTabState(t, reopenedModel)
 		if reopenedTab.path != "/test/final" {
 			t.Fatalf("expected persisted final path %q, got %q", "/test/final", reopenedTab.path)
+		}
+	})
+
+	t.Run("ReplaceTabCriticalPath", func(t *testing.T) {
+		objectKey := "object-layout/test-replace-critical-path-" + t.Name()
+		setup, err := tb.SetupLayoutEngine(ctx, objectKey)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer setup.Release()
+
+		layoutClient := openLayoutClient(t, tb, setup.LayoutResourceID)
+		strm, err := layoutClient.WatchLayoutModel(ctx)
+		if err != nil {
+			t.Fatalf("WatchLayoutModel failed: %v", err)
+		}
+
+		initialModel, err := strm.Recv()
+		if err != nil {
+			t.Fatalf("Recv initial model failed: %v", err)
+		}
+		initialTab := getMainFilesTabState(t, initialModel)
+		if initialTab.tabID != "files" {
+			t.Fatalf("expected files tab id, got %q", initialTab.tabID)
+		}
+
+		_, err = layoutClient.ReplaceTab(ctx, &s4wave_layout.ReplaceTabRequest{
+			TabId: initialTab.tabID,
+			Tab: &s4wave_layout.TabDef{
+				Name:        "Canvas",
+				HelpText:    "canvas-1",
+				EnableClose: true,
+				Data:        objectLayoutTabData(t, "canvas-1", "canvas", "/board", ""),
+			},
+		})
+		if err != nil {
+			t.Fatalf("ReplaceTab failed: %v", err)
+		}
+
+		replacedModel, err := strm.Recv()
+		if err != nil {
+			t.Fatalf("Recv replaced model failed: %v", err)
+		}
+		replacedTab := getMainFilesTabState(t, replacedModel)
+		if replacedTab.tabID != initialTab.tabID {
+			t.Fatalf("expected stable tab id %q, got %q", initialTab.tabID, replacedTab.tabID)
+		}
+		if replacedTab.name != "Canvas" {
+			t.Fatalf("expected tab name Canvas, got %q", replacedTab.name)
+		}
+		if replacedTab.objectKey != "canvas-1" || replacedTab.objectType != "canvas" {
+			t.Fatalf("expected canvas target, got key=%q type=%q", replacedTab.objectKey, replacedTab.objectType)
+		}
+		if replacedTab.path != "/board" {
+			t.Fatalf("expected path /board, got %q", replacedTab.path)
+		}
+		if replacedTab.componentID != "" {
+			t.Fatalf("expected ordinary replacement to clear component id, got %q", replacedTab.componentID)
+		}
+
+		_, err = layoutClient.ReplaceTab(ctx, &s4wave_layout.ReplaceTabRequest{
+			TabId: initialTab.tabID,
+			Tab: &s4wave_layout.TabDef{
+				Name:        "Canvas Component",
+				HelpText:    "canvas-1",
+				EnableClose: true,
+				Data:        objectLayoutTabData(t, "canvas-1", "canvas", "/board", "canvas.component"),
+			},
+		})
+		if err != nil {
+			t.Fatalf("ReplaceTab explicit component failed: %v", err)
+		}
+
+		componentModel, err := strm.Recv()
+		if err != nil {
+			t.Fatalf("Recv component model failed: %v", err)
+		}
+		componentTab := getMainFilesTabState(t, componentModel)
+		if componentTab.componentID != "canvas.component" {
+			t.Fatalf("expected explicit component id, got %q", componentTab.componentID)
+		}
+
+		_, err = layoutClient.ReplaceTab(ctx, &s4wave_layout.ReplaceTabRequest{
+			TabId: "missing-tab",
+			Tab: &s4wave_layout.TabDef{
+				Name: "Missing",
+				Data: objectLayoutTabData(t, "files", "unixfs/fs-node", "", ""),
+			},
+		})
+		if err != nil {
+			t.Fatalf("ReplaceTab missing tab should be a no-op, got: %v", err)
 		}
 	})
 

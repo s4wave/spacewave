@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall/js"
 
+	"github.com/aperturerobotics/starpc/echo"
 	e2e_mock "github.com/aperturerobotics/starpc/mock"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -66,6 +67,22 @@ func startResourceService() {
 type nestedResourceMock struct{}
 
 func (nestedResourceMock) MockRequest(ctx context.Context, msg *e2e_mock.MockMsg) (*e2e_mock.MockMsg, error) {
+	if msg.GetBody() == "create-echo-child" {
+		resourceClient, err := resource_server.MustGetResourceClientContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+		childMux := srpc.NewMux()
+		if err := echo.NewEchoServer(nil).Register(childMux); err != nil {
+			return nil, err
+		}
+		childID, err := resourceClient.AddResource(childMux, nil)
+		if err != nil {
+			return nil, err
+		}
+		return &e2e_mock.MockMsg{Body: "echo-child:" + strconv.FormatUint(uint64(childID), 10)}, nil
+	}
+
 	engineID, ok := strings.CutPrefix(msg.GetBody(), "run-nested:")
 	if !ok {
 		return &e2e_mock.MockMsg{Body: "unknown"}, nil

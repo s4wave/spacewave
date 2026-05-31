@@ -13,6 +13,14 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 //  - Multiple objects while in a Layout: create a new split with a TabSet.
 export type NavigateToObjectsFunc = (objectKeys: string[]) => void
 
+export interface SwitchObjectAtCurrentPositionTarget {
+  objectKey: string
+}
+
+export type SwitchObjectAtCurrentPositionFunc = (
+  target: SwitchObjectAtCurrentPositionTarget,
+) => void | Promise<void>
+
 // BuildObjectUrlsFunc builds the URLs for a list of object keys.
 export type BuildObjectUrlsFunc = (objectKeys: string[]) => string[]
 
@@ -36,6 +44,8 @@ export interface SpaceContainerContextValue {
   navigateToRoot: () => void
   // navigateToObjects is the NavigateToObjectsFunc for the space.
   navigateToObjects: NavigateToObjectsFunc
+  // switchObjectAtCurrentPosition replaces the object at the nearest position owner.
+  switchObjectAtCurrentPosition?: SwitchObjectAtCurrentPositionFunc
   // buildObjectUrls builds urls for the given object keys.
   buildObjectUrls: BuildObjectUrlsFunc
   // buildExportUrl builds the export URL for the current space.
@@ -57,6 +67,7 @@ const Provider: React.FC<
   buildObjectUrls,
   buildExportUrl,
   navigateToObjects,
+  switchObjectAtCurrentPosition,
   navigateToRoot,
   spaceId,
   spaceState,
@@ -73,6 +84,7 @@ const Provider: React.FC<
       buildObjectUrls,
       buildExportUrl,
       navigateToObjects,
+      switchObjectAtCurrentPosition,
       navigateToRoot,
       spaceId,
       spaceState,
@@ -88,6 +100,7 @@ const Provider: React.FC<
       buildObjectUrls,
       buildExportUrl,
       navigateToObjects,
+      switchObjectAtCurrentPosition,
       navigateToRoot,
       spaceId,
       spaceState,

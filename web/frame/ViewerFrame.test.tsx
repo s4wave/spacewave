@@ -64,6 +64,91 @@ describe('ViewerFrame', () => {
     expect(setOpenMenu).toHaveBeenCalledWith('middle')
   })
 
+  it('opens a collapsed item context menu without selecting the hidden item', async () => {
+    const user = userEvent.setup()
+    const setOpenMenu = vi.fn()
+    const onSelect = vi.fn()
+
+    render(
+      <BottomBarRoot openMenu="" setOpenMenu={setOpenMenu}>
+        <BottomBarLevel id="first" menuLabel="First" button={button('First')}>
+          <BottomBarLevel
+            id="middle"
+            menuLabel="Middle"
+            button={button('Middle')}
+            contextMenuItems={[
+              {
+                type: 'action',
+                id: 'inspect',
+                label: 'Inspect Middle',
+                onSelect,
+              },
+            ]}
+          >
+            <BottomBarLevel id="last" menuLabel="Last" button={button('Last')}>
+              <ViewerFrame>
+                <div>Content</div>
+              </ViewerFrame>
+            </BottomBarLevel>
+          </BottomBarLevel>
+        </BottomBarLevel>
+      </BottomBarRoot>,
+    )
+
+    await user.click(screen.getByLabelText('Open hidden bottom bar items'))
+    fireEvent.contextMenu(screen.getByText('Middle'), {
+      clientX: 64,
+      clientY: 10,
+    })
+
+    expect(setOpenMenu).not.toHaveBeenCalled()
+    await user.click(await screen.findByText('Inspect Middle'))
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ itemId: 'middle', openKind: 'mouse' }),
+    )
+  })
+
+  it('opens a collapsed item context menu from the keyboard', async () => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+
+    render(
+      <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
+        <BottomBarLevel id="first" menuLabel="First" button={button('First')}>
+          <BottomBarLevel
+            id="middle"
+            menuLabel="Middle"
+            button={button('Middle')}
+            contextMenuItems={[
+              {
+                type: 'action',
+                id: 'inspect',
+                label: 'Inspect Middle',
+                onSelect,
+              },
+            ]}
+          >
+            <BottomBarLevel id="last" menuLabel="Last" button={button('Last')}>
+              <ViewerFrame>
+                <div>Content</div>
+              </ViewerFrame>
+            </BottomBarLevel>
+          </BottomBarLevel>
+        </BottomBarLevel>
+      </BottomBarRoot>,
+    )
+
+    await user.click(screen.getByLabelText('Open hidden bottom bar items'))
+    const collapsedItem = screen.getByText('Middle')
+    collapsedItem.focus()
+    await user.keyboard('{ContextMenu}')
+
+    await user.click(await screen.findByText('Inspect Middle'))
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ itemId: 'middle', openKind: 'keyboard' }),
+    )
+  })
+
   it('keeps two left bottom-bar items visible without a collapse menu', () => {
     render(
       <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
@@ -166,6 +251,48 @@ describe('ViewerFrame', () => {
     })
 
     expect(await screen.findByText('Inspect Status')).toBeTruthy()
+  })
+
+  it('reports context menu action failures without destabilizing the frame', async () => {
+    const user = userEvent.setup()
+    const err = new Error('failed action')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    render(
+      <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
+        <BottomBarLevel
+          id="first"
+          menuLabel="First"
+          button={button('First')}
+          contextMenuItems={[
+            {
+              type: 'action',
+              id: 'switch',
+              label: 'Switch Object Here',
+              onSelect: () => Promise.reject(err),
+            },
+          ]}
+        >
+          <ViewerFrame>
+            <div>Content</div>
+          </ViewerFrame>
+        </BottomBarLevel>
+      </BottomBarRoot>,
+    )
+
+    fireEvent.contextMenu(screen.getByText('First'), {
+      clientX: 40,
+      clientY: 8,
+    })
+    await user.click(await screen.findByText('Switch Object Here'))
+
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith(
+        'bottom bar context menu action failed',
+        err,
+      )
+    })
+    warn.mockRestore()
   })
 
   it('opens a context menu from keyboard and returns focus on dismissal', async () => {

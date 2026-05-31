@@ -16,6 +16,9 @@ type SetLayoutModelFunc = func(ctx context.Context, layoutModel *s4wave_layout.L
 // NavigateTabFunc is called when the frontend wants to navigate within a tab.
 type NavigateTabFunc = func(ctx context.Context, navigateTabReq *s4wave_layout.NavigateTabRequest) (*s4wave_layout.NavigateTabResponse, error)
 
+// ReplaceTabFunc is called when the frontend wants to replace a tab payload.
+type ReplaceTabFunc = func(ctx context.Context, req *s4wave_layout.ReplaceTabRequest) (*s4wave_layout.ReplaceTabResponse, error)
+
 // AddTabFunc is called when the frontend wants to add a new tab.
 type AddTabFunc = func(ctx context.Context, req *s4wave_layout.AddTabRequest) (*s4wave_layout.AddTabResponse, error)
 
@@ -25,6 +28,7 @@ type LayoutResource struct {
 	stateCtr    ccontainer.Watchable[*s4wave_layout.LayoutModel]
 	setLayout   SetLayoutModelFunc
 	navigateTab NavigateTabFunc
+	replaceTab  ReplaceTabFunc
 	addTab      AddTabFunc
 }
 
@@ -52,6 +56,11 @@ func NewLayoutResource(
 // SetAddTabFunc sets the callback for adding tabs.
 func (r *LayoutResource) SetAddTabFunc(addTab AddTabFunc) {
 	r.addTab = addTab
+}
+
+// SetReplaceTabFunc sets the callback for replacing tabs.
+func (r *LayoutResource) SetReplaceTabFunc(replaceTab ReplaceTabFunc) {
+	r.replaceTab = replaceTab
 }
 
 // GetMux returns the rpc mux.
@@ -92,12 +101,45 @@ func (r *LayoutResource) NavigateTab(ctx context.Context, req *s4wave_layout.Nav
 	return &s4wave_layout.NavigateTabResponse{}, nil
 }
 
+// ReplaceTab replaces an existing tab payload.
+func (r *LayoutResource) ReplaceTab(ctx context.Context, req *s4wave_layout.ReplaceTabRequest) (*s4wave_layout.ReplaceTabResponse, error) {
+	if r.replaceTab != nil {
+		return r.replaceTab(ctx, req)
+	}
+	return &s4wave_layout.ReplaceTabResponse{}, nil
+}
+
 // AddTab adds a new tab to the layout.
 func (r *LayoutResource) AddTab(ctx context.Context, req *s4wave_layout.AddTabRequest) (*s4wave_layout.AddTabResponse, error) {
 	if r.addTab != nil {
 		return r.addTab(ctx, req)
 	}
 	return &s4wave_layout.AddTabResponse{}, nil
+}
+
+// ReplaceLayoutModelTab replaces exactly one tab definition in a layout model.
+// The existing tab keeps its id so the surrounding layout structure stays stable.
+func ReplaceLayoutModelTab(m *s4wave_layout.LayoutModel, tabID string, replacement *s4wave_layout.TabDef) bool {
+	if m == nil || tabID == "" || replacement == nil {
+		return false
+	}
+	var replaced bool
+	WalkLayoutModel(m, func(node any) bool {
+		tabDef, ok := node.(*s4wave_layout.TabDef)
+		if !ok {
+			return true
+		}
+		if tabDef.GetId() != tabID {
+			return true
+		}
+		tabDef.Name = replacement.GetName()
+		tabDef.HelpText = replacement.GetHelpText()
+		tabDef.EnableClose = replacement.GetEnableClose()
+		tabDef.Data = append(tabDef.Data[:0], replacement.GetData()...)
+		replaced = true
+		return false
+	})
+	return replaced
 }
 
 // WalkLayoutModel walks all nodes in a layout model, calling fn for each node.

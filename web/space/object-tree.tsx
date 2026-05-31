@@ -42,6 +42,14 @@ export interface ObjectTreeNode {
   isVirtual: boolean
 }
 
+export interface SpaceObjectActionTarget {
+  objectKey: string
+  objectType: string
+  label: string
+  objectTypeLabel: string
+  objectTypeDescription: string
+}
+
 export type ObjectTypeMetadataById = ReadonlyMap<string, ObjectTypeMetadata>
 
 // HIDDEN_OBJECT_TYPES is the set of object types hidden from the tree.
@@ -179,6 +187,32 @@ export function getObjectDisplayName(objectKey: string): string {
   return humanizeObjectKeySegment(segment)
 }
 
+export function buildSpaceObjectActionTargets(
+  objects: readonly WorldContentsObject[],
+  metadataById?: ObjectTypeMetadataById,
+): SpaceObjectActionTarget[] {
+  return objects
+    .filter(
+      (object) =>
+        !isHiddenSpaceObject(object.objectKey, object.objectType, metadataById),
+    )
+    .map((object) => {
+      const objectKey = object.objectKey ?? ''
+      const objectType = object.objectType ?? ''
+      return {
+        objectKey,
+        objectType,
+        label: getObjectDisplayName(objectKey),
+        objectTypeLabel: getObjectTypeLabel(objectType, metadataById),
+        objectTypeDescription: getObjectTypeDescription(
+          objectType,
+          metadataById,
+        ),
+      }
+    })
+    .toSorted((a, b) => a.objectKey.localeCompare(b.objectKey))
+}
+
 function humanizeObjectKeySegment(segment: string): string {
   const decoded = safeDecodeURIComponent(segment)
   if (decoded === segment && !/[-_\s%]/.test(segment)) return segment
@@ -205,7 +239,7 @@ function isHiddenObjectTypeMetadata(
 }
 
 interface TreeMapEntry {
-  object?: WorldContentsObject
+  object?: SpaceObjectActionTarget
   children: Map<string, TreeMapEntry>
 }
 
@@ -216,10 +250,8 @@ export function buildObjectTree(
 ): TreeNode<ObjectTreeNode>[] {
   const root: Map<string, TreeMapEntry> = new Map()
 
-  for (const obj of objects) {
-    const key = obj.objectKey ?? ''
-    const type = obj.objectType ?? ''
-    if (isHiddenSpaceObject(key, type, metadataById)) continue
+  for (const obj of buildSpaceObjectActionTargets(objects, metadataById)) {
+    const key = obj.objectKey
 
     const segments = key.split('/')
     let current = root

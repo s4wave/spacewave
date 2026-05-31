@@ -152,6 +152,51 @@ export const TabDef: MessageType<TabDef> = /* @__PURE__ */ createMessageType({
 })
 
 /**
+ * ReplaceTabRequest is a request to replace the data and presentation fields of
+ * an existing tab without moving it or changing its id.
+ *
+ * @generated from message s4wave.layout.ReplaceTabRequest
+ */
+export interface ReplaceTabRequest {
+  /**
+   * TabId is the identifier of the tab to replace.
+   *
+   * @generated from field: string tab_id = 1;
+   */
+  tabId?: string
+  /**
+   * Tab contains the replacement title, help text, close flag, and data.
+   * The existing tab keeps TabId as its id.
+   *
+   * @generated from field: s4wave.layout.TabDef tab = 2;
+   */
+  tab?: TabDef
+}
+
+export const ReplaceTabRequest: MessageType<ReplaceTabRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.layout.ReplaceTabRequest',
+    fields: [
+      { no: 1, name: 'tab_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'tab', kind: 'message', T: () => TabDef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReplaceTabResponse is a response to replacing a tab payload.
+ *
+ * @generated from message s4wave.layout.ReplaceTabResponse
+ */
+export interface ReplaceTabResponse {}
+
+export const ReplaceTabResponse: MessageType<ReplaceTabResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ReplaceTabResponse>(
+    's4wave.layout.ReplaceTabResponse',
+    true,
+  )
+
+/**
  * AddTabRequest is a request to add a new tab to the layout.
  *
  * @generated from message s4wave.layout.AddTabRequest

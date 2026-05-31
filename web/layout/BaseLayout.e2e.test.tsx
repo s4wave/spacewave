@@ -6,7 +6,7 @@
  *
  * To run these tests:
  * 1. Start the Go test server (provides VITE_E2E_SERVER_PORT)
- * 2. Run: yarn test:browser
+ * 2. Run: bun run test:browser
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { page } from 'vitest/browser'
@@ -74,6 +74,7 @@ function buildStaticLayoutHost(layoutModel: LayoutModel): LayoutHost {
   return {
     WatchLayoutModel: () => stream as never,
     NavigateTab: () => Promise.resolve({}),
+    ReplaceTab: () => Promise.resolve({}),
     AddTab: (request) =>
       Promise.resolve({
         tabId: request.tab?.id ?? '',
@@ -159,6 +160,7 @@ function buildRecordingLayoutHost(initialLayoutModel: LayoutModel) {
       return responses.iterable as never
     },
     NavigateTab: () => Promise.resolve({}),
+    ReplaceTab: () => Promise.resolve({}),
     AddTab: (request) =>
       Promise.resolve({
         tabId: request.tab?.id ?? '',

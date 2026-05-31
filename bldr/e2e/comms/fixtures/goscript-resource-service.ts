@@ -11,6 +11,7 @@ import {
   type Mock,
   type MockMsg,
 } from 'starpc/mock'
+import { EchoerClient } from 'starpc/echo'
 
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
@@ -32,6 +33,8 @@ declare global {
       nestedChildRpc: boolean
       nestedAfterReleaseEngineRpc: boolean
       nestedChildReleaseOnce: boolean
+      concurrentChildEchoUnary: boolean
+      concurrentChildEchoStreams: boolean
       failureReason?: string
     }
   }
@@ -168,6 +171,8 @@ async function proveResourceService(
   nestedChildRpc: boolean
   nestedAfterReleaseEngineRpc: boolean
   nestedChildReleaseOnce: boolean
+  concurrentChildEchoUnary: boolean
+  concurrentChildEchoStreams: boolean
 }> {
   const abort = new AbortController()
   const srpc = new SRPCClient(openStream)
@@ -216,12 +221,17 @@ async function proveResourceService(
       initialRegistrations.length === 1 && releasedRegistrations.length === 0
 
     const nested = await proveNestedResourceRpc(resourceClient, rootRef)
+    const concurrentChild = await proveConcurrentChildResourceRpc(
+      resourceClient,
+      rootRef,
+    )
 
     return {
       rootResource: rootRef.resourceId > 0,
       registeredViewer,
       releaseRemovedViewer,
       ...nested,
+      ...concurrentChild,
     }
   } finally {
     registrationRef?.release()
@@ -229,6 +239,63 @@ async function proveResourceService(
     abort.abort()
     resourceClient.dispose()
   }
+}
+
+async function proveConcurrentChildResourceRpc(
+  resourceClient: ResourceClient,
+  rootRef: Awaited<ReturnType<ResourceClient['accessRootResource']>>,
+): Promise<{
+  concurrentChildEchoUnary: boolean
+  concurrentChildEchoStreams: boolean
+}> {
+  const rootMock = new MockClient(rootRef.client)
+  const response = await rootMock.MockRequest({ body: 'create-echo-child' })
+  const childID = Number(
+    response.body?.startsWith('echo-child:')
+      ? response.body.slice('echo-child:'.length)
+      : 0,
+  )
+  if (!Number.isFinite(childID) || childID <= 0) {
+    throw new Error(`unexpected echo child response: ${response.body}`)
+  }
+
+  const childRef = resourceClient.createResourceReference(childID)
+  try {
+    const echo = new EchoerClient(childRef.client)
+    const unary = echo.Echo({ body: 'child-unary' })
+    const streamA = collectEchoServerStream(
+      echo.EchoServerStream({ body: 'child-stream-a' }),
+    )
+    const streamB = collectEchoServerStream(
+      echo.EchoServerStream({ body: 'child-stream-b' }),
+    )
+    const [unaryResp, streamAResp, streamBResp] = await Promise.all([
+      unary,
+      streamA,
+      streamB,
+    ])
+
+    return {
+      concurrentChildEchoUnary: unaryResp.body === 'child-unary',
+      concurrentChildEchoStreams:
+        streamAResp.length === 5 &&
+        streamBResp.length === 5 &&
+        streamAResp.every((msg) => msg.body === 'child-stream-a') &&
+        streamBResp.every((msg) => msg.body === 'child-stream-b'),
+    }
+  } finally {
+    childRef.release()
+  }
+}
+
+async function collectEchoServerStream<T extends { body?: string }>(
+  stream: AsyncIterable<T>,
+): Promise<T[]> {
+  const out: T[] = []
+  for await (const msg of stream) {
+    out.push(msg)
+  }
+  return out
 }
 
 async function proveNestedResourceRpc(
@@ -386,6 +453,8 @@ async function run() {
       resource.nestedChildRpc &&
       resource.nestedAfterReleaseEngineRpc &&
       resource.nestedChildReleaseOnce &&
+      resource.concurrentChildEchoUnary &&
+      resource.concurrentChildEchoStreams &&
       !failureReason &&
       errors.length === 0
     window.__results = {
@@ -403,6 +472,8 @@ async function run() {
             `nestedChildRpc=${resource.nestedChildRpc}`,
             `nestedAfterReleaseEngineRpc=${resource.nestedAfterReleaseEngineRpc}`,
             `nestedChildReleaseOnce=${resource.nestedChildReleaseOnce}`,
+            `concurrentChildEchoUnary=${resource.concurrentChildEchoUnary}`,
+            `concurrentChildEchoStreams=${resource.concurrentChildEchoStreams}`,
             `failureReason=${failureReason ?? ''}`,
           ].join('; '),
       workerReady,
@@ -414,6 +485,8 @@ async function run() {
       nestedChildRpc: resource.nestedChildRpc,
       nestedAfterReleaseEngineRpc: resource.nestedAfterReleaseEngineRpc,
       nestedChildReleaseOnce: resource.nestedChildReleaseOnce,
+      concurrentChildEchoUnary: resource.concurrentChildEchoUnary,
+      concurrentChildEchoStreams: resource.concurrentChildEchoStreams,
       failureReason,
     }
   } catch (err) {
@@ -429,6 +502,8 @@ async function run() {
       nestedChildRpc: false,
       nestedAfterReleaseEngineRpc: false,
       nestedChildReleaseOnce: false,
+      concurrentChildEchoUnary: false,
+      concurrentChildEchoStreams: false,
       failureReason: undefined,
     }
   } finally {
