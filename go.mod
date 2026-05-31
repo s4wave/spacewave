@@ -1,6 +1,6 @@
 module github.com/s4wave/spacewave
 
-go 1.26.2
+go 1.26.3
 
 replace github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260522232916-0936ab26cb7e
 

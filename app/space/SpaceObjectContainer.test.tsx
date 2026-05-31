@@ -35,6 +35,12 @@ const h = vi.hoisted(() => ({
     },
     spaceWorldResource: { value: null, loading: false, error: null },
   },
+  spaceContentsResource: {
+    value: {},
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  },
 }))
 
 vi.mock('@s4wave/web/object/ObjectViewer.js', () => ({
@@ -45,6 +51,9 @@ vi.mock('@s4wave/web/object/ObjectViewer.js', () => ({
 }))
 
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
+  SpaceContentsContext: {
+    useContext: () => h.spaceContentsResource,
+  },
   useSessionIndex: () => 7,
 }))
 

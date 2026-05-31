@@ -223,6 +223,7 @@
     "clsx": "^2.1.1",
     "cross-env": "^10.1.0",
     "happy-dom": "^20.9.0",
+    "oxc-parser": "^0.132.0",
     "oxfmt": "0.52.0",
     "oxlint": "^1.64.0",
     "oxlint-plugin-react-doctor": "0.2.14",
