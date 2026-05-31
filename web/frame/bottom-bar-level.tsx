@@ -14,6 +14,7 @@ export interface BottomBarLevelProps {
   overlay?: React.ReactNode
   buttonKey?: React.Key
   overlayKey?: React.Key
+  menuLabel?: React.ReactNode
   onBreadcrumbClick?: () => void
   position?: 'left' | 'right'
   children: React.ReactNode
@@ -25,6 +26,7 @@ export function BottomBarLevel({
   overlay,
   buttonKey,
   overlayKey,
+  menuLabel,
   onBreadcrumbClick,
   position,
   children,
@@ -46,6 +48,7 @@ export function BottomBarLevel({
       buttonKey,
       overlay: hasOverlay ? () => overlay : undefined,
       overlayKey,
+      menuLabel,
       onBreadcrumbClick: hasBreadcrumbClick ? onBreadcrumbClick : undefined,
       position,
     }
@@ -57,6 +60,7 @@ export function BottomBarLevel({
     overlay,
     buttonKey,
     overlayKey,
+    menuLabel,
     hasBreadcrumbClick,
     onBreadcrumbClick,
     position,

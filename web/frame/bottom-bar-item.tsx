@@ -4,6 +4,7 @@ import React, {
   KeyboardEvent,
   type Ref,
 } from 'react'
+
 import { cn } from '@s4wave/web/style/utils.js'
 
 export interface IBottomBarItemProps extends DOMAttributes<HTMLDivElement> {
@@ -26,10 +27,9 @@ export function BottomBarItem({
   ref,
   ...rest
 }: IBottomBarItemProps) {
-  // Handle "Enter" and "Space" key presses for accessibility
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (onClick && (event.key === 'Enter' || event.key === ' ')) {
-      event.preventDefault() // Prevent scrolling on space key
+      event.preventDefault()
       onClick()
     }
   }
@@ -45,7 +45,7 @@ export function BottomBarItem({
       aria-selected={selected}
       {...rest}
       className={cn(
-        `glow-on-hover text-bar-item-text hover:text-bar-item-text-hover relative flex h-full cursor-pointer flex-row items-center justify-start overflow-hidden px-[5px] whitespace-pre select-none [&>svg]:h-3 [&>svg]:w-3 [&>svg:not(:only-child)]:mr-1`,
+        `glow-on-hover text-bar-item-text hover:text-bar-item-text-hover relative flex h-full shrink-0 cursor-pointer flex-row items-center justify-start overflow-hidden px-[5px] whitespace-pre select-none [&>svg]:h-3 [&>svg]:w-3 [&>svg:not(:only-child)]:mr-1`,
         selected &&
           'bg-bar-item-selected text-bar-item-selected-text text-shadow-bar-item-selected border-t-primary border-t',
         className,

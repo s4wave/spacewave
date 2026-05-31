@@ -17,10 +17,8 @@ import type { ObjectInfo } from './object.pb.js'
 import { getObjectKey } from './object.js'
 import { useObjectViewer } from './useObjectViewer.js'
 
-// noopNavigate is a fallback when no navigation handler is provided.
 const noopNavigate = () => {}
 
-// ObjectViewerProps are the props for the ObjectViewer component.
 export interface ObjectViewerProps {
   objectInfo: ObjectInfo
   worldState: Resource<IWorldState>
@@ -34,10 +32,6 @@ export interface ObjectViewerProps {
   preferredComponentID?: string
 }
 
-// ObjectViewer is a reusable component that renders an object viewer with
-// bottom bar integration. Two render modes:
-//   standalone=false: registers a BottomBarLevel in the parent BottomBarRoot
-//   standalone=true: wraps in its own BottomBarRoot + ViewerFrame
 export function ObjectViewer({
   objectInfo,
   worldState,
@@ -65,6 +59,7 @@ export function ObjectViewer({
   const navigateHandler = onNavigate ?? noopNavigate
 
   const objectKey = getObjectKey(objectInfo)
+  const barLabel = objectKey ?? 'Object'
   const requiresObjectState =
     objectInfo?.info?.case === 'worldObjectInfo' &&
     (viewer.selectedComponent?.requiresObjectState ?? true)
@@ -78,15 +73,11 @@ export function ObjectViewer({
   const worldReady =
     objectInfo?.info?.case !== 'worldObjectInfo' ||
     (!!worldState.value && (!requiresObjectState || !!viewer.objectState.value))
-  const loading =
-    viewer.typeID === undefined ||
-    // World objects always need the world; some typed viewers can open their
-    // typed resource directly and do not need the generic object handle first.
-    !worldReady
+  const loading = viewer.typeID === undefined || !worldReady
 
   let content
   if (missingWorldObject) {
-    content = <ObjectViewerNotFoundState objectKey={objectKey} />
+    content = <ObjectViewerNotFoundState objectKey={barLabel} />
   } else if (loading || viewer.typeID === undefined) {
     content = <ObjectViewerLoadingState />
   } else {
@@ -135,6 +126,7 @@ export function ObjectViewer({
             overlay={viewer.overlayContent}
             buttonKey={viewer.buttonKeyValue}
             overlayKey={viewer.overlayKeyValue}
+            menuLabel={barLabel}
             onBreadcrumbClick={onBreadcrumbClick}
           >
             {frameContent}
@@ -151,6 +143,7 @@ export function ObjectViewer({
       overlay={viewer.overlayContent}
       buttonKey={viewer.buttonKeyValue}
       overlayKey={viewer.overlayKeyValue}
+      menuLabel={barLabel}
       onBreadcrumbClick={onBreadcrumbClick}
     >
       {namespacedInner}

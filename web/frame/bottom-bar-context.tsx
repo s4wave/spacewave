@@ -21,6 +21,8 @@ export interface BottomBarItem {
   overlay?: () => React.ReactNode
   /** Optional key that triggers overlay re-registration when it changes */
   overlayKey?: React.Key
+  /** Optional label used when this item is collapsed into a menu */
+  menuLabel?: React.ReactNode
   /** Optional handler called when the breadcrumb separator to the right of this item is clicked */
   onBreadcrumbClick?: () => void
   /** Position in the bottom bar. Defaults to 'left'. */

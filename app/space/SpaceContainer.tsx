@@ -627,6 +627,7 @@ export function SpaceContainer() {
         overlay={sharedObjectOverlay}
         buttonKey={sharedObjectDisplayKey}
         overlayKey={sharedObjectDisplayKey}
+        menuLabel={spaceName}
         onBreadcrumbClick={handleSharedObjectBreadcrumb}
       >
         <DebugInfo>

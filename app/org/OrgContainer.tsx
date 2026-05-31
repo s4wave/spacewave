@@ -201,6 +201,7 @@ export function OrgContainer() {
         button={orgButton}
         overlay={orgOverlay}
         buttonKey={buttonKey}
+        menuLabel={orgName}
         onBreadcrumbClick={handleBreadcrumbClick}
       >
         <Routes>

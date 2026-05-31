@@ -68,6 +68,7 @@ function isQuietItemUpdate(a: BottomBarItem, b: BottomBarItem) {
     a.depth === b.depth &&
     a.buttonKey === b.buttonKey &&
     a.overlayKey === b.overlayKey &&
+    a.menuLabel === b.menuLabel &&
     !!a.overlay === !!b.overlay &&
     !!a.onBreadcrumbClick === !!b.onBreadcrumbClick &&
     a.position === b.position

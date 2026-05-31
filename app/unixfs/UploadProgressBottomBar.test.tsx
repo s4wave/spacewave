@@ -127,6 +127,45 @@ describe('UploadProgressBottomBar', () => {
       </BottomBarRoot>,
     )
 
-    expect(screen.getByText('2/2 uploaded')).toBeTruthy()
+    const label = screen.getByText('2/2 uploaded')
+    const button = label.closest('button')
+    expect(label).toBeTruthy()
+    expect(button?.className).toContain('whitespace-nowrap')
+    expect(button?.className).toContain('shrink-0')
+  })
+
+  it('keeps the active upload summary on one line', () => {
+    const uploadManager = buildUploadManager({
+      activeCount: 1,
+      items: [
+        {
+          id: 'upload-1',
+          groupId: 'group-1',
+          kind: 'file',
+          file: null,
+          name: 'alpha.txt',
+          path: 'docs/alpha.txt',
+          totalSize: 100,
+          bytesWritten: 50,
+          status: 'uploading',
+          abortController: new AbortController(),
+        },
+      ],
+    })
+
+    render(
+      <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
+        <UploadProgressBottomBar uploadManager={uploadManager} />
+        <ViewerFrame>
+          <div>Browser</div>
+        </ViewerFrame>
+      </BottomBarRoot>,
+    )
+
+    const label = screen.getByText('Uploading 1/1')
+    const button = label.closest('button')
+    expect(label).toBeTruthy()
+    expect(button?.className).toContain('whitespace-nowrap')
+    expect(button?.className).toContain('shrink-0')
   })
 })

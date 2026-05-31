@@ -1,4 +1,5 @@
 import React, { CSSProperties } from 'react'
+
 import { cn } from '@s4wave/web/style/utils.js'
 
 // IBarProps are properties for a horizontal frame bar.
@@ -37,12 +38,12 @@ export function Bar(props?: IBarProps) {
       style={props?.style}
     >
       <div
-        className="flex flex-grow overflow-hidden text-left"
+        className="flex min-w-0 flex-grow overflow-hidden text-left"
         style={props?.leftStyle}
       >
         {props?.left}
       </div>
-      <div className="flex overflow-hidden" style={props?.rightStyle}>
+      <div className="flex shrink-0 overflow-hidden" style={props?.rightStyle}>
         {props?.right}
       </div>
       {!props?.hideTopBorder ? (

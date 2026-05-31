@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import {
   useCallback,
   useEffect,
@@ -391,6 +390,7 @@ export function SessionContainer(props: {
             />
           }
           buttonKey={accountButtonKey}
+          menuLabel={accountLabel}
           onBreadcrumbClick={handleAccountBreadcrumb}
         >
           <SessionSyncStatusProvider>

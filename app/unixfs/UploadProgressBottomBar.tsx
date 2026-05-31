@@ -1,8 +1,10 @@
 import { useCallback, useMemo } from 'react'
 import { LuCheck, LuFolder, LuUpload, LuX } from 'react-icons/lu'
-import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
+
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
+import { cn } from '@s4wave/web/style/utils.js'
+import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
+
 import type { UploadManager, UploadItem } from './useUploadManager.js'
 
 // formatBytes formats a byte count into a human-readable string.
@@ -259,7 +261,7 @@ export function UploadProgressBottomBar({
       <button
         onClick={onClick}
         className={cn(
-          'flex items-center gap-1.5 px-2 text-xs',
+          'flex h-full shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap',
           selected && 'text-foreground',
           className,
         )}
