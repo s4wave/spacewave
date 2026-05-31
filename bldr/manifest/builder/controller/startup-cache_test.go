@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -388,6 +389,41 @@ func TestControllerStartupCacheHitSkipsBuild(t *testing.T) {
 	}
 }
 
+func TestControllerStartupCacheHitPublishesLifecycleStatusOrdering(t *testing.T) {
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	builderControllerConfig := newTestBuilderControllerProto(t)
+	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
+	sink := newRecordingLifecycleSink()
+	result, buildCalls := runStartupExecuteWithLifecycle(
+		t,
+		tmpDir,
+		startupBuilderResult,
+		true,
+		false,
+		nil,
+		sink,
+	)
+	if buildCalls != 0 {
+		t.Fatalf("expected 0 build calls, got %d", buildCalls)
+	}
+	if result.GetManifestRef().GetManifestRef().GetBucketId() != "startup-bucket" {
+		t.Fatal("expected startup builder result to be reused")
+	}
+	assertLifecycleSummaries(t, sink.nonEmptySnapshot(), []string{
+		"queued",
+		"starting builder controller",
+		"startup cache hit",
+		"build complete",
+	})
+	done := sink.nonEmptySnapshot()[3]
+	if done.State != ManifestBuilderLifecycleStateDone || !done.CacheHit || done.FullRebuild || done.HotRebuild {
+		t.Fatalf("unexpected final startup-cache status: %#v", done)
+	}
+}
+
 func TestControllerStartupFileMissRebuilds(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "main.go")
@@ -405,6 +441,139 @@ func TestControllerStartupFileMissRebuilds(t *testing.T) {
 	}
 	if result.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
 		t.Fatal("expected rebuilt result")
+	}
+}
+
+func TestControllerStartupFileMissPublishesFullBuildLifecycle(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "main.go")
+	if err := os.WriteFile(filePath, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	builderControllerConfig := newTestBuilderControllerProto(t)
+	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
+	if err := os.WriteFile(filePath, []byte("package main\n// changed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sink := newRecordingLifecycleSink()
+	result, buildCalls := runStartupExecuteWithLifecycle(
+		t,
+		tmpDir,
+		startupBuilderResult,
+		true,
+		false,
+		nil,
+		sink,
+	)
+	if buildCalls != 1 {
+		t.Fatalf("expected 1 build call, got %d", buildCalls)
+	}
+	if result.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
+		t.Fatal("expected rebuilt result")
+	}
+	assertLifecycleSummaries(t, sink.nonEmptySnapshot(), []string{
+		"queued",
+		"starting builder controller",
+		"full rebuild",
+		"build complete",
+	})
+	running := sink.nonEmptySnapshot()[2]
+	if running.State != ManifestBuilderLifecycleStateRunning || !running.FullRebuild || running.HotRebuild || running.CacheHit {
+		t.Fatalf("unexpected full rebuild running status: %#v", running)
+	}
+	done := sink.nonEmptySnapshot()[3]
+	if done.State != ManifestBuilderLifecycleStateDone || !done.FullRebuild || done.HotRebuild || done.CacheHit {
+		t.Fatalf("unexpected full rebuild done status: %#v", done)
+	}
+}
+
+func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "main.go")
+	if err := os.WriteFile(filePath, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rootLogger := logrus.New()
+	rootLogger.SetLevel(logrus.DebugLevel)
+	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	testStartupCacheBuilderState.cacheSafe.Store(true)
+	testStartupCacheBuilderState.buildCalls.Store(0)
+	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
+
+	builderControllerConfig := newTestBuilderControllerProto(t)
+	builderConfig := &bldr_manifest_builder.BuilderConfig{
+		ManifestMeta: bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
+		SourcePath:   tmpDir,
+	}
+	controllerConfig := NewConfig(
+		builderConfig,
+		builderControllerConfig,
+		nil,
+		true,
+		nil,
+	)
+	ctrl := NewController(tb.GetLogger(), tb.GetBus(), controllerConfig)
+	sink := newRecordingLifecycleSink()
+	ctrl.SetManifestBuilderLifecycleSink(sink)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- ctrl.Execute(ctx)
+	}()
+
+	firstResult, err := ctrl.GetResultPromise().Await(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstResult.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
+		t.Fatal("expected initial build result")
+	}
+	firstPromise, waitCh := ctrl.GetResultPromise().GetPromise()
+	if firstPromise == nil {
+		t.Fatal("expected first result promise")
+	}
+	sink.waitFor(t, ctx, func(status ManifestBuilderLifecycleStatus) bool {
+		return status.Summary == "watching for changes"
+	})
+
+	writeWatchedFileUntilPromiseReplaced(t, ctx, filePath, waitCh)
+	secondPromise, _ := ctrl.GetResultPromise().GetPromise()
+	if secondPromise == nil {
+		t.Fatal("expected second result promise")
+	}
+	if secondPromise == firstPromise {
+		t.Fatal("expected result promise to be replaced on rebuild")
+	}
+
+	secondResult, err := secondPromise.Await(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if secondResult.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
+		t.Fatal("expected rebuilt result")
+	}
+	hot := sink.waitFor(t, ctx, func(status ManifestBuilderLifecycleStatus) bool {
+		return status.HotRebuild && status.DependencyRebuildReason == changedFilesSummary(1)
+	})
+	if hot.State != ManifestBuilderLifecycleStateRunning || hot.FullRebuild || hot.CacheHit {
+		t.Fatalf("unexpected hot rebuild lifecycle status: %#v", hot)
+	}
+	if got := testStartupCacheBuilderState.buildCalls.Load(); got != 2 {
+		t.Fatalf("build calls = %d, want 2", got)
+	}
+
+	cancel()
+	if execErr := waitForControllerExecuteExit(t, errCh); execErr != nil && execErr != context.Canceled {
+		t.Fatalf("execute: %v", execErr)
 	}
 }
 
@@ -808,4 +977,120 @@ func runStartupExecuteWithTestbed(
 		t.Fatalf("execute: %v", execErr)
 	}
 	return result, testStartupCacheBuilderState.buildCalls.Load()
+}
+
+func runStartupExecuteWithLifecycle(
+	t *testing.T,
+	sourcePath string,
+	startupBuilderResult *bldr_manifest_builder.BuilderResult,
+	cacheSafe bool,
+	watch bool,
+	watchManifestIDs []string,
+	sink *recordingLifecycleSink,
+) (*bldr_manifest_builder.BuilderResult, int32) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rootLogger := logrus.New()
+	rootLogger.SetLevel(logrus.DebugLevel)
+	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	testStartupCacheBuilderState.cacheSafe.Store(cacheSafe)
+	testStartupCacheBuilderState.buildCalls.Store(0)
+	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
+
+	builderControllerConfig := newTestBuilderControllerProto(t)
+	builderConfig := &bldr_manifest_builder.BuilderConfig{
+		ManifestMeta: bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
+		SourcePath:   sourcePath,
+	}
+	controllerConfig := NewConfig(
+		builderConfig,
+		builderControllerConfig,
+		nil,
+		watch,
+		startupBuilderResult,
+	)
+	controllerConfig.WatchManifestIds = watchManifestIDs
+
+	ctrl := NewController(tb.GetLogger(), tb.GetBus(), controllerConfig)
+	ctrl.SetManifestBuilderLifecycleSink(sink)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- ctrl.Execute(ctx)
+	}()
+
+	result, err := ctrl.GetResultPromise().Await(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !watch {
+		if execErr := <-errCh; execErr != nil {
+			t.Fatalf("execute: %v", execErr)
+		}
+	}
+	return result, testStartupCacheBuilderState.buildCalls.Load()
+}
+
+func assertLifecycleSummaries(t *testing.T, statuses []ManifestBuilderLifecycleStatus, want []string) {
+	t.Helper()
+	if len(statuses) != len(want) {
+		t.Fatalf("lifecycle status count = %d, want %d: %#v", len(statuses), len(want), statuses)
+	}
+	for i, status := range statuses {
+		if status.Summary != want[i] {
+			t.Fatalf("lifecycle status %d summary = %q, want %q; statuses=%#v", i, status.Summary, want[i], statuses)
+		}
+	}
+}
+
+func writeWatchedFileUntilPromiseReplaced(
+	t *testing.T,
+	ctx context.Context,
+	filePath string,
+	waitCh <-chan struct{},
+) {
+	t.Helper()
+
+	retry := time.NewTicker(150 * time.Millisecond)
+	defer retry.Stop()
+	timeout := time.NewTimer(5 * time.Second)
+	defer timeout.Stop()
+
+	for i := 1; ; i++ {
+		content := []byte("package main\n// changed " + strconv.Itoa(i) + "\n")
+		if err := os.WriteFile(filePath, content, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case <-waitCh:
+			return
+		case <-ctx.Done():
+			t.Fatalf("context canceled before result promise replacement: %v", ctx.Err())
+		case <-timeout.C:
+			t.Fatal("timed out waiting for result promise replacement")
+		case <-retry.C:
+		}
+	}
+}
+
+func waitForControllerExecuteExit(t *testing.T, errCh <-chan error) error {
+	t.Helper()
+
+	timeout := time.NewTimer(5 * time.Second)
+	defer timeout.Stop()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-timeout.C:
+		t.Fatal("timed out waiting for controller Execute to exit")
+	}
+	return nil
 }

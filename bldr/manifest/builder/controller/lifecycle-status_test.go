@@ -2,7 +2,13 @@
 
 package bldr_manifest_builder_controller
 
-import "testing"
+import (
+	"context"
+	"slices"
+	"sync"
+	"testing"
+	"time"
+)
 
 func TestControllerLifecycleStatusReplayAndRebuildMetadata(t *testing.T) {
 	ctrl := &Controller{}
@@ -68,17 +74,82 @@ func TestRebuildStatusSummaries(t *testing.T) {
 }
 
 type recordingLifecycleSink struct {
+	mtx      sync.Mutex
 	statuses []ManifestBuilderLifecycleStatus
+	notifyCh chan struct{}
 }
 
 func (s *recordingLifecycleSink) SetManifestBuilderLifecycleStatus(status ManifestBuilderLifecycleStatus) {
+	s.mtx.Lock()
 	s.statuses = append(s.statuses, status)
+	notifyCh := s.notifyCh
+	s.mtx.Unlock()
+
+	if notifyCh != nil {
+		select {
+		case notifyCh <- struct{}{}:
+		default:
+		}
+	}
 }
 
 func (s *recordingLifecycleSink) last(t *testing.T) ManifestBuilderLifecycleStatus {
 	t.Helper()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	if len(s.statuses) == 0 {
 		t.Fatal("expected recorded lifecycle status")
 	}
 	return s.statuses[len(s.statuses)-1]
+}
+
+func newRecordingLifecycleSink() *recordingLifecycleSink {
+	return &recordingLifecycleSink{notifyCh: make(chan struct{}, 32)}
+}
+
+func (s *recordingLifecycleSink) snapshot() []ManifestBuilderLifecycleStatus {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return slices.Clone(s.statuses)
+}
+
+func (s *recordingLifecycleSink) nonEmptySnapshot() []ManifestBuilderLifecycleStatus {
+	statuses := s.snapshot()
+	filtered := statuses[:0]
+	for _, status := range statuses {
+		if status.Summary == "" && status.Error == "" &&
+			status.State == ManifestBuilderLifecycleStateQueued &&
+			!status.CacheHit && !status.FullRebuild && !status.HotRebuild &&
+			status.WatchedFileCount == 0 && status.DependencyRebuildReason == "" {
+			continue
+		}
+		filtered = append(filtered, status)
+	}
+	return filtered
+}
+
+func (s *recordingLifecycleSink) waitFor(
+	t *testing.T,
+	ctx context.Context,
+	match func(ManifestBuilderLifecycleStatus) bool,
+) ManifestBuilderLifecycleStatus {
+	t.Helper()
+
+	timeout := time.NewTimer(5 * time.Second)
+	defer timeout.Stop()
+
+	for {
+		for _, status := range s.nonEmptySnapshot() {
+			if match(status) {
+				return status
+			}
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("context canceled before lifecycle status: %v", ctx.Err())
+		case <-timeout.C:
+			t.Fatal("timed out waiting for lifecycle status")
+		case <-s.notifyCh:
+		}
+	}
 }
