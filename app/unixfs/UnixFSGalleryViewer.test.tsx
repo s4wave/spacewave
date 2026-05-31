@@ -275,6 +275,42 @@ describe('UnixFSGalleryViewer', () => {
     openSpy.mockRestore()
   })
 
+  it('memoizes preview URLs while the discovered image list is unchanged', () => {
+    h.galleryState = buildGalleryState({
+      scopePath: '/gallery',
+      items: [
+        {
+          path: '/gallery/first.png',
+          name: 'first.png',
+          label: 'first.png',
+          mimeType: 'image/png',
+        },
+      ],
+      errors: [],
+      complete: true,
+    })
+
+    const props = {
+      objectInfo: {
+        info: {
+          case: 'unixfsObjectInfo' as const,
+          value: {
+            unixfsId: 'files',
+            path: '/gallery',
+          },
+        },
+      },
+      worldState: buildResource(null),
+    }
+    const { rerender } = render(<UnixFSGalleryViewer {...props} />)
+
+    expect(h.buildInlineURL).toHaveBeenCalledTimes(1)
+
+    rerender(<UnixFSGalleryViewer {...props} />)
+
+    expect(h.buildInlineURL).toHaveBeenCalledTimes(1)
+  })
+
   it('shows the resolved parent scope when the current object path points at a file', () => {
     h.galleryState = buildGalleryState({
       scopePath: '/gallery',

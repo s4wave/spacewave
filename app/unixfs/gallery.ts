@@ -3,6 +3,7 @@ import {
   getUnixFSFileInfoKind,
 } from '@s4wave/sdk/unixfs/file-kind.js'
 import { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import type { DirEntry } from '@s4wave/sdk/unixfs/handle.pb.js'
 import {
   getUnixFSParentPath,
   getUnixFSRelativePath,
@@ -66,6 +67,62 @@ function buildDiscoveryState(
 function formatDiscoveryError(scopePath: string, err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
   return `${scopePath}: ${msg}`
+}
+
+function normalizeQueueError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err))
+}
+
+class AsyncQueue<T> implements AsyncIterable<T> {
+  private readonly values: T[] = []
+  private readonly waiters: Array<(value: IteratorResult<T>) => void> = []
+  private closed = false
+  private err: unknown = null
+
+  push(value: T): void {
+    if (this.closed) return
+    const waiter = this.waiters.shift()
+    if (waiter) {
+      waiter({ value, done: false })
+      return
+    }
+    this.values.push(value)
+  }
+
+  fail(err: unknown): void {
+    if (this.closed) return
+    this.err = err
+    this.close()
+  }
+
+  close(): void {
+    if (this.closed) return
+    this.closed = true
+    for (const waiter of this.waiters.splice(0)) {
+      waiter({ value: undefined, done: true })
+    }
+  }
+
+  async *[Symbol.asyncIterator](): AsyncIterator<T> {
+    for (;;) {
+      if (this.values.length > 0) {
+        yield this.values.shift() as T
+        continue
+      }
+      if (this.closed) {
+        if (this.err) throw normalizeQueueError(this.err)
+        return
+      }
+      const next = await new Promise<IteratorResult<T>>((resolve) => {
+        this.waiters.push(resolve)
+      })
+      if (next.done) {
+        if (this.err) throw normalizeQueueError(this.err)
+        return
+      }
+      yield next.value
+    }
+  }
 }
 
 async function resolveGalleryScope(
@@ -143,39 +200,197 @@ async function walkGalleryScope(
   return sortGalleryCandidates(images)
 }
 
-async function* streamGalleryScope(
-  handle: FSHandle,
-  scopeRoot: string,
-  scopePath: string,
-  signal: AbortSignal,
-  discovered: UnixFSGalleryCandidate[],
-  errors: string[],
-): AsyncIterable<UnixFSGalleryDiscoveryState> {
-  const info = await handle.getFileInfo(signal)
-  if (getUnixFSFileInfoKind(info) !== 'directory') {
-    return
+function makeChildAbortController(parent: AbortSignal): AbortController {
+  const ctrl = new AbortController()
+  if (parent.aborted) {
+    ctrl.abort()
+    return ctrl
+  }
+  parent.addEventListener('abort', () => ctrl.abort(), { once: true })
+  return ctrl
+}
+
+class LiveGalleryScope {
+  private readonly queue = new AsyncQueue<UnixFSGalleryDiscoveryState>()
+  private readonly dirs = new Set<WatchedGalleryDir>()
+  private readonly errors: string[] = []
+  private lastStateKey = ''
+  private rootDir: WatchedGalleryDir | null = null
+  private stopped = false
+
+  constructor(
+    readonly scopeRoot: string,
+    private readonly rootHandle: FSHandle,
+    private readonly signal: AbortSignal,
+  ) {
+    signal.addEventListener('abort', () => this.stop(), { once: true })
   }
 
-  const entries = (await handle.readdirAll(0n, signal)).toSorted((a, b) =>
-    (a.name ?? '').localeCompare(b.name ?? ''),
-  )
-  for (const entry of entries) {
-    if (!entry.name) {
-      continue
-    }
+  stream(): AsyncIterable<UnixFSGalleryDiscoveryState> {
+    return this.queue
+  }
 
-    const entryPath = joinUnixFSDisplayPath(scopePath || '/', entry.name)
+  async start(): Promise<void> {
+    this.emit(false)
+    this.rootDir = this.createDir(this.rootHandle, this.scopeRoot)
+    await this.rootDir.start()
+    this.emit(true)
+  }
+
+  stop(): void {
+    if (this.stopped) return
+    this.stopped = true
+    this.rootDir?.stop()
+    this.queue.close()
+  }
+
+  private async startDir(
+    handle: FSHandle,
+    path: string,
+  ): Promise<WatchedGalleryDir> {
+    const dir = this.createDir(handle, path)
+    await dir.start()
+    return dir
+  }
+
+  private createDir(handle: FSHandle, path: string): WatchedGalleryDir {
+    const dir = new WatchedGalleryDir(
+      handle,
+      path,
+      this.scopeRoot,
+      this.signal,
+      this,
+    )
+    this.dirs.add(dir)
+    return dir
+  }
+
+  removeDir(dir: WatchedGalleryDir): void {
+    this.dirs.delete(dir)
+  }
+
+  async watchChildDir(
+    parent: WatchedGalleryDir,
+    name: string,
+    path: string,
+  ): Promise<WatchedGalleryDir> {
+    const handle = await parent.handle.lookup(name, parent.signal)
+    return this.startDir(handle, path)
+  }
+
+  addError(path: string, err: unknown): void {
+    this.errors.push(formatDiscoveryError(path, err))
+  }
+
+  emit(complete: boolean): void {
+    const state = buildDiscoveryState(
+      this.scopeRoot,
+      [...this.dirs].flatMap((dir) => [...dir.images.values()]),
+      this.errors,
+      complete,
+    )
+    const stateKey = JSON.stringify(state)
+    if (stateKey === this.lastStateKey) {
+      return
+    }
+    this.lastStateKey = stateKey
+    this.queue.push(state)
+  }
+
+  fail(err: unknown): void {
+    this.queue.fail(err)
+  }
+}
+
+class WatchedGalleryDir {
+  readonly abort: AbortController
+  readonly children = new Map<string, WatchedGalleryDir>()
+  readonly images = new Map<string, UnixFSGalleryCandidate>()
+
+  constructor(
+    readonly handle: FSHandle,
+    readonly path: string,
+    private readonly scopeRoot: string,
+    private readonly parentSignal: AbortSignal,
+    private readonly scope: LiveGalleryScope,
+  ) {
+    this.abort = makeChildAbortController(parentSignal)
+  }
+
+  get signal(): AbortSignal {
+    return this.abort.signal
+  }
+
+  async start(): Promise<void> {
     try {
-      using child = await handle.lookup(entry.name, signal)
+      const iter = this.handle.watchReaddir(this.signal)[Symbol.asyncIterator]()
+      const first = await iter.next()
+      if (!first.done) {
+        await this.applyEntries(first.value ?? [])
+      }
+      void this.watch(iter)
+    } catch (err) {
+      if (!this.signal.aborted) {
+        this.scope.addError(this.path, err)
+        this.scope.emit(true)
+      }
+    }
+  }
+
+  stop(): void {
+    this.abort.abort()
+    for (const child of this.children.values()) {
+      child.stop()
+    }
+    this.children.clear()
+    this.images.clear()
+    this.scope.removeDir(this)
+    this.handle[Symbol.dispose]()
+  }
+
+  private async watch(iter: AsyncIterator<DirEntry[]>): Promise<void> {
+    try {
+      for (;;) {
+        const next = await iter.next()
+        if (next.done) return
+        await this.applyEntries(next.value ?? [])
+        this.scope.emit(true)
+      }
+    } catch (err) {
+      if (!this.signal.aborted) {
+        this.scope.addError(this.path, err)
+        this.scope.emit(true)
+      }
+    } finally {
+      await iter.return?.()
+    }
+  }
+
+  private async applyEntries(entries: DirEntry[]): Promise<void> {
+    const nextChildren = new Set<string>()
+    const nextImages = new Map<string, UnixFSGalleryCandidate>()
+    const sortedEntries = entries.toSorted((a, b) =>
+      (a.name ?? '').localeCompare(b.name ?? ''),
+    )
+
+    for (const entry of sortedEntries) {
+      if (!entry.name) {
+        continue
+      }
+
+      const entryPath = joinUnixFSDisplayPath(this.path || '/', entry.name)
       if (getUnixFSDirEntryKind(entry) === 'directory') {
-        yield* streamGalleryScope(
-          child,
-          scopeRoot,
-          entryPath,
-          signal,
-          discovered,
-          errors,
-        )
+        nextChildren.add(entry.name)
+        if (!this.children.has(entry.name)) {
+          try {
+            this.children.set(
+              entry.name,
+              await this.scope.watchChildDir(this, entry.name, entryPath),
+            )
+          } catch (err) {
+            this.scope.addError(entryPath, err)
+          }
+        }
         continue
       }
 
@@ -183,16 +398,23 @@ async function* streamGalleryScope(
       if (!galleryMimeTypes.has(mimeType)) {
         continue
       }
-      discovered.push({
+      nextImages.set(entry.name, {
         path: entryPath,
         name: entry.name,
-        label: getScopeRelativeLabel(scopeRoot, entryPath),
+        label: getScopeRelativeLabel(this.scopeRoot, entryPath),
         mimeType,
       })
-      yield buildDiscoveryState(scopeRoot, discovered, errors, false)
-    } catch (err) {
-      errors.push(formatDiscoveryError(entryPath, err))
-      yield buildDiscoveryState(scopeRoot, discovered, errors, false)
+    }
+
+    for (const [name, child] of this.children) {
+      if (!nextChildren.has(name)) {
+        child.stop()
+        this.children.delete(name)
+      }
+    }
+    this.images.clear()
+    for (const [name, image] of nextImages) {
+      this.images.set(name, image)
     }
   }
 }
@@ -214,8 +436,8 @@ export async function collectUnixFSGalleryCandidates(
   return walkGalleryScope(scopeHandle, scopeRoot, scopeRoot, signal)
 }
 
-// streamUnixFSGalleryCandidates streams discovered gallery items as the scoped
-// subtree walk progresses.
+// streamUnixFSGalleryCandidates watches the scoped UnixFS subtree and streams
+// the complete discovered gallery state whenever a watched directory changes.
 export async function* streamUnixFSGalleryCandidates(
   rootHandle: FSHandle,
   scopePath: string,
@@ -226,18 +448,19 @@ export async function* streamUnixFSGalleryCandidates(
     scopePath || '/',
     signal,
   )
-  const scopeRoot = resolvedScope.scopePath
-  const discovered: UnixFSGalleryCandidate[] = []
-  const errors: string[] = []
-  yield buildDiscoveryState(scopeRoot, discovered, errors, false)
-  using scopeHandle = resolvedScope.handle
-  yield* streamGalleryScope(
-    scopeHandle,
-    scopeRoot,
-    scopeRoot,
+  const liveScope = new LiveGalleryScope(
+    resolvedScope.scopePath,
+    resolvedScope.handle,
     signal,
-    discovered,
-    errors,
   )
-  yield buildDiscoveryState(scopeRoot, discovered, errors, true)
+  try {
+    void liveScope.start().catch((err: unknown) => {
+      if (!signal.aborted) {
+        liveScope.fail(err)
+      }
+    })
+    yield* liveScope.stream()
+  } finally {
+    liveScope.stop()
+  }
 }

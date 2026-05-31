@@ -1,6 +1,6 @@
 import 'react-photo-view/dist/react-photo-view.css'
 
-import { useCallback, useState, type MouseEventHandler } from 'react'
+import { useCallback, useMemo, useState, type MouseEventHandler } from 'react'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { LuDownload, LuExternalLink, LuImage } from 'react-icons/lu'
 
@@ -21,10 +21,13 @@ import {
   buildUnixFSFileInlineURL,
 } from './download.js'
 import {
+  type UnixFSGalleryCandidate,
   type UnixFSGalleryDiscoveryState,
   streamUnixFSGalleryCandidates,
 } from './gallery.js'
 import { UnixFSBrowser, type UnixFSBrowserBodyProps } from './UnixFSBrowser.js'
+
+const emptyGalleryItems: UnixFSGalleryCandidate[] = []
 
 interface GalleryPreviewItem {
   path: string
@@ -116,21 +119,33 @@ function UnixFSGalleryBody({
       ),
       [currentPath],
     )
-  const galleryItems = galleryState.value?.items ?? []
+  const galleryItems = galleryState.value?.items ?? emptyGalleryItems
   const galleryErrors = galleryState.value?.errors ?? []
   const galleryComplete = galleryState.value?.complete ?? false
   const scopePath = galleryState.value?.scopePath ?? currentPath
-  const previewItems: GalleryPreviewItem[] = galleryItems.map((item) => ({
-    path: item.path,
-    name: item.name,
-    label: item.label,
-    mimeType: item.mimeType,
-    previewURL:
-      !sessionIndex || !spaceId
-        ? undefined
-        : buildUnixFSFileInlineURL(sessionIndex, spaceId, unixfsId, item.path),
-  }))
-  const lightboxItems = previewItems.filter((item) => !!item.previewURL)
+  const previewItems: GalleryPreviewItem[] = useMemo(
+    () =>
+      galleryItems.map((item) => ({
+        path: item.path,
+        name: item.name,
+        label: item.label,
+        mimeType: item.mimeType,
+        previewURL:
+          !sessionIndex || !spaceId
+            ? undefined
+            : buildUnixFSFileInlineURL(
+                sessionIndex,
+                spaceId,
+                unixfsId,
+                item.path,
+              ),
+      })),
+    [galleryItems, sessionIndex, spaceId, unixfsId],
+  )
+  const lightboxItems = useMemo(
+    () => previewItems.filter((item) => !!item.previewURL),
+    [previewItems],
+  )
   const isScanning = !galleryComplete && !galleryState.error
   const hasItems = previewItems.length > 0
   const handlePortalContainer = useCallback((el: HTMLDivElement | null) => {
