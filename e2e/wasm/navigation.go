@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	playwright "github.com/playwright-community/playwright-go"
@@ -35,7 +36,18 @@ func WaitForApp(t testing.TB, page playwright.Page) {
 		deadlineMS = 240000
 	}
 
-	_, err := page.Evaluate(`async ({ deadlineMS }) => {
+	deadline := time.Now().Add(time.Duration(deadlineMS) * time.Millisecond)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		remainingMS := time.Until(deadline).Milliseconds()
+		if remainingMS <= 0 {
+			break
+		}
+		evalWindowMS := int64(10000)
+		if remainingMS < evalWindowMS {
+			evalWindowMS = remainingMS
+		}
+		_, err := page.Evaluate(`async ({ deadlineMS }) => {
 		const deadline = performance.now() + deadlineMS
 		let booted = false
 		let readyResolved = !globalThis.__swReady
@@ -70,19 +82,39 @@ func WaitForApp(t testing.TB, page playwright.Page) {
 			await new Promise((resolve) => requestAnimationFrame(resolve))
 		}
 		return null
-	}`, map[string]any{"deadlineMS": deadlineMS})
-	if err != nil {
-		body, bodyErr := page.Locator("body").TextContent()
-		if bodyErr != nil {
-			body = "failed to read body text: " + bodyErr.Error()
+	}`, map[string]any{"deadlineMS": evalWindowMS})
+		if err == nil {
+			return
 		}
-		t.Fatalf(
-			"app not ready: %v\nurl: %s\nbody: %s",
-			err,
-			page.URL(),
-			trimPageText(body),
-		)
+		lastErr = err
+		if !isTransientAppWaitError(err) {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
 	}
+
+	body, bodyErr := page.Locator("body").TextContent()
+	if bodyErr != nil {
+		body = "failed to read body text: " + bodyErr.Error()
+	}
+	t.Fatalf(
+		"app not ready: %v\nurl: %s\nbody: %s",
+		lastErr,
+		page.URL(),
+		trimPageText(body),
+	)
+}
+
+func isTransientAppWaitError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "execution context was destroyed") ||
+		strings.Contains(msg, "most likely because of a navigation") ||
+		strings.Contains(msg, "cannot find context with specified id") ||
+		strings.Contains(msg, "target closed") ||
+		strings.Contains(msg, "debug context did not initialize before deadline")
 }
 
 func AssertBrowserStartupDone(t testing.TB, h *Harness, page playwright.Page) map[string]any {

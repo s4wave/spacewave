@@ -60,6 +60,7 @@ func (h *Harness) NewCleanSession(t testing.TB) *TestSession {
 	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
+	WaitForApp(t, s.page)
 
 	ctx, cancel := context.WithCancel(h.ctx)
 	t.Cleanup(cancel)
@@ -115,6 +116,7 @@ func (h *Harness) NewCleanPageSession(t testing.TB) *TestSession {
 	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
+	WaitForApp(t, s.page)
 
 	return s
 }
@@ -150,6 +152,7 @@ func (h *Harness) NewRetainedStatePageSession(t testing.TB) *TestSession {
 	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
+	WaitForApp(t, s.page)
 
 	return s
 }

@@ -1,9 +1,13 @@
-Status:           running
-Socket:           $WORK/state/spacewave.sock
-Session Index:    1
-Session:          01xxxxxx...
-Peer:             12D3KooXXXXXXXXXXXXX...
-Provider:         local
-Account:          01xxxxxxxxxxxxxxxxxxxxxxxx
-Lock:             unlocked (auto)
-Spaces:           1
+Status:              running
+Socket:              $WORK/state/spacewave.sock
+Session Index:       1
+Session:             01xxxxxx...
+Peer:                12D3KooXXXXXXXXXXXXX...
+Provider:            local
+Account:             01xxxxxxxxxxxxxxxxxxxxxxxx
+Lock:                unlocked (auto)
+Spaces:              1
+Plugin Manifests:    0
+Native Packages:     0
+Boot Recovery:       not-reported
+Runtime Asset:       not-reported

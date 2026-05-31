@@ -154,16 +154,22 @@ describe('SpaceObjectBrowser', () => {
   it('renders tree with top-level nodes', async () => {
     renderBrowser()
     await waitFor(() => {
-      expect(screen.getByText('canvas-1')).toBeDefined()
+      expect(
+        screen.getByRole('treeitem', { name: /Canvas 1, Canvas/i }),
+      ).toBeDefined()
       expect(screen.getByText('files')).toBeDefined()
-      expect(screen.getByText('object-layout')).toBeDefined()
+      expect(
+        screen.getByRole('treeitem', { name: /Object Layout/i }),
+      ).toBeDefined()
     })
   })
 
   it('does not render the settings object in the tree', async () => {
     renderBrowser()
     await waitFor(() => {
-      expect(screen.getByText('canvas-1')).toBeDefined()
+      expect(
+        screen.getByRole('treeitem', { name: /Canvas 1, Canvas/i }),
+      ).toBeDefined()
     })
     // "settings" objectKey with type "space/settings" should be filtered out
     // It would appear as a top-level node named "settings" if not hidden
@@ -188,7 +194,9 @@ describe('SpaceObjectBrowser', () => {
     renderBrowser(fullyQualifiedSettingsState)
     expect(screen.getByText('(1)')).toBeDefined()
     await waitFor(() => {
-      expect(screen.getByText('canvas-1')).toBeDefined()
+      expect(
+        screen.getByRole('treeitem', { name: /Canvas 1, Canvas/i }),
+      ).toBeDefined()
     })
     expect(screen.queryByText('settings')).toBeNull()
   })
@@ -196,9 +204,13 @@ describe('SpaceObjectBrowser', () => {
   it('renders virtual folder nodes for prefix paths', async () => {
     renderBrowser()
     await waitFor(() => {
-      expect(screen.getByText('canvas-1')).toBeDefined()
+      expect(
+        screen.getByRole('treeitem', { name: /Canvas 1, Canvas/i }),
+      ).toBeDefined()
       expect(screen.getByText('files')).toBeDefined()
-      expect(screen.getByText('object-layout')).toBeDefined()
+      expect(
+        screen.getByRole('treeitem', { name: /Object Layout/i }),
+      ).toBeDefined()
     })
   })
 
@@ -242,7 +254,9 @@ describe('SpaceObjectBrowser', () => {
     }
     renderBrowser(gitState)
 
-    const node = await screen.findByText('repo-1')
+    const node = await screen.findByRole('treeitem', {
+      name: /Repo 1, Git Repository/i,
+    })
     fireEvent.contextMenu(node, { clientX: 120, clientY: 140 })
     fireEvent.click(screen.getByRole('button', { name: /rename object key/i }))
 
@@ -304,7 +318,7 @@ describe('SpaceObjectBrowser', () => {
     renderBrowser()
 
     fireEvent.click(
-      screen.getByRole('button', { name: /expand object-layout/i }),
+      screen.getByRole('button', { name: /expand object layout/i }),
     )
 
     const node = await screen.findByText('main')

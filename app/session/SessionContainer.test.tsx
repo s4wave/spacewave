@@ -116,6 +116,7 @@ vi.mock('@s4wave/web/state/index.js', () => ({
 
 vi.mock('@aptre/bldr-react', () => ({
   DebugInfo: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  webViewRootAssetStatusEvent: 'bldr:webview-root-asset-status',
 }))
 
 vi.mock('./SessionCommands.js', () => ({

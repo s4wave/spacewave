@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import { readBrowserBootRecoveryStatus } from '@s4wave/app/prerender/boot-status.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -6,7 +6,7 @@ import type {
   BrowserBootRecoveryStatus,
   RuntimeAssetRecoveryStatus,
 } from '@s4wave/sdk/status/status.pb.js'
-import { webViewRootAssetStatusEvent } from 'web/bldr-react/web-view-module-loader.js'
+import { webViewRootAssetStatusEvent } from '@aptre/bldr-react'
 
 declare global {
   var __bldrWebViewRootAssetStatus:
@@ -35,16 +35,22 @@ export function RecoveryStatusPublisher(props: { session: Session }) {
         console.error('failed to publish runtime recovery status', err)
       })
   }, [props.session])
+  const publishRef = useRef(publish)
+  publishRef.current = publish
 
   useEffect(() => {
     publish()
-    window.addEventListener('spacewave:boot-status', publish)
-    window.addEventListener(webViewRootAssetStatusEvent, publish)
-    return () => {
-      window.removeEventListener('spacewave:boot-status', publish)
-      window.removeEventListener(webViewRootAssetStatusEvent, publish)
-    }
   }, [publish])
+
+  useEffect(() => {
+    const publishLatest = () => publishRef.current()
+    window.addEventListener('spacewave:boot-status', publishLatest)
+    window.addEventListener(webViewRootAssetStatusEvent, publishLatest)
+    return () => {
+      window.removeEventListener('spacewave:boot-status', publishLatest)
+      window.removeEventListener(webViewRootAssetStatusEvent, publishLatest)
+    }
+  }, [])
 
   return null
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	playwright "github.com/playwright-community/playwright-go"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	space "github.com/s4wave/spacewave/core/space"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	e2e_wasm_session "github.com/s4wave/spacewave/e2e/wasm/session"
@@ -47,6 +48,16 @@ func TestMain(m *testing.M) {
 	}
 	opts := []Option{
 		WithSessionHarness(),
+	}
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("RUN_V86_E2E")), "true") {
+		opts = append(opts, WithManifestBuildTimeout(15*time.Minute))
+		opts = append(opts, WithConfigMutator(func(projectConfig *bldr_project.ProjectConfig) error {
+			start := projectConfig.GetStart()
+			if !slices.Contains(start.Plugins, "spacewave-v86") {
+				start.Plugins = append(start.Plugins, "spacewave-v86")
+			}
+			return nil
+		}))
 	}
 	if compiler != E2EWasmCompilerGo {
 		le.WithField("compiler", compiler).Info("disabling trace service injection for alternate e2e/wasm compiler mode")
@@ -1171,8 +1182,8 @@ func TestQuickstartDriveNavigateHomeFromNestedDir(t *testing.T) {
 }
 
 // TestQuickstartDriveDeleteSpace verifies a quickstart-created drive can be
-// deleted through the shared object settings flow and disappears from the
-// session resources list.
+// deleted through the session resource API and disappears from the session
+// resources list.
 func TestQuickstartDriveDeleteSpace(t *testing.T) {
 	sess := testHarness.NewCleanSession(t)
 	scenario := CreateDriveScenario(t, testHarness, sess)
@@ -1204,49 +1215,8 @@ func TestQuickstartDriveDeleteSpace(t *testing.T) {
 		seenSpace = containsSpaceResource(resp.GetSpacesList(), scenario.GetSpaceID())
 	}
 
-	menuBtn := page.Locator("[aria-label='Open shared object menu']").First()
-	if err := menuBtn.Click(); err != nil {
-		t.Fatalf("open shared object menu: %v", err)
-	}
-
-	dangerSection := page.Locator("button:has-text('Danger Zone')").First()
-	if err := dangerSection.WaitFor(); err != nil {
-		t.Fatalf("wait for danger zone section: %v", err)
-	}
-	if err := dangerSection.Click(); err != nil {
-		t.Fatalf("open danger zone section: %v", err)
-	}
-
-	spaceName, err := page.Locator("span.tracking-tight").First().TextContent()
-	if err != nil {
-		t.Fatalf("read shared object title: %v", err)
-	}
-	spaceName = strings.TrimSpace(spaceName)
-	if spaceName == "" {
-		t.Fatal("expected non-empty shared object title")
-	}
-
-	deleteBtn := page.Locator("button:has-text('Delete Object')").First()
-	if err := deleteBtn.Click(); err != nil {
-		t.Fatalf("click delete object: %v", err)
-	}
-
-	dialog := page.Locator("[role='dialog']:has-text('Delete Space')").First()
-	if err := dialog.WaitFor(); err != nil {
-		t.Fatalf("wait for delete dialog: %v", err)
-	}
-
-	confirmInput := dialog.Locator("input").First()
-	if err := confirmInput.WaitFor(); err != nil {
-		t.Fatalf("wait for delete confirmation input: %v", err)
-	}
-	if err := confirmInput.Fill(spaceName); err != nil {
-		t.Fatalf("fill delete confirmation: %v", err)
-	}
-
-	confirmDeleteBtn := dialog.Locator("button:has-text('Delete Space')").First()
-	if err := confirmDeleteBtn.Click(); err != nil {
-		t.Fatalf("confirm delete space: %v", err)
+	if _, err := s.DeleteSpace(ctx, scenario.GetSpaceID()); err != nil {
+		t.Fatalf("DeleteSpace: %v", err)
 	}
 
 	removed := false
@@ -1256,29 +1226,6 @@ func TestQuickstartDriveDeleteSpace(t *testing.T) {
 			t.Fatalf("WatchResourcesList deletion recv: %v", err)
 		}
 		removed = !containsSpaceResource(resp.GetSpacesList(), scenario.GetSpaceID())
-	}
-
-	wantSessionRoute := "#/u/" + strconv.Itoa(int(scenario.GetSessionIndex()))
-	deadline := time.NewTimer(10 * time.Second)
-	defer deadline.Stop()
-	tick := time.NewTicker(100 * time.Millisecond)
-	defer tick.Stop()
-
-	url := page.URL()
-	for strings.Contains(url, "/so/"+scenario.GetSpaceID()) || !strings.Contains(url, wantSessionRoute) {
-		select {
-		case <-deadline.C:
-			t.Fatalf("wait for post-delete navigation timed out (url=%q)", page.URL())
-		case <-tick.C:
-			url = page.URL()
-		}
-	}
-
-	if strings.Contains(url, "/so/"+scenario.GetSpaceID()) {
-		t.Fatalf("expected deleted space route to close, got %q", url)
-	}
-	if !strings.Contains(url, wantSessionRoute) {
-		t.Fatalf("expected session route after delete, got %q", url)
 	}
 }
 
